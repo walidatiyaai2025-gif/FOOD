@@ -131,12 +131,37 @@ final class WhatsAppCampaignController extends Controller
         $data = $this->campaignInput($request, false);
         $segment = $audience->scopedSegment($actor, $this->segmentInput($data));
 
-        return response()->json($campaigns->preview(
+        $template = null;
+        $templateApproved = false;
+        if (! empty($data['template_id'])) {
+            $template = DB::table('whats_app_templates')
+                ->where('id', (int) $data['template_id'])
+                ->first(['id', 'name', 'category', 'locale', 'provider_status', 'is_active']);
+            $templateApproved = $template !== null
+                && (bool) $template->is_active
+                && strtolower((string) $template->provider_status) === 'approved';
+        }
+
+        $preview = $campaigns->preview(
             $segment,
             (bool) ($data['test_mode'] ?? true),
             $this->allowlist($data['test_allowlist'] ?? []),
             (int) ($data['max_recipients'] ?? 1000),
-        ) + ['segment' => $segment]);
+            (int) ($data['batch_size'] ?? 50),
+            $templateApproved,
+        );
+
+        return response()->json($preview + [
+            'segment' => $segment,
+            'template' => $template === null ? null : [
+                'id' => (int) $template->id,
+                'name' => (string) $template->name,
+                'category' => strtolower((string) $template->category),
+                'locale' => strtolower((string) $template->locale),
+                'provider_status' => strtolower((string) $template->provider_status),
+                'approved' => $templateApproved,
+            ],
+        ]);
     }
 
     public function importPreview(
@@ -173,6 +198,10 @@ final class WhatsAppCampaignController extends Controller
             'mapping.name' => ['required', 'string', 'max:255'],
             'mapping.phone' => ['required', 'string', 'max:255'],
             'mapping.email' => ['nullable', 'string', 'max:255'],
+            'mapping.consent_state' => ['nullable', 'string', 'max:255'],
+            'mapping.consent_source' => ['nullable', 'string', 'max:255'],
+            'mapping.consent_evidence' => ['nullable', 'string', 'max:255'],
+            'mapping.consent_date' => ['nullable', 'string', 'max:255'],
             'consent_state' => ['nullable', Rule::in([
                 MarketingConsentService::GRANTED,
                 MarketingConsentService::DENIED,
@@ -208,6 +237,14 @@ final class WhatsAppCampaignController extends Controller
             'contacts.*.name' => ['nullable', 'string', 'max:255'],
             'contacts.*.phone' => ['nullable', 'string', 'max:64'],
             'contacts.*.email' => ['nullable', 'string', 'max:255'],
+            'contacts.*.consent_state' => ['nullable', Rule::in([
+                MarketingConsentService::GRANTED,
+                MarketingConsentService::DENIED,
+                MarketingConsentService::OPTED_OUT,
+            ])],
+            'contacts.*.consent_source' => ['nullable', 'string', 'max:64'],
+            'contacts.*.consent_evidence' => ['nullable', 'string', 'max:1000'],
+            'contacts.*.consent_date' => ['nullable', 'string', 'max:64'],
             'manual_lines' => ['nullable', 'string', 'max:100000'],
             'consent_state' => ['nullable', Rule::in([
                 MarketingConsentService::GRANTED,
@@ -230,38 +267,56 @@ final class WhatsAppCampaignController extends Controller
             ], 422);
         }
 
-        $result = $audience->importRows(
-            $actor,
-            $rows,
-            (int) $data['store_id'],
-            'campaign_manual',
-            $data['consent_state'] ?? null,
-            $data['consent_source'] ?? null,
-            $data['consent_evidence'] ?? null,
-        );
+        [$batchId, $result] = DB::transaction(function () use ($actor, $rows, $data, $audience, $scope): array {
+            $now = now();
+            $batchId = (int) DB::table('whats_app_campaign_contact_imports')->insertGetId([
+                'public_id' => (string) Str::uuid(),
+                'actor_user_id' => $actor->getKey(),
+                'store_id' => (int) $data['store_id'],
+                'channel' => $scope->storeChannel((int) $data['store_id']),
+                'source_type' => 'manual',
+                'original_filename' => null,
+                'stored_path' => null,
+                'status' => 'preview',
+                'rows_total' => count($rows),
+                'created_count' => 0,
+                'matched_count' => 0,
+                'updated_count' => 0,
+                'skipped_count' => 0,
+                'invalid_count' => 0,
+                'summary' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
-        $batchId = (int) DB::table('whats_app_campaign_contact_imports')->insertGetId([
-            'public_id' => (string) Str::uuid(),
-            'actor_user_id' => $actor->getKey(),
-            'store_id' => (int) $data['store_id'],
-            'channel' => $scope->storeChannel((int) $data['store_id']),
-            'source_type' => 'manual',
-            'original_filename' => null,
-            'stored_path' => null,
-            'status' => 'committed',
-            'rows_total' => count($rows),
-            'created_count' => $result['created'],
-            'matched_count' => $result['matched'],
-            'updated_count' => $result['updated'],
-            'skipped_count' => $result['skipped'],
-            'invalid_count' => $result['invalid'],
-            'summary' => json_encode([
-                'customer_ids' => $result['customer_ids'],
-                'errors' => $result['errors'],
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            $result = $audience->importRows(
+                $actor,
+                $rows,
+                (int) $data['store_id'],
+                'campaign_manual',
+                $data['consent_state'] ?? null,
+                $data['consent_source'] ?? null,
+                $data['consent_evidence'] ?? null,
+                $batchId,
+            );
+
+            DB::table('whats_app_campaign_contact_imports')->where('id', $batchId)->update([
+                'status' => 'committed',
+                'created_count' => $result['created'],
+                'matched_count' => $result['matched'],
+                'updated_count' => $result['updated'],
+                'skipped_count' => $result['skipped'],
+                'invalid_count' => $result['invalid'],
+                'summary' => json_encode([
+                    'customer_ids' => $result['customer_ids'],
+                    'errors' => $result['errors'],
+                    'consent_skipped' => $result['consent_skipped'] ?? 0,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at' => now(),
+            ]);
+
+            return [$batchId, $result];
+        }, 3);
 
         return response()->json(['ok' => true, 'batch_id' => $batchId] + $result);
     }
@@ -641,6 +696,13 @@ final class WhatsAppCampaignController extends Controller
             'test_allowlist' => ['nullable'],
             'max_recipients' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ];
+
+        if (! $withCampaign) {
+            $rules += [
+                'template_id' => ['nullable', 'integer', 'min:1'],
+                'batch_size' => ['sometimes', 'integer', 'min:1', 'max:1000'],
+            ];
+        }
 
         if ($withCampaign) {
             $rules += [
