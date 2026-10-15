@@ -42,6 +42,7 @@ return new class extends Migration
 
         Schema::create('smart_ordering_delivery_zones', function (Blueprint $table): void {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->foreignId('branch_id')->constrained('smart_ordering_branches')->cascadeOnDelete();
             $table->string('name');
             $table->decimal('center_latitude', 10, 7);
