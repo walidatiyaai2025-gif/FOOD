@@ -114,7 +114,9 @@ class SmartOrderingQrTest extends TestCase
         $this->assertSame($promotionId, $attribution->promotionIdForCart($cart));
 
         $this->expectException(ValidationException::class);
-        $attribution->serverContext(substr($context, 0, -1).'0', $store);
+        $last = substr($context, -1);
+        $forged = substr($context, 0, -1).($last === '0' ? '1' : '0');
+        $attribution->serverContext($forged, $store);
     }
 
     public function test_attribution_survives_cart_checkout_and_order_with_server_owned_revenue(): void
