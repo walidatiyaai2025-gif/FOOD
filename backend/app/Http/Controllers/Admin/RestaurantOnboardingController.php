@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class RestaurantOnboardingController extends Controller
