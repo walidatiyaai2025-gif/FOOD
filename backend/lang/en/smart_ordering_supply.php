@@ -4,6 +4,8 @@ return [
     'title' => 'FOODEX Supply Intelligence',
     'subtitle' => 'Map menu recipes to explainable estimated consumption and safe draft-only replenishment.',
     'smart_ordering_settings' => 'Smart Ordering settings',
+    'nav_description' => 'Estimated consumption from completed orders, recipe mapping, and safe draft-only replenishment.',
+    'open_supply' => 'Open supply intelligence',
     'disclaimer' => 'Important: every consumption figure here is an estimate derived from completed Smart Ordering orders. It is not counted or physical inventory. Purchases are never submitted automatically.',
     'period_scope' => 'Period & branch scope',
     'from' => 'From',
