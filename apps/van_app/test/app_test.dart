@@ -13,6 +13,7 @@ import 'package:foodex_van_app/features/notifications/van_notification_contract.
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 import 'package:foodex_van_app/features/orders/van_order_detail_page.dart';
+import 'package:foodex_van_app/features/orders/van_orders_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_proof_picker.dart';
 import 'package:foodex_van_app/shared/van_action_button.dart';
 
@@ -1300,6 +1301,87 @@ void main() {
     );
   });
 
+  testWidgets(
+      'Van Orders loads later pages with retry and preserves paging on refresh',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final orders = _OrderRepository()
+      ..historyTotal = 101
+      ..failPageTwoOnce = true;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: VanOrdersPage(
+            repository: orders,
+            customerRepository: const _CustomerWalletRepository(),
+            onSessionExpired: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Showing 50 of 101 orders'), findsOneWidget);
+    expect(orders.requestedOrderPages, [1]);
+
+    await tester.tap(find.byKey(const ValueKey('van-orders-filter-new')));
+    await tester.pumpAndSettle();
+
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('van-orders-page')),
+      matching: find.byType(Scrollable),
+    ).first;
+    final loadMore = find.byKey(const ValueKey('van-orders-load-more'));
+    await _scrollUntilBuilt(tester, scrollable, loadMore);
+    await tester.ensureVisible(loadMore);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('van-orders-load-more-error')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('van-orders-load-more-retry')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Showing 100 of 101 orders'), findsOneWidget);
+
+    await _scrollUntilBuilt(tester, scrollable, loadMore);
+    await tester.ensureVisible(loadMore);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Showing 101 of 101 orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-orders-end')), findsOneWidget);
+    expect(orders.requestedOrderPages, [1, 2, 2, 3]);
+
+    final refresh = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    await refresh.onRefresh();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Showing 101 of 101 orders'), findsOneWidget);
+    expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-orders-filter-new')),
+      -400,
+      scrollable: scrollable,
+    );
+    final selected = tester.widget<ChoiceChip>(
+      find.byKey(const ValueKey('van-orders-filter-new')),
+    );
+    expect(selected.selected, isTrue);
+  });
+
 }
 
 
@@ -1964,6 +2046,9 @@ class _RouteCustomersRepository implements VanWalletRepository {
 
 class _OrderRepository implements VanOrderRepository {
   int createdCount = 0;
+  int historyTotal = 0;
+  bool failPageTwoOnce = false;
+  final List<int> requestedOrderPages = [];
   String executionStatus = 'assigned';
   bool deliveryProofReady = false;
   String? failureReasonCode;
@@ -2063,10 +2148,53 @@ class _OrderRepository implements VanOrderRepository {
   }
 
   @override
-  Future<List<VanOrderRecord>> orders({
+  Future<VanOrderPage> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async => createdCount == 0 ? const [] : [_record()];
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    requestedOrderPages.add(page);
+    if (failPageTwoOnce && page == 2) {
+      failPageTwoOnce = false;
+      throw StateError('page two unavailable');
+    }
+
+    final total = historyTotal > 0 ? historyTotal : (createdCount == 0 ? 0 : 1);
+    final start = (page - 1) * perPage;
+    final available = total - start;
+    final length = available <= 0
+        ? 0
+        : (available < perPage ? available : perPage);
+    final items = historyTotal > 0
+        ? List<VanOrderRecord>.generate(
+            length,
+            (offset) {
+              final index = start + offset;
+              return VanOrderRecord(
+                id: 7001 + index,
+                orderNumber:
+                    'FDX-B2B-HISTORY-${(index + 1).toString().padLeft(3, '0')}',
+                customerType: 'b2b',
+                customerId: 42,
+                storeId: 7,
+                status: 'pending',
+                currency: 'KWD',
+                grandTotal: 12,
+                vanExecutionStatus: 'assigned',
+              );
+            },
+            growable: false,
+          )
+        : (page == 1 && createdCount > 0 ? [_record()] : <VanOrderRecord>[]);
+
+    return VanOrderPage(
+      items: items,
+      currentPage: page,
+      perPage: perPage,
+      total: total,
+    );
+  }
 
   @override
   Future<VanOrderDetail> order(int orderId) async => VanOrderDetail(
