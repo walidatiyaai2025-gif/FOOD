@@ -69,6 +69,13 @@ final class MetaTemplateService
             ]);
         }
 
+        $providerTemplateId = $this->nullableString($response->json('id'));
+        if ($providerTemplateId === null) {
+            throw ValidationException::withMessages([
+                'template' => [__('whatsapp.campaigns.meta_template_provider_rejected')],
+            ]);
+        }
+
         $status = $this->status((string) $response->json('status', 'pending'));
         $templateId = $this->registry->upsert([
             'name' => trim((string) ($data['name'] ?? $providerName)),
@@ -84,7 +91,7 @@ final class MetaTemplateService
         return [
             'template_id' => $templateId,
             'provider_status' => $status,
-            'provider_template_id' => $this->nullableString($response->json('id')),
+            'provider_template_id' => $providerTemplateId,
         ];
     }
 
