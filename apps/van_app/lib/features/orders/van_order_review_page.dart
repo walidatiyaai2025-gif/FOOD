@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_order_contract.dart';
 import 'van_payment_method_labels.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrderReviewPage extends StatefulWidget {
   const VanOrderReviewPage({
