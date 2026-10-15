@@ -557,4 +557,6 @@ Route::prefix('admin')
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
     });
 
+require __DIR__.'/smart_ordering.php';
+
 require __DIR__.'/smart_ordering_web.php';
