@@ -70,32 +70,32 @@ void main() {
   test(
     'removed selections clear instead of silently falling back to defaults',
     () {
-    final draft = VanOrderDraftController();
-    draft.selectCustomer(_customer);
-    draft.applyOptions(_options);
-    draft.setSelection(address: 11, warehouse: 21, payment: 'card');
+      final draft = VanOrderDraftController();
+      draft.selectCustomer(_customer);
+      draft.applyOptions(_options);
+      draft.setSelection(address: 11, warehouse: 21, payment: 'card');
 
-    draft.applyOptions(
-      const VanOrderOptions(
-        addresses: [
-          VanOrderAddressOption(
-            id: 10,
-            label: 'Default',
-            address: 'Street 1',
-            isDefault: true,
-          ),
-        ],
-        warehouses: [
-          VanWarehouseOption(id: 20, code: 'WH-A', name: 'Warehouse A'),
-        ],
-        paymentMethods: ['cash'],
-        defaultPaymentMethod: 'cash',
-      ),
-    );
+      draft.applyOptions(
+        const VanOrderOptions(
+          addresses: [
+            VanOrderAddressOption(
+              id: 10,
+              label: 'Default',
+              address: 'Street 1',
+              isDefault: true,
+            ),
+          ],
+          warehouses: [
+            VanWarehouseOption(id: 20, code: 'WH-A', name: 'Warehouse A'),
+          ],
+          paymentMethods: ['cash'],
+          defaultPaymentMethod: 'cash',
+        ),
+      );
 
-    expect(draft.addressId, isNull);
-    expect(draft.warehouseId, isNull);
-    expect(draft.paymentMethod, isNull);
+      expect(draft.addressId, isNull);
+      expect(draft.warehouseId, isNull);
+      expect(draft.paymentMethod, isNull);
     },
   );
 
