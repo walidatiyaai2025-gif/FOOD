@@ -1407,12 +1407,15 @@ void main() {
     expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
     expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
 
-    final newFilter = find.byKey(const ValueKey('van-orders-filter-new'));
-    await tester.ensureVisible(newFilter);
+    for (var attempt = 0; attempt < 12; attempt++) {
+      await tester.drag(scrollable, const Offset(0, 400));
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
-    final selected = tester.widget<ChoiceChip>(
-      find.byKey(const ValueKey('van-orders-filter-new')),
-    );
+
+    final newFilter = find.byKey(const ValueKey('van-orders-filter-new'));
+    expect(newFilter, findsOneWidget);
+    final selected = tester.widget<ChoiceChip>(newFilter);
     expect(selected.selected, isTrue);
   });
 }
