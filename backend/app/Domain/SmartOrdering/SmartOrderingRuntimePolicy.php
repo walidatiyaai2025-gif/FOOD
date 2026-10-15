@@ -4,6 +4,9 @@ namespace App\Domain\SmartOrdering;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class SmartOrderingRuntimePolicy
@@ -15,7 +18,7 @@ final class SmartOrderingRuntimePolicy
             return null;
         }
 
-        $site = SmartOrderingSite::query()->where('slug', $slug)->first();
+        $site = $this->activeRetailSites()->where('smart_ordering_sites.slug', $slug)->first();
         if ($site instanceof SmartOrderingSite) {
             return $site;
         }
@@ -25,25 +28,32 @@ final class SmartOrderingRuntimePolicy
             ->where('redirect_enabled', true)
             ->value('site_id');
 
-        return $siteId === null ? null : SmartOrderingSite::query()->find((int) $siteId);
+        return $siteId === null
+            ? null
+            : $this->activeRetailSites()->where('smart_ordering_sites.id', (int) $siteId)->first();
     }
 
     public function resolveByHost(string $host): ?SmartOrderingSite
     {
-        $host = strtolower(trim(explode(':', $host, 2)[0]));
-        if ($host === '') {
+        $host = $this->normalizeHost($host);
+        if ($host === null) {
             return null;
         }
 
-        $custom = SmartOrderingSite::query()
-            ->where('custom_domain', $host)
-            ->whereNotNull('custom_domain_verified_at')
+        $custom = $this->activeRetailSites()
+            ->where('smart_ordering_sites.custom_domain', $host)
+            ->whereNotNull('smart_ordering_sites.custom_domain_verified_at')
             ->first();
+
         if ($custom instanceof SmartOrderingSite) {
-            return $custom;
+            return $this->entitled($custom, Module::CUSTOM_DOMAIN) ? $custom : null;
         }
 
-        $baseDomain = strtolower(trim((string) config('smart_ordering.base_domain', 'foodex.com')));
+        $baseDomain = $this->normalizeHost((string) config('smart_ordering.base_domain', 'foodex.com'));
+        if ($baseDomain === null || $host === $baseDomain) {
+            return null;
+        }
+
         $suffix = '.'.$baseDomain;
         if (! str_ends_with($host, $suffix)) {
             return null;
@@ -57,43 +67,96 @@ final class SmartOrderingRuntimePolicy
         return $this->resolveBySlug($slug);
     }
 
-    public function entitled(SmartOrderingSite $site, string $module): bool
-    {
-        if (! in_array($module, (array) config('smart_ordering.entitlements', []), true)) {
+    public function entitled(
+        SmartOrderingSite $site,
+        string|Module $module,
+        ?SmartOrderingBranch $branch = null,
+    ): bool {
+        $moduleValue = $module instanceof Module ? $module->value : $module;
+        if (! in_array($moduleValue, Module::values(), true)) {
             return false;
         }
 
-        return (bool) DB::table('smart_ordering_entitlements')
+        if ($branch !== null) {
+            if ((int) $branch->site_id !== (int) $site->id || ! $branch->is_active) {
+                return false;
+            }
+
+            $branchValue = DB::table('smart_ordering_entitlements')
+                ->where('site_id', $site->id)
+                ->where('scope_key', (string) $branch->public_id)
+                ->where('module', $moduleValue)
+                ->value('enabled');
+
+            if ($branchValue !== null) {
+                return (bool) $branchValue;
+            }
+        }
+
+        return (bool) (DB::table('smart_ordering_entitlements')
             ->where('site_id', $site->id)
-            ->where('module', $module)
-            ->value('enabled');
+            ->where('scope_key', 'site')
+            ->where('module', $moduleValue)
+            ->value('enabled') ?? false);
+    }
+
+    public function effectiveState(SmartOrderingSite $site): RuntimeState
+    {
+        if (! $site->master_enabled) {
+            return RuntimeState::DISABLED;
+        }
+
+        return RuntimeState::tryFrom((string) $site->runtime_state) ?? RuntimeState::DISABLED;
     }
 
     public function allowsPublic(
         SmartOrderingSite $site,
-        string $module,
+        string|Module $module,
         bool $internal = false,
         bool $pilot = false,
+        ?SmartOrderingBranch $branch = null,
     ): bool {
-        if (! $site->master_enabled || ! $this->entitled($site, $module)) {
+        if (! $this->entitled($site, $module, $branch)) {
             return false;
         }
 
-        return match ((string) $site->runtime_state) {
-            'ENABLED' => true,
-            'PILOT' => $pilot || $internal,
-            'INTERNAL_TEST' => $internal,
-            default => false,
+        return match ($this->effectiveState($site)) {
+            RuntimeState::ENABLED => true,
+            RuntimeState::PILOT => $pilot || $internal,
+            RuntimeState::INTERNAL_TEST => $internal,
+            RuntimeState::DISABLED, RuntimeState::EMERGENCY_STOP => false,
         };
+    }
+
+    public function allowsRequest(
+        SmartOrderingSite $site,
+        string|Module $module,
+        Request $request,
+        ?SmartOrderingBranch $branch = null,
+    ): bool {
+        $internal = $this->authorizedInternalRequest($site, $request);
+        $pilot = $internal || $this->hasRuntimeKey($request, 'pilot');
+
+        return $this->allowsPublic($site, $module, $internal, $pilot, $branch);
     }
 
     public function assertPublic(
         SmartOrderingSite $site,
-        string $module,
+        string|Module $module,
         bool $internal = false,
         bool $pilot = false,
+        ?SmartOrderingBranch $branch = null,
     ): void {
-        abort_unless($this->allowsPublic($site, $module, $internal, $pilot), 404);
+        abort_unless($this->allowsPublic($site, $module, $internal, $pilot, $branch), 404);
+    }
+
+    public function assertRequest(
+        SmartOrderingSite $site,
+        string|Module $module,
+        Request $request,
+        ?SmartOrderingBranch $branch = null,
+    ): void {
+        abort_unless($this->allowsRequest($site, $module, $request, $branch), 404);
     }
 
     public function branch(SmartOrderingSite $site, string $publicId): SmartOrderingBranch
@@ -103,5 +166,56 @@ final class SmartOrderingRuntimePolicy
             ->where('public_id', $publicId)
             ->where('is_active', true)
             ->firstOrFail();
+    }
+
+    /** @return Builder<SmartOrderingSite> */
+    private function activeRetailSites(): Builder
+    {
+        return SmartOrderingSite::query()
+            ->select('smart_ordering_sites.*')
+            ->join('stores', 'stores.id', '=', 'smart_ordering_sites.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C');
+    }
+
+    private function authorizedInternalRequest(SmartOrderingSite $site, Request $request): bool
+    {
+        $user = $request->user();
+        if ($user instanceof User && $user->hasPermission('smart_ordering.manage', (int) $site->store_id)) {
+            return true;
+        }
+
+        return $this->hasRuntimeKey($request, 'internal');
+    }
+
+    private function hasRuntimeKey(Request $request, string $kind): bool
+    {
+        $configured = (string) config("smart_ordering.{$kind}_key", '');
+        if ($configured === '') {
+            return false;
+        }
+
+        $header = $kind === 'pilot'
+            ? 'X-FOODEX-Smart-Ordering-Pilot'
+            : 'X-FOODEX-Smart-Ordering-Internal';
+        $provided = (string) $request->header($header, '');
+
+        return $provided !== '' && hash_equals($configured, $provided);
+    }
+
+    private function normalizeHost(string $host): ?string
+    {
+        $host = strtolower(trim($host));
+        if ($host === '') {
+            return null;
+        }
+
+        $parsed = parse_url(str_contains($host, '://') ? $host : 'http://'.$host, PHP_URL_HOST);
+        if (! is_string($parsed) || $parsed === '') {
+            return null;
+        }
+
+        return rtrim(strtolower($parsed), '.');
     }
 }
