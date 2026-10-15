@@ -185,8 +185,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
     }
   }
 
-  String _visitStatusLabel(VanVisitRecord visit) =>
-      _statusLabel(visit.status);
+  String _visitStatusLabel(VanVisitRecord visit) => _statusLabel(visit.status);
 
   String _customerLabel(VanVisitRecord visit) =>
       _customerNames['${visit.customerType}:${visit.customerId}'] ??
@@ -328,7 +327,8 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
               ),
             ],
             if (visit.status == 'started') ...[
-              if (visit.allowedTransitions.contains('completed_with_order')) ...[
+              if (visit.allowedTransitions
+                  .contains('completed_with_order')) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   key: ValueKey('van-visit-order-${visit.id}'),
@@ -354,8 +354,8 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                   ],
                   onChanged: _submitting
                       ? null
-                      : (value) =>
-                          setState(() => _selectedOrderByVisit[visit.id] = value),
+                      : (value) => setState(
+                          () => _selectedOrderByVisit[visit.id] = value),
                 ),
                 const SizedBox(height: 8),
                 VanActionButton.icon(
@@ -494,7 +494,8 @@ class _StateCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(body, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            VanActionButton.secondary(onPressed: onAction, child: Text(actionLabel)),
+            VanActionButton.secondary(
+                onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
       ),
