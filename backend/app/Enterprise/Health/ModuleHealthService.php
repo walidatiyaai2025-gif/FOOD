@@ -119,7 +119,7 @@ final class ModuleHealthService
         foreach ($probes as $probe) {
             try {
                 $checks[] = $probe->check();
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 $checks[] = ModuleHealthCheck::error(
                     key: $probe::class,
                     metadata: ['exception_class' => $exception::class],
