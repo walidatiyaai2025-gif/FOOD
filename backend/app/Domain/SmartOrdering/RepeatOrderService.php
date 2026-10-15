@@ -98,7 +98,7 @@ final class RepeatOrderService
         ]);
 
         $unavailable = collect((array) ($quote['items'] ?? []))
-            ->filter(static fn (array $line): bool => ! (bool) ($line['is_available'] ?? false))
+            ->filter(static fn (array $line): bool => (bool) ($line['is_available'] ?? false) === false)
             ->map(static fn (array $line): array => [
                 'product_id' => (int) ($line['product_id'] ?? 0),
                 'name' => $line['name'] ?? null,
