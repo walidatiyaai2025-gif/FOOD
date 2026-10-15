@@ -665,6 +665,7 @@ final class OrderOperationsController extends Controller
                             ->orWhere('b2b_accounts.company_name', 'like', $needle);
                     });
                 })
+                ->when($selectedId !== null, fn ($scope) => $scope->orderByRaw('b2b_customers.id = ? desc', [$selectedId]))
                 ->orderByRaw('retail_customer_store.id IS NULL')
                 ->orderBy('b2b_accounts.company_name')
                 ->orderBy('b2b_customers.name')
@@ -691,6 +692,7 @@ final class OrderOperationsController extends Controller
                             ->orWhere('email', 'like', $needle);
                     });
                 })
+                ->when($selectedId !== null, fn ($scope) => $scope->orderByRaw('id = ? desc', [$selectedId]))
                 ->orderBy('name')
                 ->orderBy('id')
                 ->offset($offset)
@@ -762,6 +764,7 @@ final class OrderOperationsController extends Controller
                         ->orWhere('products.barcode', 'like', $needle);
                 });
             })
+            ->when($selectedId !== null, fn ($scope) => $scope->orderByRaw('products.id = ? desc', [$selectedId]))
             ->orderBy('products.name')
             ->orderBy('products.id')
             ->offset($offset)
@@ -877,7 +880,8 @@ final class OrderOperationsController extends Controller
                 $customerId,
                 (int) $order->address_id,
             )['items'])->firstWhere('id', (int) $order->address_id);
-        $data['selected_products'] = collect($order->items)
+        $data['selected_products'] = DB::table('order_items')
+            ->where('order_id', $order->getKey())
             ->pluck('product_id')
             ->filter()
             ->unique()
