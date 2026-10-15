@@ -229,7 +229,13 @@ void main() {
             200,
           );
         }
-        return http.Response(jsonEncode({'data': <Object>[]}), 200);
+        return http.Response(
+          jsonEncode({
+            'data': <Object>[],
+            'meta': {'current_page': 1, 'per_page': 20, 'total': 0},
+          }),
+          200,
+        );
       }),
     );
 
@@ -251,6 +257,75 @@ void main() {
     expect(requests[1].url.queryParameters['q'], 'tomato');
     expect(requests[1].url.queryParameters['category'], '3');
     expect(requests.last.url.queryParameters['store'], '7');
+  });
+
+  test('HTTP catalog API preserves paginator metadata and request scope',
+      () async {
+    final requests = <http.Request>[];
+    final api = HttpB2cCatalogApi(
+      baseUrl: 'https://foodex.example',
+      client: MockClient((request) async {
+        requests.add(request);
+        final page = int.parse(request.url.queryParameters['page'] ?? '1');
+        final total = request.url.path.endsWith('/products') ? 45 : 21;
+        final data = request.url.path.endsWith('/products')
+            ? <Object>[
+                {
+                  'id': page * 100,
+                  'name': 'Paged product',
+                  'sku': 'PAGE-$page',
+                  'price': 2.5,
+                },
+              ]
+            : <Object>[];
+        return http.Response(
+          jsonEncode({
+            'data': data,
+            'meta': {
+              'current_page': page,
+              'per_page': 20,
+              'total': total,
+            },
+          }),
+          200,
+        );
+      }),
+    );
+
+    final products = await api.productPage(
+      7,
+      query: ' coffee ',
+      categoryId: 3,
+      sort: 'price',
+      direction: 'desc',
+      page: 2,
+    );
+    final categories = await api.categoryPage(7, page: 2);
+    final offers = await api.offerPage(7, page: 2);
+
+    expect(products.items.single.id, 200);
+    expect(products.currentPage, 2);
+    expect(products.perPage, 20);
+    expect(products.total, 45);
+    expect(products.lastPage, 3);
+    expect(products.hasNextPage, isTrue);
+    expect(categories.currentPage, 2);
+    expect(categories.lastPage, 2);
+    expect(categories.hasNextPage, isFalse);
+    expect(offers.currentPage, 2);
+    expect(offers.lastPage, 2);
+    expect(offers.hasNextPage, isFalse);
+
+    expect(requests, hasLength(3));
+    expect(requests[0].url.queryParameters, containsPair('q', 'coffee'));
+    expect(requests[0].url.queryParameters, containsPair('category', '3'));
+    expect(requests[0].url.queryParameters, containsPair('sort', 'price'));
+    expect(requests[0].url.queryParameters, containsPair('direction', 'desc'));
+    for (final request in requests) {
+      expect(request.url.queryParameters['page'], '2');
+      expect(request.url.queryParameters['per_page'], '20');
+      expect(request.headers['X-FOODEX-Store-ID'], '7');
+    }
   });
 
   test('HTTP catalog API rejects missing/invalid store context', () async {
