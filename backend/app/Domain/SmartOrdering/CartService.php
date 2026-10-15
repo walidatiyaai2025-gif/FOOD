@@ -3,6 +3,7 @@
 namespace App\Domain\SmartOrdering;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
 use App\Services\SmartOrderingAttributionService;
@@ -18,6 +19,7 @@ final class CartService
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingMerchandisingService $merchandising,
+        private readonly SmartOrderingModifierService $modifiers,
         private readonly SmartOrderingAnalyticsService $analytics,
         private readonly SmartOrderingAttributionService $attribution,
     ) {}
@@ -149,6 +151,63 @@ final class CartService
                 [
                     'product_id' => $productId,
                     'metadata' => ['quantity' => $quantity],
+                ],
+            );
+
+            return ['item' => $this->itemPayload($item), 'quote' => $quote];
+        }, 3);
+    }
+
+    /**
+     * Add an item using public Smart Ordering menu identities only.
+     *
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>
+     */
+    public function addMenuItem(SmartOrderingCart $cart, string $menuItemPublicId, array $payload): array
+    {
+        $quantity = round((float) ($payload['quantity'] ?? 0), 3);
+        if ($quantity <= 0 || $quantity > 999) {
+            throw ValidationException::withMessages(['quantity' => ['Quantity must be greater than zero.']]);
+        }
+
+        return DB::transaction(function () use ($cart, $menuItemPublicId, $payload, $quantity): array {
+            $branch = $this->branchForCart($cart);
+            $this->branches->assertAccepting($branch);
+
+            [$productId, $selection] = $this->resolvePublicMenuSelection(
+                $cart,
+                $branch,
+                $menuItemPublicId,
+                (array) ($payload['selections'] ?? []),
+            );
+            $this->assertProductBelongsToStore($productId, (int) $branch->store_id);
+
+            $itemId = (int) DB::table('smart_ordering_cart_items')->insertGetId([
+                'public_id' => (string) Str::uuid(),
+                'cart_id' => $cart->getKey(),
+                'product_id' => $productId,
+                'menu_item_public_id' => $menuItemPublicId,
+                'quantity' => $quantity,
+                'selection' => json_encode($selection, JSON_THROW_ON_ERROR),
+                'note' => isset($payload['note']) ? mb_substr(trim((string) $payload['note']), 0, 500) : null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $quote = $this->preview($cart, true);
+            $item = DB::table('smart_ordering_cart_items')->where('id', $itemId)->first();
+
+            $this->analytics->recordForCart(
+                $cart,
+                'item_added',
+                'cart-item:'.$item->public_id.':added',
+                [
+                    'product_id' => $productId,
+                    'metadata' => [
+                        'quantity' => $quantity,
+                        'menu_item_public_id' => $menuItemPublicId,
+                    ],
                 ],
             );
 
@@ -339,6 +398,94 @@ final class CartService
                 ->map(fn (object $item): array => $this->itemPayload($item))
                 ->all(),
         ];
+    }
+
+    /**
+     * Resolve public menu/group/option UUIDs to the legacy product-backed cart selection.
+     * The public browser never receives internal product identifiers.
+     *
+     * @param  list<array{group_id?:mixed,option_ids?:mixed}>  $rows
+     * @return array{0:int,1:array<string,mixed>}
+     */
+    private function resolvePublicMenuSelection(
+        SmartOrderingCart $cart,
+        SmartOrderingBranch $branch,
+        string $menuItemPublicId,
+        array $rows,
+    ): array {
+        $revisionId = DB::table('smart_ordering_revisions')
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $cart->revision_public_id)
+            ->where('status', 'published')
+            ->value('id');
+        abort_unless($revisionId !== null, 409, 'Cart menu revision is no longer available.');
+
+        $item = SmartOrderingMenuItem::query()
+            ->where('revision_id', $revisionId)
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $menuItemPublicId)
+            ->firstOrFail();
+        abort_unless($item->source_product_id !== null, 422, 'Menu item is not linked to an orderable product.');
+
+        $selections = [];
+        foreach ($rows as $row) {
+            abort_unless(is_array($row), 422, 'Invalid modifier selection.');
+            $groupId = trim((string) ($row['group_id'] ?? ''));
+            $optionIds = array_values(array_unique(array_filter(
+                array_map(static fn ($id): string => trim((string) $id), (array) ($row['option_ids'] ?? [])),
+                static fn (string $id): bool => $id !== '',
+            )));
+            abort_if($groupId === '' || array_key_exists($groupId, $selections), 422, 'Invalid modifier selection.');
+            $selections[$groupId] = $optionIds;
+        }
+
+        $site = $branch->site()->firstOrFail();
+        $validated = $this->modifiers->quote($site, $item, $selections, $branch);
+        $modifierLines = [];
+
+        foreach ($validated['selections'] as $groupSelection) {
+            $optionIds = (array) ($groupSelection['option_ids'] ?? []);
+            if ($optionIds === []) {
+                continue;
+            }
+
+            $options = DB::table('smart_ordering_modifier_options as option')
+                ->join('smart_ordering_modifier_groups as group', 'group.id', '=', 'option.group_id')
+                ->where('group.item_id', $item->id)
+                ->where('group.public_id', (string) $groupSelection['group_id'])
+                ->whereIn('option.public_id', $optionIds)
+                ->get(['option.public_id', 'option.source_product_id']);
+
+            abort_unless($options->count() === count($optionIds), 422, 'Invalid modifier selection.');
+
+            foreach ($options as $option) {
+                if ($option->source_product_id === null) {
+                    throw ValidationException::withMessages([
+                        'selections.'.(string) $groupSelection['group_id'] => [
+                            'Selected option is not linked to an orderable product.',
+                        ],
+                    ]);
+                }
+
+                $modifierProductId = (int) $option->source_product_id;
+                $this->assertProductBelongsToStore($modifierProductId, (int) $branch->store_id);
+                $modifierLines[] = ['product_id' => $modifierProductId, 'quantity' => 1.0];
+            }
+        }
+
+        $selection = [
+            'menu_selections' => $validated['selections'],
+            'menu_quote' => [
+                'base_price' => (float) $validated['base_price'],
+                'modifier_delta' => (float) $validated['modifier_delta'],
+                'total_price' => (float) $validated['total_price'],
+            ],
+        ];
+        if ($modifierLines !== []) {
+            $selection['modifiers'] = $modifierLines;
+        }
+
+        return [(int) $item->source_product_id, $selection];
     }
 
     /** @param array<string,mixed> $selection
