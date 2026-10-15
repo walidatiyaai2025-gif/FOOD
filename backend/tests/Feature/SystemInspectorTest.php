@@ -237,9 +237,7 @@ class SystemInspectorTest extends TestCase
             array_keys($exportPayload['enterprise']['workflow_requests'][0]),
         );
 
-        $html = $response->getContent();
-        $this->assertIsString($html);
-        $this->assertStringContainsString('Modules & background diagnostics', $html);
+        $response->assertSee('Modules & background diagnostics');
         $this->assertSame(
             'Modules & background diagnostics',
             trans('admin.system_inspector_enterprise.title', [], 'en'),
