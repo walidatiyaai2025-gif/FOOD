@@ -13,11 +13,11 @@ final class WorkflowAuthorizer
         EnterpriseWorkflowRequest $request,
         EnterpriseWorkflowStep $step,
     ): bool {
-        if (! $actor->is_active) {
+        if ((bool) $actor->is_active === false) {
             return false;
         }
 
-        if (! $step->allow_requester_decision
+        if ($step->allow_requester_decision === false
             && (int) $request->requester_id === (int) $actor->getKey()) {
             return false;
         }
