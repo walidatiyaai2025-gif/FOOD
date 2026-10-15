@@ -267,6 +267,7 @@
 (() => {
     const modalA11y = window.FoodexModalA11y || (() => {
         const focusableSelector = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+        const activeStack = [];
         const focusables = (root) => [...root.querySelectorAll(focusableSelector)].filter((node) => {
             if (!(node instanceof HTMLElement) || node.hidden || node.closest('[hidden],[aria-hidden="true"]')) return false;
             const style = window.getComputedStyle(node);
@@ -290,17 +291,19 @@
         const activate = ({ root, dialog, initialFocus = null, returnFocus = null, fallbackFocus = null, onEscape = null }) => {
             if (!(root instanceof HTMLElement) || !(dialog instanceof HTMLElement)) return null;
             const priorFocus = returnFocus instanceof HTMLElement ? returnFocus : document.activeElement;
+            const token = Symbol('foodex-modal-session');
+            activeStack.push(token);
             const restoreIsolation = isolateOutside(root);
             if (!dialog.hasAttribute('tabindex')) dialog.setAttribute('tabindex', '-1');
             let active = true;
             const focusInitial = () => {
-                if (!active) return;
+                if (!active || activeStack[activeStack.length - 1] !== token) return;
                 const targets = focusables(dialog);
                 const target = initialFocus instanceof HTMLElement && !initialFocus.disabled ? initialFocus : (targets[0] || dialog);
                 target.focus();
             };
             const onKeydown = (event) => {
-                if (!active || event.defaultPrevented) return;
+                if (!active || activeStack[activeStack.length - 1] !== token || event.defaultPrevented) return;
                 if (event.key === 'Escape' && typeof onEscape === 'function') {
                     event.preventDefault();
                     onEscape();
@@ -331,6 +334,8 @@
                     if (!active) return;
                     active = false;
                     document.removeEventListener('keydown', onKeydown);
+                    const stackIndex = activeStack.lastIndexOf(token);
+                    if (stackIndex !== -1) activeStack.splice(stackIndex, 1);
                     restoreIsolation();
                     if (!restoreFocus) return;
                     const target = priorFocus instanceof HTMLElement && priorFocus.isConnected && !priorFocus.inert
