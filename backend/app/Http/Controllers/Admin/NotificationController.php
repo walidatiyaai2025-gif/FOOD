@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,8 @@ final class NotificationController extends Controller
 {
     public function index(Request $request, NotificationAudienceReviewService $reviews): View
     {
-        $this->authorizeManage($request);
+        $actor = $this->authorizeManage($request);
+        App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
