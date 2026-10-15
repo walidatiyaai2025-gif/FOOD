@@ -41,6 +41,14 @@ final class FeedbackService
         abort_unless($settings['request_enabled'], 404);
 
         return DB::transaction(function () use ($site, $customerId, $orderId, $rating, $feedback, $settings): array {
+            $lockedOrder = DB::table('orders')
+                ->where('id', $orderId)
+                ->where('store_id', $site->store_id)
+                ->where('customer_id', $customerId)
+                ->lockForUpdate()
+                ->first(['id']);
+            abort_unless($lockedOrder !== null, 404);
+
             $existing = DB::table('smart_ordering_feedback')
                 ->where('site_id', $site->id)
                 ->where('order_id', $orderId)
@@ -86,6 +94,7 @@ final class FeedbackService
             }
 
             $row = DB::table('smart_ordering_feedback')->where('id', $feedbackId)->first();
+            abort_unless($row !== null, 500);
 
             return $this->response($site, $customerId, $row, $settings);
         }, 3);
