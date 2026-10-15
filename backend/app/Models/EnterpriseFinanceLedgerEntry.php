@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use LogicException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 class EnterpriseFinanceLedgerEntry extends Model
 {
