@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use DateTimeZone;
 use JsonException;
 
 final class SmartOrderingController extends Controller
@@ -65,6 +66,9 @@ final class SmartOrderingController extends Controller
             'states' => (array) config('smart_ordering.runtime_states', []),
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),
             'onboardingStatus' => $onboardingStatus,
+            'canManageOnboarding' => $actor->hasPermission('smart_ordering.manage', $storeId),
+            'canLaunchOnboarding' => $actor->hasPermission('smart_ordering.publish', $storeId),
+            'onboardingTimezones' => DateTimeZone::listIdentifiers(),
         ]);
     }
 
