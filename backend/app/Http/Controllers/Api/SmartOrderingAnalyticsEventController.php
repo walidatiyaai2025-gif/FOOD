@@ -55,6 +55,7 @@ final class SmartOrderingAnalyticsEventController extends Controller
             [
                 'product_id' => $data['product_id'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
+                'qr_public_id' => $trustedAttribution['qr_public_id'] ?? null,
                 'source' => $trustedAttribution['source'] ?? null,
                 'campaign' => $trustedAttribution['campaign'] ?? null,
                 'offer_reference' => isset($trustedAttribution['promotion_id'])
