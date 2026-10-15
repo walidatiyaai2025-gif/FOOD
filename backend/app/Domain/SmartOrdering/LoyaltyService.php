@@ -73,6 +73,13 @@ final class LoyaltyService
             }
 
             $account = $this->lockedAccount($site, (int) $order->customer_id);
+            $existing = DB::table('smart_ordering_loyalty_ledger')
+                ->where('idempotency_key', $key)
+                ->first(['points', 'balance_after']);
+            if ($existing !== null) {
+                return ['points' => (int) $existing->points, 'balance' => (int) $existing->balance_after];
+            }
+
             $balance = (int) $account->balance + $points;
             $expiresAt = $rule['expiry_days'] === null ? null : now()->addDays($rule['expiry_days']);
 
@@ -141,6 +148,18 @@ final class LoyaltyService
             abort_if($reward->branch_id !== null && (int) $reward->branch_id !== (int) $branchId, 409, 'Reward is not valid for this branch.');
 
             $account = $this->lockedAccount($site, $customerId);
+            $existing = DB::table('smart_ordering_loyalty_ledger')
+                ->where('idempotency_key', $key)
+                ->first(['reward_id', 'points', 'balance_after']);
+            if ($existing !== null) {
+                return [
+                    'reward_id' => (int) $existing->reward_id,
+                    'points' => abs((int) $existing->points),
+                    'balance' => (int) $existing->balance_after,
+                    'idempotent' => true,
+                ];
+            }
+
             $cost = (int) $reward->points_cost;
             if ($cost <= 0 || (int) $account->balance < $cost) {
                 throw ValidationException::withMessages(['loyalty' => ['Insufficient loyalty balance.']]);
@@ -200,6 +219,13 @@ final class LoyaltyService
 
             $account = DB::table('smart_ordering_loyalty_accounts')->where('id', $earned->account_id)->lockForUpdate()->first();
             abort_unless($account !== null, 409);
+
+            $existing = DB::table('smart_ordering_loyalty_ledger')
+                ->where('idempotency_key', $key)
+                ->first(['points', 'balance_after']);
+            if ($existing !== null) {
+                return ['points_reversed' => abs((int) $existing->points), 'balance' => (int) $existing->balance_after];
+            }
 
             $reversed = min((int) $earned->points, max(0, (int) $account->balance));
             $balance = (int) $account->balance - $reversed;
@@ -324,6 +350,9 @@ final class LoyaltyService
 
                 $account = DB::table('smart_ordering_loyalty_accounts')->where('id', $earning->account_id)->lockForUpdate()->first();
                 if ($account === null || (int) $account->balance <= 0) {
+                    return 0;
+                }
+                if (DB::table('smart_ordering_loyalty_ledger')->where('idempotency_key', $key)->exists()) {
                     return 0;
                 }
 
