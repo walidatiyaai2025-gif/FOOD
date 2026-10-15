@@ -122,6 +122,7 @@ final class SmartOrderingController extends Controller
             'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'order_note' => ['nullable', 'string', 'max:1000'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
+            'repeat_draft_public_id' => ['nullable', 'uuid'],
         ]);
 
         $result = $checkout->checkout(

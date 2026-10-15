@@ -29,6 +29,7 @@ final class LifecycleService
     public function __construct(
         private readonly InventoryService $inventory,
         private readonly CommercialPolicyService $commercialPolicy,
+        private readonly SmartOrderingAnalyticsService $analytics,
     ) {}
 
     public function transition(
@@ -127,6 +128,74 @@ final class LifecycleService
                 ));
             } catch (Throwable) {
                 // Messaging is downstream; notification failures never roll back order state.
+            }
+        }
+
+        if ($changed && in_array($target, ['CONFIRMED', 'COMPLETED', 'CANCELLED'], true)) {
+            try {
+                $order = Order::query()->findOrFail((int) $updated->order_id);
+                $analyticsEvent = match ($target) {
+                    'CONFIRMED' => 'order_confirmed',
+                    'COMPLETED' => 'order_completed',
+                    default => 'order_cancelled',
+                };
+                $priorCompleted = DB::table('orders')
+                    ->where('store_id', (int) $order->store_id)
+                    ->where('customer_id', (int) $order->customer_id)
+                    ->where('id', '<>', (int) $order->getKey())
+                    ->whereIn('status', ['delivered', 'completed'])
+                    ->exists();
+
+                $cartAttribution = $updated->cart_id === null
+                    ? null
+                    : DB::table('smart_ordering_carts')
+                        ->where('id', (int) $updated->cart_id)
+                        ->first(['qr_public_id', 'source_snapshot', 'campaign_snapshot', 'offer_reference']);
+
+                $this->analytics->record(
+                    (int) $order->store_id,
+                    $analyticsEvent,
+                    'order:'.$order->getKey().':'.$analyticsEvent,
+                    [
+                        'branch_id' => (int) $updated->branch_id,
+                        'qr_public_id' => $cartAttribution?->qr_public_id,
+                        'source' => $cartAttribution?->source_snapshot,
+                        'campaign' => $cartAttribution?->campaign_snapshot,
+                        'offer_reference' => $cartAttribution?->offer_reference,
+                        'order_id' => (int) $order->getKey(),
+                        'customer_type' => $priorCompleted ? 'repeat' : 'new',
+                        'fulfillment_mode' => (string) $updated->fulfillment_mode,
+                        'revenue' => $target === 'COMPLETED' ? (float) $order->grand_total : 0.0,
+                        'metadata' => ['order_reference' => (string) $order->order_number],
+                    ],
+                );
+
+                if ($target === 'COMPLETED') {
+                    DB::table('order_items as oi')
+                        ->leftJoin('products as p', 'p.id', '=', 'oi.product_id')
+                        ->where('oi.order_id', $order->getKey())
+                        ->whereNotNull('oi.product_id')
+                        ->distinct()
+                        ->get(['oi.product_id', 'p.category_id'])
+                        ->each(function (object $line) use ($order, $updated): void {
+                            $this->analytics->rollupProductOnly(
+                                (int) $order->store_id,
+                                (int) $updated->branch_id,
+                                (int) $line->product_id,
+                                'order_completed',
+                            );
+                            if ($line->category_id !== null) {
+                                $this->analytics->rollupCategoryOnly(
+                                    (int) $order->store_id,
+                                    (int) $updated->branch_id,
+                                    (int) $line->category_id,
+                                    'order_completed',
+                                );
+                            }
+                        });
+                }
+            } catch (Throwable) {
+                // Analytics is downstream and never changes or rolls back business transaction state.
             }
         }
 

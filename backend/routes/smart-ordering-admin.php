@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
 use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use Illuminate\Support\Facades\Route;
@@ -27,3 +28,6 @@ Route::post('/sites/{site}/merchandising/recommendations', [SmartOrderingMerchan
     ->name('merchandising.recommendations.store');
 Route::put('/sites/{site}/merchandising/recommendations/{recommendation}', [SmartOrderingMerchandisingAdminController::class, 'updateRecommendation'])
     ->whereUuid('recommendation')->name('merchandising.recommendations.update');
+
+Route::get('/analytics', [SmartOrderingAnalyticsController::class, 'index'])->name('analytics.index');
+Route::get('/analytics/export', [SmartOrderingAnalyticsController::class, 'export'])->name('analytics.export');

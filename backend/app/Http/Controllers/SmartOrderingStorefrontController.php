@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Themes\ConfigStorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
+use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 final class SmartOrderingStorefrontController extends Controller
 {
@@ -40,6 +43,44 @@ final class SmartOrderingStorefrontController extends Controller
             now()->addMinute(),
             fn (): array => $renderer->prepare($snapshot, null, null, $locale, $canonical),
         );
+
+        $analyticsSite = null;
+        if (Schema::hasTable('smart_ordering_sites')) {
+            $analyticsSite = SmartOrderingSite::query()
+                ->where('master_enabled', true)
+                ->where(function ($query) use ($siteKey): void {
+                    $query->where('slug', $siteKey);
+                    if (preg_match('/^[0-9a-fA-F-]{36}$/', $siteKey) === 1) {
+                        $query->orWhere('public_id', $siteKey);
+                    }
+                })
+                ->first();
+        }
+
+        $analyticsBranch = null;
+        if ($analyticsSite instanceof SmartOrderingSite) {
+            $requestedBranch = trim((string) $request->query('branch', ''));
+            $analyticsBranch = $analyticsSite->branches()
+                ->where('is_active', true)
+                ->when($requestedBranch !== '', fn ($query) => $query->where('public_id', $requestedBranch))
+                ->orderByDesc('is_default')
+                ->orderBy('id')
+                ->first();
+
+            if ($analyticsBranch === null && $requestedBranch !== '') {
+                $analyticsBranch = $analyticsSite->branches()
+                    ->where('is_active', true)
+                    ->orderByDesc('is_default')
+                    ->orderBy('id')
+                    ->first();
+            }
+        }
+
+        $prepared['analytics'] = [
+            'site_public_id' => $analyticsSite?->public_id,
+            'branch_public_id' => $analyticsBranch?->public_id,
+            'attribution_context' => app(SmartOrderingAttributionService::class)->contextFromRequest($request),
+        ];
 
         return response()->view($renderer->view($prepared), $prepared)
             ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')

@@ -5,6 +5,7 @@ namespace App\Domain\SmartOrdering;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
+use App\Services\SmartOrderingAttributionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,6 +18,8 @@ final class CartService
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingMerchandisingService $merchandising,
+        private readonly SmartOrderingAnalyticsService $analytics,
+        private readonly SmartOrderingAttributionService $attribution,
     ) {}
 
     /** @return array{cart:SmartOrderingCart,token:string,quote:array<string,mixed>} */
@@ -35,17 +38,50 @@ final class CartService
             abort(409, 'Requested Smart Ordering revision is stale or unpublished.');
         }
 
-        $trustedContext = $this->merchandising->verifiedAttribution($attributionContext, $branch);
+        $trustedAttribution = null;
+        $trustedContext = null;
+        if ($attributionContext !== null && trim($attributionContext) !== '') {
+            $trustedAttribution = $this->attribution->serverContext(
+                trim($attributionContext),
+                (int) $branch->store_id,
+            );
+
+            $branchReference = trim((string) ($trustedAttribution['branch_reference'] ?? ''));
+            if ($branchReference !== '') {
+                if (! in_array($branchReference, [(string) $branch->public_id, (string) $branch->code], true)) {
+                    abort(409, 'QR attribution branch does not match the selected Smart Ordering branch.');
+                }
+            }
+
+            $trustedContext = [
+                'qr_public_id' => (string) $trustedAttribution['qr_public_id'],
+                'type' => (string) $trustedAttribution['type'],
+                'campaign' => $trustedAttribution['campaign'] === null ? null : (string) $trustedAttribution['campaign'],
+                'promotion_id' => $trustedAttribution['promotion_id'] === null ? null : (int) $trustedAttribution['promotion_id'],
+            ];
+        }
         $token = Str::random(64);
         $cart = SmartOrderingCart::query()->create([
             'public_id' => (string) Str::uuid(),
             'token_hash' => hash('sha256', $token),
             'branch_id' => $branch->getKey(),
             'revision_public_id' => (string) $published->public_id,
+            'qr_public_id' => $trustedAttribution['qr_public_id'] ?? null,
+            'source_snapshot' => $trustedAttribution['source'] ?? null,
+            'campaign_snapshot' => $trustedAttribution['campaign'] ?? null,
+            'offer_reference' => isset($trustedAttribution['promotion_id'])
+                ? 'promotion:'.$trustedAttribution['promotion_id']
+                : null,
             'status' => 'active',
             'merchandising_context' => $trustedContext,
             'expires_at' => now()->addHours(4),
         ]);
+
+        $this->analytics->recordForCart(
+            $cart,
+            'cart_started',
+            'cart:'.$cart->public_id.':started',
+        );
 
         return ['cart' => $cart, 'token' => $token, 'quote' => $this->preview($cart)];
     }
@@ -106,6 +142,16 @@ final class CartService
             $quote = $this->preview($cart, true);
             $item = DB::table('smart_ordering_cart_items')->where('id', $itemId)->first();
 
+            $this->analytics->recordForCart(
+                $cart,
+                'item_added',
+                'cart-item:'.$item->public_id.':added',
+                [
+                    'product_id' => $productId,
+                    'metadata' => ['quantity' => $quantity],
+                ],
+            );
+
             return ['item' => $this->itemPayload($item), 'quote' => $quote];
         }, 3);
     }
@@ -150,11 +196,27 @@ final class CartService
     /** @return array<string,mixed> */
     public function remove(SmartOrderingCart $cart, string $itemPublicId): array
     {
+        $item = DB::table('smart_ordering_cart_items')
+            ->where('cart_id', $cart->getKey())
+            ->where('public_id', $itemPublicId)
+            ->first(['public_id', 'product_id', 'quantity']);
+        abort_unless($item !== null, 404);
+
         $deleted = DB::table('smart_ordering_cart_items')
             ->where('cart_id', $cart->getKey())
             ->where('public_id', $itemPublicId)
             ->delete();
         abort_unless($deleted === 1, 404);
+
+        $this->analytics->recordForCart(
+            $cart,
+            'item_removed',
+            'cart-item:'.$item->public_id.':removed',
+            [
+                'product_id' => (int) $item->product_id,
+                'metadata' => ['quantity' => (float) $item->quantity],
+            ],
+        );
 
         return $this->preview($cart);
     }

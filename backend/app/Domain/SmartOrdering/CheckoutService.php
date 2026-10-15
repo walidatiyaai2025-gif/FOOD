@@ -33,6 +33,7 @@ final class CheckoutService
         private readonly OrderNotificationBridge $notifications,
         private readonly SmartOrderingMerchandisingService $merchandising,
         private readonly CouponRedemptionService $coupons,
+        private readonly SmartOrderingAnalyticsService $analytics,
     ) {}
 
     /**
@@ -74,6 +75,7 @@ final class CheckoutService
             'order_note' => isset($payload['order_note']) ? trim((string) $payload['order_note']) : null,
             'coupon_code' => strtoupper(trim((string) ($payload['coupon_code'] ?? ''))),
             'authenticated_user_id' => $authenticatedUser?->getKey(),
+            'repeat_draft_public_id' => $payload['repeat_draft_public_id'] ?? null,
         ], JSON_THROW_ON_ERROR));
 
         $existing = SmartOrderingOrderContext::query()
@@ -123,6 +125,13 @@ final class CheckoutService
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         abort_if($name === '' || $phone === '', 422, 'Customer name and phone are required.');
 
+        $this->analytics->recordForCart(
+            $cart,
+            'checkout_started',
+            'cart:'.$cart->public_id.':checkout-started',
+            ['fulfillment_mode' => $mode],
+        );
+
         $result = DB::transaction(function () use (
             $cart,
             $branch,
@@ -148,6 +157,20 @@ final class CheckoutService
                 'email' => $email === '' ? null : $email,
             ], $authenticatedUser);
             abort_unless($customer->legacy_customer_id !== null, 500, 'Customer compatibility identity is missing.');
+
+            $repeatDraft = null;
+            if (! empty($payload['repeat_draft_public_id'])) {
+                $repeatDraft = DB::table('smart_ordering_repeat_drafts')
+                    ->where('public_id', (string) $payload['repeat_draft_public_id'])
+                    ->where('site_id', (int) $branch->site_id)
+                    ->where('customer_id', (int) $customer->legacy_customer_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($repeatDraft !== null, 404);
+                abort_unless((string) $repeatDraft->status === 'DRAFT', 409, 'Repeat-order draft is no longer active.');
+                abort_if($repeatDraft->expires_at !== null && now()->greaterThan($repeatDraft->expires_at), 410, 'Repeat-order draft expired.');
+            }
 
             $pricingLines = $this->carts->pricingLines($lockedCart);
             abort_if($pricingLines === [], 409, 'The cart is empty.');
@@ -367,8 +390,62 @@ final class CheckoutService
                 'fulfillment_mode' => $mode,
             ]);
 
-            return ['order' => $order, 'context' => $context, 'replayed' => false];
+            if ($repeatDraft !== null) {
+                DB::table('smart_ordering_repeat_drafts')
+                    ->where('id', $repeatDraft->id)
+                    ->update(['status' => 'CONVERTED', 'updated_at' => now()]);
+            }
+
+            return [
+                'order' => $order,
+                'context' => $context,
+                'replayed' => false,
+                'repeat_draft_public_id' => $repeatDraft?->public_id,
+            ];
         }, 3);
+
+        $priorCompleted = DB::table('orders')
+            ->where('store_id', (int) $branch->store_id)
+            ->where('customer_id', (int) $result['order']->customer_id)
+            ->where('id', '<>', (int) $result['order']->getKey())
+            ->whereIn('status', ['delivered', 'completed'])
+            ->exists();
+
+        if (! empty($result['repeat_draft_public_id'])) {
+            $this->analytics->record(
+                (int) $branch->store_id,
+                'repeat_order_completed',
+                'repeat-draft:'.$result['repeat_draft_public_id'].':completed',
+                [
+                    'branch_id' => (int) $branch->getKey(),
+                    'qr_public_id' => $cart->qr_public_id,
+                    'source' => $cart->source_snapshot,
+                    'campaign' => $cart->campaign_snapshot,
+                    'offer_reference' => $cart->offer_reference,
+                    'order_id' => (int) $result['order']->getKey(),
+                    'customer_type' => 'repeat',
+                    'fulfillment_mode' => $mode,
+                ],
+            );
+        }
+
+        $this->analytics->record(
+            (int) $branch->store_id,
+            'order_created',
+            'order:'.$result['order']->getKey().':order-created',
+            [
+                'branch_id' => (int) $branch->getKey(),
+                'cart_public_id' => (string) $cart->public_id,
+                'qr_public_id' => $cart->qr_public_id,
+                'source' => $cart->source_snapshot,
+                'campaign' => $cart->campaign_snapshot,
+                'offer_reference' => $cart->offer_reference,
+                'order_id' => (int) $result['order']->getKey(),
+                'customer_type' => $priorCompleted ? 'repeat' : 'new',
+                'fulfillment_mode' => $mode,
+                'metadata' => ['order_reference' => (string) $result['order']->order_number],
+            ],
+        );
 
         try {
             $this->notifications->notify($result['order'], $result['context']);

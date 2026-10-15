@@ -37,8 +37,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint app routes tests",
-            "git --no-pager diff -- app/Domain/SmartOrdering/CheckoutService.php app/Domain/SmartOrdering/SmartOrderingMerchandisingService.php app/Domain/SmartOrdering/SupplyIntelligenceService.php"
+            "vendor/bin/pint --test app routes tests"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"

@@ -15,6 +15,7 @@ final class FeedbackService
         private readonly SmartOrderingRuntimePolicy $runtime,
         private readonly RestaurantCustomerService $customers,
         private readonly AuditLogger $audit,
+        private readonly SmartOrderingAnalyticsService $analytics,
     ) {}
 
     /** @return array<string,mixed> */
@@ -92,6 +93,21 @@ final class FeedbackService
                     'updated_at' => now(),
                 ]);
             }
+
+            $branchId = DB::table('smart_ordering_order_contexts')
+                ->where('order_id', $orderId)
+                ->value('branch_id');
+
+            $this->analytics->record(
+                (int) $site->store_id,
+                'feedback_submitted',
+                'feedback:'.$feedbackId.':submitted',
+                [
+                    'branch_id' => $branchId === null ? null : (int) $branchId,
+                    'order_id' => $orderId,
+                    'metadata' => ['rating' => $rating],
+                ],
+            );
 
             $row = DB::table('smart_ordering_feedback')->where('id', $feedbackId)->first();
             abort_unless($row !== null, 500);
