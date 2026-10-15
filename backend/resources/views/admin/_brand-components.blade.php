@@ -1027,8 +1027,8 @@ document.addEventListener('DOMContentLoaded', () => {
             link.addEventListener('click', (event) => {
                 event.preventDefault();
                 close();
+                target.focus({ preventScroll:false });
                 requestAnimationFrame(() => {
-                    target.focus({ preventScroll:false });
                     target.scrollIntoView({ block:'center', inline:'nearest' });
                 });
             });
