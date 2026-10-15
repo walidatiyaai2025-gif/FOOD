@@ -24,7 +24,8 @@ final class HttpJourneyBenchmarkRunnerTest extends TestCase
         $result = $runner->run(
             'runner.smoke',
             'lightweight_authenticated_read',
-            function (): void {
+            function (mixed $context): void {
+                $this->assertNull($context);
                 $this->getJson('/__performance/runner-smoke')->assertOk()->assertJson(['ok' => true]);
             },
             'smoke',
@@ -42,6 +43,44 @@ final class HttpJourneyBenchmarkRunnerTest extends TestCase
         $this->assertCount(3, $result['round_detail']);
     }
 
+    public function test_setup_and_cleanup_are_outside_the_measured_query_window(): void
+    {
+        Route::get('/__performance/runner-lifecycle', function () {
+            DB::table('store_types')->count();
+
+            return response()->json(['ok' => true]);
+        });
+
+        $setupCalls = 0;
+        $cleanupCalls = 0;
+
+        $result = (new HttpJourneyBenchmarkRunner)->run(
+            'runner.lifecycle',
+            'transactional_write',
+            function (array $context): void {
+                $this->assertArrayHasKey('token', $context);
+                $this->getJson('/__performance/runner-lifecycle')->assertOk();
+            },
+            'smoke',
+            function () use (&$setupCalls): array {
+                $setupCalls++;
+                DB::table('store_types')->count();
+                DB::table('roles')->count();
+
+                return ['token' => $setupCalls];
+            },
+            function (array $context) use (&$cleanupCalls): void {
+                $this->assertGreaterThan(0, $context['token']);
+                $cleanupCalls++;
+                DB::table('permissions')->count();
+            },
+        );
+
+        $this->assertSame(10, $setupCalls);
+        $this->assertSame(10, $cleanupCalls);
+        $this->assertSame(1, $result['queries']['count']);
+    }
+
     public function test_every_profile_uses_at_least_three_rounds(): void
     {
         foreach (HttpJourneyBenchmarkRunner::profiles() as $profile) {
@@ -54,6 +93,6 @@ final class HttpJourneyBenchmarkRunnerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (new HttpJourneyBenchmarkRunner)->run('bad', 'dashboard', static fn () => null, 'unknown');
+        (new HttpJourneyBenchmarkRunner)->run('bad', 'dashboard', static fn (mixed $context) => $context, 'unknown');
     }
 }
