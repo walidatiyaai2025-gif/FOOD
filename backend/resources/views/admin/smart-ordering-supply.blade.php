@@ -33,7 +33,7 @@
     };
     $itemIndex = collect($menuItems)->keyBy('public_id');
     $displayRecommendations = array_slice($recommendations['rows'], 0, 500);
-    $supportAccess = $supportAccess;
+    $supportAccess = (bool) request()->integer('support_access');
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-supply">
     <aside class="sidebar">
