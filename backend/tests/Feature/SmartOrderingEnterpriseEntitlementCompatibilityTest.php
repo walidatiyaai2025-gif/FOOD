@@ -178,7 +178,8 @@ final class SmartOrderingEnterpriseEntitlementCompatibilityTest extends TestCase
         int $storeId,
         bool $enabled,
         ?array $capabilities = null,
-    ): void {
+    ): void
+    {
         app(ModuleEntitlementManager::class)->set(
             SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE,
             new EntitlementScope(EntitlementScope::STORE, $storeId),
