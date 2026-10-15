@@ -8,6 +8,7 @@ use App\Models\SmartOrderingOrderContext;
 use App\Models\SmartOrderingOrderEvent;
 use App\Models\User;
 use App\Services\CommercialPolicyService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -143,7 +144,9 @@ final class LifecycleService
             'branch' => app()->getLocale() === 'ar'
                 ? ($branch?->name_ar ?: $branch?->name_en)
                 : ($branch?->name_en ?: $branch?->name_ar),
-            'scheduled_for' => $context->scheduled_for?->toAtomString(),
+            'scheduled_for' => $context->scheduled_for === null
+                ? null
+                : CarbonImmutable::parse((string) $context->scheduled_for)->toAtomString(),
             'currency' => (string) $order->currency,
             'total' => (float) $context->grand_total,
             'timeline' => SmartOrderingOrderEvent::query()
