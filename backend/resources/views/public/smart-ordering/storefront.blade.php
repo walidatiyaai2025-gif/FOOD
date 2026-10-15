@@ -37,11 +37,11 @@
 <nav class="so-mobile-cart" id="cart" aria-label="{{ $locale === 'ar' ? 'السلة' : 'Cart' }}">
     <button type="button" data-cart-entry @disabled(! $is_open)><span>{{ $locale === 'ar' ? 'عرض السلة' : 'View cart' }}</span><span aria-hidden="true">→</span></button>
 </nav>
-<dialog class="so-item-dialog" data-item-dialog>
+<dialog class="so-item-dialog" data-item-dialog aria-labelledby="so-item-dialog-title" aria-describedby="so-item-dialog-description">
     <form method="dialog" class="so-dialog-shell">
         <button class="so-dialog-close" value="close" aria-label="{{ $locale === 'ar' ? 'إغلاق' : 'Close' }}">×</button>
         <img data-dialog-image alt="" loading="lazy">
-        <h2 data-dialog-name></h2><p data-dialog-description></p><div data-dialog-modifiers></div>
+        <h2 id="so-item-dialog-title" data-dialog-name></h2><p id="so-item-dialog-description" data-dialog-description></p><div data-dialog-modifiers></div>
         <button class="so-primary-action" type="button" data-cart-entry @disabled(! $is_open)>{{ $locale === 'ar' ? 'إضافة إلى السلة' : 'Add to cart' }}</button>
     </form>
 </dialog>
