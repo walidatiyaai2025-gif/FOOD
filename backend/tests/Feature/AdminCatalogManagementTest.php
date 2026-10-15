@@ -521,9 +521,9 @@ class AdminCatalogManagementTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/catalog?tab=categories&store_id='.$storeId.'&support_access=1&category_q=Cold&category_parent='.$parentCategoryId.'&category_status=inactive')
             ->assertOk()
-            ->assertViewHas('categoryRows', fn ($rows): bool => $rows->total() === 1)
+            ->assertViewHas('categoryRows', fn ($rows): bool => $rows->total() === 1
+                && (int) $rows->items()[0]->id === $childCategoryId)
             ->assertSee('Cold Drinks Child')
-            ->assertDontSee('Beverages Parent</td>', false)
             ->assertSee('data-catalog-category-filters', false)
             ->assertSee('data-catalog-filter-reset href="'.$resetCategories.'"', false);
     }
