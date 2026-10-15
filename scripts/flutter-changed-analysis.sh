@@ -49,7 +49,14 @@ if ! (
   cd "$root/$prefix"
   dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
-  echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
+  echo "Changed $app Dart files are not canonically formatted. Canonical formatter diff follows:" >&2
+  (
+    cd "$root/$prefix"
+    dart format "${files[@]}"
+  )
+  echo "=== FOODEX DART FORMAT DIFF BEGIN ===" >&2
+  git -C "$root" diff -- "$prefix/lib" "$prefix/test" >&2
+  echo "=== FOODEX DART FORMAT DIFF END ===" >&2
   exit 1
 fi
 
