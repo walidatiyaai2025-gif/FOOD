@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'label' => 'Action destination',
+    'help' => 'Choose a supported app destination. Internal route paths and database IDs are not entered manually.',
+    'preview' => 'Destination preview',
+    'none_preview' => 'No navigation action will be attached.',
+    'store_suffix' => 'Store: :store',
+    'store_required' => 'Select an authorized Retail store before choosing this destination.',
+    'invalid' => 'Choose a destination supported by the selected app and business channel.',
+    'options' => [
+        'none' => 'No action',
+        'customer_marketplace' => 'Customer · Marketplace',
+        'customer_retail_home' => 'Customer · Selected Retail store home',
+        'customer_retail_offers' => 'Customer · Offers',
+        'customer_retail_products' => 'Customer · Products',
+        'customer_retail_orders' => 'Customer · Orders',
+        'customer_retail_notifications' => 'Customer · Notifications',
+        'customer_retail_profile' => 'Customer · Profile',
+        'customer_wholesale_home' => 'Customer · Wholesale home',
+        'customer_wholesale_dashboard' => 'Customer · Wholesale dashboard',
+        'customer_wholesale_products' => 'Customer · Wholesale products',
+        'customer_wholesale_orders' => 'Customer · Wholesale orders',
+        'customer_wholesale_notifications' => 'Customer · Wholesale notifications',
+        'customer_wholesale_profile' => 'Customer · Wholesale profile',
+        'driver_home' => 'Driver · Home',
+        'driver_deliveries' => 'Driver · Deliveries',
+        'driver_notifications' => 'Driver · Notifications',
+        'driver_wallet' => 'Driver · Wallet',
+    ],
+];
