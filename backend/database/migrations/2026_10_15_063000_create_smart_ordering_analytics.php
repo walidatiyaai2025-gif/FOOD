@@ -55,6 +55,8 @@ return new class extends Migration
             $table->string('fulfillment_mode_key', 32)->default('');
             $table->unsignedBigInteger('event_count')->default(0);
             $table->decimal('revenue', 16, 3)->default(0);
+            $table->decimal('rating_sum', 14, 3)->default(0);
+            $table->unsignedBigInteger('rating_count')->default(0);
             $table->timestamps();
 
             $table->unique([
