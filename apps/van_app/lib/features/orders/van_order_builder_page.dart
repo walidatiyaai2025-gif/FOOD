@@ -36,20 +36,32 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
     try {
       var options = widget.draft.options;
       options ??= await widget.repository.options(customer);
+      final currentCustomer = widget.draft.customer;
+      if (currentCustomer == null ||
+          currentCustomer.type != customer.type ||
+          currentCustomer.id != customer.id) {
+        _showDraftChangedMessage();
+        return;
+      }
+
       widget.draft.applyOptions(options);
-      final payment = widget.draft.paymentMethod;
-      if (payment == null) {
+      final snapshot = widget.draft.createQuoteSnapshot();
+      if (snapshot == null) {
         throw StateError('No configured payment method.');
       }
+
       final quote = await widget.repository.quote(
-        customer: customer,
-        lines: widget.draft.lines,
-        paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: widget.draft.customerNote,
+        customer: snapshot.customer,
+        lines: snapshot.lines,
+        paymentMethod: snapshot.paymentMethod,
+        addressId: snapshot.addressId,
+        warehouseId: snapshot.warehouseId,
+        customerNote: snapshot.customerNote,
       );
-      widget.draft.setQuote(quote);
+      if (!widget.draft.setQuoteForRevision(snapshot.revision, quote)) {
+        _showDraftChangedMessage();
+        return;
+      }
       if (!mounted) return;
       widget.onReview();
     } on VanSessionExpiredException {
@@ -71,6 +83,22 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
     } finally {
       if (mounted) setState(() => _quoting = false);
     }
+  }
+
+  void _showDraftChangedMessage() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              'The order changed while pricing was loading. Review again for the latest total.',
+              'تغيّر الطلب أثناء تحميل التسعير. راجع الطلب مرة أخرى للحصول على أحدث إجمالي.',
+            ),
+          ),
+        ),
+      );
   }
 
   @override
