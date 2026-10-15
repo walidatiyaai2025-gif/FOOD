@@ -113,6 +113,7 @@ return [
     'impact_empty' => 'None',
     'global_scope' => 'Global',
     'store_scope' => 'Store',
+    'role_outside_authority' => 'This role includes permissions outside your grant authority. Review is available, but editing is locked to prevent accidental privilege removal.',
     'protected_assignments' => 'This user has one or more assignments outside your grant authority. The assignment editor is locked to prevent accidental privilege loss.',
     'super_admin_permissions_protected' => 'SUPER_ADMIN permissions are protected and remain the complete platform permission set.',
     'scope_rule' => 'Changing role scope may make some permissions invalid. The server validates the final permission set before saving.',
