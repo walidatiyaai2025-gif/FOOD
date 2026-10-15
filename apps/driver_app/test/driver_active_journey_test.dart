@@ -90,9 +90,7 @@ class _FakeActiveRepo
 
 class _CollectingActiveRepo extends _FakeActiveRepo
     implements DriverCollectionRepository {
-  _CollectingActiveRepo(super.current, {this.remainingAfterCollect = 0});
-
-  final double remainingAfterCollect;
+  _CollectingActiveRepo(super.current);
   int collectCount = 0;
   double? collectedAmount;
   String? collectedIdempotencyKey;
@@ -115,7 +113,7 @@ class _CollectingActiveRepo extends _FakeActiveRepo
         status: 'collected',
         createdAt: '2026-10-15T14:00:00Z',
       ),
-      remainingAmount: remainingAfterCollect,
+      remainingAmount: 0,
       currency: current.settlement?.currency ?? current.currency,
     );
   }
