@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\SmartOrderingQrCode;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 final class SmartOrderingAttributionService
 {
+    public function __construct(private readonly SmartOrderingAnalyticsService $analytics) {}
+
     public const EVENT_QR_SCANNED = 'qr_scanned';
 
     public const EVENT_STOREFRONT_VIEWED = 'storefront_viewed';
@@ -255,7 +258,7 @@ final class SmartOrderingAttributionService
     }
 
     /**
-     * @return array{store_id:int,qr_public_id:string,type:string,branch_reference:?string,table_reference:?string,promotion_id:?int,campaign:?string}
+     * @return array{store_id:int,qr_public_id:string,type:string,branch_reference:?string,table_reference:?string,promotion_id:?int,source:?string,campaign:?string}
      */
     public function serverContext(string $context, ?int $expectedStoreId = null): array
     {
@@ -272,6 +275,7 @@ final class SmartOrderingAttributionService
             'branch_reference' => $visit->branch_reference_snapshot,
             'table_reference' => $visit->table_reference_snapshot,
             'promotion_id' => $qr->promotion_id === null ? null : (int) $qr->promotion_id,
+            'source' => $visit->source_snapshot,
             'campaign' => $visit->campaign_snapshot,
         ];
     }
@@ -414,7 +418,7 @@ final class SmartOrderingAttributionService
     {
         $eventKey = hash('sha256', $visit->public_id.':'.$eventName);
 
-        DB::table('smart_ordering_qr_events')->insertOrIgnore([
+        $inserted = DB::table('smart_ordering_qr_events')->insertOrIgnore([
             'qr_visit_id' => $visit->getKey(),
             'event_name' => $eventName,
             'event_key' => $eventKey,
@@ -423,6 +427,60 @@ final class SmartOrderingAttributionService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($inserted !== 1) {
+            return;
+        }
+
+        $qr = $visit->qrCode;
+        if (! $qr instanceof SmartOrderingQrCode) {
+            $qr = SmartOrderingQrCode::query()->find($visit->qr_code_id);
+        }
+        if (! $qr instanceof SmartOrderingQrCode) {
+            return;
+        }
+
+        $analyticsIdentity = $eventName === self::EVENT_ORDER_CREATED && $visit->order_id !== null
+            ? 'order:'.$visit->order_id.':order-created'
+            : 'qr:'.$visit->public_id.':'.$eventName;
+
+        $this->analytics->record(
+            (int) $qr->store_id,
+            $eventName,
+            $analyticsIdentity,
+            [
+                'branch_id' => $this->branchIdForVisit($visit, (int) $qr->store_id),
+                'visitor_hash' => (string) $visit->visitor_hash,
+                'order_id' => $visit->order_id === null ? null : (int) $visit->order_id,
+                'source' => $visit->source_snapshot,
+                'campaign' => $visit->campaign_snapshot,
+                'offer_reference' => $qr->promotion_id === null ? null : 'promotion:'.$qr->promotion_id,
+                'metadata' => $metadata,
+            ],
+        );
+    }
+
+    private function branchIdForVisit(SmartOrderingQrVisit $visit, int $storeId): ?int
+    {
+        $reference = trim((string) ($visit->branch_reference_snapshot ?? ''));
+        if ($reference === '') {
+            return null;
+        }
+
+        $query = DB::table('smart_ordering_branches as b')
+            ->join('smart_ordering_sites as s', 's.id', '=', 'b.site_id')
+            ->where('s.store_id', $storeId);
+
+        $query->where(function ($nested) use ($reference): void {
+            $nested->where('b.code', $reference);
+            if (Str::isUuid($reference)) {
+                $nested->orWhere('b.public_id', $reference);
+            }
+        });
+
+        $id = $query->value('b.id');
+
+        return $id === null ? null : (int) $id;
     }
 
     private function boundedReferrer(?string $referrer): ?string
