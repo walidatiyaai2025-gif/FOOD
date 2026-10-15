@@ -24,8 +24,7 @@ final class CartService
         string $branchPublicId,
         ?string $revisionPublicId = null,
         ?string $attributionContext = null,
-    ): array
-    {
+    ): array {
         $branch = $this->branches->branch($branchPublicId);
         $this->branches->assertAccepting($branch);
 
