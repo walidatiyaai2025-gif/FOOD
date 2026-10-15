@@ -45,6 +45,7 @@ return [
         'stores' => 'Stores & Channels',
         'marketing' => 'Marketing & Communications',
         'advertising' => 'Advertising',
+        'finance' => 'Finance & Treasury',
         'analytics' => 'Analytics & Reports',
         'applications' => 'Applications',
         'administration' => 'Administration',

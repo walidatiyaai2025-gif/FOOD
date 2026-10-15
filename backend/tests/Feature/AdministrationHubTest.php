@@ -108,6 +108,7 @@ class AdministrationHubTest extends TestCase
             'field_operations',
             'marketing',
             'advertising',
+            'finance',
             'analytics',
             'applications',
             'administration',

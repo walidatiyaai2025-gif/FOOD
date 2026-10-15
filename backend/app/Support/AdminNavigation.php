@@ -95,6 +95,9 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
+            $this->group('finance', 'admin.nav_groups.finance', '¤', [
+                $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view'),
+            ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItemScoped($user, 'smart_ordering_analytics', 'smart_ordering.analytics.nav_title', 'admin.smart-ordering.analytics.index', 'smart_ordering.analytics.view'),
                 $this->whatsAppSupervisorItem($user),

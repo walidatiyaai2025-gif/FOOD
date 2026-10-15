@@ -731,6 +731,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     'field_operations',
     'marketing',
     'advertising',
+    'finance',
     'analytics',
     'applications',
     'administration',
@@ -1161,6 +1162,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'administration-hub',
     '/admin/administration',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'treasury-master',
+    '/admin/treasury/master-data',
   );
   await captureResponsiveRoute(
     page,
