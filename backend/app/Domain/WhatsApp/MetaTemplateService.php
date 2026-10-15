@@ -112,7 +112,7 @@ final class MetaTemplateService
         $seenCursors = [];
         $pages = 0;
 
-        do {
+        while (true) {
             $query = [
                 'fields' => 'id,name,status,category,language,components',
                 'limit' => 100,
@@ -159,7 +159,7 @@ final class MetaTemplateService
                     ->first();
 
                 $status = $this->status((string) ($item['status'] ?? 'pending'));
-                $category = strtolower((string) ($item['category'] ?? ($local->category ?? 'marketing')));
+                $category = strtolower((string) ($item['category'] ?? $local->category ?? 'marketing'));
                 $components = is_array($item['components'] ?? null) ? $item['components'] : [];
                 $body = $this->bodyFromComponents($components) ?? (string) ($local->body_preview ?? '');
 
@@ -193,19 +193,18 @@ final class MetaTemplateService
             $nextUrl = $this->nullableString($response->json('paging.next'));
             $nextAfter = $this->nullableString($response->json('paging.cursors.after'));
             if ($nextUrl === null || $nextAfter === null || $nextAfter === $after || isset($seenCursors[$nextAfter])) {
-                $after = null;
-                continue;
+                break;
             }
 
             $seenCursors[$nextAfter] = true;
             $after = $nextAfter;
 
-            if ($pages >= 50 && $after !== null) {
+            if ($pages >= 50) {
                 throw ValidationException::withMessages([
                     'template' => [__('whatsapp.campaigns.meta_template_sync_failed')],
                 ]);
             }
-        } while ($after !== null);
+        }
 
         return compact('fetched', 'updated', 'imported', 'approved', 'pending', 'rejected');
     }
