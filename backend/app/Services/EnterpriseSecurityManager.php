@@ -216,7 +216,7 @@ final class EnterpriseSecurityManager
         return $this->requestChange($actor, 'delegation.revoke', [
             'delegation_id' => (int) $delegation->getKey(),
             'permission_code' => (string) $delegation->permission_code,
-            'delegate_label' => (string) ($delegation->delegate?->name ?? __('enterprise_security.unknown_user')),
+            'delegate_label' => (string) $delegation->delegate->name,
             'scope_type' => (string) $delegation->scope_type,
             'scope_id' => $delegation->scope_id === null ? null : (int) $delegation->scope_id,
         ]);
@@ -245,7 +245,9 @@ final class EnterpriseSecurityManager
                 ->lockForUpdate()
                 ->findOrFail($workflowRequestId);
 
-            $context = is_array($locked->context) ? $locked->context : [];
+            /** @var array<string, mixed>|null $contextValue */
+            $contextValue = $locked->getAttribute('context');
+            $context = is_array($contextValue) ? $contextValue : [];
             if (($context['applied_at'] ?? null) !== null) {
                 return $locked->load('steps');
             }
