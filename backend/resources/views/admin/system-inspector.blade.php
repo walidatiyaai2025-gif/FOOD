@@ -244,6 +244,7 @@
                 @php($operatorLocation = $operatorControl['location'])
                 @php($operatorState = (string)($operatorLocation['lifecycle_state'] ?? 'DRAFT'))
                 @php($operatorSupport = $restaurantOperator['support_access'])
+                @php($operatorSubscription = $restaurantOperator['subscription'] ?? null)
                 <div class="inspector-grid">
                     <article class="foodex-card inspector-stat">
                         <strong>{{ __('restaurant_operator.lifecycle') }}</strong>
@@ -275,6 +276,14 @@
                     <div class="inspector-health-row">
                         <strong>{{ __('restaurant_operator.entitlements') }}</strong>
                         <span class="foodex-number">{{ $restaurantOperator['entitlements']['enabled'] }} / {{ $restaurantOperator['entitlements']['total'] }} {{ __('restaurant_operator.enabled') }}</span>
+                    </div>
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.subscription') }}</strong>
+                        <span>{{ $operatorSubscription ? __('restaurant_operator.states.'.(string)$operatorSubscription['state']) : __('restaurant_operator.not_subscribed') }}</span>
+                    </div>
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.plan') }}</strong>
+                        <span>{{ $operatorSubscription['plan_name'] ?? '—' }}</span>
                     </div>
                     <div class="inspector-health-row">
                         <strong>{{ __('restaurant_operator.data_retention') }}</strong>
