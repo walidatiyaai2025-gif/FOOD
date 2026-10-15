@@ -130,8 +130,8 @@ final class SecurityController extends Controller
         $retailStorePermissionCodes = $isSuperAdmin
             ? collect()
             : $actor->storeRoleAssignments
-                ->filter(fn ($assignment): bool => (bool) $assignment->role?->is_active
-                    && $assignment->role?->scope === 'store')
+                ->filter(fn ($assignment): bool => (bool) $assignment->role->is_active
+                    && $assignment->role->scope === 'store')
                 ->groupBy('store_id')
                 ->map(fn ($assignments) => $assignments
                     ->flatMap(fn ($assignment) => $assignment->role->permissions->pluck('code'))
