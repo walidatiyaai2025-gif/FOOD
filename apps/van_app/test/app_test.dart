@@ -302,6 +302,53 @@ void main() {
     expect(find.byKey(const ValueKey('van-receipt-77')), findsOneWidget);
     expect(find.text('#77'), findsOneWidget);
     expect(find.text('5.000 KWD'), findsOneWidget);
+    expect(find.textContaining('Completed'), findsOneWidget);
+    expect(find.textContaining('2026-10-07T08:30:00+03:00'), findsNothing);
+  });
+
+  testWidgets(
+      'Arabic Van Receipt localizes timestamps and safely orders malformed legacy values',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('ar'),
+        walletRepository: _MixedReceiptsWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'مشغل الفان',
+          email: 'van@example.test',
+          locale: 'ar',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-receipt'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    final valid = find.byKey(const ValueKey('van-receipt-77'));
+    final legacy = find.byKey(const ValueKey('van-receipt-78'));
+    expect(valid, findsOneWidget);
+    expect(legacy, findsOneWidget);
+    expect(tester.getTopLeft(valid).dy, lessThan(tester.getTopLeft(legacy).dy));
+    expect(find.textContaining('التاريخ غير متاح'), findsOneWidget);
+    expect(find.textContaining('legacy-value'), findsNothing);
   });
 
   testWidgets(
@@ -1821,6 +1868,70 @@ class _ReceiptsWalletRepository implements VanWalletRepository {
           custodyBalance: 5,
           availableToRemit: 5,
           receipts: [
+            VanReceipt(
+              id: 77,
+              amount: 5,
+              currency: 'KWD',
+              status: 'posted',
+              createdAt: '2026-10-07T08:30:00+03:00',
+            ),
+          ],
+          remittances: [],
+        ),
+      ];
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      const VanCollectionContext(storeId: 7, invoices: []);
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) {
+    throw UnimplementedError();
+  }
+}
+
+class _MixedReceiptsWalletRepository implements VanWalletRepository {
+  const _MixedReceiptsWalletRepository();
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async => const [
+        VanWalletAccount(
+          id: 5,
+          storeId: 7,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 7,
+          availableToRemit: 7,
+          receipts: [
+            VanReceipt(
+              id: 78,
+              amount: 2,
+              currency: 'KWD',
+              status: 'posted',
+              createdAt: 'legacy-value',
+            ),
             VanReceipt(
               id: 77,
               amount: 5,
