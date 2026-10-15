@@ -50,6 +50,8 @@ use App\Http\Controllers\Admin\WhatsAppSupervisorController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use App\Http\Controllers\WhatsAppWebhookController;
+use App\Http\Controllers\SmartOrderingQrPublicController;
+use App\Http\Controllers\Admin\SmartOrderingQrController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -105,6 +107,11 @@ Route::withoutMiddleware([
         ->whereNumber('step')
         ->name('install.step');
 });
+
+Route::get('/q/{token}', SmartOrderingQrPublicController::class)
+    ->where('token', '[A-Za-z0-9_-]{32,96}')
+    ->middleware('throttle:120,1')
+    ->name('smart-ordering.qr.resolve');
 
 Route::prefix('admin')
     ->name('admin.')
@@ -213,6 +220,17 @@ Route::prefix('admin')
                 Route::post('/follow-ups', [WhatsAppSupervisorController::class, 'createFollowUp'])->name('follow-ups.store');
                 Route::patch('/follow-ups/{followUp}', [WhatsAppSupervisorController::class, 'transitionFollowUp'])->whereNumber('followUp')->name('follow-ups.transition');
                 Route::put('/conversations/{conversation}/outcome', [WhatsAppSupervisorController::class, 'recordOutcome'])->whereNumber('conversation')->name('outcomes.store');
+            });
+        Route::prefix('smart-ordering/qr')
+            ->name('smart-ordering.qr.')
+            ->group(function (): void {
+                Route::get('/', [SmartOrderingQrController::class, 'index'])->name('index');
+                Route::post('/', [SmartOrderingQrController::class, 'store'])->middleware('throttle:30,1')->name('store');
+                Route::patch('/{qr:public_id}', [SmartOrderingQrController::class, 'update'])->whereUuid('qr')->middleware('throttle:60,1')->name('update');
+                Route::post('/{qr:public_id}/toggle', [SmartOrderingQrController::class, 'toggle'])->whereUuid('qr')->middleware('throttle:60,1')->name('toggle');
+                Route::post('/{qr:public_id}/rotate', [SmartOrderingQrController::class, 'rotate'])->whereUuid('qr')->middleware('throttle:20,1')->name('rotate');
+                Route::get('/{qr:public_id}/asset.svg', [SmartOrderingQrController::class, 'svg'])->whereUuid('qr')->name('svg');
+                Route::get('/{qr:public_id}/asset.pdf', [SmartOrderingQrController::class, 'pdf'])->whereUuid('qr')->name('pdf');
             });
         Route::prefix('whatsapp/campaigns')
             ->name('whatsapp-campaigns.')
