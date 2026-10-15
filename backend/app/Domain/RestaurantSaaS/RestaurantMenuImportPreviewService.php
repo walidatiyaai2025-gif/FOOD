@@ -6,7 +6,6 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -121,8 +120,12 @@ final class RestaurantMenuImportPreviewService
                 }
             }
 
-            return compact('headers', 'sample', 'rowsTotal', 'formulaRows')
-                + ['rows_total' => $rowsTotal, 'formula_rows' => $formulaRows];
+            return [
+                'headers' => $headers,
+                'sample' => $sample,
+                'rows_total' => $rowsTotal,
+                'formula_rows' => $formulaRows,
+            ];
         } finally {
             fclose($handle);
         }
