@@ -12,7 +12,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .assistant-settings-grid{display:grid;gap:16px}
 .assistant-status{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border-radius:14px;background:var(--foodex-green-soft)}
 .assistant-status strong{font-size:1.1rem}
-.assistant-note{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface-subtle)}
+.assistant-note{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}
 .assistant-switch{display:flex;align-items:center;gap:10px;font-weight:800}
 .assistant-switch input{width:22px;height:22px}
 .assistant-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
