@@ -124,6 +124,22 @@ final class SecurityController extends Controller
             ];
         });
 
+        $editableRoleIds = $roles
+            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes): bool {
+                if ($isSuperAdmin) {
+                    return true;
+                }
+
+                if ($role->code === 'SUPER_ADMIN') {
+                    return false;
+                }
+
+                return $role->permissions->pluck('code')->diff($grantablePermissionCodes ?? collect())->isEmpty();
+            })
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
@@ -133,6 +149,7 @@ final class SecurityController extends Controller
             'permissionGroups' => $permissionGroups,
             'permissionLabels' => $permissionLabels,
             'permissionGroupLabels' => $permissionGroupLabels,
+            'editableRoleIds' => $editableRoleIds,
             'privilegedPermissionCodes' => [
                 'platform.manage',
                 'security.view',
