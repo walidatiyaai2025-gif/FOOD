@@ -761,6 +761,9 @@ void main() {
 
   testWidgets('Van Route Map plots only authoritative visit coordinates',
       (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    addTearDown(semanticsHandle.dispose);
+
     await tester.pumpWidget(
       const FoodexVanApp(
         locale: Locale('en'),
@@ -797,7 +800,34 @@ void main() {
     expect(find.text('ROUTE-A'), findsOneWidget);
     expect(find.text('0/2'), findsOneWidget);
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
-    expect(find.text('Block 3 · Street 17'), findsOneWidget);
+    expect(find.text('Block 3 · Street 17'), findsWidgets);
+    expect(find.byKey(const ValueKey('van-route-stop-list')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-route-stop-601')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-route-stop-602')), findsOneWidget);
+    expect(find.text('Planned'), findsOneWidget);
+    expect(find.text('Started'), findsOneWidget);
+    expect(find.textContaining('Map location unavailable'), findsOneWidget);
+
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(
+              const ValueKey('van-route-stop-601-semantics'),
+            ),
+          )
+          .label,
+      'Stop 1. Acme Grocery. Planned. Block 3 · Street 17.',
+    );
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(
+              const ValueKey('van-route-stop-602-semantics'),
+            ),
+          )
+          .label,
+      'Stop 2. City Market. Started. Block 5 · Street 9 · Map location unavailable.',
+    );
   });
 
 
@@ -1860,8 +1890,8 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 43,
           storeId: 8,
           routeKey: 'ROUTE-A',
-          latitude: 29.3412,
-          longitude: 47.6654,
+          latitude: null,
+          longitude: null,
           address: 'Block 5 · Street 9',
           status: 'started',
           plannedAt: '2026-10-07T11:00:00+03:00',
