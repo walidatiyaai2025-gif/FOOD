@@ -1058,6 +1058,336 @@
         "performance",
         "independent_certification"
       ]
+    },
+    {
+      "id": "counter_pos",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "restaurant_pos",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "online_ordering",
+        "payments_reconciliation",
+        "restaurant_staff"
+      ],
+      "reuse": [
+        "canonical FOODEX menu/cart/order/payment services"
+      ],
+      "target": [
+        "staff order entry",
+        "open checks/tabs",
+        "authorized void/discount",
+        "split/merge policy",
+        "tender/tip hooks"
+      ],
+      "disable_behavior": "Online/QR ordering and operational order views remain; staff counter POS surface is unavailable.",
+      "gates": [
+        "domain",
+        "product_ux",
+        "security_privacy",
+        "reliability",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "cash_tip_management",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "cash_tip_management",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "counter_pos",
+        "restaurant_staff"
+      ],
+      "reuse": [
+        "payment/order financial truth"
+      ],
+      "target": [
+        "till sessions",
+        "float",
+        "cash in/out",
+        "expected vs counted",
+        "variance",
+        "tip pool/allocation hooks",
+        "shift-close audit"
+      ],
+      "disable_behavior": "Non-cash payment/order processing continues; cash/tip session workflows are unavailable.",
+      "gates": [
+        "domain",
+        "audit",
+        "tenancy_rbac",
+        "reliability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "self_service_kiosk",
+      "state": "GAP",
+      "priority": "P2",
+      "wave": 6,
+      "entitlement": "self_service_kiosk",
+      "scope": [
+        "LOCATION",
+        "CHANNEL"
+      ],
+      "dependencies": [
+        "public_menu",
+        "online_ordering",
+        "payments_reconciliation"
+      ],
+      "reuse": [
+        "canonical menu/checkout/theme contracts"
+      ],
+      "target": [
+        "touch-first channel",
+        "idle reset",
+        "kiosk upsell",
+        "payment adapter",
+        "session privacy"
+      ],
+      "disable_behavior": "Other public and staff channels continue; kiosk route/device returns unavailable.",
+      "gates": [
+        "product_ux",
+        "localization_accessibility",
+        "security_privacy",
+        "performance",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "branded_guest_app_pwa",
+      "state": "GAP",
+      "priority": "P2",
+      "wave": 6,
+      "entitlement": "branded_guest_app",
+      "scope": [
+        "BRAND"
+      ],
+      "dependencies": [
+        "restaurant_site",
+        "restaurant_crm",
+        "online_ordering"
+      ],
+      "reuse": [
+        "public APIs",
+        "menu/order/customer/loyalty truth"
+      ],
+      "target": [
+        "installable PWA",
+        "push hooks",
+        "favorites",
+        "order history/reorder",
+        "loyalty",
+        "optional native branded app"
+      ],
+      "disable_behavior": "Responsive web remains canonical; app/PWA-specific install/push features stop.",
+      "gates": [
+        "api_contract",
+        "security_privacy",
+        "localization_accessibility",
+        "performance",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "catering_events",
+      "state": "GAP",
+      "priority": "P2",
+      "wave": 6,
+      "entitlement": "catering_events",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_crm",
+        "online_ordering",
+        "payments_reconciliation"
+      ],
+      "reuse": [
+        "canonical order/payment/customer services"
+      ],
+      "target": [
+        "inquiry/lead",
+        "packages",
+        "large scheduled order",
+        "minimum spend",
+        "deposit schedule",
+        "quote/approval",
+        "event timeline"
+      ],
+      "disable_behavior": "Standard ordering/CRM continue; new catering/event workflows are unavailable.",
+      "gates": [
+        "domain",
+        "product_ux",
+        "reliability",
+        "audit",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "first_party_delivery_dispatch",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "restaurant_dispatch",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "online_ordering"
+      ],
+      "reuse": [
+        "existing FOODEX Driver/routing capabilities where authoritative"
+      ],
+      "target": [
+        "restaurant courier assignment adapter",
+        "dispatch/tracking",
+        "failed delivery/proof hooks",
+        "external courier fallback"
+      ],
+      "disable_behavior": "Pickup/dine-in and external delivery modes remain; first-party restaurant dispatch stops safely.",
+      "gates": [
+        "domain",
+        "tenancy_rbac",
+        "reliability",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "accounting_finance_export",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 5,
+      "entitlement": "accounting_export",
+      "scope": [
+        "ORGANIZATION",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "payments_reconciliation",
+        "advanced_analytics"
+      ],
+      "reuse": [
+        "canonical order/payment/refund/settlement data"
+      ],
+      "target": [
+        "daily sales summary",
+        "tender/refund/discount/tax/fee breakdown",
+        "settlement export",
+        "journal-ready output",
+        "accounting connector adapter"
+      ],
+      "disable_behavior": "Operational commerce continues; accounting export/sync is unavailable.",
+      "gates": [
+        "analytics_integrity",
+        "audit",
+        "security_privacy",
+        "reliability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "device_hardware_gateway",
+      "state": "LATER",
+      "priority": "P2",
+      "wave": 7,
+      "entitlement": "device_gateway",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "counter_pos",
+        "kitchen_display"
+      ],
+      "reuse": [],
+      "target": [
+        "receipt/kitchen printers",
+        "cash drawers",
+        "customer displays",
+        "payment terminals",
+        "device health",
+        "certified edge gateway when required"
+      ],
+      "disable_behavior": "Cloud/browser operation remains; local hardware automation is unavailable.",
+      "gates": [
+        "security_privacy",
+        "reliability",
+        "performance",
+        "independent_certification"
+      ]
+    },
+    {
+      "id": "food_safety_checklists",
+      "state": "LATER",
+      "priority": "P2",
+      "wave": 6,
+      "entitlement": "food_safety_ops",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_staff"
+      ],
+      "reuse": [
+        "workflow/audit primitives"
+      ],
+      "target": [
+        "opening/closing checklists",
+        "temperature/cleaning logs",
+        "corrective actions",
+        "manager verification",
+        "export"
+      ],
+      "disable_behavior": "All commerce/operations continue; compliance checklist workflows are unavailable.",
+      "gates": [
+        "product_ux",
+        "audit",
+        "tenancy_rbac",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "ai_assistance",
+      "state": "LATER",
+      "priority": "P2",
+      "wave": 6,
+      "entitlement": "ai_assistance",
+      "scope": [
+        "ORGANIZATION",
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "canonical data through read-only/domain-safe tools"
+      ],
+      "target": [
+        "draft copy/translation",
+        "insights",
+        "campaign drafts",
+        "support triage"
+      ],
+      "disable_behavior": "No core feature depends on AI; all deterministic workflows remain available.",
+      "gates": [
+        "security_privacy",
+        "privacy_consent",
+        "audit",
+        "module_independence",
+        "independent_certification"
+      ]
     }
   ],
   "release_gate_ids": {
