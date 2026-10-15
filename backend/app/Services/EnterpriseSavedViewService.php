@@ -210,6 +210,7 @@ final class EnterpriseSavedViewService
 
     private function authorizeScope(User $actor, string $scopeType, ?int $scopeId): string
     {
+        abort_unless((bool) $actor->is_active, 403);
         $scopeKey = $this->scopeKey($scopeType, $scopeId);
 
         if ($scopeType === 'platform') {
@@ -231,6 +232,7 @@ final class EnterpriseSavedViewService
             ->join('roles as saved_view_roles', 'saved_view_roles.id', '=', 'saved_view_usr.role_id')
             ->where('saved_view_usr.user_id', $actor->getKey())
             ->where('saved_view_roles.is_active', true)
+            ->where('saved_view_roles.scope', 'store')
             ->exists();
 
         if ($storeRoleAccess) {
