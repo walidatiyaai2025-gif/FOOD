@@ -369,7 +369,7 @@ async function captureMixedTrackingEvidence(page, locale) {
     const kinds = new Set(rows.map((row) => row.actor_type || (row.actor_id != null ? 'van' : 'driver')));
     const statuses = new Set(rows.map((row) => row.status));
     return kinds.has('driver') && kinds.has('van') && statuses.has('stale') && statuses.has('online');
-  }, null, { timeout: 15000 });
+  }, null, { timeout: 30000 });
 
   const proof = await page.evaluate(() => {
     const root = document.querySelector('[data-driver-live-map]');
