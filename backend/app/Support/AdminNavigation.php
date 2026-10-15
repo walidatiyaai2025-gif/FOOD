@@ -39,6 +39,7 @@ class AdminNavigation
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
+                $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
