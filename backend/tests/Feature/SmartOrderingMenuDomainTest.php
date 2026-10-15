@@ -16,6 +16,7 @@ use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,7 +71,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             'sold_out' => false,
             'sort_order' => 0,
         ]);
-        $writer->createItem($fixture['admin'], $fixture['site'], $draft->fresh(), $category, [
+        $reviewItem = $writer->createItem($fixture['admin'], $fixture['site'], $draft->fresh(), $category, [
             'name_en' => 'Review Burger',
             'image_path' => 'smart-ordering/demo/item.webp',
             'price_override' => 4.250,
@@ -81,6 +82,19 @@ class SmartOrderingMenuDomainTest extends TestCase
             'sort_order' => 0,
         ]);
 
+        $checkoutQuote = app(CommerceQuoteService::class)->quote(
+            'b2c',
+            $fixture['store_id'],
+            null,
+            [['product_id' => $fixture['product_id'], 'quantity' => 1]],
+        );
+        $this->assertSame('EGP', $checkoutQuote['currency']);
+        $this->assertSame(4.25, $checkoutQuote['subtotal']);
+        $this->assertSame(
+            app(SmartOrderingPriceResolver::class)->displayPrice($fixture['site'], $reviewItem)['amount'],
+            $checkoutQuote['subtotal'],
+        );
+
         $this->actingAs($fixture['admin'])
             ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
             ->assertOk()
@@ -89,7 +103,10 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('Current category image')
             ->assertSee('Current item image')
             ->assertSee('Visual Menu')
-            ->assertSee('Review Burger');
+            ->assertSee('Review Burger')
+            ->assertSee('4.25 EGP')
+            ->assertSee('step="0.01"', false)
+            ->assertDontSee('KWD');
 
         $published = app(SmartOrderingMenuRevisionService::class)->publish(
             $fixture['admin'],
@@ -448,7 +465,11 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]))
             ->assertOk()
             ->assertJsonCount(1, 'products')
-            ->assertJsonPath('products.0.id', $a['product_id']);
+            ->assertJsonPath('currency', 'EGP')
+            ->assertJsonPath('money_step', '0.01')
+            ->assertJsonPath('products.0.id', $a['product_id'])
+            ->assertJsonPath('products.0.currency', 'EGP')
+            ->assertJsonPath('products.0.display_price', '4.00');
 
         $this->actingAs($a['admin'])
             ->get(route('admin.smart-ordering.menu.index', ['store_id' => $a['store_id']]))
