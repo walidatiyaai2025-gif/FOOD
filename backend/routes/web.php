@@ -558,3 +558,5 @@ Route::prefix('admin')
     });
 
 require __DIR__.'/smart_ordering.php';
+
+require __DIR__.'/smart_ordering_web.php';

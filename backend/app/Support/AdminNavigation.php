@@ -44,6 +44,7 @@ class AdminNavigation
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
+                $this->routeItemScoped($user, 'smart_ordering', 'smart_ordering.nav_title', 'admin.smart-ordering.index', 'smart_ordering.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
             ]),

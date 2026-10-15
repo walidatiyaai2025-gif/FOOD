@@ -42,6 +42,7 @@ const b2c = [
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
+  ['20_الطلب_الذكي', '/admin/smart-ordering'],
 ];
 
 async function ensureDir(dir) {
