@@ -27,6 +27,7 @@ final class EnterpriseModuleRegistryTest extends TestCase
 
         $this->assertSame('sample_optional', $manifest->code);
         $this->assertSame(ModuleState::DISABLED, $manifest->defaultState);
+        $this->assertSame([], $manifest->capabilities);
         $this->assertSame([], $queries);
     }
 
@@ -74,6 +75,7 @@ final class EnterpriseModuleRegistryTest extends TestCase
             'required_core' => ['module_registry'],
             'hard_dependencies' => [],
             'optional_integrations' => [],
+            'capabilities' => ['catalog.core'],
             'permissions' => [],
             'health_checks' => [],
             'navigation' => [],
@@ -85,6 +87,7 @@ final class EnterpriseModuleRegistryTest extends TestCase
             'required_core' => ['module_registry'],
             'hard_dependencies' => ['catalog'],
             'optional_integrations' => ['accounting'],
+            'capabilities' => ['procurement.core'],
             'permissions' => ['procurement.view'],
             'health_checks' => ['database'],
             'navigation' => ['group' => 'operations', 'order' => 40],
