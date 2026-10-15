@@ -45,7 +45,7 @@ final class CampaignReportExporter
         @unlink($path);
         $path .= '.xlsx';
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('Unable to create XLSX export.');
         }

@@ -209,11 +209,13 @@ final class CampaignAudienceService
             if ($name === '' || $phone === null || ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false)) {
                 $invalid++;
                 $errors[] = ['row' => $rowNumber, 'reason' => 'invalid_name_phone_or_email'];
+
                 continue;
             }
             if (isset($seen[$phone])) {
                 $skipped++;
                 $errors[] = ['row' => $rowNumber, 'reason' => 'duplicate_in_file', 'phone' => $phone];
+
                 continue;
             }
             $seen[$phone] = true;
@@ -227,6 +229,7 @@ final class CampaignAudienceService
                 if (! $allowed) {
                     $skipped++;
                     $errors[] = ['row' => $rowNumber, 'reason' => 'duplicate_outside_scope'];
+
                     continue;
                 }
 

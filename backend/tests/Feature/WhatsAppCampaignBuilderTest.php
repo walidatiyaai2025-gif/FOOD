@@ -35,7 +35,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
 
         $first = $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.audience.manual'), [
             'store_id' => $storeId,
-            'manual_lines' => "Manual Customer,965 5000 0111,manual@example.test",
+            'manual_lines' => 'Manual Customer,965 5000 0111,manual@example.test',
         ])->assertOk()->json();
 
         $this->assertSame(1, $first['created']);
@@ -45,7 +45,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
 
         $second = $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.audience.manual'), [
             'store_id' => $storeId,
-            'manual_lines' => "Same Phone,+965-5000-0111,other@example.test",
+            'manual_lines' => 'Same Phone,+965-5000-0111,other@example.test',
             'consent_state' => 'granted',
             'consent_source' => 'signed_form',
             'consent_evidence' => 'Signed opt-in form #123',
@@ -410,7 +410,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
         }
         @unlink($path);
         $path .= '.xlsx';
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
         $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
         $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'

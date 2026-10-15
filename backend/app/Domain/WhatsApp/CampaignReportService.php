@@ -5,9 +5,11 @@ namespace App\Domain\WhatsApp;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class CampaignReportService
 {
@@ -247,7 +249,7 @@ final class CampaignReportService
         foreach ($query->get() as $campaign) {
             try {
                 $this->assertVisible($actor, (int) $campaign->id);
-            } catch (\Symfony\Component\HttpKernel\Exception\HttpException) {
+            } catch (HttpException) {
                 continue;
             }
             $metrics = $this->campaigns->metrics((int) $campaign->id);
@@ -388,7 +390,7 @@ final class CampaignReportService
             ->count('mc.platform_customer_id');
     }
 
-    private function optOutQuery(int $campaignId, object $campaign): \Illuminate\Database\Query\Builder
+    private function optOutQuery(int $campaignId, object $campaign): Builder
     {
         $windowStart = $campaign->started_at ?? $campaign->scheduled_at ?? $campaign->created_at;
         $windowEnd = $campaign->completed_at === null

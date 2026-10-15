@@ -114,6 +114,7 @@ final class CampaignContactImportService
             if (($row['__formula'] ?? false) === true) {
                 $formulaInvalid++;
                 $rows[] = ['name' => null, 'phone' => null, 'email' => null];
+
                 continue;
             }
             $rows[] = [
@@ -209,7 +210,7 @@ final class CampaignContactImportService
             throw ValidationException::withMessages(['file' => ['XLSX import requires the PHP ZIP extension.']]);
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open(Storage::disk('local')->path($path)) !== true) {
             throw ValidationException::withMessages(['file' => ['XLSX file is invalid or unreadable.']]);
         }
@@ -329,6 +330,7 @@ final class CampaignContactImportService
             $si = isset($namespaces['']) ? $siRaw->children($namespaces['']) : $siRaw;
             if (isset($si->t)) {
                 $values[] = (string) $si->t;
+
                 continue;
             }
             $text = '';
@@ -440,7 +442,7 @@ final class CampaignContactImportService
     }
 
     /** @param list<string> $headers
-     * @param array{name?:string,phone?:string,email?:string|null} $mapping
+     * @param  array{name?:string,phone?:string,email?:string|null}  $mapping
      * @return array{name:string,phone:string,email:?string}
      */
     private function validatedMapping(array $headers, array $mapping): array

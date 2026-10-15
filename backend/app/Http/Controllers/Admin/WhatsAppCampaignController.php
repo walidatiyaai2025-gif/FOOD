@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class WhatsAppCampaignController extends Controller
 {
@@ -49,7 +50,7 @@ final class WhatsAppCampaignController extends Controller
                     $reports->assertVisible($actor, (int) $row->id);
 
                     return true;
-                } catch (\Symfony\Component\HttpKernel\Exception\HttpException) {
+                } catch (HttpException) {
                     return false;
                 }
             })
