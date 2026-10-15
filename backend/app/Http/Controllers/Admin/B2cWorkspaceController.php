@@ -921,6 +921,7 @@ class B2cWorkspaceController extends Controller
                 ->get([
                     'inventories.id',
                     'inventories.warehouse_id',
+                    'inventories.product_id',
                     'inventories.quantity',
                     'inventories.reserved_quantity',
                     'products.sku',
@@ -933,6 +934,7 @@ class B2cWorkspaceController extends Controller
                 ->map(fn ($row) => [
                     'id' => (int) $row->id,
                     'warehouse_id' => (int) $row->warehouse_id,
+                    'product_id' => (int) $row->product_id,
                     'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse,
                     'product' => $row->sku.' · '.$row->name,
                     'warehouse' => $row->warehouse_code.' · '.$row->warehouse,
