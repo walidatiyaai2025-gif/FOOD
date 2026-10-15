@@ -50,8 +50,15 @@ if ! (
   dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
   echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
-  echo "Canonical formatter diff follows:" >&2
-  git -C "$root" diff -- "$prefix/lib" "$prefix/test" >&2 || true
+  echo "Canonical formatted files follow:" >&2
+  (
+    cd "$root/$prefix"
+    for file in "${files[@]}"; do
+      echo "----- FORMAT:$file -----" >&2
+      dart format --output=show "$file" >&2 || true
+      echo "----- END_FORMAT:$file -----" >&2
+    done
+  )
   exit 1
 fi
 
