@@ -36,15 +36,17 @@ final class LoyaltyAdminService
             );
         }
 
+        $scopeKey = $branchId === null ? 'site' : 'branch:'.$branchId;
         $before = DB::table('smart_ordering_loyalty_rules')
             ->where('site_id', $site->id)
-            ->when($branchId === null, fn ($q) => $q->whereNull('branch_id'), fn ($q) => $q->where('branch_id', $branchId))
+            ->where('scope_key', $scopeKey)
             ->first();
 
         if ($before === null) {
             DB::table('smart_ordering_loyalty_rules')->insert([
                 'site_id' => $site->id,
                 'branch_id' => $branchId,
+                'scope_key' => $scopeKey,
                 'points_per_currency_unit' => $pointsPerCurrencyUnit,
                 'minimum_spend' => $minimumSpend,
                 'expiry_days' => $expiryDays,
@@ -64,7 +66,7 @@ final class LoyaltyAdminService
 
         $after = DB::table('smart_ordering_loyalty_rules')
             ->where('site_id', $site->id)
-            ->when($branchId === null, fn ($q) => $q->whereNull('branch_id'), fn ($q) => $q->where('branch_id', $branchId))
+            ->where('scope_key', $scopeKey)
             ->first();
 
         $this->audit->record('smart_ordering.loyalty.rule_updated', $actor, $site, [
