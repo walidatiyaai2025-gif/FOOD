@@ -51,8 +51,8 @@ final class SmartOrderingController extends Controller
     {
         $model = $carts->authorized($cart, $this->cartToken($request));
         $data = $request->validate([
-            'product_id' => ['required', 'integer', 'min:1'],
-            'menu_item_public_id' => ['nullable', 'uuid'],
+            'product_id' => ['nullable', 'required_without:menu_item_public_id', 'integer', 'min:1'],
+            'menu_item_public_id' => ['nullable', 'required_without:product_id', 'uuid'],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:999'],
             'selection' => ['nullable', 'array'],
             'selection.variant_product_id' => ['nullable', 'integer', 'min:1'],
@@ -62,6 +62,10 @@ final class SmartOrderingController extends Controller
             'selection.extras' => ['nullable', 'array', 'max:20'],
             'selection.extras.*.product_id' => ['required_with:selection.extras', 'integer', 'min:1'],
             'selection.extras.*.quantity' => ['nullable', 'numeric', 'gt:0', 'max:50'],
+            'selection.menu_modifiers' => ['nullable', 'array', 'max:20'],
+            'selection.menu_modifiers.*.group_public_id' => ['required', 'uuid'],
+            'selection.menu_modifiers.*.option_public_ids' => ['present', 'array', 'max:20'],
+            'selection.menu_modifiers.*.option_public_ids.*' => ['uuid'],
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 
