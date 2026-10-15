@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
@@ -176,12 +177,12 @@ final class SmartOrderingController extends Controller
     public function publish(
         Request $request,
         SmartOrderingRevision $revision,
-        SmartOrderingRevisionService $revisions,
+        SmartOrderingMenuRevisionService $revisions,
         TenantContextResolver $tenants,
     ): RedirectResponse {
         $site = $revision->site()->firstOrFail();
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.publish');
-        $revisions->publish($actor, $revision, $request);
+        $revisions->publish($actor, $site, $revision, $request);
 
         return back()->with('status', __('smart_ordering.published'));
     }

@@ -113,10 +113,9 @@ class SmartOrderingQrTest extends TestCase
         $attribution->attachCart($context, $cart);
         $this->assertSame($promotionId, $attribution->promotionIdForCart($cart));
 
+        $tamperedContext = substr($context, 0, -1).(str_ends_with($context, '0') ? '1' : '0');
         $this->expectException(ValidationException::class);
-        $last = substr($context, -1);
-        $forged = substr($context, 0, -1).($last === '0' ? '1' : '0');
-        $attribution->serverContext($forged, $store);
+        $attribution->serverContext($tamperedContext, $store);
     }
 
     public function test_attribution_survives_cart_checkout_and_order_with_server_owned_revenue(): void

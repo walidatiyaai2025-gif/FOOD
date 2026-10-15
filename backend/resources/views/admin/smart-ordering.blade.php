@@ -20,6 +20,13 @@
             <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
         </header>
+        <section class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <div><h2>{{ __('smart_ordering_menu.nav_title') }}</h2><p>{{ __('smart_ordering_menu.description') }}</p></div>
+                <a class="primary" href="{{ route('admin.smart-ordering.menu.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_menu.nav_title') }}</a>
+            </div>
+        </section>
+
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 

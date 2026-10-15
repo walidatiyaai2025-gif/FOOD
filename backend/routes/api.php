@@ -351,3 +351,4 @@ Route::prefix('v1')->group(function (): void {
 });
 
 require __DIR__.'/smart_ordering_api.php';
+require __DIR__.'/smart_ordering_menu_api.php';
