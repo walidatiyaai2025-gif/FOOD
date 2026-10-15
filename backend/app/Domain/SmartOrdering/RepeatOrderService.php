@@ -12,9 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 final class RepeatOrderService
 {
-    public function __construct(private readonly CommerceQuoteService $quotes)
-    {
-    }
+    public function __construct(private readonly CommerceQuoteService $quotes) {}
 
     /**
      * Build a repeat-order draft from historical quantities and live server pricing.
@@ -27,7 +25,8 @@ final class RepeatOrderService
         int $customerId,
         int $sourceOrderId,
         array $selectedOrderItemIds = [],
-    ): array {
+    ): array
+    {
         $order = DB::table('orders')
             ->where('id', $sourceOrderId)
             ->where('store_id', $site->store_id)
