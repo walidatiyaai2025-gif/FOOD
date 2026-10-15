@@ -110,7 +110,7 @@ final class ChatbotOrderDraftService
         return $this->totals($cartId) + ['skipped' => $skipped];
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function items(int $conversationId, int $platformCustomerId): Collection
     {
         [$legacyCustomerId, $storeId, $channel] = $this->customerContext($conversationId, $platformCustomerId);
