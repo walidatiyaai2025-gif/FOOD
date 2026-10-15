@@ -38,6 +38,10 @@
 .so-qr-dialog-head h2{margin:0}
 .so-qr-dialog-close{min-width:44px;min-height:44px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-input);background:var(--foodex-surface);cursor:pointer}
 .so-qr-help{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-xs);line-height:1.5}
+.so-qr-quick-setup,.so-qr-context-box,.so-qr-create-summary,.so-qr-advanced{border:1px solid var(--foodex-border);border-radius:14px;padding:12px;background:var(--foodex-background)}
+.so-qr-create-summary{font-weight:700;color:var(--foodex-green-dark);background:var(--foodex-green-soft)}
+.so-qr-advanced>summary{cursor:pointer;font-weight:700}
+.so-qr-advanced>.so-qr-form-grid{margin-top:12px}
 .so-qr-status{padding:12px 16px}
 .so-qr-empty{text-align:center!important;padding:30px!important;color:var(--foodex-muted)}
 @media(max-width:767px){
@@ -232,6 +236,43 @@
 @endif
 
 <script>
+(() => {
+    const form = document.querySelector('#so-qr-create form');
+    if (!form) return;
+
+    const preset = form.querySelector('[data-qr-preset]');
+    const type = form.querySelector('[data-qr-type]');
+    const advancedType = form.querySelector('[data-qr-advanced-type]');
+    const tableFields = form.querySelector('[data-qr-table-fields]');
+    const campaignFields = form.querySelector('[data-qr-campaign-fields]');
+    const summary = form.querySelector('[data-qr-create-summary]');
+    const tableInput = form.querySelector('[data-qr-table-input]');
+    const campaignInput = form.querySelector('[data-qr-campaign-input]');
+
+    const summaries = {
+        generic: @json(__('smart_ordering_qr.summary_menu')),
+        table: @json(__('smart_ordering_qr.summary_table')),
+        campaign: @json(__('smart_ordering_qr.summary_campaign')),
+    };
+
+    const sync = (value) => {
+        value = value || 'generic';
+        if (type) type.value = value;
+        if (advancedType && advancedType.value !== value) advancedType.value = value;
+        if (preset && ['generic','table','campaign'].includes(value) && preset.value !== value) preset.value = value;
+
+        if (tableFields) tableFields.hidden = value !== 'table';
+        if (campaignFields) campaignFields.hidden = value !== 'campaign';
+        if (tableInput) tableInput.required = value === 'table';
+        if (campaignInput) campaignInput.required = false;
+        if (summary) summary.textContent = summaries[value] || summaries.generic;
+    };
+
+    preset?.addEventListener('change', () => sync(preset.value));
+    advancedType?.addEventListener('change', () => sync(advancedType.value));
+    sync(type?.value || preset?.value || 'generic');
+})();
+
 document.addEventListener('click', async (event) => {
     const opener=event.target.closest('[data-open-dialog]');
     if(opener){document.getElementById(opener.dataset.openDialog)?.showModal();return;}
