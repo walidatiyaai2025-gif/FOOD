@@ -140,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const discardPanel = modal.querySelector('[data-new-order-discard]');
     const continueButton = discardPanel?.querySelector('[data-new-order-continue]');
     const discardButton = discardPanel?.querySelector('[data-new-order-discard-confirm]');
+    const modalHeader = modal.querySelector('.new-order-head');
+    const modalProgress = modal.querySelector('.new-order-progress');
+    const modalActions = modal.querySelector('.new-order-actions');
     let step = 0;
     let quoteReady = false;
     let initialized = false;
@@ -360,10 +363,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const setDiscardIsolation = (active) => {
+        [form, modalHeader, modalProgress, modalActions].forEach((node) => {
+            if (node) node.inert = active;
+        });
+    };
+
     const hideDiscardPrompt = ({ restoreFocus = true } = {}) => {
         if (!discardPanel) return;
         discardPanel.dataset.visible = '0';
         discardPanel.setAttribute('aria-hidden', 'true');
+        setDiscardIsolation(false);
         if (restoreFocus && discardReturnFocus instanceof HTMLElement) discardReturnFocus.focus();
         discardReturnFocus = null;
     };
@@ -406,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!discardPanel) return;
         discardReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
+        setDiscardIsolation(true);
         discardPanel.dataset.visible = '1';
         discardPanel.setAttribute('aria-hidden', 'false');
         continueButton?.focus();
@@ -422,7 +433,22 @@ document.addEventListener('DOMContentLoaded', () => {
     discardButton?.addEventListener('click', discardAndClose);
     modal.addEventListener('click', (event) => { if (event.target === modal) requestClose(modal.querySelector('[data-new-order-cancel]')); });
     document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape' || modal.dataset.open !== '1') return;
+        if (modal.dataset.open !== '1') return;
+
+        if (discardPanel?.dataset.visible === '1' && event.key === 'Tab') {
+            const focusable = [continueButton, discardButton].filter((node) => node instanceof HTMLElement && !node.disabled);
+            if (focusable.length) {
+                const currentIndex = focusable.indexOf(document.activeElement);
+                const nextIndex = event.shiftKey
+                    ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+                    : (currentIndex < 0 || currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+                event.preventDefault();
+                focusable[nextIndex].focus();
+            }
+            return;
+        }
+
+        if (event.key !== 'Escape') return;
         if (discardPanel?.dataset.visible === '1') {
             event.preventDefault();
             hideDiscardPrompt();
