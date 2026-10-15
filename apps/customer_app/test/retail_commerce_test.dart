@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
@@ -454,6 +455,7 @@ void main() {
         MaterialApp(
           locale: const Locale('ar'),
           supportedLocales: const [Locale('ar'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: Directionality(
             textDirection: TextDirection.rtl,
             child: RetailCheckoutScreen(
