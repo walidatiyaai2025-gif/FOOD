@@ -250,10 +250,12 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                       ),
                     ),
                 ],
-                onChanged: (value) {
-                  widget.draft.setSelection(payment: value);
-                  _reload();
-                },
+                onChanged: _loading || _submitting
+                    ? null
+                    : (value) {
+                        widget.draft.setSelection(payment: value);
+                        _reload();
+                      },
               ),
               const SizedBox(height: 10),
               TextField(
