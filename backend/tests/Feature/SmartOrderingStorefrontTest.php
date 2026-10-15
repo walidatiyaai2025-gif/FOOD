@@ -60,6 +60,40 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->get('/smart-ordering/missing')->assertNotFound();
     }
 
+    public function test_authorized_preview_can_switch_theme_without_changing_snapshot_and_is_not_cacheable(): void
+    {
+        $this->withoutMiddleware();
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot('quick-bite', 'light')));
+
+        $response = $this->get('/admin/smart-ordering/appearance/preview?site=demo&theme=signature-brand&appearance=dark&lang=ar&revision=draft');
+
+        $response->assertOk()
+            ->assertSee('data-template="signature-brand"', false)
+            ->assertSee('data-theme="dark"', false)
+            ->assertSee('dir="rtl"', false)
+            ->assertHeader('Cache-Control', 'private, no-store')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+            ->assertSee('برجر كلاسيك')
+            ->assertDontSee('secret-token');
+    }
+
+    public function test_public_asset_budget_and_responsive_contract(): void
+    {
+        $css = public_path('css/smart-ordering-storefront.css');
+        $js = public_path('js/smart-ordering-storefront.js');
+
+        $this->assertFileExists($css);
+        $this->assertFileExists($js);
+        $this->assertLessThanOrEqual((int) config('smart_ordering_storefront.performance_budget.public_css_bytes'), filesize($css));
+        $this->assertLessThanOrEqual((int) config('smart_ordering_storefront.performance_budget.public_js_bytes'), filesize($js));
+
+        $stylesheet = file_get_contents($css);
+        $this->assertIsString($stylesheet);
+        $this->assertStringContainsString('@media(max-width:720px)', $stylesheet);
+        $this->assertStringContainsString('@media(min-width:760px)', $stylesheet);
+        $this->assertStringContainsString('[data-theme=dark]', $stylesheet);
+    }
+
     private function provider(?array $snapshot): StorefrontSnapshotProvider
     {
         return new class($snapshot) implements StorefrontSnapshotProvider
