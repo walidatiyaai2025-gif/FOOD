@@ -666,7 +666,8 @@ final class OrderOperationsController extends Controller
                         $search->where('b2b_customers.name', 'like', $needle)
                             ->orWhere('b2b_customers.phone', 'like', $needle)
                             ->orWhere('b2b_customers.email', 'like', $needle)
-                            ->orWhere('b2b_accounts.company_name', 'like', $needle);
+                            ->orWhere('b2b_accounts.company_name', 'like', $needle)
+                            ->orWhere('b2b_accounts.tax_number', 'like', $needle);
                     });
                 })
                 ->when($selectedId !== null, fn ($scope) => $scope->orderByRaw('b2b_customers.id = ? desc', [$selectedId]))
@@ -682,6 +683,7 @@ final class OrderOperationsController extends Controller
                     'b2b_customers.phone',
                     'b2b_customers.email',
                     'b2b_accounts.company_name',
+                    'b2b_accounts.tax_number',
                     'b2b_accounts.status as account_status',
                     'retail_wholesale_accounts.retail_store_id',
                     'retail_customer_store.name as retail_store_name',
@@ -716,6 +718,7 @@ final class OrderOperationsController extends Controller
             $context = array_values(array_filter([
                 trim((string) ($row->phone ?? '')),
                 trim((string) ($row->email ?? '')),
+                trim((string) ($row->tax_number ?? '')),
             ], static fn (string $value): bool => $value !== ''));
 
             return [
