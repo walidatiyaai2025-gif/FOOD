@@ -2,6 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Health\ModuleHealthCheck;
+use App\Enterprise\Health\ModuleHealthProbe;
+use App\Models\EnterpriseModule;
+use App\Models\EnterpriseOutboxMessage;
+use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Role;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
@@ -9,6 +14,7 @@ use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
@@ -138,6 +144,76 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('data-wizard-panel="review"', $stores);
     }
 
+    public function test_enterprise_diagnostics_are_bounded_redacted_and_do_not_boot_disabled_module_probes(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-inspector@example.test');
+
+        InspectorForbiddenProbe::$constructed = 0;
+        config()->set('enterprise_module_health.probes.sample_optional', [
+            InspectorForbiddenProbe::class,
+        ]);
+
+        EnterpriseModule::query()->create([
+            'code' => 'sample_optional',
+            'category' => 'platform',
+            'manifest_version' => 1,
+            'state' => 'DISABLED',
+            'manifest' => ['code' => 'sample_optional', 'version' => 1],
+            'state_changed_at' => now(),
+        ]);
+
+        foreach (range(1, 25) as $index) {
+            EnterpriseOutboxMessage::query()->create([
+                'event_id' => (string) Str::uuid(),
+                'event_type' => "SafeEvent{$index}",
+                'event_version' => 1,
+                'payload' => json_encode([
+                    'api_secret' => "super-secret-{$index}",
+                ], JSON_THROW_ON_ERROR),
+                'status' => 'pending',
+                'attempt_count' => 0,
+                'available_at' => now(),
+            ]);
+
+            EnterpriseWorkflowRequest::query()->create([
+                'workflow_key' => "wf-{$index}",
+                'definition_version' => 1,
+                'entity_type' => 'Order',
+                'entity_id' => (string) $index,
+                'scope_type' => 'store',
+                'scope_id' => null,
+                'requester_id' => $admin->id,
+                'status' => 'PENDING',
+                'idempotency_key' => "secret-idempotency-{$index}",
+                'context' => [
+                    'token' => "super-secret-{$index}",
+                ],
+            ]);
+        }
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.inspector.index'))
+            ->assertOk()
+            ->assertSee('Enterprise platform')
+            ->assertSee('sample_optional')
+            ->assertSee('Disabled')
+            ->assertSee('SafeEvent25')
+            ->assertDontSee('SafeEvent5')
+            ->assertSee('wf-25')
+            ->assertDontSee('wf-5')
+            ->assertDontSee('super-secret')
+            ->assertDontSee('secret-idempotency');
+
+        $this->assertSame(0, InspectorForbiddenProbe::$constructed);
+
+        $html = $response->getContent();
+        $this->assertIsString($html);
+        $this->assertStringContainsString('تشخيص الموديولات والخلفية', file_get_contents(
+            resource_path('views/admin/system-inspector.blade.php'),
+        ));
+        $this->assertStringContainsString('Modules & background diagnostics', $html);
+    }
+
     private function userWithRole(string $roleCode, string $email): User
     {
         $user = User::query()->create([
@@ -150,5 +226,21 @@ class SystemInspectorTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
 
         return $user;
+    }
+}
+
+
+final class InspectorForbiddenProbe implements ModuleHealthProbe
+{
+    public static int $constructed = 0;
+
+    public function __construct()
+    {
+        self::$constructed++;
+    }
+
+    public function check(): ModuleHealthCheck
+    {
+        return ModuleHealthCheck::healthy('inspector-forbidden-probe');
     }
 }
