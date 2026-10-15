@@ -91,8 +91,8 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
     public function test_catalog_create_lookups_follow_owning_store_and_backend_rejects_cross_store_category(): void
     {
-        $storeA = $this->store('B2C', 'LOOKUP-A');
-        $storeB = $this->store('B2C', 'LOOKUP-B');
+        $storeA = $this->store('B2B', 'LOOKUP-A');
+        $storeB = $this->store('B2B', 'LOOKUP-B');
         $admin = $this->globalUser('SUPER_ADMIN', 'catalog-lookup-owner@example.test');
         $unit = $this->globalUnit();
         $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA);
