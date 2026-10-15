@@ -92,6 +92,7 @@ return [
     ],
     'detail' => [
         'context' => 'Order context',
+        'close' => 'Close order details',
         'source' => 'Source',
         'authorized_channel' => 'Authorized channel',
         'delivery_address' => 'Delivery address',
