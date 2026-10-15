@@ -1,0 +1,53 @@
+name: TEMP 1633 Dart Format
+
+on:
+  push:
+    branches:
+      - fix/1633-dashboard-contrast-tokens
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, '[dartfmt-1633]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/1633-dashboard-contrast-tokens
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+      - name: Apply canonical Dart formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format \
+            apps/driver_app/lib/core/theme/foodex_theme.dart \
+            apps/driver_app/lib/features/auth/driver_login.dart \
+            apps/driver_app/lib/navigation.dart \
+            apps/van_app/lib/features/orders/van_order_detail_page.dart \
+            apps/van_app/lib/features/orders/van_orders_page.dart \
+            apps/van_app/lib/features/orders/van_product_catalog_page.dart \
+            apps/van_app/lib/features/wallet/van_remittance_page.dart \
+            apps/van_app/lib/shared/van_action_button.dart \
+            apps/van_app/test/foodex_van_theme_test.dart
+          if git diff --quiet --exit-code; then
+            exit 0
+          fi
+          git config user.name "foodex-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            apps/driver_app/lib/core/theme/foodex_theme.dart \
+            apps/driver_app/lib/features/auth/driver_login.dart \
+            apps/driver_app/lib/navigation.dart \
+            apps/van_app/lib/features/orders/van_order_detail_page.dart \
+            apps/van_app/lib/features/orders/van_orders_page.dart \
+            apps/van_app/lib/features/orders/van_product_catalog_page.dart \
+            apps/van_app/lib/features/wallet/van_remittance_page.dart \
+            apps/van_app/lib/shared/van_action_button.dart \
+            apps/van_app/test/foodex_van_theme_test.dart
+          git commit -m "style(1633): apply canonical Dart formatting [dartfmt-1633]"
+          git push origin HEAD:fix/1633-dashboard-contrast-tokens
