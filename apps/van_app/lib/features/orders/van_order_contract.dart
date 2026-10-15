@@ -390,6 +390,26 @@ abstract interface class VanOrderRepository {
   });
 }
 
+class VanOrderDraftSnapshot {
+  const VanOrderDraftSnapshot({
+    required this.revision,
+    required this.customer,
+    required this.lines,
+    required this.paymentMethod,
+    required this.addressId,
+    required this.warehouseId,
+    required this.customerNote,
+  });
+
+  final int revision;
+  final VanCustomerScope customer;
+  final List<VanOrderLine> lines;
+  final String paymentMethod;
+  final int? addressId;
+  final int? warehouseId;
+  final String? customerNote;
+}
+
 class VanOrderDraftController extends ChangeNotifier {
   VanCustomerScope? customer;
   VanOrderOptions? options;
@@ -402,8 +422,14 @@ class VanOrderDraftController extends ChangeNotifier {
   bool _addressSelectionInitialized = false;
   bool _warehouseSelectionInitialized = false;
   bool _paymentSelectionInitialized = false;
+  int _revision = 0;
+  int? _quoteRevision;
 
   List<VanOrderLine> get lines => _lines.values.toList(growable: false);
+  int get revision => _revision;
+  int? get quoteRevision => _quoteRevision;
+  bool get hasCurrentQuote =>
+      quote != null && _quoteRevision != null && _quoteRevision == _revision;
 
   void selectCustomer(VanCustomerScope value) {
     if (customer?.type == value.type && customer?.id == value.id) return;
@@ -418,6 +444,8 @@ class VanOrderDraftController extends ChangeNotifier {
     _addressSelectionInitialized = false;
     _warehouseSelectionInitialized = false;
     _paymentSelectionInitialized = false;
+    _quoteRevision = null;
+    _revision += 1;
     notifyListeners();
   }
 
@@ -427,8 +455,7 @@ class VanOrderDraftController extends ChangeNotifier {
         ? product.minimumQuantity
         : existing.quantity + product.orderingIncrement;
     _lines[product.id] = VanOrderLine(product: product, quantity: quantity);
-    quote = null;
-    notifyListeners();
+    _invalidateQuote();
   }
 
   void changeQuantity(VanCatalogProduct product, double quantity) {
@@ -442,11 +469,14 @@ class VanOrderDraftController extends ChangeNotifier {
             : quantity,
       );
     }
-    quote = null;
-    notifyListeners();
+    _invalidateQuote();
   }
 
   void applyOptions(VanOrderOptions value) {
+    final previousOptions = options;
+    final previousAddress = addressId;
+    final previousWarehouse = warehouseId;
+    final previousPayment = paymentMethod;
     options = value;
 
     if (!_addressSelectionInitialized) {
@@ -481,7 +511,15 @@ class VanOrderDraftController extends ChangeNotifier {
       paymentMethod = null;
     }
 
-    notifyListeners();
+    final changed = !identical(previousOptions, value) ||
+        previousAddress != addressId ||
+        previousWarehouse != warehouseId ||
+        previousPayment != paymentMethod;
+    if (changed) {
+      _invalidateQuote();
+    } else {
+      notifyListeners();
+    }
   }
 
   void setSelection({
@@ -490,48 +528,103 @@ class VanOrderDraftController extends ChangeNotifier {
     String? payment,
     String? note,
   }) {
+    var changed = false;
     if (address != null) {
+      changed = changed ||
+          !_addressSelectionInitialized ||
+          addressId != address;
       addressId = address;
       _addressSelectionInitialized = true;
     }
     if (warehouse != null) {
+      changed = changed ||
+          !_warehouseSelectionInitialized ||
+          warehouseId != warehouse;
       warehouseId = warehouse;
       _warehouseSelectionInitialized = true;
     }
     if (payment != null) {
+      changed = changed ||
+          !_paymentSelectionInitialized ||
+          paymentMethod != payment;
       paymentMethod = payment;
       _paymentSelectionInitialized = true;
     }
-    if (note != null) {
+    if (note != null && customerNote != note) {
       customerNote = note;
+      changed = true;
     }
-    quote = null;
-    notifyListeners();
+    if (changed) {
+      _invalidateQuote();
+    }
   }
 
   void clearAddressSelection() {
+    final changed = addressId != null || !_addressSelectionInitialized;
     addressId = null;
     _addressSelectionInitialized = true;
-    quote = null;
-    notifyListeners();
+    if (changed) _invalidateQuote();
   }
 
   void clearWarehouseSelection() {
+    final changed = warehouseId != null || !_warehouseSelectionInitialized;
     warehouseId = null;
     _warehouseSelectionInitialized = true;
-    quote = null;
-    notifyListeners();
+    if (changed) _invalidateQuote();
   }
 
   void clearPaymentSelection() {
+    final changed = paymentMethod != null || !_paymentSelectionInitialized;
     paymentMethod = null;
     _paymentSelectionInitialized = true;
-    quote = null;
-    notifyListeners();
+    if (changed) _invalidateQuote();
   }
+
+  VanOrderDraftSnapshot? createQuoteSnapshot({String? note}) {
+    if (note != null && customerNote != note) {
+      customerNote = note;
+    }
+
+    final currentCustomer = customer;
+    final currentPayment = paymentMethod;
+    final currentLines = lines;
+    if (currentCustomer == null ||
+        currentPayment == null ||
+        currentLines.isEmpty) {
+      _invalidateQuote();
+      return null;
+    }
+
+    _revision += 1;
+    quote = null;
+    _quoteRevision = null;
+    final snapshot = VanOrderDraftSnapshot(
+      revision: _revision,
+      customer: currentCustomer,
+      lines: List<VanOrderLine>.unmodifiable(currentLines),
+      paymentMethod: currentPayment,
+      addressId: addressId,
+      warehouseId: warehouseId,
+      customerNote: customerNote,
+    );
+    notifyListeners();
+    return snapshot;
+  }
+
+  bool setQuoteForRevision(int revision, VanOrderQuote value) {
+    if (revision != _revision) return false;
+    quote = value;
+    _quoteRevision = revision;
+    notifyListeners();
+    return true;
+  }
+
+  bool ownsCurrentQuote(int revision) =>
+      revision == _revision && _quoteRevision == revision && quote != null;
 
   void setQuote(VanOrderQuote value) {
     quote = value;
+    _quoteRevision = _revision;
     notifyListeners();
   }
 
@@ -547,6 +640,15 @@ class VanOrderDraftController extends ChangeNotifier {
     _addressSelectionInitialized = false;
     _warehouseSelectionInitialized = false;
     _paymentSelectionInitialized = false;
+    _quoteRevision = null;
+    _revision += 1;
+    notifyListeners();
+  }
+
+  void _invalidateQuote() {
+    _revision += 1;
+    quote = null;
+    _quoteRevision = null;
     notifyListeners();
   }
 }
