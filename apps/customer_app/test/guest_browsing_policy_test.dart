@@ -47,7 +47,7 @@ void main() {
       client: MockClient((request) async {
         captured = request;
         return http.Response(
-          '{"data":[]}',
+          '{"data":[],"meta":{"current_page":1,"per_page":20,"total":0}}',
           200,
           headers: {'content-type': 'application/json'},
         );
