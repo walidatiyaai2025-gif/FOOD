@@ -3,7 +3,7 @@
 return [
     'language' => 'Language',
     'english' => 'English',
-    'arabic' => 'العربية',
+    'arabic' => 'Arabic',
     'public_context' => 'FOODEX public information for Customer and Driver/Van store review.',
     'navigation' => [
         'support' => 'Support',

@@ -2,7 +2,7 @@
 
 return [
     'language' => 'اللغة',
-    'english' => 'English',
+    'english' => 'الإنجليزية',
     'arabic' => 'العربية',
     'public_context' => 'معلومات FOODEX العامة لمراجعة تطبيق العميل وتطبيقات السائق/الفان في المتاجر.',
     'navigation' => [
