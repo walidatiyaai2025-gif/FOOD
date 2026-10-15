@@ -155,11 +155,9 @@ class DashboardDateRangeTest extends TestCase
         $dashboard->assertOk();
         $dashboard->assertSee(
             route('admin.b2b.module', array_merge(['module' => 'reports'], $period)),
-            false,
         );
         $dashboard->assertSee(
             route('admin.b2b.module', array_merge(['module' => 'orders'], $period)),
-            false,
         );
         $dashboard->assertSee('Reset period');
 
