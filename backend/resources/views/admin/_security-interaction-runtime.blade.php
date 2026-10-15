@@ -54,6 +54,15 @@
         target.textContent = template.replace(':count', String(count));
     };
 
+    document.querySelectorAll('form[data-submit-lock]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            form.querySelectorAll('button[type="submit"]').forEach((button) => {
+                button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
+            });
+        });
+    });
+
     document.querySelectorAll('[data-permission-picker] [data-search-group]').forEach((group) => {
         group.addEventListener('change', () => updateCount(group));
         group.querySelectorAll('[data-bulk-action]').forEach((button) => {
