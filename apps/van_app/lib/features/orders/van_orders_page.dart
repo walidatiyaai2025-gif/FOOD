@@ -43,8 +43,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   int _total = 0;
   int _requestGeneration = 0;
 
-  bool get _hasMore =>
-      _currentPage > 0 && _currentPage * _pageSize < _total;
+  bool get _hasMore => _currentPage > 0 && _currentPage * _pageSize < _total;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -131,9 +130,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
     var currentPage = 0;
     var total = 0;
 
-    for (var requestedPage = 1;
-        requestedPage <= targetPage;
-        requestedPage++) {
+    for (var requestedPage = 1; requestedPage <= targetPage; requestedPage++) {
       final page = await widget.repository.orders(
         page: requestedPage,
         perPage: _pageSize,
@@ -272,7 +269,8 @@ class _VanOrdersPageState extends State<VanOrdersPage>
       .length;
 
   int get _exceptionCount => _orders
-      .where((order) => {'cancelled', 'refunded', 'failed'}.contains(order.status))
+      .where(
+          (order) => {'cancelled', 'refunded', 'failed'}.contains(order.status))
       .length;
 
   double get _ordersValue =>
@@ -595,9 +593,8 @@ class _VanOrdersPageState extends State<VanOrdersPage>
     ];
 
     final includePagination = _orders.isNotEmpty;
-    final itemCount = prefix.length +
-        filteredOrders.length +
-        (includePagination ? 1 : 0);
+    final itemCount =
+        prefix.length + filteredOrders.length + (includePagination ? 1 : 0);
 
     return RefreshIndicator(
       onRefresh: _load,
