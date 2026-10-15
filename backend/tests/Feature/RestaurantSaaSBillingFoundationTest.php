@@ -248,11 +248,15 @@ final class RestaurantSaaSBillingFoundationTest extends TestCase
         $this->assertFalse(Schema::hasColumn('restaurant_saas_billing_records', 'card_number'));
         $this->assertFalse(Schema::hasColumn('restaurant_saas_billing_records', 'card_cvv'));
 
-        [$otherOrganization, $otherAdmin] = $this->organization('RS-BILL-PROVIDER-OTHER');
+        $otherOrganization = EnterpriseOrganization::query()->create([
+            'code' => 'rs_billing_provider_other',
+            'name' => 'RS Billing Provider Other',
+            'is_active' => true,
+        ]);
         $otherSubscription = $service->subscribe(
             $otherOrganization,
             $this->plan('PRO-OTHER'),
-            $otherAdmin,
+            $admin,
         );
 
         try {
@@ -267,7 +271,7 @@ final class RestaurantSaaSBillingFoundationTest extends TestCase
                 $record->occurred_at,
                 'pm_other_reference',
                 null,
-                $otherAdmin,
+                $admin,
             );
             $this->fail('Provider reference must not cross subscription boundaries.');
         } catch (ValidationException) {
