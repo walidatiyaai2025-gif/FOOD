@@ -170,8 +170,21 @@ final class BranchPolicyService
             'delivery' => (bool) $branch->supports_delivery,
             default => false,
         };
-
         abort_unless($supported, 422, 'Fulfillment mode is not available for this branch.');
+
+        $module = match ($mode) {
+            'dine_in' => Module::DINE_IN,
+            'pickup' => Module::PICKUP,
+            'delivery' => Module::DELIVERY,
+            default => null,
+        };
+        abort_unless($module instanceof Module, 422, 'Fulfillment mode is not available for this branch.');
+        $this->runtime->assertRequest(
+            $branch->site()->firstOrFail(),
+            $module,
+            $this->request,
+            $branch,
+        );
     }
 
     private function distanceKm(float $latA, float $lngA, float $latB, float $lngB): float
