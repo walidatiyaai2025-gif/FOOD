@@ -17,7 +17,6 @@ final class MetaTemplateService
      */
     public function create(array $data, ?int $actorUserId = null): array
     {
-        $profile = $this->primaryProfile();
         $providerName = $this->canonicalProviderName((string) ($data['provider_name'] ?? ''));
         $locale = strtolower(trim((string) ($data['locale'] ?? '')));
         $category = strtolower(trim((string) ($data['category'] ?? '')));
@@ -40,6 +39,8 @@ final class MetaTemplateService
                 'body_preview' => [__('whatsapp.campaigns.meta_template_variables_unsupported')],
             ]);
         }
+
+        $profile = $this->primaryProfile();
 
         $payload = [
             'name' => $providerName,
