@@ -43,6 +43,7 @@ return [
     'scope_review' => 'مراجعة النطاق',
     'schedule_review' => 'مراجعة الجدولة',
     'timezone' => 'المنطقة الزمنية',
+    'timezone_kuwait' => 'توقيت الكويت (UTC+3)',
     'not_scheduled_to_end' => 'بدون تاريخ انتهاء',
     'no_run_limit' => 'بدون حد لمرات التشغيل',
     'confirm_activate' => 'تأكيد التفعيل',
