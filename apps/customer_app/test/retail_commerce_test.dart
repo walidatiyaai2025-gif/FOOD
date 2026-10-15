@@ -379,6 +379,7 @@ void main() {
             label: 'Office',
             line1: 'Street 2',
             city: 'Kuwait City',
+            isDefault: false,
           ),
         ];
 
@@ -445,6 +446,7 @@ void main() {
             label: 'Office',
             line1: 'Street 2',
             city: 'Kuwait City',
+            isDefault: false,
           ),
         ];
 
@@ -533,6 +535,7 @@ void main() {
             label: 'Office',
             line1: 'Street 2',
             city: 'Kuwait City',
+            isDefault: false,
           ),
         ];
 
@@ -630,6 +633,7 @@ void main() {
             label: 'Office',
             line1: 'Street 2',
             city: 'Kuwait City',
+            isDefault: false,
           ),
         ];
 
@@ -653,12 +657,14 @@ void main() {
                   label: 'Office',
                   line1: 'Street 2',
                   city: 'Kuwait City',
+                  isDefault: false,
                 ),
                 RetailCheckoutAddress(
                   id: 11,
                   label: 'New address',
                   line1: 'Street 3',
                   city: 'Kuwait City',
+                  isDefault: false,
                 ),
               ];
             },
