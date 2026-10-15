@@ -150,7 +150,7 @@ final class FinanceJournalService
                 return $journal->load(['lines', 'ledgerEntries']);
             }
 
-            $entryDate = $journal->entry_date->toDateString();
+            $entryDate = CarbonImmutable::parse((string) $journal->entry_date)->toDateString();
             $period = $this->openPeriodForDate($scope, $entryDate, true);
 
             /** @var Collection<int, EnterpriseFinanceJournalLine> $journalLines */
