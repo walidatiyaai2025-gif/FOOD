@@ -48,7 +48,7 @@ final class SmartOrderingMenuWriteService
                 'site_id' => $site->id,
                 'public_id' => (string) Str::uuid(),
                 ...$this->pick($data, [
-                    'name_ar', 'name_en', 'description_ar', 'description_en',
+                    'name_ar', 'name_en', 'description_ar', 'description_en', 'image_path',
                     'is_default', 'is_visible', 'sort_order',
                 ]),
             ]);
@@ -82,7 +82,7 @@ final class SmartOrderingMenuWriteService
             }
 
             $menu->fill($this->pick($data, [
-                'name_ar', 'name_en', 'description_ar', 'description_en',
+                'name_ar', 'name_en', 'description_ar', 'description_en', 'image_path',
                 'is_default', 'is_visible', 'sort_order',
             ]))->save();
 
