@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\SmartOrderingAnalyticsEventController;
 use App\Http\Controllers\Api\SmartOrderingController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,3 +15,5 @@ Route::post('/carts/{cart}/checkout', [SmartOrderingController::class, 'checkout
     ->whereUuid('cart')->name('carts.checkout');
 Route::get('/orders/{reference}', [SmartOrderingController::class, 'tracking'])
     ->whereUuid('reference')->name('orders.tracking');
+
+Route::post('/analytics/events', [SmartOrderingAnalyticsEventController::class, 'store'])->name('analytics.events.store');
