@@ -96,6 +96,7 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
+                $this->routeItemScoped($user, 'smart_ordering_analytics', 'smart_ordering.analytics.nav_title', 'admin.smart-ordering.analytics.index', 'smart_ordering.analytics.view'),
                 $this->whatsAppSupervisorItem($user),
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'finance', 'admin.b2c_workspace.modules.finance', 'finance.view'),
