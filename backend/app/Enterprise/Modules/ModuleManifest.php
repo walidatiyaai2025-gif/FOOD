@@ -12,7 +12,7 @@ final readonly class ModuleManifest
      * @param list<string>         $optionalIntegrations
      * @param list<string>         $permissions
      * @param list<string>         $healthChecks
-     * @param array<string, mixed> $navigation
+     * @param  array<string, mixed>  $navigation
      */
     public function __construct(
         public string $code,
@@ -52,7 +52,7 @@ final readonly class ModuleManifest
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      */
     public static function fromArray(array $values): self
     {
