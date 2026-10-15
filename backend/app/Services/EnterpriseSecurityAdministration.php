@@ -364,6 +364,17 @@ final class EnterpriseSecurityAdministration
         $scopeId = isset($payload['scope_id']) ? (int) $payload['scope_id'] : null;
         abort_unless($this->actorCanManageScope($actor, $scopeType, $scopeId), 403);
 
+        if (in_array($operation, [self::DATA_SCOPE_UPSERT, self::APPROVAL_LIMIT_UPSERT], true)) {
+            $startsAt = $payload['starts_at'] ?? null;
+            $endsAt = $payload['ends_at'] ?? null;
+            if ($startsAt !== null && $endsAt !== null
+                && strtotime((string) $startsAt) >= strtotime((string) $endsAt)) {
+                throw ValidationException::withMessages([
+                    'ends_at' => [__('enterprise_security.errors.time_window_invalid')],
+                ]);
+            }
+        }
+
         if ($operation === self::DELEGATION_CREATE) {
             $delegateId = (int) ($payload['delegate_id'] ?? 0);
             $permissionCode = (string) ($payload['permission_code'] ?? '');
