@@ -1022,7 +1022,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    var scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
