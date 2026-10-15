@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\Themes\ConfigStorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
-use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
