@@ -582,6 +582,10 @@ Route::prefix('admin')
         Route::patch('/security/roles/{role}', [SecurityController::class, 'updateRole'])->name('security.roles.update');
         Route::post('/security/roles/{role}/clone', [SecurityController::class, 'cloneRole'])->name('security.roles.clone');
         Route::delete('/security/roles/{role}', [SecurityController::class, 'destroyRole'])->name('security.roles.destroy');
+        Route::post('/security/enterprise/changes', [SecurityController::class, 'requestEnterpriseChange'])->name('security.enterprise.changes.store');
+        Route::post('/security/enterprise/changes/{workflow}/decision', [SecurityController::class, 'decideEnterpriseChange'])
+            ->whereNumber('workflow')
+            ->name('security.enterprise.changes.decision');
         Route::get('/apps/customer/download', [MobileAppDownloadController::class, 'customer'])->name('mobile-apps.customer.download');
         Route::get('/apps/driver/download', [MobileAppDownloadController::class, 'driver'])->name('mobile-apps.driver.download');
         Route::get('/apps/van/download', [MobileAppDownloadController::class, 'van'])->name('mobile-apps.van.download');
