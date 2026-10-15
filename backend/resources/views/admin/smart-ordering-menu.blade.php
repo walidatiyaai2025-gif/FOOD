@@ -123,7 +123,7 @@
             <div class="so-actions">
                 @forelse($focusResults as $result)
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$result['menu_id'], 'q'=>$focusQuery] + ($supportAccess ? ['support_access'=>1] : [])) }}#{{ $result['anchor'] }}">
-                    <span class="so-badge">{{ $focusTypeLabels[$result['type']] ?? '' }}</span>
+                    <span class="so-badge">{{ $result['type_label'] }}</span>
                     {{ $result['label'] }}
                 </a>
                 @empty
