@@ -21,7 +21,7 @@ Do not create a standalone shell if the canonical admin shell exists.
 Current source: `_brand.blade.php`. Re-read source before coding because source is authoritative.
 
 ### Colors
-- Green: `#158A3A`
+- Green: `#148638`
 - Green Dark: `#165D2D`
 - Green Bright: `#27B658`
 - Green Soft: `#EAF7EF`
@@ -29,7 +29,7 @@ Current source: `_brand.blade.php`. Re-read source before coding because source 
 - Orange Bright: `#FC8F33`
 - Orange Soft: `#FFF1E6`
 - Blue: `#4B8CF5`
-- Red: `#EF5350`
+- Red: `#B42318`
 - Ink: `#172033`
 - Muted: `#667085`
 - Surface: `#FFFFFF`
