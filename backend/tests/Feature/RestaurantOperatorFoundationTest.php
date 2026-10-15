@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\RestaurantSaaS\Models\RestaurantSaasPlan;
+use App\Domain\RestaurantSaaS\RestaurantBillingService;
 use App\Domain\RestaurantSaaS\RestaurantControlPlaneService;
 use App\Models\AppPreviewSession;
+use App\Models\EnterpriseOrganization;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -133,6 +136,41 @@ final class RestaurantOperatorFoundationTest extends TestCase
             ->assertOk()
             ->assertSee('Offboarded')
             ->assertSee('Retained · destructive deletion disabled');
+    }
+
+
+    public function test_operator_console_uses_authoritative_subscription_state_without_exposing_billing_references(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'restaurant-subscription-operator@example.test');
+        $store = $this->retailStore('RS-OP-SUB');
+        $context = app(RestaurantControlPlaneService::class)->provision($store, $admin);
+        $organization = EnterpriseOrganization::query()->findOrFail($context['organization']['id']);
+
+        $plan = RestaurantSaasPlan::query()->create([
+            'code' => 'SUPPORT-PRO',
+            'name' => 'Support Pro',
+            'entitlements' => ['smart_ordering' => ['public_menu']],
+            'limits' => [],
+            'billing_interval' => 'monthly',
+            'price_minor' => 2500,
+            'currency' => 'KWD',
+            'effective_from' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        app(RestaurantBillingService::class)->subscribe($organization, $plan, $admin, [
+            'state' => RestaurantBillingService::ACTIVE,
+            'payment_method_reference' => 'pm_private_operator_reference',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.inspector.index', ['restaurant_store_id' => $store->id]))
+            ->assertOk()
+            ->assertSee('Subscription state')
+            ->assertSee('Support Pro')
+            ->assertSee('Active')
+            ->assertDontSee('pm_private_operator_reference')
+            ->assertDontSee('payment_method_reference');
     }
 
     public function test_support_access_requires_platform_authority_and_a_provisioned_restaurant(): void
