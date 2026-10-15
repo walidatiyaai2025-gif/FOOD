@@ -30,6 +30,7 @@ class MobilePushSettingsTest extends TestCase
         $this->actingAs($admin)->put('/admin/settings/mobile/app', [
             'app' => 'customer',
             'environment' => 'production',
+            'critical_policy_confirm' => '1',
             'display_name' => 'FOODEX Customer',
             'android_package_id' => 'com.foodex.customer',
             'ios_bundle_id' => 'com.foodex.customer',

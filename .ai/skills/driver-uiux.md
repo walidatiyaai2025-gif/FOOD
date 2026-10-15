@@ -19,11 +19,13 @@ Current Driver theme uses:
 - Green Dark `#165D2D`
 - Green Bright `#27B658`
 - Green Soft `#EAF7EF`
+- Accessible Action Green `#137A35` (normal white action text)
 - Orange `#EE731C`
 - Orange Bright `#FC8F33`
 - Orange Soft `#FFF1E6`
 - Blue `#4B8CF5`
 - Red `#EF5350`
+- Accessible Danger Text `#B42318` (normal danger text on white/soft-danger surfaces)
 - Ink `#172033`
 - Muted `#667085`
 - Surface `#FFFFFF`

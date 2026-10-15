@@ -47,6 +47,26 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
 
+    public function test_portalled_row_actions_preserve_native_keyboard_disclosure_contract(): void
+    {
+        $brand = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+
+        $this->assertIsString($brand);
+        $this->assertStringContainsString('summary.setAttribute(\'aria-controls\', menu.id)', $brand);
+        $this->assertStringContainsString('summary.setAttribute(\'aria-expanded\', details.open ? \'true\' : \'false\')', $brand);
+        $this->assertStringContainsString('menu.setAttribute(\'aria-labelledby\', summary.id)', $brand);
+        $this->assertStringContainsString('openIntents.set(details, \'keyboard\')', $brand);
+        $this->assertStringContainsString('if (intent === \'keyboard\') focusFirstAction(details)', $brand);
+        $this->assertStringContainsString('if (event.key !== \'Escape\') return', $brand);
+        $this->assertStringContainsString('closeMenu(detailsToClose, { restoreFocus: true })', $brand);
+        $this->assertStringContainsString('closeMenu(other, { restoreFocus: false })', $brand);
+        $this->assertStringContainsString('closeMenu(details, { restoreFocus: focusWasInsideMenu })', $brand);
+        $this->assertStringContainsString('\'button:not([disabled])\'', $brand);
+        $this->assertStringContainsString('\'input:not([disabled]):not([type="hidden"])\'', $brand);
+        $this->assertStringNotContainsString('menu.setAttribute(\'role\', \'menu\')', $brand);
+        $this->assertStringNotContainsString('element.setAttribute(\'role\', \'menuitem\')', $brand);
+    }
+
     public function test_order_management_exposes_canonical_pending_dispatch_workflow(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
@@ -123,6 +143,25 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-c360-van-timeline', $view);
     }
 
+    public function test_customer_360_geography_uses_authoritative_selectors(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/Customer360Controller.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertStringContainsString('data-geography-country', $view);
+        $this->assertStringContainsString('data-geography-level="governorate"', $view);
+        $this->assertStringContainsString('data-geography-level="city"', $view);
+        $this->assertStringContainsString('data-geography-level="area"', $view);
+        $this->assertStringNotContainsString('<input name="country_code"', $view);
+        $this->assertStringNotContainsString('<input name="governorate"', $view);
+        $this->assertStringNotContainsString('<input name="city"', $view);
+        $this->assertStringNotContainsString('<input name="area"', $view);
+        $this->assertStringContainsString("whereIn('type', ['country', 'governorate', 'city', 'area'])", $controller);
+        $this->assertStringContainsString("->where('is_active', true)", $controller);
+    }
+
     public function test_notifications_use_shared_foodex_admin_shell(): void
     {
         $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
@@ -165,8 +204,10 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('__(\'order_operations.title\')', $view);
-        $this->assertStringNotContainsString('name="channel"', $view);
-        $this->assertStringNotContainsString('name="store_id"', $view);
+        $this->assertStringContainsString("__('order_operations.filters.channel')", $view);
+        $this->assertStringContainsString("__('order_operations.filters.store')", $view);
+        $this->assertStringContainsString('type="hidden" name="channel"', $view);
+        $this->assertStringContainsString('<select name="store_id">', $view);
         $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
         $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
         $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
@@ -459,14 +500,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('__(\'notifications.edit_campaign\')', $campaigns);
         $this->assertStringContainsString('data-notification-campaign-actions', $campaigns);
         $this->assertStringContainsString('__(\'notifications.actions\')', $campaigns);
-        $this->assertStringContainsString('background:var(--foodex-green)', $campaigns);
+        $this->assertStringContainsString('background:var(--foodex-action-green)', $campaigns);
         $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $campaigns);
 
         $this->assertStringContainsString('__(\'notifications.edit_notification\')', $notifications);
         $this->assertStringContainsString('data-notification-edit', $notifications);
         $this->assertStringContainsString('data-notification-row-actions', $notifications);
         $this->assertStringContainsString('__(\'notifications.actions\')', $notifications);
-        $this->assertStringContainsString('background:var(--foodex-green)', $notifications);
+        $this->assertStringContainsString('background:var(--foodex-action-green)', $notifications);
         $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $notifications);
 
         $this->assertStringNotContainsString(

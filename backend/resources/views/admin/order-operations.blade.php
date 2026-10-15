@@ -6,7 +6,7 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.filters{display:grid;grid-template-columns:repeat(6,minmax(118px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
+.workspace-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-surface,#fff);font-size:.82rem}.workspace-context span{display:inline-flex;align-items:center;gap:6px}.workspace-context strong{color:var(--foodex-muted)}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
 .status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
 .table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.order-detail-drawer{position:fixed;inset:0 0 0 auto;width:min(860px,94vw);height:100vh;max-height:none;margin:0;border:0;border-inline-start:1px solid var(--foodex-border);padding:0;background:var(--foodex-surface,#fff);box-shadow:-18px 0 50px rgba(15,23,42,.18);z-index:100}.order-detail-drawer::backdrop{background:rgba(15,23,42,.35)}.order-detail-drawer-shell{padding:20px;overflow:auto;height:100%}.order-detail-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.order-detail-close{text-decoration:none;font-weight:900;font-size:1.35rem;color:inherit}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
 @media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}}@media(max-width:600px){.filters{grid-template-columns:1fr}}
@@ -35,6 +35,26 @@ $businessLabel = static function ($value): string {
 
 @include('admin._order-new-wizard')
 
+@php
+    $selectedStore = $selectedStoreId === null
+        ? null
+        : collect($availableStores ?? [])->firstWhere('id', $selectedStoreId);
+    $visibleStore = $selectedStore
+        ?? (count($availableStores ?? []) === 1 ? ($availableStores[0] ?? null) : null);
+    $selectedChannelOption = collect($availableChannels ?? [])->firstWhere('code', $selectedChannel);
+    $selectedChannelLabel = $selectedChannel === 'all'
+        ? __('order_operations.filters.all_authorized')
+        : ($selectedChannelOption['label'] ?? $businessLabel($selectedChannel));
+    $workspaceContextQuery = ['channel' => $selectedChannel];
+    if ($selectedStoreId !== null) {
+        $workspaceContextQuery['store_id'] = $selectedStoreId;
+    }
+@endphp
+<div class="workspace-context" data-order-workspace-context data-channel="{{ $selectedChannel }}" data-store-id="{{ $selectedStoreId ?? '' }}">
+    <span><strong>{{ __('order_operations.filters.channel') }}</strong>{{ $selectedChannelLabel }}</span>
+    <span><strong>{{ __('order_operations.filters.store') }}</strong>{{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
+</div>
+
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','page','order']))
 @php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
 @if(count($availableChannels ?? []) > 1)
@@ -62,14 +82,20 @@ $businessLabel = static function ($value): string {
 @endif
 </nav>
 
-<form method="get" class="filters foodex-card">
+<form method="get" class="filters foodex-card" data-order-filter-context data-selected-channel="{{ $selectedChannel }}" data-selected-store="{{ $selectedStoreId ?? '' }}">
+<input type="hidden" name="channel" value="{{ $selectedChannel }}">
+@if(count($availableStores ?? []) > 1)
+<label>{{ __('order_operations.filters.store') }}<select name="store_id"><option value="">{{ __('order_operations.filters.all_authorized') }}</option>@foreach($availableStores as $storeOption)<option value="{{ $storeOption['id'] }}" @selected($selectedStoreId===$storeOption['id'])>{{ $storeOption['name'] }}{{ $storeOption['code'] !== '' ? ' · '.$storeOption['code'] : '' }}</option>@endforeach</select></label>
+@elseif($selectedStoreId !== null)
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
+@endif
 <label>{{ __('order_operations.filters.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
 <label>{{ __('order_operations.filters.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
 <label>{{ __('order_operations.filters.order_number') }}<input name="order_number" value="{{ request('order_number') }}"></label>
 <label>{{ __('order_operations.filters.status') }}<select name="status"><option value="">{{ __('order_operations.all') }}</option>@foreach($statusOptions as $status)<option value="{{ $status['code'] }}" @selected(request('status')===$status['code'])>{{ $status['label'] }}</option>@endforeach</select></label>
 <label>{{ __('order_operations.filters.driver') }}<select name="driver_id"><option value="">{{ __('order_operations.all') }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>@endforeach</select></label>
 <label>{{ __('order_operations.filters.dispatch_status') }}<select name="dispatch_status"><option value="">{{ __('order_operations.all') }}</option><option value="awaiting_dispatch" @selected(request('dispatch_status')==='awaiting_dispatch')>{{ __('order_operations.dispatch.awaiting_queue') }}</option><option value="assigned" @selected(request('dispatch_status')==='assigned')>{{ $businessLabel('assigned') }}</option></select></label>
-<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" href="{{ route('admin.operations.orders.index') }}">{{ __('order_operations.filters.reset') }}</a></div>
+<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" data-order-filter-reset-context href="{{ route('admin.operations.orders.index',$workspaceContextQuery) }}">{{ __('order_operations.filters.reset') }}</a></div>
 </form>
 
 <section class="foodex-card panel table-wrap">
@@ -324,21 +350,33 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card panel" data-order-edit-panel>
 <h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }} · {{ $detail['number'] }}</h2>
 <p>{{ $isAr ? 'يتم إعادة التسعير والتحقق من المخزون عند الحفظ. التعديل متاح للطلبات المعلقة غير المقفلة فقط.' : 'Saving re-prices and re-validates stock. Editing is limited to unlocked pending orders.' }}</p>
-<form method="post" action="{{ route('admin.operations.orders.update',$detail['id']) }}" data-order-edit-form>
+<form method="post" action="{{ route('admin.operations.orders.update',$detail['id']) }}" data-order-edit-form data-lookup-url="{{ route('admin.operations.orders.lookups',['type'=>'__TYPE__'],false) }}" data-edit-channel="{{ $detail['channel'] }}" data-edit-store="{{ $detail['store_id'] }}"> {{-- localization-gate: allow channel/store values are machine-only scoped lookup attributes, not user-visible labels --}}
 @csrf @method('PATCH')
 <div class="new-order-grid">
-<label class="new-order-field"><span>{{ $isAr ? 'العميل' : 'Customer' }}</span><select name="customer_id" required>
-@foreach($editOptions['customers'] as $customer)<option value="{{ $customer['id'] }}" @selected((int)$detail['customer_id']===(int)$customer['id'])>{{ $customer['name'] }}</option>@endforeach
-</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'العميل' : 'Customer' }}</span>
+<input type="search" data-edit-customer-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_customer') }}">
+<select name="customer_id" data-edit-customer required>
+@if($editOptions['selected_customer'])
+<option value="{{ $editOptions['selected_customer']['id'] }}" selected>{{ $editOptions['selected_customer']['label'] }}@if($editOptions['selected_customer']['meta']) · {{ $editOptions['selected_customer']['meta'] }}@endif</option>
+@else
+<option value="{{ $detail['customer_id'] }}" selected>#{{ $detail['customer_id'] }} · {{ __('order_operations.lookup.selected_unavailable') }}</option>
+@endif
+</select>
+<small data-edit-customer-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-edit-customer-more hidden>{{ __('order_operations.lookup.load_more') }}</button>
+</label>
 @if($detail['channel']==='b2b')
 <label class="new-order-field"><span>{{ $isAr ? 'مخزن الصرف' : 'Source warehouse' }}</span><select name="warehouse_id" required>
 @foreach($editOptions['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
 </select></label>
 @endif
-<label class="new-order-field"><span>{{ $isAr ? 'العنوان' : 'Address' }}</span><select name="address_id">
+<label class="new-order-field"><span>{{ $isAr ? 'العنوان' : 'Address' }}</span><select name="address_id" data-edit-address>
 <option value="">{{ $isAr ? 'بدون عنوان / استلام' : 'No address / pickup' }}</option>
-@foreach($editOptions['addresses'] as $address)<option value="{{ $address['id'] }}" @selected((int)$detail['address_id']===(int)$address['id'])>{{ $address['label'] }}</option>@endforeach
-</select></label>
+@if($editOptions['selected_address'])
+<option value="{{ $editOptions['selected_address']['id'] }}" selected>{{ $editOptions['selected_address']['label'] }}@if(($editOptions['selected_address']['active'] ?? true) === false) · {{ __('order_operations.lookup.selected_unavailable') }}@endif</option>
+@endif
+</select><small data-edit-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-edit-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button></label>
 <label class="new-order-field"><span>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</span><select name="payment_method" required>
 @foreach($newOrderWizard['payment_methods'] as $method)<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>@endforeach
 </select></label>
@@ -349,9 +387,19 @@ $businessLabel = static function ($value): string {
 <div class="new-order-lines" data-edit-order-lines>
 @foreach($detail['items'] as $index=>$item)
 <div class="new-order-line" data-edit-order-line>
-<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span><select name="items[{{ $index }}][product_id]" data-edit-product required>
-@foreach($editOptions['products'] as $product)<option value="{{ $product['id'] }}" @selected((int)$item['product_id']===(int)$product['id'])>{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
-</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span>
+<input type="search" data-edit-product-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_product') }}">
+<select name="items[{{ $index }}][product_id]" data-edit-product required>
+@php($selectedProduct=$editOptions['selected_products'][(int)$item['product_id']] ?? null)
+@if($selectedProduct)
+<option value="{{ $selectedProduct['id'] }}" selected>{{ $selectedProduct['meta'] }} · {{ $selectedProduct['label'] }}@if(($selectedProduct['active'] ?? true) === false) · {{ __('order_operations.lookup.selected_unavailable') }}@endif</option>
+@else
+<option value="{{ $item['product_id'] }}" selected>#{{ $item['product_id'] }} · {{ __('order_operations.lookup.selected_unavailable') }}</option>
+@endif
+</select>
+<small data-edit-product-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-edit-product-more hidden>{{ __('order_operations.lookup.load_more') }}</button>
+</label>
 <label class="new-order-field"><span>{{ $isAr ? 'الكمية' : 'Quantity' }}</span><input type="number" min="0.001" step="0.001" name="items[{{ $index }}][quantity]" value="{{ $item['quantity'] }}" required></label>
 <button type="button" class="btn secondary" data-edit-remove-line>{{ $isAr ? 'حذف' : 'Remove' }}</button>
 </div>
@@ -359,10 +407,12 @@ $businessLabel = static function ($value): string {
 </div>
 <template data-edit-line-template>
 <div class="new-order-line" data-edit-order-line>
-<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span><select data-edit-product required>
-<option value="">{{ $isAr ? 'اختر المنتج' : 'Select product' }}</option>
-@foreach($editOptions['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
-</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span>
+<input type="search" data-edit-product-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_product') }}">
+<select data-edit-product required disabled><option value="">{{ $isAr ? 'اختر المنتج' : 'Select product' }}</option></select>
+<small data-edit-product-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-edit-product-more hidden>{{ __('order_operations.lookup.load_more') }}</button>
+</label>
 <label class="new-order-field"><span>{{ $isAr ? 'الكمية' : 'Quantity' }}</span><input type="number" min="0.001" step="0.001" value="1" required></label>
 <button type="button" class="btn secondary" data-edit-remove-line>{{ $isAr ? 'حذف' : 'Remove' }}</button>
 </div>
@@ -474,22 +524,132 @@ document.addEventListener('DOMContentLoaded', () => {
 @if($detail && request('edit') && $detail['can_edit'])
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+ const form=document.querySelector('[data-order-edit-form]');
  const box=document.querySelector('[data-edit-order-lines]');
  const tpl=document.querySelector('[data-edit-line-template]');
  const add=document.querySelector('[data-edit-add-line]');
- if(!box||!tpl||!add)return;
+ if(!form||!box||!tpl||!add)return;
+ const channel=form.dataset.editChannel;
+ const storeId=form.dataset.editStore;
+ const labels={
+   chooseProduct:@json($isAr ? 'اختر المنتج' : 'Select product'),
+   pickup:@json($isAr ? 'بدون عنوان / استلام' : 'No address / pickup'),
+   searching:@json(__('order_operations.lookup.searching')),
+   failed:@json(__('order_operations.lookup.failed')),
+   empty:@json(__('order_operations.lookup.no_results')),
+   help:@json(__('order_operations.lookup.results_help')),
+   unavailable:@json(__('order_operations.lookup.selected_unavailable')),
+ };
+ const endpoint=(type)=>String(form.dataset.lookupUrl||'').replace('__TYPE__',encodeURIComponent(type));
+ const fetchLookup=async(type,params,signal)=>{
+   const url=new URL(endpoint(type),window.location.origin);
+   Object.entries({channel,store_id:storeId,...params}).forEach(([key,value])=>{
+     if(value!==''&&value!==null&&value!==undefined)url.searchParams.set(key,String(value));
+   });
+   const response=await fetch(url,{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'},signal});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(payload?.message||labels.failed);
+   return payload.data||{items:[],page:1,has_more:false};
+ };
+ const itemText=(item)=>{
+   const base=[item.meta,item.label].filter(Boolean).join(' · ');
+   return item.active===false?base+' · '+labels.unavailable:base;
+ };
+ const applyOptions=(select,items,{append=false,selectedId=null,placeholder=labels.chooseProduct}={})=>{
+   const keep=selectedId?String(selectedId):select.value;
+   const previous=keep?[...select.options].find(o=>o.value===keep)?.cloneNode(true):null;
+   if(!append){select.innerHTML='';select.append(new Option(placeholder,''));}
+   const existing=new Set([...select.options].map(o=>o.value));
+   (items||[]).forEach(item=>{
+     const value=String(item.id); if(existing.has(value))return;
+     select.append(new Option(itemText(item),value));existing.add(value);
+   });
+   if(keep&&!existing.has(keep)&&previous)select.append(previous);
+   if(keep&&[...select.options].some(o=>o.value===keep))select.value=keep;
+ };
+ const bindProduct=(row,selectedId=null)=>{
+   const search=row.querySelector('[data-edit-product-search]');
+   const select=row.querySelector('[data-edit-product]');
+   const status=row.querySelector('[data-edit-product-status]');
+   const more=row.querySelector('[data-edit-product-more]');
+   if(!search||!select||!status||!more)return;
+   let timer=null,page=1,query='',controller=null,sequence=0;
+   const load=async(nextQuery=query,nextPage=1,keepId=null)=>{
+     controller?.abort();controller=new AbortController();const mine=++sequence;
+     status.textContent=labels.searching;more.dataset.retry='0';more.textContent=@json(__('order_operations.lookup.load_more'));select.disabled=true;
+     try{
+       const result=await fetchLookup('product',{q:nextQuery,page:nextPage,selected_id:keepId},controller.signal);
+       if(mine!==sequence)return;
+       query=nextQuery;page=nextPage;
+       applyOptions(select,result.items,{append:nextPage>1,selectedId:keepId});
+       select.disabled=false;status.textContent=result.items.length?labels.help:labels.empty;more.dataset.retry='0';more.textContent=@json(__('order_operations.lookup.load_more'));more.hidden=!result.has_more;
+       if(keepId)select.value=String(keepId);
+     }catch(error){
+       if(error.name==='AbortError')return;
+       select.disabled=false;status.textContent=labels.failed;more.dataset.retry='1';more.textContent=@json(__('order_operations.lookup.retry'));more.hidden=false;
+     }
+   };
+   search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>load(search.value.trim(),1),250);});
+   more.addEventListener('click',()=>load(query,more.dataset.retry==='1'?page:page+1));
+   if(select.options.length<=1||selectedId!==null)load('',1,selectedId);
+ };
  const reindex=()=>box.querySelectorAll('[data-edit-order-line]').forEach((row,index)=>{
    const select=row.querySelector('select[data-edit-product]');
    const qty=row.querySelector('input[type="number"]');
    if(select)select.name='items['+index+'][product_id]';
    if(qty)qty.name='items['+index+'][quantity]';
  });
- const bind=(row)=>row.querySelector('[data-edit-remove-line]')?.addEventListener('click',()=>{
-   if(box.querySelectorAll('[data-edit-order-line]').length<=1)return;
-   row.remove();reindex();
- });
+ const bind=(row)=>{
+   bindProduct(row,row.querySelector('[data-edit-product]')?.value||null);
+   row.querySelector('[data-edit-remove-line]')?.addEventListener('click',()=>{
+     if(box.querySelectorAll('[data-edit-order-line]').length<=1)return;
+     row.remove();reindex();
+   });
+ };
  box.querySelectorAll('[data-edit-order-line]').forEach(bind);
- add.addEventListener('click',()=>{const fragment=tpl.content.cloneNode(true);const row=fragment.querySelector('[data-edit-order-line]');box.appendChild(fragment);bind(row);reindex();});
+ add.addEventListener('click',()=>{
+   const fragment=tpl.content.cloneNode(true);const row=fragment.querySelector('[data-edit-order-line]');
+   box.appendChild(fragment);bind(row);reindex();
+ });
+ const customerSearch=form.querySelector('[data-edit-customer-search]');
+ const customer=form.querySelector('[data-edit-customer]');
+ const customerStatus=form.querySelector('[data-edit-customer-status]');
+ const customerMore=form.querySelector('[data-edit-customer-more]');
+ const address=form.querySelector('[data-edit-address]');
+ const addressStatus=form.querySelector('[data-edit-address-status]');
+ const addressRetry=form.querySelector('[data-edit-address-retry]');
+ let customerTimer=null,customerPage=1,customerQuery='',customerController=null,customerSequence=0,addressController=null;
+ const loadCustomers=async(query=customerQuery,page=1)=>{
+   customerController?.abort();customerController=new AbortController();const mine=++customerSequence;
+   customerStatus.textContent=labels.searching;customerMore.dataset.retry='0';customerMore.textContent=@json(__('order_operations.lookup.load_more'));customer.disabled=true;
+   try{
+     const result=await fetchLookup('customer',{q,page,selected_id:customer.value||null},customerController.signal);
+     if(mine!==customerSequence)return;
+     customerQuery=query;customerPage=page;applyOptions(customer,result.items,{append:page>1,selectedId:customer.value||null,placeholder:''});
+     customer.disabled=false;customerStatus.textContent=result.items.length?labels.help:labels.empty;customerMore.dataset.retry='0';customerMore.textContent=@json(__('order_operations.lookup.load_more'));customerMore.hidden=!result.has_more;
+   }catch(error){
+     if(error.name==='AbortError')return;
+     customer.disabled=false;customerStatus.textContent=labels.failed;customerMore.dataset.retry='1';customerMore.textContent=@json(__('order_operations.lookup.retry'));customerMore.hidden=false;
+   }
+ };
+ const loadAddresses=async()=>{
+   addressController?.abort();addressController=new AbortController();const customerId=customer.value;
+   address.innerHTML='';address.append(new Option(labels.pickup,''));
+   if(!customerId){address.disabled=true;return;}
+   address.disabled=true;addressRetry.hidden=true;addressStatus.textContent=labels.searching;
+   try{
+     const result=await fetchLookup('address',{customer_id:customerId},addressController.signal);
+     applyOptions(address,result.items,{placeholder:labels.pickup});
+     address.disabled=false;addressRetry.hidden=true;addressStatus.textContent=result.items.length?labels.help:labels.empty;
+   }catch(error){
+     if(error.name==='AbortError')return;
+     address.disabled=false;addressStatus.textContent=labels.failed;addressRetry.hidden=false;
+   }
+ };
+ customerSearch?.addEventListener('input',()=>{clearTimeout(customerTimer);customerTimer=setTimeout(()=>loadCustomers(customerSearch.value.trim(),1),250);});
+ customerMore?.addEventListener('click',()=>loadCustomers(customerQuery,customerMore.dataset.retry==='1'?customerPage:customerPage+1));
+ addressRetry?.addEventListener('click',loadAddresses);
+ customer?.addEventListener('change',loadAddresses);
  reindex();
 });
 </script>

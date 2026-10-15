@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
+use App\Models\GeographyNode;
 use App\Models\Invoice;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
@@ -108,6 +109,7 @@ final class Customer360Controller extends Controller
             'customers' => $customers,
             'filters' => $filters,
             'access' => $access,
+            'accessModeLabel' => $this->businessLabel((string) $access['mode']),
             'originStores' => $this->originStores($access),
         ]);
     }
@@ -287,6 +289,7 @@ final class Customer360Controller extends Controller
             'statementFilters' => $statementFilters,
             'canManageFinance' => $wholesale !== null && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage')),
             'addresses' => $addresses,
+            'geographyOptions' => $this->geographyOptions(),
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
         ]);
     }
@@ -810,6 +813,31 @@ final class Customer360Controller extends Controller
         });
     }
 
+    /** @return array<string, list<array<string, int|string|null>>> */
+    private function geographyOptions(): array
+    {
+        $locale = app()->getLocale() === 'ar' ? 'ar' : 'en';
+
+        return GeographyNode::query()
+            ->where('is_active', true)
+            ->whereIn('type', ['country', 'governorate', 'city', 'area'])
+            ->orderBy('country_code')
+            ->orderBy('type')
+            ->orderBy($locale === 'ar' ? 'name_ar' : 'name_en')
+            ->get(['id', 'parent_id', 'type', 'code', 'country_code', 'name_ar', 'name_en'])
+            ->groupBy('type')
+            ->map(fn (Collection $nodes): array => $nodes->map(fn (GeographyNode $node): array => [
+                'id' => (int) $node->id,
+                'parent_id' => $node->parent_id === null ? null : (int) $node->parent_id,
+                'country_code' => strtoupper((string) $node->country_code),
+                'value' => $node->type === 'country'
+                    ? strtoupper((string) $node->country_code)
+                    : (string) $node->name_en,
+                'label' => (string) ($locale === 'ar' ? $node->name_ar : $node->name_en),
+            ])->values()->all())
+            ->all();
+    }
+
     /** @return array<string, array<int, string>> */
     private function addressRules(bool $partial): array
     {
@@ -1039,6 +1067,14 @@ final class Customer360Controller extends Controller
         $wholesale = $this->wholesaleInfo($customer, $access);
         $relatedUser = $customer->user;
         $userIsActive = $relatedUser instanceof User ? $relatedUser->is_active : true;
+        $registrationSource = strtolower(trim((string) $customer->registration_source));
+        $registrationSourceLabel = in_array(
+            $registrationSource,
+            ['customer_app', 'dashboard', 'import', 'migration'],
+            true,
+        )
+            ? $this->businessLabel($registrationSource)
+            : $this->businessLabel('unknown');
 
         return [
             'id' => (int) $customer->getKey(),
@@ -1047,8 +1083,8 @@ final class Customer360Controller extends Controller
             'phone' => $customer->phone,
             'active' => (bool) $customer->is_active && $userIsActive,
             'origin' => $origin,
-            'registration_source' => (string) $customer->registration_source,
-            'registration_source_label' => $this->businessLabel((string) $customer->registration_source),
+            'registration_source' => $registrationSource,
+            'registration_source_label' => $registrationSourceLabel,
             'origin_channel_label' => $this->businessLabel((string) ($customer->origin_channel ?: 'unknown')),
             'registered_at' => $customer->registered_at,
             'orders_count' => (clone $orders)->count(),

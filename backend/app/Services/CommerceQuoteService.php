@@ -254,7 +254,7 @@ final class CommerceQuoteService
             );
         }
 
-        $currency = $this->currency($storeId);
+        $currency = $this->currencyForStore($storeId);
         $quotedAt = now();
 
         return [
@@ -362,7 +362,7 @@ final class CommerceQuoteService
         $taxTotal = round($taxableAmount * ($taxRate / 100), 3);
 
         return [
-            'currency' => $this->currency($storeId),
+            'currency' => $this->currencyForStore($storeId),
             'delivery_total' => $deliveryTotal,
             'tax_rate' => $taxRate,
             'tax_total' => $taxTotal,
@@ -674,7 +674,7 @@ final class CommerceQuoteService
         ))), 4);
     }
 
-    private function currency(int $storeId): string
+    public function currencyForStore(int $storeId): string
     {
         return 'EGP';
     }

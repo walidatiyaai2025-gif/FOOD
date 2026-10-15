@@ -7,11 +7,15 @@
     --foodex-green-dark:#165D2D;
     --foodex-green-bright:#27B658;
     --foodex-green-soft:#EAF7EF;
+    --foodex-action-green:#137A35;
+    --foodex-action-green-hover:var(--foodex-green-dark);
     --foodex-orange:#EE731C;
     --foodex-orange-bright:#FC8F33;
     --foodex-orange-soft:#FFF1E6;
     --foodex-blue:#4B8CF5;
     --foodex-red:#EF5350;
+    --foodex-danger-text:#B42318;
+    --foodex-danger-soft:#FFF0F0;
     --foodex-ink:#172033;
     --foodex-muted:#667085;
     --foodex-surface:#FFFFFF;

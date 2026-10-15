@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'label' => 'وجهة الإجراء',
+    'help' => 'اختر وجهة مدعومة داخل التطبيق. لا يتم إدخال مسارات النظام أو معرفات قاعدة البيانات يدويًا.',
+    'preview' => 'معاينة الوجهة',
+    'none_preview' => 'لن يتم إرفاق إجراء تنقل.',
+    'store_suffix' => 'المتجر: :store',
+    'store_required' => 'اختر متجر تجزئة مصرحًا به قبل اختيار هذه الوجهة.',
+    'invalid' => 'اختر وجهة مدعومة للتطبيق والقناة التجارية المحددين.',
+    'options' => [
+        'none' => 'بدون إجراء',
+        'customer_marketplace' => 'العميل · السوق',
+        'customer_retail_home' => 'العميل · الصفحة الرئيسية لمتجر التجزئة المحدد',
+        'customer_retail_offers' => 'العميل · العروض',
+        'customer_retail_products' => 'العميل · المنتجات',
+        'customer_retail_orders' => 'العميل · الطلبات',
+        'customer_retail_notifications' => 'العميل · الإشعارات',
+        'customer_retail_profile' => 'العميل · الملف الشخصي',
+        'customer_wholesale_home' => 'العميل · الرئيسية للجملة',
+        'customer_wholesale_dashboard' => 'العميل · لوحة الجملة',
+        'customer_wholesale_products' => 'العميل · منتجات الجملة',
+        'customer_wholesale_orders' => 'العميل · طلبات الجملة',
+        'customer_wholesale_notifications' => 'العميل · إشعارات الجملة',
+        'customer_wholesale_profile' => 'العميل · ملف الجملة',
+        'driver_home' => 'السائق · الرئيسية',
+        'driver_deliveries' => 'السائق · التوصيلات',
+        'driver_notifications' => 'السائق · الإشعارات',
+        'driver_wallet' => 'السائق · المحفظة',
+    ],
+];

@@ -30,7 +30,11 @@
             <label>{{ __('live_ads.image') }}<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
             <label>{{ __('live_ads.body_ar') }}<textarea name="body_ar" dir="rtl"></textarea></label>
             <label>{{ __('live_ads.body_en') }}<textarea name="body_en" dir="ltr"></textarea></label>
-            <label>{{ __('live_ads.cta_target') }}<input name="cta_target" placeholder="/offers"></label>
+            @include('admin._engagement-destination-builder', [
+                'destinationField' => 'cta_destination',
+                'destinationId' => 'live-ad-create',
+                'currentDestination' => old('cta_destination', 'none'),
+            ])
             <label>{{ __('live_ads.cta_ar') }}<input name="cta_label_ar"></label>
             <label>{{ __('live_ads.cta_en') }}<input name="cta_label_en"></label>
             <label>{{ __('live_ads.frequency') }}<select name="frequency">@foreach(['once_per_install','once_per_session','every_open'] as $v)<option value="{{ $v }}">{{ __('live_ads.'.$v) }}</option>@endforeach</select></label>
@@ -75,7 +79,11 @@
                     <label>{{ __('live_ads.image') }}<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
                     <label>{{ __('live_ads.body_ar') }}<textarea name="body_ar">{{ $ad->body_ar }}</textarea></label>
                     <label>{{ __('live_ads.body_en') }}<textarea name="body_en">{{ $ad->body_en }}</textarea></label>
-                    <label>{{ __('live_ads.cta_target') }}<input name="cta_target" value="{{ $ad->cta_target }}"></label>
+                    @include('admin._engagement-destination-builder', [
+                        'destinationField' => 'cta_destination',
+                        'destinationId' => 'live-ad-'.$ad->id,
+                        'currentDestination' => $adDestinationSelections[(int)$ad->id] ?? 'none',
+                    ])
                     <label>{{ __('live_ads.cta_ar') }}<input name="cta_label_ar" value="{{ $ad->cta_label_ar }}"></label>
                     <label>{{ __('live_ads.cta_en') }}<input name="cta_label_en" value="{{ $ad->cta_label_en }}"></label>
                     <label>{{ __('live_ads.frequency') }}<select name="frequency">@foreach(['once_per_install','once_per_session','every_open'] as $v)<option value="{{ $v }}" @selected($ad->frequency===$v)>{{ __('live_ads.'.$v) }}</option>@endforeach</select></label>
@@ -107,4 +115,5 @@ document.querySelectorAll('form').forEach((form)=>{
   channel?.addEventListener('change',sync); sync();
 });
 </script>
+@include('admin._engagement-destination-script')
 </body></html>

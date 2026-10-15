@@ -16,15 +16,15 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .header h1{margin:0}.muted{color:var(--foodex-muted)}
 .tabs,.actions{display:flex;flex-wrap:wrap;gap:8px}.tabs{margin-bottom:16px}
 .tabs a,.btn{border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:9px 13px;text-decoration:none;font:inherit;cursor:pointer}
-.tabs a.active,.btn.primary{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}
-.btn.danger{color:var(--foodex-red)}
+.tabs a.active,.btn.primary{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
+.btn.danger{color:var(--foodex-danger-text)}
 .grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px}
 .card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:16px;box-shadow:var(--foodex-shadow-sm)}
 .form{display:grid;gap:10px}.form label{font-size:.85rem;font-weight:700}.form input,.form select,.form textarea{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:10px;padding:10px;background:#fff;font:inherit}.form textarea{min-height:90px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:780px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .inline-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.inline-form input,.inline-form select{min-width:90px;max-width:170px;padding:7px;border:1px solid var(--foodex-border);border-radius:8px}
-.notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-red)}
+.notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-danger-text)}
 
 .image-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--foodex-border);background:var(--foodex-background)}.image-grid{display:flex;flex-wrap:wrap;gap:8px;min-width:180px}.image-item{display:grid;gap:4px;justify-items:start}.image-item.primary .image-thumb{outline:2px solid var(--foodex-green)}.image-upload{min-width:220px}.foodex-upload-preview{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;min-height:0}.foodex-upload-preview img{width:64px;height:64px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}.foodex-upload-preview:empty{display:none}
 .catalog-products-shell{display:grid;gap:12px}
@@ -58,7 +58,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .catalog-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:200px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:6px}
 .catalog-action-menu button,.catalog-action-menu form button{width:100%;border:0;background:transparent;text-align:start;padding:9px 10px;border-radius:8px;font:inherit;cursor:pointer;color:var(--foodex-ink)}
 .catalog-action-menu button:hover,.catalog-action-menu form button:hover{background:#f6f8fa}
-.catalog-action-menu .danger-action{color:var(--foodex-red)}
+.catalog-action-menu .danger-action{color:var(--foodex-danger-text)}
 .catalog-action-menu form{margin:0}
 .catalog-dialog{width:min(720px,calc(100vw - 28px));max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 70px rgba(15,23,42,.25)}
 .catalog-dialog::backdrop{background:rgba(15,23,42,.42)}
@@ -183,7 +183,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
 <div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach</select></label></div>
-<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required>@foreach($units as $u)<option value="{{ $u->id }}">{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-create-unit><option value="">—</option>@foreach($units as $u)<option value="{{ $u->id }}" data-active-lookup-option>{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'السعر':'Price' }}<input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"></label></div>
 <label>{{ app()->getLocale()==='ar'?'صور المنتج (حتى 8 صور)':'Product images (up to 8)' }}<input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple class="js-catalog-image-preview"></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
@@ -202,9 +202,21 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description">{{ $p->description }}</textarea></label>
 <div class="row">
 <label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)@if((int)$c->catalog_id === (int)$p->catalog_id || (int)$c->id === (int)$p->category_id)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endif @endforeach</select></label>
-<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)@php($scope=(string)($b->scope ?? 'global'))@if((int)$b->id === (int)$p->brand_id || $scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$b->store_id === (int)$p->catalog_store_id))<option value="{{ $b->id }}" @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endif @endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>
+@php($currentBrand=$p->brand_id===null?null:$currentBrands->get((int)$p->brand_id))
+@if($p->brand_id!==null && !$brands->contains('id',(int)$p->brand_id))
+<option value="{{ $p->brand_id }}" selected data-current-lookup-option data-lookup-state="{{ $currentBrand===null?'missing':($currentBrand->is_active?'current':'inactive') }}">{{ $currentBrand->name ?? __('catalog.unavailable_current_reference',['id'=>$p->brand_id]) }} · {{ $currentBrand===null?__('catalog.unavailable'):($currentBrand->is_active?__('catalog.current_reference'):__('catalog.inactive')) }}</option>
+@endif
+@foreach($brands as $b)@php($scope=(string)($b->scope ?? 'global'))@if($scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$b->store_id === (int)$p->catalog_store_id))<option value="{{ $b->id }}" data-active-lookup-option @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endif @endforeach</select></label>
 </div>
-<label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id">@foreach($units as $u)@php($scope=(string)($u->scope ?? 'global'))@if((int)$u->id === (int)$p->unit_id || $scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id))<option value="{{ $u->id }}" @selected($p->unit_id==$u->id)>{{ $u->name }}</option>@endif @endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-edit-unit>
+@php($currentUnit=$p->unit_id===null?null:$currentUnits->get((int)$p->unit_id))
+@if($p->unit_id!==null && !$units->contains('id',(int)$p->unit_id))
+<option value="{{ $p->unit_id }}" selected data-current-lookup-option data-lookup-state="{{ $currentUnit===null?'missing':($currentUnit->is_active?'current':'inactive') }}">{{ $currentUnit->name ?? __('catalog.unavailable_current_reference',['id'=>$p->unit_id]) }}{{ $currentUnit?->code ? ' ('.$currentUnit->code.')' : '' }} · {{ $currentUnit===null?__('catalog.unavailable'):($currentUnit->is_active?__('catalog.current_reference'):__('catalog.inactive')) }}</option>
+@endif
+@foreach($units as $u)@php($scope=(string)($u->scope ?? 'global'))@if($scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id))<option value="{{ $u->id }}" data-active-lookup-option @selected($p->unit_id==$u->id)>{{ $u->name }} ({{ $u->code }})</option>@endif @endforeach
+@if($p->unit_id===null)<option value="" selected>{{ __('catalog.unavailable') }}</option>@endif {{-- localization-gate: allow — technical Blade null-state condition; rendered option text is localized. --}}
+</select></label>
 <label>{{ app()->getLocale()==='ar'?'إضافة صور':'Add images' }}<input class="image-upload js-catalog-image-preview" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
 <div class="catalog-dialog-actions"><button type="button" class="btn" data-dialog-close>{{ app()->getLocale()==='ar'?'إلغاء':'Cancel' }}</button><button class="btn primary">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></div>

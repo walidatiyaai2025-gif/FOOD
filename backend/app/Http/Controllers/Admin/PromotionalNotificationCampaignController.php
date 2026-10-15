@@ -10,6 +10,7 @@ use App\Services\MarketingImageService;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
+use App\Support\EngagementDestinationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,10 @@ final class PromotionalNotificationCampaignController extends Controller
 {
     private const TIMEZONE = 'Asia/Kuwait';
 
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly EngagementDestinationCatalog $destinations,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -63,6 +67,17 @@ final class PromotionalNotificationCampaignController extends Controller
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'notification_campaigns',
+            'engagementDestinations' => $this->destinations->uiDefinitions(),
+            'campaignDestinationSelections' => $campaigns->getCollection()
+                ->mapWithKeys(fn (NotificationCampaign $campaign): array => [
+                    (int) $campaign->getKey() => $this->destinations->codeForTarget(
+                        $campaign->popup_cta_target,
+                        (string) $campaign->app,
+                        (string) $campaign->target_channel,
+                        $campaign->store_id === null ? null : (int) $campaign->store_id,
+                    ) ?? 'none',
+                ])
+                ->all(),
         ]);
     }
 
@@ -76,6 +91,14 @@ final class PromotionalNotificationCampaignController extends Controller
         $this->assertScope($actor, $data);
         $this->assertAudienceAppCompatibility($data);
         $this->assertTargetUserScope($data);
+        $popupCtaTarget = $this->destinations->resolveInput(
+            $data['popup_cta_destination'] ?? null,
+            $data['popup_cta_target'] ?? null,
+            (string) $data['app'],
+            (string) $data['target_channel'],
+            isset($data['store_id']) ? (int) $data['store_id'] : null,
+            'popup_cta_destination',
+        );
         $schedule = $this->scheduleData($data);
         $imagePath = $this->storeImage($request, $images, $data['store_id'] ?? null);
 
@@ -95,7 +118,7 @@ final class PromotionalNotificationCampaignController extends Controller
                 'popup_frequency' => $data['popup_frequency'],
                 'popup_cta_label_ar' => $data['popup_cta_label_ar'] ?? null,
                 'popup_cta_label_en' => $data['popup_cta_label_en'] ?? null,
-                'popup_cta_target' => $data['popup_cta_target'] ?? null,
+                'popup_cta_target' => $popupCtaTarget,
                 'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
                 'store_id' => $data['store_id'] ?? null,
                 'created_by' => $actor->id,
@@ -124,6 +147,14 @@ final class PromotionalNotificationCampaignController extends Controller
         $this->assertScope($actor, $data);
         $this->assertAudienceAppCompatibility($data);
         $this->assertTargetUserScope($data);
+        $popupCtaTarget = $this->destinations->resolveInput(
+            $data['popup_cta_destination'] ?? null,
+            $data['popup_cta_target'] ?? null,
+            (string) $data['app'],
+            (string) $data['target_channel'],
+            isset($data['store_id']) ? (int) $data['store_id'] : null,
+            'popup_cta_destination',
+        );
         $before = $campaign->toArray();
         $newImage = $request->hasFile('image')
             ? $this->storeImage($request, $images, $data['store_id'] ?? null)
@@ -144,7 +175,7 @@ final class PromotionalNotificationCampaignController extends Controller
                 'popup_frequency' => $data['popup_frequency'],
                 'popup_cta_label_ar' => $data['popup_cta_label_ar'] ?? null,
                 'popup_cta_label_en' => $data['popup_cta_label_en'] ?? null,
-                'popup_cta_target' => $data['popup_cta_target'] ?? null,
+                'popup_cta_target' => $popupCtaTarget,
                 'user_id' => $data['audience'] === 'user' ? ($data['user_id'] ?? null) : null,
                 'store_id' => $data['store_id'] ?? null,
                 ...$this->scheduleData($data),
@@ -445,6 +476,7 @@ final class PromotionalNotificationCampaignController extends Controller
             'popup_frequency' => ['required', Rule::in(['once_per_user', 'once_per_session', 'every_open'])],
             'popup_cta_label_ar' => ['nullable', 'string', 'max:120'],
             'popup_cta_label_en' => ['nullable', 'string', 'max:120'],
+            'popup_cta_destination' => ['nullable', 'string', Rule::in($this->destinations->codes())],
             'popup_cta_target' => ['nullable', 'string', 'max:500', 'starts_with:/'],
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],

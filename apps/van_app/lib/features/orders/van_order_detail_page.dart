@@ -12,6 +12,7 @@ import '../wallet/van_wallet_contract.dart';
 import 'van_delivery_evidence_sheet.dart';
 import 'van_order_contract.dart';
 import 'van_order_proof_picker.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef VanOrderNavigationLauncher = Future<bool> Function(
@@ -164,8 +165,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }
   }
 
-  Future<void> _transition(String status) =>
-      _applyMutation(
+  Future<void> _transition(String status) => _applyMutation(
         () => widget.repository.transitionOrder(
           orderId: widget.orderId,
           status: status,
@@ -300,12 +300,17 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   bool get _hasAccountCreditOutstanding {
     final detail = _detail;
     final invoice = detail?.invoice;
-    if (detail == null || invoice == null || invoice.outstandingAmount <= 0.0001) {
+    if (detail == null ||
+        invoice == null ||
+        invoice.outstandingAmount <= 0.0001) {
       return false;
     }
 
-    return const {'account_credit', 'account_debt', 'account'}
-        .contains(_paymentMethod);
+    return const {
+      'account_credit',
+      'account_debt',
+      'account',
+    }.contains(_paymentMethod);
   }
 
   Future<void> _openReceipt(int receiptId) async {
@@ -315,9 +320,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          appBar: AppBar(
-            title: Text(_text('Receipt', 'الإيصال')),
-          ),
+          appBar: AppBar(title: Text(_text('Receipt', 'الإيصال'))),
           body: VanReceiptsPage(
             repository: walletRepository,
             onSessionExpired: widget.onSessionExpired,
@@ -357,9 +360,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                 Navigator.of(routeContext).push<void>(
                   MaterialPageRoute(
                     builder: (_) => Scaffold(
-                      appBar: AppBar(
-                        title: Text(_text('Receipt', 'الإيصال')),
-                      ),
+                      appBar: AppBar(title: Text(_text('Receipt', 'الإيصال'))),
                       body: VanReceiptsPage(
                         repository: walletRepository,
                         onSessionExpired: widget.onSessionExpired,
@@ -404,10 +405,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
         ..showSnackBar(
           SnackBar(
             content: Text(
-              _text(
-                'Unable to open navigation.',
-                'تعذر فتح تطبيق الملاحة.',
-              ),
+              _text('Unable to open navigation.', 'تعذر فتح تطبيق الملاحة.'),
             ),
           ),
         );
@@ -504,8 +502,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }).toList(growable: false);
   }
 
-  bool get _canFail =>
-      _execution?.allowedActions.contains('failed') == true;
+  bool get _canFail => _execution?.allowedActions.contains('failed') == true;
 
   bool get _canRetry =>
       _execution?.status == 'failed' &&
@@ -515,11 +512,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       _execution?.status == 'out_for_delivery' &&
       _execution?.proofRequiredForDelivered == true;
 
-  Widget _section({
-    required String title,
-    required Widget child,
-    Key? key,
-  }) =>
+  Widget _section({required String title, required Widget child, Key? key}) =>
       Card(
         key: key,
         elevation: 0,
@@ -530,9 +523,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               child,
@@ -550,9 +544,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   @override
   Widget build(BuildContext context) {
     if (_loading && _detail == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_error != null && _detail == null) {
@@ -627,10 +619,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                                 order.vanExecutionStatus ??
                                 order.status,
                           ),
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -644,9 +636,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         'Delivery proof is required before Delivered can be accepted by the server.',
                         'إثبات التسليم مطلوب قبل أن يقبل الخادم حالة تم التسليم.',
                       ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: FoodexVanTokens.muted,
-                          ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: FoodexVanTokens.muted),
                     ),
                   ],
                   for (final action in _deliveryActions) ...[
@@ -689,7 +682,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         ),
                         key: const ValueKey('van-order-proof-ready'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: FoodexVanTokens.green,
+                              color: FoodexVanTokens.actionGreen,
                               fontWeight: FontWeight.w800,
                             ),
                       ),
@@ -701,17 +694,14 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       key: const ValueKey('van-order-fail-action'),
                       onPressed: _submitting || _stale ? null : _markFailed,
                       icon: const Icon(Icons.report_problem_outlined),
-                      label: Text(
-                        _text('Failed delivery', 'تعذر التسليم'),
-                      ),
+                      label: Text(_text('Failed delivery', 'تعذر التسليم')),
                     ),
                   ],
                   if (_canRetry) ...[
                     const SizedBox(height: 10),
                     VanActionButton.icon(
                       key: const ValueKey('van-order-retry-action'),
-                      onPressed:
-                          _submitting || _stale ? null : _retryDelivery,
+                      onPressed: _submitting || _stale ? null : _retryDelivery,
                       icon: const Icon(Icons.restart_alt_rounded),
                       label: Text(
                         _text('Retry delivery', 'إعادة محاولة التسليم'),
@@ -823,10 +813,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                             _submitting || _stale ? null : _openCollectionFlow,
                         icon: const Icon(Icons.payments_outlined),
                         label: Text(
-                          _text(
-                            'Collect outstanding',
-                            'تحصيل المبلغ المستحق',
-                          ),
+                          _text('Collect outstanding', 'تحصيل المبلغ المستحق'),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -835,9 +822,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                           'Delivered stays unavailable until the authoritative COD outstanding is cleared.',
                           'تظل حالة تم التسليم غير متاحة حتى تتم تسوية المبلغ النقدي المستحق بشكل معتمد.',
                         ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: FoodexVanTokens.muted,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: FoodexVanTokens.muted),
                       ),
                     ],
                     if (_hasAccountCreditOutstanding) ...[
@@ -850,9 +838,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         key: const ValueKey(
                           'van-order-account-credit-settlement',
                         ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: FoodexVanTokens.muted,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: FoodexVanTokens.muted),
                       ),
                     ],
                   ] else

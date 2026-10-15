@@ -8,6 +8,12 @@ import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+enum _CollectionReviewReason {
+  customerUnavailable,
+  invoiceUnavailable,
+  targetChanged,
+}
+
 class VanCollectionPage extends StatefulWidget {
   const VanCollectionPage({
     super.key,
@@ -48,10 +54,60 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   VanCollectionResult? _lastResult;
   String? _pendingOperation;
   String? _pendingIdempotencyKey;
+  int _contextRequestGeneration = 0;
+  VanCustomerScope? _contextCustomer;
+  _CollectionReviewReason? _reviewReason;
+  bool _initialCustomerResolutionPending = true;
+  bool _initialInvoiceResolutionPending = true;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
   String _text(String en, String ar) => _arabic ? ar : en;
+
+  bool _sameCustomer(VanCustomerScope? left, VanCustomerScope? right) =>
+      left != null &&
+      right != null &&
+      left.type == right.type &&
+      left.id == right.id &&
+      left.storeId == right.storeId;
+
+  bool get _hasMatchingContext =>
+      _context != null &&
+      _sameCustomer(_customer, _contextCustomer) &&
+      _context!.storeId == _customer!.storeId;
+
+  bool get _requiresExplicitTargetReview =>
+      _reviewReason == _CollectionReviewReason.customerUnavailable ||
+      _reviewReason == _CollectionReviewReason.invoiceUnavailable;
+
+  bool _ownsContextRequest(int generation, VanCustomerScope customer) =>
+      mounted &&
+      generation == _contextRequestGeneration &&
+      _sameCustomer(_customer, customer);
+
+  void _resetPendingCollection({bool clearResult = true}) {
+    if (clearResult) {
+      _lastResult = null;
+    }
+    _amount.clear();
+    _pendingOperation = null;
+    _pendingIdempotencyKey = null;
+  }
+
+  String _reviewMessage(_CollectionReviewReason reason) => switch (reason) {
+        _CollectionReviewReason.customerUnavailable => _text(
+            'The intended collection customer is no longer available. Choose an assigned customer deliberately before continuing.',
+            'عميل التحصيل المقصود لم يعد متاحًا. اختر عميلًا مسندًا بشكل صريح قبل المتابعة.',
+          ),
+        _CollectionReviewReason.invoiceUnavailable => _text(
+            'The intended invoice is no longer collectible. The amount was cleared; choose a current invoice deliberately and review the target again.',
+            'الفاتورة المقصودة لم تعد قابلة للتحصيل. تم مسح المبلغ؛ اختر فاتورة حالية بشكل صريح وراجع الهدف مرة أخرى.',
+          ),
+        _CollectionReviewReason.targetChanged => _text(
+            'The collection customer changed. The amount was cleared; choose the invoice again before posting.',
+            'تم تغيير عميل التحصيل. تم مسح المبلغ؛ اختر الفاتورة مرة أخرى قبل التسجيل.',
+          ),
+      };
 
   @override
   void initState() {
@@ -78,15 +134,18 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   }
 
   Future<void> _loadCustomers() async {
+    _contextRequestGeneration += 1;
     setState(() {
       _loading = true;
       _error = null;
+      _contextCustomer = null;
     });
     try {
       final customers = await widget.repository.customers();
       if (!mounted) return;
       VanCustomerScope? selected;
-      final preferred = widget.initialCustomer;
+      final preferred =
+          _initialCustomerResolutionPending ? widget.initialCustomer : null;
       if (preferred != null) {
         for (final customer in customers) {
           if (customer.type == preferred.type &&
@@ -96,15 +155,25 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             break;
           }
         }
+      } else if (_reviewReason == null && customers.isNotEmpty) {
+        selected = customers.first;
       }
-      selected ??= customers.isEmpty ? null : customers.first;
+      final preferredMissing = preferred != null && selected == null;
+      _initialCustomerResolutionPending = false;
+      if (preferredMissing) {
+        _resetPendingCollection();
+      }
       setState(() {
         _customers = customers;
         _customer = selected;
         _context = null;
+        _contextCustomer = null;
         _invoice = null;
         _loading = false;
         _stale = false;
+        if (preferredMissing) {
+          _reviewReason = _CollectionReviewReason.customerUnavailable;
+        }
       });
       if (selected != null) {
         await _loadContext(selected);
@@ -124,44 +193,83 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     VanCustomerScope customer, {
     bool background = false,
   }) async {
-    if (mounted) {
-      setState(() {
-        if (background && _context != null) {
-          _refreshing = true;
-        } else {
-          _loading = true;
-        }
-        _error = null;
-      });
-    }
+    final generation = ++_contextRequestGeneration;
+    if (!_sameCustomer(_customer, customer)) return;
+
+    setState(() {
+      if (background && _hasMatchingContext) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+        _refreshing = false;
+      }
+      _error = null;
+    });
 
     try {
       final context = await widget.repository.collectionContext(customer);
-      if (!mounted) return;
-      final preferredInvoiceId = _invoice?.id ?? widget.initialInvoiceId;
+      if (!_ownsContextRequest(generation, customer)) return;
+
+      final currentInvoice = _invoice;
+      final preferredInvoiceId = currentInvoice?.id ??
+          (_initialInvoiceResolutionPending ? widget.initialInvoiceId : null);
+      final requireExplicitInvoice =
+          _requiresExplicitTargetReview && currentInvoice == null;
       VanInvoiceBalance? selected;
-      for (final invoice in context.invoices) {
-        if (invoice.id == preferredInvoiceId) {
-          selected = invoice;
-          break;
+      if (!requireExplicitInvoice) {
+        for (final invoice in context.invoices) {
+          if (invoice.id == preferredInvoiceId) {
+            selected = invoice;
+            break;
+          }
+        }
+        if (selected == null &&
+            preferredInvoiceId == null &&
+            context.invoices.isNotEmpty) {
+          selected = context.invoices.first;
         }
       }
-      selected ??= context.invoices.isEmpty ? null : context.invoices.first;
+      final intendedInvoiceMissing =
+          preferredInvoiceId != null && selected == null;
+      _initialInvoiceResolutionPending = false;
+      if (intendedInvoiceMissing) {
+        _resetPendingCollection(clearResult: false);
+      }
+
       setState(() {
         _context = context;
+        _contextCustomer = customer;
         _invoice = selected;
         _loading = false;
         _refreshing = false;
         _stale = false;
+        if (intendedInvoiceMissing) {
+          _reviewReason = _CollectionReviewReason.invoiceUnavailable;
+        }
       });
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (error) {
-      if (!mounted) return;
+      if (!_ownsContextRequest(generation, customer)) return;
+      if (error is VanApiException && error.statusCode == 404) {
+        _resetPendingCollection(clearResult: false);
+        setState(() {
+          _customer = null;
+          _context = null;
+          _contextCustomer = null;
+          _invoice = null;
+          _loading = false;
+          _refreshing = false;
+          _stale = false;
+          _error = null;
+          _reviewReason = _CollectionReviewReason.customerUnavailable;
+        });
+        return;
+      }
       setState(() {
         _loading = false;
         _refreshing = false;
-        if (background && _context != null) {
+        if (background && _hasMatchingContext) {
           _stale = true;
         } else {
           _error = error;
@@ -180,27 +288,30 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   }
 
   Future<void> _selectCustomer(VanCustomerScope? customer) async {
-    if (customer == null) return;
+    if (customer == null || _sameCustomer(_customer, customer)) return;
+    _contextRequestGeneration += 1;
+    _initialInvoiceResolutionPending = false;
+    _resetPendingCollection();
     setState(() {
       _customer = customer;
       _context = null;
+      _contextCustomer = null;
       _invoice = null;
-      _lastResult = null;
-      _amount.clear();
-      _pendingOperation = null;
-      _pendingIdempotencyKey = null;
+      _loading = true;
+      _refreshing = false;
+      _stale = false;
+      _error = null;
+      _reviewReason = _CollectionReviewReason.targetChanged;
     });
     await _loadContext(customer);
   }
 
   void _selectInvoice(VanInvoiceBalance? invoice) {
     if (invoice == null) return;
+    _resetPendingCollection();
     setState(() {
       _invoice = invoice;
-      _lastResult = null;
-      _amount.clear();
-      _pendingOperation = null;
-      _pendingIdempotencyKey = null;
+      _reviewReason = null;
     });
   }
 
@@ -228,7 +339,13 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     final invoice = _invoice;
     final amount = double.tryParse(_amount.text.trim());
 
-    if (customer == null || invoice == null || amount == null || amount <= 0) {
+    if (customer == null ||
+        invoice == null ||
+        _requiresExplicitTargetReview ||
+        !_hasMatchingContext ||
+        !_context!.invoices.any((candidate) => candidate.id == invoice.id) ||
+        amount == null ||
+        amount <= 0) {
       _message(
         _text(
           'Choose a customer and invoice, then enter a valid amount.',
@@ -262,6 +379,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _lastResult = result;
         _pendingOperation = null;
         _pendingIdempotencyKey = null;
+        _reviewReason = null;
       });
       widget.onReceiptPosted?.call(result);
       await _loadContext(customer);
@@ -325,7 +443,8 @@ class _VanCollectionPageState extends State<VanCollectionPage>
 
     if (_error != null && _customers.isEmpty) {
       return _StateCard(
-        title: _text('Unable to load collection scope', 'تعذر تحميل نطاق التحصيل'),
+        title:
+            _text('Unable to load collection scope', 'تعذر تحميل نطاق التحصيل'),
         actionLabel: _text('Retry', 'إعادة المحاولة'),
         onAction: _loadCustomers,
       );
@@ -342,7 +461,9 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       );
     }
 
-    final invoices = _context?.invoices ?? const <VanInvoiceBalance>[];
+    final hasMatchingContext = _hasMatchingContext;
+    final invoices =
+        hasMatchingContext ? _context!.invoices : const <VanInvoiceBalance>[];
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -371,27 +492,68 @@ class _VanCollectionPageState extends State<VanCollectionPage>
                       ),
               ),
             ),
-          DropdownButtonFormField<VanCustomerScope>(
-            key: const ValueKey('van-collection-customer'),
-            initialValue: _customer,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: _text('Customer', 'العميل'),
-              border: const OutlineInputBorder(),
-            ),
-            items: [
-              for (final customer in _customers)
-                DropdownMenuItem(
-                  value: customer,
-                  child: Text(
-                    customer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          if (_reviewReason != null)
+            Semantics(
+              liveRegion: true,
+              child: Container(
+                key: const ValueKey('van-collection-target-review'),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: FoodexVanTokens.surface,
+                  border: Border.all(color: FoodexVanTokens.border),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-            ],
-            onChanged: _submitting ? null : _selectCustomer,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_reviewMessage(_reviewReason!))),
+                  ],
+                ),
+              ),
+            ),
+          KeyedSubtree(
+            key: const ValueKey('van-collection-customer'),
+            child: DropdownButtonFormField<VanCustomerScope>(
+              key: ValueKey(
+                'van-collection-customer-state-'
+                '${_customer?.type ?? 'none'}-'
+                '${_customer?.id ?? 'none'}-'
+                '${_customer?.storeId ?? 'none'}',
+              ),
+              initialValue: _customer,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: _text('Customer', 'العميل'),
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                for (final customer in _customers)
+                  DropdownMenuItem(
+                    value: customer,
+                    child: Text(
+                      customer.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: _submitting ? null : _selectCustomer,
+            ),
           ),
+          if (_customer != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _text(
+                'Customer: ${_customer!.name} · ${_customer!.type.toUpperCase()} #${_customer!.id} · Store #${_customer!.storeId}',
+                'العميل: ${_customer!.name} · ${_customer!.type.toUpperCase()} #${_customer!.id} · المتجر #${_customer!.storeId}',
+              ),
+              key: const ValueKey('van-collection-customer-identity'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 12),
           if (_loading)
             const Center(child: CircularProgressIndicator())
@@ -403,6 +565,20 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               ),
               actionLabel: _text('Retry', 'إعادة المحاولة'),
               onAction: _refresh,
+            )
+          else if (_customer == null)
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  _text(
+                    'Choose an assigned customer to load its current collectible invoices.',
+                    'اختر عميلًا مسندًا لتحميل فواتيره الحالية القابلة للتحصيل.',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             )
           else if (invoices.isEmpty)
             Card(
@@ -419,33 +595,52 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               ),
             )
           else ...[
-            DropdownButtonFormField<VanInvoiceBalance>(
+            KeyedSubtree(
               key: const ValueKey('van-collection-invoice'),
-              initialValue: _invoice,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: _text('Invoice', 'الفاتورة'),
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                for (final invoice in invoices)
-                  DropdownMenuItem(
-                    value: invoice,
-                    child: Text(
-                      '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              child: DropdownButtonFormField<VanInvoiceBalance>(
+                key: ValueKey(
+                  'van-collection-invoice-state-${_invoice?.id ?? 'none'}',
+                ),
+                initialValue: _invoice,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: _text('Invoice', 'الفاتورة'),
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  for (final invoice in invoices)
+                    DropdownMenuItem(
+                      value: invoice,
+                      child: Text(
+                        '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-              ],
-              onChanged: _submitting ? null : _selectInvoice,
+                ],
+                onChanged: _submitting ? null : _selectInvoice,
+              ),
             ),
+            if (_invoice != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _text(
+                  'Invoice: ${_invoice!.number} · ${_invoice!.currency} · Outstanding ${foodexMoneyText(_invoice!.outstandingAmount, _invoice!.currency)}',
+                  'الفاتورة: ${_invoice!.number} · ${_invoice!.currency} · المستحق ${foodexMoneyText(_invoice!.outstandingAmount, _invoice!.currency)}',
+                ),
+                key: const ValueKey('van-collection-invoice-identity'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               key: const ValueKey('van-collection-amount'),
               controller: _amount,
-              enabled: !_submitting,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              enabled: !_submitting &&
+                  _invoice != null &&
+                  !_requiresExplicitTargetReview,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: _text('Collection amount', 'مبلغ التحصيل'),
                 border: const OutlineInputBorder(),
@@ -454,7 +649,12 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             const SizedBox(height: 12),
             VanActionButton.icon(
               key: const ValueKey('van-collection-submit'),
-              onPressed: _submitting ? null : _collect,
+              onPressed: _submitting ||
+                      !hasMatchingContext ||
+                      _invoice == null ||
+                      _requiresExplicitTargetReview
+                  ? null
+                  : _collect,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,

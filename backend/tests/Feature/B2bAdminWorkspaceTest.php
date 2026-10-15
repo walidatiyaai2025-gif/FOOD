@@ -250,14 +250,43 @@ class B2bAdminWorkspaceTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $wholeOrder = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'warehouse_id' => $warehouse,
+            'customer_id' => $customer,
+            'b2b_customer_id' => $b2bCustomer,
+            'order_number' => 'B2B-ORDER-2',
+            'channel' => 'b2b',
+            'status' => 'processing',
+            'currency' => 'EGP',
+            'subtotal' => 12,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 12,
+            'created_at' => now()->addSecond(),
+            'updated_at' => now()->addSecond(),
+        ]);
+
         $admin = $this->user('B2B_ADMIN', 'en');
 
         $this->actingAs($admin)->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('#'.$order)
+            ->assertSee('#'.$wholeOrder)
             ->assertSee('Buyer One')
             ->assertSee('Wholesale Warehouse')
-            ->assertSee('B2B Product');
+            ->assertSee('B2B Product')
+            ->assertSee('EGP 12.50')
+            ->assertSee('EGP 12.00')
+            ->assertSee('aria-label="EGP 24.50"', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)->get('/admin/b2b/dashboard')
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('dir="ltr">EGP 12.50', false)
+            ->assertSee('dir="ltr">EGP 12.00', false);
 
         $this->actingAs($admin)->get('/admin/b2b/inventory')
             ->assertOk()
@@ -575,8 +604,27 @@ class B2bAdminWorkspaceTest extends TestCase
         );
 
         $orders = $this->actingAs($admin)->get('/admin/b2b/orders')->assertOk();
-        $orders->assertSee('Approved Buyer');
-        $orders->assertDontSee('Retail Linked Buyer');
+        $orders
+            ->assertDontSee('Approved Buyer')
+            ->assertDontSee('Retail Linked Buyer')
+            ->assertSee('data-lookup-url', false);
+
+        $b2bStore = (int) DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2B')
+            ->where('stores.is_active', true)
+            ->value('stores.id');
+
+        $lookup = $this->actingAs($admin)->getJson(
+            '/admin/operations/orders/lookups/customer?channel=b2b&store_id='.$b2bStore.'&q=Buyer'
+        );
+        $lookup
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $approvedCustomer,
+                'label' => 'Approved Company · Approved Buyer',
+            ]);
+        $this->assertStringNotContainsString('Retail Linked Buyer', $lookup->getContent());
     }
 
     public function test_reference_routes_and_permissions_remain_available(): void
