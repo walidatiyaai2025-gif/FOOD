@@ -81,7 +81,7 @@ class DashboardDateRangeTest extends TestCase
         $this->assertStringContainsString('\'to\'=>$dashboard[\'selected_to\']', $view);
         $this->assertStringContainsString('array_merge([\'module\'=>\'reports\'],$dashboardPeriodQuery)', $view);
         $this->assertStringContainsString('array_merge([\'module\'=>\'orders\'],$dashboardPeriodQuery)', $view);
-        $this->assertStringContainsString("Reset period", $view);
+        $this->assertStringContainsString('Reset period', $view);
         $this->assertStringNotContainsString('المبيعات اليومية', $view);
         $this->assertStringNotContainsString('Daily sales', $view);
         $this->assertStringNotContainsString('آخر 7 أيام', $view);
@@ -172,6 +172,4 @@ class DashboardDateRangeTest extends TestCase
             return data_get($moduleData, 'filters.from') === $period['from']
                 && data_get($moduleData, 'filters.to') === $period['to'];
         });
-    }
-
-}
+    }}
