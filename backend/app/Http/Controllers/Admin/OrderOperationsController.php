@@ -1089,10 +1089,10 @@ final class OrderOperationsController extends Controller
             return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], []);
         }
 
-        $orderIds = array_values(array_map(
+        $orderIds = array_map(
             static fn (Order $order): int => (int) $order->getKey(),
             $orders,
-        ));
+        );
 
         $assignments = [];
         foreach (
