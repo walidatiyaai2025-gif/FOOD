@@ -62,6 +62,7 @@ final class SmartOrderingAvailabilityService
         abort_unless((int) $item->site_id === (int) $site->id, 404);
         $this->assertBranch((int) $site->id, $branch);
 
+        /** @var SmartOrderingMenuCategory $category */
         $category = $item->category()->firstOrFail();
         $categoryState = $this->category($category, $branch, $at);
         if (! $categoryState['available']) {
