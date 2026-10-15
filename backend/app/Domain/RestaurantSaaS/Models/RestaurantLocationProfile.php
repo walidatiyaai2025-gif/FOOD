@@ -17,4 +17,12 @@ final class RestaurantLocationProfile extends Model
     {
         return $this->belongsTo(Store::class);
     }
+
+    protected function casts(): array
+    {
+        return [
+            'canceled_at' => 'datetime',
+            'offboarded_at' => 'datetime',
+        ];
+    }
 }
