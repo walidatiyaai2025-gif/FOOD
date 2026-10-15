@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -11,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 final class TenantContextResolver
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly OrganizationHierarchyService $organizations,
+    ) {}
 
     public function wholesale(User $user, ?int $storeId = null): ResolvedTenantContext
     {
@@ -33,6 +37,7 @@ final class TenantContextResolver
             channel: 'b2b',
             storeId: $storeId,
             supportAccess: $user->hasRole('SUPER_ADMIN'),
+            enterpriseScope: $storeId === null ? null : $this->enterpriseScopeForStore($storeId),
         );
     }
 
@@ -61,6 +66,7 @@ final class TenantContextResolver
                 channel: 'b2c',
                 storeId: $storeId,
                 supportAccess: true,
+                enterpriseScope: $this->enterpriseScopeForStore($storeId),
             );
         }
 
@@ -70,6 +76,7 @@ final class TenantContextResolver
             userId: (int) $user->getKey(),
             channel: 'b2c',
             storeId: $storeId,
+            enterpriseScope: $this->enterpriseScopeForStore($storeId),
         );
     }
 
@@ -118,6 +125,13 @@ final class TenantContextResolver
     public function assertStoreChannel(int $storeId, string $channel): void
     {
         $this->storeForChannel($storeId, strtoupper($channel));
+    }
+
+    private function enterpriseScopeForStore(int $storeId): ?EnterpriseDataScope
+    {
+        $scope = $this->organizations->scopeForStore($storeId);
+
+        return $scope === null ? null : EnterpriseDataScope::fromHierarchy($scope);
     }
 
     private function storeForChannel(int $storeId, string $channel): Store
