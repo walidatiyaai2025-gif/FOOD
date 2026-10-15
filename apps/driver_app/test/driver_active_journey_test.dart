@@ -946,7 +946,7 @@ void main() {
 
         expect(amountField, findsOneWidget);
         expect(
-          find.text('Enter a valid amount no greater than required'),
+          find.text('Enter a valid amount not exceeding the amount due'),
           findsOneWidget,
         );
         expect(repo.collectCount, 0);
