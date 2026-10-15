@@ -15,6 +15,7 @@ use App\Services\LookupScopeService;
 use App\Services\ProductAvailabilityService;
 use App\Services\ProductSkuGenerator;
 use App\Services\RetailWholesaleAccountService;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -158,7 +159,7 @@ final class CatalogManagementController extends Controller
                 ->where('store_types.code', 'B2B')
                 ->exists();
             $principalWarehouseId = $hasWholesale
-                ? app(\App\Services\WholesalePrincipal::class)->warehouseId()
+                ? app(WholesalePrincipal::class)->warehouseId()
                 : null;
             $inventoryScope = static function ($query, bool $positiveOnly = false) use ($principalWarehouseId): void {
                 $query->selectRaw('1')
