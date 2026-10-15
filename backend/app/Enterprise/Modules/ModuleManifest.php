@@ -10,6 +10,7 @@ final readonly class ModuleManifest
      * @param  list<string>  $requiredCore
      * @param  list<string>  $hardDependencies
      * @param  list<string>  $optionalIntegrations
+     * @param  list<string>  $capabilities
      * @param  list<string>  $permissions
      * @param  list<string>  $healthChecks
      * @param  array<string, mixed>  $navigation
@@ -22,6 +23,7 @@ final readonly class ModuleManifest
         public array $requiredCore,
         public array $hardDependencies,
         public array $optionalIntegrations,
+        public array $capabilities,
         public array $permissions,
         public array $healthChecks,
         public array $navigation,
@@ -69,6 +71,7 @@ final readonly class ModuleManifest
             requiredCore: self::stringList($values['required_core'] ?? []),
             hardDependencies: self::stringList($values['hard_dependencies'] ?? []),
             optionalIntegrations: self::stringList($values['optional_integrations'] ?? []),
+            capabilities: self::stringList($values['capabilities'] ?? []),
             permissions: self::stringList($values['permissions'] ?? []),
             healthChecks: self::stringList($values['health_checks'] ?? []),
             navigation: is_array($values['navigation'] ?? null) ? $values['navigation'] : [],
@@ -88,6 +91,7 @@ final readonly class ModuleManifest
             'required_core' => $this->requiredCore,
             'hard_dependencies' => $this->hardDependencies,
             'optional_integrations' => $this->optionalIntegrations,
+            'capabilities' => $this->capabilities,
             'permissions' => $this->permissions,
             'health_checks' => $this->healthChecks,
             'navigation' => $this->navigation,
