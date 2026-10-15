@@ -7,7 +7,7 @@ Route::prefix('admin/smart-ordering')
     ->name('admin.smart-ordering.')
     ->middleware('management.dashboard')
     ->group(function (): void {
-        Route::get('/', [SmartOrderingController::class, 'index'])->name('index');
+        Route::get('/settings', [SmartOrderingController::class, 'index'])->name('index');
         Route::put('/sites/{site}/runtime', [SmartOrderingController::class, 'runtime'])->whereNumber('site')->name('runtime');
         Route::put('/sites/{site}/entitlements', [SmartOrderingController::class, 'entitlements'])->whereNumber('site')->name('entitlements');
         Route::put('/sites/{site}/slug', [SmartOrderingController::class, 'slug'])->whereNumber('site')->name('slug');
