@@ -262,6 +262,7 @@ final class EnterpriseSecurityAdministration
         $this->assertOperation($operation);
         $payload = $this->hydrateRemovalPayload($operation, $payload);
         $this->assertProposalAllowed($actor, $operation, $payload);
+        $payload = $this->hydrateUpsertSnapshot($operation, $payload);
 
         [$scopeType, $scopeId] = $this->workflowScope($operation, $payload);
 
@@ -340,6 +341,60 @@ final class EnterpriseSecurityAdministration
             'amount' => (string) ($payload['amount'] ?? ''),
             'permission_code' => (string) ($payload['permission_code'] ?? ''),
         ];
+    }
+
+    /**
+     * Capture optimistic-concurrency state for privileged upserts. A checker
+     * must review the exact current row (or exact absence) the maker saw.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function hydrateUpsertSnapshot(string $operation, array $payload): array
+    {
+        if ($operation === self::DATA_SCOPE_UPSERT) {
+            $row = DB::table('enterprise_user_data_scopes')
+                ->where('user_id', (int) $payload['target_user_id'])
+                ->where('scope_type', (string) $payload['scope_type'])
+                ->where('scope_id', (int) $payload['scope_id'])
+                ->first(['updated_at']);
+            $payload['expected_updated_at'] = $row === null ? null : (string) $row->updated_at;
+            $payload['expected_absent'] = $row === null;
+
+            return $payload;
+        }
+
+        if ($operation === self::APPROVAL_LIMIT_UPSERT) {
+            $row = DB::table('enterprise_user_approval_limits')
+                ->where('user_id', (int) $payload['target_user_id'])
+                ->where('workflow_key', (string) $payload['workflow_key'])
+                ->where('currency', strtoupper((string) $payload['currency']))
+                ->where('scope_key', (string) $payload['scope_key'])
+                ->first(['updated_at']);
+            $payload['expected_updated_at'] = $row === null ? null : (string) $row->updated_at;
+            $payload['expected_absent'] = $row === null;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  object|null  $row
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertSnapshotCurrent(?object $row, array $payload): void
+    {
+        if (! array_key_exists('expected_absent', $payload)) {
+            return;
+        }
+
+        $expectedAbsent = (bool) $payload['expected_absent'];
+        $expectedUpdatedAt = $payload['expected_updated_at'] ?? null;
+
+        if (($expectedAbsent && $row !== null)
+            || (! $expectedAbsent && ($row === null || (string) $row->updated_at !== (string) $expectedUpdatedAt))) {
+            abort(409, __('enterprise_security.errors.policy_changed'));
+        }
     }
 
     /**
@@ -591,6 +646,7 @@ final class EnterpriseSecurityAdministration
             'scope_id' => (int) $payload['scope_id'],
         ];
         $before = DB::table('enterprise_user_data_scopes')->where($key)->first();
+        $this->assertSnapshotCurrent($before, $payload);
         $values = [
             'starts_at' => $payload['starts_at'] ?? null,
             'ends_at' => $payload['ends_at'] ?? null,
@@ -638,6 +694,7 @@ final class EnterpriseSecurityAdministration
             'scope_key' => (string) $payload['scope_key'],
         ];
         $before = DB::table('enterprise_user_approval_limits')->where($key)->first();
+        $this->assertSnapshotCurrent($before, $payload);
         $values = [
             'amount' => (string) $payload['amount'],
             'scope_type' => (string) $payload['scope_type'],
