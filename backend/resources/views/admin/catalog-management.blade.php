@@ -183,7 +183,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
 <div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach</select></label></div>
-<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required>@foreach($units as $u)<option value="{{ $u->id }}">{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-create-unit><option value="">—</option>@foreach($units as $u)<option value="{{ $u->id }}" data-active-lookup-option>{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'السعر':'Price' }}<input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"></label></div>
 <label>{{ app()->getLocale()==='ar'?'صور المنتج (حتى 8 صور)':'Product images (up to 8)' }}<input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple class="js-catalog-image-preview"></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
@@ -202,9 +202,21 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description">{{ $p->description }}</textarea></label>
 <div class="row">
 <label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)@if((int)$c->catalog_id === (int)$p->catalog_id || (int)$c->id === (int)$p->category_id)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endif @endforeach</select></label>
-<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)@php($scope=(string)($b->scope ?? 'global'))@if((int)$b->id === (int)$p->brand_id || $scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$b->store_id === (int)$p->catalog_store_id))<option value="{{ $b->id }}" @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endif @endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>
+@php($currentBrand=$p->brand_id===null?null:$currentBrands->get((int)$p->brand_id))
+@if($p->brand_id!==null && !$brands->contains('id',(int)$p->brand_id))
+<option value="{{ $p->brand_id }}" selected data-current-lookup-option data-lookup-state="{{ $currentBrand===null?'missing':($currentBrand->is_active?'current':'inactive') }}">{{ $currentBrand->name ?? __('catalog.unavailable_current_reference',['id'=>$p->brand_id]) }} · {{ $currentBrand===null?__('catalog.unavailable'):($currentBrand->is_active?__('catalog.current_reference'):__('catalog.inactive')) }}</option>
+@endif
+@foreach($brands as $b)@php($scope=(string)($b->scope ?? 'global'))@if($scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$b->store_id === (int)$p->catalog_store_id))<option value="{{ $b->id }}" data-active-lookup-option @selected($p->brand_id==$b->id)>{{ $b->name }}</option>@endif @endforeach</select></label>
 </div>
-<label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id">@foreach($units as $u)@php($scope=(string)($u->scope ?? 'global'))@if((int)$u->id === (int)$p->unit_id || $scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id))<option value="{{ $u->id }}" @selected($p->unit_id==$u->id)>{{ $u->name }}</option>@endif @endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-edit-unit>
+@php($currentUnit=$p->unit_id===null?null:$currentUnits->get((int)$p->unit_id))
+@if($p->unit_id!==null && !$units->contains('id',(int)$p->unit_id))
+<option value="{{ $p->unit_id }}" selected data-current-lookup-option data-lookup-state="{{ $currentUnit===null?'missing':($currentUnit->is_active?'current':'inactive') }}">{{ $currentUnit->name ?? __('catalog.unavailable_current_reference',['id'=>$p->unit_id]) }}{{ $currentUnit?->code ? ' ('.$currentUnit->code.')' : '' }} · {{ $currentUnit===null?__('catalog.unavailable'):($currentUnit->is_active?__('catalog.current_reference'):__('catalog.inactive')) }}</option>
+@endif
+@foreach($units as $u)@php($scope=(string)($u->scope ?? 'global'))@if($scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id))<option value="{{ $u->id }}" data-active-lookup-option @selected($p->unit_id==$u->id)>{{ $u->name }} ({{ $u->code }})</option>@endif @endforeach
+@if($p->unit_id===null)<option value="" selected>{{ __('catalog.unavailable') }}</option>@endif
+</select></label>
 <label>{{ app()->getLocale()==='ar'?'إضافة صور':'Add images' }}<input class="image-upload js-catalog-image-preview" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
 <div class="catalog-dialog-actions"><button type="button" class="btn" data-dialog-close>{{ app()->getLocale()==='ar'?'إلغاء':'Cancel' }}</button><button class="btn primary">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></div>
