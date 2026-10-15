@@ -23,6 +23,7 @@
         @include('admin._driver-live-map', [
             'feedUrl' => $feedUrl,
             'secondaryFeedUrl' => $vanFeedUrl,
+            'lookupUrl' => $lookupUrl,
             'trackingActor' => 'mixed',
             'trackingStores' => $trackingStores,
             'trackingI18n' => $trackingI18n,

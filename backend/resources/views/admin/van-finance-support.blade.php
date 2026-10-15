@@ -15,7 +15,7 @@
 <title>{{ __('van_finance_support.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}
+body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;width:100%}
 html[dir=ltr] .foodex-admin-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
 .sidebar{grid-column:2;background:#fff;border-inline-start:1px solid var(--foodex-border)}

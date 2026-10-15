@@ -357,23 +357,26 @@ final class Customer360Controller extends Controller
         $domain = $this->wholesaleDomain($customer, $access);
         abort_unless($domain instanceof B2bCustomer, 404);
 
+        $finance = $ledger->summary($domain);
+        $currency = strtoupper((string) $finance['currency']);
+        $fractionDigits = DisplayNumber::moneyFractionDigits($currency);
+
         $validated = $request->validate([
             'entry_type' => ['required', Rule::in(B2bAccountLedgerService::MANUAL_TYPES)],
             'direction' => ['required', Rule::in(['debit', 'credit'])],
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,'.$fractionDigits],
             'reference' => ['nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:500'],
             'invoice_id' => ['nullable', 'integer', 'min:1'],
             'occurred_at' => ['nullable', 'date'],
         ]);
 
-        $amount = round((float) $validated['amount'], 3);
+        $amount = round((float) $validated['amount'], $fractionDigits);
         $entryId = $ledger->appendManual($domain, [
             'entry_type' => $validated['entry_type'],
             'debit' => $validated['direction'] === 'debit' ? $amount : 0,
             'credit' => $validated['direction'] === 'credit' ? $amount : 0,
-            'currency' => strtoupper((string) $validated['currency']),
+            'currency' => $currency,
             'reference' => $validated['reference'] ?? null,
             'description' => $validated['description'] ?? null,
             'invoice_id' => $validated['invoice_id'] ?? null,
@@ -392,7 +395,7 @@ final class Customer360Controller extends Controller
                 'entry_type' => (string) $validated['entry_type'],
                 'direction' => (string) $validated['direction'],
                 'amount' => $amount,
-                'currency' => strtoupper((string) $validated['currency']),
+                'currency' => $currency,
             ],
             $request,
         );

@@ -5,6 +5,17 @@
 .driver-live-map-shell .tracking-filters label{display:grid;gap:6px;font-weight:700}
 .driver-live-map-shell .tracking-filters input,.driver-live-map-shell .tracking-filters select{width:100%}
 .driver-live-map-shell .tracking-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.driver-live-map-shell .tracking-lookup{position:relative;display:grid;gap:6px;min-width:0}
+.driver-live-map-shell .tracking-lookup-control{position:relative}
+.driver-live-map-shell .tracking-lookup-control input{padding-inline-end:38px}
+.driver-live-map-shell .tracking-lookup-clear{position:absolute;inset-inline-end:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--foodex-muted);font-size:1.15rem;line-height:1;cursor:pointer}
+.driver-live-map-shell .tracking-lookup-clear:hover,.driver-live-map-shell .tracking-lookup-clear:focus-visible{background:var(--foodex-background);color:var(--foodex-ink);outline:2px solid var(--foodex-green);outline-offset:1px}
+.driver-live-map-shell .tracking-lookup-results{position:absolute;z-index:1100;top:calc(100% - 18px);inset-inline:0;max-height:260px;overflow:auto;padding:6px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 30px rgba(15,23,42,.14)}
+.driver-live-map-shell .tracking-lookup-option{display:grid;width:100%;gap:3px;padding:9px 10px;border:0;border-radius:9px;background:transparent;text-align:start;cursor:pointer}
+.driver-live-map-shell .tracking-lookup-option:hover,.driver-live-map-shell .tracking-lookup-option[aria-selected="true"]{background:var(--foodex-background);outline:none}
+.driver-live-map-shell .tracking-lookup-option strong{font-size:.88rem}
+.driver-live-map-shell .tracking-lookup-option small{color:var(--foodex-muted);font-size:.76rem;line-height:1.35}
+.driver-live-map-shell .tracking-lookup-state{min-height:1.1em;color:var(--foodex-muted);font-size:.72rem;line-height:1.35}
 .driver-live-map-shell .tracking-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
 .driver-live-map-shell .tracking-summary>div{padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}
 .driver-live-map-shell .tracking-summary strong{display:block;font-size:1.6rem}

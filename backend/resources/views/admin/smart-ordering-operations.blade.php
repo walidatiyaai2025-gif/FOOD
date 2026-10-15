@@ -14,7 +14,7 @@
 .so-row-actions{position:relative;display:inline-block}
 .so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px}
 .so-row-actions summary::-webkit-details-marker{display:none}
-.so-menu{position:absolute;z-index:30;inset-inline-end:0;top:42px;width:min(300px,80vw);padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:var(--foodex-shadow-md);display:grid;gap:8px}
+.so-menu{position:absolute;z-index:30;inset-inline-end:0;top:42px;width:min(300px,80vw);padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:var(--foodex-shadow);display:grid;gap:8px}
 .so-menu form{display:grid;gap:8px}
 .so-branch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
 .so-branch{padding:16px;display:grid;gap:12px}

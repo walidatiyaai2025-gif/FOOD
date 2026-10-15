@@ -6,7 +6,7 @@
 .foodex-new-order-popup-title{display:flex;align-items:center;gap:9px;font-size:1.05rem;font-weight:800}
 .foodex-new-order-popup-dot{width:10px;height:10px;border-radius:999px;background:var(--foodex-green);box-shadow:0 0 0 6px rgba(21,138,58,.12)}
 .foodex-new-order-popup-close{border:0;background:transparent;color:var(--foodex-muted);font:inherit;font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
-.foodex-new-order-popup-identity{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--foodex-soft);border:1px solid var(--foodex-border)}
+.foodex-new-order-popup-identity{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--foodex-background);border:1px solid var(--foodex-border)}
 .foodex-new-order-popup-identity strong{font-size:1rem;color:var(--foodex-ink)}
 .foodex-new-order-popup-identity span{font-size:.9rem;color:var(--foodex-muted);direction:ltr;text-align:start}
 .foodex-new-order-popup-number{font-size:1.15rem;font-weight:800;direction:ltr;text-align:start}

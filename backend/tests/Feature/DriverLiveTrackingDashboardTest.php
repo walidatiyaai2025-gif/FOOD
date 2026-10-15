@@ -8,6 +8,8 @@ use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DriverLiveTrackingDashboardTest extends TestCase
@@ -49,6 +51,154 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertDontSee('const popupFor', false)
             ->assertDontSee('unpkg.com', false)
             ->assertSee('/admin/driver-live-tracking/feed', false);
+    }
+
+    public function test_full_dashboard_uses_scoped_lookup_controls_instead_of_raw_identifiers(): void
+    {
+        $user = $this->globalUser('SUPER_ADMIN', 'tracking-lookups-ui@example.test');
+        app(WholesalePrincipal::class)->storeId();
+
+        $this->actingAs($user)
+            ->get('/admin/driver-live-tracking')
+            ->assertOk()
+            ->assertSee('data-lookup-url="', false)
+            ->assertSee('/admin/driver-live-tracking/lookups', false)
+            ->assertSee('data-live-lookup="entity"', false)
+            ->assertSee('data-live-lookup="order"', false)
+            ->assertSee('data-live-lookup="route"', false)
+            ->assertSee('role="combobox"', false)
+            ->assertSee('role="listbox"', false)
+            ->assertSee('data-live-map="entity-id" type="hidden"', false)
+            ->assertSee('data-live-map="order-id" type="hidden"', false)
+            ->assertSee('data-live-map="route-key" type="hidden"', false)
+            ->assertDontSee('data-live-map="driver-id" type="number"', false)
+            ->assertDontSee('data-live-map="actor-id" type="number"', false)
+            ->assertDontSee('data-live-map="order-id" type="number"', false);
+    }
+
+    public function test_lookup_endpoint_returns_only_human_readable_tracking_options_with_business_context(): void
+    {
+        $user = $this->globalUser('SUPER_ADMIN', 'tracking-lookups-api@example.test');
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'LOOKUP-B2C',
+            'name' => 'Lookup Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverUser = User::query()->create([
+            'name' => 'Lookup Driver',
+            'email' => 'lookup-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('driver_current_locations')->insert([
+            'driver_id' => $driverId,
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'latitude' => 29.37,
+            'longitude' => 47.98,
+            'captured_at' => now(),
+            'received_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $customerId = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'Lookup Customer',
+            'phone' => '+96550000000',
+            'email' => 'lookup-customer@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $storeId,
+            'customer_id' => $customerId,
+            'order_number' => 'LOOKUP-ORDER-900',
+            'channel' => 'b2c',
+            'status' => 'out_for_delivery',
+            'currency' => 'KWD',
+            'subtotal' => 12,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'tax_total' => 0,
+            'grand_total' => 12,
+            'payment_method' => 'cash_on_delivery',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'LOOKUP-VAN',
+            'plate_number' => 'KUWAIT-LKP',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('fleet_current_locations')->insert([
+            'actor_type' => 'van',
+            'actor_id' => $vanId,
+            'vehicle_id' => $vanId,
+            'route_key' => 'ROUTE-LOOKUP-1',
+            'store_id' => $storeId,
+            'channel' => 'b2c',
+            'latitude' => 29.38,
+            'longitude' => 47.99,
+            'captured_at' => now(),
+            'received_at' => now(),
+            'source_app' => 'van',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driver = $this->actingAs($user)->getJson('/admin/driver-live-tracking/lookups?kind=driver&q=Lookup&channel=b2c&store_id='.$storeId);
+        $driver->assertOk()->assertJsonFragment([
+            'kind' => 'driver',
+            'value' => $driverId,
+            'label' => 'Lookup Driver',
+        ]);
+        $this->assertStringContainsString('lookup-driver@example.test', (string) $driver->json('data.0.context'));
+        $this->assertStringContainsString('Lookup Retail', (string) $driver->json('data.0.context'));
+
+        $order = $this->actingAs($user)->getJson('/admin/driver-live-tracking/lookups?kind=order&q='.urlencode('#'.$orderId).'&channel=b2c&store_id='.$storeId);
+        $order->assertOk()->assertJsonFragment([
+            'kind' => 'order',
+            'value' => $orderId,
+            'label' => '#'.$orderId.' · LOOKUP-ORDER-900',
+        ]);
+        $this->assertStringContainsString('Lookup Customer', (string) $order->json('data.0.context'));
+        $this->assertStringContainsString('Out for delivery', (string) $order->json('data.0.context'));
+
+        $van = $this->actingAs($user)->getJson('/admin/driver-live-tracking/lookups?kind=van&q=LOOKUP&channel=b2c&store_id='.$storeId);
+        $van->assertOk()->assertJsonFragment([
+            'kind' => 'van',
+            'value' => $vanId,
+            'label' => 'LOOKUP-VAN · KUWAIT-LKP',
+        ]);
+
+        $route = $this->actingAs($user)->getJson('/admin/driver-live-tracking/lookups?kind=route&q=ROUTE&channel=b2c&store_id='.$storeId);
+        $route->assertOk()->assertJsonFragment([
+            'kind' => 'route',
+            'value' => 'ROUTE-LOOKUP-1',
+            'label' => 'ROUTE-LOOKUP-1',
+        ]);
+        $this->assertStringContainsString('LOOKUP-VAN', (string) $route->json('data.0.context'));
+        $this->assertStringContainsString('Lookup Retail', (string) $route->json('data.0.context'));
     }
 
     public function test_arabic_live_tracking_contract_exposes_localized_status_labels(): void
@@ -98,6 +248,10 @@ class DriverLiveTrackingDashboardTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin/driver-live-tracking')
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->getJson('/admin/driver-live-tracking/lookups?kind=driver&q=No')
             ->assertForbidden();
 
         $items = collect(app(AdminNavigation::class)->groupsFor($user))
