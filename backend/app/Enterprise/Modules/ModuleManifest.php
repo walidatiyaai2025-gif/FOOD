@@ -7,11 +7,11 @@ use InvalidArgumentException;
 final readonly class ModuleManifest
 {
     /**
-     * @param list<string>         $requiredCore
-     * @param list<string>         $hardDependencies
-     * @param list<string>         $optionalIntegrations
-     * @param list<string>         $permissions
-     * @param list<string>         $healthChecks
+     * @param  list<string>  $requiredCore
+     * @param  list<string>  $hardDependencies
+     * @param  list<string>  $optionalIntegrations
+     * @param  list<string>  $permissions
+     * @param  list<string>  $healthChecks
      * @param  array<string, mixed>  $navigation
      */
     public function __construct(
