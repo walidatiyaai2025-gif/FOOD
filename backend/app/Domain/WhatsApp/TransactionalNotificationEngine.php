@@ -8,7 +8,6 @@ use App\Models\WhatsAppConnectionProfile;
 use App\Support\DisplayNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Throwable;
 
 final class TransactionalNotificationEngine
@@ -374,49 +373,6 @@ final class TransactionalNotificationEngine
         ];
 
         return (string) ($copy[$eventName][$locale] ?? $copy[$eventName]['en'] ?? '');
-    }
-
-    private function conversation(?int $platformCustomerId, ?int $storeId, string $recipient): int
-    {
-        $query = DB::table('whats_app_conversations')
-            ->where('store_id', $storeId)
-            ->where('channel', 'whatsapp')
-            ->whereNotIn('status', ['RESOLVED', 'CLOSED']);
-
-        if ($platformCustomerId !== null) {
-            $query->where('platform_customer_id', $platformCustomerId);
-        } else {
-            $query->whereNull('platform_customer_id')->where('external_participant_phone', $recipient);
-        }
-
-        $existing = $query->lockForUpdate()->first();
-        if ($existing !== null) {
-            return (int) $existing->id;
-        }
-
-        $now = now();
-
-        return (int) DB::table('whats_app_conversations')->insertGetId([
-            'public_id' => (string) Str::uuid(),
-            'platform_customer_id' => $platformCustomerId,
-            'external_participant_phone' => $recipient,
-            'store_id' => $storeId,
-            'channel' => 'whatsapp',
-            'status' => 'WAITING_FOR_CUSTOMER',
-            'primary_agent_id' => null,
-            'priority' => 0,
-            'unread_count' => 0,
-            'waiting_since' => null,
-            'first_inbound_at' => null,
-            'first_agent_response_at' => null,
-            'last_inbound_at' => null,
-            'last_outbound_at' => null,
-            'resolved_at' => null,
-            'reopened_at' => null,
-            'lock_version' => 0,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
     }
 
     private function normalizePhone(mixed $value): ?string
