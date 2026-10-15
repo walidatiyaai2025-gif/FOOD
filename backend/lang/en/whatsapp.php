@@ -241,6 +241,7 @@ return [
         'create_on_whatsapp' => 'Create on WhatsApp',
         'meta_template_created' => 'Template submitted to Meta. Sync its status after approval.',
         'meta_templates_synced' => 'Meta template statuses synchronized.',
+        'meta_templates_sync_summary' => 'Meta sync complete: :fetched fetched, :updated updated, :imported imported, :approved approved, :pending pending, :rejected rejected.',
         'meta_template_connection_required' => 'An active primary Meta WhatsApp connection with a Business Account ID is required.',
         'meta_template_name_invalid' => 'Meta template name may contain only lowercase letters, numbers and underscores.',
         'meta_template_invalid' => 'Template language, category or body is invalid.',
