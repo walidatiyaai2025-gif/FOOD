@@ -72,7 +72,9 @@
 
         <div class="foodex-ops-shell">
         @if($section === 'overview')
-            @php($s = $summary ?? [])
+            @php
+                $s = $summary ?? [];
+            @endphp
             <section class="fieldops-kpis">
                 @foreach([
                     ['active_vans',__('field_operations.overview.active_vans')],
@@ -163,8 +165,12 @@
                 <th>{{ __('field_operations.location') }}</th><th>{{ __('field_operations.last_update') }}</th><th>{{ __('field_operations.action') }}</th>
             </tr></thead><tbody>
             @forelse($vans as $van)
-                @php($assignment = $van->assignments->firstWhere('status','active'))
-                @php($location = $locations->get($van->id))
+                @php
+                    $assignment = $van->assignments->firstWhere('status','active');
+                @endphp
+                @php
+                    $location = $locations->get($van->id);
+                @endphp
                 <tr>
                     <td><a href="{{ route('admin.field-operations.vans.show',$van) }}"><strong>{{ $van->code }}</strong></a><div class="fieldops-muted">{{ $van->plate_number ?: '—' }} · {{ $van->vehicle_type ?: '—' }}</div></td>
                     <td><span class="fieldops-status">{{ __('field_operations.statuses.'.$van->status) }}</span></td>
@@ -220,7 +226,9 @@
                     <tr>
                         <td>{{ $driverNames->get($a->driver_id) ?: '—' }}</td>
                         <td>{{ $representativeNames->get($a->representative_user_id) ?: '—' }}</td>
-                        <td>@php($territoryLabel=$territoryNames->get($a->territory_key)){{ $territoryLabel?->localized_name ?: ($a->territory_key ?: '—') }}</td>
+                        <td>@php
+                            $territoryLabel = $territoryNames->get($a->territory_key);
+                        @endphp{{ $territoryLabel?->localized_name ?: ($a->territory_key ?: '—') }}</td>
                         <td>{{ __('field_operations.assignment_types.'.$a->assignment_type) }}</td>
                         <td>{{ __('field_operations.statuses.'.$a->status) }}</td>
                         <td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td>
@@ -286,9 +294,15 @@
             @endif
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th><th>{{ __('field_operations.actions_label') }}</th></tr></thead><tbody>
                 @forelse($assignments as $a)
-                    @php($driverLabel=$drivers->firstWhere('id',$a->driver_id)?->name)
-                    @php($representativeLabel=$representatives->firstWhere('id',$a->representative_user_id)?->name)
-                    @php($warehouseLabel=$warehouses->firstWhere('id',$a->warehouse_id)?->name)
+                    @php
+                        $driverLabel = $drivers->firstWhere('id', $a->driver_id)?->name;
+                    @endphp
+                    @php
+                        $representativeLabel = $representatives->firstWhere('id', $a->representative_user_id)?->name;
+                    @endphp
+                    @php
+                        $warehouseLabel = $warehouses->firstWhere('id', $a->warehouse_id)?->name;
+                    @endphp
                     <tr>
                         <td>{{ $a->van?->code ?: '—' }}</td>
                         <td>{{ trim(($driverLabel ?: '').' '.($representativeLabel ?: '')) ?: '—' }}</td>
@@ -344,8 +358,12 @@
             </div>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.channel') }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ __('field_operations.collection_context') }}</th><th>{{ __('field_operations.latest_visit') }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
             @forelse($relationships as $visit)
-                @php($a = $visit->getRelation('servingAssignment'))
-                @php($collectionContext = $visit->collection_context)
+                @php
+                    $a = $visit->getRelation('servingAssignment');
+                @endphp
+                @php
+                    $collectionContext = $visit->collection_context;
+                @endphp
                 <tr>
                     <td>{{ $visit->customer_display }}</td>
                     <td>{{ __('field_operations.customer_types.'.$visit->customer_type) }}</td>
@@ -391,8 +409,12 @@
             @endif
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.created') }}</th><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.timestamps') }}</th><th>{{ __('field_operations.result') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
             @forelse($visits as $visit)
-                @php($allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string)$visit->status))
-                @php($visitOrder=$visit->order_id ? $visitOrders->firstWhere('id',$visit->order_id) : null)
+                @php
+                    $allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string) $visit->status);
+                @endphp
+                @php
+                    $visitOrder = $visit->order_id ? $visitOrders->firstWhere('id', $visit->order_id) : null;
+                @endphp
                 <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ __('field_operations.customer_types.'.$visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder ? \App\Support\DisplayNumber::reference($visitOrder->id) : ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
                     @if($canManageVan && $allowed !== [])
                     <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
