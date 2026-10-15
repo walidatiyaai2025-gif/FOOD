@@ -9,6 +9,7 @@ use App\Domain\WhatsApp\ChatbotRuntimePolicy;
 use App\Domain\WhatsApp\ChatbotSegmentationService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -31,6 +32,7 @@ final class WhatsAppChatbotController extends Controller
         private readonly ChatbotAnalyticsService $analytics,
         private readonly ChatbotSegmentationService $segmentation,
         private readonly ChatbotIntentService $intents,
+        private readonly AdminNavigation $navigation,
     ) {}
 
     public function index(Request $request, ?string $section = null): View
@@ -41,6 +43,9 @@ final class WhatsAppChatbotController extends Controller
 
         return view('admin.whatsapp-chatbot', [
             'section' => $section,
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'whatsapp_chatbot',
             'settings' => $this->runtime->settings(),
             'features' => $this->features->all(),
             'flows' => $this->flows(),
@@ -428,6 +433,9 @@ final class WhatsAppChatbotController extends Controller
 
         return view('admin.whatsapp-chatbot-preview', [
             'screen' => $screen,
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'whatsapp_chatbot',
             'customers' => $customers,
             'customer' => $customer,
             'features' => $this->features->visibleEnabled(
