@@ -119,119 +119,117 @@ final class NotificationAudience
      */
     private function context(User $user): array
     {
-            $customerChannels = collect(
-                DB::table('customers')
-                    ->where('user_id', $user->id)
-                    ->pluck('type'),
+        $customerChannels = collect(
+            DB::table('customers')
+                ->where('user_id', $user->id)
+                ->pluck('type'),
+        )
+            ->when(
+                DB::table('b2b_customers')->where('user_id', $user->id)->exists(),
+                fn ($channels) => $channels->push('b2b'),
             )
-                ->when(
-                    DB::table('b2b_customers')->where('user_id', $user->id)->exists(),
-                    fn ($channels) => $channels->push('b2b'),
-                )
-                ->when(
-                    DB::table('b2c_customers')->where('user_id', $user->id)->exists(),
-                    fn ($channels) => $channels->push('b2c'),
-                )
-                ->filter(fn ($channel): bool => is_string($channel)
-                    && in_array(strtolower($channel), ['b2b', 'b2c'], true))
-                ->map(static fn (string $channel): string => strtolower($channel))
-                ->unique()
-                ->values();
+            ->when(
+                DB::table('b2c_customers')->where('user_id', $user->id)->exists(),
+                fn ($channels) => $channels->push('b2c'),
+            )
+            ->filter(fn ($channel): bool => is_string($channel)
+                && in_array(strtolower($channel), ['b2b', 'b2c'], true))
+            ->map(static fn (string $channel): string => strtolower($channel))
+            ->unique()
+            ->values();
 
-            $driverChannels = collect(
-                DB::table('drivers')
-                    ->where('user_id', $user->id)
-                    ->where('driver_type', 'b2c')
+        $driverChannels = collect(
+            DB::table('drivers')
+                ->where('user_id', $user->id)
+                ->where('driver_type', 'b2c')
+                ->where('is_active', true)
+                ->pluck('driver_type'),
+        )
+            ->filter(fn ($channel): bool => is_string($channel)
+                && in_array(strtolower($channel), ['b2b', 'b2c'], true))
+            ->map(static fn (string $channel): string => strtolower($channel))
+            ->unique()
+            ->values();
+
+        $apps = [];
+        $channels = $customerChannels
+            ->merge($driverChannels)
+            ->unique()
+            ->values()
+            ->all();
+        $dashboardStoreIds = [];
+
+        $isCustomer = $customerChannels->isNotEmpty();
+        $isDriver = $driverChannels->isNotEmpty();
+        $isVan = $user->hasPermission('van.login');
+
+        if (
+            ! $isVan
+            && ($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))
+        ) {
+            $vanContext = $this->vanRuntimeContexts->resolve($user)['selected'];
+            $isVan = $vanContext !== null
+                && $this->vanRuntimeContexts->canUseRuntime($user, $vanContext);
+        }
+
+        if ($isCustomer) {
+            $apps[] = 'customer';
+        }
+
+        if ($isDriver) {
+            $apps[] = 'driver';
+        }
+
+        if ($isVan) {
+            $apps[] = 'van';
+            $channels[] = 'b2b';
+        }
+
+        $dashboardRoles = array_values((array) config('admin.dashboard_roles', []));
+        $isDashboardUser = $user->roles()
+            ->where('roles.is_active', true)
+            ->whereIn('roles.code', $dashboardRoles)
+            ->exists()
+            || $user->storeRoleAssignments()
+                ->whereHas('role', fn (Builder $roles) => $roles
                     ->where('is_active', true)
-                    ->pluck('driver_type'),
-            )
-                ->filter(fn ($channel): bool => is_string($channel)
-                    && in_array(strtolower($channel), ['b2b', 'b2c'], true))
-                ->map(static fn (string $channel): string => strtolower($channel))
-                ->unique()
-                ->values();
+                    ->whereIn('code', $dashboardRoles))
+                ->exists();
 
-            $apps = [];
-            $channels = $customerChannels
-                ->merge($driverChannels)
-                ->unique()
-                ->values()
-                ->all();
-            $dashboardStoreIds = [];
+        if ($isDashboardUser) {
+            $apps[] = 'dashboard';
+            foreach (['b2b', 'b2c'] as $dashboardChannel) {
+                $allowed = collect(['notifications.view', 'orders.view', 'finance.view'])
+                    ->flatMap(fn (string $permission): array => app(OperationalTenantScope::class)
+                        ->allowedStoreIds($user, $permission, $dashboardChannel))
+                    ->map(static fn ($id): int => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
 
-            $isCustomer = $customerChannels->isNotEmpty();
-            $isDriver = $driverChannels->isNotEmpty();
-            $isVan = $user->hasPermission('van.login');
-
-            if (
-                ! $isVan
-                && ($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))
-            ) {
-                $vanContext = $this->vanRuntimeContexts->resolve($user)['selected'];
-                $isVan = $vanContext !== null
-                    && $this->vanRuntimeContexts->canUseRuntime($user, $vanContext);
-            }
-
-            if ($isCustomer) {
-                $apps[] = 'customer';
-            }
-
-            if ($isDriver) {
-                $apps[] = 'driver';
-            }
-
-            if ($isVan) {
-                $apps[] = 'van';
-                $channels[] = 'b2b';
-            }
-
-            $dashboardRoles = array_values((array) config('admin.dashboard_roles', []));
-            $isDashboardUser = $user->roles()
-                ->where('roles.is_active', true)
-                ->whereIn('roles.code', $dashboardRoles)
-                ->exists()
-                || $user->storeRoleAssignments()
-                    ->whereHas('role', fn (Builder $roles) => $roles
-                        ->where('is_active', true)
-                        ->whereIn('code', $dashboardRoles))
-                    ->exists();
-
-            if ($isDashboardUser) {
-                $apps[] = 'dashboard';
-                foreach (['b2b', 'b2c'] as $dashboardChannel) {
-                    $allowed = collect(['notifications.view', 'orders.view', 'finance.view'])
-                        ->flatMap(fn (string $permission): array => app(OperationalTenantScope::class)
-                            ->allowedStoreIds($user, $permission, $dashboardChannel))
-                        ->map(static fn ($id): int => (int) $id)
-                        ->unique()
-                        ->values()
-                        ->all();
-
-                    if ($allowed !== []) {
-                        $channels[] = $dashboardChannel;
-                        $dashboardStoreIds = array_merge($dashboardStoreIds, $allowed);
-                    }
+                if ($allowed !== []) {
+                    $channels[] = $dashboardChannel;
+                    $dashboardStoreIds = array_merge($dashboardStoreIds, $allowed);
                 }
             }
+        }
 
-            $storeIds = collect(DB::table('user_store_roles')
-                ->where('user_id', $user->id)
-                ->pluck('store_id'))
-                ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
-                ->merge(DB::table('drivers')->where('user_id', $user->id)->whereNotNull('store_id')->pluck('store_id'))
-                ->merge($dashboardStoreIds)
-                ->merge(
-                    DB::table('orders')
-                        ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-                        ->where('b2b_customers.user_id', $user->id)
-                        ->pluck('orders.store_id'),
-                )
-                ->map(static fn ($id): int => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-
+        $storeIds = collect(DB::table('user_store_roles')
+            ->where('user_id', $user->id)
+            ->pluck('store_id'))
+            ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
+            ->merge(DB::table('drivers')->where('user_id', $user->id)->whereNotNull('store_id')->pluck('store_id'))
+            ->merge($dashboardStoreIds)
+            ->merge(
+                DB::table('orders')
+                    ->join('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+                    ->where('b2b_customers.user_id', $user->id)
+                    ->pluck('orders.store_id'),
+            )
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
         return [
             'is_customer' => $isCustomer,
             'is_driver' => $isDriver,
@@ -241,5 +239,4 @@ final class NotificationAudience
             'store_ids' => $storeIds,
         ];
     }
-
 }
