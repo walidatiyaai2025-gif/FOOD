@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\Admin\TreasuryMasterController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
