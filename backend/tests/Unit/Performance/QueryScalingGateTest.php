@@ -35,7 +35,11 @@ final class QueryScalingGateTest extends TestCase
 
         $this->assertSame('FAIL', $result['status']);
         $this->assertSame(75, $result['extra_queries']);
-        $this->assertSame(1.0, $result['queries_per_extra_row']);
+        $this->assertEqualsWithDelta(
+            1.0,
+            (float) $result['queries_per_extra_row'],
+            0.000001,
+        );
     }
 
     public function test_assertion_throws_with_numeric_regression_evidence(): void
