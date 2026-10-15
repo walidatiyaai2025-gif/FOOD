@@ -530,6 +530,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   void _selectAddress(int? addressId) {
     setState(() {
       _addressId = addressId;
+      _clearCheckoutFieldError();
       _clearSelectionReviewIfComplete();
     });
   }
@@ -537,8 +538,17 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   void _selectPayment(String? paymentMethod) {
     setState(() {
       _paymentMethod = paymentMethod;
+      _clearCheckoutFieldError();
       _clearSelectionReviewIfComplete();
     });
+  }
+
+  void _clearCheckoutFieldError() {
+    final error = _error;
+    if (error is RetailCommerceException &&
+        error.code == 'checkout_fields_required') {
+      _error = null;
+    }
   }
 
   void _clearSelectionReviewIfComplete() {
