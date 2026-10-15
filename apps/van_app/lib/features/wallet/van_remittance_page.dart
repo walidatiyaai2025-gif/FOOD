@@ -323,7 +323,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
                 foodexMoneyText(account.availableToRemit, account.currency),
                 key: const ValueKey('van-remittance-available'),
                 style: const TextStyle(
-                  color: FoodexVanTokens.green,
+                  color: FoodexVanTokens.actionGreen,
                   fontWeight: FontWeight.w900,
                 ),
               ),
