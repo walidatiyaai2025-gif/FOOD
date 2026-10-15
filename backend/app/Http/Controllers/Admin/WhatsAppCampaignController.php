@@ -146,7 +146,7 @@ final class WhatsAppCampaignController extends Controller
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $data = $request->validate([
-            'file' => ['required', 'file', 'max:10240', 'mimes:csv,txt,xlsx'],
+            'file' => ['required', 'file', 'max:10240', 'extensions:csv,xlsx'],
             'store_id' => ['required', 'integer', 'min:1'],
         ]);
         $scope->assertStore($actor, (int) $data['store_id'], 'whatsapp.campaigns.manage');
