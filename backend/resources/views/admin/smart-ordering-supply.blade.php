@@ -108,7 +108,14 @@
                             @endforeach
                         </select>
                     </label>
-                    <label>{{ __('smart_ordering_supply.variant_product_id') }}<input class="foodex-control" type="number" min="1" name="variant_product_id"></label>
+                    <label>{{ __('smart_ordering_supply.variant_product_id') }}
+                        <select class="foodex-control" name="variant_product_id">
+                            <option value="">{{ __('smart_ordering_supply.any_variant') }}</option>
+                            @foreach($restaurantProducts as $product)
+                                <option value="{{ $product['id'] }}">{{ $product['sku'] }} — {{ $product['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </label>
                     <div class="si-grid">
                         <label>{{ __('smart_ordering_supply.ingredient_quantity') }}<input class="foodex-control" type="number" step="0.000001" min="0.000001" name="quantity_per_item" required></label>
                         <label>{{ __('smart_ordering_supply.waste_factor') }}<input class="foodex-control" type="number" step="0.000001" min="0" max="1" name="waste_factor" value="0"></label>
