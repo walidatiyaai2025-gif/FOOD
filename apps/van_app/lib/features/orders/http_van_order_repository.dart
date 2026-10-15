@@ -9,20 +9,24 @@ class HttpVanOrderRepository implements VanOrderRepository {
   final VanApiClient api;
 
   @override
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   }) async {
     final query = StringBuffer(
       'van/customers/${customer.type}/${customer.id}/catalog'
-      '?store_id=${customer.storeId}',
+      '?store_id=${customer.storeId}'
+      '&page=$page&per_page=$perPage',
     );
     if (search.trim().isNotEmpty) {
       query.write('&q=${Uri.encodeQueryComponent(search.trim())}');
     }
     final decoded = _map(await api.getJson(query.toString()));
     final currency = _string(decoded['currency']);
-    return _list(decoded['data']).map((row) {
+    final meta = _map(decoded['meta']);
+    final products = _list(decoded['data']).map((row) {
       final data = _map(row);
       return VanCatalogProduct(
         id: _requiredInt(data['id']),
@@ -37,6 +41,13 @@ class HttpVanOrderRepository implements VanOrderRepository {
         currency: currency.isEmpty ? 'KWD' : currency,
       );
     }).toList(growable: false);
+
+    return VanCatalogPage(
+      products: products,
+      page: _requiredInt(meta['page']),
+      perPage: _requiredInt(meta['per_page']),
+      hasMore: meta['has_more'] == true,
+    );
   }
 
   @override
