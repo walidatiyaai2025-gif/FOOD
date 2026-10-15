@@ -190,8 +190,9 @@ final class MetaTemplateService
             }
 
             $pages++;
+            $nextUrl = $this->nullableString($response->json('paging.next'));
             $nextAfter = $this->nullableString($response->json('paging.cursors.after'));
-            if ($nextAfter === null || $nextAfter === $after || isset($seenCursors[$nextAfter])) {
+            if ($nextUrl === null || $nextAfter === null || $nextAfter === $after || isset($seenCursors[$nextAfter])) {
                 $after = null;
                 continue;
             }
