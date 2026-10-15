@@ -8,6 +8,17 @@ final class UpdatePackageValidator
 {
     public function validate(UpdatePackageManifest $manifest, string $currentVersion, string $packagePath): array
     {
+        $currentVersion = UpdateVersion::normalizeInstalled($currentVersion);
+
+        if (! UpdateVersion::isCanonical($currentVersion)) {
+            throw new InvalidArgumentException('Installed version is not a canonical major.minor.patch version.');
+        }
+
+        if (! UpdateVersion::isCanonical($manifest->targetVersion)
+            || ! UpdateVersion::isCanonical($manifest->minimumCurrentVersion)) {
+            throw new InvalidArgumentException('Update versions must use canonical major.minor.patch format.');
+        }
+
         if (! is_file($packagePath) || ! is_readable($packagePath)) {
             throw new InvalidArgumentException('Update package is unavailable.');
         }
