@@ -2,6 +2,7 @@
 
 namespace App\Domain\SmartOrdering;
 
+use App\Domain\SmartOrdering\Events\SmartOrderingOrderStatusChanged;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\SmartOrderingOrderContext;
@@ -11,6 +12,7 @@ use App\Services\CommercialPolicyService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class LifecycleService
 {
@@ -39,9 +41,13 @@ final class LifecycleService
         $target = strtoupper(trim($target));
         abort_unless(array_key_exists($target, self::CANONICAL_STATUS), 422, 'Unsupported lifecycle status.');
 
-        return DB::transaction(function () use ($context, $actor, $target, $note, $eventKey): SmartOrderingOrderContext {
+        $fromStatus = strtoupper((string) $context->lifecycle_status);
+        $changed = false;
+
+        $updated = DB::transaction(function () use ($context, $actor, $target, $note, $eventKey, &$fromStatus, &$changed): SmartOrderingOrderContext {
             $locked = SmartOrderingOrderContext::query()->whereKey($context->getKey())->lockForUpdate()->firstOrFail();
             $from = strtoupper((string) $locked->lifecycle_status);
+            $fromStatus = $from;
 
             if ($from === $target) {
                 return $locked;
@@ -80,6 +86,7 @@ final class LifecycleService
                     ->each(fn (string $token) => $this->commercialPolicy->consumeReservation($token));
             }
 
+            $changed = true;
             $canonical = self::CANONICAL_STATUS[$target];
             $previousCanonical = (string) $order->status;
             $order->update(['status' => $canonical]);
@@ -106,6 +113,24 @@ final class LifecycleService
 
             return $locked->refresh();
         }, 3);
+
+        if ($changed) {
+            try {
+                event(new SmartOrderingOrderStatusChanged(
+                    orderId: (int) $updated->order_id,
+                    orderContextId: (int) $updated->getKey(),
+                    publicReference: (string) $updated->public_reference,
+                    fromStatus: $fromStatus,
+                    toStatus: $target,
+                    fulfillmentMode: (string) $updated->fulfillment_mode,
+                    eventKey: $eventKey,
+                ));
+            } catch (Throwable) {
+                // Messaging is downstream; notification failures never roll back order state.
+            }
+        }
+
+        return $updated;
     }
 
     /** @return list<string> */

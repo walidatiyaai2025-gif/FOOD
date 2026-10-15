@@ -4,6 +4,7 @@ return [
     'base_domain' => env('SMART_ORDERING_BASE_DOMAIN', 'foodex.com'),
     'pilot_key' => (string) env('SMART_ORDERING_PILOT_KEY', ''),
     'internal_key' => (string) env('SMART_ORDERING_INTERNAL_KEY', ''),
+    'whatsapp_reminder_lead_minutes' => (int) env('SMART_ORDERING_WHATSAPP_REMINDER_LEAD_MINUTES', 60),
     'reserved_slugs' => [
         'www', 'api', 'admin', 'app', 'apps', 'assets', 'auth', 'cart', 'checkout',
         'help', 'login', 'qr', 'static', 'status', 'support', 'webhooks',
