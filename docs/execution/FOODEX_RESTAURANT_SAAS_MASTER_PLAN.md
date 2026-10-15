@@ -1356,7 +1356,157 @@ Shared files/contracts get one owner. Parallel lanes must be file/scope disjoint
 
 ---
 
-## 27. Migration strategy from current Smart Ordering
+## 27. Additional restaurant channels and adjacent operations
+
+A full Restaurant SaaS architecture must classify the following surfaces explicitly even when they are not first-release blockers.
+
+### 27.1 Counter POS / staff order entry
+
+FOODEX should support a staff-facing order-entry surface using the **same canonical menu/cart/order/payment services**:
+
+- quick item/category search;
+- modifiers;
+- dine-in/takeaway/delivery context;
+- open checks/tabs;
+- authorized discount/void;
+- split/merge checks where supported;
+- cash/card/mixed tender policy;
+- tips where market policy permits;
+- receipt/print hooks;
+- staff/shift attribution.
+
+This is not permission to build a second POS order engine. Hardware-specific behaviors live behind device adapters.
+
+### 27.2 Cash and tip management
+
+Where cash/tips are enabled:
+
+- till/session open/close;
+- opening float;
+- cash in/out reason;
+- expected vs counted cash;
+- variance;
+- manager approval for adjustments;
+- tip pool/allocation policy hooks;
+- immutable shift-close audit.
+
+### 27.3 Self-service kiosk
+
+A kiosk is a **channel projection** of the canonical menu/checkout:
+
+- large touch targets;
+- idle-session reset;
+- accessibility;
+- kiosk-specific upsell layout;
+- dine-in/takeaway choice;
+- supported payment adapter;
+- no customer/admin data leakage between sessions.
+
+### 27.4 Branded guest app / PWA
+
+The responsive web experience remains the first universal surface.
+
+The architecture should support:
+
+- installable PWA;
+- push where supported;
+- account/order history;
+- loyalty;
+- saved favorites;
+- order again;
+- location discovery.
+
+A dedicated branded native app can be an entitled add-on for larger brands, but must consume the same public APIs and never fork menu/order truth.
+
+### 27.5 Catering, large orders and private events
+
+Optional catering/events module:
+
+- inquiry/lead;
+- event/catering packages;
+- large scheduled order;
+- minimum spend;
+- deposit/payment schedule;
+- quote/approval;
+- pickup/delivery/service details;
+- event status/timeline;
+- CRM linkage.
+
+It must use canonical order/payment/customer services rather than a parallel commerce ledger.
+
+### 27.6 First-party delivery dispatch
+
+Restaurant-operated delivery should reuse existing FOODEX Driver/routing capabilities where contracts fit.
+
+Required Restaurant SaaS adapter scope:
+
+- courier pool/location assignment;
+- dispatch;
+- promised/actual pickup;
+- customer tracking;
+- failed delivery reason;
+- proof/status hooks;
+- external on-demand courier connector fallback where enabled.
+
+The Restaurant SaaS vertical must not create a competing driver identity or route engine.
+
+### 27.7 Accounting and finance export
+
+FOODEX should provide restaurant accounting handoff without initially becoming a full general ledger:
+
+- daily sales summary;
+- payment/tender breakdown;
+- refunds;
+- discounts;
+- taxes/service charges;
+- delivery/marketplace fees when known;
+- settlements;
+- cash variance;
+- journal-ready export;
+- accounting connector adapter.
+
+### 27.8 Device, printing and hardware gateway
+
+Cloud SaaS must explicitly isolate hardware concerns:
+
+- receipt/kitchen printers;
+- cash drawers;
+- customer displays;
+- KDS screens;
+- payment terminals;
+- barcode/scanner where inventory uses it.
+
+Initial releases may use browser/network/vendor integrations. Reliable offline/local device control requires a separately certified edge/device gateway and must not be claimed before that exists.
+
+### 27.9 Food-safety operational checklists
+
+Optional later module can cover:
+
+- opening/closing checklists;
+- temperature checks;
+- cleaning logs;
+- corrective actions;
+- manager verification;
+- retained audit/export.
+
+This remains separate from statutory certification claims.
+
+### 27.10 AI assistance boundary
+
+AI may assist with:
+
+- menu copy/translation suggestions;
+- image guidance;
+- demand/stock insights;
+- campaign drafts;
+- anomaly explanations;
+- support triage.
+
+AI must not autonomously publish price changes, purchase stock, issue refunds, change permissions or send customer campaigns without explicit policy and approval.
+
+---
+
+## 28. Migration strategy from current Smart Ordering
 
 No big-bang rewrite.
 
@@ -1383,7 +1533,7 @@ Only after telemetry and regression prove no consumers remain.
 
 ---
 
-## 28. Data portability and offboarding
+## 29. Data portability and offboarding
 
 A credible SaaS product must make exit safe.
 
@@ -1407,7 +1557,7 @@ Cancellation must never silently destroy records required for finance/audit.
 
 ---
 
-## 29. Product metrics
+## 30. Product metrics
 
 Track platform and restaurant success separately.
 
@@ -1442,7 +1592,7 @@ Metrics must not be used as substitutes for accounting truth.
 
 ---
 
-## 30. Explicit non-goals / sequencing protections
+## 31. Explicit non-goals / sequencing protections
 
 The architecture leaves room for these, but they should not block early SaaS commercialization:
 
@@ -1455,7 +1605,7 @@ The architecture leaves room for these, but they should not block early SaaS com
 
 ---
 
-## 31. Definition of complete Restaurant SaaS
+## 32. Definition of complete Restaurant SaaS
 
 FOODEX Restaurant SaaS 2.0 is complete when a clean tenant can:
 
