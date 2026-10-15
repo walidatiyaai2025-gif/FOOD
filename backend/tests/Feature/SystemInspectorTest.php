@@ -201,9 +201,9 @@ class SystemInspectorTest extends TestCase
             ->assertSee('sample_optional')
             ->assertSee('Disabled')
             ->assertSee('SafeEvent26')
-            ->assertDontSee('SafeEvent1')
+            ->assertDontSee('<code>SafeEvent1</code>', false)
             ->assertSee('wf-26')
-            ->assertDontSee('wf-1')
+            ->assertDontSee('<code>wf-1</code>', false)
             ->assertDontSee('super-secret')
             ->assertDontSee('secret-idempotency');
 
