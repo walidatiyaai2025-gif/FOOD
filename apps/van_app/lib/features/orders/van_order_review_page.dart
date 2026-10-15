@@ -27,6 +27,7 @@ class VanOrderReviewPage extends StatefulWidget {
 class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   final _note = TextEditingController();
   bool _loading = false;
+  bool _quoteFailed = false;
   bool _submitting = false;
   late final String _idempotencyKey;
 
@@ -53,7 +54,10 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   Future<void> _reload() async {
     final customer = widget.draft.customer;
     if (customer == null || widget.draft.lines.isEmpty || _loading) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _quoteFailed = false;
+    });
     try {
       var options = widget.draft.options;
       options ??= await widget.repository.options(customer);
@@ -74,11 +78,15 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
         warehouseId: warehouseId,
         customerNote: customerNote,
       );
-      widget.draft.setQuoteForRevision(quote, revision);
+      final accepted = widget.draft.setQuoteForRevision(quote, revision);
+      if (!accepted && mounted) {
+        setState(() => _quoteFailed = true);
+      }
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (_) {
       if (!mounted) return;
+      setState(() => _quoteFailed = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -199,9 +207,9 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                   onChanged: _loading || _submitting
                       ? null
                       : (value) {
-                    widget.draft.setSelection(warehouse: value);
-                    _reload();
-                  },
+                          widget.draft.setSelection(warehouse: value);
+                          _reload();
+                        },
                 ),
               if (options.warehouses.isNotEmpty) const SizedBox(height: 10),
               if (options.addresses.isNotEmpty)
@@ -227,9 +235,9 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                   onChanged: _loading || _submitting
                       ? null
                       : (value) {
-                    widget.draft.setSelection(address: value);
-                    _reload();
-                  },
+                          widget.draft.setSelection(address: value);
+                          _reload();
+                        },
                 ),
               if (options.addresses.isNotEmpty) const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -268,6 +276,17 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                 ),
                 onChanged: (value) => widget.draft.setSelection(note: value),
                 onEditingComplete: _reload,
+              ),
+            ],
+            if (_quoteFailed) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                key: const ValueKey('van-order-quote-retry'),
+                onPressed: _loading || _submitting ? null : _reload,
+                icon: const Icon(Icons.refresh),
+                label: Text(
+                  _text('Retry order quote', 'إعادة محاولة تسعير الطلب'),
+                ),
               ),
             ],
             if (quote != null) ...[
