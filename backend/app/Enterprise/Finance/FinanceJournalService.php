@@ -48,13 +48,13 @@ final class FinanceJournalService
     ) {}
 
     /**
-     * @param array{
+     * @param  array{
      *   idempotency_key:string,
      *   entry_date:string,
      *   reference?:string|null,
      *   memo?:string|null,
      *   lines:list<array{account_id:int,debit?:mixed,credit?:mixed,memo?:string|null}>
-     * } $attributes
+     * }  $attributes
      */
     public function createDraft(
         User $actor,
@@ -213,7 +213,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param array{status?:string,from?:string,to?:string} $filters
+     * @param  array{status?:string,from?:string,to?:string} $filters
      * @return LengthAwarePaginator<int, EnterpriseFinanceJournal>
      */
     public function paginateJournals(
@@ -250,7 +250,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param array{account_id?:int,journal_id?:int,from?:string,to?:string} $filters
+     * @param  array{account_id?:int,journal_id?:int,from?:string,to?:string} $filters
      * @return LengthAwarePaginator<int, EnterpriseFinanceLedgerEntry>
      */
     public function paginateLedger(
@@ -368,7 +368,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param list<array{account_id:int,debit:string,credit:string,memo:?string}> $lines
+     * @param  list<array{account_id:int,debit:string,credit:string,memo:?string}>  $lines
      */
     private function assertPostingAccounts(
         EnterpriseDataScope $scope,
@@ -409,7 +409,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      * @return array{
      *   idempotency_key:string,
      *   entry_date:string,
@@ -454,7 +454,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param list<array{account_id:int,debit?:mixed,credit?:mixed,memo?:string|null}> $rawLines
+     * @param  list<array{account_id:int,debit?:mixed,credit?:mixed,memo?:string|null}>  $rawLines
      * @return list<array{account_id:int,debit:string,credit:string,memo:?string}>
      */
     private function canonicalLines(array $rawLines): array
@@ -485,7 +485,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param list<array{account_id:int,debit:string,credit:string,memo:?string}> $lines
+     * @param  list<array{account_id:int,debit:string,credit:string,memo:?string}>  $lines
      */
     private function assertBalanced(array $lines): void
     {
@@ -532,8 +532,8 @@ final class FinanceJournalService
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<array{account_id:int,debit:string,credit:string,memo:?string}> $lines
+     * @param  array<string, mixed>  $data
+     * @param  list<array{account_id:int,debit:string,credit:string,memo:?string}>  $lines
      */
     private function payloadHash(string $entryDate, array $data, array $lines): string
     {
@@ -546,7 +546,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
     private function auditSnapshot(array $values, ResolvedTenantContext $context): array
