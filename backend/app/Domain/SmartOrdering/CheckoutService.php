@@ -62,6 +62,7 @@ final class CheckoutService
                 'latitude' => $payload['delivery_latitude'] ?? null,
                 'longitude' => $payload['delivery_longitude'] ?? null,
             ],
+            'order_note' => isset($payload['order_note']) ? trim((string) $payload['order_note']) : null,
         ], JSON_THROW_ON_ERROR));
 
         $existing = SmartOrderingOrderContext::query()
