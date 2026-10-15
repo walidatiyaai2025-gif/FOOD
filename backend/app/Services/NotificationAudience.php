@@ -230,6 +230,7 @@ final class NotificationAudience
             ->unique()
             ->values()
             ->all();
+
         return [
             'is_customer' => $isCustomer,
             'is_driver' => $isDriver,
