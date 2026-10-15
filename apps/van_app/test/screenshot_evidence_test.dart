@@ -681,23 +681,31 @@ class _Visits implements VanVisitRepository {
 
 class _Orders implements VanOrderRepository {
   @override
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   }) async =>
-      const [
-        VanCatalogProduct(
-          id: 301,
-          name: 'FOODEX Water Case',
-          sku: 'WATER-12',
-          unitPrice: 12,
-          minimumQuantity: 1,
-          orderingIncrement: 1,
-          availableQuantity: 40,
-          isAvailable: true,
-          currency: 'KWD',
-        ),
-      ];
+      VanCatalogPage(
+        page: page,
+        perPage: perPage,
+        hasMore: false,
+        products: const [
+          VanCatalogProduct(
+            id: 301,
+            name: 'FOODEX Water Case',
+            sku: 'WATER-12',
+            unitPrice: 12,
+            minimumQuantity: 1,
+            orderingIncrement: 1,
+            availableQuantity: 40,
+            isAvailable: true,
+            currency: 'KWD',
+          ),
+        ],
+      );
+
   @override
   Future<VanOrderOptions> options(VanCustomerScope customer) async =>
       const VanOrderOptions(
