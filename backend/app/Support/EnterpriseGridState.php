@@ -32,13 +32,16 @@ final readonly class EnterpriseGridState
         array $allowedColumns,
         array $defaultColumns,
         int $defaultPerPage = 25,
+        array $allowedFilterValues = [],
     ): self {
         $search = self::boundedText($request->query('q'), 120);
         $filters = [];
 
         foreach ($allowedFilters as $filter) {
             $value = self::boundedText($request->query($filter), 120);
-            if ($value !== null) {
+            if ($value !== null
+                && (array_key_exists($filter, $allowedFilterValues) === false
+                    || in_array($value, (array) $allowedFilterValues[$filter], true))) {
                 $filters[$filter] = $value;
             }
         }
