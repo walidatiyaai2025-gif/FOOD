@@ -622,6 +622,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-feedback-modal .modal-title{margin:0;font-size:1.08rem;font-weight:800}
     .foodex-feedback-modal .modal-body{padding:20px;line-height:1.7}
     .foodex-feedback-modal .modal-body ul{margin:0;padding-inline-start:20px}
+    .foodex-feedback-modal .modal-body a[data-foodex-validation-link]{color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+    .foodex-field-error{margin-top:6px;color:#b42318;font-size:var(--foodex-text-xs);line-height:1.5}
+    .foodex-field-error[hidden]{display:none!important}
     .foodex-feedback-modal .btn-close{width:36px;height:36px;border:0;border-radius:10px;background:#f2f4f7;color:#475467;cursor:pointer;font-size:20px}
     .foodex-feedback-modal.is-success .modal-header{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     .foodex-feedback-modal.is-error .modal-header{background:#fff0f0;color:#b42318}
@@ -636,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 @php
     $foodexUiStatus = session('status');
-    $foodexUiErrors = isset($errors) && $errors->any() ? $errors->all() : [];
+    $foodexUiErrors = isset($errors) && $errors->any() ? $errors->messages() : [];
 @endphp
 <script id="foodex-premium-form-runtime">
 (() => {
@@ -680,6 +683,160 @@ document.addEventListener('DOMContentLoaded', () => {
         const placeholder = field.getAttribute('placeholder');
         if (placeholder && !/^e\.g\.|^مثال[:：]?/i.test(placeholder)) return placeholder;
         return key ? key.replace(/[_-]+/g,' ').replace(/\b\w/g, ch => ch.toUpperCase()) : (isArabic ? 'الحقل' : 'Field');
+    };
+
+    const normalizeValidationKey = (value) => String(value || '')
+        .replace(/\[([^\]]*)\]/g, (_, segment) => '.'+(segment === '' ? '*' : segment))
+        .replace(/^\./,'')
+        .replace(/\.+/g,'.')
+        .replace(/\.$/,'');
+    const wildcardValidationKey = (value) => normalizeValidationKey(value)
+        .split('.')
+        .map((segment) => /^\d+$/.test(segment) ? '*' : segment)
+        .join('.');
+    const validationErrorId = (value) => {
+        const normalized = normalizeValidationKey(value) || 'form';
+        return 'foodex-server-error-'+normalized.replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');
+    };
+    const feedbackEntries = (messages) => {
+        if (messages === null || messages === undefined || messages === '') return [];
+        if (Array.isArray(messages)) {
+            return messages.flatMap((message) => {
+                if (message && typeof message === 'object' && !Array.isArray(message)) return feedbackEntries(message);
+                return message === null || message === undefined || message === '' ? [] : [{ key:null, message:String(message) }];
+            });
+        }
+        if (typeof messages === 'object') {
+            return Object.entries(messages).flatMap(([key, values]) => {
+                const list = Array.isArray(values) ? values : [values];
+                return list
+                    .filter((message) => message !== null && message !== undefined && message !== '')
+                    .map((message) => ({ key:normalizeValidationKey(key), message:String(message) }));
+            });
+        }
+        return [{ key:null, message:String(messages) }];
+    };
+    const hasFeedbackErrors = (messages) => feedbackEntries(messages).length > 0;
+    const namedValidationControls = () => [...document.querySelectorAll('input[name],select[name],textarea[name]')];
+    const controlsForValidationKey = (key) => {
+        const normalized = normalizeValidationKey(key);
+        if (!normalized) return [];
+        const controls = namedValidationControls();
+        const exact = controls.filter((field) => normalizeValidationKey(field.name) === normalized);
+        if (exact.length) return exact;
+        const wildcard = wildcardValidationKey(normalized);
+        return controls.filter((field) => {
+            const fieldKey = normalizeValidationKey(field.name);
+            return fieldKey === wildcard || wildcardValidationKey(fieldKey) === wildcard;
+        });
+    };
+    const isVisibleValidationControl = (field) => {
+        if (!(field instanceof HTMLElement) || field.hidden || field.closest('[hidden],[aria-hidden="true"],[inert]')) return false;
+        const style = window.getComputedStyle(field);
+        return style.display !== 'none' && style.visibility !== 'hidden' && field.getClientRects().length > 0;
+    };
+    const ensureValidationControlId = (field, key, index = 0) => {
+        if (field.id) return field.id;
+        const base = 'foodex-validation-field-'+normalizeValidationKey(key).replace(/[^A-Za-z0-9_-]+/g,'-');
+        field.id = index > 0 ? base+'-'+index : base;
+        return field.id;
+    };
+    const addDescribedBy = (field, id) => {
+        const tokens = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        if (!tokens.includes(id)) tokens.push(id);
+        field.setAttribute('aria-describedby', tokens.join(' '));
+    };
+    const removeDescribedBy = (field, id) => {
+        const tokens = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter((token) => token && token !== id);
+        if (tokens.length) field.setAttribute('aria-describedby', tokens.join(' '));
+        else field.removeAttribute('aria-describedby');
+    };
+    const removeNativeSummaryKey = (key) => {
+        const normalized = normalizeValidationKey(key);
+        document.querySelectorAll('[data-foodex-error-summary-key]').forEach((item) => {
+            if (normalizeValidationKey(item.getAttribute('data-foodex-error-summary-key')) === normalized) item.remove();
+        });
+        document.querySelectorAll('[data-foodex-native-error-summary]').forEach((summary) => {
+            if (!summary.querySelector('[data-foodex-error-summary-key]')) summary.remove();
+        });
+    };
+    const clearFieldValidation = (field) => {
+        if (!(field instanceof HTMLElement)) return;
+        const errorId = field.dataset.foodexServerErrorId;
+        const key = field.dataset.foodexServerErrorKey || normalizeValidationKey(field.getAttribute('name'));
+        if (errorId) {
+            removeDescribedBy(field, errorId);
+            if (field.getAttribute('aria-errormessage') === errorId) field.removeAttribute('aria-errormessage');
+            const node = document.getElementById(errorId);
+            if (node?.dataset.foodexServerError === '1') node.remove();
+        }
+        if (field.dataset.foodexServerInvalid === '1') field.removeAttribute('aria-invalid');
+        delete field.dataset.foodexServerInvalid;
+        delete field.dataset.foodexServerErrorId;
+        delete field.dataset.foodexServerErrorKey;
+        if (key) removeNativeSummaryKey(key);
+    };
+    const bindValidationClearing = (field) => {
+        if (field.dataset.foodexServerValidationReady === '1') return;
+        field.dataset.foodexServerValidationReady = '1';
+        const clear = () => clearFieldValidation(field);
+        field.addEventListener('input', clear);
+        field.addEventListener('change', clear);
+    };
+    const clearServerValidation = () => {
+        namedValidationControls().forEach((field) => {
+            if (field.dataset.foodexServerInvalid === '1') clearFieldValidation(field);
+        });
+        document.querySelectorAll('[data-foodex-server-error="1"]').forEach((node) => node.remove());
+    };
+    const applyServerValidation = (messages, scope = null) => {
+        const entries = feedbackEntries(messages);
+        const grouped = new Map();
+        entries.forEach((entry) => {
+            if (!entry.key) return;
+            if (!grouped.has(entry.key)) grouped.set(entry.key, []);
+            grouped.get(entry.key).push(entry.message);
+        });
+        const associations = new Map();
+        const scopedRoot = scope instanceof Element ? scope : null;
+
+        grouped.forEach((keyMessages, key) => {
+            const controls = controlsForValidationKey(key)
+                .filter((field) => !scopedRoot || scopedRoot.contains(field));
+            controls.forEach((field, index) => {
+                const actualKey = normalizeValidationKey(field.name) || key;
+                const errorId = validationErrorId(actualKey);
+                ensureValidationControlId(field, actualKey, index);
+                let inline = document.getElementById(errorId);
+                if (!(inline instanceof HTMLElement)) {
+                    inline = document.createElement('div');
+                    inline.id = errorId;
+                    inline.className = 'foodex-field-error';
+                    inline.dataset.foodexServerError = '1';
+                    const placement = field.closest('.foodex-password-control') || field;
+                    placement.insertAdjacentElement('afterend', inline);
+                }
+                inline.dataset.foodexServerError = '1';
+                inline.dataset.foodexServerErrorKey = key;
+                inline.textContent = [...new Set(keyMessages)].join(' ');
+                field.setAttribute('aria-invalid','true');
+                field.setAttribute('aria-errormessage', errorId);
+                addDescribedBy(field, errorId);
+                field.dataset.foodexServerInvalid = '1';
+                field.dataset.foodexServerErrorId = errorId;
+                field.dataset.foodexServerErrorKey = key;
+                bindValidationClearing(field);
+                if (!associations.has(key) && isVisibleValidationControl(field)) associations.set(key, field);
+            });
+        });
+
+        return associations;
+    };
+    window.FoodexValidationA11y = {
+        apply: applyServerValidation,
+        clear: clearServerValidation,
+        controlsForKey: controlsForValidationKey,
+        normalizeKey: normalizeValidationKey,
     };
 
     const enhanceForms = () => {
@@ -808,10 +965,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showFeedback = (kind, messages) => {
-        const clean = (Array.isArray(messages) ? messages : [messages]).filter(Boolean);
+        const entries = feedbackEntries(messages);
+        const clean = entries.map((entry) => entry.message).filter(Boolean);
         if (!clean.length) return;
         window.FoodexFeedbackClose?.();
 
+        const validationScope = kind === 'error' && document.activeElement instanceof HTMLElement
+            ? document.activeElement.closest('form')
+            : null;
+        const associations = kind === 'error' ? applyServerValidation(messages, validationScope) : new Map();
         const overlay = document.createElement('div');
         overlay.className = 'foodex-feedback-modal modal fade show '+(kind === 'success' ? 'is-success' : 'is-error');
         overlay.setAttribute('role','dialog');
@@ -825,10 +987,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeButton = overlay.querySelector('.btn-close');
         closeButton.setAttribute('aria-label', isArabic ? 'إغلاق' : 'Close');
         const body = overlay.querySelector('.modal-body');
-        if (clean.length === 1) body.textContent = clean[0];
-        else {
+        const focusLinks = [];
+        const renderMessage = (entry) => {
+            const target = entry.key ? associations.get(entry.key) : null;
+            if (!(target instanceof HTMLElement)) return document.createTextNode(entry.message);
+            const link = document.createElement('a');
+            link.href = '#'+ensureValidationControlId(target, entry.key);
+            link.dataset.foodexValidationLink = entry.key;
+            link.textContent = entry.message;
+            focusLinks.push({ link, target });
+            return link;
+        };
+        if (entries.length === 1) {
+            body.appendChild(renderMessage(entries[0]));
+        } else {
             const ul = document.createElement('ul');
-            clean.forEach(message => { const li=document.createElement('li'); li.textContent=message; ul.appendChild(li); });
+            entries.forEach((entry) => {
+                const li = document.createElement('li');
+                li.appendChild(renderMessage(entry));
+                ul.appendChild(li);
+            });
             body.appendChild(ul);
         }
 
@@ -836,15 +1014,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const fallbackFocus = document.querySelector('[autofocus],main input:not([type="hidden"]),main select,main textarea,main button,main a[href]');
         let modalSession = null;
         let dismissTimer = null;
-        const close = () => {
+        const close = ({ restoreFocus = true } = {}) => {
             if (!overlay.isConnected) return;
             if (dismissTimer !== null) window.clearTimeout(dismissTimer);
-            modalSession?.deactivate({ restoreFocus: true });
+            modalSession?.deactivate({ restoreFocus });
             modalSession = null;
             overlay.remove();
             if (window.FoodexFeedbackClose === close) window.FoodexFeedbackClose = null;
         };
         window.FoodexFeedbackClose = close;
+        focusLinks.forEach(({ link, target }) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                close({ restoreFocus: false });
+                target.focus({ preventScroll:false });
+                requestAnimationFrame(() => {
+                    target.scrollIntoView({ block:'center', inline:'nearest' });
+                });
+            });
+        });
         closeButton.addEventListener('click', close);
         overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
         document.body.appendChild(overlay);
@@ -858,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }) || null;
         if (kind === 'success') dismissTimer = window.setTimeout(() => overlay.isConnected && close(), 5500);
     };
+    window.FoodexValidationA11y.showFeedback = showFeedback;
 
     const reportInspector = (payload) => {
         if (inspectorSuppressed || Date.now() < inspectorSuppressedUntil || !inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
@@ -915,14 +1104,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) {
                     const method = String(options.method || request?.method || 'GET').toUpperCase();
                     let responseMessage = '';
+                    let responseErrors = null;
                     try {
                         const clone = response.clone();
                         const contentType = clone.headers.get('content-type') || '';
                         if (contentType.includes('application/json')) {
                             const payload = await clone.json();
                             responseMessage = payload?.message || payload?.error || '';
-                            if (!responseMessage && payload?.errors) {
-                                responseMessage = Object.values(payload.errors).flat().filter(Boolean).join('\n');
+                            if (payload?.errors && typeof payload.errors === 'object') {
+                                responseErrors = payload.errors;
+                                if (!responseMessage) responseMessage = Object.values(payload.errors).flat().filter(Boolean).join('\n');
                             }
                         }
                     } catch (_) {}
@@ -942,9 +1133,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     if (method !== 'GET') {
-                        showFeedback('error', responseMessage || (isArabic
+                        showFeedback('error', hasFeedbackErrors(responseErrors) ? responseErrors : (responseMessage || (isArabic
                             ? 'تعذر تنفيذ العملية ('+response.status+'). راجع البيانات وحاول مرة أخرى.'
-                            : 'The action could not be completed ('+response.status+'). Review the data and try again.'));
+                            : 'The action could not be completed ('+response.status+'). Review the data and try again.')));
                     }
                 }
                 return response;
@@ -968,8 +1159,10 @@ document.addEventListener('DOMContentLoaded', () => {
         enhanceForms();
         enhancePasswords();
         enhanceTabs();
-        if (feedback.errors?.length) showFeedback('error', feedback.errors);
-        else if (feedback.status) showFeedback('success', feedback.status);
+        if (hasFeedbackErrors(feedback.errors)) {
+            if (document.body.dataset.foodexValidationSummaryNative === '1') applyServerValidation(feedback.errors);
+            else showFeedback('error', feedback.errors);
+        } else if (feedback.status) showFeedback('success', feedback.status);
     });
 })();
 </script>
