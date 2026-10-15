@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
-use App\Models\Invoice;
 use App\Models\GeographyNode;
+use App\Models\Invoice;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
 use App\Models\User;
@@ -813,7 +813,6 @@ final class Customer360Controller extends Controller
         });
     }
 
-    /** @return array<string, array<int, string>> */
     /** @return array<string, list<array<string, int|string|null>>> */
     private function geographyOptions(): array
     {
@@ -839,6 +838,7 @@ final class Customer360Controller extends Controller
             ->all();
     }
 
+    /** @return array<string, array<int, string>> */
     private function addressRules(bool $partial): array
     {
         $required = $partial ? ['sometimes'] : ['required'];
