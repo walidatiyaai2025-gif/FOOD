@@ -218,7 +218,7 @@ final class CartService
             $lines,
             $quote,
             null,
-            is_array($cart->merchandising_context) ? $cart->merchandising_context : null,
+            $cart->merchandisingContext(),
             0.0,
             false,
         )['quote'];
