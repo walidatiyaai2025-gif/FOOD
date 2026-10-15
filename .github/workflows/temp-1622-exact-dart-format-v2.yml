@@ -1,0 +1,38 @@
+name: TEMP 1622 Exact Dart Format v2
+
+on:
+  push:
+    branches:
+      - fix/1622-customer-catalog-pagination
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, '[dartfmt-1622-v2]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/1622-customer-catalog-pagination
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+      - name: Resolve Customer package and apply exact formatter
+        shell: bash
+        run: |
+          set -euo pipefail
+          pushd apps/customer_app
+          flutter pub get
+          dart format             lib/core/api/b2c_catalog_api.dart             lib/core/localization/app_translations.dart             lib/features/retail/catalog/retail_catalog_screens.dart             test/customer_preview_transport_test.dart             test/customer_ui_v3_browse_test.dart             test/e2e/guest_customer_journey_contract_test.dart             test/guest_browsing_policy_test.dart             test/retail_catalog_new_only_test.dart
+          popd
+          if git diff --quiet --exit-code -- apps/customer_app; then
+            exit 0
+          fi
+          git config user.name "foodex-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add             apps/customer_app/lib/core/api/b2c_catalog_api.dart             apps/customer_app/lib/core/localization/app_translations.dart             apps/customer_app/lib/features/retail/catalog/retail_catalog_screens.dart             apps/customer_app/test/customer_preview_transport_test.dart             apps/customer_app/test/customer_ui_v3_browse_test.dart             apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart             apps/customer_app/test/guest_browsing_policy_test.dart             apps/customer_app/test/retail_catalog_new_only_test.dart
+          git commit -m "style(1622): exact package-context Dart formatting [dartfmt-1622-v2]"
+          git push origin HEAD:fix/1622-customer-catalog-pagination
