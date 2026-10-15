@@ -66,7 +66,7 @@
 
 
         @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
-        @php($enterpriseData = $enterprise['data'] ?? [])
+        @php($enterpriseData = $enterprise['data'] ?? $enterprise)
         <section class="foodex-card inspector-enterprise" data-enterprise-inspector>
             <div class="inspector-enterprise-heading">
                 <div>
