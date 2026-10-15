@@ -19,6 +19,31 @@ class VanProfilePage extends StatelessWidget {
   String _text(BuildContext context, String en, String ar) =>
       _arabic(context) ? ar : en;
 
+  String _permissionLabel(BuildContext context, String permission) {
+    final normalized = permission.trim().toLowerCase();
+    return switch (normalized) {
+      'van.login' =>
+        _text(context, 'Van app access', 'الدخول إلى تطبيق الفان'),
+      'finance.view' =>
+        _text(context, 'View finance', 'عرض البيانات المالية'),
+      'orders.view' =>
+        _text(context, 'View orders', 'عرض الطلبات'),
+      'orders.approve' =>
+        _text(context, 'Approve orders', 'الموافقة على الطلبات'),
+      'platform.manage' =>
+        _text(context, 'Manage platform', 'إدارة المنصة'),
+      'notifications.view' =>
+        _text(context, 'View notifications', 'عرض الإشعارات'),
+      'reports.view' =>
+        _text(context, 'View reports', 'عرض التقارير'),
+      _ => _text(
+          context,
+          'Additional authorized access',
+          'صلاحية إضافية مصرح بها',
+        ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final permissions = session.permissions.toList()..sort();
@@ -135,7 +160,7 @@ class VanProfilePage extends StatelessWidget {
                     dense: true,
                     leading: const Icon(Icons.check_circle_outline, size: 18),
                     title: Text(
-                      permission,
+                      _permissionLabel(context, permission),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
