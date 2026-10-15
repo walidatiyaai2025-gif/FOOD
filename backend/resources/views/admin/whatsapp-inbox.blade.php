@@ -99,7 +99,7 @@
                         </div>
                     </div>
 
-                    <div class="wa-timeline">
+                    <div class="wa-timeline" id="wa-conversation-timeline" data-conversation="{{ $selected->id }}">
                         @forelse($timeline as $item)
                             <div class="wa-message {{ $item['kind']==='note'?'note':$item['direction'] }}">
                                 @if($item['kind']==='note')<strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>@endif
@@ -234,6 +234,42 @@
         </div>
     </main>
 </div>
+
+<script>
+(() => {
+    const timeline = document.getElementById('wa-conversation-timeline');
+    if (!timeline) return;
+
+    let scheduled = false;
+    const scrollToLatest = () => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => {
+            scheduled = false;
+            timeline.scrollTop = timeline.scrollHeight;
+        });
+    };
+
+    // Every opened/reloaded conversation starts at the newest customer message.
+    scrollToLatest();
+    window.addEventListener('load', scrollToLatest, {once: true});
+    window.addEventListener('pageshow', scrollToLatest);
+
+    // If the Inbox gains live DOM updates, keep new messages visible automatically.
+    const observer = new MutationObserver(mutations => {
+        if (mutations.some(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)) {
+            scrollToLatest();
+        }
+    });
+    observer.observe(timeline, {childList: true, subtree: true});
+
+    // Attachments can change the timeline height after the first paint.
+    timeline.querySelectorAll('img, video, audio').forEach(media => {
+        media.addEventListener('load', scrollToLatest, {once: true});
+        media.addEventListener('loadedmetadata', scrollToLatest, {once: true});
+    });
+})();
+</script>
 
 @if($callsEnabled)
 <div class="wa-call-overlay" id="wa-incoming-call" role="dialog" aria-modal="true" aria-labelledby="wa-incoming-title">

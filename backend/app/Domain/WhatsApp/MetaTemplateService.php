@@ -17,8 +17,7 @@ final class MetaTemplateService
      */
     public function create(array $data, ?int $actorUserId = null): array
     {
-        $profile = $this->primaryProfile();
-        $providerName = trim((string) ($data['provider_name'] ?? ''));
+        $providerName = $this->canonicalProviderName((string) ($data['provider_name'] ?? ''));
         $locale = strtolower(trim((string) ($data['locale'] ?? '')));
         $category = strtolower(trim((string) ($data['category'] ?? '')));
         $body = trim((string) ($data['body_preview'] ?? ''));
@@ -40,6 +39,8 @@ final class MetaTemplateService
                 'body_preview' => [__('whatsapp.campaigns.meta_template_variables_unsupported')],
             ]);
         }
+
+        $profile = $this->primaryProfile();
 
         $payload = [
             'name' => $providerName,
@@ -205,6 +206,16 @@ final class MetaTemplateService
         }
 
         return trim($token);
+    }
+
+    private function canonicalProviderName(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[\s-]+/u', '_', $value) ?? '';
+        $value = preg_replace('/[^a-z0-9_]+/', '', $value) ?? '';
+        $value = preg_replace('/_+/', '_', $value) ?? '';
+
+        return trim($value, '_');
     }
 
     private function providerLanguage(string $locale): string

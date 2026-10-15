@@ -322,7 +322,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
 
         $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.templates.meta.store'), [
             'name' => 'عرض أكتوبر',
-            'provider_name' => 'foodex_offer_oct',
+            'provider_name' => 'Foodex Offer-Oct',
             'locale' => 'ar',
             'category' => 'marketing',
             'body_preview' => 'عرض فودكس اليوم فقط',
@@ -415,6 +415,9 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ->assertSee('Create WhatsApp campaign')
             ->assertSee('Create WhatsApp template')
             ->assertSee('Sync Meta statuses')
+            ->assertSee('id="wa-template-provider-name"', false)
+            ->assertSee('canonicalTemplateName', false)
+            ->assertDontSee('pattern="[a-z0-9_]+"', false)
             ->assertSee('Existing customers')
             ->assertSee('Import CSV / Excel')
             ->assertSee('Add manually')

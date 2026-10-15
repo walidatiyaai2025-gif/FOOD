@@ -265,7 +265,7 @@
             @csrf
             <div class="wa-grid two">
                 <label>{{ __('whatsapp.campaigns.meta_template_display_name') }}<input name="name" maxlength="120" required></label>
-                <label>{{ __('whatsapp.campaigns.meta_template_provider_name') }}<input name="provider_name" maxlength="160" pattern="[a-z0-9_]+" dir="ltr" required><span class="wa-muted">{{ __('whatsapp.campaigns.meta_template_provider_name_hint') }}</span></label>
+                <label>{{ __('whatsapp.campaigns.meta_template_provider_name') }}<input id="wa-template-provider-name" name="provider_name" maxlength="160" dir="ltr" autocapitalize="none" autocomplete="off" spellcheck="false" required><span class="wa-muted">{{ __('whatsapp.campaigns.meta_template_provider_name_hint') }}</span></label>
                 <label>{{ __('whatsapp.campaigns.locale') }}
                     <select name="locale" required>
                         <option value="ar">{{ __('whatsapp.campaigns.locales.ar') }}</option>
@@ -295,6 +295,7 @@
     const form = document.getElementById('wa-campaign-form');
     const templateDialog = document.getElementById('wa-template-dialog');
     const templateForm = document.getElementById('wa-template-form');
+    const templateProviderName = document.getElementById('wa-template-provider-name');
     const selectedIds = new Set();
     const selectedStores = new Set();
     let importBatch = null;
@@ -359,10 +360,35 @@
 
     document.getElementById('wa-create-campaign')?.addEventListener('click',()=>{builder.classList.add('show');builder.scrollIntoView({behavior:'smooth',block:'start'});});
     document.getElementById('wa-close-builder')?.addEventListener('click',()=>builder.classList.remove('show'));
+    const canonicalTemplateName = value => String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    const normalizeTemplateNameField = () => {
+        if (!templateProviderName) return '';
+        const normalized = canonicalTemplateName(templateProviderName.value);
+        if (templateProviderName.value !== normalized) templateProviderName.value = normalized;
+        templateProviderName.setCustomValidity(normalized ? '' : @json(__('whatsapp.campaigns.meta_template_name_invalid')));
+        return normalized;
+    };
+
+    templateProviderName?.addEventListener('input', normalizeTemplateNameField);
+    templateProviderName?.addEventListener('blur', normalizeTemplateNameField);
+
     document.getElementById('wa-create-template')?.addEventListener('click',()=>templateDialog?.showModal());
     document.getElementById('wa-template-close')?.addEventListener('click',()=>templateDialog?.close());
     document.getElementById('wa-template-cancel')?.addEventListener('click',()=>templateDialog?.close());
-    templateForm?.addEventListener('submit',()=>{
+    templateForm?.addEventListener('submit', event=>{
+        const normalized = normalizeTemplateNameField();
+        if (!normalized) {
+            event.preventDefault();
+            templateProviderName?.reportValidity();
+            return;
+        }
         const button=document.getElementById('wa-template-submit');
         if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
     });
