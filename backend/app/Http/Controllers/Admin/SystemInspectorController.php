@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -163,7 +164,11 @@ final class SystemInspectorController extends Controller
         $this->platformAdmin($request);
 
         $root = (string) config('filesystems.disks.public.root');
-        if (! is_dir($root) && ! @mkdir($root, 0750, true) && ! is_dir($root)) {
+        if (! is_dir($root)) {
+            File::makeDirectory($root, 0750, true, true);
+        }
+
+        if (! is_dir($root)) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء مجلد التخزين العام.',
                 'The public storage directory could not be created.',
