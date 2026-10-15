@@ -245,8 +245,9 @@ final class ReportController extends Controller
         ];
     }
 
-    /** @param array<string, mixed> $filters
-     *  @return array<string, mixed>
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
      */
     private function options(User $user, array $filters): array
     {
