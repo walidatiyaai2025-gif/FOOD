@@ -87,12 +87,12 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
         widget.visitRepository.visits(),
         widget.customerRepository.customers(),
         widget.visitRepository.noOrderReasons(),
-        widget.orderRepository.orders(),
+        widget.orderRepository.orders(perPage: 100),
       ]);
       final visits = results[0] as List<VanVisitRecord>;
       final customers = results[1] as List<VanCustomerScope>;
       final reasons = results[2] as List<VanNoOrderReasonRecord>;
-      final orders = results[3] as List<VanOrderRecord>;
+      final orders = (results[3] as VanOrderPage).items;
 
       if (!mounted) return;
       setState(() {
