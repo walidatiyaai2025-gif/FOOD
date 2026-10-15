@@ -176,6 +176,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['order-operations', '/admin/operations/orders'],
     ['reports', '/admin/reports'],
     ['van-finance-support', '/admin/van-finance-support'],
+    ['smart-ordering-qr', '/admin/smart-ordering/qr'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
   ];
@@ -726,6 +727,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'settings-center',
     '/admin/settings',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-qr',
+    '/admin/smart-ordering/qr',
   );
   await captureResponsiveRoute(
     page,

@@ -25,6 +25,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\SmartOrderingAttributionService;
 use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,7 @@ class CheckoutController extends Controller
         CommercialPolicyService $commercialPolicy,
         InvoiceService $invoices,
         B2BOrderRoutingCoordinator $routing,
+        SmartOrderingAttributionService $smartOrderingAttribution,
     ): JsonResponse {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
@@ -129,6 +131,7 @@ class CheckoutController extends Controller
             $quotes,
             $commercialPolicy,
             $invoices,
+            $smartOrderingAttribution,
         ): array {
             $existing = Order::query()
                 ->where($customerColumn, $customer->getKey())
@@ -154,6 +157,8 @@ class CheckoutController extends Controller
                 ->first();
 
             abort_unless($cart instanceof Cart, 409, 'No authenticated cart exists for this store.');
+
+            $smartOrderingAttribution->markCheckoutStartedForCart($cart);
 
             $lockedItems = CartItem::query()
                 ->where('cart_id', $cart->getKey())
@@ -363,6 +368,7 @@ class CheckoutController extends Controller
                 'note' => 'checkout',
             ]);
 
+            $smartOrderingAttribution->attachOrderFromCart($cart, $order);
             $cart->delete();
 
             $auditLogger->record(

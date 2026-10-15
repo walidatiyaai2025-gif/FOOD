@@ -13,6 +13,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\CommerceQuoteService;
 use App\Services\CustomerDomainResolver;
+use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,6 +72,8 @@ class GuestCartController extends Controller
                 }
             }
 
+            $this->attachSmartOrderingAttribution($request, $cart);
+
             return response()->json($this->cartPayload($cart->fresh()));
         }
 
@@ -96,6 +99,8 @@ class GuestCartController extends Controller
                 abort(409, 'Guest cart belongs to another store.');
             }
         }
+
+        $this->attachSmartOrderingAttribution($request, $cart);
 
         return response()
             ->json($this->cartPayload($cart))
@@ -146,6 +151,8 @@ class GuestCartController extends Controller
                 ]);
             }
         }
+
+        $this->attachSmartOrderingAttribution($request, $cart);
 
         $state = $this->productState($storeId, $productId, true);
         $pricing = null;
@@ -336,6 +343,7 @@ class GuestCartController extends Controller
                 $targetItem->save();
             }
 
+            app(SmartOrderingAttributionService::class)->transferCartAttribution($guestCart, $target);
             $guestCart->delete();
         });
 
@@ -377,6 +385,20 @@ class GuestCartController extends Controller
             ->firstOrFail();
 
         return [$cart, $item];
+    }
+
+    private function attachSmartOrderingAttribution(Request $request, Cart $cart): void
+    {
+        if ((string) $cart->channel !== 'b2c'
+            || $request->attributes->get('app_preview_read_only') === true) {
+            return;
+        }
+
+        $attribution = app(SmartOrderingAttributionService::class);
+        $context = $attribution->contextFromRequest($request);
+        if ($context !== null) {
+            $attribution->attachCart($context, $cart);
+        }
     }
 
     private function activeStoreForChannel(int $storeId, string $channel): Store
