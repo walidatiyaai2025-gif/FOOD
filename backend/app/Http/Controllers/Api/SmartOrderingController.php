@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\CartService;
 use App\Domain\SmartOrdering\CheckoutService;
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,9 @@ final class SmartOrderingController extends Controller
             'cart' => [
                 'public_id' => (string) $result['cart']->public_id,
                 'token' => $result['token'],
-                'expires_at' => $result['cart']->expires_at?->toAtomString(),
+                'expires_at' => $result['cart']->expires_at === null
+                    ? null
+                    : CarbonImmutable::parse((string) $result['cart']->expires_at)->toAtomString(),
             ],
             'quote' => $result['quote'],
         ], 201);
