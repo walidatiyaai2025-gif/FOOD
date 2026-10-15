@@ -277,9 +277,10 @@ final class TreasuryMasterController extends Controller
         ];
     }
 
-    /** @param Builder<EnterpriseCashbox>|Builder<EnterpriseBankAccount> $query
-     * @param list<int> $storeIds
-     * @param list<string> $searchColumns
+    /**
+     * @param  Builder<EnterpriseCashbox>|Builder<EnterpriseBankAccount>  $query
+     * @param  list<int>  $storeIds
+     * @param  list<string>  $searchColumns
      * @return Builder<EnterpriseCashbox>|Builder<EnterpriseBankAccount>
      */
     private function filterQuery(
@@ -331,8 +332,9 @@ final class TreasuryMasterController extends Controller
         ];
     }
 
-    /** @param array<string,mixed> $data
-     * @param array{company_id:int,currency_code:string} $context
+    /**
+     * @param  array<string,mixed>  $data
+     * @param  array{company_id:int,currency_code:string}  $context
      * @return array<string,mixed>
      */
     private function masterAttributes(array $data, array $context, string $code): array
