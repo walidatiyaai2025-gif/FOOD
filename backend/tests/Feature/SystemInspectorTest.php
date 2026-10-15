@@ -174,6 +174,8 @@ class SystemInspectorTest extends TestCase
                 'status' => 'pending',
                 'attempt_count' => 0,
                 'available_at' => now(),
+                'claim_token' => sprintf('00000000-0000-4000-8000-%012d', $index),
+                'last_error' => "provider-secret-outbox-{$index}",
             ]);
 
             EnterpriseWorkflowRequest::query()->create([
@@ -218,6 +220,8 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('wf-26', $exportContent);
         $this->assertStringNotContainsString('super-secret', $exportContent);
         $this->assertStringNotContainsString('secret-idempotency', $exportContent);
+        $this->assertStringNotContainsString('provider-secret-outbox', $exportContent);
+        $this->assertStringNotContainsString('00000000-0000-4000-8000-', $exportContent);
 
         $exportPayload = json_decode($exportContent, true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(
