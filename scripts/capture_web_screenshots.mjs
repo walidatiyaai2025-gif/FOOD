@@ -321,6 +321,24 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
 
   let modal = await openWizard();
 
+  const headerClose = modal.locator('[data-new-order-cancel]').first();
+  await headerClose.click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Pristine order wizard did not close directly (${locale})`);
+  }
+
+  modal = await openWizard();
+  await modal.evaluate((root) => {
+    root.querySelectorAll('[data-wizard-step]').forEach((node) => {
+      node.dataset.active = node.dataset.wizardStep === '2' ? '1' : '0';
+    });
+    root.querySelectorAll('[data-wizard-progress]').forEach((node) => {
+      const index = Number(node.dataset.wizardProgress);
+      node.dataset.active = index === 2 ? '1' : '0';
+      node.dataset.complete = index < 2 ? '1' : '0';
+    });
+  });
+
   const validationMessages = locale === 'ar'
     ? {
         'items.0.quantity': ['أدخل كمية صحيحة.'],
@@ -341,6 +359,9 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
   await validationModal.waitFor({ state: 'visible' });
   const quantityField = modal.locator('input[name="items[0][quantity]"]');
   const couponField = modal.locator('input[name="coupon_code"]');
+  if (!(await quantityField.isVisible())) {
+    throw new Error(`Nested quantity evidence field is not visible in the active wizard step (${locale})`);
+  }
   for (const [field, key] of [[quantityField, 'items.0.quantity'], [couponField, 'coupon_code']]) {
     if ((await field.getAttribute('aria-invalid')) !== 'true') {
       throw new Error(`Server validation did not mark ${key} invalid (${locale})`);
@@ -357,13 +378,20 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
 
   const quantityLink = validationModal.locator('[data-foodex-validation-link="items.0.quantity"]');
   const couponLink = validationModal.locator('[data-foodex-validation-link="coupon_code"]');
-  if (await quantityLink.count() !== 1 || await couponLink.count() !== 1) {
-    throw new Error(`Server validation summary did not link both keyed errors (${locale})`);
+  if (await quantityLink.count() !== 1) {
+    throw new Error(`Visible nested server validation error was not linked (${locale})`);
   }
+  if (await couponLink.count() !== 0) {
+    throw new Error(`Hidden wizard field was linked instead of remaining a plain summary message (${locale})`);
+  }
+  if (await validationModal.getByText(validationMessages.coupon_code[0], { exact: true }).count() !== 1) {
+    throw new Error(`Hidden coupon validation message was lost from the summary (${locale})`);
+  }
+
   await quantityLink.click();
   await validationModal.waitFor({ state: 'detached' });
   if (!(await quantityField.evaluate((node) => node === document.activeElement))) {
-    throw new Error(`Server validation summary link did not focus the nested business field (${locale})`);
+    throw new Error(`Server validation summary link did not focus the visible nested business field (${locale})`);
   }
 
   await quantityField.fill('2');
@@ -378,10 +406,14 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
     throw new Error(`Explicit server validation reset left stale coupon state (${locale})`);
   }
 
-  const headerClose = modal.locator('[data-new-order-cancel]').first();
-  await headerClose.click();
+  await modal.locator('[data-new-order-cancel]').first().click();
+  const validationDiscard = modal.locator('[data-new-order-discard]');
+  if ((await validationDiscard.getAttribute('data-visible')) !== '1') {
+    throw new Error(`Validation evidence edit did not preserve the wizard dirty-state contract (${locale})`);
+  }
+  await validationDiscard.locator('[data-new-order-discard-confirm]').click();
   if ((await modal.getAttribute('data-open')) !== '0') {
-    throw new Error(`Pristine order wizard did not close directly (${locale})`);
+    throw new Error(`Validation evidence draft was not discarded cleanly (${locale})`);
   }
 
   modal = await openWizard();
