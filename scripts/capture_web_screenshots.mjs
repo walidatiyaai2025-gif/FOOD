@@ -744,6 +744,33 @@ async function captureMixedTrackingEvidence(page, locale) {
     page,
     `02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__${locale}.png`,
   );
+
+  const entityLookup = page.locator('[data-live-lookup-search="entity"]');
+  await entityLookup.focus();
+  const entityResults = page.locator('[data-live-lookup-results="entity"]');
+  await entityResults.waitFor({ state: 'visible', timeout: 10000 });
+  const lookupProof = await page.evaluate(() => {
+    const input = document.querySelector('[data-live-lookup-search="entity"]');
+    const listbox = document.querySelector('[data-live-lookup-results="entity"]');
+    const options = Array.from(listbox?.querySelectorAll('[role="option"]') ?? []);
+    return {
+      expanded: input?.getAttribute('aria-expanded'),
+      optionCount: options.length,
+      labels: options.map((option) => option.querySelector('strong')?.textContent?.trim() ?? ''),
+      contexts: options.map((option) => option.querySelector('small')?.textContent?.trim() ?? ''),
+    };
+  });
+  if (lookupProof.expanded !== 'true' || lookupProof.optionCount < 2) {
+    throw new Error(`Live Tracking entity lookup evidence incomplete: ${JSON.stringify(lookupProof)}`);
+  }
+  if (lookupProof.labels.some((label) => label === '' || /^#?\d+$/.test(label))) {
+    throw new Error(`Live Tracking entity lookup exposed raw identity labels: ${JSON.stringify(lookupProof)}`);
+  }
+  await assertNoPageOverflow(page, `live-tracking/entity-lookup/${locale}`);
+  await snap(
+    page,
+    `02_Web/B2B_SuperAdmin/11_live_tracking_entity_lookup_open__${locale}.png`,
+  );
 }
 
 async function captureMobileSettingsParityEvidence(page, locale) {
