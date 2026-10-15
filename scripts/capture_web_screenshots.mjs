@@ -187,6 +187,127 @@ async function openFirstRecordActionMenu(page, selector, label) {
   await menu.waitFor({ state: 'visible' });
 }
 
+async function exerciseOrderWizardDraftSafety(page, locale) {
+  const openWizard = async () => {
+    const openButton = page.locator('[data-new-order-open]').first();
+    if (await openButton.count() !== 1) {
+      throw new Error(`Order wizard launch action missing (${locale})`);
+    }
+    await openButton.click();
+    const modal = page.locator('[data-new-order-modal]');
+    if ((await modal.getAttribute('data-open')) !== '1') {
+      throw new Error(`Order wizard did not open (${locale})`);
+    }
+    return modal;
+  };
+
+  const setDraftCoupon = async (modal, value) => {
+    const coupon = modal.locator('input[name="coupon_code"]');
+    if (await coupon.count() !== 1) {
+      throw new Error(`Order wizard coupon field missing (${locale})`);
+    }
+    await coupon.evaluate((node, draftValue) => {
+      node.value = draftValue;
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    }, value);
+  };
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  let response = await page.goto(`${baseUrl}/admin/operations/orders`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Order wizard evidence route failed (${locale})`);
+  }
+
+  let modal = await openWizard();
+  const headerClose = modal.locator('[data-new-order-cancel]').first();
+  await headerClose.click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Pristine order wizard did not close directly (${locale})`);
+  }
+
+  modal = await openWizard();
+  await setDraftCoupon(modal, 'DRAFT-KEEP');
+  await modal.locator('[data-new-order-cancel]').first().click();
+
+  let discardPanel = modal.locator('[data-new-order-discard]');
+  if (
+    (await discardPanel.getAttribute('data-visible')) !== '1'
+    || (await discardPanel.getAttribute('aria-hidden')) !== 'false'
+  ) {
+    throw new Error(`Dirty order wizard did not require discard confirmation (${locale})`);
+  }
+  if (!(await page.locator('[data-new-order-continue]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Dirty order wizard did not move focus into discard confirmation (${locale})`);
+  }
+  await snap(page, `02_Web/B2C_Admin/23_order_wizard_dirty__desktop__${locale}.png`);
+
+  await page.keyboard.press('Escape');
+  if ((await discardPanel.getAttribute('data-visible')) !== '0' || (await modal.getAttribute('data-open')) !== '1') {
+    throw new Error(`Escape did not safely return to the dirty order draft (${locale})`);
+  }
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== 'DRAFT-KEEP') {
+    throw new Error(`Order wizard draft was lost after cancelling discard (${locale})`);
+  }
+
+  await page.keyboard.press('Escape');
+  if ((await discardPanel.getAttribute('data-visible')) !== '1') {
+    throw new Error(`Dirty order wizard Escape did not reopen discard confirmation (${locale})`);
+  }
+  await discardPanel.locator('[data-new-order-discard-confirm]').click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Order wizard discard did not close the modal (${locale})`);
+  }
+
+  modal = await openWizard();
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== '') {
+    throw new Error(`Discarded order draft was restored instead of starting fresh (${locale})`);
+  }
+  await modal.locator('[data-new-order-cancel]').first().click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  response = await page.goto(`${baseUrl}/admin/operations/orders`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Order wizard mobile evidence route failed (${locale})`);
+  }
+  modal = await openWizard();
+  await setDraftCoupon(modal, 'MOBILE-DRAFT');
+  await modal.locator('[data-new-order-cancel]').first().click();
+  discardPanel = modal.locator('[data-new-order-discard]');
+  await discardPanel.scrollIntoViewIfNeeded();
+
+  const panelBox = await discardPanel.boundingBox();
+  if (!panelBox || panelBox.x < -1 || panelBox.x + panelBox.width > 391) {
+    throw new Error(`Order wizard discard confirmation overflows mobile viewport (${locale}): ${JSON.stringify(panelBox)}`);
+  }
+  for (const selector of ['[data-new-order-continue]', '[data-new-order-discard-confirm]']) {
+    const box = await discardPanel.locator(selector).boundingBox();
+    if (!box || box.height < 44 || box.x < -1 || box.x + box.width > 391) {
+      throw new Error(`Order wizard discard action is not mobile-safe (${locale}/${selector}): ${JSON.stringify(box)}`);
+    }
+  }
+
+  await page.keyboard.press('Tab');
+  if (!(await discardPanel.locator('[data-new-order-discard-confirm]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Order wizard discard focus trap did not advance (${locale})`);
+  }
+  await page.keyboard.press('Tab');
+  if (!(await discardPanel.locator('[data-new-order-continue]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Order wizard discard focus trap did not wrap (${locale})`);
+  }
+
+  await snap(page, `02_Web/Responsive/B2C_Admin/order-wizard-dirty__mobile-390__${locale}.png`);
+
+  await discardPanel.locator('[data-new-order-continue]').click();
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== 'MOBILE-DRAFT') {
+    throw new Error(`Mobile order draft was lost after Continue editing (${locale})`);
+  }
+  await page.keyboard.press('Escape');
+  await discardPanel.locator('[data-new-order-discard-confirm]').click();
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  console.log(`verified recoverable Order wizard draft behavior (${locale})`);
+}
+
 async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
@@ -232,6 +353,8 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     }
     await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
   }
+
+  await exerciseOrderWizardDraftSafety(page, locale);
 
   await page.goto(`${baseUrl}/admin/settings/mobile?app=van&environment=production`, { waitUntil: 'networkidle' });
   const mobileSettingsProof = await page.evaluate(() => {
