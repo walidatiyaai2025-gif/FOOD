@@ -320,6 +320,64 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
   }
 
   let modal = await openWizard();
+
+  const validationMessages = locale === 'ar'
+    ? {
+        'items.0.quantity': ['أدخل كمية صحيحة.'],
+        coupon_code: ['راجع رمز الخصم.'],
+      }
+    : {
+        'items.0.quantity': ['Enter a valid quantity.'],
+        coupon_code: ['Review the coupon code.'],
+      };
+  await page.evaluate((messages) => {
+    if (!window.FoodexValidationA11y?.showFeedback) {
+      throw new Error('Shared server-validation accessibility runtime is unavailable.');
+    }
+    window.FoodexValidationA11y.showFeedback('error', messages);
+  }, validationMessages);
+
+  const validationModal = page.locator('.foodex-feedback-modal');
+  await validationModal.waitFor({ state: 'visible' });
+  const quantityField = modal.locator('input[name="items[0][quantity]"]');
+  const couponField = modal.locator('input[name="coupon_code"]');
+  for (const [field, key] of [[quantityField, 'items.0.quantity'], [couponField, 'coupon_code']]) {
+    if ((await field.getAttribute('aria-invalid')) !== 'true') {
+      throw new Error(`Server validation did not mark ${key} invalid (${locale})`);
+    }
+    const describedBy = (await field.getAttribute('aria-describedby')) || '';
+    const errorMessage = (await field.getAttribute('aria-errormessage')) || '';
+    if (!describedBy.split(/\s+/).includes(errorMessage) || !errorMessage) {
+      throw new Error(`Server validation did not associate ${key} with a stable inline error (${locale})`);
+    }
+    if (await page.locator('#'+errorMessage).count() !== 1) {
+      throw new Error(`Server validation inline error is missing for ${key} (${locale})`);
+    }
+  }
+
+  const quantityLink = validationModal.locator('[data-foodex-validation-link="items.0.quantity"]');
+  const couponLink = validationModal.locator('[data-foodex-validation-link="coupon_code"]');
+  if (await quantityLink.count() !== 1 || await couponLink.count() !== 1) {
+    throw new Error(`Server validation summary did not link both keyed errors (${locale})`);
+  }
+  await quantityLink.click();
+  await validationModal.waitFor({ state: 'detached' });
+  if (!(await quantityField.evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Server validation summary link did not focus the nested business field (${locale})`);
+  }
+
+  await quantityField.fill('2');
+  if (await quantityField.getAttribute('aria-invalid')) {
+    throw new Error(`Correcting nested quantity left stale invalid state (${locale})`);
+  }
+  if ((await couponField.getAttribute('aria-invalid')) !== 'true') {
+    throw new Error(`Correcting one field cleared an unrelated server validation error (${locale})`);
+  }
+  await page.evaluate(() => window.FoodexValidationA11y.clear());
+  if (await couponField.getAttribute('aria-invalid')) {
+    throw new Error(`Explicit server validation reset left stale coupon state (${locale})`);
+  }
+
   const headerClose = modal.locator('[data-new-order-cancel]').first();
   await headerClose.click();
   if ((await modal.getAttribute('data-open')) !== '0') {
