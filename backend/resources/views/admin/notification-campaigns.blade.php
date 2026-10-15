@@ -12,7 +12,7 @@ html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0
 .panel,.card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm);padding:18px}.panel{margin-bottom:16px}.cards{display:grid;gap:14px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}.span2{grid-column:span 2}
 label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);margin-bottom:6px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff;color:inherit}textarea{min-height:96px;resize:vertical}
-.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{border:1px solid var(--foodex-green);background:var(--foodex-action-green);color:#fff}.secondary{border:1px solid var(--foodex-green);background:#fff;color:var(--foodex-green-dark)}.danger{border:1px solid #fecaca;background:#fff;color:#991b1b}.row-actions{position:relative;display:inline-block;margin-top:12px}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green);border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu form{margin:0 0 6px}.row-action-menu form:last-child{margin-bottom:0}.row-action-menu button{width:100%}
+.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{border:1px solid var(--foodex-green);background:var(--foodex-action-green);color:#fff}.secondary{border:1px solid var(--foodex-green);background:#fff;color:var(--foodex-green-dark)}.danger{border:1px solid #fecaca;background:#fff;color:#991b1b}.row-actions{position:relative;display:inline-block;margin-top:12px}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green);border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu form{margin:0 0 6px}.row-action-menu form:last-child{margin-bottom:0}.row-action-menu button,.row-action-menu .action-link{width:100%}.action-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.review-note{margin:0 0 14px}.recipient-list{margin:8px 0 0;padding-inline-start:20px}.review-actions{margin-top:14px}.review-actions form{margin:0}
 .badge{display:inline-flex;padding:4px 9px;border-radius:999px;background:#eef2f7;font-size:.78rem;font-weight:700}.badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.paused{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.badge.cancelled{background:#fee2e2;color:#991b1b}
 .preview{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.preview>div{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.preview strong{display:block;margin-top:4px}
 .meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.meta div{background:#f8fafc;border-radius:10px;padding:10px}.meta small{display:block;color:var(--foodex-muted)}
@@ -38,7 +38,73 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
     </div>
 
     @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
-    @if($errors->any())<div class="errors"><strong>{{ $errors->first() }}</strong></div>@endif
+    @if($errors->any())<div class="errors" role="alert"><strong>{{ $errors->first() }}</strong></div>@endif
+
+    @if($reviewCampaign && $reviewSummary)
+    <section class="panel" id="campaign-review" aria-labelledby="campaign-review-title">
+        <h2 id="campaign-review-title">{{ __('notifications.review_campaign') }}</h2>
+        <p class="muted review-note">{{ $reviewAction === 'activate' ? __('notifications.review_before_activation') : __('notifications.review_before_send') }}</p>
+
+        <div class="meta">
+            <div><small>{{ __('notifications.effective_audience') }}</small><strong>{{ __('notifications.eligible_accounts', ['count' => $reviewSummary['count']]) }}</strong></div>
+            <div><small>{{ __('notifications.audience') }}</small><strong>{{ __('notifications.audience_options.'.$reviewCampaign->audience) }}</strong></div>
+            <div><small>{{ __('notifications.app') }}</small><strong>{{ __('notifications.app_options.'.$reviewCampaign->app) }}</strong></div>
+            <div><small>{{ __('notifications.business_channel') }}</small><strong>{{ __('notifications.channel_options.'.$reviewCampaign->target_channel) }}</strong></div>
+            <div><small>{{ __('notifications.store') }}</small><strong>{{ $reviewStoreName }}</strong></div>
+            <div><small>{{ __('notifications.delivery_channel') }}</small><strong>{{ __('notifications.delivery_options.'.$reviewCampaign->delivery_channel) }}</strong></div>
+        </div>
+
+        <h3>{{ __('notifications.schedule_review') }}</h3>
+        <div class="meta">
+            <div><small>{{ __('notifications.timezone') }}</small><strong>{{ __('notifications.timezone_kuwait') }}</strong></div>
+            <div><small>{{ __('notifications.schedule_kind') }}</small><strong>{{ __('notifications.'.$reviewCampaign->schedule_kind) }}</strong></div>
+            <div><small>{{ __('notifications.starts_at') }}</small><strong>{{ $reviewCampaign->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}</strong></div>
+            <div><small>{{ __('notifications.next_run') }}</small><strong>{{ ($reviewCampaign->next_run_at ?? $reviewCampaign->starts_at)?->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}</strong></div>
+            <div><small>{{ __('notifications.interval_unit') }}</small><strong>@if($reviewCampaign->schedule_kind === 'recurring'){{ $reviewCampaign->interval_value }} {{ __('notifications.'.$reviewCampaign->interval_unit) }}@else{{ __('notifications.once') }}@endif</strong></div>
+            <div><small>{{ __('notifications.ends_at') }}</small><strong>{{ $reviewCampaign->ends_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') ?? __('notifications.not_scheduled_to_end') }}</strong></div>
+            <div><small>{{ __('notifications.max_runs') }}</small><strong>{{ $reviewCampaign->max_runs ?? __('notifications.no_run_limit') }}</strong></div>
+        </div>
+
+        <div class="preview">
+            <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $reviewCampaign->title_ar }}</strong><p>{{ $reviewCampaign->body_ar }}</p></div> {{-- localization-gate: allow intentional bilingual delivery review --}}
+            <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $reviewCampaign->title_en }}</strong><p>{{ $reviewCampaign->body_en }}</p></div> {{-- localization-gate: allow intentional bilingual delivery review --}}
+        </div>
+
+        @if($reviewSummary['sample'] !== [])
+            <div>
+                <strong>{{ __('notifications.audience_sample') }}</strong>
+                <ul class="recipient-list">
+                    @foreach($reviewSummary['sample'] as $recipient)
+                        <li>{{ $recipient['name'] }} · {{ $recipient['email'] }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if($reviewSummary['count'] > 0)
+            <div class="row review-actions">
+                @if($reviewAction === 'activate')
+                    <form method="post" action="{{ route('admin.notification-campaigns.state', $reviewCampaign) }}" class="js-reviewed-mutation">
+                        @csrf
+                        <input type="hidden" name="state" value="active">
+                        <input type="hidden" name="review_token" value="{{ $reviewToken }}">
+                        <button class="primary" type="submit" data-busy-label="{{ __('notifications.processing_action') }}">{{ __('notifications.confirm_activate') }}</button>
+                    </form>
+                @else
+                    <form method="post" action="{{ route('admin.notification-campaigns.send-now', $reviewCampaign) }}" class="js-reviewed-mutation">
+                        @csrf
+                        <input type="hidden" name="review_token" value="{{ $reviewToken }}">
+                        <button class="primary" type="submit" data-busy-label="{{ __('notifications.processing_action') }}">{{ __('notifications.confirm_send_now') }}</button>
+                    </form>
+                @endif
+                <a class="secondary action-link" href="{{ route('admin.notification-campaigns.index') }}">{{ __('notifications.back_without_action') }}</a>
+            </div>
+        @else
+            <div class="errors" role="alert"><strong>{{ __('notifications.empty_effective_audience') }}</strong><div>{{ __('notifications.review_empty_help') }}</div></div>
+            <a class="secondary action-link" href="{{ route('admin.notification-campaigns.index') }}">{{ __('notifications.back_without_action') }}</a>
+        @endif
+    </section>
+    @endif
 
     <section class="panel">
         <h2>{{ __('notifications.create_campaign') }}</h2>
@@ -71,11 +137,11 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
                 <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
 
-                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="عنوان الحملة بالعربية"></div>
-                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="Campaign title in English"></div>
+                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="{{ __('notifications.title_ar_placeholder') }}"></div> {{-- localization-gate: allow explicit bilingual authoring field --}}
+                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="{{ __('notifications.title_en_placeholder') }}"></div> {{-- localization-gate: allow explicit bilingual authoring field --}}
                 <div class="full preview">
-                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
-                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
+                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="{{ __('notifications.body_ar_placeholder') }}"></textarea></div>
+                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="{{ __('notifications.body_en_placeholder') }}"></textarea></div>
                             <div><label>{{ __('notifications.campaign_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
                 </div>
 
@@ -86,8 +152,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div class="js-recurring"><label>{{ __('notifications.interval_unit') }}</label><select name="interval_unit">@foreach(['minute','hour','day','week','month'] as $v)<option value="{{ $v }}">{{ __('notifications.'.$v) }}</option>@endforeach</select></div>
                 <div class="js-recurring"><label>{{ __('notifications.max_runs') }}</label><input name="max_runs" type="number" min="1" placeholder="{{ __('notifications.max_runs_placeholder') }}"></div>
                 <div class="full row">
-                    <label style="display:flex;align-items:center;gap:8px;margin:0"><input style="width:auto;min-height:auto" type="checkbox" name="activate" value="1" checked> {{ __('notifications.activate_now') }}</label>
-                    <button class="primary" type="submit">{{ __('notifications.save_campaign') }}</button>
+                    <button class="primary" type="submit" data-busy-label="{{ __('notifications.processing_action') }}">{{ __('notifications.save_campaign') }}</button>
                 </div>
             </div>
         </form>
@@ -175,12 +240,12 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
                 <div class="row-action-menu">
                     @if(!in_array($campaign->status,['completed','cancelled'],true))
-                        <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
+                        <a class="primary action-link" href="{{ route('admin.notification-campaigns.index', ['review_campaign' => $campaign->id, 'review_action' => 'send_now']) }}#campaign-review">{{ __('notifications.send_now') }}</a>
                     @endif
                     @if($campaign->status==='active')
                         <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
                     @elseif(!in_array($campaign->status,['completed','cancelled'],true))
-                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="active"><button class="secondary">{{ __('notifications.activate') }}</button></form>
+                        <a class="secondary action-link" href="{{ route('admin.notification-campaigns.index', ['review_campaign' => $campaign->id, 'review_action' => 'activate']) }}#campaign-review">{{ __('notifications.activate') }}</a>
                     @endif
                     @if($campaign->status!=='cancelled')
                         <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="cancelled"><button class="danger">{{ __('notifications.cancel') }}</button></form>
@@ -238,6 +303,32 @@ document.querySelectorAll('.js-campaign-form').forEach((form)=>{
     if(target?.tagName==='SELECT') target.addEventListener('change',syncStores);
     syncSchedule();
     syncStores();
+    form.addEventListener('submit',(event)=>{
+        if(form.dataset.submitting==='1'){
+            event.preventDefault();
+            return;
+        }
+        form.dataset.submitting='1';
+        form.querySelectorAll('button[type="submit"]').forEach((button)=>{
+            button.disabled=true;
+            button.setAttribute('aria-disabled','true');
+            if(button.dataset.busyLabel) button.textContent=button.dataset.busyLabel;
+        });
+    });
+});
+document.querySelectorAll('.js-reviewed-mutation').forEach((form)=>{
+    form.addEventListener('submit',(event)=>{
+        if(form.dataset.submitting==='1'){
+            event.preventDefault();
+            return;
+        }
+        form.dataset.submitting='1';
+        form.querySelectorAll('button[type="submit"]').forEach((button)=>{
+            button.disabled=true;
+            button.setAttribute('aria-disabled','true');
+            if(button.dataset.busyLabel) button.textContent=button.dataset.busyLabel;
+        });
+    });
 });
 </script>
 @include('admin._engagement-destination-script')

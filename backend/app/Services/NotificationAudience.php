@@ -12,6 +12,113 @@ final class NotificationAudience
 
     public function apply(Builder $query, User $user): Builder
     {
+        $context = $this->context($user);
+        $isCustomer = $context['is_customer'];
+        $isDriver = $context['is_driver'];
+        $isVan = $context['is_van'];
+        $apps = $context['apps'];
+        $channels = $context['channels'];
+        $storeIds = $context['store_ids'];
+
+        return $query
+            ->where('status', 'published')
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->where(function (Builder $audience) use ($user, $isCustomer, $isDriver, $isVan): void {
+                $audience->where('audience', 'all')
+                    ->orWhere('user_id', $user->id);
+
+                if ($isCustomer) {
+                    $audience->orWhere('audience', 'customer');
+                }
+
+                if ($isDriver) {
+                    $audience->orWhere('audience', 'driver');
+                }
+
+                if ($isVan) {
+                    $audience->orWhere('audience', 'van');
+                }
+            })
+            ->where(function (Builder $app) use ($apps): void {
+                $app->where('app', 'all');
+                if ($apps !== []) {
+                    $app->orWhereIn('app', array_values(array_unique($apps)));
+                }
+            })
+            ->where(function (Builder $channel) use ($channels): void {
+                $channel->where('target_channel', 'all');
+                if ($channels !== []) {
+                    $channel->orWhereIn('target_channel', array_values(array_unique($channels)));
+                }
+            })
+            ->where(function (Builder $scope) use ($user, $storeIds): void {
+                $scope->whereNull('store_id')
+                    ->orWhere('user_id', $user->id);
+
+                if ($storeIds !== []) {
+                    $scope->orWhereIn('store_id', $storeIds);
+                }
+            })
+            ->where(function (Builder $targeting) use ($user): void {
+                $targeting->whereNull('data->eligible_user_ids')
+                    ->orWhereJsonContains('data->eligible_user_ids', (int) $user->id);
+            });
+    }
+
+    public function matchesTarget(
+        User $user,
+        string $audience,
+        string $app,
+        string $targetChannel,
+        ?int $storeId = null,
+        ?int $targetUserId = null,
+    ): bool {
+        if (! $user->is_active) {
+            return false;
+        }
+
+        $context = $this->context($user);
+        $audienceMatches = match ($audience) {
+            'all' => true,
+            'customer' => $context['is_customer'],
+            'driver' => $context['is_driver'],
+            'van' => $context['is_van'],
+            'user' => $targetUserId !== null && (int) $user->getKey() === $targetUserId,
+            default => false,
+        };
+
+        if (! $audienceMatches) {
+            return false;
+        }
+
+        if ($app !== 'all' && ! in_array($app, $context['apps'], true)) {
+            return false;
+        }
+
+        if ($targetChannel !== 'all' && ! in_array($targetChannel, $context['channels'], true)) {
+            return false;
+        }
+
+        if ($storeId === null || ($targetUserId !== null && (int) $user->getKey() === $targetUserId)) {
+            return true;
+        }
+
+        return in_array($storeId, $context['store_ids'], true);
+    }
+
+    /**
+     * @return array{
+     *     is_customer: bool,
+     *     is_driver: bool,
+     *     is_van: bool,
+     *     apps: list<string>,
+     *     channels: list<string>,
+     *     store_ids: list<int>
+     * }
+     */
+    private function context(User $user): array
+    {
         $customerChannels = collect(
             DB::table('customers')
                 ->where('user_id', $user->id)
@@ -124,49 +231,13 @@ final class NotificationAudience
             ->values()
             ->all();
 
-        return $query
-            ->where('status', 'published')
-            ->whereNotNull('published_at')
-            ->where('published_at', '<=', now())
-            ->where(function (Builder $audience) use ($user, $isCustomer, $isDriver, $isVan): void {
-                $audience->where('audience', 'all')
-                    ->orWhere('user_id', $user->id);
-
-                if ($isCustomer) {
-                    $audience->orWhere('audience', 'customer');
-                }
-
-                if ($isDriver) {
-                    $audience->orWhere('audience', 'driver');
-                }
-
-                if ($isVan) {
-                    $audience->orWhere('audience', 'van');
-                }
-            })
-            ->where(function (Builder $app) use ($apps): void {
-                $app->where('app', 'all');
-                if ($apps !== []) {
-                    $app->orWhereIn('app', array_values(array_unique($apps)));
-                }
-            })
-            ->where(function (Builder $channel) use ($channels): void {
-                $channel->where('target_channel', 'all');
-                if ($channels !== []) {
-                    $channel->orWhereIn('target_channel', array_values(array_unique($channels)));
-                }
-            })
-            ->where(function (Builder $scope) use ($user, $storeIds): void {
-                $scope->whereNull('store_id')
-                    ->orWhere('user_id', $user->id);
-
-                if ($storeIds !== []) {
-                    $scope->orWhereIn('store_id', $storeIds);
-                }
-            })
-            ->where(function (Builder $targeting) use ($user): void {
-                $targeting->whereNull('data->eligible_user_ids')
-                    ->orWhereJsonContains('data->eligible_user_ids', (int) $user->id);
-            });
+        return [
+            'is_customer' => $isCustomer,
+            'is_driver' => $isDriver,
+            'is_van' => $isVan,
+            'apps' => array_values(array_unique($apps)),
+            'channels' => array_values(array_unique($channels)),
+            'store_ids' => $storeIds,
+        ];
     }
 }
