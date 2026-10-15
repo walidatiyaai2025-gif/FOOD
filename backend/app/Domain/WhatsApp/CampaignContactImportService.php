@@ -438,8 +438,9 @@ final class CampaignContactImportService
         return true;
     }
 
-    /** @param list<string> $headers
-     * @return array{name:?string,phone:?string,email:?string}
+    /**
+     * @param  list<string>  $headers
+     * @return array{name:?string,phone:?string,email:?string,consent_state:?string,consent_source:?string,consent_evidence:?string,consent_date:?string}
      */
     private function detectMapping(array $headers): array
     {
