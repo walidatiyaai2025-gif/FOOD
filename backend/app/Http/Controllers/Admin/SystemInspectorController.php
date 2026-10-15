@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Throwable;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 final class SystemInspectorController extends Controller
 {
