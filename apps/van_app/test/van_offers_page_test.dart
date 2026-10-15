@@ -33,6 +33,10 @@ void main() {
     expect(find.byKey(const Key('van-offer-10')), findsOneWidget);
     expect(find.text('Flash Offer'), findsOneWidget);
     expect(find.text('Normal offer'), findsOneWidget);
+    expect(find.textContaining('Sparkling Water'), findsOneWidget);
+    expect(find.textContaining('Carton'), findsOneWidget);
+    expect(find.textContaining('Product #99'), findsNothing);
+    expect(find.textContaining('CARTON'), findsNothing);
     expect(find.byKey(const Key('van-commercial-override-50')), findsNothing);
     expect(find.byType(Dialog), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
@@ -50,12 +54,44 @@ void main() {
     );
     expect(find.byType(Dialog), findsNothing);
   });
+
+  testWidgets('Van offers use safe labels when legacy display names are missing',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: VanOffersPage(
+            session: const VanSession(
+              token: 'token',
+              name: 'Van Operator',
+              email: 'van@example.test',
+              locale: 'en',
+              permissions: {'van.login'},
+            ),
+            commercialRepository:
+                const _CommercialRepository(includeBusinessLabels: false),
+            customerRepository: const _CustomerRepository(),
+            onSessionExpired: _noop,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Product ·'), findsOneWidget);
+    expect(find.textContaining('· Unit'), findsOneWidget);
+    expect(find.textContaining('Product #99'), findsNothing);
+    expect(find.textContaining('CARTON'), findsNothing);
+  });
 }
 
 Future<void> _noop() async {}
 
 class _CommercialRepository implements VanCommercialRepository {
-  const _CommercialRepository();
+  const _CommercialRepository({this.includeBusinessLabels = true});
+
+  final bool includeBusinessLabels;
 
   @override
   Future<VanCommercialOfferFeed> offersFor(VanCustomerScope customer) async {
@@ -85,6 +121,8 @@ class _CommercialRepository implements VanCommercialRepository {
               id: 50,
               productId: 99,
               sellingUnitCode: 'CARTON',
+              productName: includeBusinessLabels ? 'Sparkling Water' : null,
+              sellingUnitName: includeBusinessLabels ? 'Carton' : null,
               conversionFactor: 10,
               flashPrice: 7,
             ),
