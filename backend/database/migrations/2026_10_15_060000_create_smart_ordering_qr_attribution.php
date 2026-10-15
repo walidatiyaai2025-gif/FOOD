@@ -63,6 +63,7 @@ return new class extends Migration
             $table->string('campaign_snapshot', 120)->nullable()->index();
             $table->string('branch_reference_snapshot', 120)->nullable();
             $table->string('table_reference_snapshot', 120)->nullable();
+            $table->string('referrer_snapshot', 1024)->nullable();
             $table->timestamp('landing_at')->index();
             $table->timestamp('storefront_viewed_at')->nullable();
             $table->timestamp('cart_started_at')->nullable();
