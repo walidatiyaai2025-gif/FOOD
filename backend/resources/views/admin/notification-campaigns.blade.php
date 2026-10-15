@@ -56,7 +56,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
         <h3>{{ __('notifications.schedule_review') }}</h3>
         <div class="meta">
-            <div><small>{{ __('notifications.timezone') }}</small><strong>Asia/Kuwait</strong></div>
+            <div><small>{{ __('notifications.timezone') }}</small><strong>{{ __('notifications.timezone_kuwait') }}</strong></div>
             <div><small>{{ __('notifications.schedule_kind') }}</small><strong>{{ __('notifications.'.$reviewCampaign->schedule_kind) }}</strong></div>
             <div><small>{{ __('notifications.starts_at') }}</small><strong>{{ $reviewCampaign->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}</strong></div>
             <div><small>{{ __('notifications.next_run') }}</small><strong>{{ ($reviewCampaign->next_run_at ?? $reviewCampaign->starts_at)?->timezone('Asia/Kuwait')->format('Y-m-d H:i') }}</strong></div>
