@@ -143,7 +143,7 @@ final class EnterpriseSupplierFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      * @return array{User, Store, ResolvedTenantContext}
      */
     private function scopedUser(array $permissions, string $storeCode): array
@@ -181,7 +181,7 @@ final class EnterpriseSupplierFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      * @return array{User, Store, ResolvedTenantContext}
      */
     private function scopedUserInNewOrganization(array $permissions, string $storeCode): array
