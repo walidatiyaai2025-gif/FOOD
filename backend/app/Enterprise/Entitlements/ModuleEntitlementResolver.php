@@ -61,13 +61,25 @@ final class ModuleEntitlementResolver
                 return $this->memo[$memoKey] = false;
             }
 
-            $capabilities = $entitlement->getAttribute('capabilities');
-            if ($capability === null || $capabilities === null) {
+            $rawCapabilities = $entitlement->getRawOriginal('capabilities');
+            if ($capability === null || $rawCapabilities === null) {
                 return $this->memo[$memoKey] = true;
             }
 
-            if (! is_array($capabilities)) {
+            if (is_string($rawCapabilities) === false) {
                 return $this->memo[$memoKey] = false;
+            }
+
+            $decodedCapabilities = json_decode($rawCapabilities, true);
+            if (is_array($decodedCapabilities) === false) {
+                return $this->memo[$memoKey] = false;
+            }
+
+            $capabilities = [];
+            foreach ($decodedCapabilities as $value) {
+                if (is_string($value)) {
+                    $capabilities[] = $value;
+                }
             }
 
             return $this->memo[$memoKey] = in_array($capability, $capabilities, true);
