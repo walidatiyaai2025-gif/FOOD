@@ -349,7 +349,8 @@ $businessLabel = static function ($value): string {
 @if($editOptions['selected_address'])
 <option value="{{ $editOptions['selected_address']['id'] }}" selected>{{ $editOptions['selected_address']['label'] }}@if(($editOptions['selected_address']['active'] ?? true) === false) · {{ __('order_operations.lookup.selected_unavailable') }}@endif</option>
 @endif
-</select><small data-edit-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small></label>
+</select><small data-edit-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-edit-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button></label>
 <label class="new-order-field"><span>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</span><select name="payment_method" required>
 @foreach($newOrderWizard['payment_methods'] as $method)<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>@endforeach
 </select></label>
@@ -549,21 +550,21 @@ document.addEventListener('DOMContentLoaded',()=>{
    let timer=null,page=1,query='',controller=null,sequence=0;
    const load=async(nextQuery=query,nextPage=1,keepId=null)=>{
      controller?.abort();controller=new AbortController();const mine=++sequence;
-     status.textContent=labels.searching;select.disabled=true;
+     status.textContent=labels.searching;more.dataset.retry='0';more.textContent=@json(__('order_operations.lookup.load_more'));select.disabled=true;
      try{
        const result=await fetchLookup('product',{q:nextQuery,page:nextPage,selected_id:keepId},controller.signal);
        if(mine!==sequence)return;
        query=nextQuery;page=nextPage;
        applyOptions(select,result.items,{append:nextPage>1,selectedId:keepId});
-       select.disabled=false;status.textContent=result.items.length?labels.help:labels.empty;more.hidden=!result.has_more;
+       select.disabled=false;status.textContent=result.items.length?labels.help:labels.empty;more.dataset.retry='0';more.textContent=@json(__('order_operations.lookup.load_more'));more.hidden=!result.has_more;
        if(keepId)select.value=String(keepId);
      }catch(error){
        if(error.name==='AbortError')return;
-       select.disabled=false;status.textContent=labels.failed;more.hidden=true;
+       select.disabled=false;status.textContent=labels.failed;more.dataset.retry='1';more.textContent=@json(__('order_operations.lookup.retry'));more.hidden=false;
      }
    };
    search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>load(search.value.trim(),1),250);});
-   more.addEventListener('click',()=>load(query,page+1));
+   more.addEventListener('click',()=>load(query,more.dataset.retry==='1'?page:page+1));
    if(select.options.length<=1||selectedId!==null)load('',1,selectedId);
  };
  const reindex=()=>box.querySelectorAll('[data-edit-order-line]').forEach((row,index)=>{
@@ -590,36 +591,38 @@ document.addEventListener('DOMContentLoaded',()=>{
  const customerMore=form.querySelector('[data-edit-customer-more]');
  const address=form.querySelector('[data-edit-address]');
  const addressStatus=form.querySelector('[data-edit-address-status]');
+ const addressRetry=form.querySelector('[data-edit-address-retry]');
  let customerTimer=null,customerPage=1,customerQuery='',customerController=null,customerSequence=0,addressController=null;
  const loadCustomers=async(query=customerQuery,page=1)=>{
    customerController?.abort();customerController=new AbortController();const mine=++customerSequence;
-   customerStatus.textContent=labels.searching;customer.disabled=true;
+   customerStatus.textContent=labels.searching;customerMore.dataset.retry='0';customerMore.textContent=@json(__('order_operations.lookup.load_more'));customer.disabled=true;
    try{
      const result=await fetchLookup('customer',{q,page,selected_id:customer.value||null},customerController.signal);
      if(mine!==customerSequence)return;
      customerQuery=query;customerPage=page;applyOptions(customer,result.items,{append:page>1,selectedId:customer.value||null,placeholder:''});
-     customer.disabled=false;customerStatus.textContent=result.items.length?labels.help:labels.empty;customerMore.hidden=!result.has_more;
+     customer.disabled=false;customerStatus.textContent=result.items.length?labels.help:labels.empty;customerMore.dataset.retry='0';customerMore.textContent=@json(__('order_operations.lookup.load_more'));customerMore.hidden=!result.has_more;
    }catch(error){
      if(error.name==='AbortError')return;
-     customer.disabled=false;customerStatus.textContent=labels.failed;customerMore.hidden=true;
+     customer.disabled=false;customerStatus.textContent=labels.failed;customerMore.dataset.retry='1';customerMore.textContent=@json(__('order_operations.lookup.retry'));customerMore.hidden=false;
    }
  };
  const loadAddresses=async()=>{
    addressController?.abort();addressController=new AbortController();const customerId=customer.value;
    address.innerHTML='';address.append(new Option(labels.pickup,''));
    if(!customerId){address.disabled=true;return;}
-   address.disabled=true;addressStatus.textContent=labels.searching;
+   address.disabled=true;addressRetry.hidden=true;addressStatus.textContent=labels.searching;
    try{
      const result=await fetchLookup('address',{customer_id:customerId},addressController.signal);
      applyOptions(address,result.items,{placeholder:labels.pickup});
-     address.disabled=false;addressStatus.textContent=result.items.length?labels.help:labels.empty;
+     address.disabled=false;addressRetry.hidden=true;addressStatus.textContent=result.items.length?labels.help:labels.empty;
    }catch(error){
      if(error.name==='AbortError')return;
-     address.disabled=false;addressStatus.textContent=labels.failed;
+     address.disabled=false;addressStatus.textContent=labels.failed;addressRetry.hidden=false;
    }
  };
  customerSearch?.addEventListener('input',()=>{clearTimeout(customerTimer);customerTimer=setTimeout(()=>loadCustomers(customerSearch.value.trim(),1),250);});
- customerMore?.addEventListener('click',()=>loadCustomers(customerQuery,customerPage+1));
+ customerMore?.addEventListener('click',()=>loadCustomers(customerQuery,customerMore.dataset.retry==='1'?customerPage:customerPage+1));
+ addressRetry?.addEventListener('click',loadAddresses);
  customer?.addEventListener('change',loadAddresses);
  reindex();
 });
