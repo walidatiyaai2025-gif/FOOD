@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/carts', [SmartOrderingController::class, 'createCart'])->name('carts.create');
 Route::get('/carts/{cart}', [SmartOrderingController::class, 'showCart'])->whereUuid('cart')->name('carts.show');
 Route::post('/carts/{cart}/items', [SmartOrderingController::class, 'addItem'])->whereUuid('cart')->name('carts.items.add');
-Route::post('/carts/{cart}/menu-items/{item}', [SmartOrderingController::class, 'addMenuItem')
+Route::post('/carts/{cart}/menu-items/{item}', [SmartOrderingController::class, 'addMenuItem'])
     ->whereUuid('cart')->whereUuid('item')->name('carts.menu-items.add');
 Route::patch('/carts/{cart}/items/{item}', [SmartOrderingController::class, 'updateItem'])
     ->whereUuid('cart')->whereUuid('item')->name('carts.items.update');
