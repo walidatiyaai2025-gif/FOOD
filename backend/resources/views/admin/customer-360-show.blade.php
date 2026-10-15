@@ -173,6 +173,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <span id="c360-finance-invoice-help" class="c360-invoice-picker-help">{{ __('customer_360.finance.invoice_search_help') }}</span>
 <span id="c360-finance-invoice-status" class="c360-invoice-picker-status" role="status" aria-live="polite" data-finance-invoice-status></span>
+<button type="button" class="foodex-action-secondary button secondary" data-finance-invoice-retry hidden>{{ __('customer_360.finance.invoice_retry') }}</button>
 <div id="c360-finance-invoice-results" class="c360-invoice-results" role="listbox" aria-label="{{ __('customer_360.finance.invoice_results_aria') }}" data-finance-invoice-results hidden></div>
 </div>
 <label class="wide"><small>{{ __('customer_360.finance.description') }}</small><input name="description" maxlength="500"></label>
@@ -409,6 +410,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
         const results = financeInvoicePicker.querySelector('[data-finance-invoice-results]');
         const status = financeInvoicePicker.querySelector('[data-finance-invoice-status]');
         const clear = financeInvoicePicker.querySelector('[data-finance-invoice-clear]');
+        const retry = financeInvoicePicker.querySelector('[data-finance-invoice-retry]');
         const endpoint = financeInvoicePicker.dataset.url;
         let controller = null;
         let timer = null;
@@ -484,6 +486,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
             controller?.abort();
             controller = new AbortController();
             status.textContent = @json(__('customer_360.finance.invoice_searching'));
+            retry.hidden = true;
             const url = new URL(endpoint, window.location.origin);
             if (!selectedOnly) url.searchParams.set('q', search.value.trim());
             if (hidden.value) url.searchParams.set('selected_id', hidden.value);
@@ -498,14 +501,17 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
                     selectInvoice(payload.selected);
                     return;
                 }
+                retry.hidden = true;
                 renderInvoiceResults(Array.isArray(payload.results) ? payload.results : []);
             } catch (error) {
                 if (error?.name === 'AbortError' || generation !== requestGeneration) return;
                 closeInvoiceResults();
                 status.textContent = @json(__('customer_360.finance.invoice_search_failed'));
+                retry.hidden = false;
             }
         };
 
+        retry.addEventListener('click', () => loadInvoices());
         search.addEventListener('input', () => {
             if (hidden.value) {
                 hidden.value = '';
@@ -535,6 +541,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
             search.value = '';
             clear.hidden = true;
             status.textContent = '';
+            retry.hidden = true;
             closeInvoiceResults();
             search.focus();
         });
