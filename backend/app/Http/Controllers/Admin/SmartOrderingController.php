@@ -123,6 +123,19 @@ final class SmartOrderingController extends Controller
         return back()->with('status', __('smart_ordering.saved'));
     }
 
+    public function verifyCustomDomain(
+        Request $request,
+        SmartOrderingSite $site,
+        SmartOrderingSiteService $sites,
+        TenantContextResolver $tenants,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $data = $request->validate(['verification_token' => ['required', 'string', 'max:191']]);
+        $sites->verifyCustomDomain($actor, $site, (string) $data['verification_token'], $request);
+
+        return back()->with('status', __('smart_ordering.domain_verified'));
+    }
+
     public function draft(
         Request $request,
         SmartOrderingSite $site,
