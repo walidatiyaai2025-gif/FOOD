@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 
@@ -7,7 +8,12 @@ void main() {
   test('FOODEX driver theme uses canonical brand tokens', () {
     final theme = FoodexTheme.light();
 
+    expect(FoodexBrand.green, const Color(0xFF148638));
+    expect(FoodexBrand.red, const Color(0xFFB42318));
     expect(theme.colorScheme.primary, FoodexBrand.green);
+    expect(theme.colorScheme.onPrimary, Colors.white);
+    expect(theme.colorScheme.error, FoodexBrand.red);
+    expect(theme.colorScheme.onError, Colors.white);
     expect(theme.colorScheme.secondary, FoodexBrand.orange);
     expect(theme.scaffoldBackgroundColor, FoodexBrand.background);
     expect(theme.navigationBarTheme.indicatorColor, FoodexBrand.greenSoft);
