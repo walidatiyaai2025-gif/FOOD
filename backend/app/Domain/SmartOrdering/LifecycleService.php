@@ -72,6 +72,11 @@ final class LifecycleService
                 $this->commercialPolicy->releaseOrderReservations((int) $order->getKey());
             } elseif ($target === 'COMPLETED') {
                 $this->inventory->consume($order, (int) $actor->getKey());
+                DB::table('commercial_quota_reservations')
+                    ->where('order_id', $order->getKey())
+                    ->where('status', CommercialPolicyService::RESERVATION_RESERVED)
+                    ->pluck('reservation_token')
+                    ->each(fn (string $token) => $this->commercialPolicy->consumeReservation($token));
             }
 
             $canonical = self::CANONICAL_STATUS[$target];
