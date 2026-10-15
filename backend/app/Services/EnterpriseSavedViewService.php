@@ -23,9 +23,7 @@ final class EnterpriseSavedViewService
         'store',
     ];
 
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     /**
      * @return Collection<int, EnterpriseSavedView>
