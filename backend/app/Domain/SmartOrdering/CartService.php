@@ -5,6 +5,7 @@ namespace App\Domain\SmartOrdering;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -51,7 +52,8 @@ final class CartService
             ->firstOrFail();
 
         abort_unless(hash_equals((string) $cart->token_hash, hash('sha256', $token)), 404);
-        abort_if($cart->expires_at !== null && $cart->expires_at->isPast(), 410, 'Cart expired.');
+        $expiresAt = $cart->expires_at === null ? null : CarbonImmutable::parse((string) $cart->expires_at);
+        abort_if($expiresAt?->isPast() === true, 410, 'Cart expired.');
 
         return $cart;
     }
@@ -160,7 +162,9 @@ final class CartService
                 'name' => (string) $branch->name,
             ],
             'revision_public_id' => $cart->revision_public_id,
-            'expires_at' => $cart->expires_at?->toAtomString(),
+            'expires_at' => $cart->expires_at === null
+                ? null
+                : CarbonImmutable::parse((string) $cart->expires_at)->toAtomString(),
             'items' => $items,
             'quote' => $this->preview($cart),
         ];
