@@ -30,11 +30,16 @@
 <body>
 @php
     $isAr = app()->getLocale()==='ar';
+    $localized = static function ($model, string $field = 'name') use ($isAr): string {
+        $primary = data_get($model, $field.'_'.($isAr ? 'ar' : 'en'));
+        $fallback = data_get($model, $field.'_'.($isAr ? 'en' : 'ar'));
+        return trim((string) ($primary ?: $fallback ?: ''));
+    };
     $allCategories = $menus->flatMap(fn($menu) => $menu->categories);
     $allItems = $allCategories->flatMap(fn($category) => $category->items);
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-menu">
-    <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside>
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
         <header class="foodex-page-header">
             <div>
@@ -73,18 +78,18 @@
                 @csrf
                 <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <div class="so-grid">
-                    <label>{{ $isAr ? 'الاسم بالعربية' : 'Arabic name' }}<input class="foodex-control" name="name_ar"></label>
-                    <label>{{ $isAr ? 'الاسم بالإنجليزية' : 'English name' }}<input class="foodex-control" name="name_en" required></label>
+                    <label>{{ $isAr ? 'الاسم بالعربية' : 'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                    <label>{{ $isAr ? 'الاسم بالإنجليزية' : 'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                     <label>{{ $isAr ? 'الترتيب' : 'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
                 </div>
                 <div class="so-grid">
-                    <label>{{ $isAr ? 'الوصف بالعربية' : 'Arabic description' }}<textarea class="foodex-control" name="description_ar"></textarea></label>
-                    <label>{{ $isAr ? 'الوصف بالإنجليزية' : 'English description' }}<textarea class="foodex-control" name="description_en"></textarea></label>
+                    <label>{{ $isAr ? 'الوصف بالعربية' : 'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label>
+                    <label>{{ $isAr ? 'الوصف بالإنجليزية' : 'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label>
                 </div>
                 <div class="so-flags">
                     <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr ? 'ظاهرة' : 'Visible' }}</label>
                     <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1"> {{ $isAr ? 'افتراضية' : 'Default' }}</label>
-                    @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}"> {{ $branch->name_ar ?: $branch->name_en }}</label>@endforeach
+                    @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}"> {{ $localized(branch, 'name') }}</label>@endforeach
                 </div>
                 <button class="primary" type="submit">{{ $isAr ? 'إضافة المنيو' : 'Add menu' }}</button>
             </form>
@@ -111,8 +116,8 @@
                 </div>
                 <label>{{ $isAr ? 'السجلات' : 'Records' }}
                     <select class="foodex-control so-bulk-select" name="public_ids[]" multiple required data-bulk-records>
-                        @foreach($allItems as $item)<option value="{{ $item->public_id }}" data-entity="items">{{ $item->name_ar ?: $item->name_en }}</option>@endforeach
-                        @foreach($allCategories as $category)<option value="{{ $category->public_id }}" data-entity="categories">{{ $category->name_ar ?: $category->name_en }}</option>@endforeach
+                        @foreach($allItems as $item)<option value="{{ $item->public_id }}" data-entity="items">{{ $localized(item, 'name') }}</option>@endforeach
+                        @foreach($allCategories as $category)<option value="{{ $category->public_id }}" data-entity="categories">{{ $localized(category, 'name') }}</option>@endforeach
                     </select>
                 </label>
                 <button class="primary" type="submit">{{ $isAr ? 'تطبيق' : 'Apply' }}</button>
@@ -124,23 +129,23 @@
 
             @forelse($menus as $menu)
             <article class="so-menu">
-                <div class="so-section-title"><h3>{{ $menu->name_ar ?: $menu->name_en }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
+                <div class="so-section-title"><h3>{{ $localized(menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
                 <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <div class="so-grid">
-                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar" value="{{ $menu->name_ar }}"></label>
-                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" value="{{ $menu->name_en }}" required></label>
+                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $menu->name_ar }}"></label>
+                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $menu->name_en }}" required></label>
                         <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $menu->sort_order }}" required></label>
                     </div>
                     <div class="so-grid">
-                        <label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" name="description_ar">{{ $menu->description_ar }}</textarea></label>
-                        <label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" name="description_en">{{ $menu->description_en }}</textarea></label>
+                        <label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $menu->description_ar }}</textarea></label>
+                        <label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $menu->description_en }}</textarea></label>
                     </div>
                     <div class="so-flags">
                         <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($menu->is_visible)> {{ $isAr?'ظاهرة':'Visible' }}</label>
                         <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1" @checked($menu->is_default)> {{ $isAr?'افتراضية':'Default' }}</label>
-                        @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array((int)$branch->id,$menuBranchIds[$menu->id] ?? [],true))> {{ $branch->name_ar ?: $branch->name_en }}</label>@endforeach
+                        @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array((int)$branch->id,$menuBranchIds[$menu->id] ?? [],true))> {{ $localized(branch, 'name') }}</label>@endforeach
                     </div>
                     <button class="primary" type="submit">{{ $isAr?'حفظ المنيو':'Save menu' }}</button>
                 </form>
@@ -155,13 +160,13 @@
                     <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}">
                         @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                         <div class="so-grid">
-                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar"></label>
-                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" required></label>
+                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                             <label>{{ $isAr?'الأيقونة':'Icon' }}<input class="foodex-control" name="icon" maxlength="64"></label>
                             <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" name="sort_order" min="0" value="0" required></label>
                             <label>{{ $isAr?'الصورة':'Image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                         </div>
-                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" name="description_en"></textarea></label></div>
+                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label></div>
                         <div class="so-flags"><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1"> {{ $isAr?'نفد':'Sold out' }}</label></div>
                         @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>''])
                         <button class="primary" type="submit">{{ $isAr?'إضافة التصنيف':'Add category' }}</button>
@@ -170,18 +175,18 @@
 
                 @foreach($menu->categories as $category)
                 <article class="so-category">
-                    <div class="so-section-title"><h4>{{ $category->name_ar ?: $category->name_en }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
+                    <div class="so-section-title"><h4>{{ $localized(category, 'name') }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
                     <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.update',$category) }}">
                         @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                         <div class="so-grid">
-                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar" value="{{ $category->name_ar }}"></label>
-                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" value="{{ $category->name_en }}" required></label>
+                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $category->name_ar }}"></label>
+                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $category->name_en }}" required></label>
                             <label>{{ $isAr?'الأيقونة':'Icon' }}<input class="foodex-control" name="icon" value="{{ $category->icon }}"></label>
                             <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" name="sort_order" min="0" value="{{ $category->sort_order }}" required></label>
                             <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                             <label class="so-check"><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف الصورة الحالية':'Remove current image' }}</label>
                         </div>
-                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" name="description_ar">{{ $category->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" name="description_en">{{ $category->description_en }}</textarea></label></div>
+                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $category->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $category->description_en }}</textarea></label></div>
                         <div class="so-flags"><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1" @checked($category->sold_out)> {{ $isAr?'نفد':'Sold out' }}</label></div>
                         @include('admin._smart-ordering-schedule-fields',['schedule'=>$category->availability_schedule,'prefix'=>''])
                         <button class="primary" type="submit">{{ $isAr?'حفظ التصنيف':'Save category' }}</button>
@@ -196,7 +201,7 @@
                         <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.categories.branch',$category) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                             <div class="so-grid">
-                                <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id" required>@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $branch->name_ar ?: $branch->name_en }}</option>@endforeach</select></label>
+                                <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id" required>@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
                                 <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                 <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                 <label>{{ $isAr?'ترتيب الفرع':'Branch sort order' }}<input class="foodex-control" type="number" min="0" name="override_sort_order"></label>
@@ -213,8 +218,8 @@
                             @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                             @include('admin._smart-ordering-product-picker',['selectedId'=>null,'selectedLabel'=>'','id'=>'new-item-product-'.$category->id])
                             <div class="so-grid">
-                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar"></label>
-                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" required></label>
+                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                                 <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override"></label>
                                 <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
                                 <label>{{ $isAr?'وقت التحضير بالدقائق':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes"></label>
@@ -223,7 +228,7 @@
                                 <label>{{ $isAr?'الصورة':'Image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                 <label>{{ $isAr?'صور إضافية':'Gallery' }}<input class="foodex-control" type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp"></label>
                             </div>
-                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" name="description_en"></textarea></label><label>{{ $isAr?'الحساسيات مفصولة بفاصلة':'Allergens, comma separated' }}<textarea class="foodex-control" name="allergens_text"></textarea></label><label>{{ $isAr?'مكونات قابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text"></textarea></label></div>
+                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label><label>{{ $isAr?'الحساسيات مفصولة بفاصلة':'Allergens, comma separated' }}<textarea class="foodex-control" name="allergens_text"></textarea></label><label>{{ $isAr?'مكونات قابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text"></textarea></label></div>
                             <div class="so-flags">
                                 @foreach(['featured'=>($isAr?'مميز':'Featured'),'best_seller'=>($isAr?'الأكثر مبيعًا':'Best seller'),'is_new'=>($isAr?'جديد':'New'),'vegetarian'=>($isAr?'نباتي':'Vegetarian'),'sold_out'=>($isAr?'نفد':'Sold out')] as $flag=>$label)<input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1"> {{ $label }}</label>@endforeach
                                 <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label>
@@ -236,14 +241,14 @@
 
                     @foreach($category->items as $item)
                     <article class="so-item">
-                        <div class="so-section-title"><h5>{{ $item->name_ar ?: $item->name_en }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
+                        <div class="so-section-title"><h5>{{ $localized(item, 'name') }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
                         <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.update',$item) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                            <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $targetCategory->name_ar ?: $targetCategory->name_en }}</option>@endforeach</select></label>
+                            <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized(targetCategory, 'name') }}</option>@endforeach</select></label>
                             @include('admin._smart-ordering-product-picker',['selectedId'=>$item->source_product_id,'selectedLabel'=>$productLabels[(int)$item->source_product_id] ?? '','id'=>'item-product-'.$item->id])
                             <div class="so-grid">
-                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar" value="{{ $item->name_ar }}"></label>
-                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" value="{{ $item->name_en }}" required></label>
+                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $item->name_ar }}"></label>
+                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $item->name_en }}" required></label>
                                 <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override" value="{{ $item->price_override }}"></label>
                                 <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $item->sort_order }}" required></label>
                                 <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes" value="{{ $item->prep_time_minutes }}"></label>
@@ -252,7 +257,7 @@
                                 <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                 <label>{{ $isAr?'إضافة للمعرض':'Add gallery images' }}<input class="foodex-control" type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp"></label>
                             </div>
-                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" name="description_ar">{{ $item->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" name="description_en">{{ $item->description_en }}</textarea></label><label>{{ $isAr?'الحساسيات':'Allergens' }}<textarea class="foodex-control" name="allergens_text">{{ implode(', ',(array)$item->allergens) }}</textarea></label><label>{{ $isAr?'المكونات القابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text">{{ implode(', ',(array)$item->removable_ingredients) }}</textarea></label></div>
+                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $item->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $item->description_en }}</textarea></label><label>{{ $isAr?'الحساسيات':'Allergens' }}<textarea class="foodex-control" name="allergens_text">{{ implode(', ',(array)$item->allergens) }}</textarea></label><label>{{ $isAr?'المكونات القابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text">{{ implode(', ',(array)$item->removable_ingredients) }}</textarea></label></div>
                             <div class="so-flags">
                                 @foreach(['featured'=>[$item->featured,$isAr?'مميز':'Featured'],'best_seller'=>[$item->best_seller,$isAr?'الأكثر مبيعًا':'Best seller'],'is_new'=>[$item->is_new,$isAr?'جديد':'New'],'vegetarian'=>[$item->vegetarian,$isAr?'نباتي':'Vegetarian'],'sold_out'=>[$item->sold_out,$isAr?'نفد':'Sold out'],'is_visible'=>[$item->is_visible,$isAr?'ظاهر':'Visible'],'allow_customer_notes'=>[$item->allow_customer_notes,$isAr?'يسمح بالملاحظات':'Allow notes']] as $flag=>$meta)
                                 <input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>
@@ -271,7 +276,7 @@
                             <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.items.branch',$item) }}">
                                 @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                 <div class="so-grid">
-                                    <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $branch->name_ar ?: $branch->name_en }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                     <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                     <label>{{ $isAr?'سعر الفرع':'Branch price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price"></label>
@@ -288,8 +293,8 @@
                             <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.groups.store',$item) }}">
                                 @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                 <div class="so-grid">
-                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar"></label>
-                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" required></label>
+                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                                     <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}">{{ ucfirst($kind) }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single">{{ $isAr?'واحد':'Single' }}</option><option value="multiple">{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
                                     <label>{{ $isAr?'الحد الأدنى':'Min' }}<input class="foodex-control" type="number" min="0" name="min_selections" value="0" required></label>
@@ -306,12 +311,12 @@
                             <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.groups.update',$group) }}">
                                 @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                 <div class="so-grid">
-                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar" value="{{ $group->name_ar }}"></label>
-                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" value="{{ $group->name_en }}" required></label>
+                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $group->name_ar }}"></label>
+                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $group->name_en }}" required></label>
                                     <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}" @selected($group->kind===$kind)>{{ ucfirst($kind) }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single" @selected($group->selection_type==='single')>{{ $isAr?'واحد':'Single' }}</option><option value="multiple" @selected($group->selection_type==='multiple')>{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
-                                    <label>Min<input class="foodex-control" type="number" min="0" name="min_selections" value="{{ $group->min_selections }}" required></label>
-                                    <label>Max<input class="foodex-control" type="number" min="1" name="max_selections" value="{{ $group->max_selections }}" required></label>
+                                    <label>{{ __('smart_ordering_menu.minimum') }}<input class="foodex-control" type="number" min="0" name="min_selections" value="{{ $group->min_selections }}" required></label>
+                                    <label>{{ __('smart_ordering_menu.maximum') }}<input class="foodex-control" type="number" min="1" name="max_selections" value="{{ $group->max_selections }}" required></label>
                                     <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $group->sort_order }}" required></label>
                                 </div>
                                 <div class="so-flags"><input type="hidden" name="is_required" value="0"><label><input type="checkbox" name="is_required" value="1" @checked($group->is_required)> {{ $isAr?'إجباري':'Required' }}</label><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($group->is_visible)> {{ $isAr?'ظاهر':'Visible' }}</label></div>
@@ -325,8 +330,8 @@
                                     @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                     @include('admin._smart-ordering-product-picker',['selectedId'=>$option->source_product_id,'selectedLabel'=>$productLabels[(int)$option->source_product_id] ?? '','id'=>'option-product-'.$option->id])
                                     <div class="so-grid">
-                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar" value="{{ $option->name_ar }}"></label>
-                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" value="{{ $option->name_en }}" required></label>
+                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $option->name_ar }}"></label>
+                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $option->name_en }}" required></label>
                                         <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="{{ $option->price_delta }}" required></label>
                                         <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $option->sort_order }}" required></label>
                                     </div>
@@ -339,7 +344,7 @@
                                     <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.branch',$option) }}">
                                         @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                         <div class="so-grid">
-                                            <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $branch->name_ar ?: $branch->name_en }}</option>@endforeach</select></label>
+                                            <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
                                             <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                             <label>{{ $isAr?'نفاد':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                             <label>{{ $isAr?'فرق سعر الفرع':'Branch price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price_delta"></label>
@@ -356,8 +361,8 @@
                                     @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                     @include('admin._smart-ordering-product-picker',['selectedId'=>null,'selectedLabel'=>'','id'=>'new-option-product-'.$group->id])
                                     <div class="so-grid">
-                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" name="name_ar"></label>
-                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" name="name_en" required></label>
+                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                                         <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="0" required></label>
                                         <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
                                     </div>
