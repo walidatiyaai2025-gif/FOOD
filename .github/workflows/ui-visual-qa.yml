@@ -105,7 +105,7 @@ jobs:
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
           test "$count" -ge 106
-          test "$responsive_count" -eq 150
+          test "$responsive_count" -eq 148
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__desktop-1280__ar.png"
@@ -158,8 +158,8 @@ jobs:
           test -s "ScreenShots/02_Web/B2C_Admin/20_van_finance_support__desktop__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/23_order_wizard_dirty__desktop__ar.png"
           test -s "ScreenShots/02_Web/B2C_Admin/23_order_wizard_dirty__desktop__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/order-wizard-dirty__mobile-390__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/order-wizard-dirty__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/23_order_wizard_dirty__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/23_order_wizard_dirty__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__ar.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__en.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__ar.png"
