@@ -124,13 +124,10 @@ final class EnterpriseSupplierFoundationTest extends TestCase
             ['procurement.suppliers.view', 'procurement.suppliers.manage'],
             'SUP-C-A',
         );
-        [$actorB, $storeB] = $this->scopedUser(
+        [$actorB, , $contextB] = $this->scopedUserInNewOrganization(
             ['procurement.suppliers.view', 'procurement.suppliers.manage'],
             'SUP-C-B',
         );
-
-        $this->moveStoreToNewOrganization($storeB);
-        $contextB = app(TenantContextResolver::class)->retail($actorB, $storeB->id);
 
         $directory = app(SupplierDirectory::class);
         $supplier = $directory->create($actorB, $contextB, [
@@ -183,7 +180,48 @@ final class EnterpriseSupplierFoundationTest extends TestCase
         return [$user, $store, $context];
     }
 
-    private function createRetailStore(string $code): Store
+    /**
+     * @param list<string> $permissions
+     * @return array{User, Store, ResolvedTenantContext}
+     */
+    private function scopedUserInNewOrganization(array $permissions, string $storeCode): array
+    {
+        $role = Role::query()->create([
+            'code' => 'ROLE_'.str_replace('-', '_', $storeCode),
+            'name' => $storeCode,
+            'scope' => 'store',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+
+        foreach ($permissions as $permissionCode) {
+            $permission = Permission::query()->firstOrCreate(
+                ['code' => $permissionCode],
+                ['name' => $permissionCode],
+            );
+            $role->permissions()->syncWithoutDetaching([$permission->id]);
+        }
+
+        $user = User::factory()->create(['is_active' => true]);
+        $store = $this->createRetailStore($storeCode, false);
+        $this->assignStoreToNewOrganization($store);
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $user->id,
+            'store_id' => $store->id,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [
+            $user,
+            $store,
+            app(TenantContextResolver::class)->retail($user, $store->id),
+        ];
+    }
+
+    private function createRetailStore(string $code, bool $defaultScope = true): Store
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         if ($typeId < 1) {
@@ -202,12 +240,14 @@ final class EnterpriseSupplierFoundationTest extends TestCase
             'is_active' => true,
         ]);
 
-        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+        if ($defaultScope) {
+            app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+        }
 
         return $store;
     }
 
-    private function moveStoreToNewOrganization(Store $store): void
+    private function assignStoreToNewOrganization(Store $store): void
     {
         $organization = EnterpriseOrganization::query()->create([
             'code' => 'supplier_org_'.$store->id,
