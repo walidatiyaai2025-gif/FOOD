@@ -167,8 +167,9 @@ class SmartOrderingMenuDomainTest extends TestCase
             $this->assertArrayHasKey('source_product_id', $exception->errors());
         }
 
+        $fixture['admin']->forceFill(['locale' => 'ar'])->save();
         app()->setLocale('ar');
-        $this->actingAs($fixture['admin'])
+        $this->actingAs($fixture['admin']->fresh())
             ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
             ->assertOk()
             ->assertSee('عالج أصناف المنيو غير المتاحة قبل النشر')
