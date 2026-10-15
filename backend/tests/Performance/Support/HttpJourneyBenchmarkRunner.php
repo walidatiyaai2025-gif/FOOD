@@ -22,9 +22,9 @@ final class HttpJourneyBenchmarkRunner
      * Setup/cleanup hooks are intentionally outside the measured window so write journeys
      * can prepare a fresh record per sample without polluting request/query evidence.
      *
-     * @param callable(mixed): mixed $journey
-     * @param null|callable(): mixed $beforeSample
-     * @param null|callable(mixed): void $afterSample
+     * @param  callable(mixed): mixed  $journey
+     * @param  null|callable(): mixed  $beforeSample
+     * @param  null|callable(mixed): void  $afterSample
      * @return array<string, mixed>
      */
     public function run(
