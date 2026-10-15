@@ -126,12 +126,26 @@
                                     <strong>{{ $qr->label }}</strong>
                                     <div class="so-qr-meta"><span>{{ __('smart_ordering_qr.types.'.$qr->type) }}</span><span>{{ $qr->store->name }}</span></div>
                                 </td>
+                                @php
+                                    $contextBranch = $qr->branch_reference
+                                        ? __('smart_ordering_qr.context_branch', ['value' => $qr->branch_reference])
+                                        : null;
+                                    $contextTable = $qr->table_reference
+                                        ? __('smart_ordering_qr.context_table', ['value' => $qr->table_reference])
+                                        : null;
+                                    $contextCampaign = $qr->campaign
+                                        ? __('smart_ordering_qr.context_campaign', ['value' => $qr->campaign])
+                                        : null;
+                                    $contextPromotion = $qr->promotion
+                                        ? __('smart_ordering_qr.context_promotion', ['value' => $qr->promotion->name])
+                                        : null;
+                                @endphp
                                 <td data-label="{{ __('smart_ordering_qr.context') }}">
                                     <div class="so-qr-meta">
-                                        @if($qr->branch_reference)<span>{{ __('smart_ordering_qr.context_branch', ['value' => $qr->branch_reference]) }}</span>@endif
-                                        @if($qr->table_reference)<span>{{ __('smart_ordering_qr.context_table', ['value' => $qr->table_reference]) }}</span>@endif
-                                        @if($qr->campaign)<span>{{ __('smart_ordering_qr.context_campaign', ['value' => $qr->campaign]) }}</span>@endif
-                                        @if($qr->promotion)<span>{{ __('smart_ordering_qr.context_promotion', ['value' => $qr->promotion->name]) }}</span>@endif
+                                        @if($contextBranch)<span>{{ $contextBranch }}</span>@endif
+                                        @if($contextTable)<span>{{ $contextTable }}</span>@endif
+                                        @if($contextCampaign)<span>{{ $contextCampaign }}</span>@endif
+                                        @if($contextPromotion)<span>{{ $contextPromotion }}</span>@endif
                                     </div>
                                 </td>
                                 <td data-label="{{ __('smart_ordering_qr.state') }}"><span class="so-qr-badge {{ $state==='enabled'?'':'off' }}">{{ __('smart_ordering_qr.states.'.$state) }}</span></td>
