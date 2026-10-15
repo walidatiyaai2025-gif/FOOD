@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ app()->getLocale()==='ar'?'تحليلات الطلب الذكي':'Smart Ordering Analytics' }}</title>
+<title>{{ __('smart_ordering.analytics.nav_title') }}</title>
 @include('admin._brand-components')
 <style>
 .so-a-shell{display:grid;gap:var(--foodex-space-4);min-width:0}
