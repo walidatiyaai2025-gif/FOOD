@@ -141,6 +141,54 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
         'closed',
       }.contains(visit.status);
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'planned':
+        return _text('Planned', 'مخطط');
+      case 'started':
+        return _text('Started', 'بدأت');
+      case 'completed_with_order':
+        return _text('Completed with order', 'مكتملة بطلب');
+      case 'completed_no_order':
+        return _text('Completed without order', 'مكتملة بدون طلب');
+      case 'customer_unavailable':
+        return _text('Customer unavailable', 'العميل غير متاح');
+      case 'closed':
+        return _text('Closed', 'مغلقة');
+      default:
+        return _text('Unknown status', 'حالة غير معروفة');
+    }
+  }
+
+  String _stopLocationLabel(VanVisitRecord visit) {
+    final address = visit.address?.trim();
+    final hasAddress = address != null && address.isNotEmpty;
+    final hasCoordinates = visit.latitude != null && visit.longitude != null;
+
+    if (hasAddress && hasCoordinates) return address;
+    if (hasAddress) {
+      return _text(
+        '${address} · Map location unavailable',
+        '${address} · موقع الخريطة غير متاح',
+      );
+    }
+    if (hasCoordinates) {
+      return _text(
+        'Address unavailable',
+        'العنوان غير متاح',
+      );
+    }
+    return _text(
+      'Address and map location unavailable',
+      'العنوان وموقع الخريطة غير متاحين',
+    );
+  }
+
+  String _stopSemanticsLabel(int stopNumber, VanVisitRecord visit) => _text(
+        'Stop $stopNumber. ${_customerName(visit)}. ${_statusLabel(visit.status)}. ${_stopLocationLabel(visit)}.',
+        'المحطة $stopNumber. ${_customerName(visit)}. ${_statusLabel(visit.status)}. ${_stopLocationLabel(visit)}.',
+      );
+
   VanVisitRecord? get _nextVisit {
     for (final visit in _routeVisits) {
       if (!_isDone(visit)) return visit;
@@ -272,13 +320,21 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                           ),
                         ),
                       )
-                    : CustomPaint(
-                        key: const ValueKey('van-route-map-canvas'),
-                        painter: _RoutePainter(
-                          visits: mapped,
-                          done: _isDone,
+                    : Semantics(
+                        image: true,
+                        excludeSemantics: true,
+                        label: _text(
+                          'Route map. Complete ordered stop details follow below.',
+                          'خريطة المسار. تفاصيل المحطات المرتبة كاملة أدناه.',
                         ),
-                        child: const SizedBox.expand(),
+                        child: CustomPaint(
+                          key: const ValueKey('van-route-map-canvas'),
+                          painter: _RoutePainter(
+                            visits: mapped,
+                            done: _isDone,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
                       ),
               ),
             ),
@@ -294,6 +350,97 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                     ),
               ),
             ],
+            const SizedBox(height: 12),
+            Card(
+              key: const ValueKey('van-route-stop-list'),
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      _text('Route stops', 'محطات المسار'),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _text(
+                        'All assigned stops stay in route order, including stops without map coordinates.',
+                        'تبقى جميع المحطات المسندة مرتبة حسب المسار، بما فيها المحطات التي لا تحتوي إحداثيات.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: FoodexVanTokens.muted,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    for (final entry in routeVisits.asMap().entries) ...[
+                      if (entry.key > 0) const Divider(height: 1),
+                      Semantics(
+                        key: ValueKey(
+                          'van-route-stop-${entry.value.id}-semantics',
+                        ),
+                        container: true,
+                        excludeSemantics: true,
+                        label: _stopSemanticsLabel(
+                          entry.key + 1,
+                          entry.value,
+                        ),
+                        child: ListTile(
+                          key: ValueKey('van-route-stop-${entry.value.id}'),
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: _isDone(entry.value)
+                                ? FoodexVanTokens.mint
+                                : const Color(0xFFE9F0FF),
+                            child: Text(
+                              '${entry.key + 1}',
+                              style: TextStyle(
+                                color: _isDone(entry.value)
+                                    ? FoodexVanTokens.green
+                                    : const Color(0xFF2F6FED),
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            _customerName(entry.value),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 2),
+                              Text(
+                                _statusLabel(entry.value.status),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(_stopLocationLabel(entry.value)),
+                            ],
+                          ),
+                          trailing: Icon(
+                            _isDone(entry.value)
+                                ? Icons.check_circle_outline
+                                : Icons.schedule_outlined,
+                            color: _isDone(entry.value)
+                                ? FoodexVanTokens.green
+                                : FoodexVanTokens.muted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
             if (next != null) ...[
               const SizedBox(height: 12),
               Card(
