@@ -18,8 +18,9 @@
 .wa-preview-table,.wa-campaign-table{width:100%;border-collapse:collapse;min-width:900px}.wa-preview-table th,.wa-preview-table td,.wa-campaign-table th,.wa-campaign-table td{padding:10px 12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:middle;white-space:nowrap}
 .wa-campaign-table-wrap{overflow:auto}.wa-actions{display:flex;gap:6px;flex-wrap:wrap}.wa-actions form{display:inline}.wa-muted{color:var(--foodex-muted);font-size:12px}.wa-status{padding:12px 16px}.wa-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:var(--foodex-background);font-size:11px;font-weight:800}.wa-badge.good{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-badge.warn{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
 .wa-import-preview{display:none;margin-top:12px}.wa-import-preview.show{display:block}.wa-inline{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.wa-inline label{display:grid;gap:4px}.wa-hide{display:none!important}
+.wa-template-dialog{border:0;border-radius:16px;padding:0;width:min(680px,calc(100% - 28px));box-shadow:0 24px 80px #0003}.wa-template-dialog::backdrop{background:#0007}.wa-template-dialog-card{padding:20px;display:grid;gap:16px}.wa-template-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.wa-template-dialog-head h2{margin:0}.wa-template-dialog form{display:grid;gap:14px}.wa-template-dialog textarea{min-height:150px;resize:vertical}.wa-template-dialog input,.wa-template-dialog select,.wa-template-dialog textarea{font-size:16px}
 @media(max-width:1050px){.wa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wa-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.wa-grid,.wa-grid.two,.wa-kpis{grid-template-columns:1fr}.wa-campaign-card>header{align-items:flex-start;flex-direction:column}}
+@media(max-width:700px){.wa-grid,.wa-grid.two,.wa-kpis{grid-template-columns:1fr}.wa-campaign-card>header{align-items:flex-start;flex-direction:column}.wa-template-dialog{width:100%;max-width:none;max-height:94dvh;margin:auto 0 0;border-radius:18px 18px 0 0}.wa-template-dialog-card{padding:16px}}
 </style>
 </head>
 <body>
@@ -227,7 +228,15 @@
             </section>
 
             <section class="foodex-card wa-campaign-card">
-                <header><strong>{{ __('whatsapp.campaigns.template_registry') }}</strong></header>
+                <header>
+                    <strong>{{ __('whatsapp.campaigns.template_registry') }}</strong>
+                    @if($canManage)
+                    <div class="wa-actions">
+                        <button type="button" class="foodex-action-primary" id="wa-create-template">＋ {{ __('whatsapp.campaigns.create_meta_template') }}</button>
+                        <form method="post" action="{{ route('admin.whatsapp-campaigns.templates.meta.sync') }}">@csrf<button type="submit" class="foodex-action-secondary">{{ __('whatsapp.campaigns.sync_meta_templates') }}</button></form>
+                    </div>
+                    @endif
+                </header>
                 <div class="wa-campaign-table-wrap">
                     <table class="wa-campaign-table" data-pagination-exempt="bounded-100">
                         <thead><tr><th>{{ __('whatsapp.campaigns.name') }}</th><th>{{ __('whatsapp.campaigns.provider') }}</th><th>{{ __('whatsapp.campaigns.locale') }}</th><th>{{ __('whatsapp.campaigns.status') }}</th><th>{{ __('whatsapp.campaigns.active') }}</th></tr></thead>
@@ -243,11 +252,49 @@
 </div>
 
 @if($canManage)
+<dialog class="wa-template-dialog" id="wa-template-dialog" aria-labelledby="wa-template-dialog-title">
+    <div class="wa-template-dialog-card">
+        <div class="wa-template-dialog-head">
+            <div>
+                <h2 id="wa-template-dialog-title">{{ __('whatsapp.campaigns.meta_template_dialog_title') }}</h2>
+                <p class="wa-muted">{{ __('whatsapp.campaigns.meta_template_hint') }}</p>
+            </div>
+            <button type="button" class="foodex-action-secondary" id="wa-template-close" aria-label="{{ __('whatsapp.campaigns.close') }}">{{ __('whatsapp.campaigns.close') }}</button>
+        </div>
+        <form method="post" action="{{ route('admin.whatsapp-campaigns.templates.meta.store') }}" id="wa-template-form">
+            @csrf
+            <div class="wa-grid two">
+                <label>{{ __('whatsapp.campaigns.meta_template_display_name') }}<input name="name" maxlength="120" required></label>
+                <label>{{ __('whatsapp.campaigns.meta_template_provider_name') }}<input name="provider_name" maxlength="160" pattern="[a-z0-9_]+" dir="ltr" required><span class="wa-muted">{{ __('whatsapp.campaigns.meta_template_provider_name_hint') }}</span></label>
+                <label>{{ __('whatsapp.campaigns.locale') }}
+                    <select name="locale" required>
+                        <option value="ar">{{ __('whatsapp.campaigns.locales.ar') }}</option>
+                        <option value="en">{{ __('whatsapp.campaigns.locales.en') }}</option>
+                    </select>
+                </label>
+                <label>{{ __('whatsapp.campaigns.template_category') }}
+                    <select name="category" required>
+                        <option value="marketing">{{ __('whatsapp.campaigns.template_categories.marketing') }}</option>
+                        <option value="utility">{{ __('whatsapp.campaigns.template_categories.utility') }}</option>
+                    </select>
+                </label>
+            </div>
+            <label>{{ __('whatsapp.campaigns.meta_template_body') }}<textarea name="body_preview" maxlength="1024" required></textarea></label>
+            <div class="wa-actions">
+                <button type="submit" class="foodex-action-primary" id="wa-template-submit">{{ __('whatsapp.campaigns.create_on_whatsapp') }}</button>
+                <button type="button" class="foodex-action-secondary" id="wa-template-cancel">{{ __('whatsapp.campaigns.close') }}</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
 <script>
 (() => {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const builder = document.getElementById('wa-campaign-builder');
     const form = document.getElementById('wa-campaign-form');
+    const templateDialog = document.getElementById('wa-template-dialog');
+    const templateForm = document.getElementById('wa-template-form');
     const selectedIds = new Set();
     const selectedStores = new Set();
     let importBatch = null;
@@ -312,6 +359,13 @@
 
     document.getElementById('wa-create-campaign')?.addEventListener('click',()=>{builder.classList.add('show');builder.scrollIntoView({behavior:'smooth',block:'start'});});
     document.getElementById('wa-close-builder')?.addEventListener('click',()=>builder.classList.remove('show'));
+    document.getElementById('wa-create-template')?.addEventListener('click',()=>templateDialog?.showModal());
+    document.getElementById('wa-template-close')?.addEventListener('click',()=>templateDialog?.close());
+    document.getElementById('wa-template-cancel')?.addEventListener('click',()=>templateDialog?.close());
+    templateForm?.addEventListener('submit',()=>{
+        const button=document.getElementById('wa-template-submit');
+        if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
+    });
 
     document.querySelectorAll('.wa-source-tab').forEach(button=>button.addEventListener('click',()=>{
         const source=button.dataset.source;
