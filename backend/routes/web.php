@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseSavedViewController;
@@ -136,6 +137,12 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
+            ->whereNumber('workflowRequest')
+            ->where('stepCode', '[A-Za-z0-9._-]+')
+            ->middleware('throttle:30,1')
+            ->name('action-center.decide');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
         Route::get('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'index'])->name('enterprise-organizations.index');
         Route::post('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'storeOrganization'])->middleware('throttle:30,1')->name('enterprise-organizations.store');
