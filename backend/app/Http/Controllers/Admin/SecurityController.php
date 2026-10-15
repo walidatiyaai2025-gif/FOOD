@@ -411,7 +411,7 @@ final class SecurityController extends Controller
                 'target_user_id' => ['required', 'integer', 'exists:users,id'],
                 'scope_reference' => ['required', 'string', 'max:190'],
                 'starts_at' => ['nullable', 'date'],
-                'ends_at' => ['nullable', 'date', 'after:starts_at'],
+                'ends_at' => ['nullable', 'date'],
             ]);
             $scope = $enterpriseSecurityAdmin->resolveScopeReference(
                 (string) $validated['scope_reference'],
@@ -432,7 +432,7 @@ final class SecurityController extends Controller
                 'amount' => ['required', 'regex:/^\\d{1,14}(?:\\.\\d{1,4})?$/'],
                 'scope_reference' => ['required', 'string', 'max:190'],
                 'starts_at' => ['nullable', 'date'],
-                'ends_at' => ['nullable', 'date', 'after:starts_at'],
+                'ends_at' => ['nullable', 'date'],
             ]);
             $scope = $enterpriseSecurityAdmin->resolveScopeReference(
                 (string) $validated['scope_reference'],
