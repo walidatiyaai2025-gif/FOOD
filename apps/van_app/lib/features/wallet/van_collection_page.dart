@@ -76,6 +76,10 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       _sameCustomer(_customer, _contextCustomer) &&
       _context!.storeId == _customer!.storeId;
 
+  bool get _requiresExplicitTargetReview =>
+      _reviewReason == _CollectionReviewReason.customerUnavailable ||
+      _reviewReason == _CollectionReviewReason.invoiceUnavailable;
+
   bool _ownsContextRequest(int generation, VanCustomerScope customer) =>
       mounted &&
       generation == _contextRequestGeneration &&
@@ -208,7 +212,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       final preferredInvoiceId = currentInvoice?.id ??
           (_initialInvoiceResolutionPending ? widget.initialInvoiceId : null);
       final requireExplicitInvoice =
-          _reviewReason != null && currentInvoice == null;
+          _requiresExplicitTargetReview && currentInvoice == null;
       VanInvoiceBalance? selected;
       if (!requireExplicitInvoice) {
         for (final invoice in context.invoices) {
@@ -335,7 +339,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
 
     if (customer == null ||
         invoice == null ||
-        _reviewReason != null ||
+        _requiresExplicitTargetReview ||
         !_hasMatchingContext ||
         !_context!.invoices.any((candidate) => candidate.id == invoice.id) ||
         amount == null ||
@@ -373,6 +377,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _lastResult = result;
         _pendingOperation = null;
         _pendingIdempotencyKey = null;
+        _reviewReason = null;
       });
       widget.onReceiptPosted?.call(result);
       await _loadContext(customer);
@@ -629,7 +634,9 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             TextField(
               key: const ValueKey('van-collection-amount'),
               controller: _amount,
-              enabled: !_submitting && _invoice != null && _reviewReason == null,
+              enabled: !_submitting &&
+                  _invoice != null &&
+                  !_requiresExplicitTargetReview,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
@@ -643,7 +650,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               onPressed: _submitting ||
                       !hasMatchingContext ||
                       _invoice == null ||
-                      _reviewReason != null
+                      _requiresExplicitTargetReview
                   ? null
                   : _collect,
               icon: _submitting
