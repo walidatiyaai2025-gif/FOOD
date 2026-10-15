@@ -30,6 +30,12 @@ final class SecurityController extends Controller
 
         $actor = $this->actor($request);
         $isSuperAdmin = $actor->hasRole('SUPER_ADMIN');
+        if (! $isSuperAdmin) {
+            $actor->loadMissing([
+                'roles.permissions:id,code',
+                'storeRoleAssignments.role.permissions:id,code',
+            ]);
+        }
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
 
@@ -110,12 +116,41 @@ final class SecurityController extends Controller
                 ->filter(fn (Role $role): bool => $role->permissions->pluck('code')->diff($grantablePermissionCodes ?? collect())->isEmpty())
                 ->values();
 
-        $grantableStoreRolesByStore = $stores->mapWithKeys(function (Store $store) use ($actor, $isSuperAdmin, $storeCandidates): array {
+        $allowedRetailGlobalRoles = array_values((array) config('admin.channels.b2c.global_roles', []));
+        $retailGlobalPermissionCodes = $isSuperAdmin
+            ? collect()
+            : $actor->roles
+                ->filter(fn (Role $role): bool => (bool) $role->is_active
+                    && $role->scope === 'global'
+                    && in_array($role->code, $allowedRetailGlobalRoles, true))
+                ->flatMap(fn (Role $role) => $role->permissions->pluck('code'))
+                ->unique()
+                ->values();
+
+        $retailStorePermissionCodes = $isSuperAdmin
+            ? collect()
+            : $actor->storeRoleAssignments
+                ->filter(fn ($assignment): bool => (bool) $assignment->role?->is_active
+                    && $assignment->role?->scope === 'store')
+                ->groupBy('store_id')
+                ->map(fn ($assignments) => $assignments
+                    ->flatMap(fn ($assignment) => $assignment->role->permissions->pluck('code'))
+                    ->unique()
+                    ->values());
+
+        $grantableStoreRolesByStore = $stores->mapWithKeys(function (Store $store) use (
+            $isSuperAdmin,
+            $storeCandidates,
+            $retailGlobalPermissionCodes,
+            $retailStorePermissionCodes,
+        ): array {
             if ($isSuperAdmin) {
                 return [(int) $store->id => $storeCandidates];
             }
 
-            $effective = collect($actor->effectivePermissionCodes((int) $store->id));
+            $effective = $retailGlobalPermissionCodes
+                ->merge($retailStorePermissionCodes->get((int) $store->id, collect()))
+                ->unique();
 
             return [
                 (int) $store->id => $storeCandidates
