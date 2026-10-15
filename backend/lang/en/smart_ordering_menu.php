@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'nav_title' => 'Menu Builder',
+    'title' => 'Smart Ordering Menu Builder',
+    'description' => 'Build bilingual, branch-aware restaurant menus without duplicating FOODEX catalog truth.',
+    'saved' => 'Menu changes saved to the draft.',
+    'deleted' => 'Menu record deleted from the draft.',
+    'draft_ready' => 'Editable menu draft is ready.',
+    'published' => 'Menu draft published atomically.',
+    'validation' => [
+        'single_default_menu' => 'Only one menu can be the default menu in a revision.',
+        'modifier_bounds' => 'Modifier selection minimum and maximum are invalid.',
+        'modifier_options' => 'The modifier group does not contain enough visible options for its minimum selection.',
+        'price_required' => 'A standalone menu item requires an explicit price.',
+        'product_unavailable' => 'The linked FOODEX product is not available in this restaurant catalog.',
+        'item_unavailable' => 'This menu item is not currently available.',
+        'unknown_modifier_group' => 'An unknown modifier group was submitted.',
+        'unknown_modifier_option' => 'An unknown modifier option was submitted.',
+        'option_unavailable' => 'A selected modifier option is unavailable.',
+        'reorder_entity' => 'This record type cannot be reordered.',
+        'bulk_entity' => 'Bulk availability is supported for categories and items only.',
+        'branch_scope' => 'Every selected branch must belong to this restaurant.',
+        'json' => 'Enter a valid JSON value.',
+        'non_negative_price' => 'Prices cannot be negative.',
+    ],
+];
