@@ -27,7 +27,17 @@ final class ModuleRegistry
 
     public function state(string $code): ModuleState
     {
-        return $this->registration($code)?->state ?? ModuleState::NOT_INSTALLED;
+        $registration = $this->registration($code);
+        if ($registration === null) {
+            return ModuleState::NOT_INSTALLED;
+        }
+
+        $state = $registration->getAttribute('state');
+        if (! $state instanceof ModuleState) {
+            throw new \UnexpectedValueException("Module [{$code}] has an invalid lifecycle state.");
+        }
+
+        return $state;
     }
 
     public function isEnabled(string $code): bool
@@ -41,7 +51,7 @@ final class ModuleRegistry
         $registration = EnterpriseModule::query()->firstOrNew(['code' => $manifest->code]);
 
         if (! $registration->exists) {
-            $registration->state = $manifest->defaultState;
+            $registration->setAttribute('state', $manifest->defaultState);
             $registration->state_changed_at = now();
         }
 
