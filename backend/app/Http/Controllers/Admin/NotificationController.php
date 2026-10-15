@@ -165,8 +165,7 @@ final class NotificationController extends Controller
         Request $request,
         AuditLogger $audit,
         MarketingImageService $images,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
