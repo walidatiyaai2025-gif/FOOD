@@ -93,13 +93,7 @@
                 <button class="primary" type="submit">{{ __('smart_ordering.create_draft') }}</button>
             </form>
             @else
-            <form class="foodex-form" method="post" action="{{ route('admin.smart-ordering.revisions.update', $draft) }}">
-                @csrf @method('PUT')
-                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                <label for="config-json">{{ __('smart_ordering.configuration') }}</label>
-                <textarea class="foodex-control so-json" id="config-json" name="config_json">{{ json_encode($draft->payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</textarea>
-                <button class="primary" type="submit">{{ __('smart_ordering.save_draft') }}</button>
-            </form>
+            <p>{{ __('smart_ordering.draft_ready') }} <span class="so-code">{{ $draft->checksum }}</span></p>
             <form method="post" action="{{ route('admin.smart-ordering.revisions.publish', $draft) }}">
                 @csrf
                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
