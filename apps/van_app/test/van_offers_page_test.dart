@@ -174,7 +174,6 @@ void main() {
     expect(find.textContaining('Product #99'), findsNothing);
     expect(find.textContaining('CARTON'), findsNothing);
   });
-
 }
 
 Future<void> _noop() async {}
