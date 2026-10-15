@@ -318,6 +318,243 @@ final class B2bAccountLedgerService
         }, 3);
     }
 
+    /**
+     * Build the financial subset required by the paginated Order Operations rows
+     * with a fixed number of aggregate queries rather than one ledger walk per row.
+     *
+     * @param  list<array{
+     *     order_id:int,
+     *     customer_id:int,
+     *     store_id:int,
+     *     invoice_id:int|null,
+     *     invoice_status:string|null,
+     *     invoice_total:float|null,
+     *     payment_method:string|null
+     * }>  $rows
+     * @return array<int,array{
+     *     currency:string,
+     *     customer_credit_balance:float,
+     *     aggregate_outstanding:float,
+     *     credit_limit:float,
+     *     available_credit_line:float,
+     *     invoice_outstanding:float|null,
+     *     remainder_method:string|null
+     * }>
+     */
+    public function orderRowSettlements(array $rows): array
+    {
+        if ($rows === []) {
+            return [];
+        }
+
+        $customerIds = array_values(array_unique(array_map(
+            static fn (array $row): int => $row['customer_id'],
+            $rows,
+        )));
+        $storeIds = array_values(array_unique(array_map(
+            static fn (array $row): int => $row['store_id'],
+            $rows,
+        )));
+
+        $accountLimits = [];
+        foreach (
+            B2bAccount::query()
+                ->whereIn('b2b_customer_id', $customerIds)
+                ->where('status', 'active')
+                ->get(['b2b_customer_id', 'credit_limit']) as $account
+        ) {
+            $accountLimits[(int) $account->b2b_customer_id] = round((float) $account->credit_limit, 3);
+        }
+
+        if ($accountLimits === []) {
+            return [];
+        }
+
+        $pairKey = static fn (int $customerId, int $storeId): string => $customerId.'|'.$storeId;
+        $invoiceDebits = [];
+        $paymentCredits = [];
+        $manualByPair = [];
+        $currenciesByPair = [];
+
+        $recordCurrencies = function (string $key, mixed ...$values) use (&$currenciesByPair): void {
+            foreach ($values as $value) {
+                $currency = $this->normalizeCurrency($value);
+                if ($currency !== null) {
+                    $currenciesByPair[$key][$currency] = true;
+                }
+            }
+        };
+
+        $invoiceAggregates = DB::table('invoices')
+            ->whereIn('b2b_customer_id', $customerIds)
+            ->whereIn('store_id', $storeIds)
+            ->whereNotIn('status', ['cancelled', 'void', 'voided'])
+            ->groupBy('b2b_customer_id', 'store_id')
+            ->get([
+                'b2b_customer_id',
+                'store_id',
+                DB::raw('COALESCE(SUM(total), 0) as total'),
+                DB::raw('MIN(currency) as min_currency'),
+                DB::raw('MAX(currency) as max_currency'),
+            ]);
+
+        foreach ($invoiceAggregates as $aggregate) {
+            $key = $pairKey((int) $aggregate->b2b_customer_id, (int) $aggregate->store_id);
+            $invoiceDebits[$key] = round((float) $aggregate->total, 3);
+            $recordCurrencies($key, $aggregate->min_currency, $aggregate->max_currency);
+        }
+
+        $paymentAggregates = DB::table('payments')
+            ->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
+            ->whereIn('invoices.b2b_customer_id', $customerIds)
+            ->whereIn('invoices.store_id', $storeIds)
+            ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided'])
+            ->whereIn('payments.status', ['paid', 'captured'])
+            ->groupBy('invoices.b2b_customer_id', 'invoices.store_id')
+            ->get([
+                'invoices.b2b_customer_id as customer_id',
+                'invoices.store_id as store_id',
+                DB::raw('COALESCE(SUM(payments.amount), 0) as total'),
+                DB::raw('MIN(payments.currency) as min_currency'),
+                DB::raw('MAX(payments.currency) as max_currency'),
+            ]);
+
+        foreach ($paymentAggregates as $aggregate) {
+            $key = $pairKey((int) $aggregate->customer_id, (int) $aggregate->store_id);
+            $paymentCredits[$key] = round((float) $aggregate->total, 3);
+            $recordCurrencies($key, $aggregate->min_currency, $aggregate->max_currency);
+        }
+
+        $manualAggregates = DB::table('customer_account_ledger_entries')
+            ->whereIn('b2b_customer_id', $customerIds)
+            ->where(function ($query) use ($storeIds): void {
+                $query->whereNull('store_id')->orWhereIn('store_id', $storeIds);
+            })
+            ->groupBy('b2b_customer_id', 'store_id')
+            ->get([
+                'b2b_customer_id',
+                'store_id',
+                DB::raw('COALESCE(SUM(debit), 0) as debits'),
+                DB::raw('COALESCE(SUM(credit), 0) as credits'),
+                DB::raw('MIN(currency) as min_currency'),
+                DB::raw('MAX(currency) as max_currency'),
+            ]);
+
+        foreach ($manualAggregates as $aggregate) {
+            $storeId = $aggregate->store_id === null ? 0 : (int) $aggregate->store_id;
+            $key = $pairKey((int) $aggregate->b2b_customer_id, $storeId);
+            $manualByPair[$key] = [
+                'debits' => round((float) $aggregate->debits, 3),
+                'credits' => round((float) $aggregate->credits, 3),
+            ];
+            $recordCurrencies($key, $aggregate->min_currency, $aggregate->max_currency);
+        }
+
+        $invoiceIds = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): ?int => $row['invoice_id'],
+            $rows,
+        ), static fn (?int $id): bool => $id !== null && $id > 0)));
+
+        $paidByInvoice = [];
+        $ledgerByInvoice = [];
+        if ($invoiceIds !== []) {
+            $paidByInvoice = DB::table('payments')
+                ->whereIn('invoice_id', $invoiceIds)
+                ->whereIn('status', ['paid', 'captured'])
+                ->groupBy('invoice_id')
+                ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
+                ->pluck('paid', 'invoice_id')
+                ->map(static fn ($paid): float => round((float) $paid, 3))
+                ->all();
+
+            foreach (
+                DB::table('customer_account_ledger_entries')
+                    ->whereIn('invoice_id', $invoiceIds)
+                    ->groupBy('invoice_id')
+                    ->get([
+                        'invoice_id',
+                        DB::raw('COALESCE(SUM(debit), 0) as debits'),
+                        DB::raw('COALESCE(SUM(credit), 0) as credits'),
+                    ]) as $aggregate
+            ) {
+                $ledgerByInvoice[(int) $aggregate->invoice_id] = [
+                    'debits' => round((float) $aggregate->debits, 3),
+                    'credits' => round((float) $aggregate->credits, 3),
+                ];
+            }
+        }
+
+        $settlements = [];
+        foreach ($rows as $row) {
+            $customerId = $row['customer_id'];
+            if (! array_key_exists($customerId, $accountLimits)) {
+                continue;
+            }
+
+            $key = $pairKey($customerId, $row['store_id']);
+            $globalKey = $pairKey($customerId, 0);
+            $manual = $manualByPair[$key] ?? ['debits' => 0.0, 'credits' => 0.0];
+            $globalManual = $manualByPair[$globalKey] ?? ['debits' => 0.0, 'credits' => 0.0];
+
+            $totalDebits = round(
+                (float) ($invoiceDebits[$key] ?? 0)
+                + (float) $manual['debits']
+                + (float) $globalManual['debits'],
+                3,
+            );
+            $totalCredits = round(
+                (float) ($paymentCredits[$key] ?? 0)
+                + (float) $manual['credits']
+                + (float) $globalManual['credits'],
+                3,
+            );
+            $balance = round($totalCredits - $totalDebits, 3);
+            $outstanding = round(max(0 - $balance, 0), 3);
+            $creditBalance = round(max($balance, 0), 3);
+            $creditLimit = $accountLimits[$customerId];
+
+            $currencySet = $currenciesByPair[$key] ?? [];
+            foreach (array_keys($currenciesByPair[$globalKey] ?? []) as $currency) {
+                $currencySet[$currency] = true;
+            }
+            abort_if(
+                count($currencySet) > 1,
+                409,
+                'Account financial history contains mixed currencies and cannot be combined safely.',
+            );
+            $currency = (string) (array_key_first($currencySet) ?? 'EGP');
+
+            $invoiceOutstanding = null;
+            $invoiceId = $row['invoice_id'];
+            if (
+                $invoiceId !== null
+                && $row['invoice_total'] !== null
+                && in_array((string) $row['invoice_status'], ['issued', 'reissued'], true)
+            ) {
+                $invoiceLedger = $ledgerByInvoice[$invoiceId] ?? ['debits' => 0.0, 'credits' => 0.0];
+                $invoiceOutstanding = round(max(
+                    $row['invoice_total']
+                    + (float) $invoiceLedger['debits']
+                    - (float) ($paidByInvoice[$invoiceId] ?? 0)
+                    - (float) $invoiceLedger['credits'],
+                    0,
+                ), 3);
+            }
+
+            $settlements[$row['order_id']] = [
+                'currency' => $currency,
+                'customer_credit_balance' => $creditBalance,
+                'aggregate_outstanding' => $outstanding,
+                'credit_limit' => $creditLimit,
+                'available_credit_line' => round(max($creditLimit - $outstanding, 0), 3),
+                'invoice_outstanding' => $invoiceOutstanding,
+                'remainder_method' => $row['payment_method'],
+            ];
+        }
+
+        return $settlements;
+    }
+
     /** @return array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} */
     public function invoiceAmounts(Invoice $invoice): array
     {
