@@ -365,6 +365,10 @@ final class EnterpriseSecurityGovernanceTest extends TestCase
     {
         $admin = $this->userWithRole('SUPER_ADMIN');
         $actor = $this->userWithGlobalPermission('roles.manage', 'SCOPED_SECURITY_REVIEWER');
+        $actor->roles()->firstOrFail()->permissions()->syncWithoutDetaching(
+            Permission::query()->where('code', 'security.view')->firstOrFail(),
+        );
+        $actor->load('roles.permissions');
         $targetOne = User::factory()->create(['is_active' => true]);
         $targetTwo = User::factory()->create(['is_active' => true]);
         $firstOrganizationId = (int) DB::table('enterprise_organizations')->value('id');
