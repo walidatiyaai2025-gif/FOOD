@@ -34,7 +34,7 @@ final class RepeatOrderService
             ->first(['id', 'status']);
 
         abort_unless($order !== null, 404);
-        abort_unless(strtolower((string) $order->status) === 'completed', 409, 'Only completed orders can be repeated.');
+        abort_unless(in_array(strtolower((string) $order->status), ['completed', 'delivered'], true), 409, 'Only completed orders can be repeated.');
 
         $itemsQuery = DB::table('order_items')
             ->where('order_id', $sourceOrderId)
