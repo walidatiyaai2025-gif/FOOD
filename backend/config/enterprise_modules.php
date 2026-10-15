@@ -34,10 +34,14 @@ return [
             'capabilities' => [
                 'finance.foundation.read',
                 'finance.foundation.manage',
+                'finance.gl.read',
+                'finance.gl.manage',
+                'finance.gl.post',
             ],
             'permissions' => [
                 'finance.view',
                 'finance.manage',
+                'finance.post',
             ],
             'health_checks' => [],
             'navigation' => [],
