@@ -146,12 +146,15 @@ final class EnterpriseDataScopeAuthorizationTest extends TestCase
 
     private function createScopedRetailStore(string $code): Store
     {
-        $typeId = DB::table('store_types')->insertGetId([
-            'code' => 'B2C-'.$code,
-            'name' => 'Retail',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        if ($typeId < 1) {
+            $typeId = DB::table('store_types')->insertGetId([
+                'code' => 'B2C',
+                'name' => 'Retail',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $store = Store::query()->create([
             'store_type_id' => $typeId,
