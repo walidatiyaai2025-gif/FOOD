@@ -34,4 +34,8 @@ return [
         'low_rating_threshold' => 2,
         'external_review_min_rating' => 4,
     ],
+    'analytics' => [
+        'retention_days' => (int) env('SMART_ORDERING_ANALYTICS_RETENTION_DAYS', 400),
+        'dashboard_max_days' => 366,
+    ],
 ];
