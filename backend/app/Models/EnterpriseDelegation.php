@@ -4,7 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $starts_at
+ * @property Carbon $ends_at
+ * @property Carbon|null $revoked_at
+ * @property User $delegator
+ * @property User $delegate
+ */
 class EnterpriseDelegation extends Model
 {
     protected $table = 'enterprise_delegations';
