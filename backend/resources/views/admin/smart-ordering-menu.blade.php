@@ -37,6 +37,9 @@
 @php
     $isAr = app()->getLocale()==='ar';
     $modifierKindValues = ['modifier', 'size', 'variant', 'extra', 'ingredient'];
+    $focusTypeLabels = $isAr
+        ? ['menu'=>'منيو','category'=>'تصنيف','item'=>'صنف','group'=>'مجموعة','option'=>'خيار']
+        : ['menu'=>'Menu','category'=>'Category','item'=>'Item','group'=>'Group','option'=>'Option'];
     $localized = static function ($model, string $field = 'name') use ($isAr): string {
         $primary = data_get($model, $field.'_'.($isAr ? 'ar' : 'en'));
         $fallback = data_get($model, $field.'_'.($isAr ? 'en' : 'ar'));
@@ -120,7 +123,7 @@
             <div class="so-actions">
                 @forelse($focusResults as $result)
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$result['menu_id'], 'q'=>$focusQuery] + ($supportAccess ? ['support_access'=>1] : [])) }}#{{ $result['anchor'] }}">
-                    <span class="so-badge">{{ $isAr ? ['menu'=>'منيو','category'=>'تصنيف','item'=>'صنف','group'=>'مجموعة','option'=>'خيار'][$result['type']] : ucfirst($result['type']) }}</span>
+                    <span class="so-badge">{{ $focusTypeLabels[$result['type']] ?? '' }}</span>
                     {{ $result['label'] }}
                 </a>
                 @empty
