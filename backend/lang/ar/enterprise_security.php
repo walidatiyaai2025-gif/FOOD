@@ -44,8 +44,8 @@ return [
         'ends_at' => 'يسري حتى',
         'workflow_key' => 'مفتاح عقد سير العمل',
         'workflow_key_hint' => 'مفتاح أمني متقدم مثل purchase_order.',
-        'workflow_key_placeholder' => 'purchase_order',
-        'currency_placeholder' => 'KWD',
+        'workflow_key_placeholder' => 'purchase_order', // localization-gate: allow — workflow contract key is a technical identifier.
+        'currency_placeholder' => 'KWD', // localization-gate: allow — KWD is an ISO currency code.
         'amount_placeholder' => '1000.000',
         'currency' => 'العملة',
         'amount' => 'الحد الأقصى للمبلغ',
