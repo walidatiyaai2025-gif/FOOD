@@ -1447,3 +1447,22 @@ When `FOODEX Required CI Gate / Localization quality / Arabic / English localiza
 6. do not bypass, waive, or repeatedly rerun an unchanged failing head.
 
 A green localization gate should mean the changed product satisfies the AR/EN localization contract, not merely that source text happened to avoid a fragile regex.
+
+
+---
+
+## 28. Mobile build scope economy — backend/dashboard work must not rebuild apps
+
+Customer, Driver and Van release/platform builds are expensive validation and MUST be scoped to mobile-impacting changes.
+
+Repository default:
+
+- backend-only and Dashboard-only implementation MUST NOT rebuild Customer, Driver or Van;
+- a mobile app build is allowed only when that app's source/native files, its mobile shared dependency/build tooling, or another explicitly mapped mobile-impacting contract changed;
+- backend/Dashboard work may still run backend tests, Dashboard visual evidence, API/contract checks and other non-mobile gates;
+- full Customer + Driver + Van build/validation belongs to explicit final convergence/release/certification lanes, where the CI map intentionally enables those areas;
+- workers must not manually invoke full mobile builds merely to make a backend/Dashboard PR look more complete.
+
+The machine-readable authority is `.ci/ci-map.json` plus `scripts/ci-plan.py` and `scripts/mobile-ci-scope.py`. Required CI exposes a `backend_dashboard_only` guard and must keep Customer/Driver/Van build jobs skipped when that guard is true.
+
+Any change to CI routing that causes a backend/Dashboard-only diff to schedule a mobile platform build is a regression and must fail repository tests before merge.
