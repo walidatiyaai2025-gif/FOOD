@@ -128,6 +128,13 @@ class SmartOrderingAnalyticsTest extends TestCase
         $this->assertArrayNotHasKey('phone', $decoded);
         $this->assertArrayNotHasKey('address', $decoded);
         $this->assertArrayNotHasKey('feedback', $decoded);
+
+        $dashboard = app(RestaurantAnalyticsService::class)->dashboard([$store], [
+            'from' => now()->toDateString(),
+            'to' => now()->toDateString(),
+        ]);
+        $this->assertSame(1, $dashboard['kpis']['feedback_count']);
+        $this->assertSame(5.0, $dashboard['kpis']['average_rating']);
     }
 
     public function test_rollup_uses_branch_timezone_at_midnight_boundary(): void
@@ -187,6 +194,122 @@ class SmartOrderingAnalyticsTest extends TestCase
         $this->assertNull($row->source_snapshot);
         $this->assertNull($row->campaign_snapshot);
         $this->assertDatabaseCount('smart_ordering_analytics_events', 1);
+    }
+
+    public function test_qr_dimension_filters_funnel_without_cross_attribution(): void
+    {
+        [$store] = $this->stores();
+        $analytics = app(SmartOrderingAnalyticsService::class);
+        $qrA = (string) Str::uuid();
+        $qrB = (string) Str::uuid();
+
+        $analytics->record($store, 'storefront_viewed', 'qr-a:view', [
+            'qr_public_id' => $qrA,
+            'source' => 'qr',
+            'campaign' => 'lunch',
+            'visitor_token' => 'visitor-qr-a-abcdefghijklmnop',
+        ]);
+        $analytics->record($store, 'order_created', 'qr-a:order', [
+            'qr_public_id' => $qrA,
+            'source' => 'qr',
+            'campaign' => 'lunch',
+        ]);
+        $analytics->record($store, 'storefront_viewed', 'qr-b:view', [
+            'qr_public_id' => $qrB,
+            'source' => 'qr',
+            'campaign' => 'dinner',
+            'visitor_token' => 'visitor-qr-b-abcdefghijklmnop',
+        ]);
+
+        $dashboard = app(RestaurantAnalyticsService::class)->dashboard([$store], [
+            'from' => now()->toDateString(),
+            'to' => now()->toDateString(),
+            'qr_public_id' => $qrA,
+        ]);
+
+        $this->assertSame(1, $dashboard['kpis']['menu_views']);
+        $this->assertSame(1, $dashboard['kpis']['orders']);
+        $this->assertSame(100.0, $dashboard['kpis']['conversion_rate']);
+        $this->assertSame($qrA, $dashboard['sources'][0]['qr_public_id']);
+    }
+
+    public function test_refunded_completed_order_is_removed_from_recognized_revenue_and_aov(): void
+    {
+        [$store] = $this->stores();
+        $customer = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'Refund Analytics Customer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $order = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => $customer,
+            'order_number' => 'SO-REF-'.Str::upper(Str::random(8)),
+            'channel' => 'b2c',
+            'status' => 'refunded',
+            'currency' => 'KWD',
+            'subtotal' => 30,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $analytics = app(SmartOrderingAnalyticsService::class);
+        $analytics->record($store, 'order_created', 'refund:created', ['order_id' => $order]);
+        $analytics->record($store, 'order_completed', 'refund:completed', [
+            'order_id' => $order,
+            'revenue' => 30,
+        ]);
+
+        $dashboard = app(RestaurantAnalyticsService::class)->dashboard([$store], [
+            'from' => now()->toDateString(),
+            'to' => now()->toDateString(),
+        ]);
+
+        $this->assertSame(1, $dashboard['kpis']['refunded_orders']);
+        $this->assertSame(0, $dashboard['kpis']['completed_orders']);
+        $this->assertSame(0.0, $dashboard['kpis']['revenue']);
+        $this->assertSame(0.0, $dashboard['kpis']['aov']);
+    }
+
+    public function test_large_volume_dashboard_uses_preaggregated_rows(): void
+    {
+        [$store] = $this->stores();
+        $date = now()->toDateString();
+        $base = [
+            'event_date' => $date,
+            'store_id' => $store,
+            'branch_key' => 0,
+            'qr_key' => '',
+            'source_key' => '',
+            'campaign_key' => '',
+            'offer_key' => '',
+            'customer_type_key' => '',
+            'fulfillment_mode_key' => '',
+            'revenue' => 0,
+            'rating_sum' => 0,
+            'rating_count' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        DB::table('smart_ordering_analytics_daily')->insert([
+            $base + ['event_name' => 'storefront_viewed', 'event_count' => 1000000],
+            $base + ['event_name' => 'order_created', 'event_count' => 50000],
+        ]);
+
+        $dashboard = app(RestaurantAnalyticsService::class)->dashboard([$store], [
+            'from' => $date,
+            'to' => $date,
+        ]);
+
+        $this->assertDatabaseCount('smart_ordering_analytics_events', 0);
+        $this->assertSame(1000000, $dashboard['kpis']['menu_views']);
+        $this->assertSame(50000, $dashboard['kpis']['orders']);
+        $this->assertSame(5.0, $dashboard['kpis']['conversion_rate']);
     }
 
     /** @return array{0:int,1:int} */
