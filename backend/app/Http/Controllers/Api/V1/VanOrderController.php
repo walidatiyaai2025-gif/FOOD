@@ -122,7 +122,7 @@ final class VanOrderController extends Controller
             if (
                 $account instanceof B2bAccount
                 && (float) $account->credit_limit > 0
-                && ! in_array('account_credit', $paymentMethods, true)
+                && !in_array('account_credit', $paymentMethods, true)
             ) {
                 $paymentMethods[] = 'account_credit';
             }
