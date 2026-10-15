@@ -117,6 +117,7 @@ final class SmartOrderingController extends Controller
             'delivery_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'order_note' => ['nullable', 'string', 'max:1000'],
+            'repeat_draft_public_id' => ['nullable', 'uuid'],
         ]);
 
         $result = $checkout->checkout(
