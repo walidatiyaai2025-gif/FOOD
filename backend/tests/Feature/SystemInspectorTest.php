@@ -214,6 +214,16 @@ class SystemInspectorTest extends TestCase
         $this->assertStringNotContainsString('super-secret', $exportContent);
         $this->assertStringNotContainsString('secret-idempotency', $exportContent);
 
+        $exportPayload = json_decode($exportContent, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(
+            ['event_type', 'status', 'attempt_count', 'available_at', 'failed_at', 'created_at'],
+            array_keys($exportPayload['enterprise']['outbox_messages'][0]),
+        );
+        $this->assertSame(
+            ['workflow_key', 'entity_type', 'status', 'completed_at', 'created_at'],
+            array_keys($exportPayload['enterprise']['workflow_requests'][0]),
+        );
+
         $html = $response->getContent();
         $this->assertIsString($html);
         $this->assertStringContainsString('Modules & background diagnostics', $html);
@@ -249,7 +259,8 @@ class SystemInspectorTest extends TestCase
             ->get(route('admin.inspector.index'))
             ->assertOk()
             ->assertSee('sample_optional')
-            ->assertSee('Error');
+            ->assertSee('Error')
+            ->assertDontSee('provider-secret-token');
     }
 
     private function userWithRole(string $roleCode, string $email): User
@@ -286,6 +297,6 @@ final class InspectorFailingProbe implements ModuleHealthProbe
 {
     public function check(): ModuleHealthCheck
     {
-        return ModuleHealthCheck::error('inspector-failing-probe', 'Expected diagnostic failure.');
+        return ModuleHealthCheck::error('inspector-failing-probe', 'provider-secret-token');
     }
 }
