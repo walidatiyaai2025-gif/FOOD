@@ -188,4 +188,7 @@ return [
         'accepting' => 'يستقبل',
         'paused' => 'متوقف',
     ],
+    'analytics' => [
+        'nav_title' => 'تحليلات المطعم',
+    ],
 ];
