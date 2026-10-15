@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 final class SmartOrderingRuntimePolicy
 {
+    public function __construct(
+        private readonly SmartOrderingEnterpriseEntitlementBridge $enterpriseEntitlements,
+    ) {}
+
     public function resolveBySlug(string $slug): ?SmartOrderingSite
     {
         $slug = strtolower(trim($slug));
@@ -77,6 +81,8 @@ final class SmartOrderingRuntimePolicy
             return false;
         }
 
+        $legacyEnabled = null;
+
         if ($branch !== null) {
             if ((int) $branch->site_id !== (int) $site->id || ! $branch->is_active) {
                 return false;
@@ -89,15 +95,19 @@ final class SmartOrderingRuntimePolicy
                 ->value('enabled');
 
             if ($branchValue !== null) {
-                return (bool) $branchValue;
+                $legacyEnabled = (bool) $branchValue;
             }
         }
 
-        return (bool) (DB::table('smart_ordering_entitlements')
-            ->where('site_id', $site->id)
-            ->where('scope_key', 'site')
-            ->where('module', $moduleValue)
-            ->value('enabled') ?? false);
+        if ($legacyEnabled === null) {
+            $legacyEnabled = (bool) (DB::table('smart_ordering_entitlements')
+                ->where('site_id', $site->id)
+                ->where('scope_key', 'site')
+                ->where('module', $moduleValue)
+                ->value('enabled') ?? false);
+        }
+
+        return $this->enterpriseEntitlements->allows($site, $moduleValue, $legacyEnabled);
     }
 
     public function effectiveState(SmartOrderingSite $site): RuntimeState
