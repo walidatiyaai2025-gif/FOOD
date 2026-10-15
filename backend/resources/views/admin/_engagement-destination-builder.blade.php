@@ -15,6 +15,7 @@
         @endforeach
     </select>
     <small class="foodex-muted">{{ __('engagement_destinations.help') }}</small>
+    @error($destinationField)<small role="alert">{{ $message }}</small>@enderror
     <div
         class="js-engagement-destination-preview"
         role="status"
