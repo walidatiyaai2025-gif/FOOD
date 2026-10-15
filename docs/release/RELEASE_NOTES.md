@@ -1,46 +1,46 @@
-# FOODEX 1.0.79 — WhatsApp CRM GA Release Notes
+# FOODEX 1.0.86 — Smart Ordering & WhatsApp Reliability Release Notes
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.79`.
-- Customer source identity: `1.0.79+79`.
-- Driver source identity: `1.0.79+79`.
-- Van source identity: `1.0.79+79`.
-- WhatsApp CRM certification: `FOODEX-WHATSAPP-CRM-GA-1407-V1`.
-- Certification matrix: 20/20 PASS with zero unresolved P0/P1 risks.
+- Dashboard / repository release: `1.0.86`.
+- Customer source identity: `1.0.86+86`.
+- Driver source identity: `1.0.86+86`.
+- Van source identity: `1.0.86+86`.
+- Source boundary: authoritative `main` after #1560 / PR #1563, cumulative from immutable `v1.0.79`.
 
-## WhatsApp CRM GA scope
+## Smart Ordering GA
 
-- Provider-neutral WhatsApp architecture with the Meta Cloud adapter, durable webhook inbox, queued outbound transport, bounded retry, failure visibility and idempotency.
-- Dynamic connection profiles with encrypted credentials, health validation, atomic primary-number switching and RECEIVE_ONLY / DRAIN migration behavior.
-- Customer Service Agent/Supervisor RBAC, assignment/reassignment, unassigned queue, shared inbox, internal notes, tags, SLA and Customer 360.
-- Dashboard-global inbound-message popup for the responsible Customer Service user, including exact-conversation deep link, RBAC/store isolation and replay deduplication.
-- Optional transactional notifications for order, invoice, payment, refund and cancellation events.
-- Template registry, segmentation, campaigns, consent ledger, opt-out suppression and campaign metrics.
-- Supervisor analytics, lead state, follow-ups and unified customer timeline.
+- Promote the certified Smart Ordering program with fail-closed restaurant/site runtime, branch policy, draft/publish revisioning and tenant isolation.
+- Include menu/modifier/pricing, cart/checkout/lifecycle/tracking, customer growth/loyalty, WhatsApp bridge, dynamic QR attribution, analytics, merchandising and FOODEX supply intelligence.
+- Preserve the Smart Ordering GA certification workflow, rollback controls and exact-head promotion contract.
 
-## Production safety
+## Operator UX and QR production repair
 
-- The module remains `DISABLED` by default after deployment.
-- The emergency outbound stop remains authoritative and is re-engaged during GA_READY certification.
-- Certification never performs production activation.
-- Production `ENABLED` still requires a separate explicit authorized Super Admin action after a valid connection profile is configured/tested and the emergency stop is deliberately cleared.
-- Core FOODEX boot, orders, payments, customers, migrations and release processing do not require Meta/WhatsApp credentials.
-- WhatsApp/provider outages remain isolated from core FOOD transactions.
+- Add optional menu images and surface current menu/category/item media directly in the builder.
+- Add a draft-only review-before-publish experience grouped as Menu → Category → Item with media, localized copy, prices and operational state.
+- Simplify QR creation into Main Menu, Table and Campaign/Offer presets while retaining Advanced controls and existing stable-token/attribution behavior.
+- Reuse the application-owned bundled TCPDF runtime so QR SVG/PDF generation remains available when production Composer dependencies do not expose TCPDF classes.
 
-## Additional Dashboard scope
+## WhatsApp reliability after 1.0.79
 
-- Include #1433 searchable single-product Sales Control instead of expanding all products, preserving strict store/RBAC scoping.
+- Include WhatsApp media/calling, campaign-builder/report and inbox reliability improvements.
+- Include the Premium Smart WhatsApp Chatbot with staged rollout, deterministic business actions, previews, support handoff, campaign attribution and safe intent testing.
+- Include Meta template creation/synchronization fixes, exhaustive pagination/import of remote-only templates and explicit sync counts.
+- Keep first-time contact consent unknown until explicit evidence is recorded; stale browser state cannot silently grant consent.
+
+## Updater compatibility
+
+- Normalize legacy compact installed versions such as `1.084` to canonical `1.0.84` and self-heal persisted current-version/history references.
+- Reject non-canonical target/minimum version input while preserving downgrade prevention and package integrity checks.
+- The 1.0.86 Dashboard package is cumulative and remains valid for a production instance currently reporting canonical 1.0.84.
 
 ## Deployment and rollback
 
-- This release contains additive WhatsApp CRM database migrations.
-- The generated Dashboard update must include the migrations and all WhatsApp runtime/configuration files.
-- Default-disabled behavior is the first rollback safeguard: deploying 1.0.79 does not create outbound WhatsApp traffic by itself.
-- If code rollback is required, use the normal FOODEX updater/recovery path and preserve conversation/audit data unless an explicit data-removal procedure is separately approved.
-- Customer, Driver and Van identities are synchronized for the release contract; no new mobile product behavior is introduced by the WhatsApp promotion.
+- This release includes additive Smart Ordering and WhatsApp migrations.
+- WhatsApp/chatbot and Smart Ordering activation remain explicit, audited and fail-closed; release publication does not silently enable external outbound behavior.
+- Use the normal FOODEX updater recovery path for rollback and preserve audit/conversation/order data unless a separate approved data-removal procedure exists.
 
 ## Validation contract
 
-- Repository Policy, Required CI, localization, backend full tests, MySQL/Redis production acceptance, Store Readiness, Update Bundle validation and required visual evidence must pass on the exact promotion head.
-- The final merge to `main` must be exact-head and may not bypass any failing release gate.
+- Repository Policy, Required CI, localization, backend tests, MySQL/Redis deployment acceptance, Store Submission Readiness, Smart Ordering GA Certification, Update Bundle validation and Dashboard visual evidence must pass on the exact promotion head.
+- Merge to `main` only from that exact green head. The resulting `VERSION` change is the Release Factory publication trigger.
