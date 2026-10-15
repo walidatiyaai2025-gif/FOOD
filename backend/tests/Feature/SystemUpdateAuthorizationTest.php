@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\SystemVersion;
+use App\Models\UpdateHistory;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +36,52 @@ class SystemUpdateAuthorizationTest extends TestCase
             ->assertOk()
             ->assertSee('href="'.route('admin.administration.index').'"', false)
             ->assertDontSee('href="'.route('admin.system-update.index').'"', false);
+    }
+
+    public function test_system_update_center_repairs_legacy_compact_installed_version(): void
+    {
+        $user = $this->userWithRole('SUPER_ADMIN');
+
+        SystemVersion::query()->create([
+            'version' => '1.084',
+            'installed_at' => now(),
+            'package_hash' => str_repeat('a', 64),
+        ]);
+
+        UpdateHistory::query()->create([
+            'from_version' => '1.083',
+            'to_version' => '1.084',
+            'status' => 'success',
+            'package_hash' => str_repeat('a', 64),
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+        ]);
+
+        UpdateHistory::query()->create([
+            'from_version' => '1.084',
+            'to_version' => '1.0.85',
+            'status' => 'failed',
+            'package_hash' => str_repeat('b', 64),
+            'started_at' => now(),
+            'finished_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/settings/system-update')
+            ->assertOk()
+            ->assertSee('1.0.84');
+
+        $this->assertDatabaseMissing('system_versions', ['version' => '1.084']);
+        $this->assertDatabaseHas('system_versions', ['version' => '1.0.84']);
+        $this->assertDatabaseHas('update_history', [
+            'to_version' => '1.0.84',
+            'status' => 'success',
+        ]);
+        $this->assertDatabaseHas('update_history', [
+            'from_version' => '1.0.84',
+            'to_version' => '1.0.85',
+            'status' => 'failed',
+        ]);
     }
 
     public function test_non_update_admin_cannot_open_system_update_center(): void

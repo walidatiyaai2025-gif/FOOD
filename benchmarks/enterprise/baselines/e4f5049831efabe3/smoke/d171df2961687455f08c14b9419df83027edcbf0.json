@@ -1,0 +1,400 @@
+{
+  "baseline_head": null,
+  "dataset": {
+    "audit_events_messages": 500,
+    "customers": 60,
+    "finance_records": 200,
+    "order_items": 1000,
+    "orders": 200,
+    "products": 60,
+    "stock_movements": 500,
+    "stores": 3,
+    "tenants": 3,
+    "warehouses": 6
+  },
+  "environment": {
+    "cpanel_reference": false,
+    "database": "sqlite 3.45.1",
+    "memory_limit": "-1",
+    "php": "8.3.35",
+    "runner": "github-actions"
+  },
+  "generated_at": "2026-10-15T10:17:35+00:00",
+  "harness_head": "a1d3354ce201e9b0c3524282b21d230019ba8511",
+  "profile": "smoke",
+  "scenarios": [
+    {
+      "baseline": null,
+      "id": "admin.dashboard",
+      "memory": {
+        "peak_bytes": 168820736,
+        "peak_mib": 161
+      },
+      "metrics": {
+        "median_round_p95_ms": 14.4854325,
+        "p50_ms": 14.203935,
+        "p95_ms": 14.6724856,
+        "p99_ms": 14.75556592
+      },
+      "queries": {
+        "count": 52,
+        "flagged_query_count": 0,
+        "investigation_threshold_ms": 250,
+        "slowest": [
+          {
+            "avg_ms": 0.06777777777777781,
+            "connection": "sqlite",
+            "count": 27,
+            "fingerprint": "10eacd47accbd5f4272df8ab51f1a07bf2279c87d6cc11b4b458fdcf9a95e9b2",
+            "investigation_required": false,
+            "max_ms": 0.09,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ? and \"roles\".\"code\" in (?, ?, ?, ?, ?, ?, ?, ?)) as \"exists\"",
+            "total_ms": 1.8300000000000007
+          },
+          {
+            "avg_ms": 0.0411111111111108,
+            "connection": "sqlite",
+            "count": 351,
+            "fingerprint": "3fe48a3a8d7d160f296f358030ee974d5bda5fe64c1e9e649c348ac5816fce39",
+            "investigation_required": false,
+            "max_ms": 0.09,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"code\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ?) as \"exists\"",
+            "total_ms": 14.429999999999891
+          },
+          {
+            "avg_ms": 0.04666666666666666,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "1e57367def3911ff2fda78213a47179bcded4b4bf0643453e2286ff1c03870e8",
+            "investigation_required": false,
+            "max_ms": 0.07,
+            "sql": "select * from \"settings\" where \"store_id\" is null and \"key\" = ? order by \"id\" desc limit ?",
+            "total_ms": 0.42
+          },
+          {
+            "avg_ms": 0.04814814814814817,
+            "connection": "sqlite",
+            "count": 27,
+            "fingerprint": "256b5be7fb65704f1274e537a48e842b7beb56c50c0dcbab510af030c7604842",
+            "investigation_required": false,
+            "max_ms": 0.07,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ? and \"roles\".\"code\" in (?)) as \"exists\"",
+            "total_ms": 1.3000000000000005
+          },
+          {
+            "avg_ms": 0.03222222222222223,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "58399b69a0932a60f02cbbfc8fe7912da14b6e1e64edb116ded9ac30630a15e0",
+            "investigation_required": false,
+            "max_ms": 0.05,
+            "sql": "select * from \"user_store_roles\" where \"user_store_roles\".\"user_id\" = ? and \"user_store_roles\".\"user_id\" is not null",
+            "total_ms": 0.29000000000000004
+          },
+          {
+            "avg_ms": 0.0302777777777778,
+            "connection": "sqlite",
+            "count": 36,
+            "fingerprint": "d208f9f22a9ec7eab3943e00be966775c569a21e92b15c09ef4691883ce9ba4b",
+            "investigation_required": false,
+            "max_ms": 0.05,
+            "sql": "select * from \"whats_app_module_states\" where \"whats_app_module_states\".\"id\" = ? limit ?",
+            "total_ms": 1.0900000000000007
+          },
+          {
+            "avg_ms": 0.030000000000000002,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "ffad3bc30dc4bc337f94812a5263ba4ea4d75355043284399d4ccadd365046b6",
+            "investigation_required": false,
+            "max_ms": 0.03,
+            "sql": "select \"roles\".\"code\" from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? order by \"roles\".\"code\" asc",
+            "total_ms": 0.27
+          }
+        ]
+      },
+      "queue": null,
+      "rounds": 3,
+      "verdict": {
+        "exception": null,
+        "reasons": [
+          "baseline_observation_only"
+        ],
+        "status": "PASS"
+      },
+      "workload_class": "dashboard"
+    },
+    {
+      "baseline": null,
+      "id": "admin.orders.index",
+      "memory": {
+        "peak_bytes": 170917888,
+        "peak_mib": 163
+      },
+      "metrics": {
+        "median_round_p95_ms": 63.5846388,
+        "p50_ms": 63.263818,
+        "p95_ms": 63.8534354,
+        "p99_ms": 63.912390280000004
+      },
+      "queries": {
+        "count": 458,
+        "flagged_query_count": 0,
+        "investigation_threshold_ms": 250,
+        "slowest": [
+          {
+            "avg_ms": 0.3388888888888888,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "9bb220fa4ff742bf6034bed268985b897bae6b3a434815be1bf802f99f116a8d",
+            "investigation_required": false,
+            "max_ms": 0.37,
+            "sql": "select * from \"orders\" where (((\"channel\" = ? and \"store_id\" in (?, ?, ?)))) and \"store_id\" = ? order by \"id\" desc limit ? offset ?",
+            "total_ms": 3.0499999999999994
+          },
+          {
+            "avg_ms": 0.09444444444444448,
+            "connection": "sqlite",
+            "count": 18,
+            "fingerprint": "10eacd47accbd5f4272df8ab51f1a07bf2279c87d6cc11b4b458fdcf9a95e9b2",
+            "investigation_required": false,
+            "max_ms": 0.13,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ? and \"roles\".\"code\" in (?, ?, ?, ?, ?, ?, ?, ?)) as \"exists\"",
+            "total_ms": 1.7000000000000006
+          },
+          {
+            "avg_ms": 0.07333333333333335,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "ea83302ff30d6a009a5f6dcfb013d5732d8ef03d63fabec230d8d15ab15ded52",
+            "investigation_required": false,
+            "max_ms": 0.11,
+            "sql": "select \"products\".\"id\", \"products\".\"sku\", \"products\".\"name\", \"store_products\".\"price\" from \"products\" inner join \"catalogs\" on \"catalogs\".\"id\" = \"products\".\"catalog_id\" inner join \"store_products\" on \"store_products\".\"product_id\" = \"products\".\"id\" and \"store_products\".\"store_id\" = \"catalogs\".\"store_id\" where \"catalogs\".\"store_id\" = ? and \"catalogs\".\"channel\" = ? and \"catalogs\".\"is_migration_quarantine\" = ? and \"catalogs\".\"is_active\" = ? and \"products\".\"is_active\" = ? and \"store_products\".\"is_active\" = ? order by \"products\".\"name\" asc",
+            "total_ms": 0.6600000000000001
+          },
+          {
+            "avg_ms": 0.08166666666666669,
+            "connection": "sqlite",
+            "count": 18,
+            "fingerprint": "6afc1738a004f58e85c66f3be488a215b922e8bfebe69313385c0ae7f3b6820b",
+            "investigation_required": false,
+            "max_ms": 0.09,
+            "sql": "select exists (select ? from \"main\".sqlite_master where name = ? and type = ?) as \"exists\"",
+            "total_ms": 1.4700000000000004
+          },
+          {
+            "avg_ms": 0.06444444444444446,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "d59ff898fc285c33c7c67dca171577202ba4f08b30b1e0a64d008e27ee3c4b24",
+            "investigation_required": false,
+            "max_ms": 0.09,
+            "sql": "select \"b2b_customers\".\"id\", \"b2b_customers\".\"name\", \"b2b_accounts\".\"company_name\", \"retail_wholesale_accounts\".\"retail_store_id\", \"retail_customer_store\".\"name\" as \"retail_store_name\" from \"b2b_customers\" inner join \"b2b_accounts\" on \"b2b_accounts\".\"b2b_customer_id\" = \"b2b_customers\".\"id\" left join \"retail_wholesale_accounts\" on \"retail_wholesale_accounts\".\"b2b_customer_id\" = \"b2b_customers\".\"id\" left join \"stores\" as \"retail_customer_store\" on \"retail_customer_store\".\"id\" = \"retail_wholesale_accounts\".\"retail_store_id\" where \"b2b_accounts\".\"status\" = ? and (\"b2b_accounts\".\"price_tier_id\" is not null or \"retail_wholesale_accounts\".\"retail_store_id\" is not null) order by retail_customer_store.id is null, \"b2b_accounts\".\"company_name\" asc, \"b2b_customers\".\"name\" asc",
+            "total_ms": 0.5800000000000001
+          },
+          {
+            "avg_ms": 0.04325757575757558,
+            "connection": "sqlite",
+            "count": 396,
+            "fingerprint": "3fe48a3a8d7d160f296f358030ee974d5bda5fe64c1e9e649c348ac5816fce39",
+            "investigation_required": false,
+            "max_ms": 0.08,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"code\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ?) as \"exists\"",
+            "total_ms": 17.129999999999928
+          },
+          {
+            "avg_ms": 0.042244444444444126,
+            "connection": "sqlite",
+            "count": 450,
+            "fingerprint": "462e956021ebc8fe9bce2f4d999b4fb0560dc72afcb088bf66ea5bf3a7e3c84c",
+            "investigation_required": false,
+            "max_ms": 0.08,
+            "sql": "select * from \"driver_assignments\" where \"order_id\" = ? and \"status\" not in (?, ?, ?, ?, ?) order by \"id\" desc limit ?",
+            "total_ms": 19.009999999999856
+          },
+          {
+            "avg_ms": 0.060000000000000005,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "f6998828e726d69a99bba5808a990b9cceadd76abffa52cde4089a0bcc547057",
+            "investigation_required": false,
+            "max_ms": 0.08,
+            "sql": "select \"drivers\".\"id\", \"drivers\".\"store_id\", \"drivers\".\"driver_type\", \"drivers\".\"user_id\", \"users\".\"name\" from \"drivers\" left join \"users\" on \"users\".\"id\" = \"drivers\".\"user_id\" where ((\"drivers\".\"driver_type\" = ? and \"drivers\".\"store_id\" in (?, ?, ?))) and \"drivers\".\"is_active\" = ? order by \"users\".\"name\" asc",
+            "total_ms": 0.54
+          },
+          {
+            "avg_ms": 0.05666666666666667,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "1e57367def3911ff2fda78213a47179bcded4b4bf0643453e2286ff1c03870e8",
+            "investigation_required": false,
+            "max_ms": 0.07,
+            "sql": "select * from \"settings\" where \"store_id\" is null and \"key\" = ? order by \"id\" desc limit ?",
+            "total_ms": 0.51
+          },
+          {
+            "avg_ms": 0.06333333333333334,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "2d92b38cd1d210a83ffeaa26554f4e764b0116382dc5fbabe5c27247afb69309",
+            "investigation_required": false,
+            "max_ms": 0.07,
+            "sql": "select distinct \"vans\".\"id\", \"vans\".\"code\", \"vans\".\"plate_number\" from \"vans\" inner join \"van_assignments\" on \"van_assignments\".\"van_id\" = \"vans\".\"id\" where \"vans\".\"status\" = ? and \"van_assignments\".\"status\" = ? and \"van_assignments\".\"effective_from\" <= ? and (\"van_assignments\".\"effective_until\" is null or \"van_assignments\".\"effective_until\" > ?) order by \"vans\".\"code\" asc",
+            "total_ms": 0.5700000000000001
+          }
+        ]
+      },
+      "queue": null,
+      "rounds": 3,
+      "verdict": {
+        "exception": null,
+        "reasons": [
+          "baseline_observation_only"
+        ],
+        "status": "PASS"
+      },
+      "workload_class": "paginated_crud"
+    },
+    {
+      "baseline": null,
+      "id": "admin.reports.orders",
+      "memory": {
+        "peak_bytes": 170917888,
+        "peak_mib": 163
+      },
+      "metrics": {
+        "median_round_p95_ms": 21.1614455,
+        "p50_ms": 20.942777,
+        "p95_ms": 21.1924266,
+        "p99_ms": 21.19599172
+      },
+      "queries": {
+        "count": 71,
+        "flagged_query_count": 0,
+        "investigation_threshold_ms": 250,
+        "slowest": [
+          {
+            "avg_ms": 0.44777777777777783,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "1004f70616fb72fc8824f3b2c1e8a6e34e4f77343f444377fb18e873fbeb95c8",
+            "investigation_required": false,
+            "max_ms": 0.46,
+            "sql": "select \"orders\".\"id\", \"orders\".\"order_number\", \"orders\".\"created_at\", \"stores\".\"name\" as \"store\", \"orders\".\"channel\", \"orders\".\"status\", coalesce(b2c_customers.name, b2b_customers.name, legacy_customers.name) as customer, \"orders\".\"grand_total\", (select \"latest_payment\".\"provider\" from \"payments\" as \"latest_payment\" where \"latest_payment\".\"order_id\" = \"orders\".\"id\" order by \"latest_payment\".\"id\" desc limit ?) as \"payment_provider\" from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ? order by \"orders\".\"created_at\" desc limit ? offset ?",
+            "total_ms": 4.03
+          },
+          {
+            "avg_ms": 0.09444444444444443,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "144a9979bd8a044489e1a8c408d63afe24ee0a03ac7d197e75bcf056b10c3781",
+            "investigation_required": false,
+            "max_ms": 0.13,
+            "sql": "select sum(\"orders\".\"grand_total\") as aggregate from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ? and \"orders\".\"status\" not in (?, ?)",
+            "total_ms": 0.8499999999999999
+          },
+          {
+            "avg_ms": 0.11888888888888888,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "26c34e1c7568867adc96a5e8ead46d87938e64d9315ebe9a7cb9c310e847c7bb",
+            "investigation_required": false,
+            "max_ms": 0.13,
+            "sql": "select payments.provider, payments.status, count(*) as payments_count, coalesce(sum(payments.amount), ?) as amount from \"payments\" inner join \"orders\" on \"orders\".\"id\" = \"payments\".\"order_id\" where \"payments\".\"status\" in (?, ?, ?) and \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ? group by \"payments\".\"provider\", \"payments\".\"status\" order by \"payments\".\"provider\" asc",
+            "total_ms": 1.0699999999999998
+          },
+          {
+            "avg_ms": 0.1111111111111111,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "4a55e2b0b2ba095d4941a2d2b9b41479fb7abf054a57f58c89c4fa515ec10cac",
+            "investigation_required": false,
+            "max_ms": 0.13,
+            "sql": "select count(\"orders\".\"id\") as aggregate from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ?",
+            "total_ms": 1
+          },
+          {
+            "avg_ms": 0.12000000000000001,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "639ff71a6aeff669cff18284a456fb8297e9be3c5bc649bbe865ddab60fc8680",
+            "investigation_required": false,
+            "max_ms": 0.12,
+            "sql": "select orders.status, count(*) as orders_count, coalesce(sum(orders.grand_total), ?) as order_value from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ? group by \"orders\".\"status\" order by \"orders\".\"status\" asc",
+            "total_ms": 1.08
+          },
+          {
+            "avg_ms": 0.0922222222222222,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "9976ae160c4cfbdaf4715333af1929f69b3cff4e31fc9224e610f3cdb94d62e3",
+            "investigation_required": false,
+            "max_ms": 0.11,
+            "sql": "select avg(\"orders\".\"grand_total\") as aggregate from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ? and \"orders\".\"status\" not in (?, ?)",
+            "total_ms": 0.8299999999999998
+          },
+          {
+            "avg_ms": 0.0922222222222222,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "a1daa96cb6be23cf3198f2990fa65fd7ba44de760092aaa7313cf280048c6bb4",
+            "investigation_required": false,
+            "max_ms": 0.11,
+            "sql": "select sum(\"orders\".\"grand_total\") as aggregate from \"orders\" inner join \"stores\" on \"stores\".\"id\" = \"orders\".\"store_id\" left join \"b2c_customers\" on \"b2c_customers\".\"id\" = \"orders\".\"b2c_customer_id\" left join \"b2b_customers\" on \"b2b_customers\".\"id\" = \"orders\".\"b2b_customer_id\" left join \"customers\" as \"legacy_customers\" on \"legacy_customers\".\"id\" = \"orders\".\"customer_id\" where \"orders\".\"created_at\" between ? and ? and \"orders\".\"store_id\" = ?",
+            "total_ms": 0.8299999999999998
+          },
+          {
+            "avg_ms": 0.08555555555555557,
+            "connection": "sqlite",
+            "count": 18,
+            "fingerprint": "10eacd47accbd5f4272df8ab51f1a07bf2279c87d6cc11b4b458fdcf9a95e9b2",
+            "investigation_required": false,
+            "max_ms": 0.1,
+            "sql": "select exists(select * from \"roles\" inner join \"role_user\" on \"roles\".\"id\" = \"role_user\".\"role_id\" where \"role_user\".\"user_id\" = ? and \"roles\".\"is_active\" = ? and \"roles\".\"scope\" = ? and \"roles\".\"code\" in (?, ?, ?, ?, ?, ?, ?, ?)) as \"exists\"",
+            "total_ms": 1.5400000000000003
+          },
+          {
+            "avg_ms": 0.08222222222222221,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "5277f578b0398492edd0047368a2e97f802c869bd79ce1f22df6357d87fbbd2b",
+            "investigation_required": false,
+            "max_ms": 0.1,
+            "sql": "select \"id\", \"name\" from \"b2c_customers\" where \"store_id\" in (?, ?, ?) order by \"name\" asc limit ?",
+            "total_ms": 0.7399999999999999
+          },
+          {
+            "avg_ms": 0.08222222222222221,
+            "connection": "sqlite",
+            "count": 9,
+            "fingerprint": "e4cd1f4775ecaddd3ab7db0188f2e88dbaa6282569b46b8c586f26c0d565b8b1",
+            "investigation_required": false,
+            "max_ms": 0.1,
+            "sql": "select \"products\".\"id\", \"products\".\"name\", \"products\".\"sku\" from \"products\" inner join \"catalogs\" on \"catalogs\".\"id\" = \"products\".\"catalog_id\" order by \"products\".\"name\" asc limit ?",
+            "total_ms": 0.7399999999999999
+          }
+        ]
+      },
+      "queue": null,
+      "rounds": 3,
+      "verdict": {
+        "exception": null,
+        "reasons": [
+          "baseline_observation_only"
+        ],
+        "status": "PASS"
+      },
+      "workload_class": "bounded_interactive_report"
+    }
+  ],
+  "schema_version": 1,
+  "source_head": "d171df2961687455f08c14b9419df83027edcbf0",
+  "summary": {
+    "failed_scenarios": [],
+    "status": "PASS",
+    "warnings": [
+      "Regression anchor only: absolute cPanel guardrails are not asserted.",
+      "Smoke fixture only: representative heavy certification remains mandatory."
+    ]
+  }
+}
