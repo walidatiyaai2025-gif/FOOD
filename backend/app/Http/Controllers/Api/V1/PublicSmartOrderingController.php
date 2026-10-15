@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingRuntimePolicy;
 use App\Http\Controllers\Controller;
