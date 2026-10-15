@@ -50,6 +50,7 @@ use App\Http\Controllers\Admin\WhatsAppInboxController;
 use App\Http\Controllers\Admin\WhatsAppSupervisorController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
+use App\Http\Controllers\PublicInformationController;
 use App\Http\Controllers\SmartOrderingQrPublicController;
 use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -69,22 +70,10 @@ Route::get('/downloads/apps/{app}/{version}.apk', [MobileAppDownloadController::
     ->where('version', '\\d+\\.\\d+\\.\\d+')
     ->name('public.mobile-apps.versioned');
 
-Route::view('/privacy', 'public.legal', [
-    'title' => 'FOODEX Privacy Policy',
-    'content' => '<div class="card"><p>FOODEX processes account, order, delivery, device and support data only as needed to operate the service, secure accounts, fulfill transactions and meet legal or accounting obligations.</p><p>Store submission declarations must match the actual production build and configured integrations. Contact Support for privacy questions or deletion status.</p></div>',
-])->name('public.privacy');
-Route::view('/terms', 'public.legal', [
-    'title' => 'FOODEX Terms of Service',
-    'content' => '<div class="card"><p>Use of FOODEX is subject to the commercial, payment, delivery and account rules presented in the service. Operational Driver/Van accounts may be managed by the associated organization and are not treated as ordinary consumer accounts.</p></div>',
-])->name('public.terms');
-Route::view('/support', 'public.legal', [
-    'title' => 'FOODEX Support',
-    'content' => '<div class="card"><p>For account, order, delivery, privacy or store-review support, use the support contact configured for the production FOODEX release. This page is intentionally public so external store reviewers can reach the support surface.</p></div>',
-])->name('public.support');
-Route::view('/account-deletion', 'public.legal', [
-    'title' => 'FOODEX Account Deletion',
-    'content' => '<div class="card"><p>Customer accounts can request deletion from the authenticated app. Identity verification is required. Active orders or outstanding financial obligations may delay anonymization. Required order, invoice, payment, tax and audit records are retained where legally or operationally required.</p><p>Driver/Van operational accounts follow managed deactivation and retention rules and are not automatically destroyed as consumer accounts.</p></div>',
-])->name('public.account-deletion');
+Route::get('/privacy', [PublicInformationController::class, 'privacy'])->name('public.privacy');
+Route::get('/terms', [PublicInformationController::class, 'terms'])->name('public.terms');
+Route::get('/support', [PublicInformationController::class, 'support'])->name('public.support');
+Route::get('/account-deletion', [PublicInformationController::class, 'accountDeletion'])->name('public.account-deletion');
 
 Route::withoutMiddleware([
     EncryptCookies::class,
