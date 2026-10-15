@@ -20,8 +20,8 @@ use App\Support\TenantContextResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -626,7 +626,7 @@ final class SmartOrderingMenuAdminController extends Controller
         return $data;
     }
 
-    /** @return array{0:User,1:SmartOrderingSite,2:\Illuminate\Support\Collection<int,Store>} */
+    /** @return array{0:User,1:SmartOrderingSite,2:Collection<int,Store>} */
     private function context(
         Request $request,
         TenantContextResolver $tenants,
