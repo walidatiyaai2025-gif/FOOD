@@ -240,6 +240,7 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                         ),
                       ),
                       TextButton(
+                        key: const ValueKey('van-order-quote-retry'),
                         onPressed: _loading ? null : _reload,
                         child: Text(_text('Retry', 'إعادة المحاولة')),
                       ),
