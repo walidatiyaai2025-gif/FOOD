@@ -95,6 +95,44 @@ return new class extends Migration
             $table->index(['store_id', 'event_date', 'product_id'], 'so_analytics_product_store_date_idx');
         });
 
+        Schema::create('smart_ordering_analytics_category_daily', function (Blueprint $table): void {
+            $table->id();
+            $table->date('event_date');
+            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('branch_key')->default(0);
+            $table->unsignedBigInteger('category_id');
+            $table->string('event_name', 48);
+            $table->unsignedBigInteger('event_count')->default(0);
+            $table->decimal('revenue', 16, 3)->default(0);
+            $table->timestamps();
+
+            $table->unique([
+                'event_date', 'store_id', 'branch_key', 'category_id', 'event_name',
+            ], 'so_analytics_category_daily_unique');
+            $table->index(['store_id', 'event_date', 'category_id'], 'so_analytics_category_store_date_idx');
+        });
+
+        Schema::create('smart_ordering_analytics_hourly', function (Blueprint $table): void {
+            $table->id();
+            $table->date('event_date');
+            $table->unsignedTinyInteger('event_hour');
+            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('branch_key')->default(0);
+            $table->string('event_name', 48);
+            $table->string('source_key', 64)->default('');
+            $table->string('campaign_key', 120)->default('');
+            $table->string('fulfillment_mode_key', 32)->default('');
+            $table->unsignedBigInteger('event_count')->default(0);
+            $table->decimal('revenue', 16, 3)->default(0);
+            $table->timestamps();
+
+            $table->unique([
+                'event_date', 'event_hour', 'store_id', 'branch_key', 'event_name',
+                'source_key', 'campaign_key', 'fulfillment_mode_key',
+            ], 'so_analytics_hourly_dimension_unique');
+            $table->index(['store_id', 'event_date', 'event_hour'], 'so_analytics_hour_store_date_idx');
+        });
+
         $now = now();
         foreach (self::PERMISSIONS as $code => $name) {
             DB::table('permissions')->updateOrInsert(
@@ -117,6 +155,8 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::dropIfExists('smart_ordering_analytics_hourly');
+        Schema::dropIfExists('smart_ordering_analytics_category_daily');
         Schema::dropIfExists('smart_ordering_analytics_product_daily');
         Schema::dropIfExists('smart_ordering_analytics_daily_visitors');
         Schema::dropIfExists('smart_ordering_analytics_daily');
