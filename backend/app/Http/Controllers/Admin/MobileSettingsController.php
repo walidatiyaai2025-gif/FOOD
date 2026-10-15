@@ -112,9 +112,9 @@ final class MobileSettingsController extends Controller
         $criticalPolicyChanged = $data['environment'] === 'production'
             && (
                 array_key_exists('force_update', $data)
-                    && $request->boolean('force_update') !== (bool) ($before?->force_update ?? false)
+                    && $request->boolean('force_update') !== (bool) ($before->force_update ?? false)
                 || array_key_exists('maintenance_mode', $data)
-                    && $request->boolean('maintenance_mode') !== (bool) ($before?->maintenance_mode ?? false)
+                    && $request->boolean('maintenance_mode') !== (bool) ($before->maintenance_mode ?? false)
             );
 
         if ($criticalPolicyChanged && ! $request->boolean('critical_policy_confirm')) {
