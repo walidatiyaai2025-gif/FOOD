@@ -233,8 +233,8 @@
                                     <form class="foodex-form cb-definition" method="post" action="{{ route('admin.whatsapp-chatbot.flows.update', ['flow' => $flow->id]) }}">
                                         @csrf @method('PATCH')
                                         <div class="cb-form-grid">
-                                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" value="{{ $flow->name_ar }}" required></div>
-                                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" value="{{ $flow->name_en }}" required dir="ltr"></div>
+                                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" value="{{ $flow->name_ar }}" required></div> {{-- localization-gate: allow — bilingual admin editor intentionally exposes both localized source fields --}}
+                                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" value="{{ $flow->name_en }}" required dir="ltr"></div> {{-- localization-gate: allow — bilingual admin editor intentionally exposes both localized source fields --}}
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.message_ar') }}</label><textarea class="foodex-control" name="message_ar" rows="2" required>{{ data_get($welcomeNode,'content.ar','') }}</textarea></div>
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.message_en') }}</label><textarea class="foodex-control" name="message_en" rows="2" required dir="ltr">{{ data_get($welcomeNode,'content.en','') }}</textarea></div>
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.primary_action') }}</label><select class="foodex-control" name="primary_action">@foreach(['new_order','repeat_order','product_search','order_tracking','complaints','human_handoff'] as $action)<option value="{{ $action }}" @selected(data_get($actionNode,'action')===$action)>{{ __('chatbot.customer.'.$action) }}</option>@endforeach</select></div>
@@ -256,7 +256,7 @@
                                     </form>
                                     @endif
                                     <div class="cb-actions">
-                                        @if($canPublishFlows && $flow->status !== 'published')<form method="post" action="{{ route('admin.whatsapp-chatbot.flows.publish', ['flow'=>$flow->id]) }}">@csrf<button class="foodex-action-primary" type="submit">{{ __('chatbot.admin.publish') }}</button></form>@endif
+                                        @if($canPublishFlows && $flow->status !== 'published')<form method="post" action="{{ route('admin.whatsapp-chatbot.flows.publish', ['flow'=>$flow->id]) }}">@csrf<button class="foodex-action-primary" type="submit">{{ __('chatbot.admin.publish') }}</button></form>@endif {{-- localization-gate: allow — workflow status comparison is control logic; visible action text is translated --}}
                                         @if($canPublishFlows && (int)$flow->version > 1)<form method="post" action="{{ route('admin.whatsapp-chatbot.flows.rollback', ['flow'=>$flow->id]) }}">@csrf<button class="foodex-action-secondary" type="submit">{{ __('chatbot.admin.rollback') }}</button></form>@endif
                                     </div>
                                 </article>
@@ -330,8 +330,8 @@
                                 <form class="cb-card foodex-form" method="post" action="{{ route('admin.whatsapp-chatbot.segments.update',['segment'=>$segment->id]) }}">
                                     @csrf @method('PATCH')
                                     <div class="cb-form-grid">
-                                        <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" value="{{ $segment->name_ar }}" required @disabled(!$canManageSegments)></div>
-                                        <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" value="{{ $segment->name_en }}" required dir="ltr" @disabled(!$canManageSegments)></div>
+                                        <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" value="{{ $segment->name_ar }}" required @disabled(!$canManageSegments)></div> {{-- localization-gate: allow — bilingual admin editor intentionally exposes both localized source fields --}}
+                                        <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" value="{{ $segment->name_en }}" required dir="ltr" @disabled(!$canManageSegments)></div> {{-- localization-gate: allow — bilingual admin editor intentionally exposes both localized source fields --}}
                                         <input type="hidden" name="enabled" value="0"><div class="cb-field"><label class="cb-switch-row"><input type="checkbox" name="enabled" value="1" @checked($segment->enabled) @disabled(!$canManageSegments)> {{ __('chatbot.admin.enabled') }}</label></div>
                                         <div class="cb-field"><label>{{ __('chatbot.admin.priority') }}</label><input class="foodex-control" type="number" name="priority" value="{{ $segment->priority }}" min="1" max="9999" @disabled(!$canManageSegments)></div>
                                         <div class="cb-field"><label>{{ __('chatbot.admin.customer_type') }}</label><select class="foodex-control" name="customer_type" @disabled(!$canManageSegments)>@foreach(['any','b2b','b2c'] as $type)<option value="{{ $type }}" @selected(($rules['customer_type']??'any')===$type)>{{ __('chatbot.admin.'.$type) }}</option>@endforeach</select></div>
