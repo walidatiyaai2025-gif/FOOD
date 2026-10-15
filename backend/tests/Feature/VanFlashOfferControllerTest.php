@@ -91,7 +91,6 @@ final class VanFlashOfferControllerTest extends TestCase
         ]);
         $customer = B2bCustomer::query()->create([
             'legacy_customer_id' => $legacyCustomer->id,
-            'store_id' => $storeId,
             'user_id' => $customerUser->id,
             'name' => 'Flash Buyer',
             'email' => 'flash-buyer@example.test',
