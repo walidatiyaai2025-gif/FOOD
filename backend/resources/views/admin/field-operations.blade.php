@@ -612,7 +612,7 @@
                     @endif
                 </section>
             @endif
-            @forelse($policies as $policy)
+            @foreach($policies as $policy)
             @php
                 $policyHasLegacyRules = $policy->rules->contains(function ($rule): bool {
                     $conditionKeys = array_keys((array) $rule->conditions);
@@ -715,7 +715,8 @@
                     </form>
                 </div>@endif
             </article>
-            @empty<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endforelse
+            @endforeach
+            @if($policies->isEmpty())<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endif
             {{ $policies->links() }}
 
         @elseif($section === 'finance')
