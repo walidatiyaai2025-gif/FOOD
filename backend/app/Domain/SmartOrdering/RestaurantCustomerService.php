@@ -91,9 +91,9 @@ final class RestaurantCustomerService
             }
         }
 
-        $orderCount = (int) ($summary?->order_count ?? 0);
-        $lifetimeSpend = round((float) ($summary?->lifetime_spend ?? 0), 3);
-        $averageOrder = round((float) ($summary?->average_order_value ?? 0), 3);
+        $orderCount = (int) ($summary->order_count ?? 0);
+        $lifetimeSpend = round((float) ($summary->lifetime_spend ?? 0), 3);
+        $averageOrder = round((float) ($summary->average_order_value ?? 0), 3);
 
         return [
             'customer' => [
