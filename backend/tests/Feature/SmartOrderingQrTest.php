@@ -95,13 +95,23 @@ class SmartOrderingQrTest extends TestCase
             'promotion_id' => $promotionId,
         ]));
         $resolved = $manager->resolve($created['token']);
-        $visit = $attribution->startLanding($resolved['qr'], $resolved['token'], 'visitor-abcdefghijklmnopqrstuvwxyz-123456');
+        $visit = $attribution->startLanding(
+            $resolved['qr'],
+            $resolved['token'],
+            'visitor-abcdefghijklmnopqrstuvwxyz-123456',
+            'https://campaign.example/landing',
+        );
         $context = $attribution->signedContext($visit);
 
         $server = $attribution->serverContext($context, $store);
         $this->assertSame('T-12', $server['table_reference']);
         $this->assertSame('Salmiya', $server['branch_reference']);
         $this->assertSame($promotionId, $server['promotion_id']);
+        $this->assertSame('https://campaign.example/landing', $visit->fresh()->referrer_snapshot);
+
+        $cart = Cart::query()->create(['store_id' => $store, 'guest_token' => 'promo-cart', 'channel' => 'b2c']);
+        $attribution->attachCart($context, $cart);
+        $this->assertSame($promotionId, $attribution->promotionIdForCart($cart));
 
         $this->expectException(ValidationException::class);
         $attribution->serverContext(substr($context, 0, -1).'0', $store);
@@ -120,7 +130,7 @@ class SmartOrderingQrTest extends TestCase
         $attribution->markStorefrontViewed($context, $store);
         $cart = Cart::query()->create(['store_id' => $store, 'guest_token' => 'guest-1', 'channel' => 'b2c']);
         $attribution->attachCart($context, $cart);
-        $attribution->markCheckoutStarted($context, $store);
+        $attribution->markCheckoutStartedForCart($cart);
 
         $customerUser = User::query()->create(['name' => 'QR Customer', 'email' => 'qr-customer@example.test', 'password' => 'password']);
         $customer = Customer::query()->create(['user_id' => $customerUser->id, 'type' => 'b2c', 'name' => 'QR Customer']);
@@ -137,10 +147,20 @@ class SmartOrderingQrTest extends TestCase
             'grand_total' => 20,
         ]);
 
-        $converted = $attribution->attachOrder($context, $order);
+        $converted = $attribution->attachOrderFromCart($cart, $order);
+        $this->assertNotNull($converted);
         $this->assertSame($cart->id, $converted->cart_id);
         $this->assertSame($order->id, $converted->order_id);
         $this->assertSame('20.000', $converted->revenue);
+
+        $cart->delete();
+        $converted = $converted->fresh();
+        $this->assertNull($converted->cart_id);
+
+        $metrics = $attribution->metricsForQrIds([$created['qr']->id]);
+        $this->assertSame(1, $metrics[$created['qr']->id]['carts']);
+        $this->assertSame(1, $metrics[$created['qr']->id]['orders']);
+        $this->assertSame(20.0, $metrics[$created['qr']->id]['revenue']);
 
         foreach (['qr_scanned', 'storefront_viewed', 'cart_started', 'checkout_started', 'order_created'] as $event) {
             $this->assertDatabaseHas('smart_ordering_qr_events', [
@@ -163,6 +183,26 @@ class SmartOrderingQrTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $attribution->attachCart($context, $otherCart);
+    }
+
+    public function test_guest_cart_attribution_moves_to_authenticated_cart_without_overwrite(): void
+    {
+        [$store] = $this->stores();
+        $manager = app(SmartOrderingQrManager::class);
+        $attribution = app(SmartOrderingAttributionService::class);
+        $created = $manager->create($this->payload($store));
+        $resolved = $manager->resolve($created['token']);
+        $visit = $attribution->startLanding($resolved['qr'], $resolved['token'], 'visitor-merge-abcdefghijklmnopqrstuvwxyz');
+        $context = $attribution->signedContext($visit);
+
+        $guest = Cart::query()->create(['store_id' => $store, 'guest_token' => 'merge-source', 'channel' => 'b2c']);
+        $target = Cart::query()->create(['store_id' => $store, 'guest_token' => null, 'channel' => 'b2c']);
+
+        $attribution->attachCart($context, $guest);
+        $attribution->transferCartAttribution($guest, $target);
+
+        $this->assertSame($target->id, $visit->fresh()->cart_id);
+        $this->assertNotNull($visit->fresh()->cart_started_at);
     }
 
     public function test_duplicate_scan_retry_does_not_corrupt_conversion_metrics(): void
