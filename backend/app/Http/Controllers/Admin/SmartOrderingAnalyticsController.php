@@ -34,6 +34,20 @@ final class SmartOrderingAnalyticsController extends Controller
                 ->where('b.is_active', true)
                 ->orderBy('b.name_en')
                 ->get(['b.id', 'b.name_ar', 'b.name_en', 's.store_id']),
+            'products' => DB::table('products as p')
+                ->join('catalogs as c', 'c.id', '=', 'p.catalog_id')
+                ->whereIn('c.store_id', $storeIds)
+                ->where('p.is_active', true)
+                ->orderBy('p.name')
+                ->limit(500)
+                ->get(['p.id', 'p.name', 'p.sku']),
+            'categories' => DB::table('categories as c')
+                ->join('catalogs as catalog', 'catalog.id', '=', 'c.catalog_id')
+                ->whereIn('catalog.store_id', $storeIds)
+                ->where('c.is_active', true)
+                ->orderBy('c.name')
+                ->limit(500)
+                ->get(['c.id', 'c.name']),
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => 'smart_ordering_analytics',
         ]);
