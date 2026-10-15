@@ -13,7 +13,6 @@ use Tests\TestCase;
 class DashboardDateRangeTest extends TestCase
 {
     use RefreshDatabase;
-
     public function test_b2c_dashboard_uses_explicit_from_to_range(): void
     {
         $this->seed(DashboardDemoSeeder::class);
@@ -74,7 +73,7 @@ class DashboardDateRangeTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
-        $this->assertStringContainsString("\$isAr?'المبيعات':'Sales'", $view);
+        $this->assertStringContainsString('$isAr?\'المبيعات\':\'Sales\'', $view);
         $this->assertStringContainsString('value="{{ $dashboard[\'selected_from\'] }}"', $view);
         $this->assertStringContainsString('value="{{ $dashboard[\'selected_to\'] }}"', $view);
         $this->assertStringContainsString('\'from\'=>$dashboard[\'selected_from\']', $view);
