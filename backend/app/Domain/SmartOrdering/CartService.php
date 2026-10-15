@@ -3,6 +3,7 @@
 namespace App\Domain\SmartOrdering;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
 use App\Services\SmartOrderingAttributionService;
@@ -18,6 +19,7 @@ final class CartService
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingMerchandisingService $merchandising,
+        private readonly SmartOrderingModifierService $menuModifiers,
         private readonly SmartOrderingAnalyticsService $analytics,
         private readonly SmartOrderingAttributionService $attribution,
     ) {}
@@ -110,22 +112,51 @@ final class CartService
             throw ValidationException::withMessages(['quantity' => ['Quantity must be greater than zero.']]);
         }
 
-        $productId = (int) ($payload['product_id'] ?? 0);
-        abort_unless($productId > 0, 422, 'A valid product is required.');
-        $selection = $this->selection((array) ($payload['selection'] ?? []));
+        $requestedProductId = (int) ($payload['product_id'] ?? 0);
+        $rawSelection = (array) ($payload['selection'] ?? []);
+        $menuItemPublicId = isset($payload['menu_item_public_id'])
+            ? trim((string) $payload['menu_item_public_id'])
+            : null;
+        if ($menuItemPublicId === '') {
+            $menuItemPublicId = null;
+        }
+        $usePublicMenuSelection = $menuItemPublicId !== null
+            && ($requestedProductId <= 0 || array_key_exists('menu_modifiers', $rawSelection));
 
-        return DB::transaction(function () use ($cart, $payload, $productId, $quantity, $selection): array {
+        return DB::transaction(function () use (
+            $cart,
+            $payload,
+            $requestedProductId,
+            $quantity,
+            $rawSelection,
+            $menuItemPublicId,
+            $usePublicMenuSelection,
+        ): array {
             $branch = $this->branchForCart($cart);
             $this->branches->assertAccepting($branch);
-            $this->assertProductBelongsToStore($productId, (int) $branch->store_id);
-            $menuItemPublicId = isset($payload['menu_item_public_id'])
-                ? trim((string) $payload['menu_item_public_id'])
-                : null;
-            if ($menuItemPublicId !== null && $menuItemPublicId !== '') {
-                $this->assertMenuItemForCart($cart, $branch, $menuItemPublicId, $productId);
+
+            if ($usePublicMenuSelection) {
+                [$productId, $selection] = $this->resolvePublicMenuSelection(
+                    $cart,
+                    $branch,
+                    (string) $menuItemPublicId,
+                    $rawSelection,
+                );
+                if ($requestedProductId > 0 && $requestedProductId !== $productId) {
+                    throw ValidationException::withMessages([
+                        'product_id' => ['Menu item identity does not match the selected product.'],
+                    ]);
+                }
             } else {
-                $menuItemPublicId = null;
+                $productId = $requestedProductId;
+                abort_unless($productId > 0, 422, 'A valid product is required.');
+                $selection = $this->selection($rawSelection);
+                if ($menuItemPublicId !== null) {
+                    $this->assertMenuItemForCart($cart, $branch, $menuItemPublicId, $productId);
+                }
             }
+
+            $this->assertProductBelongsToStore($productId, (int) $branch->store_id);
 
             $itemId = (int) DB::table('smart_ordering_cart_items')->insertGetId([
                 'public_id' => (string) Str::uuid(),
@@ -369,6 +400,102 @@ final class CartService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Resolve a public storefront item/modifier selection to the existing commerce product lines.
+     *
+     * @param  array<string,mixed>  $selection
+     * @return array{0:int,1:array<string,mixed>}
+     */
+    private function resolvePublicMenuSelection(
+        SmartOrderingCart $cart,
+        SmartOrderingBranch $branch,
+        string $menuItemPublicId,
+        array $selection,
+    ): array {
+        foreach (['variant_product_id', 'modifiers', 'extras'] as $legacyKey) {
+            if (array_key_exists($legacyKey, $selection)) {
+                throw ValidationException::withMessages([
+                    'selection' => ['Public menu selections cannot include internal product identifiers.'],
+                ]);
+            }
+        }
+
+        $revisionId = DB::table('smart_ordering_revisions')
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $cart->revision_public_id)
+            ->where('status', 'published')
+            ->value('id');
+        abort_unless($revisionId !== null, 409, 'Cart menu revision is no longer available.');
+
+        /** @var SmartOrderingMenuItem|null $item */
+        $item = SmartOrderingMenuItem::query()
+            ->where('revision_id', $revisionId)
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $menuItemPublicId)
+            ->first();
+        abort_unless($item instanceof SmartOrderingMenuItem, 404, 'Menu item is no longer available.');
+        abort_unless($item->source_product_id !== null, 422, 'Menu item cannot be ordered.');
+
+        $publicSelections = [];
+        foreach ((array) ($selection['menu_modifiers'] ?? []) as $groupSelection) {
+            abort_unless(is_array($groupSelection), 422, 'Invalid modifier selection.');
+            $groupPublicId = trim((string) ($groupSelection['group_public_id'] ?? ''));
+            abort_if($groupPublicId === '' || array_key_exists($groupPublicId, $publicSelections), 422, 'Invalid modifier selection.');
+            $publicSelections[$groupPublicId] = array_values(array_map(
+                'strval',
+                (array) ($groupSelection['option_public_ids'] ?? []),
+            ));
+        }
+
+        $site = $branch->site()->firstOrFail();
+        $validated = $this->menuModifiers->quote($site, $item, $publicSelections, $branch);
+        $internalModifiers = [];
+        $publicModifiers = [];
+
+        foreach ($validated['selections'] as $groupSelection) {
+            $groupPublicId = (string) $groupSelection['group_id'];
+            $optionIds = array_values(array_map('strval', (array) $groupSelection['option_ids']));
+            $publicModifiers[] = [
+                'group_public_id' => $groupPublicId,
+                'option_public_ids' => $optionIds,
+            ];
+
+            if ($optionIds === []) {
+                continue;
+            }
+
+            $options = DB::table('smart_ordering_modifier_options as options')
+                ->join('smart_ordering_modifier_groups as groups', 'groups.id', '=', 'options.group_id')
+                ->where('groups.item_id', $item->getKey())
+                ->where('groups.public_id', $groupPublicId)
+                ->whereIn('options.public_id', $optionIds)
+                ->get(['options.public_id', 'options.source_product_id']);
+
+            foreach ($optionIds as $optionPublicId) {
+                $option = $options->first(
+                    static fn (object $row): bool => (string) $row->public_id === $optionPublicId,
+                );
+                abort_unless($option !== null, 422, 'Modifier option is no longer available.');
+
+                if ($option->source_product_id !== null) {
+                    $modifierProductId = (int) $option->source_product_id;
+                    $this->assertProductBelongsToStore($modifierProductId, (int) $branch->store_id);
+                    $internalModifiers[] = [
+                        'product_id' => $modifierProductId,
+                        'quantity' => 1.0,
+                    ];
+                }
+            }
+        }
+
+        $normalized = ['menu_modifiers' => $publicModifiers];
+        if ($internalModifiers !== []) {
+            $normalized['modifiers'] = $internalModifiers;
+        }
+
+        return [(int) $item->source_product_id, $normalized];
     }
 
     private function assertProductBelongsToStore(int $productId, int $storeId): void
