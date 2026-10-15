@@ -24,6 +24,14 @@ return [
         'json' => 'أدخل قيمة JSON صحيحة.',
         'non_negative_price' => 'لا يمكن أن تكون الأسعار سالبة.',
     ],
+    'modifier_kinds' => [
+        'modifier' => 'تخصيص',
+        'size' => 'الحجم',
+        'variant' => 'خيار',
+        'extra' => 'إضافة',
+        'ingredient' => 'مكوّن',
+        'unknown' => 'نوع قديم غير مدعوم — اختر نوعًا مدعومًا',
+    ],
     'minimum' => 'الحد الأدنى',
     'maximum' => 'الحد الأقصى',
 ];

@@ -164,6 +164,69 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertSame($menu->id, $category->menu_id);
     }
 
+    public function test_modifier_kind_options_are_localized_for_create_edit_and_unknown_legacy_values(): void
+    {
+        $expected = [
+            'en' => [
+                'modifier' => 'Modifier',
+                'size' => 'Size',
+                'variant' => 'Variant',
+                'extra' => 'Extra',
+                'ingredient' => 'Ingredient',
+                'unknown' => 'Unsupported legacy type — choose a supported type',
+            ],
+            'ar' => [
+                'modifier' => 'تخصيص',
+                'size' => 'الحجم',
+                'variant' => 'خيار',
+                'extra' => 'إضافة',
+                'ingredient' => 'مكوّن',
+                'unknown' => 'نوع قديم غير مدعوم — اختر نوعًا مدعومًا',
+            ],
+        ];
+
+        foreach ($expected as $locale => $labels) {
+            app()->setLocale($locale);
+
+            foreach ($labels as $kind => $label) {
+                $this->assertSame($label, __('smart_ordering_menu.modifier_kinds.'.$kind));
+            }
+        }
+
+        $view = file_get_contents(resource_path('views/admin/smart-ordering-menu.blade.php'));
+        $this->assertIsString($view);
+        $this->assertSame(2, substr_count($view, '@foreach($modifierKindValues as $kind)'));
+        $this->assertStringNotContainsString('ucfirst($kind)', $view);
+        $this->assertStringContainsString('in_array($group->kind, $modifierKindValues, true)', $view);
+
+        $fixture = $this->fixture('KIND', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft, , , $item] = $this->draftItem($fixture, $writer);
+        $group = $writer->createModifierGroup($fixture['admin'], $fixture['site'], $draft, $item, [
+            'name_en' => 'Legacy choice',
+            'kind' => 'extra',
+            'selection_type' => 'single',
+            'is_required' => false,
+            'min_selections' => 0,
+            'max_selections' => 1,
+            'is_visible' => true,
+            'sort_order' => 0,
+        ]);
+
+        DB::table('smart_ordering_modifier_groups')->where('id', $group->id)->update(['kind' => 'legacy_kind']);
+
+        app()->setLocale('en');
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('Unsupported legacy type — choose a supported type');
+
+        $this->assertSame(
+            'legacy_kind',
+            DB::table('smart_ordering_modifier_groups')->where('id', $group->id)->value('kind'),
+        );
+    }
+
     public function test_branch_overrides_win_over_menu_item_and_modifier_prices(): void
     {
         $fixture = $this->fixture('BRPRICE', 5.000);
