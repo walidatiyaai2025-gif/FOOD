@@ -22,7 +22,7 @@ final readonly class VersionedDomainEvent
         public ?string $causationId,
         public array $payload,
     ) {
-        if (! Str::isUuid($this->id)) {
+        if (Str::isUuid($this->id) === false) {
             throw new InvalidArgumentException('Domain event id must be a UUID.');
         }
 
@@ -73,7 +73,7 @@ final readonly class VersionedDomainEvent
         $scope = $values['scope'] ?? [];
         $payload = $values['payload'] ?? [];
 
-        if (! is_array($scope) || ! is_array($payload)) {
+        if (is_array($scope) === false || is_array($payload) === false) {
             throw new InvalidArgumentException('Domain event scope and payload must be objects.');
         }
 
