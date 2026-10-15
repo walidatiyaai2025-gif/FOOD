@@ -8,7 +8,6 @@ Route::get('/v1/smart-ordering/context', [PublicSmartOrderingController::class, 
     ->middleware(['throttle:120,1', 'smart.ordering.site'])
     ->name('api.smart-ordering.context');
 
-
 Route::prefix('/v1/smart-ordering/customer')
     ->middleware(['auth:sanctum', 'active.user', 'throttle:120,1', 'smart.ordering.site'])
     ->group(function (): void {
