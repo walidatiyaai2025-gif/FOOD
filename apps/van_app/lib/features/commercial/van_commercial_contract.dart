@@ -80,7 +80,8 @@ class VanCommercialOffer {
   String? bodyFor(String languageCode) {
     final preferred = languageCode == 'ar' ? bodyAr : bodyEn;
     final fallback = languageCode == 'ar' ? bodyEn : bodyAr;
-    final resolved = preferred?.trim().isNotEmpty == true ? preferred : fallback;
+    final resolved =
+        preferred?.trim().isNotEmpty == true ? preferred : fallback;
     return resolved?.trim().isEmpty == true ? null : resolved;
   }
 }
