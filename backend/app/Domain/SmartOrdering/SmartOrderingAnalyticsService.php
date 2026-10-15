@@ -124,6 +124,7 @@ final class SmartOrderingAnalyticsService
             }
 
             $date = $this->localEventDate($branchId, $occurredAt);
+            $hour = $this->localEventHour($branchId, $occurredAt);
             $branchKey = $branchId ?? 0;
             $this->incrementDaily(
                 $date,
@@ -134,6 +135,18 @@ final class SmartOrderingAnalyticsService
                 $campaign ?? '',
                 $offer ?? '',
                 $customerType ?? '',
+                $fulfillment ?? '',
+                $revenue,
+            );
+
+            $this->incrementHourly(
+                $date,
+                $hour,
+                $storeId,
+                $branchKey,
+                $eventName,
+                $source ?? '',
+                $campaign ?? '',
                 $fulfillment ?? '',
                 $revenue,
             );
@@ -153,6 +166,10 @@ final class SmartOrderingAnalyticsService
 
             if ($productId !== null) {
                 $this->incrementProductDaily($date, $storeId, $branchKey, $productId, $eventName, $revenue);
+            }
+
+            if ($categoryId !== null) {
+                $this->incrementCategoryDaily($date, $storeId, $branchKey, $categoryId, $eventName, $revenue);
             }
 
             return true;
@@ -199,6 +216,30 @@ final class SmartOrderingAnalyticsService
                 $storeId,
                 $branchId,
                 $productId,
+                $eventName,
+                round(max(0.0, $revenue), 3),
+            );
+        }, 3);
+    }
+
+    public function rollupCategoryOnly(
+        int $storeId,
+        int $branchId,
+        int $categoryId,
+        string $eventName,
+        float $revenue = 0.0,
+        ?CarbonInterface $occurredAt = null,
+    ): void {
+        abort_unless(in_array($eventName, self::EVENTS, true), 422, 'Unsupported Smart Ordering analytics event.');
+        abort_unless($storeId > 0 && $branchId > 0 && $categoryId > 0, 422, 'Invalid category analytics scope.');
+
+        $occurredAt ??= now();
+        DB::transaction(function () use ($storeId, $branchId, $categoryId, $eventName, $revenue, $occurredAt): void {
+            $this->incrementCategoryDaily(
+                $this->localEventDate($branchId, $occurredAt),
+                $storeId,
+                $branchId,
+                $categoryId,
                 $eventName,
                 round(max(0.0, $revenue), 3),
             );
@@ -329,6 +370,82 @@ final class SmartOrderingAnalyticsService
             ]);
     }
 
+    private function incrementCategoryDaily(
+        string $date,
+        int $storeId,
+        int $branchKey,
+        int $categoryId,
+        string $eventName,
+        float $revenue,
+    ): void {
+        $dimensions = [
+            'event_date' => $date,
+            'store_id' => $storeId,
+            'branch_key' => $branchKey,
+            'category_id' => $categoryId,
+            'event_name' => $eventName,
+        ];
+
+        $inserted = DB::table('smart_ordering_analytics_category_daily')->insertOrIgnore([
+            ...$dimensions,
+            'event_count' => 1,
+            'revenue' => $revenue,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if ($inserted !== 1) {
+            DB::table('smart_ordering_analytics_category_daily')
+                ->where($dimensions)
+                ->update([
+                    'event_count' => DB::raw('event_count + 1'),
+                    'revenue' => DB::raw('revenue + '.number_format($revenue, 3, '.', '')),
+                    'updated_at' => now(),
+                ]);
+        }
+    }
+
+    private function incrementHourly(
+        string $date,
+        int $hour,
+        int $storeId,
+        int $branchKey,
+        string $eventName,
+        string $source,
+        string $campaign,
+        string $fulfillment,
+        float $revenue,
+    ): void {
+        $dimensions = [
+            'event_date' => $date,
+            'event_hour' => $hour,
+            'store_id' => $storeId,
+            'branch_key' => $branchKey,
+            'event_name' => $eventName,
+            'source_key' => $source,
+            'campaign_key' => $campaign,
+            'fulfillment_mode_key' => $fulfillment,
+        ];
+
+        $inserted = DB::table('smart_ordering_analytics_hourly')->insertOrIgnore([
+            ...$dimensions,
+            'event_count' => 1,
+            'revenue' => $revenue,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if ($inserted !== 1) {
+            DB::table('smart_ordering_analytics_hourly')
+                ->where($dimensions)
+                ->update([
+                    'event_count' => DB::raw('event_count + 1'),
+                    'revenue' => DB::raw('revenue + '.number_format($revenue, 3, '.', '')),
+                    'updated_at' => now(),
+                ]);
+        }
+    }
+
     /** @return array<string,string|int|float|bool|null> */
     private function safeMetadata(array $metadata): array
     {
@@ -367,6 +484,21 @@ final class SmartOrderingAnalyticsService
         }
 
         return $occurredAt->copy()->setTimezone($timezone)->toDateString();
+    }
+
+    private function localEventHour(?int $branchId, CarbonInterface $occurredAt): int
+    {
+        $timezone = (string) config('app.timezone', 'UTC');
+        if ($branchId !== null) {
+            $branchTimezone = DB::table('smart_ordering_branches')
+                ->where('id', $branchId)
+                ->value('timezone');
+            if (is_string($branchTimezone) && trim($branchTimezone) !== '') {
+                $timezone = trim($branchTimezone);
+            }
+        }
+
+        return (int) $occurredAt->copy()->setTimezone($timezone)->format('G');
     }
 
     private function nullablePositiveInt(mixed $value): ?int
