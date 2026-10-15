@@ -73,8 +73,7 @@ final class NotificationAudience
         string $targetChannel,
         ?int $storeId = null,
         ?int $targetUserId = null,
-    ): bool
-    {
+    ): bool {
         if (! $user->is_active) {
             return false;
         }
