@@ -108,7 +108,10 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $response = $this->actingAs($admin)->get(route('admin.catalog.index', ['tab' => 'products']));
+        $response = $this->actingAs($admin)->get(route('admin.catalog.index', [
+            'tab' => 'products',
+            'support_access' => 1,
+        ]));
         $response
             ->assertOk()
             ->assertSee('data-catalog-scope-form', false)
