@@ -181,6 +181,22 @@ return [
         'delete' => 'Delete',
         'confirm_delete' => 'Delete this delivery zone?',
     ],
+    'supply' => [
+        'title' => 'FOODEX Supply Intelligence',
+        'description' => 'Map menu recipes to explainable estimated consumption and safe draft-only replenishment.',
+        'settings' => 'Smart Ordering settings',
+        'states' => [
+            'stale_or_inactive_sku' => 'Stale or inactive SKU',
+            'wholesale_account_unavailable' => 'Wholesale account unavailable',
+            'current_pricing_unavailable' => 'Current pricing unavailable',
+            'no_reorder_needed' => 'No reorder needed',
+            'foodex_unavailable' => 'FOODEX unavailable',
+            'availability_limited' => 'Limited by availability',
+            'dismissed' => 'Dismissed',
+            'ready_for_draft' => 'Ready for draft',
+        ],
+    ],
+
     'days' => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     'branch_state' => [
         'active' => 'Active',

@@ -27,6 +27,18 @@
             </div>
         </section>
 
+        @if($entitlements['foodex_supply_intelligence'] ?? false)
+        <section class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <div>
+                    <h2>{{ __('smart_ordering_supply.title') }}</h2>
+                    <p>{{ __('smart_ordering_supply.nav_description') }}</p>
+                </div>
+                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
+            </div>
+        </section>
+        @endif
+
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
