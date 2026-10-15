@@ -10,6 +10,7 @@ use App\Services\B2bPricingMode;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\RetailMerchantIdentityService;
+use App\Services\SmartOrderingAttributionService;
 use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,10 @@ use Illuminate\Validation\ValidationException;
 
 final class StorefrontController extends Controller
 {
-    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+    public function __construct(
+        private readonly RetailMerchantIdentityService $retailMerchants,
+        private readonly SmartOrderingAttributionService $smartOrderingAttribution,
+    ) {}
 
     public function marketplace(Request $request): JsonResponse
     {
@@ -274,6 +278,13 @@ final class StorefrontController extends Controller
             ->first();
 
         abort_if($storeRow === null, 404);
+
+        if ($request->attributes->get('app_preview_read_only') !== true) {
+            $context = $this->smartOrderingAttribution->contextFromRequest($request);
+            if ($context !== null) {
+                $this->smartOrderingAttribution->markStorefrontViewed($context, $store);
+            }
+        }
 
         $settings = DB::table('storefront_settings')
             ->where('store_id', $store)
