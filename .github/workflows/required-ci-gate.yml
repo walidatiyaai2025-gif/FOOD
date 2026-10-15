@@ -28,6 +28,7 @@ jobs:
       dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}
       mobile_ui: ${{ steps.filter.outputs.mobile_ui }}
       enterprise_performance: ${{ steps.filter.outputs.enterprise_performance }}
+      backend_dashboard_only: ${{ steps.filter.outputs.backend_dashboard_only }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -263,19 +264,19 @@ jobs:
   customer-validation:
     name: Customer validation
     needs: changes
-    if: ${{ needs.changes.outputs.customer == 'true' || startsWith(github.head_ref, 'test/1359-') }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && (needs.changes.outputs.customer == 'true' || startsWith(github.head_ref, 'test/1359-')) }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver validation
     needs: changes
-    if: ${{ needs.changes.outputs.driver == 'true' }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.driver == 'true' }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   van-validation:
     name: Van validation
     needs: changes
-    if: ${{ needs.changes.outputs.van == 'true' }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.van == 'true' }}
     uses: ./.github/workflows/van-app-ci.yml
 
   dashboard-visual-evidence:
@@ -287,7 +288,7 @@ jobs:
   mobile-visual-evidence:
     name: Required Mobile visual evidence
     needs: changes
-    if: ${{ needs.changes.outputs.mobile_ui == 'true' || startsWith(github.head_ref, 'test/1359-') }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && (needs.changes.outputs.mobile_ui == 'true' || startsWith(github.head_ref, 'test/1359-')) }}
     uses: ./.github/workflows/mobile-screenshot-capture.yml
 
   localization-quality:
