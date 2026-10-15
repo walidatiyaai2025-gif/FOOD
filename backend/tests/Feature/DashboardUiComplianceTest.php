@@ -123,6 +123,25 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-c360-van-timeline', $view);
     }
 
+    public function test_customer_360_geography_uses_authoritative_selectors(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/Customer360Controller.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertStringContainsString('data-geography-country', $view);
+        $this->assertStringContainsString('data-geography-level="governorate"', $view);
+        $this->assertStringContainsString('data-geography-level="city"', $view);
+        $this->assertStringContainsString('data-geography-level="area"', $view);
+        $this->assertStringNotContainsString('<input name="country_code"', $view);
+        $this->assertStringNotContainsString('<input name="governorate"', $view);
+        $this->assertStringNotContainsString('<input name="city"', $view);
+        $this->assertStringNotContainsString('<input name="area"', $view);
+        $this->assertStringContainsString("whereIn('type', ['country', 'governorate', 'city', 'area'])", $controller);
+        $this->assertStringContainsString("->where('is_active', true)", $controller);
+    }
+
     public function test_notifications_use_shared_foodex_admin_shell(): void
     {
         $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
