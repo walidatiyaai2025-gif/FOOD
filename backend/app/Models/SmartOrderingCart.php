@@ -14,6 +14,7 @@ class SmartOrderingCart extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'merchandising_context' => 'array',
         ];
     }
 }
