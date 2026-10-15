@@ -179,10 +179,13 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                             ),
                             const Spacer(),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity - line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity -
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.remove, size: 18),
                             ),
                             SizedBox(
@@ -199,10 +202,13 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                               ),
                             ),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity + line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity +
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.add, size: 18),
                             ),
                           ],
