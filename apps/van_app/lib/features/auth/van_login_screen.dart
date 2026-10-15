@@ -44,6 +44,8 @@ class VanLoginScreen extends StatefulWidget {
 class _VanLoginScreenState extends State<VanLoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
 
   bool _submitting = false;
   late bool _rememberMe;
@@ -52,6 +54,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   bool _savedBiometricLogin = false;
   bool _checkingBiometrics = true;
   String? _error;
+  String? _emailError;
+  String? _passwordError;
   late final VanSessionStore _sessionStore;
   late final VanBiometricAuthenticator _biometricAuthenticator;
 
@@ -150,24 +154,52 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
+  }
+
+  void _clearCredentialError({required bool email}) {
+    final fieldError = email ? _emailError : _passwordError;
+    if (fieldError == null && _error == null) return;
+
+    setState(() {
+      if (email) {
+        _emailError = null;
+      } else {
+        _passwordError = null;
+      }
+      _error = null;
+    });
   }
 
   Future<void> _submit() async {
     if (_submitting) return;
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(
-        () => _error = _text(
-          'Email and password are required.',
-          'البريد الإلكتروني وكلمة المرور مطلوبان.',
-        ),
-      );
+    final emailMissing = _email.text.trim().isEmpty;
+    final passwordMissing = _password.text.isEmpty;
+    if (emailMissing || passwordMissing) {
+      setState(() {
+        _emailError = emailMissing
+            ? _text('Email is required.', 'البريد الإلكتروني مطلوب.')
+            : null;
+        _passwordError = passwordMissing
+            ? _text('Password is required.', 'كلمة المرور مطلوبة.')
+            : null;
+        _error = null;
+      });
+      if (emailMissing) {
+        _emailFocus.requestFocus();
+      } else {
+        _passwordFocus.requestFocus();
+      }
       return;
     }
 
     setState(() {
       _submitting = true;
       _error = null;
+      _emailError = null;
+      _passwordError = null;
     });
 
     try {
@@ -289,6 +321,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
         width: 1.5,
       ),
     );
+    final errorBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(999),
+      borderSide: const BorderSide(color: _LoginColors.danger),
+    );
 
     return Directionality(
       textDirection: direction,
@@ -380,6 +416,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                             TextField(
                               key: const Key('van-login-email'),
                               controller: _email,
+                              focusNode: _emailFocus,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               autocorrect: false,
@@ -400,16 +437,22 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 border: fieldBorder,
                                 enabledBorder: fieldBorder,
                                 focusedBorder: focusBorder,
+                                errorBorder: errorBorder,
+                                focusedErrorBorder: errorBorder,
+                                errorText: _emailError,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 18,
                                 ),
                               ),
+                              onChanged: (_) =>
+                                  _clearCredentialError(email: true),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               key: const Key('van-login-password'),
                               controller: _password,
+                              focusNode: _passwordFocus,
                               obscureText: true,
                               textInputAction: TextInputAction.done,
                               autocorrect: false,
@@ -431,11 +474,16 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 border: fieldBorder,
                                 enabledBorder: fieldBorder,
                                 focusedBorder: focusBorder,
+                                errorBorder: errorBorder,
+                                focusedErrorBorder: errorBorder,
+                                errorText: _passwordError,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 18,
                                 ),
                               ),
+                              onChanged: (_) =>
+                                  _clearCredentialError(email: false),
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -529,14 +577,19 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                             ),
                             if (_error != null) ...[
                               const SizedBox(height: 12),
-                              Text(
-                                _error!,
-                                key: const Key('van-login-error'),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _LoginColors.danger,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                              Semantics(
+                                key: const Key('van-login-error-live'),
+                                container: true,
+                                liveRegion: true,
+                                child: Text(
+                                  _error!,
+                                  key: const Key('van-login-error'),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: _LoginColors.danger,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
