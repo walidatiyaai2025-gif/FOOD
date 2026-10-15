@@ -26,7 +26,8 @@ final readonly class ReportDefinition
         public int $maxRangeDays,
         public int $maxPageSize,
         public int $exportChunkSize,
-    ) {}
+    ) {
+    }
 
     /** @param array<string, mixed> $definition */
     public static function fromArray(array $definition, string $key): self
