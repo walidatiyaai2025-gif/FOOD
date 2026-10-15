@@ -90,7 +90,7 @@
                 <button type="submit">{{ __('admin_login.sign_in_action') }}</button>
             </form>
 
-            @php $otherChannel = $channel === 'b2b' ? 'b2c' : 'b2b'; @endphp
+            @php($otherChannel = $channel === 'b2b' ? 'b2c' : 'b2b')
             <p class="channel-switch">
                 {{ __('admin_login.other_channel') }}
                 <a href="{{ route('admin.'.$otherChannel.'.login', ['locale'=>$locale]) }}">
