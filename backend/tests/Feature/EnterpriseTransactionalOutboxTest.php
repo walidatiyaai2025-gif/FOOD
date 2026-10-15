@@ -6,7 +6,6 @@ use App\Enterprise\Events\VersionedDomainEvent;
 use App\Enterprise\Outbox\OutboxConsumer;
 use App\Enterprise\Outbox\OutboxDispatcher;
 use App\Enterprise\Outbox\TransactionalOutbox;
-use App\Models\EnterpriseOutboxMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
