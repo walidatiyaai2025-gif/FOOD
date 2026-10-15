@@ -43,36 +43,46 @@ final class EnterpriseSystemInspector
      */
     public function snapshot(): array
     {
+        $outboxMessages = [];
+        foreach (
+            EnterpriseOutboxMessage::query()
+                ->orderByDesc('id')
+                ->limit(self::SNAPSHOT_LIMIT)
+                ->get($this->outboxColumns()) as $message
+        ) {
+            $outboxMessages[] = [
+                'event_type' => (string) $message->getAttribute('event_type'),
+                'status' => (string) $message->getAttribute('status'),
+                'attempt_count' => (int) $message->getAttribute('attempt_count'),
+                'available_at' => $this->isoDateTime($message->getAttribute('available_at')),
+                'failed_at' => $this->isoDateTime($message->getAttribute('failed_at')),
+                'created_at' => $this->isoDateTime($message->getAttribute('created_at')),
+            ];
+        }
+
+        $workflowRequests = [];
+        foreach (
+            EnterpriseWorkflowRequest::query()
+                ->orderByDesc('id')
+                ->limit(self::SNAPSHOT_LIMIT)
+                ->get($this->workflowColumns()) as $request
+        ) {
+            $workflowRequests[] = [
+                'workflow_key' => (string) $request->getAttribute('workflow_key'),
+                'entity_type' => (string) $request->getAttribute('entity_type'),
+                'status' => (string) $request->getRawOriginal('status'),
+                'completed_at' => $this->isoDateTime($request->getAttribute('completed_at')),
+                'created_at' => $this->isoDateTime($request->getAttribute('created_at')),
+            ];
+        }
+
         return [
             'modules' => $this->modules(),
             'entitlements' => $this->entitlements(),
             'outbox_status_counts' => $this->outboxStatusCounts(),
-            'outbox_messages' => EnterpriseOutboxMessage::query()
-                ->orderByDesc('id')
-                ->limit(self::SNAPSHOT_LIMIT)
-                ->get($this->outboxColumns())
-                ->map(static fn (EnterpriseOutboxMessage $message): array => [
-                    'event_type' => (string) $message->event_type,
-                    'status' => (string) $message->status,
-                    'attempt_count' => (int) $message->attempt_count,
-                    'available_at' => $message->available_at?->toIso8601String(),
-                    'failed_at' => $message->failed_at?->toIso8601String(),
-                    'created_at' => $message->created_at?->toIso8601String(),
-                ])
-                ->all(),
+            'outbox_messages' => $outboxMessages,
             'workflow_status_counts' => $this->workflowStatusCounts(),
-            'workflow_requests' => EnterpriseWorkflowRequest::query()
-                ->orderByDesc('id')
-                ->limit(self::SNAPSHOT_LIMIT)
-                ->get($this->workflowColumns())
-                ->map(static fn (EnterpriseWorkflowRequest $request): array => [
-                    'workflow_key' => (string) $request->workflow_key,
-                    'entity_type' => (string) $request->entity_type,
-                    'status' => (string) $request->getRawOriginal('status'),
-                    'completed_at' => $request->completed_at?->toIso8601String(),
-                    'created_at' => $request->created_at?->toIso8601String(),
-                ])
-                ->all(),
+            'workflow_requests' => $workflowRequests,
         ];
     }
 
@@ -194,6 +204,19 @@ final class EnterpriseSystemInspector
                 'workflow_page',
             )
             ->withQueryString();
+    }
+
+    private function isoDateTime(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format(DATE_ATOM);
+        }
+
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+
+        return null;
     }
 
     /** @return list<string> */
