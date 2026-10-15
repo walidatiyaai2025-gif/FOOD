@@ -508,6 +508,17 @@ async function captureSecurityPermissionEvidence(page, locale) {
     throw new Error(`Security permission runtime route failed: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
   }
 
+  const enterpriseGovernance = page.locator('[data-enterprise-security-governance]');
+  if (await enterpriseGovernance.count() !== 1) {
+    throw new Error('Enterprise Security governance workspace was not rendered.');
+  }
+  const governanceSections = await enterpriseGovernance.locator('[data-enterprise-security-section]').count();
+  if (governanceSections !== 4) {
+    throw new Error(`Enterprise Security governance sections are incomplete: ${governanceSections}`);
+  }
+  await assertNoPageOverflow(page, `security-enterprise-governance/${locale}/desktop-1280`);
+  await snap(page, `02_Web/B2C_Admin/22_security_enterprise_governance__desktop__${locale}.png`);
+
   const createForm = page.locator('form[action$="/admin/security/roles"]').first();
   if (await createForm.count() !== 1) {
     throw new Error('Security create-role form was not rendered.');
@@ -558,6 +569,20 @@ async function captureSecurityPermissionEvidence(page, locale) {
   await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__desktop__${locale}.png`);
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/admin/security`, { waitUntil: 'networkidle' });
+  if (await page.locator('[data-enterprise-security-governance]').count() !== 1) {
+    throw new Error(`Enterprise Security governance mobile workspace missing (${locale})`);
+  }
+  await assertNoPageOverflow(page, `security-enterprise-governance/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/22_security_enterprise_governance__mobile-390__${locale}.png`);
+
+  await page.goto(`${baseUrl}/admin/security`, { waitUntil: 'networkidle' });
+  const mobileCreateForm = page.locator('form[action$="/admin/security/roles"]').first();
+  await mobileCreateForm.evaluate((form) => {
+    const host = form.closest('.foodex-operational-dialog-host');
+    const trigger = host?.querySelector('[data-foodex-dialog-open]');
+    if (trigger instanceof HTMLElement) trigger.click();
+  });
   await assertNoPageOverflow(page, `security-permissions/${locale}/mobile-390`);
   await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__mobile-390__${locale}.png`);
 }
