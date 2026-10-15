@@ -16,15 +16,15 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .header h1{margin:0}.muted{color:var(--foodex-muted)}
 .tabs,.actions{display:flex;flex-wrap:wrap;gap:8px}.tabs{margin-bottom:16px}
 .tabs a,.btn{border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:9px 13px;text-decoration:none;font:inherit;cursor:pointer}
-.tabs a.active,.btn.primary{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}
-.btn.danger{color:var(--foodex-red)}
+.tabs a.active,.btn.primary{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
+.btn.danger{color:var(--foodex-danger-text)}
 .grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px}
 .card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:16px;box-shadow:var(--foodex-shadow-sm)}
 .form{display:grid;gap:10px}.form label{font-size:.85rem;font-weight:700}.form input,.form select,.form textarea{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:10px;padding:10px;background:#fff;font:inherit}.form textarea{min-height:90px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:780px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .inline-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.inline-form input,.inline-form select{min-width:90px;max-width:170px;padding:7px;border:1px solid var(--foodex-border);border-radius:8px}
-.notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-red)}
+.notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-danger-text)}
 
 .image-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--foodex-border);background:var(--foodex-background)}.image-grid{display:flex;flex-wrap:wrap;gap:8px;min-width:180px}.image-item{display:grid;gap:4px;justify-items:start}.image-item.primary .image-thumb{outline:2px solid var(--foodex-green)}.image-upload{min-width:220px}.foodex-upload-preview{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;min-height:0}.foodex-upload-preview img{width:64px;height:64px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}.foodex-upload-preview:empty{display:none}
 .catalog-products-shell{display:grid;gap:12px}
@@ -58,7 +58,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .catalog-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:200px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:6px}
 .catalog-action-menu button,.catalog-action-menu form button{width:100%;border:0;background:transparent;text-align:start;padding:9px 10px;border-radius:8px;font:inherit;cursor:pointer;color:var(--foodex-ink)}
 .catalog-action-menu button:hover,.catalog-action-menu form button:hover{background:#f6f8fa}
-.catalog-action-menu .danger-action{color:var(--foodex-red)}
+.catalog-action-menu .danger-action{color:var(--foodex-danger-text)}
 .catalog-action-menu form{margin:0}
 .catalog-dialog{width:min(720px,calc(100vw - 28px));max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 70px rgba(15,23,42,.25)}
 .catalog-dialog::backdrop{background:rgba(15,23,42,.42)}

@@ -6,6 +6,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanRemittancePage extends StatefulWidget {
@@ -144,7 +145,9 @@ class _VanRemittancePageState extends State<VanRemittancePage>
     final amount = double.tryParse(_amount.text.trim());
 
     if (account == null || amount == null || amount <= 0) {
-      _message(_text('Enter a valid remittance amount.', 'أدخل مبلغ توريد صحيح.'));
+      _message(
+        _text('Enter a valid remittance amount.', 'أدخل مبلغ توريد صحيح.'),
+      );
       return;
     }
     if (amount > account.availableToRemit) {
@@ -240,7 +243,10 @@ class _VanRemittancePageState extends State<VanRemittancePage>
 
     if (_error != null && _accounts.isEmpty) {
       return _StateCard(
-        title: _text('Unable to load remittance balance', 'تعذر تحميل رصيد التوريد'),
+        title: _text(
+          'Unable to load remittance balance',
+          'تعذر تحميل رصيد التوريد',
+        ),
         actionLabel: _text('Retry', 'إعادة المحاولة'),
         onAction: _load,
       );
@@ -248,7 +254,10 @@ class _VanRemittancePageState extends State<VanRemittancePage>
 
     if (_accounts.isEmpty) {
       return _StateCard(
-        title: _text('No custody account available', 'لا توجد محفظة عهدة متاحة'),
+        title: _text(
+          'No custody account available',
+          'لا توجد محفظة عهدة متاحة',
+        ),
         actionLabel: _text('Refresh', 'تحديث'),
         onAction: _load,
       );
@@ -323,7 +332,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
                 foodexMoneyText(account.availableToRemit, account.currency),
                 key: const ValueKey('van-remittance-available'),
                 style: const TextStyle(
-                  color: FoodexVanTokens.green,
+                  color: FoodexVanTokens.actionGreen,
                   fontWeight: FontWeight.w900,
                 ),
               ),

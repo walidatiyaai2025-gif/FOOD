@@ -25,7 +25,7 @@ html[dir=ltr] .main{grid-column:2}
 .app-card{display:flex;flex-direction:column;min-height:176px}
 .app-badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900;margin-bottom:14px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:14px}
-.action{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;background:var(--foodex-green);color:#fff;text-decoration:none;font-weight:800}
+.action{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;background:var(--foodex-action-green);color:#fff;text-decoration:none;font-weight:800}
 .action.secondary{background:#fff;color:var(--foodex-green-dark);border:1px solid #b9dfc5}
 .restricted{display:inline-flex;min-height:40px;align-items:center;padding:0 13px;border-radius:10px;background:var(--foodex-background);color:var(--foodex-muted);font-weight:700}
 .utility-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}

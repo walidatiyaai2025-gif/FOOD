@@ -8,6 +8,7 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
 import 'van_order_detail_page.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrdersPage extends StatefulWidget {
@@ -182,7 +183,9 @@ class _VanOrdersPageState extends State<VanOrdersPage>
       .length;
 
   int get _exceptionCount => _orders
-      .where((order) => {'cancelled', 'refunded', 'failed'}.contains(order.status))
+      .where(
+        (order) => {'cancelled', 'refunded', 'failed'}.contains(order.status),
+      )
       .length;
 
   double get _ordersValue =>
@@ -203,9 +206,10 @@ class _VanOrdersPageState extends State<VanOrdersPage>
             children: [
               Text(
                 _text('Order outcomes', 'نتائج الطلبات'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
@@ -222,9 +226,10 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                   _ordersCurrency.isEmpty
                       ? _ordersValue.toStringAsFixed(3)
                       : foodexMoneyText(_ordersValue, _ordersCurrency),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ),
               const SizedBox(height: 10),
@@ -314,9 +319,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
               ),
             ),
           if (_error != null && _orders.isEmpty)
-            _state(
-              _text('Unable to load orders.', 'تعذر تحميل الطلبات.'),
-            )
+            _state(_text('Unable to load orders.', 'تعذر تحميل الطلبات.'))
           else if (_orders.isEmpty)
             _state(_text('No Van orders yet.', 'لا توجد طلبات فان بعد.'))
           else ...[
@@ -357,59 +360,58 @@ class _VanOrdersPageState extends State<VanOrdersPage>
               )
             else
               for (final order in _filteredOrders)
-              Card(
-                key: ValueKey('van-order-${order.id}'),
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  onTap: () => _openDetail(order),
-                  leading: const CircleAvatar(
-                    backgroundColor: FoodexVanTokens.mint,
-                    child: Icon(
-                      Icons.receipt_long_outlined,
-                      color: FoodexVanTokens.green,
+                Card(
+                  key: ValueKey('van-order-${order.id}'),
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    onTap: () => _openDetail(order),
+                    leading: const CircleAvatar(
+                      backgroundColor: FoodexVanTokens.mint,
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        color: FoodexVanTokens.green,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    order.orderNumber,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  subtitle: Text(
-                    _customerNames[
-                            '${order.customerType}:${order.customerId}'] ??
-                        _text('Assigned customer', 'عميل مسند'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 135),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          foodexMoneyText(order.grandTotal, order.currency),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        Text(
-                          _statusLabel(_effectiveStatus(order)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: FoodexVanTokens.green),
-                        ),
-                      ],
+                    title: Text(
+                      order.orderNumber,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      _customerNames[
+                              '${order.customerType}:${order.customerId}'] ??
+                          _text('Assigned customer', 'عميل مسند'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 135),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            foodexMoneyText(order.grandTotal, order.currency),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          Text(
+                            _statusLabel(_effectiveStatus(order)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: FoodexVanTokens.actionGreen),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
           ],
         ],
       ),
