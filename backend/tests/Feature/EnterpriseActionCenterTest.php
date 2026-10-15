@@ -42,6 +42,7 @@ final class EnterpriseActionCenterTest extends TestCase
         $this->workflow($requester, [
             'action_title' => 'External link review',
             'deep_link' => 'https://evil.example/admin/orders/1',
+            'due_at' => now()->subMinutes(30)->toIso8601String(),
         ], 'external-link-review');
 
         $this->actingAs($approver)
