@@ -114,6 +114,38 @@
 @forelse($dashboard['products'] as $row)<tr><td>{{ $row['name']?:('#'.$row['product_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['adds'] }}</td><td>{{ $row['completed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td></tr>@empty<tr><td colspan="6" class="so-a-empty">—</td></tr>@endforelse
 </tbody></table></div>
 </section>
+
+<section class="so-a-grid">
+<div class="foodex-card so-a-card">
+<h2>{{ app()->getLocale()==='ar'?'أداء التصنيفات':'Category performance' }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Category</th><th>Views</th><th>Completed</th></tr></thead><tbody>
+@forelse($dashboard['categories'] as $row)<tr><td>{{ $row['name']?:('#'.$row['category_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['completed'] }}</td></tr>@empty<tr><td colspan="3" class="so-a-empty">—</td></tr>@endforelse
+</tbody></table></div>
+</div>
+<div class="foodex-card so-a-card">
+<h2>{{ app()->getLocale()==='ar'?'ساعات الذروة':'Peak order hours' }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Hour</th><th>Orders</th></tr></thead><tbody>
+@forelse($dashboard['peak_hours'] as $row)<tr><td>{{ str_pad((string)$row['hour'],2,'0',STR_PAD_LEFT) }}:00</td><td>{{ $row['orders'] }}</td></tr>@empty<tr><td colspan="2" class="so-a-empty">—</td></tr>@endforelse
+</tbody></table></div>
+</div>
+</section>
+
+<section class="so-a-grid">
+<div class="foodex-card so-a-card">
+<h2>{{ app()->getLocale()==='ar'?'مزيج التنفيذ والعملاء':'Fulfillment & customer mix' }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Dimension</th><th>Count</th></tr></thead><tbody>
+@foreach($dashboard['fulfillment'] as $row)<tr><td>{{ $row['key'] }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
+@foreach($dashboard['customer_mix'] as $row)<tr><td>{{ $row['key'] }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
+@if($dashboard['fulfillment']===[] && $dashboard['customer_mix']===[])<tr><td colspan="2" class="so-a-empty">—</td></tr>@endif
+</tbody></table></div>
+</div>
+<div class="foodex-card so-a-card">
+<h2>{{ app()->getLocale()==='ar'?'أداء العروض':'Offer performance' }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Offer</th><th>Impressions</th><th>Clicks</th><th>Redeemed</th><th>Conv %</th></tr></thead><tbody>
+@forelse($dashboard['offers'] as $row)<tr><td>{{ $row['offer'] }}</td><td>{{ $row['impressions'] }}</td><td>{{ $row['clicks'] }}</td><td>{{ $row['redeemed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td></tr>@empty<tr><td colspan="5" class="so-a-empty">—</td></tr>@endforelse
+</tbody></table></div>
+</div>
+</section>
 </div>
 </main>
 </div>
