@@ -239,6 +239,12 @@ class SmartOrderingQrTest extends TestCase
             ->assertSee('data-smart-ordering-qr-manager="true"', false)
             ->assertSee('Allowed table')
             ->assertDontSee('Foreign table')
+            ->assertSee('What is this QR for?')
+            ->assertSee('Main Menu QR')
+            ->assertSee('Table QR')
+            ->assertSee('Campaign / Offer QR')
+            ->assertSee('data-qr-preset', false)
+            ->assertSee('Advanced settings')
             ->assertSee('name="store_id"', false)
             ->assertSee('name="promotion_id"', false)
             ->assertDontSee('name="store_id" type="number"', false);

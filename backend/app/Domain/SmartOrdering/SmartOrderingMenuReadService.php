@@ -226,6 +226,7 @@ final class SmartOrderingMenuReadService
             'id' => (string) $menu->public_id,
             'name' => $this->localized($menu->name_ar, $menu->name_en, $locale),
             'description' => $this->localized($menu->description_ar, $menu->description_en, $locale),
+            'image' => $this->publicMediaUrl($menu->image_path),
             'is_default' => (bool) $menu->is_default,
             'categories' => $categories,
         ];
