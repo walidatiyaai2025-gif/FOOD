@@ -27,7 +27,7 @@ final class ModuleHealthService
 
         try {
             $state = $this->registry->state($moduleCode);
-        } catch (Throwable $exception) {
+        } catch (Throwable) {
             return $this->memo[$moduleCode] = ModuleHealthReport::state(
                 $moduleCode,
                 ModuleHealthStatus::ERROR,
@@ -56,7 +56,7 @@ final class ModuleHealthService
         foreach ($this->manifests->all()->keys() as $moduleCode) {
             try {
                 $reports[$moduleCode] = $this->report($moduleCode);
-            } catch (Throwable $exception) {
+            } catch (Throwable) {
                 $reports[$moduleCode] = ModuleHealthReport::state(
                     $moduleCode,
                     ModuleHealthStatus::ERROR,
@@ -103,7 +103,7 @@ final class ModuleHealthService
     {
         try {
             $probes = $this->probes->forModule($moduleCode);
-        } catch (Throwable $exception) {
+        } catch (Throwable) {
             return ModuleHealthReport::state(
                 $moduleCode,
                 ModuleHealthStatus::ERROR,
@@ -119,7 +119,7 @@ final class ModuleHealthService
         foreach ($probes as $probe) {
             try {
                 $checks[] = $probe->check();
-            } catch (Throwable $exception) {
+            } catch (Throwable) {
                 $checks[] = ModuleHealthCheck::error(
                     key: $probe::class,
                     metadata: ['exception_class' => $exception::class],
