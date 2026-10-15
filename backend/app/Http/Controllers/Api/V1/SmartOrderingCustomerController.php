@@ -27,13 +27,28 @@ final class SmartOrderingCustomerController extends Controller
         $runtime->assertRequest($site, Module::ORDERING, $request);
 
         $orders = collect($customers->orderHistory($site, $customerId, $request->integer('limit', 20)))
-            ->map(static fn (array $order): array => [
-                'order_number' => (string) $order['order_number'],
-                'status' => (string) $order['status'],
-                'currency' => (string) $order['currency'],
-                'grand_total' => (float) $order['grand_total'],
-                'created_at' => $order['created_at'],
-            ])->values()->all();
+            ->map(static function (array $order): array {
+                $items = DB::table('order_items')
+                    ->where('order_id', (int) $order['order_id'])
+                    ->orderBy('id')
+                    ->get(['sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total'])
+                    ->map(static fn ($item): array => [
+                        'sku' => (string) $item->sku_snapshot,
+                        'name' => (string) $item->name_snapshot,
+                        'quantity' => (float) $item->quantity,
+                        'unit_price' => (float) $item->unit_price,
+                        'line_total' => (float) $item->line_total,
+                    ])->values()->all();
+
+                return [
+                    'order_number' => (string) $order['order_number'],
+                    'status' => (string) $order['status'],
+                    'currency' => (string) $order['currency'],
+                    'grand_total' => (float) $order['grand_total'],
+                    'created_at' => $order['created_at'],
+                    'items' => $items,
+                ];
+            })->values()->all();
 
         return response()->json(['data' => $orders]);
     }
@@ -56,15 +71,19 @@ final class SmartOrderingCustomerController extends Controller
         abort_unless($orderId !== null, 404);
 
         $data = $request->validate([
-            'product_ids' => ['nullable', 'array', 'max:100'],
-            'product_ids.*' => ['integer', 'min:1'],
+            'skus' => ['nullable', 'array', 'max:100'],
+            'skus.*' => ['string', 'max:191'],
         ]);
 
         $selectedItemIds = [];
-        if (($data['product_ids'] ?? []) !== []) {
+        if (($data['skus'] ?? []) !== []) {
+            $skus = array_values(array_unique(array_map(
+                static fn ($sku): string => trim((string) $sku),
+                (array) $data['skus'],
+            )));
             $selectedItemIds = DB::table('order_items')
                 ->where('order_id', (int) $orderId)
-                ->whereIn('product_id', array_values(array_unique(array_map('intval', (array) $data['product_ids']))))
+                ->whereIn('sku_snapshot', $skus)
                 ->pluck('id')
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
@@ -77,9 +96,37 @@ final class SmartOrderingCustomerController extends Controller
             $selectedItemIds,
         );
 
-        unset($draft['source_order_id']);
+        $quote = (array) ($draft['quote'] ?? []);
+        $publicItems = collect((array) ($quote['items'] ?? []))
+            ->map(static fn (array $line): array => [
+                'sku' => $line['sku'] ?? null,
+                'name' => $line['name'] ?? null,
+                'quantity' => (float) ($line['quantity'] ?? 0),
+                'unit_price' => $line['unit_price'] === null ? null : (float) $line['unit_price'],
+                'line_total' => $line['line_total'] === null ? null : (float) $line['line_total'],
+                'is_available' => (bool) ($line['is_available'] ?? false),
+                'availability_state' => $line['availability_state'] ?? null,
+                'reason_codes' => array_values((array) ($line['commercial_reason_codes'] ?? [])),
+            ])->values()->all();
 
-        return response()->json(['data' => $draft], 201);
+        return response()->json(['data' => [
+            'draft_id' => (string) $draft['draft_id'],
+            'expires_at' => $draft['expires_at'],
+            'requires_customer_confirmation' => true,
+            'pricing_notice' => (string) $draft['pricing_notice'],
+            'quote' => [
+                'quote_id' => $quote['quote_id'] ?? null,
+                'quoted_at' => $quote['quoted_at'] ?? null,
+                'currency' => $quote['currency'] ?? null,
+                'items' => $publicItems,
+                'subtotal' => (float) ($quote['subtotal'] ?? 0),
+                'discount_total' => (float) ($quote['discount_total'] ?? 0),
+                'delivery_total' => (float) ($quote['delivery_total'] ?? 0),
+                'tax_total' => (float) ($quote['tax_total'] ?? 0),
+                'grand_total' => (float) ($quote['grand_total'] ?? 0),
+                'has_unavailable_items' => (bool) ($quote['has_unavailable_items'] ?? false),
+            ],
+        ]], 201);
     }
 
     public function loyalty(
