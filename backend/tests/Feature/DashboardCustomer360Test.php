@@ -81,7 +81,7 @@ class DashboardCustomer360Test extends TestCase
             ->firstOrFail();
         $admin = $this->globalAdmin('SUPER_ADMIN');
 
-        app()->setLocale('ar');
+        $admin->forceFill(['locale' => 'ar'])->save();
 
         $this->actingAs($admin)
             ->get(route('admin.customer-360.index', ['registration_source' => 'import']))
@@ -106,7 +106,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('استيراد');
 
-        app()->setLocale('en');
+        $admin->forceFill(['locale' => 'en'])->save();
 
         $this->actingAs($admin)
             ->get(route('admin.customer-360.index'))
