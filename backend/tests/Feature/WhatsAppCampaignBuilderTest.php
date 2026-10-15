@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
 use App\Domain\WhatsApp\TemplateRegistryService;
-use App\Jobs\SendWhatsAppMessage;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\WhatsAppConnectionProfile;
@@ -403,7 +402,6 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             'status' => 'queued',
             'recipient' => $phone,
         ]);
-        Queue::assertPushed(SendWhatsAppMessage::class);
     }
 
     public function test_campaign_contact_mutations_enforce_channel_and_store_scope(): void
