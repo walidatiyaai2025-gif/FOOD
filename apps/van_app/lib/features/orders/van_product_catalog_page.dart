@@ -291,8 +291,9 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                   'Add ${product.name} to cart',
                   'إضافة ${product.name} إلى السلة',
                 ),
-                onPressed:
-                    product.isAvailable ? () => widget.draft.add(product) : null,
+                onPressed: product.isAvailable
+                    ? () => widget.draft.add(product)
+                    : null,
                 icon: const Icon(Icons.add),
               ),
             ],
