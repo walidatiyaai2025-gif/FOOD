@@ -27,7 +27,7 @@ class NotificationAdministrationTest extends TestCase
 
     public function test_super_admin_manages_bilingual_notification_and_publish_is_audited(): void
     {
-        $admin = $this->user('admin-notifications@example.test');
+        $admin = $this->user('admin-notifications@example.test', 'en');
         $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($admin)->get('/admin/notifications')->assertOk();
