@@ -126,11 +126,10 @@ final class SmartOrderingMenuAdminController extends Controller
         $editableItems = SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get();
         $resolvedPrices = $prices->displayPrices($site, $editableItems);
         $itemPrices = collect($resolvedPrices['prices'])
-            ->map(fn (array $resolved): array => [
-                ...$resolved,
+            ->map(fn (array $resolved): array => array_merge($resolved, [
                 'currency' => $checkoutCurrency,
                 'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
-            ])
+            ]))
             ->all();
         $itemPriceErrors = $resolvedPrices['errors'];
 
@@ -562,7 +561,7 @@ final class SmartOrderingMenuAdminController extends Controller
     }
 
     /**
-     * @return list<array{type:string,id:int,menu_id:int,label:string,anchor:string}>
+     * @return list<array{type:string,type_label:string,id:int,menu_id:int,label:string,anchor:string}>
      */
     private function focusResults(SmartOrderingSite $site, SmartOrderingRevision $draft, string $query): array
     {
@@ -579,8 +578,17 @@ final class SmartOrderingMenuAdminController extends Controller
                 $name = trim((string) (($isAr ? ($row->name_ar ?? null) : ($row->name_en ?? null))
                     ?: ($isAr ? ($row->name_en ?? null) : ($row->name_ar ?? null))
                     ?: '#'.$row->id));
+                $typeLabel = match ($type) {
+                    'menu' => $isAr ? 'منيو' : 'Menu',
+                    'category' => $isAr ? 'تصنيف' : 'Category',
+                    'item' => $isAr ? 'صنف' : 'Item',
+                    'group' => $isAr ? 'مجموعة' : 'Group',
+                    'option' => $isAr ? 'خيار' : 'Option',
+                    default => $isAr ? 'سجل' : 'Record',
+                };
                 $results->push([
                     'type' => $type,
+                    'type_label' => $typeLabel,
                     'id' => (int) $row->id,
                     'menu_id' => (int) $menuId($row),
                     'label' => $name,
