@@ -38,6 +38,72 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
+    {
+        $fixture = $this->fixture('FOCUS', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft, $firstMenu] = $this->draftItem($fixture, $writer);
+
+        $secondMenu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
+            'name_en' => 'Second Menu',
+            'is_default' => false,
+            'is_visible' => true,
+            'sort_order' => 10,
+        ]);
+        $secondCategory = $writer->createCategory($fixture['admin'], $fixture['site'], $draft, $secondMenu, [
+            'name_en' => 'Second Category',
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+        ]);
+        $secondItem = $writer->createItem($fixture['admin'], $fixture['site'], $draft, $secondCategory, [
+            'name_en' => 'Second Target Item',
+            'price_override' => 6.500,
+            'is_visible' => true,
+            'sold_out' => false,
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('data-menu-editor-bounded', false)
+            ->assertSee('id="menu-'.$firstMenu->id.'"', false)
+            ->assertDontSee('id="menu-'.$secondMenu->id.'"', false)
+            ->assertDontSee('data-smart-ordering-draft-review', false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'q' => 'Second Target',
+            ]))
+            ->assertOk()
+            ->assertSee('data-menu-focus-results', false)
+            ->assertSee('Second Target Item')
+            ->assertSee('#menu-item-'.$secondItem->public_id, false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'menu_id' => $secondMenu->id,
+            ]))
+            ->assertOk()
+            ->assertSee('id="menu-'.$secondMenu->id.'"', false)
+            ->assertSee('id="menu-item-'.$secondItem->public_id.'"', false)
+            ->assertDontSee('id="menu-'.$firstMenu->id.'"', false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('data-smart-ordering-draft-review', false)
+            ->assertSee('Second Target Item');
+    }
+
     public function test_menu_media_and_draft_review_are_available_before_publish(): void
     {
         Storage::fake('public');
@@ -96,7 +162,10 @@ class SmartOrderingMenuDomainTest extends TestCase
         );
 
         $this->actingAs($fixture['admin'])
-            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
             ->assertOk()
             ->assertSee('Review menu before publishing')
             ->assertSee('data-smart-ordering-draft-review', false)
@@ -105,8 +174,15 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('Visual Menu')
             ->assertSee('Review Burger')
             ->assertSee('4.25 EGP')
-            ->assertSee('step="0.01"', false)
             ->assertDontSee('KWD');
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'menu_id' => $menu->id,
+            ]))
+            ->assertOk()
+            ->assertSee('step="0.01"', false);
 
         $published = app(SmartOrderingMenuRevisionService::class)->publish(
             $fixture['admin'],
