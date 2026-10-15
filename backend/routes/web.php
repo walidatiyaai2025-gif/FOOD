@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
@@ -150,6 +151,14 @@ Route::prefix('admin')
         Route::patch('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'updateBusinessUnit'])->whereNumber('businessUnit')->middleware('throttle:30,1')->name('enterprise-business-units.update');
         Route::post('/administration/business-units/{businessUnit}/stores/{store}', [EnterpriseOrganizationAdministrationController::class, 'assignStore'])->whereNumber('businessUnit')->whereNumber('store')->middleware('throttle:30,1')->name('enterprise-business-units.stores.assign');
         Route::get('/administration/system-health', EnterpriseSystemHealthController::class)->name('enterprise-system-health.index');
+        Route::get('/administration/modules', [EnterpriseModuleAdministrationController::class, 'index'])->name('enterprise-modules.index');
+        Route::get('/administration/modules/{module}', [EnterpriseModuleAdministrationController::class, 'show'])
+            ->where('module', '[a-z][a-z0-9_]*')
+            ->name('enterprise-modules.show');
+        Route::post('/administration/modules/{module}/lifecycle', [EnterpriseModuleAdministrationController::class, 'lifecycle'])
+            ->where('module', '[a-z][a-z0-9_]*')
+            ->middleware('throttle:30,1')
+            ->name('enterprise-modules.lifecycle');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
