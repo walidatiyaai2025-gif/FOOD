@@ -18,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -164,7 +165,8 @@ final class NotificationController extends Controller
         Request $request,
         AuditLogger $audit,
         MarketingImageService $images,
-    ): RedirectResponse {
+    ): RedirectResponse
+    {
         $actor = $this->authorizeManage($request);
         $data = $this->validated($request);
         $this->assertScope($actor, $data);
@@ -240,14 +242,14 @@ final class NotificationController extends Controller
         abort_if($notification->status === 'published', 409);
 
         if (! $reviews->validReviewToken($notification, 'publish', $request->input('review_token'))) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'review_token' => [__('notifications.review_expired')],
             ]);
         }
 
         $summary = $reviews->summarize($notification);
         if ($summary['count'] < 1) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'audience' => [__('notifications.empty_effective_audience')],
             ]);
         }
@@ -257,7 +259,7 @@ final class NotificationController extends Controller
             abort_if($locked->status === 'published', 409);
 
             if (! $reviews->validReviewToken($locked, 'publish', $request->input('review_token'))) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'review_token' => [__('notifications.review_expired')],
                 ]);
             }
