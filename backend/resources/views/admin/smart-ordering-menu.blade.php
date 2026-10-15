@@ -237,7 +237,7 @@
                             <div class="so-grid">
                                 <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
                                 <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
-                                <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override"></label>
+                                <label>{{ ($isAr?'سعر مستقل/تجاوز':'Standalone/override price').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_override"></label>
                                 <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
                                 <label>{{ $isAr?'وقت التحضير بالدقائق':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes"></label>
                                 <label>{{ $isAr?'السعرات':'Calories' }}<input class="foodex-control" type="number" min="0" name="calories"></label>
@@ -258,7 +258,7 @@
 
                     @foreach($category->items as $item)
                     <article class="so-item">
-                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
+                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] ?? '—' }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span></div>
                         <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.update',$item) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                             <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized($targetCategory, 'name') }}</option>@endforeach</select></label>
@@ -266,7 +266,7 @@
                             <div class="so-grid">
                                 <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $item->name_ar }}"></label>
                                 <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $item->name_en }}" required></label>
-                                <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override" value="{{ $item->price_override }}"></label>
+                                <label>{{ ($isAr?'سعر مستقل/تجاوز':'Standalone/override price').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_override" value="{{ $item->price_override }}"></label>
                                 <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $item->sort_order }}" required></label>
                                 <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes" value="{{ $item->prep_time_minutes }}"></label>
                                 <label>{{ $isAr?'السعرات':'Calories' }}<input class="foodex-control" type="number" min="0" name="calories" value="{{ $item->calories }}"></label>
@@ -297,7 +297,7 @@
                                     <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                     <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
-                                    <label>{{ $isAr?'سعر الفرع':'Branch price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price"></label>
+                                    <label>{{ ($isAr?'سعر الفرع':'Branch price').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="override_price"></label>
                                     <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" name="override_prep_time"></label>
                                 </div>
                                 @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>'override_'])
@@ -350,7 +350,7 @@
                                     <div class="so-grid">
                                         <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $option->name_ar }}"></label>
                                         <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $option->name_en }}" required></label>
-                                        <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="{{ $option->price_delta }}" required></label>
+                                        <label>{{ ($isAr?'فرق السعر':'Price delta').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_delta" value="{{ $option->price_delta }}" required></label>
                                         <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $option->sort_order }}" required></label>
                                     </div>
                                     <div class="so-flags">@foreach(['is_default'=>[$option->is_default,$isAr?'افتراضي':'Default'],'is_visible'=>[$option->is_visible,$isAr?'ظاهر':'Visible'],'sold_out'=>[$option->sold_out,$isAr?'نفد':'Sold out']] as $flag=>$meta)<input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>@endforeach</div>
@@ -365,7 +365,7 @@
                                             <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
                                             <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                             <label>{{ $isAr?'نفاد':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
-                                            <label>{{ $isAr?'فرق سعر الفرع':'Branch price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price_delta"></label>
+                                            <label>{{ ($isAr?'فرق سعر الفرع':'Branch price delta').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="override_price_delta"></label>
                                         </div><button class="primary" type="submit">{{ $isAr?'حفظ':'Save' }}</button>
                                     </form>
                                 </details>
@@ -381,7 +381,7 @@
                                     <div class="so-grid">
                                         <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
                                         <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
-                                        <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="0" required></label>
+                                        <label>{{ ($isAr?'فرق السعر':'Price delta').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_delta" value="0" required></label>
                                         <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
                                     </div>
                                     <div class="so-flags"><input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1"> {{ $isAr?'افتراضي':'Default' }}</label><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1"> {{ $isAr?'نفد':'Sold out' }}</label></div>
@@ -443,7 +443,7 @@
                                 <article class="so-review-item">
                                     @if($mediaUrl($item->image_path))<img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
                                     <strong>{{ $localized($item,'name') }}</strong>
-                                    <span class="foodex-number">{{ number_format((float)($itemPrices[$item->id] ?? 0),3) }} KWD</span>
+                                    <span class="foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] ?? '—' }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span>
                                     <div class="so-review-status">
                                         @unless($item->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
                                         @if($item->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
@@ -500,7 +500,9 @@
                     const button = document.createElement('button');
                     button.type = 'button'; button.className = 'so-product-result'; button.setAttribute('role','option');
                     const label = document.createElement('span'); label.textContent = product.name || '';
-                    const meta = document.createElement('small'); meta.textContent = [product.sku || '', product.price ?? ''].filter(Boolean).join(' · ');
+                    const meta = document.createElement('small');
+                    const price = product.display_price && product.currency ? product.display_price + ' ' + product.currency : '';
+                    meta.textContent = [product.sku || '', price].filter(Boolean).join(' · ');
                     button.append(label,meta);
                     button.addEventListener('click',() => {
                         hidden.value = String(product.id);
