@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
 use App\Services\SmartOrderingAttributionService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -62,9 +63,9 @@ final class SmartOrderingMerchandisingService
     /**
      * Apply deterministic Smart Ordering offers to a server-authoritative quote.
      *
-     * @param list<array{product_id:int,quantity:float}> $lines
-     * @param array<string,mixed> $quote
-     * @param array<string,mixed>|null $trustedContext
+     * @param  list<array{product_id:int,quantity:float}>  $lines
+     * @param  array<string,mixed>  $quote
+     * @param  array<string,mixed>|null  $trustedContext
      * @return array{quote:array<string,mixed>,applied:list<array<string,mixed>>,audit:list<array<string,mixed>>}
      */
     public function decorateQuote(
@@ -182,6 +183,7 @@ final class SmartOrderingMerchandisingService
                     'eligible' => false,
                     'reason' => $reason,
                 ];
+
                 continue;
             }
 
@@ -193,6 +195,7 @@ final class SmartOrderingMerchandisingService
                         'eligible' => true,
                         'reason' => 'PRECEDENCE_SUPPRESSED',
                     ];
+
                     continue;
                 }
 
@@ -214,6 +217,7 @@ final class SmartOrderingMerchandisingService
                     'eligible' => true,
                     'reason' => 'APPLIED',
                 ];
+
                 continue;
             }
 
@@ -223,6 +227,7 @@ final class SmartOrderingMerchandisingService
                     'eligible' => true,
                     'reason' => 'PRECEDENCE_SUPPRESSED',
                 ];
+
                 continue;
             }
 
@@ -248,6 +253,7 @@ final class SmartOrderingMerchandisingService
                     'eligible' => true,
                     'reason' => 'NO_DISCOUNT_TRIGGERED',
                 ];
+
                 continue;
             }
 
@@ -548,7 +554,7 @@ final class SmartOrderingMerchandisingService
         }
     }
 
-    /** @return \Illuminate\Support\Collection<int,\stdClass> */
+    /** @return Collection<int,\stdClass> */
     private function activeOfferRules(
         SmartOrderingSite $site,
         SmartOrderingBranch $branch,
@@ -577,9 +583,9 @@ final class SmartOrderingMerchandisingService
     }
 
     /**
-     * @param list<array{product_id:int,quantity:float}> $lines
-     * @param array<string,mixed>|null $trustedContext
-     * @param array<string,mixed>|null $profile
+     * @param  list<array{product_id:int,quantity:float}>  $lines
+     * @param  array<string,mixed>|null  $trustedContext
+     * @param  array<string,mixed>|null  $profile
      * @return array{0:bool,1:string}
      */
     private function eligible(
@@ -909,13 +915,12 @@ final class SmartOrderingMerchandisingService
             ];
         }
 
-        usort($result, static fn (array $a, array $b): int =>
-            [
-                $a['personalized'] ? 0 : 1,
-                ($a['product']['best_seller'] ?? false) ? 0 : 1,
-                $a['priority'],
-                $a['id'],
-            ]
+        usort($result, static fn (array $a, array $b): int => [
+            $a['personalized'] ? 0 : 1,
+            ($a['product']['best_seller'] ?? false) ? 0 : 1,
+            $a['priority'],
+            $a['id'],
+        ]
             <=> [
                 $b['personalized'] ? 0 : 1,
                 ($b['product']['best_seller'] ?? false) ? 0 : 1,
