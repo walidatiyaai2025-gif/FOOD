@@ -48,11 +48,9 @@ final class CartService
 
             $branchReference = trim((string) ($trustedAttribution['branch_reference'] ?? ''));
             if ($branchReference !== '') {
-                abort_unless(
-                    in_array($branchReference, [(string) $branch->public_id, (string) $branch->code], true),
-                    409,
-                    'QR attribution branch does not match the selected Smart Ordering branch.',
-                );
+                if (! in_array($branchReference, [(string) $branch->public_id, (string) $branch->code], true)) {
+                    abort(409, 'QR attribution branch does not match the selected Smart Ordering branch.');
+                }
             }
 
             $trustedContext = [
