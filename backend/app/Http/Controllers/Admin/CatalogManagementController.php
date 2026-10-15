@@ -312,6 +312,11 @@ final class CatalogManagementController extends Controller
                 ->keyBy('id'),
             'stores' => DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->leftJoin('catalogs as default_catalog', function ($join): void {
+                    $join->on('default_catalog.store_id', '=', 'stores.id')
+                        ->where('default_catalog.code', '=', 'default')
+                        ->where('default_catalog.is_migration_quarantine', '=', false);
+                })
                 ->whereIn('stores.id', $storeIds)
                 ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
                 ->orderBy('stores.name')
@@ -322,6 +327,7 @@ final class CatalogManagementController extends Controller
                     'stores.is_active',
                     'stores.store_type_id',
                     'store_types.code as type_code',
+                    'default_catalog.id as default_catalog_id',
                 ]),
             'storeTypes' => collect(),
             'productImages' => DB::table('product_images')

@@ -198,13 +198,13 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <dialog class="catalog-dialog" id="catalog-add-product">
 <div class="catalog-dialog-head"><h2>{{ app()->getLocale()==='ar'?'إضافة منتج':'Add product' }}</h2><button type="button" class="catalog-dialog-close" data-dialog-close>×</button></div>
 <div class="catalog-dialog-body">
-<form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.store') }}">@csrf
+<form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.store') }}" data-catalog-scope-form>@csrf
 <div class="row"><label>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}<input value="{{ app()->getLocale()==='ar'?'يتم إنشاؤه تلقائياً عند الحفظ':'Generated automatically on save' }}" readonly aria-readonly="true" data-auto-sku></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required></label></div>
 <label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description" placeholder="{{ app()->getLocale()==='ar'?'وصف مختصر وواضح للمنتج':'Short product description' }}"></textarea></label>
-<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
-<div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
-<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id"><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach</select></label></div>
-<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-create-unit><option value="">—</option>@foreach($units as $u)<option value="{{ $u->id }}" data-active-lookup-option>{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required data-catalog-store-context>@if($stores->count()>1)<option value="">—</option>@endif @foreach($stores as $s)<option value="{{ $s->id }}" data-catalog-id="{{ $s->default_catalog_id ?? '' }}" data-channel="{{ strtolower((string)$s->type_code) }}" @selected($stores->count()===1)>{{ $s->name }}</option>@endforeach</select></label> {{-- localization-gate: allow machine-only channel scope token used for lookup eligibility; never rendered to users --}}
+<div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id" data-catalog-dependent><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}" data-catalog-id="{{ $c->catalog_id }}">{{ $c->parent_name ? $c->parent_name.' / ' : '' }}{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
+<label>{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}<select name="brand_id" data-catalog-dependent><option value="">—</option>@foreach($brands as $b)<option value="{{ $b->id }}" data-lookup-scope="{{ $b->scope ?? 'global' }}" data-store-id="{{ $b->store_id ?? '' }}" data-active-lookup-option>{{ $b->name }}</option>@endforeach</select></label></div>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}<select name="unit_id" required data-catalog-dependent data-catalog-create-unit><option value="">—</option>@foreach($units as $u)<option value="{{ $u->id }}" data-lookup-scope="{{ $u->scope ?? 'global' }}" data-store-id="{{ $u->store_id ?? '' }}" data-active-lookup-option>{{ $u->name }} ({{ $u->code }})</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'السعر':'Price' }}<input type="number" step=".001" min="0" name="price" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}"></label></div>
 <label>{{ app()->getLocale()==='ar'?'صور المنتج (حتى 8 صور)':'Product images (up to 8)' }}<input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple class="js-catalog-image-preview"></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
@@ -348,8 +348,8 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </div>
 
 @elseif($tab==='categories')
-<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة تصنيف':'Add category' }}</h2><form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.store') }}">@csrf
-<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'أدخل الاسم':'Enter name' }}" required></label><label>{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}<input name="slug" placeholder="{{ app()->getLocale()==='ar'?'مثال: beverages':'e.g. beverages' }}"></label><label>{{ app()->getLocale()==='ar'?'صورة التصنيف':'Category image' }}<input type="file" name="category_image" accept="image/jpeg,image/png,image/webp" class="js-catalog-image-preview"></label><label>{{ app()->getLocale()==='ar'?'التصنيف الأب':'Parent' }}<select name="parent_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة التصنيف':'Add category' }}</button></form></section>
+<div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة تصنيف':'Add category' }}</h2><form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.store') }}" data-catalog-scope-form>@csrf
+<label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required data-catalog-store-context>@if($stores->count()>1)<option value="">—</option>@endif @foreach($stores as $s)<option value="{{ $s->id }}" data-catalog-id="{{ $s->default_catalog_id ?? '' }}" data-channel="{{ strtolower((string)$s->type_code) }}" @selected($stores->count()===1)>{{ $s->name }}</option>@endforeach</select></label> {{-- localization-gate: allow machine-only channel scope token used for lookup eligibility; never rendered to users --}}<label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'أدخل الاسم':'Enter name' }}" required></label><label>{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}<input name="slug" placeholder="{{ app()->getLocale()==='ar'?'مثال: beverages':'e.g. beverages' }}"></label><label>{{ app()->getLocale()==='ar'?'صورة التصنيف':'Category image' }}<input type="file" name="category_image" accept="image/jpeg,image/png,image/webp" class="js-catalog-image-preview"></label><label>{{ app()->getLocale()==='ar'?'التصنيف الأب':'Parent' }}<select name="parent_id" data-catalog-dependent><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}" data-catalog-id="{{ $c->catalog_id }}">{{ $c->parent_name ? $c->parent_name.' / ' : '' }}{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة التصنيف':'Add category' }}</button></form></section>
 <section class="catalog-category-results">
 @php($hasCategoryFilters=$categoryFilters['q']!=='' || $categoryFilters['parent']!=='' || $categoryFilters['status']!=='')
 <form method="get" class="catalog-filterbar" data-catalog-category-filters>
@@ -389,6 +389,49 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
                 preview.appendChild(image);
             });
         });
+    });
+
+    const syncCatalogScope = (form) => {
+        const store = form.querySelector('[data-catalog-store-context]');
+        if (!store) return;
+        const selectedStore = store.selectedOptions[0] || null;
+        const storeId = selectedStore?.value || '';
+        const catalogId = selectedStore?.dataset.catalogId || '';
+        const channel = (selectedStore?.dataset.channel || '').toLowerCase();
+
+        form.querySelectorAll('[data-catalog-dependent]').forEach((select) => {
+            const previous = select.value;
+            Array.from(select.options).forEach((option) => {
+                if (!option.value) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+
+                let allowed = false;
+                if (Object.hasOwn(option.dataset, 'catalogId')) {
+                    allowed = catalogId !== '' && option.dataset.catalogId === catalogId;
+                } else {
+                    const scope = (option.dataset.lookupScope || 'global').toLowerCase();
+                    allowed = scope === 'global'
+                        || (scope === 'b2b' && channel === 'b2b')
+                        || (scope === 'store' && channel === 'b2c' && option.dataset.storeId === storeId);
+                }
+                option.hidden = !allowed;
+                option.disabled = !allowed;
+            });
+
+            if (!storeId || !Array.from(select.options).some((option) => option.value === previous && !option.disabled)) {
+                select.value = '';
+            }
+            select.disabled = !storeId;
+        });
+    };
+
+    document.querySelectorAll('[data-catalog-scope-form]').forEach((form) => {
+        const store = form.querySelector('[data-catalog-store-context]');
+        syncCatalogScope(form);
+        store?.addEventListener('change', () => syncCatalogScope(form));
     });
 
     document.querySelectorAll('[data-dialog-open]').forEach((button) => {
