@@ -197,10 +197,24 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['reports', '/admin/reports'],
     ['van-finance-support', '/admin/van-finance-support'],
     ['smart-ordering', '/admin/smart-ordering'],
+    ['smart-ordering-settings', '/admin/smart-ordering/settings'],
     ['smart-ordering-qr', '/admin/smart-ordering/qr'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
   ];
+
+  const smartOrderingSettings = await page.goto(`${baseUrl}/admin/smart-ordering/settings`, { waitUntil: 'networkidle' });
+  if (smartOrderingSettings?.ok() && !page.url().includes('/login')) {
+    const supplyHref = await page
+      .locator('a[href*="/admin/smart-ordering/sites/"][href$="/supply"]')
+      .first()
+      .getAttribute('href')
+      .catch(() => null);
+    if (supplyHref) {
+      const supplyUrl = new URL(supplyHref, baseUrl);
+      shellRoutes.push(['smart-ordering-supply', `${supplyUrl.pathname}${supplyUrl.search}`]);
+    }
+  }
 
   await page.setViewportSize({ width: 1440, height: 1080 });
   for (const [name, route] of shellRoutes) {
