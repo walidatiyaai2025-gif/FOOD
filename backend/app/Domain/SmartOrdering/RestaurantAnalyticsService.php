@@ -323,6 +323,7 @@ final class RestaurantAnalyticsService
             ->selectRaw("SUM(CASE WHEN d.event_name='order_created' THEN d.event_count ELSE 0 END) AS orders")
             ->selectRaw("SUM(CASE WHEN d.event_name='order_completed' THEN d.revenue ELSE 0 END) AS revenue")
             ->orderByDesc('orders')
+            ->limit(100)
             ->get()
             ->map(static function (object $row): array {
                 $views = (int) $row->views;
