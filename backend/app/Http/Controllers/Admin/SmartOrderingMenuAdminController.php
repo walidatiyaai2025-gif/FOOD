@@ -17,6 +17,8 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
+use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +36,7 @@ final class SmartOrderingMenuAdminController extends Controller
         SmartOrderingSiteService $sites,
         SmartOrderingMenuRevisionService $revisions,
         SmartOrderingPriceResolver $prices,
+        CommerceQuoteService $quotes,
     ): View {
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
@@ -88,9 +91,16 @@ final class SmartOrderingMenuAdminController extends Controller
             ->unique()
             ->values();
 
+        $checkoutCurrency = $quotes->currencyForStore((int) $site->store_id);
+        $moneyStep = DisplayNumber::moneyStep($checkoutCurrency);
         $itemPrices = [];
         foreach (SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get() as $item) {
-            $itemPrices[(int) $item->id] = $prices->displayPrice($site, $item)['amount'];
+            $resolved = $prices->displayPrice($site, $item);
+            $itemPrices[(int) $item->id] = [
+                ...$resolved,
+                'currency' => $checkoutCurrency,
+                'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
+            ];
         }
 
         $productLabels = DB::table('products')
@@ -110,6 +120,8 @@ final class SmartOrderingMenuAdminController extends Controller
             'menuBranchIds' => $menuBranchIds,
             'productLabels' => $productLabels,
             'itemPrices' => $itemPrices,
+            'checkoutCurrency' => $checkoutCurrency,
+            'moneyStep' => $moneyStep,
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),
         ]);
     }
@@ -118,6 +130,7 @@ final class SmartOrderingMenuAdminController extends Controller
         Request $request,
         TenantContextResolver $tenants,
         SmartOrderingSiteService $sites,
+        CommerceQuoteService $quotes,
     ): JsonResponse {
         [, $site] = $this->context($request, $tenants, $sites);
         $data = $request->validate(['q' => ['nullable', 'string', 'max:120']]);
@@ -147,13 +160,21 @@ final class SmartOrderingMenuAdminController extends Controller
             ->limit(25)
             ->get(['products.id', 'products.name', 'products.sku', 'products.barcode', 'store_products.price']);
 
+        $checkoutCurrency = $quotes->currencyForStore((int) $site->store_id);
+
         return response()->json([
+            'currency' => $checkoutCurrency,
+            'money_step' => DisplayNumber::moneyStep($checkoutCurrency),
             'products' => $products->map(fn ($product): array => [
                 'id' => (int) $product->id,
                 'name' => (string) $product->name,
                 'sku' => $product->sku,
                 'barcode' => $product->barcode,
                 'price' => $product->price === null ? null : round((float) $product->price, 3),
+                'currency' => $checkoutCurrency,
+                'display_price' => $product->price === null
+                    ? null
+                    : DisplayNumber::money((float) $product->price, $checkoutCurrency),
             ])->values(),
         ]);
     }
