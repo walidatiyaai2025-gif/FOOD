@@ -104,9 +104,10 @@ final class SmartOrderingStorefrontController extends Controller
             'branch_public_id' => $analyticsBranch?->public_id,
             'revision_public_id' => $published?->public_id,
             'attribution_context' => $attributionContext,
-            'supports_pickup' => (bool) ($analyticsBranch?->supports_pickup ?? false),
-            'supports_delivery' => (bool) ($analyticsBranch?->supports_delivery ?? false),
-            'supports_dine_in' => (bool) ($analyticsBranch?->supports_dine_in ?? false)
+            'supports_pickup' => $analyticsBranch !== null && (bool) $analyticsBranch->supports_pickup,
+            'supports_delivery' => $analyticsBranch !== null && (bool) $analyticsBranch->supports_delivery,
+            'supports_dine_in' => $analyticsBranch !== null
+                && (bool) $analyticsBranch->supports_dine_in
                 && ($trustedAttribution['type'] ?? null) === 'table'
                 && trim((string) ($trustedAttribution['table_reference'] ?? '')) !== '',
         ];
