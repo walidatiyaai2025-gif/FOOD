@@ -58,18 +58,23 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
       var options = widget.draft.options;
       options ??= await widget.repository.options(customer);
       widget.draft.applyOptions(options);
+      widget.draft.setSelection(note: _note.text);
       final payment = widget.draft.paymentMethod;
       if (payment == null) throw StateError('No payment method.');
+      final revision = widget.draft.revision;
+      final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+      final addressId = widget.draft.addressId;
+      final warehouseId = widget.draft.warehouseId;
+      final customerNote = widget.draft.customerNote;
       final quote = await widget.repository.quote(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: _note.text,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
       );
-      widget.draft.setSelection(note: _note.text);
-      widget.draft.setQuote(quote);
+      widget.draft.setQuoteForRevision(quote, revision);
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (_) {
@@ -93,7 +98,9 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
     if (customer == null ||
         payment == null ||
         quote == null ||
+        !widget.draft.hasCurrentQuote ||
         quote.hasUnavailableItems ||
+        _loading ||
         _submitting) {
       return;
     }
@@ -189,7 +196,9 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                         ),
                       ),
                   ],
-                  onChanged: (value) {
+                  onChanged: _loading || _submitting
+                      ? null
+                      : (value) {
                     widget.draft.setSelection(warehouse: value);
                     _reload();
                   },
@@ -215,7 +224,9 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                         ),
                       ),
                   ],
-                  onChanged: (value) {
+                  onChanged: _loading || _submitting
+                      ? null
+                      : (value) {
                     widget.draft.setSelection(address: value);
                     _reload();
                   },
@@ -247,11 +258,13 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
               const SizedBox(height: 10),
               TextField(
                 controller: _note,
+                enabled: !_loading && !_submitting,
                 maxLines: 2,
                 decoration: InputDecoration(
                   labelText: _text('Note (optional)', 'ملاحظة (اختياري)'),
                   border: const OutlineInputBorder(),
                 ),
+                onChanged: (value) => widget.draft.setSelection(note: value),
                 onEditingComplete: _reload,
               ),
             ],
@@ -309,10 +322,13 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
             const SizedBox(height: 14),
             FilledButton.icon(
               key: const ValueKey('van-order-submit'),
-              onPressed:
-                  _submitting || quote == null || quote.hasUnavailableItems
-                      ? null
-                      : _submit,
+              onPressed: _submitting ||
+                      _loading ||
+                      !widget.draft.hasCurrentQuote ||
+                      quote == null ||
+                      quote.hasUnavailableItems
+                  ? null
+                  : _submit,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
