@@ -3,7 +3,6 @@
 namespace App\Domain\WhatsApp;
 
 use App\Models\WhatsAppConnectionProfile;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -58,7 +57,7 @@ final class MetaTemplateService
                 ->asJson()
                 ->timeout($this->timeout())
                 ->post($this->graphUrl($profile, (string) $profile->provider_account_id).'/message_templates', $payload);
-        } catch (ConnectionException|Throwable) {
+        } catch (Throwable) {
             throw ValidationException::withMessages([
                 'template' => [__('whatsapp.campaigns.meta_template_provider_unavailable')],
             ]);
@@ -102,7 +101,7 @@ final class MetaTemplateService
                     'fields' => 'id,name,status,category,language,components',
                     'limit' => 100,
                 ]);
-        } catch (ConnectionException|Throwable) {
+        } catch (Throwable) {
             throw ValidationException::withMessages([
                 'template' => [__('whatsapp.campaigns.meta_template_provider_unavailable')],
             ]);
@@ -157,11 +156,13 @@ final class MetaTemplateService
             ], $local->created_by === null ? null : (int) $local->created_by);
 
             $updated++;
-            match ($status) {
-                'approved' => $approved++,
-                'rejected' => $rejected++,
-                default => $pending++,
-            };
+            if ($status === 'approved') {
+                $approved++;
+            } elseif ($status === 'rejected') {
+                $rejected++;
+            } else {
+                $pending++;
+            }
         }
 
         return compact('updated', 'approved', 'pending', 'rejected');
