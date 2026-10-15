@@ -525,8 +525,8 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ->assertSee('Add manually')
             ->assertSee('id="wa-manual-consent-state" autocomplete="off"', false)
             ->assertSee('id="wa-manual-consent-source" maxlength="64" placeholder="admin_verified" autocomplete="off" disabled', false)
-            ->assertSee("const resetConsentFields = prefix => syncConsentFields(prefix,true);", false)
-            ->assertSee("if(!state)return {consent_state:null};", false)
+            ->assertSee('const resetConsentFields = prefix => syncConsentFields(prefix,true);', false)
+            ->assertSee('if(!state)return {consent_state:null};', false)
             ->assertDontSee('segment JSON');
     }
 
