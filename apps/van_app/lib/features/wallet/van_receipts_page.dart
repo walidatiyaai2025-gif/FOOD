@@ -35,7 +35,8 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
 
   String _text(String en, String ar) => _arabic ? ar : en;
 
-  String _receiptStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _receiptStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'posted' || 'completed' => _text('Completed', 'مكتمل'),
         'pending' || 'processing' => _text('Processing', 'قيد المعالجة'),
         'reversed' || 'voided' => _text('Reversed', 'معكوس'),
