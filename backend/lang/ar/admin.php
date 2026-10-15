@@ -45,6 +45,7 @@ return [
         'stores' => 'المتاجر والقنوات',
         'marketing' => 'التسويق والتواصل',
         'advertising' => 'الدعايا',
+        'finance' => 'المالية والخزينة',
         'analytics' => 'التحليلات والتقارير',
         'applications' => 'التطبيقات',
         'administration' => 'الإدارة',
