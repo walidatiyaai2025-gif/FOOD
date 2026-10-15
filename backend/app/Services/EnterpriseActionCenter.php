@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\EnterpriseWorkflowRequest;
 use App\Models\EnterpriseWorkflowStep;
 use App\Models\Role;
 use App\Models\User;
@@ -217,7 +218,7 @@ final class EnterpriseActionCenter
     /** @param array<string, mixed> $authorization */
     private function canDisplay(
         User $actor,
-        object $workflow,
+        EnterpriseWorkflowRequest $workflow,
         EnterpriseWorkflowStep $step,
         array $authorization,
     ): bool {
