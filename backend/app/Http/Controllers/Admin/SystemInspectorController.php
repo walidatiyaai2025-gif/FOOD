@@ -14,7 +14,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -165,7 +164,7 @@ final class SystemInspectorController extends Controller
 
         $root = (string) config('filesystems.disks.public.root');
         if (is_dir($root) === false) {
-            File::makeDirectory($root, 0750, true, true);
+            Storage::disk('public')->makeDirectory('.');
         }
 
         if (is_dir($root) === false) {
