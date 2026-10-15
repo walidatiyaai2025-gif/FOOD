@@ -1,0 +1,12 @@
+<section class="so-template so-cafe">
+<div class="so-cafe-intro"><div><span class="so-cafe-mark">☕</span><p>{{ $locale === 'ar' ? 'طازج كل يوم' : 'Fresh every day' }}</p><h1>{{ $site['name'] }}</h1><span>{{ $site['tagline'] }}</span></div>@if($site['cover_url'])<img src="{{ $site['cover_url'] }}" alt="" fetchpriority="high" decoding="async">@endif</div>
+@if($appearance['customization']['show_offers'] && count($site['offers']))<section class="so-specials" aria-label="{{ $locale === 'ar' ? 'العروض' : 'Specials' }}">@foreach($site['offers'] as $offer)<article>@if($offer['image_url'])<img src="{{ $offer['image_url'] }}" alt="" loading="{{ $loop->first ? 'eager' : 'lazy' }}">@endif<div><span>{{ $offer['badge'] }}</span><strong>{{ $offer['title'] }}</strong><p>{{ $offer['description'] }}</p></div></article>@endforeach</section>@endif
+<div class="so-cafe-toolbar"><label class="so-search"><span aria-hidden="true">⌕</span><input type="search" data-menu-search placeholder="{{ $locale === 'ar' ? 'قهوة، كرواسون، حلويات...' : 'Coffee, croissants, desserts...' }}"></label><div class="so-cafe-chips">@foreach($menu['categories'] as $category)<a href="#cafe-{{ $loop->index }}">{{ $category['name'] }}</a>@endforeach</div></div>
+@forelse($menu['categories'] as $category)
+<section class="so-cafe-category" id="cafe-{{ $loop->index }}" data-category><header><h2>{{ $category['name'] }}</h2><p>{{ $category['description'] }}</p></header><div class="so-cafe-grid">
+@foreach($category['items'] as $item)<article data-menu-item data-search="{{ mb_strtolower($item['name'].' '.$item['description']) }}">@if($item['image_url'])<img src="{{ $item['image_url'] }}" alt="" loading="lazy" decoding="async">@endif<div class="so-cafe-card-body"><div class="so-item-badges">@foreach($item['tags'] as $tag)<span>{{ $tag }}</span>@endforeach</div><h3>{{ $item['name'] }}</h3><p>{{ $item['description'] }}</p><div class="so-cafe-card-footer"><strong>{{ $item['price_display'] }}</strong><button type="button" data-open-item data-name="{{ $item['name'] }}" data-description="{{ $item['description'] }}" data-image="{{ $item['image_url'] }}" data-modifiers='@json($item["modifiers"])' @disabled($item['sold_out'] || ! $is_open)>{{ $item['sold_out'] ? ($locale === 'ar' ? 'نفد' : 'Sold out') : ($locale === 'ar' ? 'خصص' : 'Customize') }}</button></div></div></article>@endforeach
+</div></section>
+@empty
+<div class="so-empty">{{ $locale === 'ar' ? 'لا توجد أصناف منشورة بعد.' : 'No items are published yet.' }}</div>
+@endforelse
+</section>
