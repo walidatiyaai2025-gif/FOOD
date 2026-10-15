@@ -21,8 +21,28 @@
 @endforeach
 </div>
 
-<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}">
+@php
+$newOrderRestore = old('_order_create_context') === 'central';
+$newOrderIdempotencyKey = $newOrderRestore && trim((string) old('idempotency_key', '')) !== ''
+    ? trim((string) old('idempotency_key'))
+    : 'dashboard:'.(string) \Illuminate\Support\Str::uuid();
+$newOrderOldInput = $newOrderRestore ? [
+    'channel' => old('channel'),
+    'store_id' => old('store_id'),
+    'warehouse_id' => old('warehouse_id'),
+    'customer_id' => old('customer_id'),
+    'address_id' => old('address_id'),
+    'payment_method' => old('payment_method'),
+    'coupon_code' => old('coupon_code'),
+    'customer_note' => old('customer_note'),
+    'items' => (array) old('items', []),
+    'idempotency_key' => $newOrderIdempotencyKey,
+] : null;
+@endphp
+<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}" aria-busy="false">
 @csrf
+<input type="hidden" name="_order_create_context" value="central">
+<input type="hidden" name="idempotency_key" data-wizard-idempotency value="{{ $newOrderIdempotencyKey }}">
 <div class="new-order-body">
 <div class="new-order-error" data-wizard-error role="alert"></div>
 
@@ -85,6 +105,7 @@
 </div>
 </div>
 
+<div class="foodex-state" data-wizard-submit-state role="status" aria-live="polite" hidden></div>
 <div class="new-order-actions">
 <button type="button" class="btn secondary" data-new-order-cancel>{{ $isAr?'إلغاء':'Cancel' }}</button>
 <div class="new-order-actions-right">
@@ -100,6 +121,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const source = @json($newOrderWizard);
+    const restoreInput = @json($newOrderOldInput);
+    const restoreAfterValidation = @json($newOrderRestore && $errors->any());
+    const restoreError = @json($newOrderRestore ? $errors->first() : '');
     const modal = document.querySelector('[data-new-order-modal]');
     const form = modal?.querySelector('[data-new-order-form]');
     if (!modal || !form) return;
@@ -122,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tax: isAr ? 'الضريبة' : 'Tax',
         total: isAr ? 'الإجمالي النهائي' : 'Grand total',
         pickup: isAr ? 'بدون عنوان / استلام' : 'No address / pickup',
+        submitting: @json(__('order_operations.new_order_submit.submitting')),
     };
 
     const channelSelect = form.querySelector('[data-wizard-channel]');
@@ -136,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextButton = form.querySelector('[data-wizard-next]');
     const backButton = form.querySelector('[data-wizard-back]');
     const createButton = form.querySelector('[data-wizard-create]');
+    const idempotencyInput = form.querySelector('[data-wizard-idempotency]');
+    const submitState = form.querySelector('[data-wizard-submit-state]');
     const quoteBox = form.querySelector('[data-wizard-quote]');
     const discardPanel = modal.querySelector('[data-new-order-discard]');
     const continueButton = discardPanel?.querySelector('[data-new-order-continue]');
@@ -148,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let quoteReady = false;
     let initialized = false;
     let dirty = false;
+    let isSubmitting = false;
     let discardReturnFocus = null;
+    const createButtonLabel = createButton.textContent;
 
     const makeOption = (value, label) => {
         const node = document.createElement('option');
@@ -172,7 +201,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return amount.toFixed(3).replace(/\.?0+$/, '');
     };
     const showError = (message = '') => { errorBox.textContent = message; errorBox.dataset.visible = message ? '1' : '0'; };
-    const invalidateQuote = () => { quoteReady = false; createButton.disabled = true; };
+    const createIdempotencyKey = () => {
+        const randomPart = globalThis.crypto?.randomUUID?.()
+            || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + '-' + Math.random().toString(36).slice(2));
+        return 'dashboard:' + randomPart;
+    };
+    const setSubmitting = (active) => {
+        isSubmitting = active;
+        form.setAttribute('aria-busy', active ? 'true' : 'false');
+        createButton.disabled = active || !quoteReady;
+        createButton.textContent = active ? t.submitting : createButtonLabel;
+        if (submitState) {
+            submitState.hidden = !active;
+            submitState.textContent = active ? t.submitting : '';
+        }
+    };
+    const invalidateQuote = () => {
+        quoteReady = false;
+        if (!isSubmitting) createButton.disabled = true;
+    };
 
     const setStep = (target) => {
         step = Math.max(0, Math.min(5, target));
@@ -340,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         grand.textContent = t.total + ': ' + money(quote.grand_total, currency) + ' ' + currency;
         quoteBox.append(lines, totals, grand);
         quoteReady = !quote.has_unavailable_items;
-        createButton.disabled = !quoteReady;
+        if (!isSubmitting) createButton.disabled = !quoteReady;
         if (!quoteReady) showError(t.unavailable);
     };
 
@@ -379,8 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
         discardReturnFocus = null;
     };
 
-    const reset = () => {
+    const reset = ({ freshIdentity = initialized } = {}) => {
         form.reset();
+        setSubmitting(false);
+        if (freshIdentity && idempotencyInput) idempotencyInput.value = createIdempotencyKey();
         channelSelect.innerHTML = '';
         channelSelect.appendChild(makeOption('', isAr ? 'اختر القناة' : 'Select channel'));
         (source.channels || []).forEach((item) => channelSelect.appendChild(makeOption(item.code, item.label)));
@@ -424,8 +473,50 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const discardAndClose = () => {
-        reset();
+        reset({ freshIdentity: true });
         closeModal();
+    };
+
+    const restoreServerInput = () => {
+        if (!restoreAfterValidation || !restoreInput) return false;
+
+        channelSelect.value = String(restoreInput.channel || '');
+        refillStores();
+        storeSelect.value = String(restoreInput.store_id || '');
+        refillStoreData();
+        warehouseSelect.value = String(restoreInput.warehouse_id || '');
+        customerSelect.value = String(restoreInput.customer_id || '');
+        refillAddresses();
+        addressSelect.value = String(restoreInput.address_id || '');
+        paymentSelect.value = String(restoreInput.payment_method || '');
+
+        const couponInput = form.querySelector('[name="coupon_code"]');
+        const noteInput = form.querySelector('[name="customer_note"]');
+        if (couponInput) couponInput.value = String(restoreInput.coupon_code || '');
+        if (noteInput) noteInput.value = String(restoreInput.customer_note || '');
+
+        const restoredItems = Array.isArray(restoreInput.items) ? restoreInput.items : [];
+        linesBox.innerHTML = '';
+        (restoredItems.length ? restoredItems : [{}]).forEach((item) => {
+            addLine();
+            const row = linesBox.lastElementChild;
+            const product = row?.querySelector('[data-wizard-product]');
+            const quantityInput = row?.querySelector('[data-wizard-quantity]');
+            if (product) product.value = String(item?.product_id || '');
+            if (quantityInput) quantityInput.value = String(item?.quantity || '1');
+        });
+        reindexLines();
+
+        if (idempotencyInput) {
+            idempotencyInput.value = String(restoreInput.idempotency_key || idempotencyInput.value || createIdempotencyKey());
+        }
+
+        dirty = true;
+        invalidateQuote();
+        setStep(5);
+        if (restoreError) showError(restoreError);
+
+        return true;
     };
 
     document.querySelectorAll('[data-new-order-open]').forEach((button) => button.addEventListener('click', open));
@@ -474,6 +565,11 @@ document.addEventListener('DOMContentLoaded', () => {
     backButton.addEventListener('click', () => setStep(step - 1));
 
     form.addEventListener('submit', (event) => {
+        if (isSubmitting) {
+            event.preventDefault();
+            return;
+        }
+
         if (step !== 5) {
             event.preventDefault();
             const error = validateStep();
@@ -488,10 +584,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!quoteReady) {
             event.preventDefault();
             loadReviewAndQuote();
+            return;
         }
+
+        if (idempotencyInput && !idempotencyInput.value.trim()) {
+            idempotencyInput.value = createIdempotencyKey();
+        }
+        setSubmitting(true);
+        dirty = false;
     });
 
     reset();
+    if (restoreServerInput()) open();
 });
 </script>
 @endif
