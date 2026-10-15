@@ -60,7 +60,7 @@
             <div class="foodex-header-actions">
                 @include('admin._live-notifications',['user'=>$user])
                 @if($canCreate)
-                    <button type="button" class="foodex-btn foodex-btn-primary" data-open-dialog="so-qr-create">{{ __('smart_ordering_qr.create') }}</button>
+                    <button type="button" class="foodex-action-primary" data-open-dialog="so-qr-create">{{ __('smart_ordering_qr.create') }}</button>
                 @endif
             </div>
         </header>
@@ -97,7 +97,7 @@
                     <label>{{ __('smart_ordering_qr.search') }}
                         <input name="q" value="{{ $filters['q']??'' }}" placeholder="{{ __('smart_ordering_qr.search_placeholder') }}">
                     </label>
-                    <div style="align-self:end"><button class="foodex-btn foodex-btn-primary" type="submit">{{ __('smart_ordering_qr.search') }}</button></div>
+                    <div style="align-self:end"><button class="foodex-action-primary" type="submit">{{ __('smart_ordering_qr.search') }}</button></div>
                 </form>
             </section>
 
@@ -174,7 +174,7 @@
                                     @csrf @method('PATCH')
                                     <div class="so-qr-dialog-head"><h2>{{ __('smart_ordering_qr.edit') }}</h2><button class="so-qr-dialog-close" type="button" data-close-dialog aria-label="{{ __('smart_ordering_qr.cancel') }}">×</button></div>
                                     <div class="so-qr-form-grid">@include('admin._smart-ordering-qr-fields',['editingQr'=>$qr])</div>
-                                    <div class="foodex-header-actions"><button class="foodex-btn foodex-btn-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.save') }}</button></div>
+                                    <div class="foodex-header-actions"><button class="foodex-action-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.save') }}</button></div>
                                 </form>
                             </dialog>
                             <dialog class="so-qr-dialog" id="so-qr-rotate-{{ $qr->public_id }}">
@@ -184,7 +184,7 @@
                                     <p class="so-qr-help">{{ __('smart_ordering_qr.rotate_hint') }}</p>
                                     <label><input type="hidden" name="keep_previous" value="0"><input type="checkbox" name="keep_previous" value="1" checked> {{ __('smart_ordering_qr.keep_previous') }}</label>
                                     <label>{{ __('smart_ordering_qr.legacy_expires_at') }}<input type="datetime-local" name="legacy_expires_at"></label>
-                                    <div><button class="foodex-btn foodex-btn-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.rotate_token') }}</button></div>
+                                    <div><button class="foodex-action-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.rotate_token') }}</button></div>
                                 </form>
                             </dialog>
                             @endif
@@ -212,7 +212,7 @@
             @include('admin._smart-ordering-qr-fields',['editingQr'=>null])
             <input type="hidden" name="is_enabled" value="1">
         </div>
-        <div class="foodex-header-actions"><button class="foodex-btn foodex-btn-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.save') }}</button></div>
+        <div class="foodex-header-actions"><button class="foodex-action-primary" type="submit" data-submit-once>{{ __('smart_ordering_qr.save') }}</button></div>
     </form>
 </dialog>
 @endif
