@@ -5,7 +5,7 @@ namespace App\Enterprise\Commercial;
 final readonly class CommercialEventEnvelope
 {
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public string $name,
