@@ -31,7 +31,11 @@ final class ModuleLifecycleManager
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $current = $module->state;
+            $current = $module->getAttribute('state');
+            if (! $current instanceof ModuleState) {
+                throw new LogicException("Module [{$code}] has an invalid lifecycle state.");
+            }
+
             if ($current === $target) {
                 return $module;
             }
@@ -55,7 +59,7 @@ final class ModuleLifecycleManager
                 'last_error' => $module->last_error,
             ];
 
-            $module->state = $target;
+            $module->setAttribute('state', $target);
             $module->state_changed_at = now();
             $module->enabled_at = $target === ModuleState::ENABLED
                 ? ($module->enabled_at ?? now())
