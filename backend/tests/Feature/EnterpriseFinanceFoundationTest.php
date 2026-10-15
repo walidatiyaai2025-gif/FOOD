@@ -177,7 +177,7 @@ final class EnterpriseFinanceFoundationTest extends TestCase
             $this->assertSame(403, $exception->getStatusCode());
         }
 
-        [$manager, , $unentitledContext] = $this->scopedUser(
+        [$manager, , $unentitledContext] = $this->scopedUserInNewOrganization(
             ['finance.view', 'finance.manage'],
             'FIN-NO-ENT',
         );
