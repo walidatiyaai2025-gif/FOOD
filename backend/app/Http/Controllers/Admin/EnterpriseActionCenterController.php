@@ -81,16 +81,19 @@ final class EnterpriseActionCenterController extends Controller
             ]);
         }
 
-        $query = array_filter([
-            'q' => trim((string) ($validated['q'] ?? '')),
-            'state' => (string) ($validated['state'] ?? 'all'),
-            'actions_page' => (int) ($validated['actions_page'] ?? 1),
-        ], static fn ($value, $key): bool => match ($key) {
-            'q' => $value !== '',
-            'state' => $value !== 'all',
-            'actions_page' => $value > 1,
-            default => false,
-        }, ARRAY_FILTER_USE_BOTH);
+        $query = [];
+        $search = trim((string) ($validated['q'] ?? ''));
+        $state = (string) ($validated['state'] ?? 'all');
+        $page = (int) ($validated['actions_page'] ?? 1);
+        if ($search !== '') {
+            $query['q'] = $search;
+        }
+        if ($state !== 'all') {
+            $query['state'] = $state;
+        }
+        if ($page > 1) {
+            $query['actions_page'] = $page;
+        }
 
         return redirect()
             ->route('admin.action-center.index', $query)
