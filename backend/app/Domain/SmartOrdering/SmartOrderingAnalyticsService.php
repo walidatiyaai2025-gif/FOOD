@@ -69,6 +69,7 @@ final class SmartOrderingAnalyticsService
         $categoryId = $this->nullablePositiveInt($dimensions['category_id'] ?? null);
         $orderId = $this->nullablePositiveInt($dimensions['order_id'] ?? null);
         $visitorHash = $this->hashValue($dimensions['visitor_token'] ?? $dimensions['visitor_hash'] ?? null, 'visitor');
+        $qrPublicId = $this->uuid($dimensions['qr_public_id'] ?? null);
         $source = $this->bounded($dimensions['source'] ?? null, 64);
         $campaign = $this->bounded($dimensions['campaign'] ?? null, 120);
         $offer = $this->bounded($dimensions['offer_reference'] ?? null, 120);
@@ -77,6 +78,9 @@ final class SmartOrderingAnalyticsService
         $cartPublicId = $this->uuid($dimensions['cart_public_id'] ?? null);
         $revenue = round(max(0.0, (float) ($dimensions['revenue'] ?? 0)), 3);
         $metadata = $this->safeMetadata((array) ($dimensions['metadata'] ?? []));
+        $rating = $eventName === 'feedback_submitted' && isset($metadata['rating'])
+            ? max(0.0, min(5.0, (float) $metadata['rating']))
+            : null;
 
         return DB::transaction(function () use (
             $storeId,
@@ -87,6 +91,7 @@ final class SmartOrderingAnalyticsService
             $categoryId,
             $orderId,
             $visitorHash,
+            $qrPublicId,
             $source,
             $campaign,
             $offer,
@@ -95,6 +100,7 @@ final class SmartOrderingAnalyticsService
             $cartPublicId,
             $revenue,
             $metadata,
+            $rating,
             $occurredAt,
         ): bool {
             $inserted = DB::table('smart_ordering_analytics_events')->insertOrIgnore([
@@ -107,6 +113,7 @@ final class SmartOrderingAnalyticsService
                 'order_id' => $orderId,
                 'product_id' => $productId,
                 'category_id' => $categoryId,
+                'qr_public_id' => $qrPublicId,
                 'source_snapshot' => $source,
                 'campaign_snapshot' => $campaign,
                 'offer_reference' => $offer,
@@ -131,12 +138,14 @@ final class SmartOrderingAnalyticsService
                 $storeId,
                 $branchKey,
                 $eventName,
+                $qrPublicId ?? '',
                 $source ?? '',
                 $campaign ?? '',
                 $offer ?? '',
                 $customerType ?? '',
                 $fulfillment ?? '',
                 $revenue,
+                $rating,
             );
 
             $this->incrementHourly(
@@ -145,6 +154,7 @@ final class SmartOrderingAnalyticsService
                 $storeId,
                 $branchKey,
                 $eventName,
+                $qrPublicId ?? '',
                 $source ?? '',
                 $campaign ?? '',
                 $fulfillment ?? '',
@@ -156,6 +166,7 @@ final class SmartOrderingAnalyticsService
                     'event_date' => $date,
                     'store_id' => $storeId,
                     'branch_key' => $branchKey,
+                    'qr_key' => $qrPublicId ?? '',
                     'source_key' => $source ?? '',
                     'campaign_key' => $campaign ?? '',
                     'visitor_hash' => $visitorHash,
@@ -293,18 +304,21 @@ final class SmartOrderingAnalyticsService
         int $storeId,
         int $branchKey,
         string $eventName,
+        string $qr,
         string $source,
         string $campaign,
         string $offer,
         string $customerType,
         string $fulfillment,
         float $revenue,
+        ?float $rating = null,
     ): void {
         $dimensions = [
             'event_date' => $date,
             'store_id' => $storeId,
             'branch_key' => $branchKey,
             'event_name' => $eventName,
+            'qr_key' => $qr,
             'source_key' => $source,
             'campaign_key' => $campaign,
             'offer_key' => $offer,
@@ -316,6 +330,8 @@ final class SmartOrderingAnalyticsService
             ...$dimensions,
             'event_count' => 1,
             'revenue' => $revenue,
+            'rating_sum' => $rating ?? 0,
+            'rating_count' => $rating === null ? 0 : 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -329,6 +345,8 @@ final class SmartOrderingAnalyticsService
             ->update([
                 'event_count' => DB::raw('event_count + 1'),
                 'revenue' => DB::raw('revenue + '.number_format($revenue, 3, '.', '')),
+                'rating_sum' => DB::raw('rating_sum + '.number_format($rating ?? 0, 3, '.', '')),
+                'rating_count' => DB::raw('rating_count + '.($rating === null ? '0' : '1')),
                 'updated_at' => now(),
             ]);
     }
@@ -411,6 +429,7 @@ final class SmartOrderingAnalyticsService
         int $storeId,
         int $branchKey,
         string $eventName,
+        string $qr,
         string $source,
         string $campaign,
         string $fulfillment,
@@ -422,6 +441,7 @@ final class SmartOrderingAnalyticsService
             'store_id' => $storeId,
             'branch_key' => $branchKey,
             'event_name' => $eventName,
+            'qr_key' => $qr,
             'source_key' => $source,
             'campaign_key' => $campaign,
             'fulfillment_mode_key' => $fulfillment,
