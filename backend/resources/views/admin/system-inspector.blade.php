@@ -66,6 +66,7 @@
 
 
         @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
+        @php($enterpriseData = $enterprise['data'] ?? [])
         <section class="foodex-card inspector-enterprise" data-enterprise-inspector>
             <div class="inspector-enterprise-heading">
                 <div>
@@ -96,7 +97,7 @@
                                 <th>{{ __('admin.system_inspector_enterprise.checks_run') }}</th>
                             </tr></thead>
                             <tbody>
-                            @forelse($enterprise['modules'] as $module)
+                            @forelse($enterpriseData['modules'] as $module)
                                 <tr>
                                     <td><code>{{ $module['code'] }}</code></td>
                                     <td>{{ $module['category']==='platform' ? __('admin.system_inspector_enterprise.platform') : $module['category'] }}</td>
@@ -116,9 +117,9 @@
                 <div class="inspector-enterprise-section">
                     <h3>{{ __('admin.system_inspector_enterprise.entitlements') }}</h3>
                     <div class="inspector-enterprise-statuses">
-                        <span class="badge">{{ __('admin.system_inspector_enterprise.total') }}: <span class="foodex-number">{{ $enterprise['entitlements']['total'] }}</span></span>
-                        <span class="badge active">{{ __('admin.system_inspector_enterprise.enabled') }}: <span class="foodex-number">{{ $enterprise['entitlements']['enabled'] }}</span></span>
-                        @foreach($enterprise['entitlements']['by_module'] as $entitlement)
+                        <span class="badge">{{ __('admin.system_inspector_enterprise.total') }}: <span class="foodex-number">{{ $enterpriseData['entitlements']['total'] }}</span></span>
+                        <span class="badge active">{{ __('admin.system_inspector_enterprise.enabled') }}: <span class="foodex-number">{{ $enterpriseData['entitlements']['enabled'] }}</span></span>
+                        @foreach($enterpriseData['entitlements']['by_module'] as $entitlement)
                             <span class="badge"><code>{{ $entitlement['module_code'] }}</code> · {{ __('admin.system_inspector_enterprise.enabled') }} {{ $entitlement['enabled'] }}/{{ $entitlement['total'] }}</span>
                         @endforeach
                     </div>
@@ -127,7 +128,7 @@
                 <div class="inspector-enterprise-section">
                     <h3>{{ __('admin.system_inspector_enterprise.outbox_title') }}</h3>
                     <div class="inspector-enterprise-statuses">
-                        @forelse($enterprise['outbox_status_counts'] as $status => $count)
+                        @forelse($enterpriseData['outbox_status_counts'] as $status => $count)
                             <span class="badge">{{ $enterpriseLabels[$status] ?? __('admin.system_inspector_enterprise.unknown_state') }}: <span class="foodex-number">{{ $count }}</span></span>
                         @empty
                             <span class="foodex-subtitle">{{ __('admin.system_inspector_enterprise.no_outbox') }}</span>
@@ -143,7 +144,7 @@
                                 <th>{{ __('admin.system_inspector_enterprise.last_failure') }}</th>
                             </tr></thead>
                             <tbody>
-                            @forelse($enterprise['outbox_messages'] as $message)
+                            @forelse($enterpriseData['outbox_messages'] as $message)
                                 <tr>
                                     <td><code>{{ $message->event_type }}</code></td>
                                     <td><span class="badge">{{ $enterpriseLabels[$message->status] ?? __('admin.system_inspector_enterprise.unknown_state') }}</span></td>
@@ -157,13 +158,13 @@
                             </tbody>
                         </table>
                     </div>
-                    {{ $enterprise['outbox_messages']->links() }}
+                    {{ $enterpriseData['outbox_messages']->links() }}
                 </div>
 
                 <div class="inspector-enterprise-section">
                     <h3>{{ __('admin.system_inspector_enterprise.workflow_requests') }}</h3>
                     <div class="inspector-enterprise-statuses">
-                        @forelse($enterprise['workflow_status_counts'] as $status => $count)
+                        @forelse($enterpriseData['workflow_status_counts'] as $status => $count)
                             <span class="badge">{{ $enterpriseLabels[$status] ?? __('admin.system_inspector_enterprise.unknown_state') }}: <span class="foodex-number">{{ $count }}</span></span>
                         @empty
                             <span class="foodex-subtitle">{{ __('admin.system_inspector_enterprise.no_workflows') }}</span>
@@ -179,7 +180,7 @@
                                 <th>{{ __('admin.system_inspector_enterprise.completed_at') }}</th>
                             </tr></thead>
                             <tbody>
-                            @forelse($enterprise['workflow_requests'] as $workflow)
+                            @forelse($enterpriseData['workflow_requests'] as $workflow)
                                 @php($workflowStatus=(string)$workflow->getRawOriginal('status'))
                                 <tr>
                                     <td><code>{{ $workflow->workflow_key }}</code></td>
@@ -194,7 +195,7 @@
                             </tbody>
                         </table>
                     </div>
-                    {{ $enterprise['workflow_requests']->links() }}
+                    {{ $enterpriseData['workflow_requests']->links() }}
                 </div>
             @endif
         </section>
