@@ -541,7 +541,9 @@
             </details>
             @endif
             @if(session('simulation_result'))
-                @php($routingSimulation = session('simulation_result'))
+                @php
+                    $routingSimulation = session('simulation_result');
+                @endphp
                 <section class="fieldops-card" aria-live="polite">
                     <h2>{{ __('field_operations.simulation_result') }} · #{{ session('simulation_policy') }}</h2>
                     <div class="fieldops-grid">
