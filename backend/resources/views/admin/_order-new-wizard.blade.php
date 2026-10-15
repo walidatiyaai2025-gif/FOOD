@@ -39,7 +39,7 @@ $newOrderOldInput = $newOrderRestore ? [
     'idempotency_key' => $newOrderIdempotencyKey,
 ] : null;
 @endphp
-<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}" aria-busy="false">
+<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}" data-lookup-url="{{ route('admin.operations.orders.lookups') }}" aria-busy="false">
 @csrf
 <input type="hidden" name="_order_create_context" value="central">
 <input type="hidden" name="idempotency_key" data-wizard-idempotency value="{{ $newOrderIdempotencyKey }}">
@@ -57,7 +57,11 @@ $newOrderOldInput = $newOrderRestore ? [
 
 <section class="new-order-step" data-wizard-step="1" data-active="0">
 <h3>{{ $isAr?'2. العميل':'2. Customer' }}</h3>
-<label class="new-order-field"><span>{{ $isAr?'العميل':'Customer' }}</span><select name="customer_id" data-wizard-customer required><option value="">{{ $isAr?'اختر العميل':'Select customer' }}</option></select></label>
+<label class="new-order-field"><span>{{ $isAr?'العميل':'Customer' }}</span>
+<input type="search" data-wizard-customer-search autocomplete="off" placeholder="{{ $isAr?'ابحث بالاسم أو الهاتف أو البريد':'Search name, phone or email' }}" aria-describedby="new-order-customer-state">
+<select id="new-order-customer-results" name="customer_id" data-wizard-customer required disabled><option value="">{{ $isAr?'ابحث لاختيار العميل':'Search to select customer' }}</option></select>
+<small id="new-order-customer-state" data-wizard-customer-state role="status" aria-live="polite">{{ $isAr?'اختر المتجر ثم ابحث عن العميل.':'Choose a store, then search for a customer.' }}</small>
+</label>
 </section>
 
 <section class="new-order-step" data-wizard-step="2" data-active="0">
@@ -68,7 +72,8 @@ $newOrderOldInput = $newOrderRestore ? [
 
 <section class="new-order-step" data-wizard-step="3" data-active="0">
 <h3>{{ $isAr?'4. عنوان التوصيل':'4. Delivery address' }}</h3>
-<label class="new-order-field"><span>{{ $isAr?'العنوان':'Address' }}</span><select name="address_id" data-wizard-address><option value="">{{ $isAr?'بدون عنوان / استلام':'No address / pickup' }}</option></select></label>
+<label class="new-order-field"><span>{{ $isAr?'العنوان':'Address' }}</span><select name="address_id" data-wizard-address disabled><option value="">{{ $isAr?'اختر العميل أولاً':'Select customer first' }}</option></select></label>
+<small data-wizard-address-state role="status" aria-live="polite">{{ $isAr?'يتم تحميل عناوين العميل المختار فقط.':'Only the selected customer addresses are loaded.' }}</small>
 <small>{{ $isAr?'العناوين المعروضة تخص العميل المختار فقط.':'Only addresses belonging to the selected customer are shown.' }}</small>
 </section>
 
@@ -147,14 +152,22 @@ document.addEventListener('DOMContentLoaded', () => {
         total: isAr ? 'الإجمالي النهائي' : 'Grand total',
         pickup: isAr ? 'بدون عنوان / استلام' : 'No address / pickup',
         submitting: @json(__('order_operations.new_order_submit.submitting')),
+        lookupLoading: isAr ? 'جاري البحث…' : 'Searching…',
+        lookupEmpty: isAr ? 'لا توجد نتائج مطابقة.' : 'No matching results.',
+        lookupFailed: isAr ? 'تعذر تحميل النتائج. حاول مرة أخرى.' : 'Unable to load results. Try again.',
+        customerHint: isAr ? 'ابحث بالاسم أو الهاتف أو البريد.' : 'Search by name, phone or email.',
+        productHint: isAr ? 'ابحث بالاسم أو SKU أو الباركود.' : 'Search by name, SKU or barcode.',
     };
 
     const channelSelect = form.querySelector('[data-wizard-channel]');
     const storeSelect = form.querySelector('[data-wizard-store]');
     const warehouseWrap = form.querySelector('[data-wizard-warehouse-wrap]');
     const warehouseSelect = form.querySelector('[data-wizard-warehouse]');
+    const customerSearch = form.querySelector('[data-wizard-customer-search]');
     const customerSelect = form.querySelector('[data-wizard-customer]');
+    const customerState = form.querySelector('[data-wizard-customer-state]');
     const addressSelect = form.querySelector('[data-wizard-address]');
+    const addressState = form.querySelector('[data-wizard-address-state]');
     const paymentSelect = form.querySelector('[data-wizard-payment]');
     const linesBox = form.querySelector('[data-wizard-lines]');
     const errorBox = form.querySelector('[data-wizard-error]');
@@ -247,6 +260,56 @@ document.addEventListener('DOMContentLoaded', () => {
         refillStoreData();
     };
 
+    const lookupRequests = new WeakMap();
+    const lookupTimers = new WeakMap();
+
+    const lookup = async (type, query = '', { customerId = null, page = 1, owner = form } = {}) => {
+        const previous = lookupRequests.get(owner);
+        previous?.abort();
+        const controller = new AbortController();
+        lookupRequests.set(owner, controller);
+        const url = new URL(form.dataset.lookupUrl, window.location.origin);
+        url.searchParams.set('channel', channelSelect.value);
+        url.searchParams.set('store_id', storeSelect.value);
+        url.searchParams.set('type', type);
+        url.searchParams.set('q', query);
+        url.searchParams.set('page', String(page));
+        if (customerId) url.searchParams.set('customer_id', String(customerId));
+        const response = await fetch(url, {
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(firstApiError(payload));
+        return payload;
+    };
+
+    const fillLookupSelect = (select, items, placeholder) => {
+        const previous = select.value;
+        select.innerHTML = '';
+        select.appendChild(makeOption('', placeholder));
+        items.forEach((item) => {
+            const label = [item.label, item.meta].filter(Boolean).join(' · ');
+            select.appendChild(makeOption(item.id, label));
+        });
+        if ([...select.options].some((node) => node.value === previous)) select.value = previous;
+        select.disabled = false;
+    };
+
+    const loadCustomers = async (query = '') => {
+        if (!channelSelect.value || !storeSelect.value) return;
+        customerState.textContent = t.lookupLoading;
+        customerSelect.disabled = true;
+        try {
+            const payload = await lookup('customer', query, { owner: customerSearch });
+            fillLookupSelect(customerSelect, payload.data || [], isAr ? 'اختر العميل' : 'Select customer');
+            customerState.textContent = (payload.data || []).length ? t.customerHint : t.lookupEmpty;
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+            customerState.textContent = t.lookupFailed;
+        }
+    };
+
     const refillStoreData = () => {
         const currentStore = activeStore();
         const isB2b = channelSelect.value === 'b2b';
@@ -257,24 +320,42 @@ document.addEventListener('DOMContentLoaded', () => {
         (currentStore?.warehouses || []).forEach((item) => warehouseSelect.appendChild(makeOption(item.id, item.code + ' · ' + item.name)));
         if (isB2b && warehouseSelect.options.length === 2) warehouseSelect.selectedIndex = 1;
 
+        customerSearch.value = '';
         customerSelect.innerHTML = '';
-        customerSelect.appendChild(makeOption('', isAr ? 'اختر العميل' : 'Select customer'));
-        (currentStore?.customers || []).forEach((item) => customerSelect.appendChild(makeOption(item.id, item.name)));
-        if (customerSelect.options.length === 2) customerSelect.selectedIndex = 1;
+        customerSelect.appendChild(makeOption('', isAr ? 'ابحث لاختيار العميل' : 'Search to select customer'));
+        customerSelect.disabled = true;
+        customerState.textContent = currentStore ? t.customerHint : (isAr ? 'اختر المتجر أولاً.' : 'Select a store first.');
 
         linesBox.innerHTML = '';
         addLine();
         refillAddresses();
         invalidateQuote();
+        if (currentStore) loadCustomers('');
     };
 
-    const refillAddresses = () => {
+    const refillAddresses = async () => {
         const previous = addressSelect.value;
         addressSelect.innerHTML = '';
-        addressSelect.appendChild(makeOption('', t.pickup));
         const customerId = customerSelect.value;
-        (activeStore()?.addresses || []).filter((item) => !customerId || String(item.customer_id) === customerId).forEach((item) => addressSelect.appendChild(makeOption(item.id, item.label)));
-        if ([...addressSelect.options].some((node) => node.value === previous)) addressSelect.value = previous;
+        if (!customerId || !channelSelect.value || !storeSelect.value) {
+            addressSelect.appendChild(makeOption('', isAr ? 'اختر العميل أولاً' : 'Select customer first'));
+            addressSelect.disabled = true;
+            if (addressState) addressState.textContent = isAr ? 'اختر العميل لتحميل عناوينه.' : 'Select a customer to load addresses.';
+            return;
+        }
+
+        addressSelect.disabled = true;
+        addressSelect.appendChild(makeOption('', t.pickup));
+        if (addressState) addressState.textContent = t.lookupLoading;
+        try {
+            const payload = await lookup('address', '', { customerId, owner: addressSelect });
+            fillLookupSelect(addressSelect, payload.data || [], t.pickup);
+            if ([...addressSelect.options].some((node) => node.value === previous)) addressSelect.value = previous;
+            if (addressState) addressState.textContent = (payload.data || []).length ? (isAr ? 'العناوين المحملة تخص العميل المختار.' : 'Loaded addresses belong to the selected customer.') : t.lookupEmpty;
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+            if (addressState) addressState.textContent = t.lookupFailed;
+        }
     };
 
     const reindexLines = () => {
@@ -293,15 +374,45 @@ document.addEventListener('DOMContentLoaded', () => {
         productLabel.className = 'new-order-field';
         const productCaption = document.createElement('span');
         productCaption.textContent = isAr ? 'المنتج' : 'Product';
+        const productSearch = document.createElement('input');
+        productSearch.type = 'search';
+        productSearch.autocomplete = 'off';
+        productSearch.placeholder = t.productHint;
         const productSelect = document.createElement('select');
         productSelect.dataset.wizardProduct = '1';
         productSelect.required = true;
-        productSelect.appendChild(makeOption('', isAr ? 'اختر المنتج' : 'Select product'));
-        (activeStore()?.products || []).forEach((item) => {
-            const price = item.price === null || item.price === undefined ? '' : ' · ' + money(item.price, 'EGP');
-            productSelect.appendChild(makeOption(item.id, item.sku + ' · ' + item.name + price));
+        productSelect.disabled = true;
+        productSelect.appendChild(makeOption('', isAr ? 'ابحث لاختيار المنتج' : 'Search to select product'));
+        const productState = document.createElement('small');
+        productState.setAttribute('role', 'status');
+        productState.setAttribute('aria-live', 'polite');
+        productState.textContent = t.productHint;
+
+        const loadProducts = async (query = '') => {
+            if (!channelSelect.value || !storeSelect.value) return;
+            productState.textContent = t.lookupLoading;
+            productSelect.disabled = true;
+            try {
+                const payload = await lookup('product', query, { owner: productSearch });
+                const items = (payload.data || []).map((item) => ({
+                    ...item,
+                    meta: [item.meta, item.price === null || item.price === undefined ? '' : money(item.price, 'EGP')].filter(Boolean).join(' · '),
+                }));
+                fillLookupSelect(productSelect, items, isAr ? 'اختر المنتج' : 'Select product');
+                productState.textContent = items.length ? t.productHint : t.lookupEmpty;
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                productState.textContent = t.lookupFailed;
+            }
+        };
+        productSearch.addEventListener('input', () => {
+            clearTimeout(lookupTimers.get(productSearch));
+            lookupTimers.set(productSearch, setTimeout(() => loadProducts(productSearch.value.trim()), 220));
         });
-        productLabel.append(productCaption, productSelect);
+        productSearch.addEventListener('focus', () => {
+            if (productSelect.options.length <= 1) loadProducts(productSearch.value.trim());
+        });
+        productLabel.append(productCaption, productSearch, productSelect, productState);
 
         const quantityLabel = document.createElement('label');
         quantityLabel.className = 'new-order-field';
@@ -322,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         remove.textContent = isAr ? 'حذف' : 'Remove';
         remove.addEventListener('click', () => {
             if (linesBox.querySelectorAll('[data-wizard-line]').length <= 1) return;
+            lookupRequests.get(productSearch)?.abort();
             row.remove();
             reindexLines();
             dirty = true;
@@ -331,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.append(productLabel, quantityLabel, remove);
         linesBox.appendChild(row);
         reindexLines();
+        if (storeSelect.value) loadProducts('');
     };
 
     const validateStep = () => {
@@ -530,6 +643,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return true;
     };
+
+    customerSearch.addEventListener('input', () => {
+        clearTimeout(lookupTimers.get(customerSearch));
+        lookupTimers.set(customerSearch, setTimeout(() => loadCustomers(customerSearch.value.trim()), 220));
+    });
+    customerSearch.addEventListener('focus', () => {
+        if (customerSelect.options.length <= 1) loadCustomers(customerSearch.value.trim());
+    });
+    customerSelect.addEventListener('change', () => {
+        refillAddresses();
+        dirty = true;
+        invalidateQuote();
+    });
 
     document.querySelectorAll('[data-new-order-open]').forEach((button) => button.addEventListener('click', open));
     modal.querySelectorAll('[data-new-order-cancel]').forEach((button) => button.addEventListener('click', (event) => requestClose(event.currentTarget)));
