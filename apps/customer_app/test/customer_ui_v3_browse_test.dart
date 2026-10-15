@@ -31,23 +31,25 @@ void main() {
                 categoryId: 3,
                 catalogApi: api,
                 navigation: RetailCatalogNavigation(
-                  openProduct: (
-                    BuildContext context, {
-                    required int storeId,
-                    required int productId,
-                  }) {
-                    openedStore = storeId;
-                    openedProduct = productId;
-                  },
+                  openProduct:
+                      (
+                        BuildContext context, {
+                        required int storeId,
+                        required int productId,
+                      }) {
+                        openedStore = storeId;
+                        openedProduct = productId;
+                      },
                 ),
-                onAddToCart: ({
-                  required int storeId,
-                  required int productId,
-                  required double quantity,
-                }) async {
-                  addedStore = storeId;
-                  addedProduct = productId;
-                },
+                onAddToCart:
+                    ({
+                      required int storeId,
+                      required int productId,
+                      required double quantity,
+                    }) async {
+                      addedStore = storeId;
+                      addedProduct = productId;
+                    },
               ),
             ),
           ),
@@ -58,7 +60,9 @@ void main() {
       expect(find.byType(CustomerSearchPill), findsOneWidget);
       expect(find.byType(CustomerProductCard), findsOneWidget);
       expect(
-          find.byKey(const ValueKey('retail-products-grid')), findsOneWidget);
+        find.byKey(const ValueKey('retail-products-grid')),
+        findsOneWidget,
+      );
       expect(api.lastStoreId, 19);
       expect(api.lastCategoryId, 3);
 
@@ -87,8 +91,9 @@ void main() {
     },
   );
 
-  testWidgets('V3 browse and detail replace default loading spinners',
-      (tester) async {
+  testWidgets('V3 browse and detail replace default loading spinners', (
+    tester,
+  ) async {
     final productsPending = Completer<List<B2cProduct>>();
     final detailPending = Completer<B2cProduct>();
 
@@ -160,15 +165,16 @@ void main() {
                 storeId: 19,
                 productId: 8,
                 catalogApi: _BrowseFakeApi(),
-                onAddToCart: ({
-                  required int storeId,
-                  required int productId,
-                  required double quantity,
-                }) async {
-                  capturedStoreId = storeId;
-                  capturedProductId = productId;
-                  capturedQuantity = quantity;
-                },
+                onAddToCart:
+                    ({
+                      required int storeId,
+                      required int productId,
+                      required double quantity,
+                    }) async {
+                      capturedStoreId = storeId;
+                      capturedProductId = productId;
+                      capturedQuantity = quantity;
+                    },
               ),
             ),
           ),
@@ -209,13 +215,14 @@ void main() {
             child: RetailCatalogProductsScreen(
               storeId: 19,
               catalogApi: api,
-              onAddToCart: ({
-                required int storeId,
-                required int productId,
-                required double quantity,
-              }) async {
-                addCalls++;
-              },
+              onAddToCart:
+                  ({
+                    required int storeId,
+                    required int productId,
+                    required double quantity,
+                  }) async {
+                    addCalls++;
+                  },
             ),
           ),
         ),
@@ -238,13 +245,14 @@ void main() {
               storeId: 19,
               productId: 18,
               catalogApi: api,
-              onAddToCart: ({
-                required int storeId,
-                required int productId,
-                required double quantity,
-              }) async {
-                addCalls++;
-              },
+              onAddToCart:
+                  ({
+                    required int storeId,
+                    required int productId,
+                    required double quantity,
+                  }) async {
+                    addCalls++;
+                  },
             ),
           ),
         ),
@@ -285,10 +293,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('en'),
-          home: RetailCatalogProductsScreen(
-            storeId: 19,
-            catalogApi: api,
-          ),
+          home: RetailCatalogProductsScreen(storeId: 19, catalogApi: api),
         ),
       );
       await tester.pumpAndSettle();
@@ -319,8 +324,9 @@ void main() {
         findsOneWidget,
       );
 
-      final teaCategory =
-          find.byKey(const ValueKey('retail-products-category-4'));
+      final teaCategory = find.byKey(
+        const ValueKey('retail-products-category-4'),
+      );
       await tester.dragUntilVisible(
         teaCategory,
         find.byKey(const ValueKey('retail-products-category-filter')),
@@ -393,8 +399,9 @@ void main() {
       );
       expect(mainImage.imageUrl, 'https://foodex.test/coffee-2.jpg');
 
-      final relatedGrid =
-          find.byKey(const ValueKey('retail-product-related-grid'));
+      final relatedGrid = find.byKey(
+        const ValueKey('retail-product-related-grid'),
+      );
       await tester.dragUntilVisible(
         relatedGrid,
         find.byKey(const ValueKey('retail-product-scroll')),
@@ -413,10 +420,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('en'),
-          home: RetailCatalogProductsScreen(
-            storeId: 19,
-            catalogApi: api,
-          ),
+          home: RetailCatalogProductsScreen(storeId: 19, catalogApi: api),
         ),
       );
       await tester.pumpAndSettle();
@@ -427,9 +431,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('retail-products-load-more')),
-      );
+      await tester.tap(find.byKey(const ValueKey('retail-products-load-more')));
       await tester.pumpAndSettle();
 
       expect(
@@ -444,59 +446,50 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('retail-product-10')), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('retail-products-end')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('retail-products-end')), findsOneWidget);
       expect(api.productPages, <int>[1, 2, 2]);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets(
-    'late product page cannot mix into a newer search scope',
-    (tester) async {
-      final api = _PagedBrowseApi()..delaySecondPage = true;
+  testWidgets('late product page cannot mix into a newer search scope', (
+    tester,
+  ) async {
+    final api = _PagedBrowseApi()..delaySecondPage = true;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('ar'),
-          home: Directionality(
-            textDirection: TextDirection.rtl,
-            child: RetailCatalogProductsScreen(
-              storeId: 19,
-              catalogApi: api,
-            ),
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: RetailCatalogProductsScreen(storeId: 19, catalogApi: api),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const ValueKey('retail-products-load-more')),
-      );
-      await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('retail-products-load-more')));
+    await tester.pump();
 
-      final searchField = find.descendant(
-        of: find.byKey(const ValueKey('retail-products-search')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(searchField, ' tea ');
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
+    final searchField = find.descendant(
+      of: find.byKey(const ValueKey('retail-products-search')),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(searchField, ' tea ');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
+    expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
+    expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
 
-      api.completeDelayedSecondPage();
-      await tester.pumpAndSettle();
+    api.completeDelayedSecondPage();
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
-      expect(api.productQueries.last, 'tea');
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
+    expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
+    expect(api.productQueries.last, 'tea');
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _BrowseFakeApi implements B2cCatalogApi {
@@ -551,8 +544,7 @@ class _BrowseFakeApi implements B2cCatalogApi {
       );
 }
 
-class _PagedBrowseApi extends _BrowseFakeApi
-    implements B2cPagedCatalogApi {
+class _PagedBrowseApi extends _BrowseFakeApi implements B2cPagedCatalogApi {
   final List<int> productPages = <int>[];
   final List<String?> productQueries = <String?>[];
   bool failSecondPageOnce = false;
@@ -564,20 +556,14 @@ class _PagedBrowseApi extends _BrowseFakeApi
     int storeId, {
     int page = 1,
     int perPage = 20,
-  }) async =>
-      B2cCatalogPage<B2cCategory>.single(
-        await categories(storeId),
-      );
+  }) async => B2cCatalogPage<B2cCategory>.single(await categories(storeId));
 
   @override
   Future<B2cCatalogPage<B2cOffer>> offerPage(
     int storeId, {
     int page = 1,
     int perPage = 20,
-  }) async =>
-      B2cCatalogPage<B2cOffer>.single(
-        await offers(storeId),
-      );
+  }) async => B2cCatalogPage<B2cOffer>.single(await offers(storeId));
 
   @override
   Future<B2cCatalogPage<B2cProduct>> productPage(
@@ -596,12 +582,7 @@ class _PagedBrowseApi extends _BrowseFakeApi
       return Future<B2cCatalogPage<B2cProduct>>.value(
         const B2cCatalogPage<B2cProduct>(
           items: <B2cProduct>[
-            B2cProduct(
-              id: 20,
-              name: 'Tea',
-              sku: 'TEA-20',
-              price: 1.5,
-            ),
+            B2cProduct(id: 20, name: 'Tea', sku: 'TEA-20', price: 1.5),
           ],
           currentPage: 1,
           perPage: 20,
@@ -626,12 +607,7 @@ class _PagedBrowseApi extends _BrowseFakeApi
       page == 1
           ? const B2cCatalogPage<B2cProduct>(
               items: <B2cProduct>[
-                B2cProduct(
-                  id: 8,
-                  name: 'Coffee',
-                  sku: 'COF-8',
-                  price: 2.5,
-                ),
+                B2cProduct(id: 8, name: 'Coffee', sku: 'COF-8', price: 2.5),
                 B2cProduct(
                   id: 9,
                   name: 'Coffee Beans',
@@ -657,12 +633,7 @@ class _PagedBrowseApi extends _BrowseFakeApi
   static B2cCatalogPage<B2cProduct> _secondPage() =>
       const B2cCatalogPage<B2cProduct>(
         items: <B2cProduct>[
-          B2cProduct(
-            id: 10,
-            name: 'Coffee Pods',
-            sku: 'COF-10',
-            price: 4.5,
-          ),
+          B2cProduct(id: 10, name: 'Coffee Pods', sku: 'COF-10', price: 4.5),
         ],
         currentPage: 2,
         perPage: 2,
@@ -686,8 +657,7 @@ class _PendingBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) =>
-      productsPending.future;
+  }) => productsPending.future;
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) =>
@@ -728,19 +698,18 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async =>
-      const <B2cProduct>[
-        B2cProduct(
-          id: 18,
-          name: 'Sold Out Coffee',
-          sku: 'OOS-18',
-          price: 2.5,
-          currency: 'KWD',
-          availableQuantity: 0,
-          isAvailable: false,
-          availabilityState: 'OUT_OF_STOCK',
-        ),
-      ];
+  }) async => const <B2cProduct>[
+    B2cProduct(
+      id: 18,
+      name: 'Sold Out Coffee',
+      sku: 'OOS-18',
+      price: 2.5,
+      currency: 'KWD',
+      availableQuantity: 0,
+      isAvailable: false,
+      availabilityState: 'OUT_OF_STOCK',
+    ),
+  ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
@@ -824,30 +793,23 @@ class _RichDetailApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async =>
-      const <B2cProduct>[
-        B2cProduct(
-          id: 8,
-          name: 'Coffee',
-          sku: 'COF-8',
-          categoryId: 3,
-          price: 2.5,
-        ),
-        B2cProduct(
-          id: 9,
-          name: 'Coffee Beans',
-          sku: 'COF-9',
-          categoryId: 3,
-          price: 3.5,
-        ),
-        B2cProduct(
-          id: 10,
-          name: 'Coffee Pods',
-          sku: 'COF-10',
-          categoryId: 3,
-          price: 4.5,
-        ),
-      ];
+  }) async => const <B2cProduct>[
+    B2cProduct(id: 8, name: 'Coffee', sku: 'COF-8', categoryId: 3, price: 2.5),
+    B2cProduct(
+      id: 9,
+      name: 'Coffee Beans',
+      sku: 'COF-9',
+      categoryId: 3,
+      price: 3.5,
+    ),
+    B2cProduct(
+      id: 10,
+      name: 'Coffee Pods',
+      sku: 'COF-10',
+      categoryId: 3,
+      price: 4.5,
+    ),
+  ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>

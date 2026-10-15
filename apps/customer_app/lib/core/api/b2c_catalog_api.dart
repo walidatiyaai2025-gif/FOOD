@@ -20,13 +20,13 @@ class B2cStore {
   final String? logoUrl;
 
   factory B2cStore.fromJson(Map<String, dynamic> json) => B2cStore(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String? ?? '',
-        code: json['code'] as String? ?? '',
-        themeCode: json['theme_code'] as String? ?? 'retail_grocery',
-        address: json['address'] as String?,
-        logoUrl: json['logo_url'] as String?,
-      );
+    id: (json['id'] as num).toInt(),
+    name: json['name'] as String? ?? '',
+    code: json['code'] as String? ?? '',
+    themeCode: json['theme_code'] as String? ?? 'retail_grocery',
+    address: json['address'] as String?,
+    logoUrl: json['logo_url'] as String?,
+  );
 }
 
 class B2cCategory {
@@ -36,10 +36,10 @@ class B2cCategory {
   final String? imageUrl;
 
   factory B2cCategory.fromJson(Map<String, dynamic> json) => B2cCategory(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String? ?? '',
-        imageUrl: json['image_url'] as String?,
-      );
+    id: (json['id'] as num).toInt(),
+    name: json['name'] as String? ?? '',
+    imageUrl: json['image_url'] as String?,
+  );
 }
 
 class B2cSellingUnit {
@@ -64,15 +64,15 @@ class B2cSellingUnit {
   final bool isBase;
 
   factory B2cSellingUnit.fromJson(Map<String, dynamic> json) => B2cSellingUnit(
-        id: (json['id'] as num).toInt(),
-        code: json['code'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        conversionFactor: (json['conversion_factor'] as num?)?.toDouble() ?? 1,
-        price: (json['price'] as num?)?.toDouble(),
-        sku: json['sku'] as String?,
-        barcode: json['barcode'] as String?,
-        isBase: json['is_base'] as bool? ?? false,
-      );
+    id: (json['id'] as num).toInt(),
+    code: json['code'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    conversionFactor: (json['conversion_factor'] as num?)?.toDouble() ?? 1,
+    price: (json['price'] as num?)?.toDouble(),
+    sku: json['sku'] as String?,
+    barcode: json['barcode'] as String?,
+    isBase: json['is_base'] as bool? ?? false,
+  );
 }
 
 class B2cProduct {
@@ -117,36 +117,38 @@ class B2cProduct {
   bool get isOutOfStock => availabilityState == 'OUT_OF_STOCK' || !isAvailable;
 
   factory B2cProduct.fromJson(Map<String, dynamic> json) => B2cProduct(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String? ?? '',
-        sku: json['sku'] as String? ?? '',
-        price: (json['price'] as num?)?.toDouble(),
-        currency: json['currency'] as String? ?? 'EGP',
-        description: json['description'] as String?,
-        categoryId: (json['category_id'] as num?)?.toInt(),
-        brandId: (json['brand_id'] as num?)?.toInt(),
-        brandName: json['brand_name'] as String?,
-        brandImageUrl: json['brand_image_url'] as String?,
-        imageUrl: json['image_url'] as String?,
-        thumbnailUrl: json['thumbnail_url'] as String?,
-        images: (json['images'] as List?)
-                ?.whereType<String>()
-                .toList(growable: false) ??
-            const [],
-        sellingUnits: (json['selling_units'] as List?)
-                ?.whereType<Map>()
-                .map(
-                  (value) => B2cSellingUnit.fromJson(
-                    Map<String, dynamic>.from(value),
-                  ),
-                )
-                .toList(growable: false) ??
-            const [],
-        availableQuantity: (json['available_quantity'] as num?)?.toDouble(),
-        isAvailable: json['is_available'] as bool? ?? true,
-        availabilityState: json['availability_state'] as String? ??
-            (json['is_available'] == false ? 'OUT_OF_STOCK' : 'AVAILABLE'),
-      );
+    id: (json['id'] as num).toInt(),
+    name: json['name'] as String? ?? '',
+    sku: json['sku'] as String? ?? '',
+    price: (json['price'] as num?)?.toDouble(),
+    currency: json['currency'] as String? ?? 'EGP',
+    description: json['description'] as String?,
+    categoryId: (json['category_id'] as num?)?.toInt(),
+    brandId: (json['brand_id'] as num?)?.toInt(),
+    brandName: json['brand_name'] as String?,
+    brandImageUrl: json['brand_image_url'] as String?,
+    imageUrl: json['image_url'] as String?,
+    thumbnailUrl: json['thumbnail_url'] as String?,
+    images:
+        (json['images'] as List?)?.whereType<String>().toList(
+          growable: false,
+        ) ??
+        const [],
+    sellingUnits:
+        (json['selling_units'] as List?)
+            ?.whereType<Map>()
+            .map(
+              (value) =>
+                  B2cSellingUnit.fromJson(Map<String, dynamic>.from(value)),
+            )
+            .toList(growable: false) ??
+        const [],
+    availableQuantity: (json['available_quantity'] as num?)?.toDouble(),
+    isAvailable: json['is_available'] as bool? ?? true,
+    availabilityState:
+        json['availability_state'] as String? ??
+        (json['is_available'] == false ? 'OUT_OF_STOCK' : 'AVAILABLE'),
+  );
 }
 
 class B2cOffer {
@@ -163,11 +165,11 @@ class B2cOffer {
   final double? value;
 
   factory B2cOffer.fromJson(Map<String, dynamic> json) => B2cOffer(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        value: (json['value'] as num?)?.toDouble(),
-      );
+    id: (json['id'] as num).toInt(),
+    name: json['name'] as String? ?? '',
+    type: json['type'] as String? ?? '',
+    value: (json['value'] as num?)?.toDouble(),
+  );
 }
 
 class B2cBanner {
@@ -184,11 +186,11 @@ class B2cBanner {
   final String? targetUrl;
 
   factory B2cBanner.fromJson(Map<String, dynamic> json) => B2cBanner(
-        id: (json['id'] as num).toInt(),
-        title: json['title'] as String? ?? '',
-        imageUrl: json['image_url'] as String?,
-        targetUrl: json['target_url'] as String?,
-      );
+    id: (json['id'] as num).toInt(),
+    title: json['title'] as String? ?? '',
+    imageUrl: json['image_url'] as String?,
+    targetUrl: json['target_url'] as String?,
+  );
 }
 
 class B2cCatalogPage<T> {
@@ -213,11 +215,11 @@ class B2cCatalogPage<T> {
   bool get hasNextPage => currentPage < lastPage;
 
   factory B2cCatalogPage.single(List<T> items) => B2cCatalogPage<T>(
-        items: List<T>.unmodifiable(items),
-        currentPage: 1,
-        perPage: items.isEmpty ? 1 : items.length,
-        total: items.length,
-      );
+    items: List<T>.unmodifiable(items),
+    currentPage: 1,
+    perPage: items.isEmpty ? 1 : items.length,
+    total: items.length,
+  );
 }
 
 abstract interface class B2cCatalogApi {
@@ -260,11 +262,8 @@ abstract interface class B2cPagedCatalogApi implements B2cCatalogApi {
 }
 
 class HttpB2cCatalogApi implements B2cPagedCatalogApi {
-  HttpB2cCatalogApi({
-    required this.baseUrl,
-    this.token,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  HttpB2cCatalogApi({required this.baseUrl, this.token, http.Client? client})
+    : _client = client ?? http.Client();
 
   final String baseUrl;
   final String? token;
@@ -301,15 +300,13 @@ class HttpB2cCatalogApi implements B2cPagedCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async =>
-      (await productPage(
-        storeId,
-        query: query,
-        categoryId: categoryId,
-        sort: sort,
-        direction: direction,
-      ))
-          .items;
+  }) async => (await productPage(
+    storeId,
+    query: query,
+    categoryId: categoryId,
+    sort: sort,
+    direction: direction,
+  )).items;
 
   @override
   Future<B2cCatalogPage<B2cProduct>> productPage(
