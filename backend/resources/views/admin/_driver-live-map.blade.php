@@ -23,6 +23,7 @@
         'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
         'loading' => __('admin.driver_live_tracking.loading'),
         'restoring' => __('admin.driver_live_tracking.restoring'),
+        'entityRemoved' => __('admin.driver_live_tracking.entity_removed'),
         'failed' => __('admin.driver_live_tracking.load_failed'),
         'ready' => __('admin.driver_live_tracking.ready'),
         'store' => __('admin.driver_live_tracking.store'),
