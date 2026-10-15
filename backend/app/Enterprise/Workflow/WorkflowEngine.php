@@ -138,7 +138,12 @@ final class WorkflowEngine
                 throw new LogicException('Workflow step has already been decided.');
             }
 
-            if ($request->status !== WorkflowStatus::PENDING) {
+            $requestStatus = $request->getAttribute('status');
+            if (! $requestStatus instanceof WorkflowStatus) {
+                throw new LogicException('Workflow request has an invalid status.');
+            }
+
+            if ($requestStatus !== WorkflowStatus::PENDING) {
                 throw new LogicException('Workflow request is already terminal.');
             }
 
@@ -202,12 +207,17 @@ final class WorkflowEngine
         return DB::transaction(function () use ($requestId, $actor): EnterpriseWorkflowRequest {
             $request = EnterpriseWorkflowRequest::query()->lockForUpdate()->findOrFail($requestId);
 
-            if ($request->status === WorkflowStatus::CANCELLED
+            $requestStatus = $request->getAttribute('status');
+            if (! $requestStatus instanceof WorkflowStatus) {
+                throw new LogicException('Workflow request has an invalid status.');
+            }
+
+            if ($requestStatus === WorkflowStatus::CANCELLED
                 && (int) $request->requester_id === (int) $actor->getKey()) {
                 return $request;
             }
 
-            if ($request->status !== WorkflowStatus::PENDING
+            if ($requestStatus !== WorkflowStatus::PENDING
                 || (int) $request->requester_id !== (int) $actor->getKey()) {
                 throw new LogicException('Only the requester may cancel a pending workflow.');
             }
