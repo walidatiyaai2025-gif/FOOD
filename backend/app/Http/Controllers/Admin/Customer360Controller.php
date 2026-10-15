@@ -7,6 +7,7 @@ use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Invoice;
+use App\Models\GeographyNode;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
 use App\Models\User;
@@ -288,6 +289,7 @@ final class Customer360Controller extends Controller
             'statementFilters' => $statementFilters,
             'canManageFinance' => $wholesale !== null && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage')),
             'addresses' => $addresses,
+            'geographyOptions' => $this->geographyOptions(),
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
         ]);
     }
@@ -812,6 +814,31 @@ final class Customer360Controller extends Controller
     }
 
     /** @return array<string, array<int, string>> */
+    /** @return array<string, list<array<string, int|string|null>>> */
+    private function geographyOptions(): array
+    {
+        $locale = app()->getLocale() === 'ar' ? 'ar' : 'en';
+
+        return GeographyNode::query()
+            ->where('is_active', true)
+            ->whereIn('type', ['country', 'governorate', 'city', 'area'])
+            ->orderBy('country_code')
+            ->orderBy('type')
+            ->orderBy($locale === 'ar' ? 'name_ar' : 'name_en')
+            ->get(['id', 'parent_id', 'type', 'code', 'country_code', 'name_ar', 'name_en'])
+            ->groupBy('type')
+            ->map(fn (Collection $nodes): array => $nodes->map(fn (GeographyNode $node): array => [
+                'id' => (int) $node->id,
+                'parent_id' => $node->parent_id === null ? null : (int) $node->parent_id,
+                'country_code' => strtoupper((string) $node->country_code),
+                'value' => $node->type === 'country'
+                    ? strtoupper((string) $node->country_code)
+                    : (string) ($locale === 'ar' ? $node->name_ar : $node->name_en),
+                'label' => (string) ($locale === 'ar' ? $node->name_ar : $node->name_en),
+            ])->values()->all())
+            ->all();
+    }
+
     private function addressRules(bool $partial): array
     {
         $required = $partial ? ['sometimes'] : ['required'];
