@@ -99,6 +99,27 @@ final class SupplyIntelligenceService
     }
 
     /** @return list<array<string,mixed>> */
+    public function restaurantProducts(SmartOrderingSite $site): array
+    {
+        return DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('catalogs.store_id', $site->store_id)
+            ->where('catalogs.channel', 'b2c')
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->limit(500)
+            ->get(['products.id', 'products.sku', 'products.name'])
+            ->map(static fn (object $product): array => [
+                'id' => (int) $product->id,
+                'sku' => (string) $product->sku,
+                'name' => (string) $product->name,
+            ])
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
     public function mappings(SmartOrderingSite $site): array
     {
         return DB::table('smart_ordering_supply_mappings as m')
