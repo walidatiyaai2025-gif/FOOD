@@ -437,7 +437,7 @@ void main() {
       180,
       scrollable: find
           .descendant(
-            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            of: find.byKey(const Key('van-navigation-drawer')),
             matching: find.byType(Scrollable),
           )
           .first,
