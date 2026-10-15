@@ -499,7 +499,9 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
               (options.addresses.isEmpty ? null : options.addresses.first.id);
       final nextPaymentMethod = hadLoadedOptions
           ? (paymentStillEligible ? selectedPaymentMethod : null)
-          : options.paymentMethods.isEmpty ? null : options.paymentMethods.first;
+          : options.paymentMethods.isEmpty
+              ? null
+              : options.paymentMethods.first;
 
       final lostSelection = hadLoadedOptions &&
           ((selectedAddressId != null && !addressStillEligible) ||
@@ -777,7 +779,9 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                         else
                           RadioGroup<int>(
                             groupValue: _addressId,
-                            onChanged: _submitting ? null : _selectAddress,
+                            onChanged: (value) {
+                              if (!_submitting) _selectAddress(value);
+                            },
                             child: Column(
                               children: [
                                 for (final address in options.addresses)
@@ -806,6 +810,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                                           'retail-checkout-address-${address.id}',
                                         ),
                                         value: address.id,
+                                        enabled: !_submitting,
                                         title: Text(
                                           address.label.isEmpty
                                               ? strings.address
@@ -863,26 +868,26 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                               'retail-checkout-payment-value-${_paymentMethod ?? 'none'}',
                             ),
                             initialValue: _paymentMethod,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: strings.paymentMethod,
-                            prefixIcon: const Icon(
-                                Icons.account_balance_wallet_outlined),
-                          ),
-                          items: (options?.paymentMethods ?? const <String>[])
-                              .map(
-                                (method) => DropdownMenuItem<String>(
-                                  value: method,
-                                  child: Text(
-                                    _paymentLabel(strings, method),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: strings.paymentMethod,
+                              prefixIcon: const Icon(
+                                Icons.account_balance_wallet_outlined,
+                              ),
+                            ),
+                            items: (options?.paymentMethods ?? const <String>[])
+                                .map(
+                                  (method) => DropdownMenuItem<String>(
+                                    value: method,
+                                    child: Text(
+                                      _paymentLabel(strings, method),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                ),
-                              )
-                              .toList(growable: false),
-                            onChanged:
-                                _submitting ? null : _selectPayment,
+                                )
+                                .toList(growable: false),
+                            onChanged: _submitting ? null : _selectPayment,
                           ),
                         ),
                         const SizedBox(height: CustomerUiSpacing.md),
