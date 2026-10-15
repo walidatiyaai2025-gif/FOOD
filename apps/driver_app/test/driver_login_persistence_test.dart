@@ -130,8 +130,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     for (final entry in const <(Locale, String, String)>[
-      (Locale('en'), 'Email is required', 'Password is required'),
-      (Locale('ar'), 'البريد الإلكتروني مطلوب', 'كلمة المرور مطلوبة'),
+      (Locale('en'), 'Enter email and password', 'Enter email and password'),
+      (Locale('ar'), 'أدخل البريد الإلكتروني وكلمة المرور', 'أدخل البريد الإلكتروني وكلمة المرور'),
     ]) {
       await tester.pumpWidget(
         _host(
