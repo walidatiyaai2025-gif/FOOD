@@ -162,6 +162,11 @@ class SmartOrderingCustomerGrowthTest extends TestCase
         $this->enable($admin, $site, Module::LOYALTY);
 
         app(LoyaltyService::class)->adjust($admin, $site, $customer['legacy_id'], 100, 'Opening test balance');
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'smart_ordering.loyalty.adjusted',
+            'store_id' => $store,
+            'user_id' => $admin->id,
+        ]);
         $reward = app(LoyaltyAdminService::class)->createReward(
             $admin,
             $site,
@@ -264,6 +269,17 @@ class SmartOrderingCustomerGrowthTest extends TestCase
             'status' => 'OPEN',
             'reason' => 'LOW_RATING',
         ]);
+
+        $queue = app(FeedbackService::class)->recoveryCases($site);
+        $this->assertCount(1, $queue);
+        $this->assertSame($result['service_recovery']['case_id'], $queue[0]['id']);
+        $this->assertSame('Review Customer', $queue[0]['customer']['name']);
+        $this->assertSame(2, $queue[0]['rating']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.smart-ordering.service-recovery.index', $site))
+            ->assertOk()
+            ->assertJsonPath('cases.0.id', $result['service_recovery']['case_id']);
     }
 
     public function test_marketing_opt_out_is_respected_for_service_recovery_followup(): void
