@@ -22,6 +22,9 @@ class AdminValidationAccessibilityContractTest extends TestCase
         $this->assertStringContainsString("field.addEventListener('input', clear)", $brand);
         $this->assertStringContainsString("field.addEventListener('change', clear)", $brand);
         $this->assertStringContainsString('data-foodex-validation-link', $brand);
+        $this->assertStringContainsString('const close = ({ restoreFocus = true } = {}) => {', $brand);
+        $this->assertStringContainsString('close({ restoreFocus: false });', $brand);
+        $this->assertStringContainsString('modalSession?.deactivate({ restoreFocus });', $brand);
         $this->assertStringContainsString('target.focus({ preventScroll:false })', $brand);
     }
 
