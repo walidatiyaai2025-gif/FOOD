@@ -9,28 +9,34 @@ use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 final class SmartOrderingRevisionService
 {
     public const SCHEMA_VERSION = 1;
 
+    private const FORBIDDEN_PUBLIC_KEYS = [
+        'id', 'store_id', 'site_id', 'tenant_id', 'branch_id', 'user_id',
+        'created_by', 'published_by',
+    ];
+
     public function __construct(private readonly AuditLogger $audit) {}
 
-    public function ensurePublished(SmartOrderingSite $site, ?User $actor = null): SmartOrderingRevision
+    public function ensurePublished(SmartOrderingSite $site, ?User $actor = null, ?Request $request = null): SmartOrderingRevision
     {
         $published = $this->published($site);
         if ($published instanceof SmartOrderingRevision) {
             return $published;
         }
 
-        return DB::transaction(function () use ($site, $actor): SmartOrderingRevision {
+        return DB::transaction(function () use ($site, $actor, $request): SmartOrderingRevision {
             SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
             $published = $this->published($site);
             if ($published instanceof SmartOrderingRevision) {
                 return $published;
             }
 
-            return $this->createRevision($site, 'published', [
+            $revision = $this->createRevision($site, 'published', [
                 'schema_version' => self::SCHEMA_VERSION,
                 'site' => [
                     'slug' => (string) $site->slug,
@@ -38,6 +44,17 @@ final class SmartOrderingRevisionService
                     'name_en' => (string) ($site->store()->value('name') ?? ''),
                 ],
             ], $actor, null, true);
+
+            if ($actor instanceof User) {
+                $this->audit->record('smart_ordering.revision.initial_published', $actor, $revision, null, [
+                    'store_id' => (int) $site->store_id,
+                    'site_public_id' => (string) $site->public_id,
+                    'revision_public_id' => (string) $revision->public_id,
+                    'checksum' => (string) $revision->checksum,
+                ], $request);
+            }
+
+            return $revision;
         });
     }
 
@@ -65,7 +82,7 @@ final class SmartOrderingRevisionService
         ?Request $request = null,
     ): SmartOrderingRevision {
         $this->assertManage($actor, $site);
-        $this->ensurePublished($site, $actor);
+        $this->ensurePublished($site, $actor, $request);
 
         return DB::transaction(function () use ($actor, $site, $request): SmartOrderingRevision {
             SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
@@ -80,8 +97,10 @@ final class SmartOrderingRevisionService
 
             $draft = $this->createRevision($site, 'draft', (array) $published->payload, $actor, (int) $published->id, false);
             $this->audit->record('smart_ordering.revision.draft_created', $actor, $draft, null, [
-                'site_id' => $site->id,
-                'parent_revision_id' => $published->id,
+                'store_id' => (int) $site->store_id,
+                'site_public_id' => (string) $site->public_id,
+                'revision_public_id' => (string) $draft->public_id,
+                'parent_revision_public_id' => (string) $published->public_id,
             ], $request);
 
             return $draft;
@@ -99,7 +118,7 @@ final class SmartOrderingRevisionService
         $this->assertManage($actor, $site);
         abort_unless($revision->status === 'draft', 409);
 
-        $normalized = $this->canonicalize([...$payload, 'schema_version' => self::SCHEMA_VERSION]);
+        $normalized = $this->validatePublicPayload($payload);
         $encoded = $this->encode($normalized);
         $before = (string) $revision->checksum;
 
@@ -111,9 +130,11 @@ final class SmartOrderingRevisionService
         ])->save();
 
         $this->audit->record('smart_ordering.revision.draft_updated', $actor, $revision, [
+            'store_id' => (int) $site->store_id,
             'checksum' => $before,
         ], [
-            'checksum' => $revision->checksum,
+            'store_id' => (int) $site->store_id,
+            'checksum' => (string) $revision->checksum,
         ], $request);
 
         return $revision->fresh();
@@ -129,8 +150,21 @@ final class SmartOrderingRevisionService
 
         return DB::transaction(function () use ($actor, $revision, $site, $request): SmartOrderingRevision {
             SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
-            $draft = SmartOrderingRevision::query()->whereKey($revision->id)->lockForUpdate()->firstOrFail();
+            $draft = SmartOrderingRevision::query()
+                ->whereKey($revision->id)
+                ->where('site_id', $site->id)
+                ->lockForUpdate()
+                ->firstOrFail();
             abort_unless($draft->status === 'draft', 409);
+
+            $this->validatePublicPayload((array) $draft->payload);
+
+            $previous = SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'published')
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
 
             SmartOrderingRevision::query()
                 ->where('site_id', $site->id)
@@ -143,13 +177,37 @@ final class SmartOrderingRevisionService
                 'published_at' => now(),
             ])->save();
 
-            $this->audit->record('smart_ordering.revision.published', $actor, $draft, null, [
-                'site_id' => $site->id,
-                'checksum' => $draft->checksum,
+            $this->audit->record('smart_ordering.revision.published', $actor, $draft, [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => $previous?->public_id,
+                'checksum' => $previous?->checksum,
+            ], [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => (string) $draft->public_id,
+                'checksum' => (string) $draft->checksum,
             ], $request);
 
             return $draft->fresh();
         });
+    }
+
+    /** @param array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    public function validatePublicPayload(array $payload): array
+    {
+        $this->assertNoInternalIdentifiers($payload);
+        $payload['schema_version'] = self::SCHEMA_VERSION;
+        $normalized = $this->canonicalize($payload);
+        $encoded = $this->encode($normalized);
+
+        if (strlen($encoded) > 262144) {
+            throw ValidationException::withMessages([
+                'payload' => ['Smart Ordering public configuration may not exceed 256 KiB.'],
+            ]);
+        }
+
+        return $normalized;
     }
 
     /** @param array<string,mixed> $payload */
@@ -161,7 +219,7 @@ final class SmartOrderingRevisionService
         ?int $parentRevisionId,
         bool $published,
     ): SmartOrderingRevision {
-        $normalized = $this->canonicalize($payload);
+        $normalized = $this->validatePublicPayload($payload);
         $encoded = $this->encode($normalized);
 
         return SmartOrderingRevision::query()->create([
@@ -199,6 +257,23 @@ final class SmartOrderingRevisionService
         }
 
         return $value;
+    }
+
+    private function assertNoInternalIdentifiers(mixed $value): void
+    {
+        if (! is_array($value)) {
+            return;
+        }
+
+        foreach ($value as $key => $item) {
+            if (is_string($key) && in_array(strtolower($key), self::FORBIDDEN_PUBLIC_KEYS, true)) {
+                throw ValidationException::withMessages([
+                    'payload' => ["Public Smart Ordering configuration cannot expose internal key [{$key}]."],
+                ]);
+            }
+
+            $this->assertNoInternalIdentifiers($item);
+        }
     }
 
     private function assertManage(User $actor, SmartOrderingSite $site): void
