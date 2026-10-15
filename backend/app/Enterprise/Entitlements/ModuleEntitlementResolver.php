@@ -61,19 +61,14 @@ final class ModuleEntitlementResolver
                 return $this->memo[$memoKey] = false;
             }
 
-            $storedCapabilities = $entitlement->getAttribute('capabilities');
-            if ($capability === null || $storedCapabilities === null) {
+            $capabilities = $entitlement->getAttribute('capabilities');
+            if ($capability === null || $capabilities === null) {
                 return $this->memo[$memoKey] = true;
             }
 
-            if (is_array($storedCapabilities) === false) {
+            if (! is_array($capabilities)) {
                 return $this->memo[$memoKey] = false;
             }
-
-            $capabilities = array_values(array_filter(
-                $storedCapabilities,
-                static fn (mixed $value): bool => is_string($value),
-            ));
 
             return $this->memo[$memoKey] = in_array($capability, $capabilities, true);
         }
