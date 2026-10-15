@@ -852,6 +852,62 @@ class DashboardOrderManagementTest extends TestCase
         }
     }
 
+    public function test_order_create_lookups_are_bounded_scoped_and_not_eagerly_embedded(): void
+    {
+        $store = $this->store('B2C', 'ORDER-LOOKUP');
+        $foreignStore = $this->store('B2C', 'ORDER-LOOKUP-FOREIGN');
+        [$product] = $this->product($store, 'b2c', 'LOOKUP-SKU', 4.5, 10);
+        $this->product($foreignStore, 'b2c', 'FOREIGN-LOOKUP-SKU', 9.5, 10);
+        $admin = $this->storeAdmin($store, 'lookup-orders@example.test');
+
+        for ($index = 1; $index <= 22; $index++) {
+            app(B2cCustomerService::class)->create($store, [
+                'name' => sprintf('Lookup Buyer %02d', $index),
+                'phone' => '+9655555'.sprintf('%04d', $index),
+                'email' => sprintf('lookup-buyer-%02d@example.test', $index),
+            ]);
+        }
+        app(B2cCustomerService::class)->create($foreignStore, [
+            'name' => 'Foreign Lookup Buyer',
+            'phone' => '+96550000000',
+            'email' => 'foreign-lookup@example.test',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&store_id='.$store)
+            ->assertOk()
+            ->assertDontSee('Lookup Buyer 01')
+            ->assertDontSee('LOOKUP-SKU')
+            ->assertSee('data-lookup-url', false);
+
+        $pageOne = $this->actingAs($admin)->getJson(
+            '/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$store.'&q=Lookup&page=1'
+        );
+        $pageOne
+            ->assertOk()
+            ->assertJsonPath('data.page', 1)
+            ->assertJsonPath('data.has_more', true)
+            ->assertJsonCount(20, 'data.items');
+        $this->assertSame('Lookup Buyer 01', $pageOne->json('data.items.0.label'));
+        $this->assertStringContainsString('+9655555', (string) $pageOne->json('data.items.0.meta'));
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$store.'&q=Lookup&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.has_more', false)
+            ->assertJsonCount(2, 'data.items');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/product?channel=b2c&store_id='.$store.'&q=LOOKUP-SKU')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $product, 'label' => 'LOOKUP-SKU'])
+            ->assertJsonMissing(['label' => 'FOREIGN-LOOKUP-SKU']);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$foreignStore.'&q=Foreign')
+            ->assertNotFound();
+    }
+
     private function store(string $type, string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
