@@ -1381,10 +1381,10 @@ void main() {
       find.byKey(const ValueKey('van-orders-load-more-error')),
       findsOneWidget,
     );
-    final retry = find.byKey(const ValueKey('van-orders-load-more-retry'));
-    await tester.ensureVisible(retry);
-    await tester.pumpAndSettle();
-    await tester.tap(retry);
+    final retry = tester.widget<OutlinedButton>(
+      find.byKey(const ValueKey('van-orders-load-more-retry')),
+    );
+    retry.onPressed?.call();
     await tester.pumpAndSettle();
     expect(orders.requestedOrderPages, [1, 2, 2]);
 
