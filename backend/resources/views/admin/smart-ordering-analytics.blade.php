@@ -9,13 +9,13 @@
 .so-a-shell{display:grid;gap:var(--foodex-space-4);min-width:0}
 .so-a-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
 .so-a-filters label{display:grid;gap:6px;font-size:var(--foodex-text-xs);font-weight:700}
-.so-a-filters input,.so-a-filters select{min-height:44px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-input);padding:9px 11px;background:var(--foodex-surface);color:inherit}
+.so-a-filters input,.so-a-filters select{min-height:44px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:9px 11px;background:var(--foodex-surface);color:inherit}
 .so-a-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
 .so-a-kpi{padding:18px}.so-a-kpi span{display:block;color:var(--foodex-muted);font-size:var(--foodex-text-xs);margin-bottom:6px}.so-a-kpi strong{font-size:clamp(1.35rem,2vw,2rem)}
 .so-a-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.42fr);gap:16px}
 .so-a-card{padding:18px;min-width:0}.so-a-card h2{margin:0 0 14px}
 .so-a-funnel{display:grid;gap:10px}.so-a-stage{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center}.so-a-bar{height:12px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.so-a-fill{height:100%;background:var(--foodex-green);border-radius:inherit;min-width:2px}
-.so-a-insights{display:grid;gap:10px}.so-a-insight{padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-input);background:var(--foodex-background)}
+.so-a-insights{display:grid;gap:10px}.so-a-insight{padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-background)}
 .so-a-table-wrap{overflow:auto}.so-a-table{width:100%;border-collapse:collapse}.so-a-table th,.so-a-table td{padding:11px 10px;border-bottom:1px solid var(--foodex-border);text-align:start;white-space:nowrap}.so-a-table th{font-size:var(--foodex-text-xs);color:var(--foodex-muted)}
 .so-a-formulas{font-size:var(--foodex-text-xs);color:var(--foodex-muted);line-height:1.6}.so-a-empty{color:var(--foodex-muted);padding:12px 0}
 @media(max-width:900px){.so-a-grid{grid-template-columns:1fr}.so-a-stage{grid-template-columns:120px 1fr auto}}

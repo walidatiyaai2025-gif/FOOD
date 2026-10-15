@@ -25,6 +25,16 @@ final class DisplayNumber
         return number_format($number, $fractionDigits, '.', $separator);
     }
 
+    public static function moneyFractionDigits(?string $currency): int
+    {
+        return strtoupper(trim((string) $currency)) === 'EGP' ? 2 : 3;
+    }
+
+    public static function moneyStep(?string $currency): string
+    {
+        return self::moneyFractionDigits($currency) === 2 ? '0.01' : '0.001';
+    }
+
     public static function quantity(
         mixed $value,
         int $fractionDigits = 3,
