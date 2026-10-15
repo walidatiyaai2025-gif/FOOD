@@ -183,7 +183,13 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   for (const [name, route] of shellRoutes) {
     const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (!response || !response.ok() || page.url().includes('/login')) {
-      throw new Error(`Owned Dashboard runtime route failed for ${name}: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
+      const failureBody = (await page.locator('body').innerText().catch(() => ''))
+        .replace(/\s+/g, ' ')
+        .slice(0, 2400);
+      throw new Error(
+        `Owned Dashboard runtime route failed for ${name}: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`
+        + (failureBody ? ` · ${failureBody}` : ''),
+      );
     }
     await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
   }
