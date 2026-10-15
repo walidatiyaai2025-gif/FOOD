@@ -40,7 +40,7 @@
         <div class="cbp-shell">
             <header class="foodex-page-header">
                 <div>
-                    <span class="foodex-subtitle">{{ __('chatbot.preview') }}</span>
+                    <span class="foodex-subtitle">{{ __('chatbot.preview_title') }}</span>
                     <h1>{{ __('chatbot.preview_screens.'.$screen) }}</h1>
                     <p>{{ __('chatbot.admin.customer_preview_hint') }}</p>
                 </div>
@@ -48,7 +48,7 @@
             </header>
 
             <div class="cbp-toolbar">
-                <nav class="cbp-screen-tabs" aria-label="{{ __('chatbot.preview') }}">
+                <nav class="cbp-screen-tabs" aria-label="{{ __('chatbot.preview_title') }}">
                     @foreach(['home','new-order','reorder','products','cart','orders','finance','support'] as $candidate)
                         @if($candidate !== 'finance' || auth()->user()->hasPermission('finance.view'))
                             <a href="{{ route('admin.whatsapp-chatbot.preview',['screen'=>$candidate,'customer_id'=>$customer?->id]) }}" @if($screen===$candidate) aria-current="page" @endif>{{ __('chatbot.preview_screens.'.$candidate) }}</a>
