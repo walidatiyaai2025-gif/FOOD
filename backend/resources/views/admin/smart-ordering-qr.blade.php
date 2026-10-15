@@ -21,6 +21,7 @@
 .so-qr-table th{font-size:var(--foodex-text-xs);color:var(--foodex-muted);background:var(--foodex-background)}
 .so-qr-meta{display:grid;gap:4px;font-size:var(--foodex-text-xs);color:var(--foodex-muted)}
 .so-qr-url{display:block;max-width:270px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left}
+.so-qr-preview{display:block;width:96px;height:96px;object-fit:contain;margin-bottom:8px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-input);background:var(--foodex-surface);padding:6px}
 .so-qr-funnel{display:grid;grid-template-columns:repeat(2,minmax(72px,1fr));gap:6px}
 .so-qr-kpi{padding:7px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-input);background:var(--foodex-background)}
 .so-qr-kpi strong{display:block;font-size:var(--foodex-text-sm)}
@@ -135,7 +136,10 @@
                                 </td>
                                 <td data-label="{{ __('smart_ordering_qr.state') }}"><span class="so-qr-badge {{ $state==='enabled'?'':'off' }}">{{ __('smart_ordering_qr.states.'.$state) }}</span></td>
                                 <td data-label="{{ __('smart_ordering_qr.public_url') }}">
-                                    @if($qr->public_url)<code class="so-qr-url">{{ $qr->public_url }}</code>@endif
+                                    @if($qr->public_url)
+                                        <img class="so-qr-preview" src="{{ route('admin.smart-ordering.qr.svg',$qr) }}" alt="{{ $qr->label }}">
+                                        <code class="so-qr-url">{{ $qr->public_url }}</code>
+                                    @endif
                                 </td>
                                 <td data-label="{{ __('smart_ordering_qr.metrics') }}">
                                     <div class="so-qr-funnel">
@@ -152,7 +156,7 @@
                                         <summary aria-label="{{ __('smart_ordering_qr.actions') }}">⋯</summary>
                                         <div class="so-qr-actions-menu">
                                             @if($qr->public_url)<button type="button" data-copy-url="{{ $qr->public_url }}">{{ __('smart_ordering_qr.copy_url') }}</button>@endif
-                                            <a href="{{ route('admin.smart-ordering.qr.svg',$qr) }}">{{ __('smart_ordering_qr.download_svg') }}</a>
+                                            <a href="{{ route('admin.smart-ordering.qr.svg',[$qr,'download'=>1]) }}">{{ __('smart_ordering_qr.download_svg') }}</a>
                                             <a href="{{ route('admin.smart-ordering.qr.pdf',$qr) }}">{{ __('smart_ordering_qr.download_pdf') }}</a>
                                             @if($canManage)
                                                 <button type="button" data-open-dialog="so-qr-edit-{{ $qr->public_id }}">{{ __('smart_ordering_qr.edit') }}</button>
