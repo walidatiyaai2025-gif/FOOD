@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SupplyIntelligenceService;
+use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\TenantContextResolver;
@@ -14,6 +15,34 @@ use Illuminate\View\View;
 
 final class SmartOrderingSupplyController extends Controller
 {
+    public function entry(
+        Request $request,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+
+        $storeIds = $tenants->retailStoreIds($actor);
+        abort_if($storeIds === [], 403);
+
+        $requested = $request->integer('store_id');
+        $storeId = in_array($requested, $storeIds, true) ? $requested : (int) $storeIds[0];
+        abort_unless($actor->hasPermission('smart_ordering.view', $storeId), 403);
+
+        $site = $sites->ensureForStore($storeId, $actor, $request);
+        $this->assertEntitled($site);
+
+        $query = array_filter([
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'branch_id' => $request->query('branch_id'),
+            'q' => $request->query('q'),
+        ], static fn (mixed $value): bool => $value !== null && $value !== '');
+
+        return redirect()->route('admin.smart-ordering.supply.index', ['site' => $site->getKey(), ...$query]);
+    }
+
     public function index(
         Request $request,
         SmartOrderingSite $site,
