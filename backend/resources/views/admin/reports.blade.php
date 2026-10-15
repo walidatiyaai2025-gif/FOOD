@@ -81,17 +81,82 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
         </div>
 
         <section class="panel">
-            <form method="get" action="{{ route('admin.reports.index') }}">
+            <form method="get" action="{{ route('admin.reports.index') }}" data-report-filters>
                 <input type="hidden" name="report" value="{{ $report }}">
                 <div class="filters">
                     <div><label>{{ __('reports.filters.from') }}</label><input type="date" name="from" value="{{ $data['filters']['from'] }}"></div>
                     <div><label>{{ __('reports.filters.to') }}</label><input type="date" name="to" value="{{ $data['filters']['to'] }}"></div>
-                    <div><label>{{ __('reports.filters.store') }}</label><select name="store_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['stores'] as $store)<option value="{{ $store->id }}" @selected((string)request('store_id') === (string)$store->id)>{{ $store->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.channel') }}</label><select name="channel"><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
+                    <div><label for="report-store">{{ __('reports.filters.store') }}</label><select id="report-store" name="store_id" data-report-store><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['stores'] as $store)<option value="{{ $store->id }}" @selected((string)request('store_id') === (string)$store->id)>{{ $store->name }}</option>@endforeach</select></div>
+                    <div><label for="report-channel">{{ __('reports.filters.channel') }}</label><select id="report-channel" name="channel" data-report-channel><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
                     <div><label>{{ __('reports.filters.status') }}</label><select name="status"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['statuses'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $reportLabel($status) }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.category') }}</label><select name="category_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['categories'] as $category)<option value="{{ $category->id }}" @selected((string)request('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.product') }}</label><select name="product_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['products'] as $product)<option value="{{ $product->id }}" @selected((string)request('product_id') === (string)$product->id)>{{ $product->sku }} · {{ $product->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.customer') }}</label><select name="customer_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['customers'] as $customer)<option value="{{ $customer->id }}" @selected((string)request('customer_id') === (string)$customer->id)>{{ $customer->name }} · {{ $reportLabel($customer->type) }}</option>@endforeach</select></div>
+                    <div><label for="report-category">{{ __('reports.filters.category') }}</label><select id="report-category" name="category_id" data-report-category><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['categories'] as $category)<option value="{{ $category->id }}" data-store-id="{{ $category->store_id }}" data-channel="{{ $category->channel }}" @selected((string)request('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
+                    @php
+                        $selectedProduct = $options['selected_product'];
+                        $selectedProductLabel = $selectedProduct
+                            ? trim((string) $selectedProduct->name.(filled($selectedProduct->sku) ? ' · '.$selectedProduct->sku : ''))
+                            : '';
+                    @endphp
+                    <div data-report-product-picker
+                         data-foodex-entity-picker
+                         data-report-lookup-base="{{ route('admin.reports.lookups', ['entity'=>'products']) }}"
+                         data-entity-search-url="{{ route('admin.reports.lookups', ['entity'=>'products']) }}"
+                         data-entity-result-key="products"
+                         data-entity-selection-mode="value"
+                         data-entity-meta-fields="sku,barcode"
+                         data-entity-selected-label="{{ $selectedProductLabel }}"
+                         data-entity-selected-id="{{ request('product_id') }}"
+                         data-entity-state-class="muted"
+                         data-entity-loading="{{ __('reports.lookup.loading') }}"
+                         data-entity-no-results="{{ __('reports.lookup.empty') }}"
+                         data-entity-error="{{ __('reports.lookup.error') }}"
+                         data-entity-retry="{{ __('reports.lookup.retry') }}"
+                         data-entity-selected="{{ __('reports.lookup.selected') }}"
+                         data-entity-cleared="{{ __('reports.lookup.cleared') }}"
+                         data-entity-inactive="{{ __('reports.lookup.inactive') }}"
+                         data-entity-load-more="{{ __('reports.lookup.load_more') }}">
+                        <label for="report-product-search">{{ __('reports.lookup.product_label') }}</label>
+                        <input id="report-product-search" type="search" autocomplete="off"
+                               data-foodex-entity-search value="{{ $selectedProductLabel }}"
+                               placeholder="{{ __('reports.lookup.product_placeholder') }}">
+                        <input type="hidden" name="product_id" data-foodex-entity-id value="{{ request('product_id') }}">
+                        <div id="report-product-results" data-foodex-entity-results hidden></div>
+                        <div class="muted">{{ __('reports.lookup.product_hint') }}</div>
+                        <button class="button secondary" type="button" data-foodex-entity-clear>{{ __('reports.lookup.clear') }}</button>
+                    </div>
+                    @php
+                        $selectedCustomer = $options['selected_customer'];
+                        $selectedCustomerLabel = $selectedCustomer
+                            ? trim((string) $selectedCustomer->name.(filled($selectedCustomer->phone) ? ' · '.$selectedCustomer->phone : ''))
+                            : '';
+                    @endphp
+                    <div data-report-customer-picker
+                         data-foodex-entity-picker
+                         data-report-lookup-base="{{ route('admin.reports.lookups', ['entity'=>'customers']) }}"
+                         data-entity-search-url="{{ route('admin.reports.lookups', ['entity'=>'customers']) }}"
+                         data-entity-result-key="customers"
+                         data-entity-selection-mode="value"
+                         data-entity-meta-fields="phone,email"
+                         data-entity-selected-label="{{ $selectedCustomerLabel }}"
+                         data-entity-selected-id="{{ request('customer_id') }}"
+                         data-entity-state-class="muted"
+                         data-entity-loading="{{ __('reports.lookup.loading') }}"
+                         data-entity-no-results="{{ __('reports.lookup.empty') }}"
+                         data-entity-error="{{ __('reports.lookup.error') }}"
+                         data-entity-retry="{{ __('reports.lookup.retry') }}"
+                         data-entity-selected="{{ __('reports.lookup.selected') }}"
+                         data-entity-cleared="{{ __('reports.lookup.cleared') }}"
+                         data-entity-inactive="{{ __('reports.lookup.inactive') }}"
+                         data-entity-load-more="{{ __('reports.lookup.load_more') }}">
+                        <label for="report-customer-search">{{ __('reports.lookup.customer_label') }}</label>
+                        <input id="report-customer-search" type="search" autocomplete="off"
+                               data-foodex-entity-search value="{{ $selectedCustomerLabel }}"
+                               placeholder="{{ __('reports.lookup.customer_placeholder') }}"
+                               @disabled(!in_array(request('channel'), ['b2b','b2c'], true))>
+                        <input type="hidden" name="customer_id" data-foodex-entity-id value="{{ request('customer_id') }}">
+                        <div id="report-customer-results" data-foodex-entity-results hidden></div>
+                        <div class="muted">{{ __('reports.lookup.customer_channel_hint') }}</div>
+                        <button class="button secondary" type="button" data-foodex-entity-clear>{{ __('reports.lookup.clear') }}</button>
+                    </div>
                     <div><label>{{ __('reports.filters.payment') }}</label><select name="payment_provider"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['payment_providers'] as $provider)<option value="{{ $provider }}" @selected(request('payment_provider')===$provider)>{{ $reportLabel($provider) }}</option>@endforeach</select></div>
                     <div class="actions"><button class="button foodex-filter-action">{{ __('reports.apply') }}</button><a class="button secondary" href="{{ route('admin.reports.index', ['report'=>$report]) }}">{{ __('reports.reset') }}</a></div>
                 </div>
@@ -160,5 +225,80 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
         </div>
     </main>
 </div>
+<script src="{{ asset('assets/admin/entity-lookup.js') }}"></script>
+<script>
+(() => {
+    const form = document.querySelector('[data-report-filters]');
+    if (!form) return;
+
+    const store = form.querySelector('[data-report-store]');
+    const channel = form.querySelector('[data-report-channel]');
+    const category = form.querySelector('[data-report-category]');
+    const productPicker = form.querySelector('[data-report-product-picker]');
+    const customerPicker = form.querySelector('[data-report-customer-picker]');
+    const customerSearch = customerPicker?.querySelector('[data-foodex-entity-search]');
+
+    const clearPicker = (picker) => {
+        const button = picker?.querySelector('[data-foodex-entity-clear]');
+        if (button instanceof HTMLButtonElement) button.click();
+    };
+
+    const updateLookupUrl = (picker, includeCategory) => {
+        if (!(picker instanceof HTMLElement)) return;
+        const url = new URL(picker.dataset.reportLookupBase || picker.dataset.entitySearchUrl || window.location.href, window.location.origin);
+        if (store?.value) url.searchParams.set('store_id', store.value);
+        if (channel?.value) url.searchParams.set('channel', channel.value);
+        if (includeCategory && category?.value) url.searchParams.set('category_id', category.value);
+        picker.dataset.entitySearchUrl = url.toString();
+    };
+
+    const syncCategories = () => {
+        if (!(category instanceof HTMLSelectElement)) return;
+        const wantedStore = store?.value || '';
+        const wantedChannel = channel?.value || '';
+        let selectedVisible = category.value === '';
+        [...category.options].forEach((option) => {
+            if (option.value === '') {
+                option.hidden = false;
+                return;
+            }
+            const storeMatches = wantedStore === '' || option.dataset.storeId === wantedStore;
+            const channelMatches = wantedChannel === '' || option.dataset.channel === wantedChannel;
+            option.hidden = !(storeMatches && channelMatches);
+            if (option.selected && !option.hidden) selectedVisible = true;
+        });
+        if (!selectedVisible) category.value = '';
+    };
+
+    const sync = () => {
+        syncCategories();
+        updateLookupUrl(productPicker, true);
+        updateLookupUrl(customerPicker, false);
+        if (customerSearch instanceof HTMLInputElement) {
+            customerSearch.disabled = !['b2b', 'b2c'].includes(channel?.value || '');
+        }
+    };
+
+    store?.addEventListener('change', () => {
+        clearPicker(productPicker);
+        clearPicker(customerPicker);
+        if (category instanceof HTMLSelectElement) category.value = '';
+        sync();
+    });
+    channel?.addEventListener('change', () => {
+        clearPicker(productPicker);
+        clearPicker(customerPicker);
+        if (category instanceof HTMLSelectElement) category.value = '';
+        sync();
+        if (customerSearch instanceof HTMLInputElement && !customerSearch.disabled) customerSearch.focus();
+    });
+    category?.addEventListener('change', () => {
+        clearPicker(productPicker);
+        sync();
+    });
+
+    sync();
+})();
+</script>
 </body>
 </html>
