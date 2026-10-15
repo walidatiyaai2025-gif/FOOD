@@ -126,11 +126,112 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
         const rect = document.querySelector('aside.sidebar').getBoundingClientRect();
         return locale === 'ar' ? Math.abs(rect.right - width) < 2 : Math.abs(rect.left) < 2;
       }, { locale, width });
+      const drawerOpenProof = await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const main = document.querySelector('.foodex-admin-main, main');
+        const launcher = document.querySelector('.foodex-mobile-nav-launcher');
+        const closeControl = drawer?.querySelector('[data-foodex-sidebar-toggle]');
+        return {
+          activeInside: Boolean(drawer?.contains(document.activeElement)),
+          ariaHidden: drawer?.getAttribute('aria-hidden'),
+          ariaModal: drawer?.getAttribute('aria-modal'),
+          mainInert: Boolean(main?.hasAttribute('inert')),
+          launcherExpanded: launcher?.getAttribute('aria-expanded'),
+          launcherLabel: launcher?.getAttribute('aria-label'),
+          closeLabel: closeControl?.getAttribute('aria-label'),
+        };
+      });
+      const expectedCloseLabel = locale === 'ar' ? 'إغلاق قائمة التنقل' : 'Close navigation';
+      if (
+        !drawerOpenProof.activeInside
+        || drawerOpenProof.ariaHidden !== 'false'
+        || drawerOpenProof.ariaModal !== 'true'
+        || !drawerOpenProof.mainInert
+        || drawerOpenProof.launcherExpanded !== 'true'
+        || drawerOpenProof.launcherLabel !== expectedCloseLabel
+        || drawerOpenProof.closeLabel !== expectedCloseLabel
+      ) {
+        throw new Error(`Mobile drawer accessibility open state failed: ${name}/${locale}/${width} ${JSON.stringify(drawerOpenProof)}`);
+      }
+
+      await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const focusable = [...drawer.querySelectorAll(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+        )].filter((element) => {
+          const style = getComputedStyle(element);
+          return !element.hidden && !element.closest('[inert]') && style.display !== 'none'
+            && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+        });
+        focusable.at(-1)?.focus();
+      });
+      await page.keyboard.press('Tab');
+      if (!(await page.evaluate(() => document.querySelector('aside.sidebar')?.contains(document.activeElement)))) {
+        throw new Error(`Mobile drawer Tab escaped the active drawer: ${name}/${locale}/${width}`);
+      }
+
+      await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const focusable = [...drawer.querySelectorAll(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+        )].filter((element) => {
+          const style = getComputedStyle(element);
+          return !element.hidden && !element.closest('[inert]') && style.display !== 'none'
+            && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+        });
+        focusable[0]?.focus();
+      });
+      await page.keyboard.press('Shift+Tab');
+      if (!(await page.evaluate(() => document.querySelector('aside.sidebar')?.contains(document.activeElement)))) {
+        throw new Error(`Mobile drawer Shift+Tab escaped the active drawer: ${name}/${locale}/${width}`);
+      }
+
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => {
         const rect = document.querySelector('aside.sidebar').getBoundingClientRect();
         return rect.left >= innerWidth - 1 || rect.right <= 1;
       });
+      const drawerClosedProof = await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const main = document.querySelector('.foodex-admin-main, main');
+        const launcher = document.querySelector('.foodex-mobile-nav-launcher');
+        return {
+          drawerInert: Boolean(drawer?.hasAttribute('inert')),
+          ariaHidden: drawer?.getAttribute('aria-hidden'),
+          mainInert: Boolean(main?.hasAttribute('inert')),
+          launcherFocused: launcher === document.activeElement,
+          launcherExpanded: launcher?.getAttribute('aria-expanded'),
+          launcherLabel: launcher?.getAttribute('aria-label'),
+        };
+      });
+      const expectedOpenLabel = locale === 'ar' ? 'فتح قائمة التنقل' : 'Open navigation';
+      if (
+        !drawerClosedProof.drawerInert
+        || drawerClosedProof.ariaHidden !== 'true'
+        || drawerClosedProof.mainInert
+        || !drawerClosedProof.launcherFocused
+        || drawerClosedProof.launcherExpanded !== 'false'
+        || drawerClosedProof.launcherLabel !== expectedOpenLabel
+      ) {
+        throw new Error(`Mobile drawer accessibility closed state failed: ${name}/${locale}/${width} ${JSON.stringify(drawerClosedProof)}`);
+      }
+
+      if (width === 430) {
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: 768, height: viewport.height });
+        await page.waitForFunction(() => {
+          const drawer = document.querySelector('aside.sidebar');
+          return drawer
+            && !drawer.hasAttribute('inert')
+            && !drawer.hasAttribute('aria-hidden')
+            && !drawer.hasAttribute('aria-modal');
+        });
+        await page.setViewportSize({ width, height: viewport.height });
+        await page.waitForFunction(() => {
+          const drawer = document.querySelector('aside.sidebar');
+          return drawer?.hasAttribute('inert') && drawer.getAttribute('aria-hidden') === 'true';
+        });
+      }
       for (const field of ['confirmation', 'current_password']) {
         const placeholder = await page.locator(`input[name="${field}"]`).getAttribute('placeholder');
         if (!placeholder || placeholder.includes(field)) {

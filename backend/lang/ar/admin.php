@@ -10,6 +10,8 @@ return [
     'profile' => 'الملف الشخصي',
     'sidebar_search' => 'بحث في القوائم',
     'sidebar_toggle' => 'فتح أو إغلاق القائمة',
+    'sidebar_open' => 'فتح قائمة التنقل',
+    'sidebar_close' => 'إغلاق قائمة التنقل',
     'role_names' => [
         'SUPER_ADMIN' => 'مالك المنصة / المسؤول الأعلى',
         'B2B_ADMIN' => 'مسؤول الجملة',
