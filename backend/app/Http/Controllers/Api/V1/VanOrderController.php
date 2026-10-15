@@ -122,7 +122,7 @@ final class VanOrderController extends Controller
             if (
                 $account instanceof B2bAccount
                 && (float) $account->credit_limit > 0
-                && !in_array('account_credit', $paymentMethods, true)
+                && ! in_array('account_credit', $paymentMethods, true)
             ) {
                 $paymentMethods[] = 'account_credit';
             }
@@ -312,8 +312,7 @@ final class VanOrderController extends Controller
         string $search,
         int $page,
         int $perPage,
-    ): array
-    {
+    ): array {
         $b2bCustomer = B2bCustomer::query()->find($customer);
         abort_unless($b2bCustomer instanceof B2bCustomer, 404);
 
@@ -390,8 +389,7 @@ final class VanOrderController extends Controller
         string $search,
         int $page,
         int $perPage,
-    ): array
-    {
+    ): array {
         abort_unless(
             B2cCustomer::query()->whereKey($customer)->where('store_id', $storeId)->exists(),
             404,
