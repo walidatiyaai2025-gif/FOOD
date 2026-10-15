@@ -149,6 +149,56 @@ final class FeedbackService
         return $after;
     }
 
+    /** @return list<array<string,mixed>> */
+    public function recoveryCases(SmartOrderingSite $site, string $status = 'OPEN', int $limit = 50): array
+    {
+        $status = strtoupper(trim($status));
+        abort_unless(in_array($status, ['OPEN', 'RESOLVED'], true), 422);
+
+        return DB::table('smart_ordering_service_recovery_cases as cases')
+            ->join('smart_ordering_feedback as feedback', 'feedback.id', '=', 'cases.feedback_id')
+            ->join('orders', 'orders.id', '=', 'cases.order_id')
+            ->join('customers', 'customers.id', '=', 'cases.customer_id')
+            ->leftJoin('users as assignees', 'assignees.id', '=', 'cases.assigned_user_id')
+            ->where('cases.site_id', $site->id)
+            ->where('orders.store_id', $site->store_id)
+            ->where('cases.status', $status)
+            ->orderByDesc('cases.created_at')
+            ->limit(max(1, min($limit, 100)))
+            ->get([
+                'cases.public_id',
+                'cases.status',
+                'cases.reason',
+                'cases.resolution_note',
+                'cases.resolved_at',
+                'cases.created_at',
+                'orders.order_number',
+                'customers.name as customer_name',
+                'customers.phone as customer_phone',
+                'feedback.rating',
+                'feedback.feedback',
+                'feedback.submitted_at',
+                'assignees.name as assigned_user_name',
+            ])
+            ->map(static fn ($row): array => [
+                'id' => (string) $row->public_id,
+                'status' => (string) $row->status,
+                'reason' => (string) $row->reason,
+                'order_number' => (string) $row->order_number,
+                'customer' => [
+                    'name' => (string) $row->customer_name,
+                    'phone' => $row->customer_phone,
+                ],
+                'rating' => (int) $row->rating,
+                'feedback' => $row->feedback,
+                'submitted_at' => $row->submitted_at,
+                'assigned_to' => $row->assigned_user_name,
+                'resolution_note' => $row->resolution_note,
+                'resolved_at' => $row->resolved_at,
+                'created_at' => $row->created_at,
+            ])->values()->all();
+    }
+
     public function resolveCase(
         User $actor,
         SmartOrderingSite $site,
