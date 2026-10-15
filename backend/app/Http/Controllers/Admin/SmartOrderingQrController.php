@@ -42,8 +42,8 @@ final class SmartOrderingQrController extends Controller
         ]);
 
         $selectedStoreId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
-        if ($selectedStoreId !== null) {
-            abort_unless(in_array($selectedStoreId, $storeIds, true), 404);
+        if ($selectedStoreId !== null && ! in_array($selectedStoreId, $storeIds, true)) {
+            abort(404);
         }
 
         $query = SmartOrderingQrCode::query()
