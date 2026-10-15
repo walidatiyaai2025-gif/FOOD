@@ -82,7 +82,11 @@ final class SmartOrderingStorefrontController extends Controller
             }
         }
 
-        $attributionContext = app(SmartOrderingAttributionService::class)->contextFromRequest($request);
+        $attribution = app(SmartOrderingAttributionService::class);
+        $attributionContext = $attribution->contextFromRequest($request);
+        $trustedAttribution = $attributionContext !== null && $analyticsSite instanceof SmartOrderingSite
+            ? $attribution->serverContext($attributionContext, (int) $analyticsSite->store_id)
+            : null;
         $published = $analyticsSite instanceof SmartOrderingSite
             ? $revisions->published($analyticsSite)
             : null;
@@ -103,7 +107,9 @@ final class SmartOrderingStorefrontController extends Controller
             'attribution_context' => $attributionContext,
             'supports_pickup' => (bool) ($analyticsBranch?->supports_pickup ?? false),
             'supports_delivery' => (bool) ($analyticsBranch?->supports_delivery ?? false),
-            'supports_dine_in' => (bool) ($analyticsBranch?->supports_dine_in ?? false),
+            'supports_dine_in' => (bool) ($analyticsBranch?->supports_dine_in ?? false)
+                && ($trustedAttribution['type'] ?? null) === 'table'
+                && trim((string) ($trustedAttribution['table_reference'] ?? '')) !== '',
         ];
 
         $cacheControl = $attributionContext === null
