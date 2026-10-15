@@ -1002,14 +1002,21 @@ class B2cWorkspaceController extends Controller
                 ->all(),
             'products' => DB::table('products')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->leftJoin('units', 'units.id', '=', 'products.unit_id')
                 ->whereIn('catalogs.store_id', $storeIds)
                 ->where('catalogs.channel', 'b2c')
                 ->where('catalogs.is_migration_quarantine', false)
                 ->where('catalogs.is_active', true)
                 ->where('products.is_active', true)
                 ->orderBy('products.name')
-                ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name'])
-                ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'sku' => $row->sku, 'name' => $row->name])
+                ->get(['products.id', 'catalogs.store_id', 'products.sku', 'products.name', 'units.code as unit_code', 'units.name as unit_name'])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'store_id' => (int) $row->store_id,
+                    'sku' => $row->sku,
+                    'name' => $row->name,
+                    'unit' => $row->unit_name ?: ($row->unit_code ?: '—'),
+                ])
                 ->all(),
             'columns' => ['sku', 'name', 'warehouse', 'quantity', 'reserved', 'available'],
             'rows' => DB::table('inventories')
