@@ -57,7 +57,7 @@ void main() {
         'van-token',
         client: MockClient((request) async {
           expect(request.url.path, '/api/v1/lookups/failed-delivery-reasons');
-          expect(request.headers['Authorization'], 'Bearer van-token');
+          expect(request.headers['Authorization'], '***');
           return http.Response(
             '{"data":[{"code":"customer_no_answer","label_ar":"العميل لا يجيب","label_en":"Customer did not answer"},{"code":"other","label_ar":"أخرى","label_en":"Other"}]}',
             200,
@@ -76,8 +76,10 @@ void main() {
     expect(reasons.last.labelEn, 'Other');
   });
 
-  test('Van proof upload is multipart idempotent and parses readiness', () async {
-    final directory = await Directory.systemTemp.createTemp('foodex-van-proof-');
+  test('Van proof upload is multipart idempotent and parses readiness',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('foodex-van-proof-');
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/proof.jpg');
     await file.writeAsBytes([1, 2, 3, 4]);
@@ -112,9 +114,10 @@ void main() {
 
     expect(captured?.method, 'POST');
     expect(captured?.url.path, '/api/v1/van/orders/77/execution/proof');
-    expect(captured?.headers['Authorization'], 'Bearer van-token');
+    expect(captured?.headers['Authorization'], '***');
     expect(captured?.headers['Idempotency-Key'], 'van-proof-http-0001');
-    expect(captured?.headers['content-type'], startsWith('multipart/form-data;'));
+    expect(
+        captured?.headers['content-type'], startsWith('multipart/form-data;'));
     expect(captured?.body, contains('name="note"'));
     expect(captured?.body, contains('Door proof'));
     expect(captured?.body, contains('name="proof_image"'));
@@ -123,7 +126,8 @@ void main() {
     expect(state.latestProof?.available, isTrue);
   });
 
-  test('Van failed delivery and retry use dedicated server endpoints', () async {
+  test('Van failed delivery and retry use dedicated server endpoints',
+      () async {
     final requests = <http.Request>[];
     final repository = HttpVanOrderRepository(
       VanApiClient(
