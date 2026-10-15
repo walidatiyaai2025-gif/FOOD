@@ -19,7 +19,7 @@ final class RepeatOrderService
     /**
      * Build a repeat-order draft from historical quantities and live server pricing.
      *
-     * @param list<int> $selectedOrderItemIds
+     * @param  list<int>  $selectedOrderItemIds
      * @return array<string,mixed>
      */
     public function createDraft(
@@ -27,8 +27,7 @@ final class RepeatOrderService
         int $customerId,
         int $sourceOrderId,
         array $selectedOrderItemIds = [],
-    ): array
-    {
+    ): array {
         $order = DB::table('orders')
             ->where('id', $sourceOrderId)
             ->where('store_id', $site->store_id)
