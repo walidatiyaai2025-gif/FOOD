@@ -90,6 +90,24 @@ final class CatalogManagementController extends Controller
             ? 'categories.image_path'
             : DB::raw('NULL as image_path');
 
+        $productSearch = mb_substr(trim((string) $request->query('product_q', '')), 0, 120);
+        $productCategoryId = max(0, $request->integer('product_category_id'));
+        $productBrandId = max(0, $request->integer('product_brand_id'));
+        $productStatus = in_array((string) $request->query('product_status'), ['active', 'inactive'], true)
+            ? (string) $request->query('product_status')
+            : '';
+        $productAvailability = in_array((string) $request->query('product_availability'), ['available', 'out_of_stock'], true)
+            ? (string) $request->query('product_availability')
+            : '';
+        $categorySearch = mb_substr(trim((string) $request->query('category_q', '')), 0, 120);
+        $categoryStatus = in_array((string) $request->query('category_status'), ['active', 'inactive'], true)
+            ? (string) $request->query('category_status')
+            : '';
+        $categoryParent = trim((string) $request->query('category_parent', ''));
+        if ($categoryParent !== 'root' && (! ctype_digit($categoryParent) || (int) $categoryParent < 1)) {
+            $categoryParent = '';
+        }
+
         $productColumns = [
             'products.id',
             'products.sku',
@@ -108,14 +126,78 @@ final class CatalogManagementController extends Controller
             'units.name as unit',
             DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
         ];
-        $products = DB::table('products')
+        $productQuery = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
             ->join('units', 'units.id', '=', 'products.unit_id')
             ->whereIn('catalogs.store_id', $storeIds)
-            ->where('catalogs.is_migration_quarantine', false)
+            ->where('catalogs.is_migration_quarantine', false);
+
+        if ($productSearch !== '') {
+            $needle = '%'.$productSearch.'%';
+            $productQuery->where(static function ($query) use ($needle): void {
+                $query->where('products.name', 'like', $needle)
+                    ->orWhere('products.sku', 'like', $needle);
+            });
+        }
+        if ($productCategoryId > 0) {
+            $productQuery->where('products.category_id', $productCategoryId);
+        }
+        if ($productBrandId > 0) {
+            $productQuery->where('products.brand_id', $productBrandId);
+        }
+        if ($productStatus !== '') {
+            $productQuery->where('products.is_active', $productStatus === 'active');
+        }
+        if ($productAvailability !== '') {
+            $hasWholesale = DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->whereIn('stores.id', $storeIds)
+                ->where('store_types.code', 'B2B')
+                ->exists();
+            $principalWarehouseId = $hasWholesale
+                ? app(\App\Services\WholesalePrincipal::class)->warehouseId()
+                : null;
+            $inventoryScope = static function ($query, bool $positiveOnly = false) use ($principalWarehouseId): void {
+                $query->selectRaw('1')
+                    ->from('inventories as catalog_filter_inventory')
+                    ->join('warehouses as catalog_filter_warehouse', 'catalog_filter_warehouse.id', '=', 'catalog_filter_inventory.warehouse_id')
+                    ->whereColumn('catalog_filter_inventory.product_id', 'products.id')
+                    ->whereColumn('catalog_filter_warehouse.store_id', 'catalogs.store_id')
+                    ->where('catalog_filter_warehouse.is_active', true)
+                    ->where(static function ($scope) use ($principalWarehouseId): void {
+                        $scope->where('catalogs.channel', '!=', 'b2b');
+                        if ($principalWarehouseId !== null) {
+                            $scope->orWhere('catalog_filter_warehouse.id', $principalWarehouseId);
+                        }
+                    });
+                if ($positiveOnly) {
+                    $query->whereColumn('catalog_filter_inventory.quantity', '>', 'catalog_filter_inventory.reserved_quantity');
+                }
+            };
+
+            if ($productAvailability === 'out_of_stock') {
+                $productQuery
+                    ->whereExists(static function ($query) use ($inventoryScope): void {
+                        $inventoryScope($query);
+                    })
+                    ->whereNotExists(static function ($query) use ($inventoryScope): void {
+                        $inventoryScope($query, true);
+                    });
+            } else {
+                $productQuery->where(static function ($query) use ($inventoryScope): void {
+                    $query->whereNotExists(static function ($subquery) use ($inventoryScope): void {
+                        $inventoryScope($subquery);
+                    })->orWhereExists(static function ($subquery) use ($inventoryScope): void {
+                        $inventoryScope($subquery, true);
+                    });
+                });
+            }
+        }
+
+        $products = $productQuery
             ->orderByDesc('products.id')
             ->paginate(25, $productColumns, 'product_page')
             ->withQueryString();
@@ -136,8 +218,20 @@ final class CatalogManagementController extends Controller
             ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
             ->leftJoin('categories as parent', 'parent.id', '=', 'categories.parent_id')
             ->whereIn('catalogs.store_id', $storeIds)
-            ->where('catalogs.is_migration_quarantine', false)
-            ->orderBy('categories.name');
+            ->where('catalogs.is_migration_quarantine', false);
+
+        $categoryRowsQuery = clone $categoryQuery;
+        if ($categorySearch !== '') {
+            $categoryRowsQuery->where('categories.name', 'like', '%'.$categorySearch.'%');
+        }
+        if ($categoryParent === 'root') {
+            $categoryRowsQuery->whereNull('categories.parent_id');
+        } elseif ($categoryParent !== '') {
+            $categoryRowsQuery->where('categories.parent_id', (int) $categoryParent);
+        }
+        if ($categoryStatus !== '') {
+            $categoryRowsQuery->where('categories.is_active', $categoryStatus === 'active');
+        }
         $categoryColumns = [
             'categories.id',
             'categories.name',
@@ -150,8 +244,9 @@ final class CatalogManagementController extends Controller
             'catalog_store.name as catalog_store_name',
             'parent.name as parent_name',
         ];
-        $categories = (clone $categoryQuery)->get($categoryColumns);
-        $categoryRows = (clone $categoryQuery)
+        $categories = (clone $categoryQuery)->orderBy('categories.name')->get($categoryColumns);
+        $categoryRows = $categoryRowsQuery
+            ->orderBy('categories.name')
             ->paginate(25, $categoryColumns, 'category_page')
             ->withQueryString();
 
@@ -166,6 +261,22 @@ final class CatalogManagementController extends Controller
             'products' => $products,
             'categories' => $categories,
             'categoryRows' => $categoryRows,
+            'productFilters' => [
+                'q' => $productSearch,
+                'category_id' => $productCategoryId,
+                'brand_id' => $productBrandId,
+                'status' => $productStatus,
+                'availability' => $productAvailability,
+            ],
+            'categoryFilters' => [
+                'q' => $categorySearch,
+                'parent' => $categoryParent,
+                'status' => $categoryStatus,
+            ],
+            'filterBrands' => $this->lookups
+                ->visible(Brand::query(), $actor, 'brands')
+                ->orderBy('brands.name')
+                ->get(),
             'brands' => $this->lookups
                 ->visible(Brand::query(), $actor, 'brands')
                 ->where('brands.is_active', true)
