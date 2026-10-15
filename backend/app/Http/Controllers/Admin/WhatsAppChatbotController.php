@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -462,14 +463,14 @@ final class WhatsAppChatbotController extends Controller
         abort_unless($actor->hasPermission($permission), 403);
     }
 
-    private function flows(): \Illuminate\Support\Collection
+    private function flows(): Collection
     {
         return Schema::hasTable('whats_app_chatbot_flows')
             ? DB::table('whats_app_chatbot_flows')->orderByDesc('updated_at')->get()
             : collect();
     }
 
-    private function segments(): \Illuminate\Support\Collection
+    private function segments(): Collection
     {
         return Schema::hasTable('whats_app_chatbot_segments')
             ? DB::table('whats_app_chatbot_segments')->orderBy('priority')->orderBy('id')->get()
@@ -587,7 +588,7 @@ final class WhatsAppChatbotController extends Controller
         ];
     }
 
-    private function previewProducts(): \Illuminate\Support\Collection
+    private function previewProducts(): Collection
     {
         return DB::table('products')
             ->where('is_active', true)
@@ -596,7 +597,7 @@ final class WhatsAppChatbotController extends Controller
             ->get(['id', 'name', 'sku', 'description']);
     }
 
-    private function previewOrders(int $legacyCustomerId): \Illuminate\Support\Collection
+    private function previewOrders(int $legacyCustomerId): Collection
     {
         return DB::table('orders')
             ->where('customer_id', $legacyCustomerId)
@@ -605,7 +606,7 @@ final class WhatsAppChatbotController extends Controller
             ->get();
     }
 
-    private function previewInvoices(int $platformCustomerId): \Illuminate\Support\Collection
+    private function previewInvoices(int $platformCustomerId): Collection
     {
         return DB::table('invoices')
             ->where('platform_customer_id', $platformCustomerId)
@@ -614,7 +615,7 @@ final class WhatsAppChatbotController extends Controller
             ->get();
     }
 
-    private function previewCart(int $legacyCustomerId): \Illuminate\Support\Collection
+    private function previewCart(int $legacyCustomerId): Collection
     {
         $cartId = DB::table('carts')
             ->where('customer_id', $legacyCustomerId)
