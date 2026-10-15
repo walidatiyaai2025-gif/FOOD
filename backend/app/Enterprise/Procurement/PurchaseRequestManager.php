@@ -57,13 +57,10 @@ final class PurchaseRequestManager
                 $validated['status'] ?? null,
                 fn (Builder $query, string $status): Builder => $query->where('status', $status),
             )
-            ->when($term !== '', function (Builder $query) use ($term): void {
-                $query->where(function (Builder $search) use ($term): void {
-                    $search
-                        ->where('request_number', 'like', $term.'%')
-                        ->orWhere('reason', 'like', $term.'%');
-                });
-            })
+            ->when(
+                $term !== '',
+                fn (Builder $query): Builder => $query->where('request_number', 'like', $term.'%'),
+            )
             ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
