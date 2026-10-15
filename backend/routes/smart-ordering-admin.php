@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,3 +16,14 @@ Route::delete('/branches/{branch}/delivery-zones/{zone}', [SmartOrderingOperatio
     ->whereUuid('branch')->whereUuid('zone')->name('zones.destroy');
 Route::post('/orders/{reference}/status', [SmartOrderingOperationsController::class, 'transition'])
     ->whereUuid('reference')->name('orders.transition');
+
+Route::get('/sites/{site}/merchandising', [SmartOrderingMerchandisingAdminController::class, 'index'])
+    ->name('merchandising.index');
+Route::post('/sites/{site}/merchandising/offers', [SmartOrderingMerchandisingAdminController::class, 'storeOffer'])
+    ->name('merchandising.offers.store');
+Route::put('/sites/{site}/merchandising/offers/{offer}', [SmartOrderingMerchandisingAdminController::class, 'updateOffer'])
+    ->whereUuid('offer')->name('merchandising.offers.update');
+Route::post('/sites/{site}/merchandising/recommendations', [SmartOrderingMerchandisingAdminController::class, 'storeRecommendation'])
+    ->name('merchandising.recommendations.store');
+Route::put('/sites/{site}/merchandising/recommendations/{recommendation}', [SmartOrderingMerchandisingAdminController::class, 'updateRecommendation'])
+    ->whereUuid('recommendation')->name('merchandising.recommendations.update');

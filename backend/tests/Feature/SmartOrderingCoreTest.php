@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Role;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
+use App\Services\B2cCustomerService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -486,6 +487,246 @@ class SmartOrderingCoreTest extends TestCase
         $this->assertStringNotContainsString('"customer_id"', $body);
     }
 
+    public function test_merchandising_precedence_and_cart_recalculation_are_server_authoritative(): void
+    {
+        $winner = $this->offer([
+            'name' => 'Priority winner',
+            'type' => 'fixed',
+            'priority' => 10,
+            'stack_group' => 'basket',
+            'exclusive' => true,
+            'minimum_basket' => 2.000,
+            'placements' => ['cart_upsell'],
+            'effect' => ['value' => 1.000],
+        ]);
+        $this->offer([
+            'name' => 'Lower precedence',
+            'type' => 'fixed',
+            'priority' => 20,
+            'stack_group' => 'basket',
+            'exclusive' => true,
+            'minimum_basket' => 2.000,
+            'effect' => ['value' => 2.000],
+        ]);
+        $this->offer([
+            'name' => 'Future offer',
+            'type' => 'fixed',
+            'priority' => 1,
+            'stack_group' => 'basket',
+            'exclusive' => true,
+            'effect' => ['value' => 9.000],
+            'starts_at' => now()->addDay(),
+        ]);
+
+        [$cart, $token] = $this->cart();
+        $added = $this->withHeader('X-Smart-Cart-Token', $token)
+            ->postJson('/api/smart-ordering/carts/'.$cart.'/items', [
+                'product_id' => $this->productId,
+                'quantity' => 2,
+            ])->assertCreated();
+
+        $this->assertSame(1.0, (float) $added->json('data.quote.discount_total'));
+        $this->assertSame($winner, $added->json('data.quote.merchandising.applied_offers.0.id'));
+
+        $item = (string) $added->json('data.item.public_id');
+        $lowered = $this->withHeader('X-Smart-Cart-Token', $token)
+            ->patchJson('/api/smart-ordering/carts/'.$cart.'/items/'.$item, ['quantity' => 1])
+            ->assertOk();
+        $this->assertSame(0.0, (float) $lowered->json('data.quote.discount_total'));
+
+        $restored = $this->withHeader('X-Smart-Cart-Token', $token)
+            ->patchJson('/api/smart-ordering/carts/'.$cart.'/items/'.$item, ['quantity' => 2])
+            ->assertOk();
+        $this->assertSame(1.0, (float) $restored->json('data.quote.discount_total'));
+    }
+
+    public function test_offer_usage_limit_is_consumed_once_and_second_checkout_reprices_safely(): void
+    {
+        $offer = $this->offer([
+            'name' => 'One redemption only',
+            'type' => 'fixed',
+            'effect' => ['value' => 1.000],
+            'usage_limit_total' => 1,
+        ]);
+
+        [$firstCart, $firstToken] = $this->cart();
+        $this->addItem($firstCart, $firstToken, 1);
+        $first = $this->checkout($firstCart, $firstToken, 'smart-offer-limit-first-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+        $this->assertSame(1.0, (float) $first->json('data.discount_total'));
+        $this->assertSame(0.25, (float) $first->json('data.grand_total'));
+
+        [$secondCart, $secondToken] = $this->cart();
+        $this->addItem($secondCart, $secondToken, 1);
+        $second = $this->checkout($secondCart, $secondToken, 'smart-offer-limit-second-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+        $this->assertSame(0.0, (float) $second->json('data.discount_total'));
+        $this->assertSame(1.25, (float) $second->json('data.grand_total'));
+
+        $this->assertDatabaseHas('smart_ordering_offer_rules', [
+            'public_id' => $offer,
+            'used_count' => 1,
+        ]);
+        $this->assertDatabaseCount('smart_ordering_offer_redemptions', 1);
+    }
+
+    public function test_forged_qr_campaign_context_is_rejected(): void
+    {
+        $this->postJson('/api/smart-ordering/carts', [
+            'branch_public_id' => (string) $this->branch->public_id,
+            'attribution_context' => 'v1.Zm9yZ2Vk.deadbeef',
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseCount('smart_ordering_carts', 0);
+    }
+
+    public function test_sold_out_recommendation_is_suppressed_and_add_conversion_is_idempotent(): void
+    {
+        $menuItem = $this->menuItem($this->extraProductId, true);
+        $recommendation = (string) Str::uuid();
+        DB::table('smart_ordering_recommendation_rules')->insert([
+            'public_id' => $recommendation,
+            'site_id' => $this->branch->site_id,
+            'branch_id' => $this->branch->id,
+            'name' => 'Add a side',
+            'placement' => 'cart_upsell',
+            'trigger_product_id' => $this->productId,
+            'recommended_product_id' => $this->extraProductId,
+            'priority' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+
+        $this->withHeader('X-Smart-Cart-Token', $token)
+            ->getJson('/api/smart-ordering/carts/'.$cart.'/merchandising?placement=cart_upsell&trigger_product_id='.$this->productId)
+            ->assertOk()
+            ->assertJsonCount(0, 'data.recommendations');
+
+        DB::table('smart_ordering_menu_items')->where('public_id', $menuItem)->update([
+            'sold_out' => false,
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('X-Smart-Cart-Token', $token)
+            ->getJson('/api/smart-ordering/carts/'.$cart.'/merchandising?placement=cart_upsell&trigger_product_id='.$this->productId)
+            ->assertOk()
+            ->assertJsonPath('data.recommendations.0.id', $recommendation)
+            ->assertJsonPath('data.recommendations.0.product.product_id', $this->extraProductId);
+
+        $this->withHeader('X-Smart-Cart-Token', $token)
+            ->postJson('/api/smart-ordering/carts/'.$cart.'/items', [
+                'product_id' => $this->extraProductId,
+                'quantity' => 1,
+            ])->assertCreated();
+
+        foreach ([1, 2] as $attempt) {
+            $this->withHeaders([
+                'X-Smart-Cart-Token' => $token,
+                'Idempotency-Key' => 'reco-add-event-0001',
+            ])->postJson('/api/smart-ordering/carts/'.$cart.'/merchandising/events', [
+                'event_type' => 'add',
+                'placement' => 'cart_upsell',
+                'recommendation_id' => $recommendation,
+            ])->assertAccepted();
+        }
+
+        $this->assertSame(1, DB::table('smart_ordering_merchandising_events')
+            ->where('event_type', 'add')
+            ->where('recommendation_rule_id', DB::table('smart_ordering_recommendation_rules')->where('public_id', $recommendation)->value('id'))
+            ->count());
+
+        $checkout = $this->checkout($cart, $token, 'smart-reco-conversion-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $conversion = DB::table('smart_ordering_merchandising_events')
+            ->where('event_type', 'conversion')
+            ->whereNotNull('recommendation_rule_id')
+            ->first();
+        $this->assertNotNull($conversion);
+        $this->assertSame((float) $checkout->json('data.grand_total'), (float) $conversion->revenue);
+    }
+
+    public function test_coupon_wrapper_enforces_customer_eligibility_and_redeems_once(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Coupon Customer',
+            'email' => 'coupon-customer-'.Str::lower(Str::random(8)).'@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $customer = app(B2cCustomerService::class)->create($this->storeId, [
+            'name' => 'Coupon Customer',
+            'phone' => '+96551111111',
+            'email' => $user->email,
+        ], $user);
+
+        $couponId = (int) DB::table('marketing_coupons')->insertGetId([
+            'scope_key' => 'b2c:'.$this->storeId,
+            'channel' => 'b2c',
+            'store_id' => $this->storeId,
+            'code' => 'SMART25',
+            'name_ar' => 'خصم سمارت',
+            'name_en' => 'Smart discount',
+            'discount_type' => 'fixed',
+            'discount_value' => 0.250,
+            'usage_limit_total' => 5,
+            'usage_limit_per_user' => 2,
+            'used_count' => 0,
+            'first_order_only' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $wrapper = $this->offer([
+            'name' => 'Smart coupon eligibility',
+            'type' => 'coupon',
+            'marketing_coupon_id' => $couponId,
+            'stack_group' => 'coupon',
+            'usage_limit_total' => 1,
+            'conditions' => [
+                'customer_ids' => [(int) $customer->legacy_customer_id],
+                'branch_public_ids' => [(string) $this->branch->public_id],
+            ],
+        ]);
+
+        $this->actingAs($user);
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+
+        $first = $this->checkout($cart, $token, 'smart-coupon-redemption-0001', [
+            'fulfillment_mode' => 'pickup',
+            'coupon_code' => 'SMART25',
+            'name' => 'Coupon Customer',
+            'phone' => '+96551111111',
+            'email' => $user->email,
+        ])->assertCreated();
+
+        $this->assertSame(0.25, (float) $first->json('data.discount_total'));
+        $this->assertSame(1.0, (float) $first->json('data.grand_total'));
+
+        $this->checkout($cart, $token, 'smart-coupon-redemption-0001', [
+            'fulfillment_mode' => 'pickup',
+            'coupon_code' => 'SMART25',
+            'name' => 'Coupon Customer',
+            'phone' => '+96551111111',
+            'email' => $user->email,
+        ])->assertOk()->assertJsonPath('replayed', true);
+
+        $this->assertSame(1, DB::table('marketing_coupon_redemptions')->where('coupon_id', $couponId)->count());
+        $this->assertSame(1, (int) DB::table('marketing_coupons')->where('id', $couponId)->value('used_count'));
+        $this->assertDatabaseHas('smart_ordering_offer_rules', ['public_id' => $wrapper, 'used_count' => 1]);
+        $this->assertDatabaseCount('smart_ordering_offer_redemptions', 1);
+    }
+
     private function product(
         int $catalogId,
         int $categoryId,
@@ -514,6 +755,96 @@ class SmartOrderingCoreTest extends TestCase
         ]);
 
         return $productId;
+    }
+
+    /** @param array<string,mixed> $overrides */
+    private function offer(array $overrides = []): string
+    {
+        $publicId = (string) Str::uuid();
+        $defaults = [
+            'branch_id' => $this->branch->id,
+            'promotion_id' => null,
+            'marketing_coupon_id' => null,
+            'name' => 'Test offer',
+            'type' => 'fixed',
+            'priority' => 100,
+            'stack_group' => null,
+            'exclusive' => true,
+            'minimum_basket' => null,
+            'usage_limit_total' => null,
+            'used_count' => 0,
+            'placements' => [],
+            'conditions' => [],
+            'effect' => ['value' => 0.100],
+            'starts_at' => null,
+            'ends_at' => null,
+            'is_active' => true,
+        ];
+        $data = [...$defaults, ...$overrides];
+
+        foreach (['placements', 'conditions', 'effect'] as $json) {
+            $data[$json] = $data[$json] === []
+                ? null
+                : json_encode($data[$json], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        }
+
+        DB::table('smart_ordering_offer_rules')->insert([
+            'public_id' => $publicId,
+            'site_id' => $this->branch->site_id,
+            ...$data,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $publicId;
+    }
+
+    private function menuItem(int $productId, bool $soldOut): string
+    {
+        $revisionId = (int) DB::table('smart_ordering_revisions')
+            ->where('site_id', $this->branch->site_id)
+            ->where('public_id', $this->publishedRevisionPublicId)
+            ->value('id');
+
+        $menuId = (int) DB::table('smart_ordering_menus')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'public_id' => (string) Str::uuid(),
+            'name_en' => 'Recommendation menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $categoryId = (int) DB::table('smart_ordering_menu_categories')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'menu_id' => $menuId,
+            'public_id' => (string) Str::uuid(),
+            'name_en' => 'Recommendation category',
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $publicId = (string) Str::uuid();
+        DB::table('smart_ordering_menu_items')->insert([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'category_id' => $categoryId,
+            'public_id' => $publicId,
+            'source_product_id' => $productId,
+            'name_en' => 'Recommended extra',
+            'is_visible' => true,
+            'sold_out' => $soldOut,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $publicId;
     }
 
     /** @return array{0:string,1:string} */
