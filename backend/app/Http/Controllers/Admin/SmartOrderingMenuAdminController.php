@@ -11,6 +11,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingModifierOption;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
+use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
@@ -32,6 +33,7 @@ final class SmartOrderingMenuAdminController extends Controller
         TenantContextResolver $tenants,
         SmartOrderingSiteService $sites,
         SmartOrderingMenuRevisionService $revisions,
+        SmartOrderingPriceResolver $prices,
     ): View {
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
@@ -86,6 +88,12 @@ final class SmartOrderingMenuAdminController extends Controller
             ->unique()
             ->values();
 
+        $itemPrices = [];
+        foreach ($menus->flatMap(fn (SmartOrderingMenu $menu) => $menu->categories)
+            ->flatMap(fn (SmartOrderingMenuCategory $category) => $category->items) as $item) {
+            $itemPrices[(int) $item->id] = $prices->displayPrice($site, $item)['amount'];
+        }
+
         $productLabels = DB::table('products')
             ->whereIn('id', $sourceIds)
             ->get(['id', 'name', 'sku'])
@@ -102,6 +110,7 @@ final class SmartOrderingMenuAdminController extends Controller
             'branches' => $branches,
             'menuBranchIds' => $menuBranchIds,
             'productLabels' => $productLabels,
+            'itemPrices' => $itemPrices,
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),
         ]);
     }
