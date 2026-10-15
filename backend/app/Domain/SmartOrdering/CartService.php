@@ -436,6 +436,7 @@ final class CartService
             ->where('public_id', $menuItemPublicId)
             ->first();
         abort_unless($item instanceof SmartOrderingMenuItem, 404, 'Menu item is no longer available.');
+        $this->assertMenuItemBranchScope($item, $branch);
         abort_unless($item->source_product_id !== null, 422, 'Menu item cannot be ordered.');
 
         $publicSelections = [];
@@ -496,6 +497,28 @@ final class CartService
         }
 
         return [(int) $item->source_product_id, $normalized];
+    }
+
+    private function assertMenuItemBranchScope(SmartOrderingMenuItem $item, SmartOrderingBranch $branch): void
+    {
+        $menuId = DB::table('smart_ordering_menu_categories')
+            ->where('id', $item->category_id)
+            ->value('menu_id');
+        abort_unless($menuId !== null, 404);
+
+        $isScoped = DB::table('smart_ordering_menu_branches')
+            ->where('menu_id', $menuId)
+            ->exists();
+        if ($isScoped) {
+            abort_unless(
+                DB::table('smart_ordering_menu_branches')
+                    ->where('menu_id', $menuId)
+                    ->where('branch_id', $branch->getKey())
+                    ->exists(),
+                404,
+                'Menu item is not available for this branch.',
+            );
+        }
     }
 
     private function assertProductBelongsToStore(int $productId, int $storeId): void
