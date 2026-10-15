@@ -204,8 +204,11 @@ class B2cCatalogPage<T> {
   final int perPage;
   final int total;
 
-  int get lastPage =>
-      total <= 0 ? 1 : ((total + perPage - 1) ~/ perPage).clamp(1, total);
+  int get lastPage {
+    if (total <= 0) return 1;
+    final pages = (total + perPage - 1) ~/ perPage;
+    return pages < 1 ? 1 : pages;
+  }
 
   bool get hasNextPage => currentPage < lastPage;
 
