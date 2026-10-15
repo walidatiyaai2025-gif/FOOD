@@ -212,6 +212,24 @@
         .module-table-wrap:has(>table[data-foodex-mobile-table="scroll"]){overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
     }
 
+    /* Enterprise saved-view primitive: shared by bounded operational workspaces. */
+    .foodex-enterprise-viewbar{display:grid;gap:12px;margin-block:16px;padding:14px 16px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
+    .foodex-enterprise-viewbar__head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+    .foodex-enterprise-viewbar__head p{margin:4px 0 0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
+    .foodex-enterprise-viewbar__save>summary{list-style:none;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding-inline:14px;cursor:pointer}
+    .foodex-enterprise-viewbar__save>summary::-webkit-details-marker{display:none}
+    .foodex-enterprise-viewbar__form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,.7fr) auto;gap:10px;align-items:end;margin-top:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-background)}
+    .foodex-enterprise-viewbar__form label{display:grid;gap:5px;font-weight:700;min-width:0}
+    .foodex-enterprise-viewbar__form input,.foodex-enterprise-viewbar__form select{width:100%;min-height:44px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding-inline:10px;background:#fff;font:inherit}
+    .foodex-enterprise-viewbar__items{display:flex;flex-wrap:wrap;gap:8px}
+    .foodex-enterprise-viewbar__item{display:flex;align-items:center;gap:7px;min-width:0;padding:6px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff}
+    .foodex-enterprise-viewbar__item>a{min-height:32px;display:inline-flex;align-items:center;padding-inline:7px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none}
+    .foodex-enterprise-viewbar__item form{margin:0}
+    .foodex-enterprise-viewbar__delete{min-height:32px;border:0;border-radius:999px;padding-inline:9px;background:transparent;color:var(--foodex-danger-text);font:inherit;font-weight:700;cursor:pointer}
+    .foodex-enterprise-viewbar__delete:hover{background:var(--foodex-orange-soft)}
+    .foodex-enterprise-viewbar__empty{color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
+    @media(max-width:767px){.foodex-enterprise-viewbar{padding:12px}.foodex-enterprise-viewbar__head{flex-direction:column}.foodex-enterprise-viewbar__save{width:100%}.foodex-enterprise-viewbar__save>summary{width:100%}.foodex-enterprise-viewbar__form{grid-template-columns:minmax(0,1fr)}.foodex-enterprise-viewbar__items{display:grid}.foodex-enterprise-viewbar__item{border-radius:12px;flex-wrap:wrap}.foodex-enterprise-viewbar__item>a{flex:1 1 150px}}
+
 </style>
 
 <script id="foodex-mobile-web-foundation">
