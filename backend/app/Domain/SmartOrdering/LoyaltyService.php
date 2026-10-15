@@ -83,7 +83,7 @@ final class LoyaltyService
             $balance = (int) $account->balance + $points;
             $expiresAt = $rule['expiry_days'] === null ? null : now()->addDays($rule['expiry_days']);
 
-            DB::table('smart_ordering_loyalty_ledger')->insert([
+            $earnLedgerId = (int) DB::table('smart_ordering_loyalty_ledger')->insertGetId([
                 'account_id' => $account->id,
                 'site_id' => $site->id,
                 'customer_id' => $order->customer_id,
@@ -96,6 +96,16 @@ final class LoyaltyService
                 'balance_after' => $balance,
                 'idempotency_key' => $key,
                 'metadata' => json_encode(['grand_total' => (float) $order->grand_total], JSON_THROW_ON_ERROR),
+                'expires_at' => $expiresAt,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('smart_ordering_loyalty_lots')->insert([
+                'account_id' => $account->id,
+                'earn_ledger_id' => $earnLedgerId,
+                'original_points' => $points,
+                'remaining_points' => $points,
                 'expires_at' => $expiresAt,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -166,6 +176,7 @@ final class LoyaltyService
             }
 
             $balance = (int) $account->balance - $cost;
+            $allocations = $this->consumeLots((int) $account->id, $cost);
             DB::table('smart_ordering_loyalty_ledger')->insert([
                 'account_id' => $account->id,
                 'site_id' => $site->id,
@@ -178,7 +189,10 @@ final class LoyaltyService
                 'points' => -$cost,
                 'balance_after' => $balance,
                 'idempotency_key' => $key,
-                'metadata' => json_encode(['reward_name' => (string) $reward->name_en], JSON_THROW_ON_ERROR),
+                'metadata' => json_encode([
+                    'reward_name' => (string) $reward->name_en,
+                    'earning_allocations' => $allocations,
+                ], JSON_THROW_ON_ERROR),
                 'expires_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -227,8 +241,23 @@ final class LoyaltyService
                 return ['points_reversed' => abs((int) $existing->points), 'balance' => (int) $existing->balance_after];
             }
 
-            $reversed = min((int) $earned->points, max(0, (int) $account->balance));
+            $lot = DB::table('smart_ordering_loyalty_lots')
+                ->where('earn_ledger_id', $earned->id)
+                ->lockForUpdate()
+                ->first(['id', 'original_points', 'remaining_points']);
+
+            $available = $lot === null
+                ? (int) $earned->points
+                : (int) $lot->remaining_points;
+            $reversed = min($available, max(0, (int) $account->balance));
             $balance = (int) $account->balance - $reversed;
+
+            if ($lot !== null) {
+                DB::table('smart_ordering_loyalty_lots')->where('id', $lot->id)->update([
+                    'remaining_points' => 0,
+                    'updated_at' => now(),
+                ]);
+            }
 
             DB::table('smart_ordering_loyalty_ledger')->insert([
                 'account_id' => $account->id,
@@ -280,6 +309,9 @@ final class LoyaltyService
                 throw ValidationException::withMessages(['points' => ['Adjustment cannot make loyalty balance negative.']]);
             }
 
+            $allocations = $points < 0
+                ? $this->consumeLots((int) $account->id, abs($points))
+                : [];
             $key = 'adjust:'.Str::uuid();
             DB::table('smart_ordering_loyalty_ledger')->insert([
                 'account_id' => $account->id,
@@ -293,7 +325,10 @@ final class LoyaltyService
                 'points' => $points,
                 'balance_after' => $balance,
                 'idempotency_key' => $key,
-                'metadata' => json_encode(['reason' => mb_substr(trim($reason), 0, 500)], JSON_THROW_ON_ERROR),
+                'metadata' => json_encode([
+                    'reason' => mb_substr(trim($reason), 0, 500),
+                    'earning_allocations' => $allocations,
+                ], JSON_THROW_ON_ERROR),
                 'expires_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
