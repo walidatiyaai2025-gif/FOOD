@@ -24,6 +24,14 @@ return [
         'json' => 'Enter a valid JSON value.',
         'non_negative_price' => 'Prices cannot be negative.',
     ],
+    'modifier_kinds' => [
+        'modifier' => 'Modifier',
+        'size' => 'Size',
+        'variant' => 'Variant',
+        'extra' => 'Extra',
+        'ingredient' => 'Ingredient',
+        'unknown' => 'Unsupported legacy type — choose a supported type',
+    ],
     'minimum' => 'Minimum',
     'maximum' => 'Maximum',
 ];

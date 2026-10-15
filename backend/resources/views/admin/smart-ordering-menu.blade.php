@@ -33,6 +33,7 @@
 <body>
 @php
     $isAr = app()->getLocale()==='ar';
+    $modifierKindValues = ['modifier', 'size', 'variant', 'extra', 'ingredient'];
     $localized = static function ($model, string $field = 'name') use ($isAr): string {
         $primary = data_get($model, $field.'_'.($isAr ? 'ar' : 'en'));
         $fallback = data_get($model, $field.'_'.($isAr ? 'en' : 'ar'));
@@ -312,7 +313,7 @@
                                 <div class="so-grid">
                                     <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
                                     <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
-                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}">{{ ucfirst($kind) }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach($modifierKindValues as $kind)<option value="{{ $kind }}">{{ __('smart_ordering_menu.modifier_kinds.'.$kind) }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single">{{ $isAr?'واحد':'Single' }}</option><option value="multiple">{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
                                     <label>{{ $isAr?'الحد الأدنى':'Min' }}<input class="foodex-control" type="number" min="0" name="min_selections" value="0" required></label>
                                     <label>{{ $isAr?'الحد الأقصى':'Max' }}<input class="foodex-control" type="number" min="1" name="max_selections" value="1" required></label>
@@ -330,7 +331,7 @@
                                 <div class="so-grid">
                                     <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $group->name_ar }}"></label>
                                     <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $group->name_en }}" required></label>
-                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}" @selected($group->kind===$kind)>{{ ucfirst($kind) }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@if(!in_array($group->kind, $modifierKindValues, true))<option value="{{ $group->kind }}" selected disabled>{{ __('smart_ordering_menu.modifier_kinds.unknown') }}</option>@endif @foreach($modifierKindValues as $kind)<option value="{{ $kind }}" @selected($group->kind===$kind)>{{ __('smart_ordering_menu.modifier_kinds.'.$kind) }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single" @selected($group->selection_type==='single')>{{ $isAr?'واحد':'Single' }}</option><option value="multiple" @selected($group->selection_type==='multiple')>{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
                                     <label>{{ __('smart_ordering_menu.minimum') }}<input class="foodex-control" type="number" min="0" name="min_selections" value="{{ $group->min_selections }}" required></label>
                                     <label>{{ __('smart_ordering_menu.maximum') }}<input class="foodex-control" type="number" min="1" name="max_selections" value="{{ $group->max_selections }}" required></label>
