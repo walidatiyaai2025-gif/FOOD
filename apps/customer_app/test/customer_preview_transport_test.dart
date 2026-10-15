@@ -147,13 +147,12 @@ void main() {
         channel: CustomerChannel.b2c,
       );
 
-      final request =
-          http.Request(
-              'GET',
-              Uri.parse('https://foodex.example/api/v1/stores/7/products'),
-            )
-            ..headers['Authorization'] = 'Bearer must-not-leave-preview-host'
-            ..headers['Cookie'] = 'secret=cookie';
+      final request = http.Request(
+        'GET',
+        Uri.parse('https://foodex.example/api/v1/stores/7/products'),
+      )
+        ..headers['Authorization'] = 'Bearer must-not-leave-preview-host'
+        ..headers['Cookie'] = 'secret=cookie';
 
       final response = await client.send(request);
       await response.stream.drain<void>();
@@ -363,20 +362,21 @@ class _StorefrontFake implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async => {
-    'retail_stores': [
-      {'id': 7, 'name': 'Allowed'},
-      {'id': 8, 'name': 'Other'},
-    ],
-    'wholesale_stores': [
-      {'id': 1, 'name': 'Wholesale'},
-    ],
-    'entitlements': {
-      'direct_b2b': true,
-      'retail_context_ids': [7, 8],
-      'support_access': true,
-    },
-  };
+  }) async =>
+      {
+        'retail_stores': [
+          {'id': 7, 'name': 'Allowed'},
+          {'id': 8, 'name': 'Other'},
+        ],
+        'wholesale_stores': [
+          {'id': 1, 'name': 'Wholesale'},
+        ],
+        'entitlements': {
+          'direct_b2b': true,
+          'retail_context_ids': [7, 8],
+          'support_access': true,
+        },
+      };
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => {};

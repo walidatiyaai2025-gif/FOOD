@@ -18,26 +18,24 @@ void main() {
     String? navigatedQuery;
 
     final navigation = RetailCatalogNavigation(
-      openProducts:
-          (
-            BuildContext context, {
-            required int storeId,
-            String? query,
-            int? categoryId,
-          }) {
-            navigatedStore = storeId;
-            navigatedQuery = query;
-            navigatedCategory = categoryId;
-          },
-      openProduct:
-          (
-            BuildContext context, {
-            required int storeId,
-            required int productId,
-          }) {
-            navigatedStore = storeId;
-            navigatedProduct = productId;
-          },
+      openProducts: (
+        BuildContext context, {
+        required int storeId,
+        String? query,
+        int? categoryId,
+      }) {
+        navigatedStore = storeId;
+        navigatedQuery = query;
+        navigatedCategory = categoryId;
+      },
+      openProduct: (
+        BuildContext context, {
+        required int storeId,
+        required int productId,
+      }) {
+        navigatedStore = storeId;
+        navigatedProduct = productId;
+      },
       openCart: (BuildContext context, {required int storeId}) {
         navigatedStore = storeId;
       },
@@ -156,16 +154,15 @@ void main() {
           storeId: 7,
           productId: 42,
           catalogApi: _FakeCatalogApi(),
-          onAddToCart:
-              ({
-                required int storeId,
-                required int productId,
-                required double quantity,
-              }) async {
-                capturedStoreId = storeId;
-                capturedProductId = productId;
-                capturedQuantity = quantity;
-              },
+          onAddToCart: ({
+            required int storeId,
+            required int productId,
+            required double quantity,
+          }) async {
+            capturedStoreId = storeId;
+            capturedProductId = productId;
+            capturedQuantity = quantity;
+          },
         ),
       ),
     );
@@ -474,15 +471,16 @@ class _PagedCollectionCatalogApi extends _FakeCatalogApi
     String? direction,
     int page = 1,
     int perPage = 20,
-  }) async => B2cCatalogPage<B2cProduct>.single(
-    await products(
-      storeId,
-      query: query,
-      categoryId: categoryId,
-      sort: sort,
-      direction: direction,
-    ),
-  );
+  }) async =>
+      B2cCatalogPage<B2cProduct>.single(
+        await products(
+          storeId,
+          query: query,
+          categoryId: categoryId,
+          sort: sort,
+          direction: direction,
+        ),
+      );
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {

@@ -228,7 +228,9 @@ void main() {
       },
     );
 
-    test('guest Login or Register returns to checkout and merges cart exactly once', () async {
+    test(
+        'guest Login or Register returns to checkout and merges cart exactly once',
+        () async {
       final storage = _MemorySecureStore();
       await SecureCustomerGuestCartTokenStore(storage: storage)
           .writeToken(7, 'guest-before-auth-token');

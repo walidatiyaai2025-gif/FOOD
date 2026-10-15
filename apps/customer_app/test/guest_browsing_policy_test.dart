@@ -40,7 +40,9 @@ void main() {
     },
   );
 
-  test('authenticated retail browse carries bearer token without changing guest routes', () async {
+  test(
+      'authenticated retail browse carries bearer token without changing guest routes',
+      () async {
     http.Request? captured;
     final api = HttpB2cCatalogApi(
       baseUrl: 'https://foodex.example',

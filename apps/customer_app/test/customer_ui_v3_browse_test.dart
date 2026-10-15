@@ -31,25 +31,23 @@ void main() {
                 categoryId: 3,
                 catalogApi: api,
                 navigation: RetailCatalogNavigation(
-                  openProduct:
-                      (
-                        BuildContext context, {
-                        required int storeId,
-                        required int productId,
-                      }) {
-                        openedStore = storeId;
-                        openedProduct = productId;
-                      },
+                  openProduct: (
+                    BuildContext context, {
+                    required int storeId,
+                    required int productId,
+                  }) {
+                    openedStore = storeId;
+                    openedProduct = productId;
+                  },
                 ),
-                onAddToCart:
-                    ({
-                      required int storeId,
-                      required int productId,
-                      required double quantity,
-                    }) async {
-                      addedStore = storeId;
-                      addedProduct = productId;
-                    },
+                onAddToCart: ({
+                  required int storeId,
+                  required int productId,
+                  required double quantity,
+                }) async {
+                  addedStore = storeId;
+                  addedProduct = productId;
+                },
               ),
             ),
           ),
@@ -165,16 +163,15 @@ void main() {
                 storeId: 19,
                 productId: 8,
                 catalogApi: _BrowseFakeApi(),
-                onAddToCart:
-                    ({
-                      required int storeId,
-                      required int productId,
-                      required double quantity,
-                    }) async {
-                      capturedStoreId = storeId;
-                      capturedProductId = productId;
-                      capturedQuantity = quantity;
-                    },
+                onAddToCart: ({
+                  required int storeId,
+                  required int productId,
+                  required double quantity,
+                }) async {
+                  capturedStoreId = storeId;
+                  capturedProductId = productId;
+                  capturedQuantity = quantity;
+                },
               ),
             ),
           ),
@@ -215,14 +212,13 @@ void main() {
             child: RetailCatalogProductsScreen(
               storeId: 19,
               catalogApi: api,
-              onAddToCart:
-                  ({
-                    required int storeId,
-                    required int productId,
-                    required double quantity,
-                  }) async {
-                    addCalls++;
-                  },
+              onAddToCart: ({
+                required int storeId,
+                required int productId,
+                required double quantity,
+              }) async {
+                addCalls++;
+              },
             ),
           ),
         ),
@@ -245,14 +241,13 @@ void main() {
               storeId: 19,
               productId: 18,
               catalogApi: api,
-              onAddToCart:
-                  ({
-                    required int storeId,
-                    required int productId,
-                    required double quantity,
-                  }) async {
-                    addCalls++;
-                  },
+              onAddToCart: ({
+                required int storeId,
+                required int productId,
+                required double quantity,
+              }) async {
+                addCalls++;
+              },
             ),
           ),
         ),
@@ -556,14 +551,16 @@ class _PagedBrowseApi extends _BrowseFakeApi implements B2cPagedCatalogApi {
     int storeId, {
     int page = 1,
     int perPage = 20,
-  }) async => B2cCatalogPage<B2cCategory>.single(await categories(storeId));
+  }) async =>
+      B2cCatalogPage<B2cCategory>.single(await categories(storeId));
 
   @override
   Future<B2cCatalogPage<B2cOffer>> offerPage(
     int storeId, {
     int page = 1,
     int perPage = 20,
-  }) async => B2cCatalogPage<B2cOffer>.single(await offers(storeId));
+  }) async =>
+      B2cCatalogPage<B2cOffer>.single(await offers(storeId));
 
   @override
   Future<B2cCatalogPage<B2cProduct>> productPage(
@@ -657,7 +654,8 @@ class _PendingBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) => productsPending.future;
+  }) =>
+      productsPending.future;
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) =>
@@ -698,18 +696,19 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const <B2cProduct>[
-    B2cProduct(
-      id: 18,
-      name: 'Sold Out Coffee',
-      sku: 'OOS-18',
-      price: 2.5,
-      currency: 'KWD',
-      availableQuantity: 0,
-      isAvailable: false,
-      availabilityState: 'OUT_OF_STOCK',
-    ),
-  ];
+  }) async =>
+      const <B2cProduct>[
+        B2cProduct(
+          id: 18,
+          name: 'Sold Out Coffee',
+          sku: 'OOS-18',
+          price: 2.5,
+          currency: 'KWD',
+          availableQuantity: 0,
+          isAvailable: false,
+          availabilityState: 'OUT_OF_STOCK',
+        ),
+      ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
@@ -793,23 +792,25 @@ class _RichDetailApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const <B2cProduct>[
-    B2cProduct(id: 8, name: 'Coffee', sku: 'COF-8', categoryId: 3, price: 2.5),
-    B2cProduct(
-      id: 9,
-      name: 'Coffee Beans',
-      sku: 'COF-9',
-      categoryId: 3,
-      price: 3.5,
-    ),
-    B2cProduct(
-      id: 10,
-      name: 'Coffee Pods',
-      sku: 'COF-10',
-      categoryId: 3,
-      price: 4.5,
-    ),
-  ];
+  }) async =>
+      const <B2cProduct>[
+        B2cProduct(
+            id: 8, name: 'Coffee', sku: 'COF-8', categoryId: 3, price: 2.5),
+        B2cProduct(
+          id: 9,
+          name: 'Coffee Beans',
+          sku: 'COF-9',
+          categoryId: 3,
+          price: 3.5,
+        ),
+        B2cProduct(
+          id: 10,
+          name: 'Coffee Pods',
+          sku: 'COF-10',
+          categoryId: 3,
+          price: 4.5,
+        ),
+      ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
