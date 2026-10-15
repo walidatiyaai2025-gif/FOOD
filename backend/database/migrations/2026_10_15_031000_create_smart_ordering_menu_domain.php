@@ -21,7 +21,7 @@ return new class extends Migration
             $table->boolean('is_visible')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-            $table->unique(['revision_id', 'public_id']);
+            $table->unique(['revision_id', 'public_id'], 'so_menu_rev_public_uidx');
             $table->index(['site_id', 'revision_id', 'is_visible']);
         });
 
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->json('availability_schedule')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-            $table->unique(['revision_id', 'public_id']);
+            $table->unique(['revision_id', 'public_id'], 'so_category_rev_public_uidx');
             $table->index(['menu_id', 'sort_order']);
         });
 
@@ -61,7 +61,7 @@ return new class extends Migration
             $table->json('availability_schedule')->nullable();
             $table->unsignedInteger('sort_order')->nullable();
             $table->timestamps();
-            $table->unique(['category_id', 'branch_id']);
+            $table->unique(['category_id', 'branch_id'], 'so_category_branch_uidx');
         });
 
         Schema::create('smart_ordering_menu_items', function (Blueprint $table): void {
@@ -93,7 +93,7 @@ return new class extends Migration
             $table->json('removable_ingredients')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-            $table->unique(['revision_id', 'public_id']);
+            $table->unique(['revision_id', 'public_id'], 'so_item_rev_public_uidx');
             $table->index(['category_id', 'sort_order']);
             $table->index(['site_id', 'source_product_id']);
         });
@@ -108,7 +108,7 @@ return new class extends Migration
             $table->json('availability_schedule')->nullable();
             $table->unsignedSmallInteger('prep_time_minutes')->nullable();
             $table->timestamps();
-            $table->unique(['item_id', 'branch_id']);
+            $table->unique(['item_id', 'branch_id'], 'so_item_branch_uidx');
         });
 
         Schema::create('smart_ordering_modifier_groups', function (Blueprint $table): void {
@@ -127,7 +127,7 @@ return new class extends Migration
             $table->boolean('is_visible')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-            $table->unique(['revision_id', 'public_id']);
+            $table->unique(['revision_id', 'public_id'], 'so_group_rev_public_uidx');
             $table->index(['item_id', 'sort_order']);
         });
 
@@ -144,7 +144,7 @@ return new class extends Migration
             $table->boolean('sold_out')->default(false);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-            $table->unique(['group_id', 'public_id']);
+            $table->unique(['group_id', 'public_id'], 'so_option_group_public_uidx');
             $table->index(['group_id', 'sort_order']);
         });
 
@@ -156,7 +156,7 @@ return new class extends Migration
             $table->boolean('is_visible')->nullable();
             $table->boolean('sold_out')->nullable();
             $table->timestamps();
-            $table->unique(['option_id', 'branch_id']);
+            $table->unique(['option_id', 'branch_id'], 'so_option_branch_uidx');
         });
     }
 
