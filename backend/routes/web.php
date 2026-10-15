@@ -541,6 +541,11 @@ Route::prefix('admin')
         Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
         Route::delete('/operations/orders/{order}/driver', [OrderOperationsController::class, 'unassign'])->whereNumber('order')->name('operations.orders.unassign');
+        Route::get('/treasury/master-data', [TreasuryMasterController::class, 'index'])->name('treasury.master.index');
+        Route::post('/treasury/cashboxes', [TreasuryMasterController::class, 'storeCashbox'])->middleware('throttle:60,1')->name('treasury.cashboxes.store');
+        Route::patch('/treasury/cashboxes/{cashbox}', [TreasuryMasterController::class, 'updateCashbox'])->whereNumber('cashbox')->middleware('throttle:60,1')->name('treasury.cashboxes.update');
+        Route::post('/treasury/bank-accounts', [TreasuryMasterController::class, 'storeBankAccount'])->middleware('throttle:60,1')->name('treasury.bank-accounts.store');
+        Route::patch('/treasury/bank-accounts/{bankAccount}', [TreasuryMasterController::class, 'updateBankAccount'])->whereNumber('bankAccount')->middleware('throttle:60,1')->name('treasury.bank-accounts.update');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/lookups/{entity}', [ReportController::class, 'lookup'])->whereIn('entity', ['products', 'customers'])->name('reports.lookups');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
