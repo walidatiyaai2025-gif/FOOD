@@ -324,6 +324,20 @@ final class LoyaltyService
         return ['points' => $points, 'balance' => $result['balance']];
     }
 
+    public function expireAllDue(): int
+    {
+        $expired = 0;
+        foreach (SmartOrderingSite::query()->where('master_enabled', true)->cursor() as $site) {
+            if (! $this->runtime->allowsPublic($site, Module::LOYALTY, true, true)) {
+                continue;
+            }
+
+            $expired += $this->expireDue($site);
+        }
+
+        return $expired;
+    }
+
     public function expireDue(SmartOrderingSite $site, ?int $customerId = null): int
     {
         $this->assertEnabled($site);
@@ -403,12 +417,14 @@ final class LoyaltyService
             ->where('scope_key', 'site')
             ->first();
 
+        $configuredExpiry = $row?->expiry_days === null
+            ? config('smart_ordering.loyalty.default_expiry_days')
+            : $row->expiry_days;
+
         return [
             'points_per_currency_unit' => (float) ($row->points_per_currency_unit ?? config('smart_ordering.loyalty.default_points_per_currency_unit', 1)),
             'minimum_spend' => (float) ($row->minimum_spend ?? config('smart_ordering.loyalty.default_minimum_spend', 0)),
-            'expiry_days' => $row?->expiry_days === null
-                ? config('smart_ordering.loyalty.default_expiry_days')
-                : (int) $row->expiry_days,
+            'expiry_days' => $configuredExpiry === null ? null : (int) $configuredExpiry,
             'is_active' => $row === null ? true : (bool) $row->is_active,
         ];
     }
