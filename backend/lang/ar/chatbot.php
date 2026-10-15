@@ -46,7 +46,7 @@ return [
         'mode_hybrid' => 'هجين — اختيارات + كتابة طبيعية',
         'default_locale' => 'لغة العميل الافتراضية',
         'arabic' => 'العربية',
-        'english' => 'English',
+        'english' => 'الإنجليزية',
         'working_hours' => 'ساعات العمل',
         'from' => 'من',
         'to' => 'إلى',
