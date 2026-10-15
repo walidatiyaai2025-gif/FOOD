@@ -294,6 +294,7 @@ final class CampaignService
             'attachment_metadata' => json_encode([
                 'template_name' => $template->provider_name,
                 'template_locale' => $template->locale,
+                'language' => strtolower((string) $template->locale) === 'ar' ? 'ar' : 'en_US',
                 'purpose' => Capability::CAMPAIGNS->value,
                 'campaign_id' => $campaign->id,
                 'campaign_recipient_id' => $recipientId,
