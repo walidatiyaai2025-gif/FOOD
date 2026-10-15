@@ -35,18 +35,28 @@ final class VanOrderController extends Controller
         $validated = $request->validate([
             'store_id' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
         $storeId = $this->sellerStoreId($request, $validated['store_id'] ?? null);
         $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
         $search = trim((string) ($validated['q'] ?? ''));
+        $page = (int) ($validated['page'] ?? 1);
+        $perPage = (int) ($validated['per_page'] ?? 50);
 
-        $rows = $type === 'b2b'
-            ? $this->b2bCatalog($customer, $storeId, $search)
-            : $this->b2cCatalog($customer, $storeId, $search);
+        $result = $type === 'b2b'
+            ? $this->b2bCatalog($customer, $storeId, $search, $page, $perPage)
+            : $this->b2cCatalog($customer, $storeId, $search, $page, $perPage);
 
         return response()->json([
-            'data' => $rows,
+            'data' => $result['data'],
             'currency' => 'EGP',
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'returned' => count($result['data']),
+                'has_more' => $result['has_more'],
+            ],
         ]);
     }
 
@@ -295,8 +305,14 @@ final class VanOrderController extends Controller
         return $storeId > 0 ? $storeId : null;
     }
 
-    /** @return list<array<string, mixed>> */
-    private function b2bCatalog(int $customer, int $storeId, string $search): array
+    /** @return array{data:list<array<string, mixed>>,has_more:bool} */
+    private function b2bCatalog(
+        int $customer,
+        int $storeId,
+        string $search,
+        int $page,
+        int $perPage,
+    ): array
     {
         $b2bCustomer = B2bCustomer::query()->find($customer);
         abort_unless($b2bCustomer instanceof B2bCustomer, 404);
@@ -320,13 +336,18 @@ final class VanOrderController extends Controller
                 });
             })
             ->orderBy('products.name')
-            ->limit(300)
+            ->orderBy('products.id')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage + 1)
             ->get([
                 'products.id',
                 'products.name',
                 'products.sku',
                 'products.barcode',
             ]);
+
+        $hasMore = $rows->count() > $perPage;
+        $rows = $rows->take($perPage)->values();
 
         $pricing = $this->b2bPrices->resolveMany(
             $b2bCustomer,
@@ -339,35 +360,44 @@ final class VanOrderController extends Controller
                 ->all(),
         );
 
-        return $rows
-            ->filter(static fn (object $row): bool => isset($pricing[$storeId.':'.(int) $row->id]))
-            ->map(function (object $row) use ($pricing, $storeId): array {
-                $price = $pricing[$storeId.':'.(int) $row->id];
+        return [
+            'data' => $rows
+                ->filter(static fn (object $row): bool => isset($pricing[$storeId.':'.(int) $row->id]))
+                ->map(function (object $row) use ($pricing, $storeId): array {
+                    $price = $pricing[$storeId.':'.(int) $row->id];
 
-                return [
-                    'id' => (int) $row->id,
-                    'name' => (string) $row->name,
-                    'sku' => (string) $row->sku,
-                    'barcode' => $row->barcode,
-                    'unit_price' => (float) $price['price'],
-                    'minimum_quantity' => (float) $price['minimum_quantity'],
-                    'ordering_increment' => (float) $price['ordering_increment'],
-                    ...$this->availability->forStoreProduct($storeId, (int) $row->id),
-                ];
-            })
-            ->values()
-            ->all();
+                    return [
+                        'id' => (int) $row->id,
+                        'name' => (string) $row->name,
+                        'sku' => (string) $row->sku,
+                        'barcode' => $row->barcode,
+                        'unit_price' => (float) $price['price'],
+                        'minimum_quantity' => (float) $price['minimum_quantity'],
+                        'ordering_increment' => (float) $price['ordering_increment'],
+                        ...$this->availability->forStoreProduct($storeId, (int) $row->id),
+                    ];
+                })
+                ->values()
+                ->all(),
+            'has_more' => $hasMore,
+        ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function b2cCatalog(int $customer, int $storeId, string $search): array
+    /** @return array{data:list<array<string, mixed>>,has_more:bool} */
+    private function b2cCatalog(
+        int $customer,
+        int $storeId,
+        string $search,
+        int $page,
+        int $perPage,
+    ): array
     {
         abort_unless(
             B2cCustomer::query()->whereKey($customer)->where('store_id', $storeId)->exists(),
             404,
         );
 
-        return DB::table('store_products')
+        $rows = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
@@ -386,26 +416,36 @@ final class VanOrderController extends Controller
                 });
             })
             ->orderBy('products.name')
-            ->limit(300)
+            ->orderBy('products.id')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage + 1)
             ->get([
                 'products.id',
                 'products.name',
                 'products.sku',
                 'products.barcode',
                 'store_products.price as unit_price',
-            ])
-            ->map(fn (object $row): array => [
-                'id' => (int) $row->id,
-                'name' => (string) $row->name,
-                'sku' => (string) $row->sku,
-                'barcode' => $row->barcode,
-                'unit_price' => (float) ($row->unit_price ?? 0),
-                'minimum_quantity' => 1.0,
-                'ordering_increment' => 1.0,
-                ...$this->availability->forStoreProduct($storeId, (int) $row->id),
-            ])
-            ->values()
-            ->all();
+            ]);
+
+        $hasMore = $rows->count() > $perPage;
+
+        return [
+            'data' => $rows
+                ->take($perPage)
+                ->map(fn (object $row): array => [
+                    'id' => (int) $row->id,
+                    'name' => (string) $row->name,
+                    'sku' => (string) $row->sku,
+                    'barcode' => $row->barcode,
+                    'unit_price' => (float) ($row->unit_price ?? 0),
+                    'minimum_quantity' => 1.0,
+                    'ordering_increment' => 1.0,
+                    ...$this->availability->forStoreProduct($storeId, (int) $row->id),
+                ])
+                ->values()
+                ->all(),
+            'has_more' => $hasMore,
+        ];
     }
 
     /** @return array<string, mixed> */
