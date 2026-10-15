@@ -82,7 +82,7 @@
 @can('roles.manage')
 @if(in_array((int) $role->id, $editableRoleIds, true))
 <form method="post" action="{{ route('admin.security.roles.update',$role) }}">@csrf @method('patch')<div class="filters"><input class="grow" name="name" value="{{ $role->name }}" required>@if($role->is_system)<input type="hidden" name="scope" value="{{ $role->scope }}"><span class="note">{{ __('admin.security.scope') }}: {{ $role->scope === 'global' ? __('admin.security.scope_global') : __('admin.security.scope_store') }}</span>@else<select name="scope"><option value="global" @selected($role->scope==='global')>{{ __('admin.security.scope_global') }}</option><option value="store" @selected($role->scope==='store')>{{ __('admin.security.scope_store') }}</option></select>@endif @if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}<input type="hidden" name="is_active" value="1"><span class="note">{{ __('admin.security.super_admin_protected') }}</span>@else<label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($role->is_active)> {{ __('admin.security.active') }}</label>@endif</div><textarea name="description">{{ $role->description }}</textarea>
-@if($role->code==='SUPER_ADMIN')
+@if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}
 <div class="note">{{ __('security_permissions.super_admin_permissions_protected') }}</div>
 @else
 @include('admin._security-permission-picker', [
