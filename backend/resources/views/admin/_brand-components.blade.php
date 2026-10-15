@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.querySelectorAll('[data-foodex-server-error="1"]').forEach((node) => node.remove());
     };
-    const applyServerValidation = (messages) => {
+    const applyServerValidation = (messages, scope = null) => {
         const entries = feedbackEntries(messages);
         const grouped = new Map();
         entries.forEach((entry) => {
@@ -798,9 +798,11 @@ document.addEventListener('DOMContentLoaded', () => {
             grouped.get(entry.key).push(entry.message);
         });
         const associations = new Map();
+        const scopedRoot = scope instanceof Element ? scope : null;
 
         grouped.forEach((keyMessages, key) => {
-            const controls = controlsForValidationKey(key);
+            const controls = controlsForValidationKey(key)
+                .filter((field) => !scopedRoot || scopedRoot.contains(field));
             controls.forEach((field, index) => {
                 const actualKey = normalizeValidationKey(field.name) || key;
                 const errorId = validationErrorId(actualKey);
@@ -968,7 +970,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!clean.length) return;
         window.FoodexFeedbackClose?.();
 
-        const associations = kind === 'error' ? applyServerValidation(messages) : new Map();
+        const validationScope = kind === 'error' && document.activeElement instanceof HTMLElement
+            ? document.activeElement.closest('form')
+            : null;
+        const associations = kind === 'error' ? applyServerValidation(messages, validationScope) : new Map();
         const overlay = document.createElement('div');
         overlay.className = 'foodex-feedback-modal modal fade show '+(kind === 'success' ? 'is-success' : 'is-error');
         overlay.setAttribute('role','dialog');
