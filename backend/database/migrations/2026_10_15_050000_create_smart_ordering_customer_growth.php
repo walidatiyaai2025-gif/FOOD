@@ -80,6 +80,17 @@ return new class extends Migration
             $table->index(['order_id', 'type']);
         });
 
+        Schema::create('smart_ordering_loyalty_lots', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('account_id')->constrained('smart_ordering_loyalty_accounts')->cascadeOnDelete();
+            $table->foreignId('earn_ledger_id')->unique()->constrained('smart_ordering_loyalty_ledger')->cascadeOnDelete();
+            $table->unsignedBigInteger('original_points');
+            $table->unsignedBigInteger('remaining_points');
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+            $table->index(['account_id', 'expires_at', 'remaining_points'], 'so_loyalty_lots_expiry_idx');
+        });
+
         Schema::create('smart_ordering_review_settings', function (Blueprint $table): void {
             $table->foreignId('site_id')->primary()->constrained('smart_ordering_sites')->cascadeOnDelete();
             $table->boolean('request_enabled')->default(true);
@@ -126,6 +137,7 @@ return new class extends Migration
         Schema::dropIfExists('smart_ordering_service_recovery_cases');
         Schema::dropIfExists('smart_ordering_feedback');
         Schema::dropIfExists('smart_ordering_review_settings');
+        Schema::dropIfExists('smart_ordering_loyalty_lots');
         Schema::dropIfExists('smart_ordering_loyalty_ledger');
         Schema::dropIfExists('smart_ordering_loyalty_rewards');
         Schema::dropIfExists('smart_ordering_loyalty_accounts');
