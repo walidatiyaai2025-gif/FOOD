@@ -38,7 +38,7 @@ final class Wave0PerformanceEvidenceContractTest extends TestCase
         ];
 
         foreach ($evidence as $area => $path) {
-            $this->assertFileExists(base_path($path), "Missing Wave 0 performance evidence owner [{$area}]: {$path}");
+            $this->assertFileExists(base_path('../'.$path), "Missing Wave 0 performance evidence owner [{$area}]: {$path}");
         }
     }
 
