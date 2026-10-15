@@ -769,6 +769,63 @@ final class OrderOperationsController extends Controller
         return response()->json(['data' => $items, 'meta' => ['page' => $page, 'has_more' => $rows->count() > $limit]]);
     }
 
+    /** @return array<string,mixed> */
+    private function newOrderEditOptions(Order $order): array
+    {
+        $channel = strtolower((string) $order->channel);
+        $options = $this->newOrderStoreData($channel, (int) $order->store_id);
+        $customerTable = $channel === 'b2b' ? 'b2b_customers' : 'b2c_customers';
+        $customerId = $channel === 'b2b' ? (int) $order->b2b_customer_id : (int) $order->b2c_customer_id;
+        $customer = DB::table($customerTable)->where('id', $customerId)->first(['id', 'name', 'email', 'phone']);
+        $options['customers'] = $customer === null ? [] : [[
+            'id' => (int) $customer->id,
+            'name' => trim((string) $customer->name),
+            'meta' => implode(' · ', array_values(array_filter([
+                trim((string) ($customer->phone ?? '')),
+                trim((string) ($customer->email ?? '')),
+            ], static fn (string $value): bool => $value !== ''))),
+        ]];
+
+        $productIds = DB::table('order_items')
+            ->where('order_id', $order->getKey())
+            ->orderBy('id')
+            ->pluck('product_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $options['products'] = $productIds === [] ? [] : DB::table('products')
+            ->whereIn('id', $productIds)
+            ->orderByRaw('FIELD(id,'.implode(',', array_fill(0, count($productIds), '?')).')', $productIds)
+            ->get(['id', 'sku', 'name', 'is_active'])
+            ->map(static fn (object $product): array => [
+                'id' => (int) $product->id,
+                'sku' => (string) $product->sku,
+                'name' => (string) $product->name,
+                'active' => (bool) $product->is_active,
+            ])
+            ->all();
+
+        $options['addresses'] = [];
+        if ($order->address_id !== null) {
+            $address = DB::table('addresses')->where('id', $order->address_id)
+                ->first(['id', 'label', 'line1', 'city', 'area', 'deleted_at']);
+            if ($address !== null) {
+                $label = trim((string) ($address->label ?? ''));
+                $parts = array_values(array_filter([
+                    trim((string) ($address->area ?? '')),
+                    trim((string) ($address->line1 ?? '')),
+                    trim((string) ($address->city ?? '')),
+                ], static fn (string $value): bool => $value !== ''));
+                $options['addresses'][] = [
+                    'id' => (int) $address->id,
+                    'label' => trim(($label !== '' ? $label.' · ' : '').implode(', ', $parts)) ?: 'Address',
+                    'active' => $address->deleted_at === null,
+                ];
+            }
+        }
+
+        return $options;
+    }
+
     public function remindDriver(
         Request $request,
         int $order,
@@ -1808,7 +1865,7 @@ final class OrderOperationsController extends Controller
             'customer_note' => $order->customer_note,
             'items' => $items,
             'edit_options' => $row['can_edit']
-                ? $this->newOrderStoreData(strtolower((string) $order->channel), (int) $order->store_id)
+                ? $this->newOrderEditOptions($order)
                 : null,
             'delivery_address' => $deliveryAddress,
             'history' => $history,
