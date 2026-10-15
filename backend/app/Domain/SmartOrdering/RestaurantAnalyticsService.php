@@ -88,6 +88,7 @@ final class RestaurantAnalyticsService
         $customers = $this->dimensionMix($storeIds, $filters, $from, $to, 'customer_type_key');
         $offers = $this->offerPerformance($storeIds, $filters, $from, $to);
         $peakHours = $this->peakHours($storeIds, $filters, $from, $to);
+        $repeatTrend = $this->repeatOrderTrend($storeIds, $filters, $from, $to);
 
         return [
             'filters' => $filters,
@@ -101,7 +102,7 @@ final class RestaurantAnalyticsService
             'customer_mix' => $customers,
             'offers' => $offers,
             'peak_hours' => $peakHours,
-            'insights' => $this->insights($kpis, $products, $sources),
+            'insights' => $this->insights($kpis, $products, $sources, $repeatTrend),
             'formula_version' => 'smart_ordering_analytics_v1',
             'formulas' => [
                 'conversion_rate' => 'order_created / storefront_viewed',
@@ -510,8 +511,47 @@ final class RestaurantAnalyticsService
             ])->all();
     }
 
+    /**
+     * @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return array{current:int,previous:int,change_percent:float}
+     */
+    private function repeatOrderTrend(
+        array $storeIds,
+        array $filters,
+        CarbonImmutable $from,
+        CarbonImmutable $to,
+    ): array {
+        if (! empty($filters['product_id']) || ! empty($filters['category_id'])) {
+            return ['current' => 0, 'previous' => 0, 'change_percent' => 0.0];
+        }
+
+        $days = max(1, $from->startOfDay()->diffInDays($to->startOfDay()) + 1);
+        $previousTo = $from->subDay()->endOfDay();
+        $previousFrom = $previousTo->subDays($days - 1)->startOfDay();
+
+        $count = function (CarbonImmutable $start, CarbonImmutable $end) use ($storeIds, $filters): int {
+            $query = DB::table('smart_ordering_analytics_daily')
+                ->whereIn('store_id', $storeIds)
+                ->where('event_name', 'order_created')
+                ->where('customer_type_key', 'repeat')
+                ->whereBetween('event_date', [$start->toDateString(), $end->toDateString()]);
+            $this->applyRollupDimensions($query, $filters, ['customer_type']);
+
+            return (int) $query->sum('event_count');
+        };
+
+        $current = $count($from, $to);
+        $previous = $count($previousFrom, $previousTo);
+        $change = $previous > 0
+            ? round((($current - $previous) / $previous) * 100, 2)
+            : ($current > 0 ? 100.0 : 0.0);
+
+        return ['current' => $current, 'previous' => $previous, 'change_percent' => $change];
+    }
+
     /** @return list<array{code:string,severity:string,message:string}> */
-    private function insights(array $kpis, array $products, array $sources): array
+    private function insights(array $kpis, array $products, array $sources, array $repeatTrend): array
     {
         $insights = [];
         if (($kpis['checkout_starts'] ?? 0) > 0) {
@@ -533,6 +573,18 @@ final class RestaurantAnalyticsService
             ];
         }
 
+        $topAddOn = collect($products)
+            ->filter(static fn (array $row): bool => ($row['adds'] ?? 0) > 0)
+            ->sortByDesc('adds')
+            ->first();
+        if (is_array($topAddOn)) {
+            $insights[] = [
+                'code' => 'top_add_on',
+                'severity' => 'positive',
+                'message' => 'Top add-on: '.($topAddOn['name'] ?: '#'.$topAddOn['product_id']).' with '.$topAddOn['adds'].' cart adds.',
+            ];
+        }
+
         $topSource = collect($sources)->sortByDesc('aov')->first();
         if (is_array($topSource) && $topSource['orders'] >= 2) {
             $label = trim(($topSource['source'] ?: 'direct').' '.($topSource['campaign'] ?: ''));
@@ -540,6 +592,16 @@ final class RestaurantAnalyticsService
                 'code' => 'source_high_aov',
                 'severity' => 'positive',
                 'message' => "{$label} has the highest AOV in the selected period.",
+            ];
+        }
+
+        if (($repeatTrend['current'] ?? 0) > 0 || ($repeatTrend['previous'] ?? 0) > 0) {
+            $change = (float) ($repeatTrend['change_percent'] ?? 0);
+            $direction = $change >= 0 ? 'increased' : 'decreased';
+            $insights[] = [
+                'code' => 'repeat_trend',
+                'severity' => $change >= 0 ? 'positive' : 'warning',
+                'message' => 'Repeat orders '.$direction.' by '.abs($change).'% versus the previous equal period.',
             ];
         }
 
