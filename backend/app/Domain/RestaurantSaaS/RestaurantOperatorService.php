@@ -182,10 +182,12 @@ final class RestaurantOperatorService
             $actor,
             $store,
             [
+                'store_id' => (int) $store->getKey(),
                 'case_reference' => (string) $grant->case_reference,
                 'expires_at' => $grant->expires_at?->toIso8601String(),
             ],
             [
+                'store_id' => (int) $store->getKey(),
                 'case_reference' => (string) $grant->case_reference,
                 'revoked_at' => $grant->revoked_at?->toIso8601String(),
             ],
@@ -250,6 +252,7 @@ final class RestaurantOperatorService
         }
 
         $before = [
+            'store_id' => (int) $store->getKey(),
             'lifecycle_state' => $current,
             'canceled_at' => $profile->canceled_at?->toIso8601String(),
             'offboarded_at' => $profile->offboarded_at?->toIso8601String(),
@@ -295,6 +298,7 @@ final class RestaurantOperatorService
             $store,
             $before,
             [
+                'store_id' => (int) $store->getKey(),
                 'lifecycle_state' => (string) $profile->lifecycle_state,
                 'canceled_at' => $profile->canceled_at?->toIso8601String(),
                 'offboarded_at' => $profile->offboarded_at?->toIso8601String(),
