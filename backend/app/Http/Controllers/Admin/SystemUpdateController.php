@@ -143,7 +143,7 @@ final class SystemUpdateController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        if ($installed instanceof SystemVersion && is_string($installed->version) && $installed->version !== '') {
+        if ($installed instanceof SystemVersion && $installed->version !== '') {
             $version = UpdateVersion::normalizeInstalled($installed->version);
 
             if ($version !== $installed->version && UpdateVersion::isCanonical($version)) {
