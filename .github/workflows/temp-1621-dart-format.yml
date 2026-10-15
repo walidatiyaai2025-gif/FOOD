@@ -1,0 +1,35 @@
+name: TEMP 1621 Dart Format
+
+on:
+  push:
+    branches:
+      - fix/1621-van-payment-method-localization
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, '[dartfmt-1621]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/1621-van-payment-method-localization
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+      - name: Apply canonical Dart formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format apps/van_app/lib/features/orders/van_order_review_page.dart
+          if git diff --quiet --exit-code; then
+            exit 0
+          fi
+          git config user.name "foodex-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/van_app/lib/features/orders/van_order_review_page.dart
+          git commit -m "style(1621): apply canonical Dart formatting [dartfmt-1621]"
+          git push origin HEAD:fix/1621-van-payment-method-localization
