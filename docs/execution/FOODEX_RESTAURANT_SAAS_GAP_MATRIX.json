@@ -1,0 +1,1080 @@
+{
+  "schema_version": 1,
+  "program": "FOODEX Restaurant SaaS 2.0",
+  "umbrella_issue": 1572,
+  "blueprint_issue": 1573,
+  "baseline_main_sha": "eb8cc8a3e0b5734a3b56a34823d1458123e440ca",
+  "predecessor_issues": [
+    1445,
+    1446,
+    1447,
+    1448,
+    1449,
+    1450,
+    1451,
+    1452,
+    1453,
+    1454,
+    1455,
+    1456,
+    1560
+  ],
+  "state_definitions": {
+    "REUSE": "Existing delivered capability is authoritative; extend only when a concrete gap exists.",
+    "PARTIAL": "Useful baseline exists but SaaS-grade lifecycle/operations/UX or integration coverage is incomplete.",
+    "GAP": "Required Restaurant SaaS capability is not established by the predecessor program.",
+    "LATER": "Architecture must allow it, but it is not required for the first commercial Restaurant SaaS GA."
+  },
+  "global_rules": [
+    "No duplicate menu, order, payment, customer, entitlement, event, workflow or health engines.",
+    "Every optional module must be independently entitlement-controlled and safely disableable.",
+    "Organization/brand/location scope is enforced server-side.",
+    "Arabic/English, RTL/LTR, responsive UX and accessibility are acceptance requirements.",
+    "cPanel performance contract and exact-head repository CI are release gates.",
+    "Public/published menu/site reads use revisioned cache-friendly read models.",
+    "Data is preserved on plan downgrade/suspension unless an explicit retention/offboarding policy says otherwise.",
+    "Existing SmartOrdering and Enterprise Core contracts outrank this matrix when implementation details conflict."
+  ],
+  "waves": [
+    {
+      "id": 0,
+      "name": "SaaS control plane",
+      "exit": "Provisioning, plans, billing, onboarding and operator control work without manual DB intervention."
+    },
+    {
+      "id": 1,
+      "name": "Menu Studio and digital presence",
+      "exit": "Premium bilingual menu/site can be built, previewed, versioned, published and rolled back."
+    },
+    {
+      "id": 2,
+      "name": "Commerce and finance hardening",
+      "exit": "Orders/payments/refunds/reconciliation are operationally and financially safe."
+    },
+    {
+      "id": 3,
+      "name": "Front/back of house",
+      "exit": "Tables, reservations/waitlist, KDS and workforce support day-to-day restaurant operation."
+    },
+    {
+      "id": 4,
+      "name": "Inventory and supply",
+      "exit": "Sales connect to recipes, theoretical usage, stock, food cost and purchasing."
+    },
+    {
+      "id": 5,
+      "name": "Omnichannel ecosystem",
+      "exit": "Delivery/POS connectors, API and webhooks are resilient and observable."
+    },
+    {
+      "id": 6,
+      "name": "Growth and enterprise scale",
+      "exit": "CRM/gift cards/automation/franchise controls and multi-location analytics are production grade."
+    },
+    {
+      "id": 7,
+      "name": "Independent certification / GA",
+      "exit": "Security, tenancy, performance, billing lifecycle, backup/restore and pilot evidence are green."
+    }
+  ],
+  "modules": [
+    {
+      "id": "restaurant_control_plane",
+      "state": "GAP",
+      "priority": "P0",
+      "wave": 0,
+      "entitlement": "restaurant_saas",
+      "scope": [
+        "ORGANIZATION",
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "enterprise_module_registry",
+        "enterprise_entitlements",
+        "rbac_data_scope"
+      ],
+      "reuse": [
+        "existing FOODEX tenant/store/customer identities",
+        "SmartOrdering site identity"
+      ],
+      "target": [
+        "organization-brand-location mapping",
+        "inheritance/override rules",
+        "franchise-ready hierarchy"
+      ],
+      "disable_behavior": "Platform data remains accessible to operator/admin; restaurant modules resolve unavailable without deleting tenant data.",
+      "gates": [
+        "domain",
+        "tenancy_rbac",
+        "security_privacy",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_onboarding",
+      "state": "GAP",
+      "priority": "P0",
+      "wave": 0,
+      "entitlement": "restaurant_onboarding",
+      "scope": [
+        "ORGANIZATION",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "existing catalog/store setup flows where valid"
+      ],
+      "target": [
+        "guided checklist",
+        "CSV/XLSX import",
+        "launch readiness",
+        "resumable setup"
+      ],
+      "disable_behavior": "Existing configured tenants remain operational; only new self-service onboarding is unavailable.",
+      "gates": [
+        "product_ux",
+        "tenancy_rbac",
+        "performance",
+        "security_privacy",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_billing",
+      "state": "GAP",
+      "priority": "P0",
+      "wave": 0,
+      "entitlement": "restaurant_billing",
+      "scope": [
+        "ORGANIZATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "enterprise_entitlements"
+      ],
+      "reuse": [
+        "existing payment provider abstractions where applicable"
+      ],
+      "target": [
+        "plans",
+        "trials",
+        "subscriptions",
+        "invoices",
+        "dunning",
+        "grace",
+        "upgrade/downgrade",
+        "billing audit"
+      ],
+      "disable_behavior": "Manual/internal entitlement administration remains possible; no tenant data is deleted.",
+      "gates": [
+        "domain",
+        "security_privacy",
+        "reliability",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_operator_console",
+      "state": "GAP",
+      "priority": "P0",
+      "wave": 0,
+      "entitlement": "platform_operator",
+      "scope": [
+        "PLATFORM"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "restaurant_billing"
+      ],
+      "reuse": [
+        "existing Admin Hub",
+        "module health",
+        "audit infrastructure"
+      ],
+      "target": [
+        "tenant search",
+        "effective entitlements",
+        "billing/runtime state",
+        "integration health",
+        "support/break-glass audit",
+        "offboarding status"
+      ],
+      "disable_behavior": "Restaurant-facing runtime continues; platform support tooling becomes unavailable.",
+      "gates": [
+        "tenancy_rbac",
+        "product_ux",
+        "security_privacy",
+        "observability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "menu_studio",
+      "state": "PARTIAL",
+      "priority": "P0",
+      "wave": 1,
+      "entitlement": "menu_studio",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "public_menu"
+      ],
+      "reuse": [
+        "#1447 menu domain",
+        "#1448 preview/theme engine",
+        "#1560 media/review/publish UX"
+      ],
+      "target": [
+        "tree + live renderer + inspector UX",
+        "media library",
+        "scheduled publish",
+        "revision compare/rollback",
+        "channel applicability",
+        "import/export"
+      ],
+      "disable_behavior": "Published menu remains readable; editing/publishing is unavailable.",
+      "gates": [
+        "product_ux",
+        "localization_accessibility",
+        "performance",
+        "tenancy_rbac",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "public_menu",
+      "state": "REUSE",
+      "priority": "P0",
+      "wave": 1,
+      "entitlement": "public_menu",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "#1447",
+        "#1448",
+        "#1560"
+      ],
+      "target": [
+        "revision-keyed read model",
+        "large-menu search budget",
+        "safe placeholders",
+        "SEO-ready URLs"
+      ],
+      "disable_behavior": "Return configured unavailable/disabled storefront state; unrelated admin/order modules stay healthy.",
+      "gates": [
+        "performance",
+        "security_privacy",
+        "localization_accessibility",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_site",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 1,
+      "entitlement": "restaurant_site",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "public_menu"
+      ],
+      "reuse": [
+        "#1448 five templates",
+        "SmartOrdering site/subdomain"
+      ],
+      "target": [
+        "SEO/sitemap/structured metadata",
+        "custom domain hardening",
+        "redirect policy",
+        "legal/contact surfaces"
+      ],
+      "disable_behavior": "Ordering may remain reachable through configured FOODEX-hosted public menu if separately entitled.",
+      "gates": [
+        "product_ux",
+        "performance",
+        "security_privacy",
+        "localization_accessibility",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "online_ordering",
+      "state": "REUSE",
+      "priority": "P0",
+      "wave": 2,
+      "entitlement": "online_ordering",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "public_menu"
+      ],
+      "reuse": [
+        "#1449 cart/checkout/order lifecycle"
+      ],
+      "target": [
+        "capacity throttling",
+        "promise-time policy",
+        "stronger reconciliation hooks"
+      ],
+      "disable_behavior": "Public menu remains browse-only; no new carts/checkouts accepted.",
+      "gates": [
+        "domain",
+        "reliability",
+        "performance",
+        "security_privacy",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "payments_reconciliation",
+      "state": "PARTIAL",
+      "priority": "P0",
+      "wave": 2,
+      "entitlement": "payments",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "online_ordering"
+      ],
+      "reuse": [
+        "existing FOODEX payment/order services"
+      ],
+      "target": [
+        "provider adapter contract",
+        "authorize/capture/void/refund",
+        "webhook reconciliation",
+        "settlement mismatch view",
+        "PCI scope minimization"
+      ],
+      "disable_behavior": "Cash/offline-approved payment modes may remain if configured; online payment choice disappears safely.",
+      "gates": [
+        "domain",
+        "security_privacy",
+        "reliability",
+        "tenancy_rbac",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "dynamic_qr",
+      "state": "REUSE",
+      "priority": "P0",
+      "wave": 1,
+      "entitlement": "dynamic_qr",
+      "scope": [
+        "LOCATION",
+        "CHANNEL"
+      ],
+      "dependencies": [
+        "public_menu"
+      ],
+      "reuse": [
+        "#1450",
+        "#1560"
+      ],
+      "target": [
+        "preset-first UX retention",
+        "print asset lifecycle",
+        "attribution durability"
+      ],
+      "disable_behavior": "Existing printed QRs resolve to explicit disabled/unavailable behavior according to policy; no cross-module failure.",
+      "gates": [
+        "security_privacy",
+        "product_ux",
+        "analytics_integrity",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "floor_plan_table_service",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "table_service",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "dynamic_qr"
+      ],
+      "reuse": [
+        "dine-in order context from #1449"
+      ],
+      "target": [
+        "floor/area/table model",
+        "visual editor",
+        "occupancy",
+        "open table context",
+        "combine/split metadata",
+        "QR binding"
+      ],
+      "disable_behavior": "Dine-in QR can fall back to configured simple ordering mode only if policy permits; pickup/delivery remain unaffected.",
+      "gates": [
+        "domain",
+        "product_ux",
+        "tenancy_rbac",
+        "reliability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "reservations_waitlist",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "reservations",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "floor_plan_table_service",
+        "restaurant_crm"
+      ],
+      "reuse": [
+        "existing WhatsApp notification infrastructure where applicable"
+      ],
+      "target": [
+        "reservations",
+        "pacing",
+        "turn time",
+        "waitlist",
+        "reminders",
+        "no-show",
+        "optional deposit hook",
+        "guest-book linkage"
+      ],
+      "disable_behavior": "Existing reservations remain readable/exportable; new booking endpoints show unavailable; ordering unaffected.",
+      "gates": [
+        "domain",
+        "product_ux",
+        "privacy_consent",
+        "reliability",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "kitchen_display",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "kitchen_display",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "online_ordering"
+      ],
+      "reuse": [
+        "canonical FOODEX order lifecycle"
+      ],
+      "target": [
+        "stations",
+        "routing",
+        "tickets",
+        "timers",
+        "bump/recall",
+        "course/fire",
+        "ready state",
+        "capacity/busy mode"
+      ],
+      "disable_behavior": "Orders continue to canonical operational order queue; KDS-specific routing/UI stops.",
+      "gates": [
+        "domain",
+        "performance",
+        "reliability",
+        "product_ux",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_staff",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 3,
+      "entitlement": "restaurant_staff",
+      "scope": [
+        "ORGANIZATION",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "rbac_data_scope"
+      ],
+      "reuse": [
+        "existing users/roles/attendance capabilities where valid"
+      ],
+      "target": [
+        "staff directory",
+        "location assignments",
+        "shift scheduling",
+        "availability",
+        "time clock",
+        "break/edit audit"
+      ],
+      "disable_behavior": "User authentication/RBAC remains; scheduling/time-clock surfaces disappear.",
+      "gates": [
+        "tenancy_rbac",
+        "product_ux",
+        "privacy_consent",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "inventory",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 4,
+      "entitlement": "restaurant_inventory",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "#1455 supply mapping/estimated consumption",
+        "existing FOODEX inventory concepts where authoritative"
+      ],
+      "target": [
+        "inventory transactions",
+        "UOM conversion",
+        "receiving",
+        "transfer",
+        "stocktake",
+        "waste",
+        "low-stock",
+        "actual vs theoretical"
+      ],
+      "disable_behavior": "Ordering/menu remain operational; inventory deductions/alerts stop according to explicit policy.",
+      "gates": [
+        "domain",
+        "performance",
+        "reliability",
+        "audit",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "recipes_food_cost",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 4,
+      "entitlement": "recipes_food_cost",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "inventory",
+        "public_menu"
+      ],
+      "reuse": [
+        "#1455 item-to-supply mapping"
+      ],
+      "target": [
+        "recipe versioning",
+        "yield/waste",
+        "theoretical consumption",
+        "recipe cost",
+        "margin simulation"
+      ],
+      "disable_behavior": "Menu/order truth remains; costing insights stop without changing sold prices.",
+      "gates": [
+        "domain",
+        "analytics_integrity",
+        "performance",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "purchasing_supply",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 4,
+      "entitlement": "restaurant_purchasing",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "inventory"
+      ],
+      "reuse": [
+        "#1455 reorder intelligence",
+        "FOODEX B2B supply flow"
+      ],
+      "target": [
+        "supplier/PO/approval/receiving",
+        "explicit reorder approval",
+        "invoice reference"
+      ],
+      "disable_behavior": "Inventory and ordering continue; purchase-order creation/reorder suggestions are unavailable.",
+      "gates": [
+        "domain",
+        "audit",
+        "tenancy_rbac",
+        "reliability",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "restaurant_crm",
+      "state": "REUSE",
+      "priority": "P0",
+      "wave": 6,
+      "entitlement": "restaurant_crm",
+      "scope": [
+        "ORGANIZATION",
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "#1451",
+        "#1452",
+        "#1454",
+        "existing WhatsApp CRM"
+      ],
+      "target": [
+        "order+reservation guest convergence",
+        "consent/source clarity",
+        "cross-location policy",
+        "service recovery"
+      ],
+      "disable_behavior": "Canonical orders remain; guest growth/segmentation surfaces stop.",
+      "gates": [
+        "privacy_consent",
+        "tenancy_rbac",
+        "analytics_integrity",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "loyalty_gift_cards",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 6,
+      "entitlement": "loyalty",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_crm",
+        "payments_reconciliation"
+      ],
+      "reuse": [
+        "#1452 loyalty ledger baseline"
+      ],
+      "target": [
+        "gift-card/stored-value separate ledger",
+        "fraud/expiry policies",
+        "multi-location acceptance"
+      ],
+      "disable_behavior": "Balances are preserved/readable; new earn/redeem/issue actions are blocked according to policy.",
+      "gates": [
+        "domain",
+        "security_privacy",
+        "reliability",
+        "audit",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "lifecycle_marketing",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 6,
+      "entitlement": "lifecycle_marketing",
+      "scope": [
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_crm"
+      ],
+      "reuse": [
+        "WhatsApp campaigns/chatbot",
+        "#1453 offers",
+        "#1454 analytics"
+      ],
+      "target": [
+        "event-triggered journeys",
+        "segment automation",
+        "consent-safe multichannel hooks",
+        "lapsed/birthday/service-recovery flows"
+      ],
+      "disable_behavior": "No new automated sends; CRM/order data remains intact.",
+      "gates": [
+        "privacy_consent",
+        "reliability",
+        "analytics_integrity",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "advanced_analytics",
+      "state": "PARTIAL",
+      "priority": "P1",
+      "wave": 6,
+      "entitlement": "advanced_analytics",
+      "scope": [
+        "ORGANIZATION",
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "#1454 funnel/attribution analytics"
+      ],
+      "target": [
+        "multi-location comparison",
+        "operations/KDS/reservation/inventory/labor metrics",
+        "documented formulas",
+        "incremental aggregates"
+      ],
+      "disable_behavior": "Core operational screens remain; advanced dashboards/exports are unavailable.",
+      "gates": [
+        "analytics_integrity",
+        "performance",
+        "tenancy_rbac",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "franchise_controls",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 6,
+      "entitlement": "franchise_controls",
+      "scope": [
+        "ORGANIZATION",
+        "BRAND",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "menu_studio",
+        "advanced_analytics"
+      ],
+      "reuse": [
+        "branch overrides from SmartOrdering"
+      ],
+      "target": [
+        "HQ policy locks",
+        "local overrides",
+        "brand-wide publish",
+        "staged rollout",
+        "cross-location reporting"
+      ],
+      "disable_behavior": "Locations continue independently with their current effective configuration.",
+      "gates": [
+        "domain",
+        "tenancy_rbac",
+        "product_ux",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "connector_framework",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 5,
+      "entitlement": "integrations",
+      "scope": [
+        "ORGANIZATION",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "online_ordering",
+        "public_menu"
+      ],
+      "reuse": [
+        "existing external integration patterns"
+      ],
+      "target": [
+        "adapter capability model",
+        "sync ledger",
+        "retry/DLQ",
+        "connector health",
+        "secrets",
+        "market/catalog metadata"
+      ],
+      "disable_behavior": "Canonical FOODEX operation continues; connector sync/ingest stops and health explains the condition.",
+      "gates": [
+        "security_privacy",
+        "reliability",
+        "observability",
+        "performance",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "delivery_marketplace_connectors",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 5,
+      "entitlement": "delivery_marketplace_connectors",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "connector_framework"
+      ],
+      "reuse": [
+        "SmartOrdering menu/order models"
+      ],
+      "target": [
+        "menu sync",
+        "availability/snooze",
+        "order ingest",
+        "status sync",
+        "source provenance",
+        "reconciliation metadata"
+      ],
+      "disable_behavior": "Direct FOODEX channels remain operational; external marketplace sync stops cleanly.",
+      "gates": [
+        "reliability",
+        "security_privacy",
+        "analytics_integrity",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "pos_connectors",
+      "state": "GAP",
+      "priority": "P2",
+      "wave": 5,
+      "entitlement": "pos_connectors",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "connector_framework"
+      ],
+      "reuse": [
+        "canonical order/menu contracts"
+      ],
+      "target": [
+        "POS menu/order/status adapter contract",
+        "conflict policy",
+        "external references"
+      ],
+      "disable_behavior": "FOODEX-owned channels continue; POS sync health reports disabled.",
+      "gates": [
+        "reliability",
+        "security_privacy",
+        "domain",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "public_api_webhooks",
+      "state": "GAP",
+      "priority": "P1",
+      "wave": 5,
+      "entitlement": "api_access",
+      "scope": [
+        "ORGANIZATION",
+        "LOCATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane"
+      ],
+      "reuse": [
+        "existing REST v1/OpenAPI conventions",
+        "events/outbox"
+      ],
+      "target": [
+        "scoped app credentials",
+        "versioned APIs",
+        "signed webhooks",
+        "retry/replay logs",
+        "rate limits"
+      ],
+      "disable_behavior": "Restaurant UI/runtime continues; external app access/webhook delivery stops.",
+      "gates": [
+        "security_privacy",
+        "reliability",
+        "api_contract",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "integration_marketplace",
+      "state": "GAP",
+      "priority": "P2",
+      "wave": 5,
+      "entitlement": "integration_marketplace",
+      "scope": [
+        "ORGANIZATION"
+      ],
+      "dependencies": [
+        "connector_framework",
+        "public_api_webhooks"
+      ],
+      "reuse": [],
+      "target": [
+        "integration catalog",
+        "capabilities/markets/scopes",
+        "install/uninstall",
+        "health/version/support metadata"
+      ],
+      "disable_behavior": "Installed connectors continue only per policy; marketplace discovery/install UI is unavailable.",
+      "gates": [
+        "product_ux",
+        "security_privacy",
+        "module_independence",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "data_portability_offboarding",
+      "state": "GAP",
+      "priority": "P0",
+      "wave": 6,
+      "entitlement": "data_export",
+      "scope": [
+        "ORGANIZATION"
+      ],
+      "dependencies": [
+        "restaurant_control_plane",
+        "restaurant_billing"
+      ],
+      "reuse": [
+        "existing exports where valid"
+      ],
+      "target": [
+        "config/menu/order/customer/reservation/ledger/media export",
+        "token revocation",
+        "retention/deletion workflow",
+        "final audit"
+      ],
+      "disable_behavior": "Must remain available to authorized tenant/platform operators during cancellation/grace according to policy.",
+      "gates": [
+        "privacy_consent",
+        "security_privacy",
+        "audit",
+        "reliability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "observability_support_sre",
+      "state": "PARTIAL",
+      "priority": "P0",
+      "wave": 0,
+      "entitlement": "platform_internal",
+      "scope": [
+        "PLATFORM"
+      ],
+      "dependencies": [
+        "enterprise_module_health",
+        "events_outbox"
+      ],
+      "reuse": [
+        "current logs/CI/module health patterns"
+      ],
+      "target": [
+        "tenant-safe correlation",
+        "queue/webhook lag",
+        "connector health",
+        "order/payment mismatch alerts",
+        "backup/restore evidence",
+        "support case linkage"
+      ],
+      "disable_behavior": "Not customer-disableable; platform safety capability.",
+      "gates": [
+        "observability",
+        "security_privacy",
+        "performance",
+        "reliability",
+        "exact_head"
+      ]
+    },
+    {
+      "id": "offline_edge_pos",
+      "state": "LATER",
+      "priority": "P2",
+      "wave": 7,
+      "entitlement": "offline_edge",
+      "scope": [
+        "LOCATION"
+      ],
+      "dependencies": [
+        "online_ordering",
+        "kitchen_display",
+        "connector_framework"
+      ],
+      "reuse": [],
+      "target": [
+        "explicit edge sync design for true offline order/POS capture"
+      ],
+      "disable_behavior": "Cloud/browser-first operation remains authoritative.",
+      "gates": [
+        "domain",
+        "security_privacy",
+        "reliability",
+        "performance",
+        "independent_certification"
+      ]
+    }
+  ],
+  "release_gate_ids": {
+    "domain": "Canonical ownership, dependency declaration, migration compatibility, no duplicate engine.",
+    "tenancy_rbac": "Organization/brand/location scope, negative authorization, audit.",
+    "product_ux": "Reachable business UX, no raw IDs/JSON, responsive states.",
+    "localization_accessibility": "AR/EN parity, RTL/LTR, accessibility evidence.",
+    "performance": "Existing cPanel performance harness/query/page/job budgets.",
+    "security_privacy": "Validation, secrets, rate limits, upload/webhook safety, PII/consent.",
+    "privacy_consent": "Consent/source/retention/data-rights rules for personal data.",
+    "reliability": "Idempotency, retry, reconciliation, rollback/failure behavior.",
+    "observability": "Health, correlation, failure visibility and actionable telemetry.",
+    "analytics_integrity": "Documented metrics, dedupe, source/timezone correctness.",
+    "audit": "Immutable/auditable sensitive state changes.",
+    "api_contract": "Versioned OpenAPI-compatible contract, stable public IDs, rate limits.",
+    "module_independence": "OFF/degraded state cannot break unrelated modules and preserves data.",
+    "exact_head": "Required CI + Repository Policy + applicable UI/visual/release gates on exact head.",
+    "independent_certification": "Pilot/canary, security/performance/backup and full E2E certification."
+  }
+}
