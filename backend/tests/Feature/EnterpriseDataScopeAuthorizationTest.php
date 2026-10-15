@@ -98,13 +98,15 @@ final class EnterpriseDataScopeAuthorizationTest extends TestCase
     public function test_super_admin_retail_bypass_still_requires_explicit_support_access(): void
     {
         $store = $this->createScopedRetailStore('R-SCOPE-F');
-        $role = Role::query()->create([
-            'code' => 'SUPER_ADMIN',
-            'name' => 'Super Admin',
-            'scope' => 'global',
-            'is_active' => true,
-            'is_system' => true,
-        ]);
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'SUPER_ADMIN'],
+            [
+                'name' => 'Super Admin',
+                'scope' => 'global',
+                'is_active' => true,
+                'is_system' => true,
+            ],
+        );
         $admin = User::factory()->create(['is_active' => true]);
         $admin->roles()->attach($role->id);
 
