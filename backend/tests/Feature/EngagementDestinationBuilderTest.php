@@ -170,6 +170,7 @@ class EngagementDestinationBuilderTest extends TestCase
                 $target = $catalog->resolve($destination['code'], 'customer', $channel, 42);
                 $registeredTarget = preg_replace('#^/retail/42/home$#', '/retail/:store/home', (string) $target);
                 $this->assertStringContainsString((string) $registeredTarget, $authority);
+
                 continue;
             }
 
