@@ -17,7 +17,7 @@ final class SmartOrderingQrManager
     ];
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{qr:SmartOrderingQrCode,token:string}
      */
     public function create(array $data, ?int $actorId = null): array
