@@ -9,8 +9,8 @@ use InvalidArgumentException;
 final readonly class VersionedDomainEvent
 {
     /**
-     * @param array<string, int|string|null> $scope
-     * @param array<string, mixed> $payload
+     * @param  array<string, int|string|null>  $scope
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public string $id,
@@ -42,8 +42,8 @@ final readonly class VersionedDomainEvent
     }
 
     /**
-     * @param array<string, int|string|null> $scope
-     * @param array<string, mixed> $payload
+     * @param  array<string, int|string|null>  $scope
+     * @param  array<string, mixed>  $payload
      */
     public static function create(
         string $type,
@@ -66,7 +66,7 @@ final readonly class VersionedDomainEvent
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      */
     public static function fromArray(array $values): self
     {
