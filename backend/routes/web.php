@@ -21,9 +21,11 @@ use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseSavedViewController;
+use App\Http\Controllers\Admin\EnterpriseSecurityController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
+use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -137,6 +139,7 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
@@ -590,6 +593,14 @@ Route::prefix('admin')
         Route::get('/inspector/export', [SystemInspectorController::class, 'export'])->name('inspector.export');
         Route::post('/inspector/storage-link', [SystemInspectorController::class, 'repairStorageLink'])->name('inspector.storage-link');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::get('/security/enterprise', [EnterpriseSecurityController::class, 'index'])->name('enterprise-security.index');
+        Route::post('/security/enterprise/role-scopes', [EnterpriseSecurityController::class, 'requestRoleScopeGrant'])->name('enterprise-security.role-scopes.store');
+        Route::delete('/security/enterprise/role-scopes/{dataScope}', [EnterpriseSecurityController::class, 'requestRoleScopeRevoke'])->name('enterprise-security.role-scopes.destroy');
+        Route::post('/security/enterprise/approval-limits', [EnterpriseSecurityController::class, 'requestApprovalLimit'])->name('enterprise-security.approval-limits.store');
+        Route::delete('/security/enterprise/approval-limits/{approvalLimit}', [EnterpriseSecurityController::class, 'requestApprovalLimitDeactivate'])->name('enterprise-security.approval-limits.destroy');
+        Route::post('/security/enterprise/delegations', [EnterpriseSecurityController::class, 'requestDelegation'])->name('enterprise-security.delegations.store');
+        Route::delete('/security/enterprise/delegations/{delegation}', [EnterpriseSecurityController::class, 'requestDelegationRevoke'])->name('enterprise-security.delegations.destroy');
+        Route::post('/security/enterprise/changes/{workflowRequest}/decision', [EnterpriseSecurityController::class, 'decide'])->name('enterprise-security.changes.decide');
         Route::get('/security/demo-data', [SecurityController::class, 'demoData'])->name('security.demo-data.index');
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');
         Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');
