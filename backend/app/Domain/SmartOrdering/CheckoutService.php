@@ -126,8 +126,7 @@ final class CheckoutService
             $idempotencyKey,
             $idempotencyHash,
             $requestHash,
-        ): array
-        {
+        ): array {
             $lockedCart = SmartOrderingCart::query()->whereKey($cart->getKey())->lockForUpdate()->firstOrFail();
             abort_unless((string) $lockedCart->status === 'active', 409, 'Cart is no longer active.');
 
