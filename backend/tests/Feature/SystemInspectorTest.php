@@ -267,7 +267,6 @@ class SystemInspectorTest extends TestCase
     }
 }
 
-
 final class InspectorForbiddenProbe implements ModuleHealthProbe
 {
     public static int $constructed = 0;
@@ -282,7 +281,6 @@ final class InspectorForbiddenProbe implements ModuleHealthProbe
         return ModuleHealthCheck::healthy('inspector-forbidden-probe');
     }
 }
-
 
 final class InspectorFailingProbe implements ModuleHealthProbe
 {
