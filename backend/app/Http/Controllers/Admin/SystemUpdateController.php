@@ -172,13 +172,10 @@ final class SystemUpdateController extends Controller
                 ->first();
 
             if ($canonical instanceof SystemVersion) {
-                if ($installed->installed_at !== null
-                    && ($canonical->installed_at === null || $installed->installed_at->gt($canonical->installed_at))) {
-                    $canonical->forceFill([
-                        'installed_at' => $installed->installed_at,
-                        'package_hash' => $installed->package_hash,
-                    ])->save();
-                }
+                $canonical->forceFill([
+                    'installed_at' => $installed->installed_at,
+                    'package_hash' => $installed->package_hash,
+                ])->save();
 
                 $installed->delete();
             } else {
