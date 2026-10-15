@@ -548,6 +548,14 @@ Route::prefix('admin')
         Route::post('/inspector/client-events', [SystemInspectorController::class, 'clientEvent'])->name('inspector.client-events');
         Route::get('/inspector/export', [SystemInspectorController::class, 'export'])->name('inspector.export');
         Route::post('/inspector/storage-link', [SystemInspectorController::class, 'repairStorageLink'])->name('inspector.storage-link');
+        Route::post('/inspector/restaurant/{store}/support-access', [SystemInspectorController::class, 'grantRestaurantSupport'])
+            ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-support.grant');
+        Route::delete('/inspector/restaurant/{store}/support-access', [SystemInspectorController::class, 'revokeRestaurantSupport'])
+            ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-support.revoke');
+        Route::post('/inspector/restaurant/{store}/support-sessions/revoke', [SystemInspectorController::class, 'revokeRestaurantSupportSessions'])
+            ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-support.sessions.revoke');
+        Route::patch('/inspector/restaurant/{store}/lifecycle', [SystemInspectorController::class, 'transitionRestaurantLifecycle'])
+            ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-lifecycle.update');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
         Route::get('/security/demo-data', [SecurityController::class, 'demoData'])->name('security.demo-data.index');
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');
