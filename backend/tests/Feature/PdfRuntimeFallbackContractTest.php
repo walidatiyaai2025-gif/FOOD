@@ -14,4 +14,14 @@ class PdfRuntimeFallbackContractTest extends TestCase
         $this->assertStringContainsString('require_once $bundledRuntime;', $factory);
         $this->assertStringContainsString('class_exists(TCPDF::class)', $factory);
     }
+
+    public function test_smart_ordering_qr_assets_keep_bundled_tcpdf_fallback(): void
+    {
+        $service = file_get_contents(app_path('Services/SmartOrderingQrAssetService.php'));
+
+        $this->assertStringContainsString('ThirdParty/tcpdf/tcpdf.php', $service);
+        $this->assertStringContainsString('require_once $bundledRuntime;', $service);
+        $this->assertStringContainsString('class_exists(\\TCPDF2DBarcode::class)', $service);
+        $this->assertStringContainsString('class_exists(\\TCPDF::class)', $service);
+    }
 }
