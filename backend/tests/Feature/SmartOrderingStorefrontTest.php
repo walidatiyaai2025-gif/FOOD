@@ -126,7 +126,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     private function provider(?array $snapshot): StorefrontSnapshotProvider
     {
-        return new class($snapshot) implements StorefrontSnapshotProvider
+        return new class ($snapshot) implements StorefrontSnapshotProvider
         {
             public function __construct(private readonly ?array $snapshot) {}
 
