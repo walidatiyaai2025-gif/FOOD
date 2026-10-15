@@ -89,7 +89,6 @@
                 <form class="si-form" method="post" action="{{ route('admin.smart-ordering.supply.mappings.store',$site) }}">
                     @csrf
                     @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
-                @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
                     <label>{{ __('smart_ordering_supply.menu_item') }}
                         <select class="foodex-control" name="menu_item_public_id" required>
                             @foreach($menuItems as $item)
@@ -137,6 +136,7 @@
                 <p class="si-muted">{{ __('smart_ordering_supply.stock_help') }}</p>
                 <form class="si-form" method="post" action="{{ route('admin.smart-ordering.supply.stock',$site) }}">
                     @csrf @method('PUT')
+                    @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
                     <label>{{ __('smart_ordering_supply.foodex_sku') }}
                         <select class="foodex-control" name="foodex_product_id" required>
                             @foreach($foodexProducts as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} — {{ $product['name'] }}</option>@endforeach
@@ -247,7 +247,7 @@
             </form>
             @foreach($displayRecommendations as $row)
                 <form id="dismiss-{{ $row['foodex_product_id'] }}" method="post" action="{{ route('admin.smart-ordering.supply.dismiss',[$site,$row['foodex_product_id']]) }}" style="display:none">
-                    @csrf<input type="hidden" name="days" value="7">@if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
+                    @csrf<input type="hidden" name="days" value="7">@if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif @if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
                 </form>
             @endforeach
         </section>
