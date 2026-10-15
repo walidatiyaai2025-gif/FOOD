@@ -12,7 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 final class RepeatOrderService
 {
-    public function __construct(private readonly CommerceQuoteService $quotes) {}
+    public function __construct(private readonly CommerceQuoteService $quotes)
+    {
+    }
 
     /**
      * Build a repeat-order draft from historical quantities and live server pricing.
