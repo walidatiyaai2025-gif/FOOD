@@ -26,7 +26,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 final class SmartOrderingMenuAdminController extends Controller
@@ -42,7 +41,20 @@ final class SmartOrderingMenuAdminController extends Controller
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
 
-        $menus = SmartOrderingMenu::query()
+        $menuIndex = SmartOrderingMenu::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'public_id', 'name_ar', 'name_en', 'sort_order', 'is_default', 'is_visible']);
+
+        $reviewMode = $request->boolean('review');
+        $requestedMenuId = $request->integer('menu_id');
+        $focusedMenuId = $menuIndex->contains(fn (SmartOrderingMenu $menu): bool => (int) $menu->id === $requestedMenuId)
+            ? $requestedMenuId
+            : ($menuIndex->first() === null ? null : (int) $menuIndex->first()->id);
+
+        $menusQuery = SmartOrderingMenu::query()
             ->where('site_id', $site->id)
             ->where('revision_id', $draft->id)
             ->with([
@@ -52,8 +64,32 @@ final class SmartOrderingMenuAdminController extends Controller
                 'categories.items.modifierGroups.options' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
             ])
             ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
+            ->orderBy('id');
+
+        if ($reviewMode === false && $focusedMenuId !== null) {
+            $menusQuery->whereKey($focusedMenuId);
+        }
+
+        $menus = $menusQuery->get();
+        $itemMenuIds = [];
+        foreach ($menus as $menu) {
+            foreach ($menu->categories as $category) {
+                if (! $category instanceof SmartOrderingMenuCategory) {
+                    continue;
+                }
+
+                foreach ($category->items as $item) {
+                    if (! $item instanceof SmartOrderingMenuItem) {
+                        continue;
+                    }
+
+                    $itemMenuIds[(int) $item->id] = (int) $menu->id;
+                }
+            }
+        }
+
+        $focusQuery = trim((string) $request->query('q', ''));
+        $focusResults = $this->focusResults($site, $draft, $focusQuery);
 
         $menuIds = $menus->pluck('id');
         $menuBranchIds = DB::table('smart_ordering_menu_branches')
@@ -94,22 +130,15 @@ final class SmartOrderingMenuAdminController extends Controller
 
         $checkoutCurrency = $quotes->currencyForStore((int) $site->store_id);
         $moneyStep = DisplayNumber::moneyStep($checkoutCurrency);
-        $itemPrices = [];
-        $itemPriceErrors = [];
-        foreach (SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get() as $item) {
-            try {
-                $resolved = $prices->displayPrice($site, $item);
-                $itemPrices[(int) $item->id] = [
-                    ...$resolved,
-                    'currency' => $checkoutCurrency,
-                    'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
-                ];
-            } catch (ValidationException $exception) {
-                $itemPriceErrors[(int) $item->id] = collect($exception->errors())
-                    ->flatten()
-                    ->first() ?? __('smart_ordering_menu.validation.product_unavailable');
-            }
-        }
+        $editableItems = SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get();
+        $resolvedPrices = $prices->displayPrices($site, $editableItems);
+        $itemPrices = collect($resolvedPrices['prices'])
+            ->map(fn (array $resolved): array => array_merge($resolved, [
+                'currency' => $checkoutCurrency,
+                'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
+            ]))
+            ->all();
+        $itemPriceErrors = $resolvedPrices['errors'];
 
         $productLabels = DB::table('products')
             ->whereIn('id', $sourceIds)
@@ -124,6 +153,12 @@ final class SmartOrderingMenuAdminController extends Controller
             'site' => $site,
             'draft' => $draft,
             'menus' => $menus,
+            'menuIndex' => $menuIndex,
+            'focusedMenuId' => $focusedMenuId,
+            'reviewMode' => $reviewMode,
+            'focusQuery' => $focusQuery,
+            'focusResults' => $focusResults,
+            'itemMenuIds' => $itemMenuIds,
             'branches' => $branches,
             'menuBranchIds' => $menuBranchIds,
             'productLabels' => $productLabels,
@@ -532,6 +567,139 @@ final class SmartOrderingMenuAdminController extends Controller
         return back()->with('status', __('smart_ordering_menu.published'));
     }
 
+    /**
+     * @return list<array{type:string,type_label:string,id:int,menu_id:int,label:string,anchor:string}>
+     */
+    private function focusResults(SmartOrderingSite $site, SmartOrderingRevision $draft, string $query): array
+    {
+        if ($query === '') {
+            return [];
+        }
+
+        $needle = '%'.$query.'%';
+        $isAr = app()->getLocale() === 'ar';
+        $results = collect();
+
+        $append = static function ($rows, string $type, callable $menuId, callable $anchor) use ($results, $isAr): void {
+            foreach ($rows as $row) {
+                $name = trim((string) (($isAr ? ($row->name_ar ?? null) : ($row->name_en ?? null))
+                    ?: ($isAr ? ($row->name_en ?? null) : ($row->name_ar ?? null))
+                    ?: '#'.$row->id));
+                $typeLabel = match ($type) {
+                    'menu' => $isAr ? 'منيو' : 'Menu',
+                    'category' => $isAr ? 'تصنيف' : 'Category',
+                    'item' => $isAr ? 'صنف' : 'Item',
+                    'group' => $isAr ? 'مجموعة' : 'Group',
+                    'option' => $isAr ? 'خيار' : 'Option',
+                    default => $isAr ? 'سجل' : 'Record',
+                };
+                $results->push([
+                    'type' => $type,
+                    'type_label' => $typeLabel,
+                    'id' => (int) $row->id,
+                    'menu_id' => (int) $menuId($row),
+                    'label' => $name,
+                    'anchor' => (string) $anchor($row),
+                ]);
+            }
+        };
+
+        $append(
+            DB::table('smart_ordering_menus')
+                ->where('site_id', $site->id)
+                ->where('revision_id', $draft->id)
+                ->where(function ($builder) use ($needle): void {
+                    $builder->where('name_ar', 'like', $needle)
+                        ->orWhere('name_en', 'like', $needle)
+                        ->orWhere('public_id', 'like', $needle);
+                })
+                ->orderBy('sort_order')
+                ->limit(6)
+                ->get(['id', 'name_ar', 'name_en']),
+            'menu',
+            static fn ($row): int => (int) $row->id,
+            static fn ($row): string => 'menu-'.$row->id,
+        );
+
+        $append(
+            DB::table('smart_ordering_menu_categories as categories')
+                ->join('smart_ordering_menus as menus', 'menus.id', '=', 'categories.menu_id')
+                ->where('menus.site_id', $site->id)
+                ->where('menus.revision_id', $draft->id)
+                ->where(function ($builder) use ($needle): void {
+                    $builder->where('categories.name_ar', 'like', $needle)
+                        ->orWhere('categories.name_en', 'like', $needle)
+                        ->orWhere('categories.public_id', 'like', $needle);
+                })
+                ->orderBy('categories.sort_order')
+                ->limit(6)
+                ->get(['categories.id', 'categories.menu_id', 'categories.name_ar', 'categories.name_en']),
+            'category',
+            static fn ($row): int => (int) $row->menu_id,
+            static fn ($row): string => 'menu-category-'.$row->id,
+        );
+
+        $append(
+            DB::table('smart_ordering_menu_items as items')
+                ->join('smart_ordering_menu_categories as categories', 'categories.id', '=', 'items.category_id')
+                ->join('smart_ordering_menus as menus', 'menus.id', '=', 'categories.menu_id')
+                ->where('menus.site_id', $site->id)
+                ->where('menus.revision_id', $draft->id)
+                ->where(function ($builder) use ($needle): void {
+                    $builder->where('items.name_ar', 'like', $needle)
+                        ->orWhere('items.name_en', 'like', $needle)
+                        ->orWhere('items.public_id', 'like', $needle);
+                })
+                ->orderBy('items.sort_order')
+                ->limit(6)
+                ->get(['items.id', 'items.public_id', 'items.name_ar', 'items.name_en', 'categories.menu_id']),
+            'item',
+            static fn ($row): int => (int) $row->menu_id,
+            static fn ($row): string => 'menu-item-'.$row->public_id,
+        );
+
+        $append(
+            DB::table('smart_ordering_modifier_groups as groups')
+                ->join('smart_ordering_menu_items as items', 'items.id', '=', 'groups.item_id')
+                ->join('smart_ordering_menu_categories as categories', 'categories.id', '=', 'items.category_id')
+                ->join('smart_ordering_menus as menus', 'menus.id', '=', 'categories.menu_id')
+                ->where('menus.site_id', $site->id)
+                ->where('menus.revision_id', $draft->id)
+                ->where(function ($builder) use ($needle): void {
+                    $builder->where('groups.name_ar', 'like', $needle)
+                        ->orWhere('groups.name_en', 'like', $needle);
+                })
+                ->orderBy('groups.sort_order')
+                ->limit(4)
+                ->get(['groups.id', 'groups.name_ar', 'groups.name_en', 'categories.menu_id']),
+            'group',
+            static fn ($row): int => (int) $row->menu_id,
+            static fn ($row): string => 'menu-group-'.$row->id,
+        );
+
+        $append(
+            DB::table('smart_ordering_modifier_options as options')
+                ->join('smart_ordering_modifier_groups as groups', 'groups.id', '=', 'options.group_id')
+                ->join('smart_ordering_menu_items as items', 'items.id', '=', 'groups.item_id')
+                ->join('smart_ordering_menu_categories as categories', 'categories.id', '=', 'items.category_id')
+                ->join('smart_ordering_menus as menus', 'menus.id', '=', 'categories.menu_id')
+                ->where('menus.site_id', $site->id)
+                ->where('menus.revision_id', $draft->id)
+                ->where(function ($builder) use ($needle): void {
+                    $builder->where('options.name_ar', 'like', $needle)
+                        ->orWhere('options.name_en', 'like', $needle);
+                })
+                ->orderBy('options.sort_order')
+                ->limit(4)
+                ->get(['options.id', 'options.name_ar', 'options.name_en', 'categories.menu_id']),
+            'option',
+            static fn ($row): int => (int) $row->menu_id,
+            static fn ($row): string => 'menu-option-'.$row->id,
+        );
+
+        return $results->take(25)->values()->all();
+    }
+
     /** @return array<string,mixed> */
     private function menuData(Request $request, SmartOrderingSite $site, ?SmartOrderingMenu $current = null): array
     {
@@ -728,7 +896,7 @@ final class SmartOrderingMenuAdminController extends Controller
     /** @return array{windows:list<array{days:list<int>,start:string,end:string}>}|null */
     private function schedule(Request $request, string $prefix = ''): ?array
     {
-        if (! $request->boolean($prefix.'schedule_enabled')) {
+        if ($request->boolean($prefix.'schedule_enabled') === false) {
             return null;
         }
 
