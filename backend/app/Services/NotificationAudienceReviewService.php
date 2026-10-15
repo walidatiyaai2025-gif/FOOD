@@ -28,7 +28,7 @@ final class NotificationAudienceReviewService
             ->orderBy('id')
             ->chunkById(self::CHUNK_SIZE, function ($users) use ($target, &$count, &$sample): void {
                 foreach ($users as $user) {
-                    if (! $user instanceof User || ! $this->matches($user, $target)) {
+                    if (! $this->matches($user, $target)) {
                         continue;
                     }
 
