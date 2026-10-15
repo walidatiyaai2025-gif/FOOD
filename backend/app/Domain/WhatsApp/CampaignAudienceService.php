@@ -200,7 +200,7 @@ final class CampaignAudienceService
         $customerIds = [];
         $errors = [];
 
-        foreach (array_values($rows) as $offset => $row) {
+        foreach ($rows as $offset => $row) {
             $rowNumber = $offset + 1;
             $name = trim((string) ($row['name'] ?? ''));
             $phone = $this->consent->normalizePhone($row['phone'] ?? null);
@@ -234,7 +234,7 @@ final class CampaignAudienceService
                 }
 
                 $changes = [];
-                if (trim((string) ($existing['name'] ?? '')) === '' && $name !== '') {
+                if (trim((string) ($existing['name'] ?? '')) === '') {
                     $changes['name'] = $name;
                 }
                 if (trim((string) ($existing['email'] ?? '')) === '' && $email !== '') {
