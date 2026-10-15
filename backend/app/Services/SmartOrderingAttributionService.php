@@ -269,7 +269,7 @@ final class SmartOrderingAttributionService
     }
 
     /**
-     * @param list<int> $qrIds
+     * @param  list<int>  $qrIds
      * @return array<int, array{scans:int,unique_visits:int,carts:int,orders:int,conversion:float,revenue:float}>
      */
     public function metricsForQrIds(array $qrIds): array
