@@ -96,6 +96,55 @@ void main() {
     expect(draft.warehouseId, isNull);
     expect(draft.paymentMethod, isNull);
   });
+
+  test('stale Van quote cannot attach after a draft quantity change', () {
+    final draft = VanOrderDraftController();
+    draft.selectCustomer(_customer);
+    draft.applyOptions(_options);
+    draft.add(_product);
+
+    final first = draft.createQuoteSnapshot();
+    expect(first, isNotNull);
+    expect(first!.lines.single.quantity, 1);
+
+    draft.changeQuantity(_product, 2);
+
+    expect(draft.quote, isNull);
+    expect(draft.hasCurrentQuote, isFalse);
+    expect(draft.setQuoteForRevision(first.revision, _quote), isFalse);
+
+    final latest = draft.createQuoteSnapshot();
+    expect(latest, isNotNull);
+    expect(latest!.revision, greaterThan(first.revision));
+    expect(latest.lines.single.quantity, 2);
+    expect(draft.setQuoteForRevision(latest.revision, _quote), isTrue);
+    expect(draft.hasCurrentQuote, isTrue);
+    expect(draft.quoteRevision, latest.revision);
+  });
+
+  test('new selection supersedes an in-flight Van quote snapshot', () {
+    final draft = VanOrderDraftController();
+    draft.selectCustomer(_customer);
+    draft.applyOptions(_options);
+    draft.add(_product);
+
+    final first = draft.createQuoteSnapshot()!;
+    expect(first.warehouseId, 20);
+    expect(first.addressId, 10);
+    expect(first.paymentMethod, 'cash');
+
+    draft.setSelection(warehouse: 21, address: 11, payment: 'card');
+    final latest = draft.createQuoteSnapshot(note: 'Latest note')!;
+
+    expect(latest.revision, greaterThan(first.revision));
+    expect(latest.warehouseId, 21);
+    expect(latest.addressId, 11);
+    expect(latest.paymentMethod, 'card');
+    expect(latest.customerNote, 'Latest note');
+    expect(draft.setQuoteForRevision(first.revision, _quote), isFalse);
+    expect(draft.setQuoteForRevision(latest.revision, _quote), isTrue);
+    expect(draft.ownsCurrentQuote(latest.revision), isTrue);
+  });
 }
 
 const _customer = VanCustomerScope(
@@ -103,6 +152,28 @@ const _customer = VanCustomerScope(
   id: 7,
   name: 'Customer',
   storeId: 3,
+);
+
+
+const _product = VanCatalogProduct(
+  id: 99,
+  name: 'Product',
+  sku: 'SKU-99',
+  unitPrice: 10,
+  minimumQuantity: 1,
+  orderingIncrement: 1,
+  isAvailable: true,
+  currency: 'EGP',
+);
+
+const _quote = VanOrderQuote(
+  currency: 'EGP',
+  subtotal: 10,
+  discountTotal: 0,
+  deliveryTotal: 0,
+  taxTotal: 0,
+  grandTotal: 10,
+  hasUnavailableItems: false,
 );
 
 const _options = VanOrderOptions(
