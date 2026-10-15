@@ -26,6 +26,7 @@ return [
             ],
             'hard_dependencies' => [],
             'optional_integrations' => [],
+            'capabilities' => [],
             'permissions' => [],
             'health_checks' => [],
             'navigation' => [],
