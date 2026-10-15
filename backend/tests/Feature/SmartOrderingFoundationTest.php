@@ -254,6 +254,18 @@ class SmartOrderingFoundationTest extends TestCase
         $service->setEntitlement($admin, $site, Module::PUBLIC_MENU, true);
         $site = $service->updateRuntime($admin, $site->fresh(), RuntimeState::ENABLED, true);
         $branch = $this->branch($site->id, 'PUBLIC-BRANCH');
+        $this->assertTrue(Str::isUuid((string) $branch->public_id));
+        $this->assertSame(
+            $site->id,
+            app(RestaurantSiteResolver::class)->fromHost($site->slug.'.foodex.com')?->id,
+        );
+        $this->assertTrue(
+            app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU, $branch),
+        );
+
+        $this->withServerVariables(['HTTP_HOST' => $site->slug.'.foodex.com'])
+            ->getJson('/api/v1/smart-ordering/context')
+            ->assertOk();
 
         $response = $this->withServerVariables(['HTTP_HOST' => $site->slug.'.foodex.com'])
             ->getJson('/api/v1/smart-ordering/context?branch='.$branch->public_id)
