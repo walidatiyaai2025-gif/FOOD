@@ -154,7 +154,6 @@ const _customer = VanCustomerScope(
   storeId: 3,
 );
 
-
 const _product = VanCatalogProduct(
   id: 99,
   name: 'Product',
