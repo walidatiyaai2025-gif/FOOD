@@ -116,7 +116,9 @@
 @foreach($branches as $branch)
 <section class="foodex-card so-branch">
 <div class="so-branch-head"><div><strong>{{ $branch->name }}</strong><div>{{ $stores->firstWhere('id',$branch->store_id)?->name }}</div></div>
-@if($user->hasPermission('orders.manage',(int)$branch->store_id) || $user->hasPermission('orders.manage'))<button class="foodex-primary" type="button" onclick="document.getElementById('branch-{{ $branch->public_id }}').showModal()">{{ __('smart_ordering.edit_branch') }}</button>@endif
+@if($user->hasPermission('orders.manage',(int)$branch->store_id) || $user->hasPermission('orders.manage'))
+<button class="foodex-primary" type="button" onclick="document.getElementById('branch-{{ $branch->public_id }}').showModal()">{{ __('smart_ordering.edit_branch') }}</button>
+@endif
 </div>
 <div class="so-badges"><span class="badge">{{ $branch->is_active?__('smart_ordering.branch_state.active'):__('smart_ordering.branch_state.inactive') }}</span><span class="badge">{{ $branch->accepting_orders?__('smart_ordering.branch_state.accepting'):__('smart_ordering.branch_state.paused') }}</span></div>
 <div>{{ __('smart_ordering.modes.dine_in') }}: {{ $branch->supports_dine_in?'✓':'—' }} · {{ __('smart_ordering.modes.pickup') }}: {{ $branch->supports_pickup?'✓':'—' }} · {{ __('smart_ordering.modes.delivery') }}: {{ $branch->supports_delivery?'✓':'—' }}</div>
