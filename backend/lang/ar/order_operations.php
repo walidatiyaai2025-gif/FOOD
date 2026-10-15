@@ -89,6 +89,7 @@ return [
     ],
     'detail' => [
         'context' => 'سياق الطلب',
+        'close' => 'إغلاق تفاصيل الطلب',
         'source' => 'المصدر',
         'authorized_channel' => 'القناة المعتمدة',
         'delivery_address' => 'عنوان التوصيل',
