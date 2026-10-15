@@ -161,6 +161,36 @@ final class SmartOrderingCustomerGrowthController extends Controller
         ), 201);
     }
 
+    public function loyaltyRewardUpdate(
+        Request $request,
+        SmartOrderingSite $site,
+        string $reward,
+        LoyaltyAdminService $admin,
+        TenantContextResolver $tenants,
+    ): JsonResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $data = $request->validate([
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['nullable', 'string', 'max:255'],
+            'points_cost' => ['required', 'integer', 'min:1'],
+            'branch_id' => ['nullable', 'integer', 'min:1'],
+            'is_active' => ['required', 'boolean'],
+            'payload' => ['nullable', 'array'],
+        ]);
+
+        return response()->json($admin->updateReward(
+            $actor,
+            $site,
+            $reward,
+            (string) $data['name_en'],
+            $data['name_ar'] ?? null,
+            (int) $data['points_cost'],
+            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+            (bool) $data['is_active'],
+            (array) ($data['payload'] ?? []),
+        ));
+    }
+
     public function reviewSettings(
         Request $request,
         SmartOrderingSite $site,
