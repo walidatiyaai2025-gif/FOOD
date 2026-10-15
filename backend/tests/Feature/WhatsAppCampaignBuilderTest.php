@@ -6,11 +6,13 @@ use App\Domain\WhatsApp\MarketingConsentService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -284,6 +286,124 @@ final class WhatsAppCampaignBuilderTest extends TestCase
         ]);
     }
 
+    public function test_meta_template_can_be_created_and_synced_for_campaign_use(): void
+    {
+        $this->enableCampaigns([]);
+        $admin = $this->superAdmin();
+        $this->metaProfile();
+
+        Http::fake(function ($request) {
+            if ($request->method() === 'POST' && str_ends_with($request->url(), '/waba-foodex/message_templates')) {
+                return Http::response([
+                    'id' => 'meta-template-1',
+                    'status' => 'PENDING',
+                    'category' => 'MARKETING',
+                ], 200);
+            }
+
+            if ($request->method() === 'GET' && str_contains($request->url(), '/waba-foodex/message_templates')) {
+                return Http::response([
+                    'data' => [[
+                        'id' => 'meta-template-1',
+                        'name' => 'foodex_offer_oct',
+                        'status' => 'APPROVED',
+                        'category' => 'MARKETING',
+                        'language' => 'ar',
+                        'components' => [[
+                            'type' => 'BODY',
+                            'text' => 'عرض فودكس اليوم فقط',
+                        ]],
+                    ]],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.templates.meta.store'), [
+            'name' => 'عرض أكتوبر',
+            'provider_name' => 'foodex_offer_oct',
+            'locale' => 'ar',
+            'category' => 'marketing',
+            'body_preview' => 'عرض فودكس اليوم فقط',
+        ])->assertOk();
+
+        $template = DB::table('whats_app_templates')
+            ->where('provider_name', 'foodex_offer_oct')
+            ->where('locale', 'ar')
+            ->firstOrFail();
+
+        $this->assertSame('pending', $template->provider_status);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.whatsapp-campaigns.templates.meta.sync'))
+            ->assertOk();
+
+        $this->assertDatabaseHas('whats_app_templates', [
+            'id' => $template->id,
+            'provider_name' => 'foodex_offer_oct',
+            'locale' => 'ar',
+            'provider_status' => 'approved',
+        ]);
+
+        Http::assertSent(function ($request): bool {
+            return $request->method() === 'POST'
+                && str_ends_with($request->url(), '/v26.0/waba-foodex/message_templates')
+                && $request->hasHeader('Authorization', 'Bearer meta-template-token')
+                && $request['name'] === 'foodex_offer_oct'
+                && $request['language'] === 'ar'
+                && $request['category'] === 'MARKETING'
+                && $request['components'][0]['type'] === 'BODY';
+        });
+    }
+
+    public function test_meta_template_creation_fails_closed_without_valid_provider_or_permission(): void
+    {
+        $this->enableCampaigns([]);
+        $admin = $this->superAdmin();
+
+        Http::fake();
+
+        $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.templates.meta.store'), [
+            'name' => 'Offer',
+            'provider_name' => 'foodex_offer',
+            'locale' => 'en',
+            'category' => 'marketing',
+            'body_preview' => 'FOODEX offer',
+        ])->assertUnprocessable();
+
+        Http::assertNothingSent();
+
+        $this->metaProfile();
+        Http::fake([
+            'https://graph.facebook.com/*' => Http::response([
+                'error' => ['message' => 'provider detail must not leak'],
+            ], 400),
+        ]);
+
+        $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.templates.meta.store'), [
+            'name' => 'Offer',
+            'provider_name' => 'foodex_offer',
+            'locale' => 'en',
+            'category' => 'marketing',
+            'body_preview' => 'FOODEX offer',
+        ])->assertUnprocessable()
+            ->assertJsonMissing(['provider detail must not leak']);
+
+        $this->assertDatabaseMissing('whats_app_templates', [
+            'provider_name' => 'foodex_offer',
+        ]);
+
+        $unauthorized = User::factory()->create(['locale' => 'en', 'is_active' => true]);
+        $this->actingAs($unauthorized)->postJson(route('admin.whatsapp-campaigns.templates.meta.store'), [
+            'name' => 'Unauthorized',
+            'provider_name' => 'unauthorized_offer',
+            'locale' => 'en',
+            'category' => 'marketing',
+            'body_preview' => 'Must not submit',
+        ])->assertForbidden();
+    }
+
     public function test_campaign_dashboard_exposes_builder_without_json_editing(): void
     {
         $this->enableCampaigns([]);
@@ -338,6 +458,31 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ],
             'test_numbers' => $testNumbers,
         ])->save();
+    }
+
+    private function metaProfile(): WhatsAppConnectionProfile
+    {
+        $profile = new WhatsAppConnectionProfile;
+        $profile->forceFill([
+            'name' => 'FOODEX Meta',
+            'display_phone_number' => '+96522220000',
+            'normalized_phone_number' => '+96522220000',
+            'provider_type' => 'meta_cloud',
+            'provider_phone_number_id' => 'phone-foodex',
+            'provider_account_id' => 'waba-foodex',
+            'provider_app_id' => 'app-foodex',
+            'provider_metadata' => ['graph_version' => 'v26.0'],
+            'status' => 'ACTIVE',
+            'health_status' => 'READY',
+            'is_primary' => true,
+            'receive_only' => false,
+            'primary_slot' => 1,
+            'configuration_revision' => 1,
+        ]);
+        $profile->credential_secret = 'meta-template-token';
+        $profile->save();
+
+        return $profile;
     }
 
     private function template(): int
