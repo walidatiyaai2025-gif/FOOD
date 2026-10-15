@@ -146,12 +146,22 @@ final class LifecycleService
                     ->whereIn('status', ['delivered', 'completed'])
                     ->exists();
 
+                $cartAttribution = $updated->cart_id === null
+                    ? null
+                    : DB::table('smart_ordering_carts')
+                        ->where('id', (int) $updated->cart_id)
+                        ->first(['qr_public_id', 'source_snapshot', 'campaign_snapshot', 'offer_reference']);
+
                 $this->analytics->record(
                     (int) $order->store_id,
                     $analyticsEvent,
                     'order:'.$order->getKey().':'.$analyticsEvent,
                     [
                         'branch_id' => (int) $updated->branch_id,
+                        'qr_public_id' => $cartAttribution?->qr_public_id,
+                        'source' => $cartAttribution?->source_snapshot,
+                        'campaign' => $cartAttribution?->campaign_snapshot,
+                        'offer_reference' => $cartAttribution?->offer_reference,
                         'order_id' => (int) $order->getKey(),
                         'customer_type' => $priorCompleted ? 'repeat' : 'new',
                         'fulfillment_mode' => (string) $updated->fulfillment_mode,
