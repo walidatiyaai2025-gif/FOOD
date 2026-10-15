@@ -159,7 +159,7 @@ final class SmartOrderingMenuAdminController extends Controller
     ): RedirectResponse {
         [$actor, $site] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
-        $data = $this->menuData($request);
+        $data = $this->menuData($request, $site);
         $writer->createMenu($actor, $site, $draft, $data, $request);
 
         return back()->with('status', __('smart_ordering_menu.saved'));
@@ -175,7 +175,7 @@ final class SmartOrderingMenuAdminController extends Controller
     ): RedirectResponse {
         [$actor, $site] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
-        $writer->updateMenu($actor, $site, $draft, $menu, $this->menuData($request), $request);
+        $writer->updateMenu($actor, $site, $draft, $menu, $this->menuData($request, $site, $menu), $request);
 
         return back()->with('status', __('smart_ordering_menu.saved'));
     }
@@ -495,21 +495,31 @@ final class SmartOrderingMenuAdminController extends Controller
     }
 
     /** @return array<string,mixed> */
-    private function menuData(Request $request): array
+    private function menuData(Request $request, SmartOrderingSite $site, ?SmartOrderingMenu $current = null): array
     {
         $data = $request->validate([
             'name_ar' => ['nullable', 'string', 'max:255'],
             'name_en' => ['required', 'string', 'max:255'],
             'description_ar' => ['nullable', 'string', 'max:5000'],
             'description_en' => ['nullable', 'string', 'max:5000'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'is_default' => ['nullable', 'boolean'],
             'is_visible' => ['nullable', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'branch_ids' => ['nullable', 'array'],
             'branch_ids.*' => ['integer', 'min:1'],
         ]);
+        unset($data['image']);
         $data['is_default'] = $request->boolean('is_default');
         $data['is_visible'] = $request->boolean('is_visible');
+
+        if ($request->boolean('remove_image')) {
+            $data['image_path'] = null;
+        } elseif ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->store('smart-ordering/'.$site->public_id.'/menus', 'public');
+        } elseif ($current !== null) {
+            $data['image_path'] = $current->image_path;
+        }
 
         return $data;
     }
