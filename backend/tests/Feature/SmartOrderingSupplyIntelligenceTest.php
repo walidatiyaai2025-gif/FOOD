@@ -17,6 +17,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class SmartOrderingSupplyIntelligenceTest extends TestCase
@@ -128,7 +129,7 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
                 'effective_from' => now(),
             ]);
             $this->fail('A foreign-tenant branch must not be accepted.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             $this->assertSame(404, $exception->getStatusCode());
         }
     }
