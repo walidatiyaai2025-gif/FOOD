@@ -7,10 +7,15 @@ use InvalidArgumentException;
 final readonly class EntitlementScope
 {
     public const PLATFORM = 'platform';
+
     public const ORGANIZATION = 'organization';
+
     public const COMPANY = 'company';
+
     public const LEGAL_ENTITY = 'legal_entity';
+
     public const BUSINESS_UNIT = 'business_unit';
+
     public const STORE = 'store';
 
     private const TYPES = [
