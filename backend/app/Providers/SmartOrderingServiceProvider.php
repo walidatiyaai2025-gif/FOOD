@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
+use App\Domain\SmartOrdering\Events\SmartOrderingOrderCreated;
+use App\Domain\SmartOrdering\Events\SmartOrderingOrderStatusChanged;
 use App\Domain\SmartOrdering\Infrastructure\LaravelEventOrderNotificationBridge;
+use App\Domain\SmartOrdering\WhatsApp\SmartOrderingWhatsAppBridge;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -19,6 +23,19 @@ final class SmartOrderingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(
+            SmartOrderingOrderCreated::class,
+            static function (SmartOrderingOrderCreated $event): void {
+                app(SmartOrderingWhatsAppBridge::class)->handleCreated($event);
+            },
+        );
+        Event::listen(
+            SmartOrderingOrderStatusChanged::class,
+            static function (SmartOrderingOrderStatusChanged $event): void {
+                app(SmartOrderingWhatsAppBridge::class)->handleStatusChanged($event);
+            },
+        );
+
         RateLimiter::for('smart-ordering-public', function (Request $request): array {
             $cartIdentity = trim((string) $request->header('X-Smart-Cart-Token', ''));
 

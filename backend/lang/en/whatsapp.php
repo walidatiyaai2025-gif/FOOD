@@ -215,6 +215,35 @@ return [
         ],
     ],
 
+
+    'smart_ordering' => [
+        'timeline_actor' => 'Smart Ordering',
+        'timeline_status' => 'Smart Ordering order :order changed to :status.',
+        'orders_title' => 'Smart Ordering orders',
+        'branch' => 'Branch',
+        'fulfillment' => 'Fulfillment',
+        'scheduled' => 'Scheduled for',
+        'table' => 'Table',
+        'delivery_address' => 'Delivery address',
+        'total' => 'Total',
+        'note' => 'Customer note',
+        'open_order' => 'Open canonical FOODEX order',
+        'modes' => [
+            'dine_in' => 'Dine-in',
+            'pickup' => 'Pickup',
+            'delivery' => 'Delivery',
+        ],
+        'statuses' => [
+            'new' => 'New',
+            'confirmed' => 'Confirmed',
+            'preparing' => 'Preparing',
+            'ready' => 'Ready',
+            'out_for_delivery' => 'Out for delivery',
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
+        ],
+    ],
+
     'campaigns' => [
         'nav_title' => 'WhatsApp Campaigns',
         'page_title' => 'WhatsApp Campaigns · FOODEX',
