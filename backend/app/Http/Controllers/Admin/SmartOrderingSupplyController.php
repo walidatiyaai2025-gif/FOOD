@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
-use App\Domain\SmartOrdering\SupplyIntelligenceService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
+use App\Domain\SmartOrdering\SupplyIntelligenceService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 final class SmartOrderingSupplyController extends Controller
@@ -48,6 +49,10 @@ final class SmartOrderingSupplyController extends Controller
             'branch_id' => $request->query('branch_id'),
             'q' => $request->query('q'),
         ], static fn (mixed $value): bool => $value !== null && $value !== '');
+
+        if ($actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access')) {
+            $query['support_access'] = 1;
+        }
 
         return redirect()->route('admin.smart-ordering.supply.index', ['site' => $site->getKey(), ...$query]);
     }
