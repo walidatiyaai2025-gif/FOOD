@@ -31,5 +31,36 @@ return [
             'health_checks' => [],
             'navigation' => [],
         ],
+        'enterprise_bi' => [
+            'version' => 1,
+            'category' => 'analytics',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+                'entitlements',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => [
+                'sales',
+                'inventory',
+                'procurement',
+                'finance',
+                'treasury',
+            ],
+            'capabilities' => [
+                'reports.read',
+                'reports.export',
+            ],
+            'permissions' => [
+                'reports.view',
+                'reports.export',
+            ],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
     ],
 ];
