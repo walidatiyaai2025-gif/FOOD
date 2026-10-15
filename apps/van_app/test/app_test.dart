@@ -1370,12 +1370,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('van-orders-filter-new')));
     await tester.pumpAndSettle();
 
-    final scrollable = find
-        .descendant(
-          of: find.byKey(const ValueKey('van-orders-page')),
-          matching: find.byType(Scrollable),
-        )
-        .first;
+    final scrollable = find.byKey(const ValueKey('van-orders-page'));
     final loadMore = find.byKey(const ValueKey('van-orders-load-more'));
     await _scrollUntilBuilt(tester, scrollable, loadMore);
     await tester.ensureVisible(loadMore);
