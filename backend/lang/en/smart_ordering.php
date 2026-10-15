@@ -55,5 +55,8 @@ return [
         'slug_taken' => 'This slug is already in use.',
         'domain' => 'Enter a valid hostname without a path.',
         'json' => 'Configuration must be a valid JSON object.',
+        'runtime_state' => 'Choose a supported Smart Ordering runtime state.',
+        'domain_taken' => 'This custom domain is already assigned to another restaurant.',
+        'domain_verification' => 'Custom-domain verification failed.',
     ],
 ];
