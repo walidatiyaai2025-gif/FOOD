@@ -626,6 +626,7 @@ final class OrderOperationsController extends Controller
                 (int) ($data['customer_id'] ?? 0),
                 $selectedId,
             ),
+            default => throw new \InvalidArgumentException('Unsupported order lookup type.'),
         };
 
         return response()->json(['data' => $result]);
