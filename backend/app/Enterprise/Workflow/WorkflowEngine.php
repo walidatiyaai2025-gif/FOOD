@@ -172,7 +172,7 @@ final class WorkflowEngine
                     ->where('status', 'PENDING')
                     ->exists();
 
-                if (! $hasPending) {
+                if ($hasPending === false) {
                     $request->fill([
                         'status' => WorkflowStatus::APPROVED,
                         'completed_at' => now(),
