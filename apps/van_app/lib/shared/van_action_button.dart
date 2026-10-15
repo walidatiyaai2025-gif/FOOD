@@ -52,9 +52,9 @@ class VanActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final secondary = variant == VanActionVariant.secondary;
     final resolvedStyle = FilledButton.styleFrom(
-      backgroundColor: secondary ? Colors.transparent : FoodexVanTokens.green,
-      foregroundColor:
-          secondary ? FoodexVanTokens.green : Colors.white,
+      backgroundColor:
+          secondary ? Colors.transparent : FoodexVanTokens.actionGreen,
+      foregroundColor: secondary ? FoodexVanTokens.actionGreen : Colors.white,
       side: secondary
           ? const BorderSide(color: FoodexVanTokens.border)
           : BorderSide.none,
@@ -66,10 +66,7 @@ class VanActionButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[
-              icon!,
-              const SizedBox(width: 8),
-            ],
+            if (icon != null) ...[icon!, const SizedBox(width: 8)],
             if (label != null) label!,
           ],
         );
@@ -96,10 +93,6 @@ class VanIconAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: icon,
-      tooltip: tooltip,
-    );
+    return IconButton(onPressed: onPressed, icon: icon, tooltip: tooltip);
   }
 }

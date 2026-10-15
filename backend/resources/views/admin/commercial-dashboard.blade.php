@@ -28,7 +28,7 @@
         .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
         .commercial-tabs a{min-height:40px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
         .commercial-tabs a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-        .commercial-tabs a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 18px rgba(21,138,58,.14)}
+        .commercial-tabs a.active{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green);box-shadow:0 8px 18px rgba(21,138,58,.14)}
         .contract-banner{padding:14px 16px;border:1px solid #cfe5d6;border-radius:var(--foodex-radius-card);background:linear-gradient(135deg,var(--foodex-green-soft),#fff);box-shadow:var(--foodex-shadow-sm);display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center}
         .contract-banner strong{margin:0;color:var(--foodex-green-dark)}
         .contract-banner.pending{border-style:dashed;background:#fffaf1}

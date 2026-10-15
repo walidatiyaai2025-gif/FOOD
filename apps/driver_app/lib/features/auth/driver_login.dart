@@ -184,7 +184,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     FoodexBrand.greenDark,
-                    FoodexBrand.green,
+                    FoodexBrand.actionGreen,
                     Theme.of(context).scaffoldBackgroundColor,
                     Theme.of(context).scaffoldBackgroundColor,
                   ],
@@ -332,7 +332,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                         context.tr(_errorKey!),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
-                                          color: FoodexBrand.red,
+                                          color: FoodexBrand.dangerText,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
