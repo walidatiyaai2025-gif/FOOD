@@ -44,7 +44,8 @@ class _VanOffersPageState extends State<VanOffersPage>
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
-  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _customerTypeLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
         'b2c' || 'retail' => _text('Retail', 'تجزئة'),
         _ => _text('Customer', 'عميل'),
@@ -64,7 +65,8 @@ class _VanOffersPageState extends State<VanOffersPage>
     return _text('Offer', 'عرض');
   }
 
-  String _offerStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _offerStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'active' => _text('Active', 'نشط'),
         'scheduled' || 'upcoming' => _text('Scheduled', 'مجدول'),
         'expired' || 'ended' => _text('Ended', 'منتهي'),
@@ -74,12 +76,10 @@ class _VanOffersPageState extends State<VanOffersPage>
 
   String _commercialReasonLabel(String value) =>
       switch (value.trim().toUpperCase()) {
-        'PRODUCT_INACTIVE' =>
-          _text('Product is inactive', 'المنتج غير نشط'),
+        'PRODUCT_INACTIVE' => _text('Product is inactive', 'المنتج غير نشط'),
         'PRODUCT_CLOSED' =>
           _text('Product is closed for sale', 'المنتج مغلق للبيع'),
-        'PRODUCT_RESTRICTED' =>
-          _text('Product is restricted', 'المنتج مقيد'),
+        'PRODUCT_RESTRICTED' => _text('Product is restricted', 'المنتج مقيد'),
         'CHANNEL_BLOCKED' =>
           _text('Sales channel is blocked', 'قناة البيع غير متاحة'),
         'OUTSIDE_AVAILABILITY' =>
@@ -239,9 +239,8 @@ class _VanOffersPageState extends State<VanOffersPage>
       return;
     }
 
-    final overrideReason = _canOverride
-        ? (_overrideReasons[product.id]?.trim() ?? '')
-        : '';
+    final overrideReason =
+        _canOverride ? (_overrideReasons[product.id]?.trim() ?? '') : '';
 
     try {
       final quote = await widget.commercialRepository.quoteForCustomer(
@@ -512,9 +511,9 @@ class _VanOffersPageState extends State<VanOffersPage>
                           child: Text(
                             _text(
                               'Product #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
+                                  '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
                               'منتج #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
+                                  '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
                             ),
                           ),
                         ),
@@ -535,7 +534,8 @@ class _VanOffersPageState extends State<VanOffersPage>
                             'سبب التجاوز (للمشرف/المدير فقط)',
                           ),
                         ),
-                        onChanged: (value) => _overrideReasons[product.id] = value,
+                        onChanged: (value) =>
+                            _overrideReasons[product.id] = value,
                       ),
                     ],
                   ],
