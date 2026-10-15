@@ -19,7 +19,7 @@ The approved Van mockup is the literal visual target, but fake prototype data is
 ## 2. Van brand snapshot
 
 Current Van tokens:
-- Green `#158A3A`
+- Green `#148638`
 - Green Dark `#165D2D`
 - Green Soft `#EAF7EF`
 - Surface `#FFFFFF`
@@ -28,7 +28,7 @@ Current Van tokens:
 - Muted `#667085`
 - Border `#E3E8E4`
 - Warning `#EE731C`
-- Danger `#EF5350`
+- Danger `#B42318`
 - minimum touch target: 48 px
 - card radius: 16 px
 
