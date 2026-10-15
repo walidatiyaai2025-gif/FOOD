@@ -1459,7 +1459,7 @@ Repository default:
 
 - backend-only and Dashboard-only implementation MUST NOT rebuild Customer, Driver or Van;
 - a mobile app build is allowed only when that app's source/native files, its mobile shared dependency/build tooling, or another explicitly mapped mobile-impacting contract changed;
-- backend/Dashboard work may still run backend tests, Dashboard visual evidence, API/contract checks and other non-mobile gates;
+- backend/Dashboard work may still run backend tests, Dashboard visual evidence, API/contract checks and other non-mobile gates; mobile localization runtime checks must also stay skipped unless a mobile area is affected;
 - full Customer + Driver + Van build/validation belongs to explicit final convergence/release/certification lanes, where the CI map intentionally enables those areas;
 - workers must not manually invoke full mobile builds merely to make a backend/Dashboard PR look more complete.
 
