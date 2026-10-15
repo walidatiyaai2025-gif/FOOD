@@ -31,7 +31,7 @@ final class CheckoutService
     ) {}
 
     /**
-     * @param array<string,mixed> $payload
+     * @param  array<string,mixed>  $payload
      * @return array{order:Order,context:SmartOrderingOrderContext,replayed:bool}
      */
     public function checkout(SmartOrderingCart $cart, string $idempotencyKey, array $payload): array
@@ -319,7 +319,7 @@ final class CheckoutService
     }
 
     /**
-     * @param list<array{product_id:int,quantity:float}> $items
+     * @param  list<array{product_id:int,quantity:float}>  $items
      * @return array<int,float>
      */
     private function aggregate(array $items): array
