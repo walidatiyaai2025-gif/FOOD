@@ -90,9 +90,11 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Product is closed for sale'), findsOneWidget);
-    expect(find.textContaining('Daily quantity limit exceeded'), findsOneWidget);
+    expect(
+        find.textContaining('Daily quantity limit exceeded'), findsOneWidget);
     expect(find.textContaining('Flash offer is sold out'), findsOneWidget);
-    expect(find.textContaining('Commercial policy restriction'), findsOneWidget);
+    expect(
+        find.textContaining('Commercial policy restriction'), findsOneWidget);
     expect(find.textContaining('PRODUCT_CLOSED'), findsNothing);
     expect(find.textContaining('FUTURE_INTERNAL_CODE'), findsNothing);
   });
