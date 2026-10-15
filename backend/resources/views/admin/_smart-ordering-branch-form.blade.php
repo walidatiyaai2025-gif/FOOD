@@ -61,15 +61,7 @@ $legacyTimezone=$selectedTimezone !== '' && !$timezoneValues->contains($selected
 </form>
 
 @if($model)
-@php
-$zoneMapPayload=$zones->map(fn($entry)=>[
-    'id'=>(string)$entry->public_id,
-    'name'=>(string)$entry->name,
-    'lat'=>(float)$entry->center_latitude,
-    'lng'=>(float)$entry->center_longitude,
-    'radius'=>(float)$entry->radius_km,
-])->values();
-@endphp
+@php($zoneMapPayload=$zones->map(fn($entry)=>['id'=>(string)$entry->public_id,'name'=>(string)$entry->name,'lat'=>(float)$entry->center_latitude,'lng'=>(float)$entry->center_longitude,'radius'=>(float)$entry->radius_km])->values())
 <section class="so-zones">
 <div class="so-zone-head"><div><h3>{{ __('smart_ordering.zones.title') }}</h3><p>{{ __('smart_ordering.zones.description') }}</p></div></div>
 @foreach($zones as $zone)
