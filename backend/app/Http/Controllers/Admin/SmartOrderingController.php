@@ -176,7 +176,7 @@ final class SmartOrderingController extends Controller
             throw ValidationException::withMessages(['config_json' => __('smart_ordering.validation.json')]);
         }
 
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             throw ValidationException::withMessages(['config_json' => __('smart_ordering.validation.json')]);
         }
 
