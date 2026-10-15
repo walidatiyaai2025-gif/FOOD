@@ -45,7 +45,7 @@
                     <p>{{ __('chatbot.description') }}</p>
                 </div>
                 <div class="foodex-header-actions">
-                    <a class="foodex-action-primary" href="{{ route('admin.whatsapp-chatbot.preview', ['screen' => 'home']) }}">{{ __('chatbot.preview') }}</a>
+                    <a class="foodex-action-primary" href="{{ route('admin.whatsapp-chatbot.preview', ['screen' => 'home']) }}">{{ __('chatbot.preview_title') }}</a>
                     @include('admin._live-notifications', ['user' => auth()->user()])
                 </div>
             </header>
@@ -144,7 +144,7 @@
                         </form>
                     </div>
                     <div class="cb-card cb-col-12">
-                        <h2>{{ __('chatbot.preview') }}</h2>
+                        <h2>{{ __('chatbot.preview_title') }}</h2>
                         <p class="cb-muted">{{ __('chatbot.admin.customer_preview_hint') }}</p>
                         <div class="cb-preview-links">
                             @foreach(['home','new-order','reorder','products','cart','orders','finance','support'] as $screen)
