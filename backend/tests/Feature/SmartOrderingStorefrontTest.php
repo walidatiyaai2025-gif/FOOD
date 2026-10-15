@@ -147,6 +147,9 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString("feedback.classList.toggle('is-empty',count===0);", $script);
         $this->assertStringContainsString('search.focus({preventScroll:true});', $script);
         $this->assertStringContainsString('result_count:count', $script);
+        $this->assertStringContainsString("$('[data-menu-search]').forEach", $script);
+        $this->assertStringContainsString("const items=$('[data-menu-item]')", $script);
+        $this->assertStringContainsString("$('[data-category]').forEach", $script);
         $this->assertStringContainsString('.so-search-feedback', $stylesheet);
         $this->assertStringContainsString('.so-search-clear{min-height:44px', $stylesheet);
     }
