@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -133,6 +134,7 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/administration/system-health', EnterpriseSystemHealthController::class)->name('enterprise-system-health.index');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
