@@ -15,6 +15,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class SmartOrderingCustomerController extends Controller
 {
@@ -149,7 +150,7 @@ final class SmartOrderingCustomerController extends Controller
         $branchReference = trim((string) $request->query('branch', ''));
         $branchId = null;
         if ($branchReference !== '') {
-            abort_unless(\Illuminate\Support\Str::isUuid($branchReference), 422);
+            abort_unless(Str::isUuid($branchReference), 422);
             $branchId = DB::table('smart_ordering_branches')
                 ->where('site_id', $site->id)
                 ->where('public_id', $branchReference)
