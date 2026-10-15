@@ -44,8 +44,7 @@ final class CheckoutService
         string $idempotencyKey,
         array $payload,
         ?User $authenticatedUser = null,
-    ): array
-    {
+    ): array {
         $idempotencyKey = trim($idempotencyKey);
         if (strlen($idempotencyKey) < 16 || strlen($idempotencyKey) > 100) {
             throw ValidationException::withMessages([
