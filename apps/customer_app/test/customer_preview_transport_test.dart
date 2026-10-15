@@ -183,6 +183,7 @@ void main() {
                 'availability_state': 'OUT_OF_STOCK',
               },
             ],
+            'meta': {'current_page': 1, 'per_page': 20, 'total': 1},
           }),
           200,
           headers: const {'content-type': 'application/json'},
