@@ -24,6 +24,7 @@ final class SmartOrderingAttributionService
         SmartOrderingQrCode $qr,
         SmartOrderingQrToken $token,
         string $visitorToken,
+        ?string $referrer = null,
     ): SmartOrderingQrVisit {
         $visitorHash = hash_hmac('sha256', $visitorToken, $this->signingKey());
 
@@ -45,6 +46,7 @@ final class SmartOrderingAttributionService
                 'campaign_snapshot' => $qr->campaign,
                 'branch_reference_snapshot' => $qr->branch_reference,
                 'table_reference_snapshot' => $qr->table_reference,
+                'referrer_snapshot' => $this->boundedReferrer($referrer),
                 'landing_at' => now(),
             ]);
         }
@@ -64,23 +66,27 @@ final class SmartOrderingAttributionService
 
     public function contextFromRequest(Request $request): ?string
     {
-        $context = trim((string) (
-            $request->header('X-Smart-Ordering-Context')
-            ?? $request->query('so_ctx')
-            ?? $request->cookie('foodex_so_attribution')
-            ?? ''
-        ));
+        $candidates = [
+            $request->header('X-Smart-Ordering-Context'),
+            $request->query('so_ctx'),
+            $request->cookie('foodex_so_attribution'),
+        ];
 
-        if ($context === '') {
-            return null;
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+
+            $context = trim($candidate);
+            if (strlen($context) > 512
+                || preg_match('/^v1\.[A-Za-z0-9_-]+\.[a-f0-9]{64}$/', $context) !== 1) {
+                $this->invalidContext();
+            }
+
+            return $context;
         }
 
-        if (strlen($context) > 512
-            || preg_match('/^v1\.[A-Za-z0-9_-]+\.[a-f0-9]{64}$/', $context) !== 1) {
-            $this->invalidContext();
-        }
-
-        return $context;
+        return null;
     }
 
     public function markStorefrontViewed(string $context, int $expectedStoreId): SmartOrderingQrVisit
@@ -405,6 +411,20 @@ final class SmartOrderingAttributionService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function boundedReferrer(?string $referrer): ?string
+    {
+        if (! is_string($referrer)) {
+            return null;
+        }
+
+        $referrer = trim($referrer);
+        if ($referrer === '') {
+            return null;
+        }
+
+        return mb_substr($referrer, 0, 1024);
     }
 
     private function signingKey(): string
