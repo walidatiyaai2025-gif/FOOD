@@ -34,7 +34,7 @@
                     <h2>{{ __('smart_ordering_supply.title') }}</h2>
                     <p>{{ __('smart_ordering_supply.nav_description') }}</p>
                 </div>
-                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',$site) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
+                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
             </div>
         </section>
         @endif
