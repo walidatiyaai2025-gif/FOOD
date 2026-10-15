@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -232,24 +233,25 @@ final class PromotionalNotificationCampaignController extends Controller
         ]);
 
         if ($data['state'] === 'active') {
-            abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
-            $this->assertReviewedAudience($request, $campaign, 'activate', $reviews);
-        }
-
-        $before = $campaign->toArray();
-        if ($data['state'] === 'active') {
-            $campaign->update([
-                'status' => 'active',
-                'next_run_at' => $campaign->next_run_at ?? $campaign->starts_at ?? now(),
-            ]);
+            DB::transaction(function () use ($request, $campaign, $audit, $actor, $reviews): void {
+                $locked = NotificationCampaign::query()->whereKey($campaign->getKey())->lockForUpdate()->firstOrFail();
+                abort_if(in_array($locked->status, ['completed', 'cancelled'], true), 409);
+                $this->assertReviewedAudience($request, $locked, 'activate', $reviews);
+                $before = $locked->toArray();
+                $locked->update([
+                    'status' => 'active',
+                    'next_run_at' => $locked->next_run_at ?? $locked->starts_at ?? now(),
+                ]);
+                $audit->record('notification_campaign.state_changed', $actor, $locked, $before, $locked->fresh()->toArray(), $request);
+            }, 3);
         } else {
+            $before = $campaign->toArray();
             $campaign->update([
                 'status' => $data['state'],
                 'next_run_at' => $data['state'] === 'cancelled' ? null : $campaign->next_run_at,
             ]);
+            $audit->record('notification_campaign.state_changed', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
         }
-
-        $audit->record('notification_campaign.state_changed', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
 
         return back()->with('status', __('notifications.campaign_state_updated'));
     }
@@ -263,18 +265,32 @@ final class PromotionalNotificationCampaignController extends Controller
     ): RedirectResponse {
         $actor = $this->authorizeCampaign($request, $campaign);
         abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
-        $this->assertReviewedAudience($request, $campaign, 'send_now', $reviews);
 
-        $before = $campaign->toArray();
-        $campaign->update(['status' => 'active', 'next_run_at' => now()]);
-        $dispatched = $dispatcher->dispatchCampaign((int) $campaign->id);
-        if (! $dispatched) {
+        $lock = Cache::lock('notification-campaign-send:'.(int) $campaign->getKey(), 30);
+        if (! $lock->get()) {
             throw ValidationException::withMessages([
-                'send_now' => [__('notifications.delivery_not_confirmed')],
+                'send_now' => [__('notifications.delivery_in_progress')],
             ]);
         }
 
-        $audit->record('notification_campaign.send_now', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
+        try {
+            $fresh = NotificationCampaign::query()->findOrFail($campaign->getKey());
+            abort_if(in_array($fresh->status, ['completed', 'cancelled'], true), 409);
+            $this->assertReviewedAudience($request, $fresh, 'send_now', $reviews);
+
+            $before = $fresh->toArray();
+            $fresh->update(['status' => 'active', 'next_run_at' => now()]);
+            $dispatched = $dispatcher->dispatchCampaign((int) $fresh->id);
+            if (! $dispatched) {
+                throw ValidationException::withMessages([
+                    'send_now' => [__('notifications.delivery_not_confirmed')],
+                ]);
+            }
+
+            $audit->record('notification_campaign.send_now', $actor, $fresh, $before, $fresh->fresh()->toArray(), $request);
+        } finally {
+            $lock->release();
+        }
 
         return back()->with('status', __('notifications.campaign_dispatched_now'));
     }
