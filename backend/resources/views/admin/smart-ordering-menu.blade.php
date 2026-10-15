@@ -471,7 +471,7 @@
             <div class="so-invalid-actions">
                 @foreach($allItems as $item)
                     @if(isset($itemPriceErrors[(int)$item->id]))
-                    <a class="foodex-secondary" href="#menu-item-{{ $item->public_id }}">{{ $localized($item,'name') }}</a>
+                    <a class="foodex-secondary" href="{{ $reviewMode ? route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$itemMenuIds[(int)$item->id] ?? $focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) : '' }}#menu-item-{{ $item->public_id }}">{{ $localized($item,'name') }}</a>
                     @endif
                 @endforeach
             </div>
@@ -526,7 +526,7 @@
                                     <div class="foodex-alert error" role="status">
                                         <strong>{{ __('smart_ordering_menu.invalid_item.badge') }}</strong>
                                         <div>{{ $itemPriceErrors[(int)$item->id] }}</div>
-                                        <a class="foodex-secondary" href="#menu-item-{{ $item->public_id }}">{{ __('smart_ordering_menu.invalid_item.edit') }}</a>
+                                        <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$menu->id] + ($supportAccess ? ['support_access'=>1] : [])) }}#menu-item-{{ $item->public_id }}">{{ __('smart_ordering_menu.invalid_item.edit') }}</a>
                                     </div>
                                     @else
                                     <span class="foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span>
@@ -564,8 +564,10 @@
                 @else
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
                 @endif
+                @if($reviewMode)
                 <button class="primary" type="submit" @disabled(!empty($itemPriceErrors)) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
                 @if(!empty($itemPriceErrors))<a class="foodex-secondary" href="#so-invalid-items">{{ __('smart_ordering_menu.invalid_item.review_before_publish') }}</a>@endif
+                @endif
             </form>
         </div>
     </main>
