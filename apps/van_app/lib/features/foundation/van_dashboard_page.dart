@@ -74,7 +74,9 @@ class _VanDashboardPageState extends State<VanDashboardPage>
     if (mounted) {
       setState(() {
         if (background &&
-            (_accounts.isNotEmpty || _customers.isNotEmpty || _orders.isNotEmpty)) {
+            (_accounts.isNotEmpty ||
+                _customers.isNotEmpty ||
+                _orders.isNotEmpty)) {
           _refreshing = true;
         } else {
           _loading = true;
@@ -92,7 +94,8 @@ class _VanDashboardPageState extends State<VanDashboardPage>
       var orders = _orders;
       var ordersUnavailable = false;
       try {
-        orders = await widget.orderRepository.orders();
+        final orderPage = await widget.orderRepository.orders(perPage: 100);
+        orders = orderPage.items;
       } on VanSessionExpiredException {
         rethrow;
       } catch (_) {
@@ -117,7 +120,9 @@ class _VanDashboardPageState extends State<VanDashboardPage>
         _loading = false;
         _refreshing = false;
         if (background &&
-            (_accounts.isNotEmpty || _customers.isNotEmpty || _orders.isNotEmpty)) {
+            (_accounts.isNotEmpty ||
+                _customers.isNotEmpty ||
+                _orders.isNotEmpty)) {
           _stale = true;
         } else {
           _error = error;
@@ -184,8 +189,7 @@ class _VanDashboardPageState extends State<VanDashboardPage>
             sum +
             account.remittances.fold<double>(
               0,
-              (remittanceSum, remittance) =>
-                  remittanceSum + remittance.amount,
+              (remittanceSum, remittance) => remittanceSum + remittance.amount,
             ),
       );
 
@@ -195,12 +199,16 @@ class _VanDashboardPageState extends State<VanDashboardPage>
     return currencies.length == 1 ? currencies.first : '';
   }
 
-  String _money(double value) =>
-      _currency.isEmpty ? value.toStringAsFixed(3) : foodexMoneyText(value, _currency);
+  String _money(double value) => _currency.isEmpty
+      ? value.toStringAsFixed(3)
+      : foodexMoneyText(value, _currency);
 
   @override
   Widget build(BuildContext context) {
-    if (_loading && _accounts.isEmpty && _customers.isEmpty && _orders.isEmpty) {
+    if (_loading &&
+        _accounts.isEmpty &&
+        _customers.isEmpty &&
+        _orders.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 

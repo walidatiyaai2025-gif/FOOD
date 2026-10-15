@@ -139,6 +139,23 @@ class VanOrderRecord {
   final String? vanLastTransitionAt;
 }
 
+class VanOrderPage {
+  const VanOrderPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  final List<VanOrderRecord> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+
+  bool get hasMore => currentPage * perPage < total;
+  int? get nextPage => hasMore ? currentPage + 1 : null;
+}
+
 class VanOrderCustomer {
   const VanOrderCustomer({
     required this.name,
@@ -367,9 +384,11 @@ abstract interface class VanOrderRepository {
     String? customerNote,
   });
 
-  Future<List<VanOrderRecord>> orders({
+  Future<VanOrderPage> orders({
     VanCustomerScope? customer,
     String? status,
+    int page = 1,
+    int perPage = 50,
   });
 
   Future<VanOrderDetail> order(int orderId);
