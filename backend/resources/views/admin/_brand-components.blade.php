@@ -1014,10 +1014,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const fallbackFocus = document.querySelector('[autofocus],main input:not([type="hidden"]),main select,main textarea,main button,main a[href]');
         let modalSession = null;
         let dismissTimer = null;
-        const close = () => {
+        const close = ({ restoreFocus = true } = {}) => {
             if (!overlay.isConnected) return;
             if (dismissTimer !== null) window.clearTimeout(dismissTimer);
-            modalSession?.deactivate({ restoreFocus: true });
+            modalSession?.deactivate({ restoreFocus });
             modalSession = null;
             overlay.remove();
             if (window.FoodexFeedbackClose === close) window.FoodexFeedbackClose = null;
@@ -1026,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
         focusLinks.forEach(({ link, target }) => {
             link.addEventListener('click', (event) => {
                 event.preventDefault();
-                close();
+                close({ restoreFocus: false });
                 target.focus({ preventScroll:false });
                 requestAnimationFrame(() => {
                     target.scrollIntoView({ block:'center', inline:'nearest' });
