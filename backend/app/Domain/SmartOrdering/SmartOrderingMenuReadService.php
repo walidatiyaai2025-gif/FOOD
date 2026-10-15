@@ -212,7 +212,9 @@ final class SmartOrderingMenuReadService
         string $locale,
         ?SmartOrderingBranch $branch,
     ): array {
-        $categories = $menu->categories()
+        $categories = SmartOrderingMenuCategory::query()
+            ->where('menu_id', $menu->id)
+            ->orderBy('sort_order')
             ->get()
             ->map(fn (SmartOrderingMenuCategory $category): ?array => $this->categoryResource($category, $locale, $branch, $site))
             ->filter()
@@ -265,7 +267,9 @@ final class SmartOrderingMenuReadService
         ];
 
         if ($site !== null) {
-            $resource['items'] = $category->items()
+            $resource['items'] = SmartOrderingMenuItem::query()
+                ->where('category_id', $category->id)
+                ->orderBy('sort_order')
                 ->get()
                 ->map(fn (SmartOrderingMenuItem $item): ?array => $this->itemResource($site, $item, $locale, $branch, false))
                 ->filter()
@@ -284,8 +288,8 @@ final class SmartOrderingMenuReadService
         ?SmartOrderingBranch $branch,
         bool $detail,
     ): ?array {
-        $category = $item->category()->firstOrFail();
-        $menu = $category->menu()->firstOrFail();
+        $category = SmartOrderingMenuCategory::query()->findOrFail($item->category_id);
+        $menu = SmartOrderingMenu::query()->findOrFail($category->menu_id);
         if (! $this->menuAppliesToBranch($menu, $branch)) {
             return null;
         }
@@ -327,11 +331,11 @@ final class SmartOrderingMenuReadService
             'is_new' => (bool) $item->is_new,
             'prep_time_minutes' => $this->effectivePrepTime($item, $branch),
             'calories' => $item->calories === null ? null : (int) $item->calories,
-            'allergens' => array_values((array) $item->allergens),
+            'allergens' => (array) $item->allergens,
             'spicy_level' => (int) $item->spicy_level,
             'vegetarian' => (bool) $item->vegetarian,
             'allow_customer_notes' => (bool) $item->allow_customer_notes,
-            'removable_ingredients' => array_values((array) $item->removable_ingredients),
+            'removable_ingredients' => (array) $item->removable_ingredients,
         ];
 
         if ($detail) {
@@ -356,8 +360,10 @@ final class SmartOrderingMenuReadService
         string $locale,
         ?SmartOrderingBranch $branch,
     ): array {
-        $options = $group->options()
+        $options = SmartOrderingModifierOption::query()
+            ->where('group_id', $group->id)
             ->where('is_visible', true)
+            ->orderBy('sort_order')
             ->get()
             ->map(function (SmartOrderingModifierOption $option) use ($site, $locale, $branch): ?array {
                 $state = $this->availability->option($site, $option, $branch);
