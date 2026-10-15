@@ -324,7 +324,7 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card panel" data-order-edit-panel>
 <h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }} · {{ $detail['number'] }}</h2>
 <p>{{ $isAr ? 'يتم إعادة التسعير والتحقق من المخزون عند الحفظ. التعديل متاح للطلبات المعلقة غير المقفلة فقط.' : 'Saving re-prices and re-validates stock. Editing is limited to unlocked pending orders.' }}</p>
-<form method="post" action="{{ route('admin.operations.orders.update',$detail['id']) }}" data-order-edit-form data-lookup-url="{{ route('admin.operations.orders.lookups',['type'=>'__TYPE__'],false) }}" data-edit-channel="{{ $detail['channel'] }}" data-edit-store="{{ $detail['store_id'] }}">
+<form method="post" action="{{ route('admin.operations.orders.update',$detail['id']) }}" data-order-edit-form data-lookup-url="{{ route('admin.operations.orders.lookups',['type'=>'__TYPE__'],false) }}" data-edit-channel="{{ $detail['channel'] }}" data-edit-store="{{ $detail['store_id'] }}"> {{-- localization-gate: allow channel/store values are machine-only scoped lookup attributes, not user-visible labels --}}
 @csrf @method('PATCH')
 <div class="new-order-grid">
 <label class="new-order-field"><span>{{ $isAr ? 'العميل' : 'Customer' }}</span>
@@ -624,5 +624,4 @@ document.addEventListener('DOMContentLoaded',()=>{
  reindex();
 });
 </script>
-@endif
 @endif
