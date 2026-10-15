@@ -442,7 +442,7 @@
                                 <article class="so-review-item">
                                     @if($mediaUrl($item->image_path))<img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
                                     <strong>{{ $localized($item,'name') }}</strong>
-                                    <span class="foodex-number">{{ number_format((float)($item->price_override ?? 0),3) }} KWD</span>
+                                    <span class="foodex-number">{{ number_format((float)($itemPrices[$item->id] ?? 0),3) }} KWD</span>
                                     <div class="so-review-status">
                                         @unless($item->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
                                         @if($item->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
