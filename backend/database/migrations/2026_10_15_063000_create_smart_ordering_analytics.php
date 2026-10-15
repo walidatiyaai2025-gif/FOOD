@@ -14,6 +14,13 @@ return new class extends Migration
 
     public function up(): void
     {
+        Schema::table('smart_ordering_carts', function (Blueprint $table): void {
+            $table->uuid('qr_public_id')->nullable()->after('revision_public_id')->index();
+            $table->string('source_snapshot', 64)->nullable()->after('qr_public_id');
+            $table->string('campaign_snapshot', 120)->nullable()->after('source_snapshot');
+            $table->string('offer_reference', 120)->nullable()->after('campaign_snapshot');
+        });
+
         Schema::create('smart_ordering_analytics_events', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
@@ -167,6 +174,10 @@ return new class extends Migration
         Schema::dropIfExists('smart_ordering_analytics_daily_visitors');
         Schema::dropIfExists('smart_ordering_analytics_daily');
         Schema::dropIfExists('smart_ordering_analytics_events');
+
+        Schema::table('smart_ordering_carts', function (Blueprint $table): void {
+            $table->dropColumn(['qr_public_id', 'source_snapshot', 'campaign_snapshot', 'offer_reference']);
+        });
 
         $ids = DB::table('permissions')->whereIn('code', array_keys(self::PERMISSIONS))->pluck('id');
         if ($ids->isNotEmpty()) {
