@@ -192,15 +192,33 @@ final class RestaurantAnalyticsService
             ->where('o.status', 'refunded')
             ->whereBetween('e.occurred_at', [$from, $to]);
 
-        if (! empty($filters['branch_id'])) $query->where('e.branch_id', (int) $filters['branch_id']);
-        if (! empty($filters['qr_public_id'])) $query->where('e.qr_public_id', (string) $filters['qr_public_id']);
-        if (! empty($filters['source'])) $query->where('e.source_snapshot', (string) $filters['source']);
-        if (! empty($filters['campaign'])) $query->where('e.campaign_snapshot', (string) $filters['campaign']);
-        if (! empty($filters['offer'])) $query->where('e.offer_reference', (string) $filters['offer']);
-        if (! empty($filters['customer_type'])) $query->where('e.customer_type', (string) $filters['customer_type']);
-        if (! empty($filters['fulfillment'])) $query->where('e.fulfillment_mode', (string) $filters['fulfillment']);
-        if (! empty($filters['product_id'])) $query->where('e.product_id', (int) $filters['product_id']);
-        if (! empty($filters['category_id'])) $query->where('e.category_id', (int) $filters['category_id']);
+        if (! empty($filters['branch_id'])) {
+            $query->where('e.branch_id', (int) $filters['branch_id']);
+        }
+        if (! empty($filters['qr_public_id'])) {
+            $query->where('e.qr_public_id', (string) $filters['qr_public_id']);
+        }
+        if (! empty($filters['source'])) {
+            $query->where('e.source_snapshot', (string) $filters['source']);
+        }
+        if (! empty($filters['campaign'])) {
+            $query->where('e.campaign_snapshot', (string) $filters['campaign']);
+        }
+        if (! empty($filters['offer'])) {
+            $query->where('e.offer_reference', (string) $filters['offer']);
+        }
+        if (! empty($filters['customer_type'])) {
+            $query->where('e.customer_type', (string) $filters['customer_type']);
+        }
+        if (! empty($filters['fulfillment'])) {
+            $query->where('e.fulfillment_mode', (string) $filters['fulfillment']);
+        }
+        if (! empty($filters['product_id'])) {
+            $query->where('e.product_id', (int) $filters['product_id']);
+        }
+        if (! empty($filters['category_id'])) {
+            $query->where('e.category_id', (int) $filters['category_id']);
+        }
 
         $row = $query->selectRaw('COUNT(*) AS orders_count, COALESCE(SUM(e.revenue),0) AS refunded_revenue')->first();
 
@@ -398,8 +416,12 @@ final class RestaurantAnalyticsService
             ->whereBetween('d.event_date', [$from->toDateString(), $to->toDateString()])
             ->whereIn('d.event_name', ['category_viewed', 'product_viewed', 'order_completed']);
 
-        if (! empty($filters['branch_id'])) $query->where('d.branch_key', (int) $filters['branch_id']);
-        if (! empty($filters['category_id'])) $query->where('d.category_id', (int) $filters['category_id']);
+        if (! empty($filters['branch_id'])) {
+            $query->where('d.branch_key', (int) $filters['branch_id']);
+        }
+        if (! empty($filters['category_id'])) {
+            $query->where('d.category_id', (int) $filters['category_id']);
+        }
 
         return $query->groupBy('d.category_id', 'c.name')
             ->selectRaw('d.category_id, c.name')
@@ -494,11 +516,21 @@ final class RestaurantAnalyticsService
             ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
             ->where('event_name', 'order_created');
 
-        if (! empty($filters['branch_id'])) $query->where('branch_key', (int) $filters['branch_id']);
-        if (! empty($filters['qr_public_id'])) $query->where('qr_key', (string) $filters['qr_public_id']);
-        if (! empty($filters['source'])) $query->where('source_key', (string) $filters['source']);
-        if (! empty($filters['campaign'])) $query->where('campaign_key', (string) $filters['campaign']);
-        if (! empty($filters['fulfillment'])) $query->where('fulfillment_mode_key', (string) $filters['fulfillment']);
+        if (! empty($filters['branch_id'])) {
+            $query->where('branch_key', (int) $filters['branch_id']);
+        }
+        if (! empty($filters['qr_public_id'])) {
+            $query->where('qr_key', (string) $filters['qr_public_id']);
+        }
+        if (! empty($filters['source'])) {
+            $query->where('source_key', (string) $filters['source']);
+        }
+        if (! empty($filters['campaign'])) {
+            $query->where('campaign_key', (string) $filters['campaign']);
+        }
+        if (! empty($filters['fulfillment'])) {
+            $query->where('fulfillment_mode_key', (string) $filters['fulfillment']);
+        }
 
         return $query->groupBy('event_hour')
             ->selectRaw('event_hour, SUM(event_count) AS orders')
@@ -626,15 +658,33 @@ final class RestaurantAnalyticsService
             ->whereIn('store_id', $storeIds)
             ->whereBetween('occurred_at', [$from, $to]);
 
-        if (! empty($filters['branch_id'])) $query->where('branch_id', (int) $filters['branch_id']);
-        if (! empty($filters['qr_public_id'])) $query->where('qr_public_id', (string) $filters['qr_public_id']);
-        if (! empty($filters['source'])) $query->where('source_snapshot', (string) $filters['source']);
-        if (! empty($filters['campaign'])) $query->where('campaign_snapshot', (string) $filters['campaign']);
-        if (! empty($filters['offer'])) $query->where('offer_reference', (string) $filters['offer']);
-        if (! empty($filters['customer_type'])) $query->where('customer_type', (string) $filters['customer_type']);
-        if (! empty($filters['fulfillment'])) $query->where('fulfillment_mode', (string) $filters['fulfillment']);
-        if (! empty($filters['product_id'])) $query->where('product_id', (int) $filters['product_id']);
-        if (! empty($filters['category_id'])) $query->where('category_id', (int) $filters['category_id']);
+        if (! empty($filters['branch_id'])) {
+            $query->where('branch_id', (int) $filters['branch_id']);
+        }
+        if (! empty($filters['qr_public_id'])) {
+            $query->where('qr_public_id', (string) $filters['qr_public_id']);
+        }
+        if (! empty($filters['source'])) {
+            $query->where('source_snapshot', (string) $filters['source']);
+        }
+        if (! empty($filters['campaign'])) {
+            $query->where('campaign_snapshot', (string) $filters['campaign']);
+        }
+        if (! empty($filters['offer'])) {
+            $query->where('offer_reference', (string) $filters['offer']);
+        }
+        if (! empty($filters['customer_type'])) {
+            $query->where('customer_type', (string) $filters['customer_type']);
+        }
+        if (! empty($filters['fulfillment'])) {
+            $query->where('fulfillment_mode', (string) $filters['fulfillment']);
+        }
+        if (! empty($filters['product_id'])) {
+            $query->where('product_id', (int) $filters['product_id']);
+        }
+        if (! empty($filters['category_id'])) {
+            $query->where('category_id', (int) $filters['category_id']);
+        }
 
         return $query;
     }
@@ -644,13 +694,27 @@ final class RestaurantAnalyticsService
      */
     private function applyRollupDimensions(Builder $query, array $filters, array $skip = [], string $prefix = ''): void
     {
-        if (! in_array('branch', $skip, true) && ! empty($filters['branch_id'])) $query->where($prefix.'branch_key', (int) $filters['branch_id']);
-        if (! in_array('qr', $skip, true) && ! empty($filters['qr_public_id'])) $query->where($prefix.'qr_key', (string) $filters['qr_public_id']);
-        if (! in_array('source', $skip, true) && ! empty($filters['source'])) $query->where($prefix.'source_key', (string) $filters['source']);
-        if (! in_array('campaign', $skip, true) && ! empty($filters['campaign'])) $query->where($prefix.'campaign_key', (string) $filters['campaign']);
-        if (! in_array('offer', $skip, true) && ! empty($filters['offer'])) $query->where($prefix.'offer_key', (string) $filters['offer']);
-        if (! in_array('customer_type', $skip, true) && ! empty($filters['customer_type'])) $query->where($prefix.'customer_type_key', (string) $filters['customer_type']);
-        if (! in_array('fulfillment', $skip, true) && ! empty($filters['fulfillment'])) $query->where($prefix.'fulfillment_mode_key', (string) $filters['fulfillment']);
+        if (! in_array('branch', $skip, true) && ! empty($filters['branch_id'])) {
+            $query->where($prefix.'branch_key', (int) $filters['branch_id']);
+        }
+        if (! in_array('qr', $skip, true) && ! empty($filters['qr_public_id'])) {
+            $query->where($prefix.'qr_key', (string) $filters['qr_public_id']);
+        }
+        if (! in_array('source', $skip, true) && ! empty($filters['source'])) {
+            $query->where($prefix.'source_key', (string) $filters['source']);
+        }
+        if (! in_array('campaign', $skip, true) && ! empty($filters['campaign'])) {
+            $query->where($prefix.'campaign_key', (string) $filters['campaign']);
+        }
+        if (! in_array('offer', $skip, true) && ! empty($filters['offer'])) {
+            $query->where($prefix.'offer_key', (string) $filters['offer']);
+        }
+        if (! in_array('customer_type', $skip, true) && ! empty($filters['customer_type'])) {
+            $query->where($prefix.'customer_type_key', (string) $filters['customer_type']);
+        }
+        if (! in_array('fulfillment', $skip, true) && ! empty($filters['fulfillment'])) {
+            $query->where($prefix.'fulfillment_mode_key', (string) $filters['fulfillment']);
+        }
     }
 
     /** @return array<string,mixed> */
