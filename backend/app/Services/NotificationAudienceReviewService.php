@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\NotificationCampaign;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 final class NotificationAudienceReviewService
 {
@@ -35,7 +36,7 @@ final class NotificationAudienceReviewService
                     $count++;
                     if (count($sample) < self::SAMPLE_SIZE) {
                         $sample[] = [
-                            'name' => (string) $user->name,
+                            'name' => $this->sampleName($user, $target),
                             'email' => (string) $user->email,
                         ];
                     }
@@ -58,6 +59,38 @@ final class NotificationAudienceReviewService
         return is_string($token)
             && $token !== ''
             && hash_equals($this->reviewToken($target, $action), $token);
+    }
+
+    private function sampleName(User $user, Notification|NotificationCampaign $target): string
+    {
+        if ((string) $target->audience !== 'customer') {
+            return (string) $user->name;
+        }
+
+        $channel = (string) $target->target_channel;
+        $channels = $channel === 'all' ? ['b2c', 'b2b'] : [$channel];
+
+        foreach ($channels as $customerChannel) {
+            $name = DB::table('customers')
+                ->where('user_id', $user->id)
+                ->where('type', $customerChannel)
+                ->value('name');
+
+            if (is_string($name) && trim($name) !== '') {
+                return $name;
+            }
+
+            $table = $customerChannel === 'b2c' ? 'b2c_customers' : 'b2b_customers';
+            $name = DB::table($table)
+                ->where('user_id', $user->id)
+                ->value('name');
+
+            if (is_string($name) && trim($name) !== '') {
+                return $name;
+            }
+        }
+
+        return (string) $user->name;
     }
 
     private function matches(User $user, Notification|NotificationCampaign $target): bool
