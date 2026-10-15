@@ -477,6 +477,8 @@ class B2cWorkspaceController extends Controller
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'gte:0'],
+            'expected_quantity' => ['nullable', 'numeric'],
+            'expected_reserved_quantity' => ['nullable', 'numeric'],
         ]);
         $storeId = $this->workspaceStoreId($request, $user);
         abort_unless($storeId === (int) $data['store_id'], 404);
@@ -495,31 +497,56 @@ class B2cWorkspaceController extends Controller
             ->exists();
         abort_unless($warehouseOwned && $productOwned, 404);
 
-        $existing = DB::table('inventories')
-            ->where('warehouse_id', $data['warehouse_id'])
-            ->where('product_id', $data['product_id'])
-            ->first(['id', 'reserved_quantity']);
-        if ($existing !== null && (float) $data['quantity'] < (float) $existing->reserved_quantity) {
-            throw ValidationException::withMessages([
-                'quantity' => [$this->msg('لا يمكن جعل الكمية أقل من الكمية المحجوزة.', 'Quantity cannot be below the reserved quantity.')],
-            ]);
-        }
+        DB::transaction(function () use ($data): void {
+            $existing = DB::table('inventories')
+                ->where('warehouse_id', $data['warehouse_id'])
+                ->where('product_id', $data['product_id'])
+                ->lockForUpdate()
+                ->first(['id', 'quantity', 'reserved_quantity']);
+            if ($existing !== null) {
+                if (array_key_exists('expected_quantity', $data)
+                    && $data['expected_quantity'] !== null
+                    && abs((float) $existing->quantity - (float) $data['expected_quantity']) > 0.0001) {
+                    throw ValidationException::withMessages([
+                        'quantity' => [$this->msg(
+                            'تغيّر رصيد المخزون منذ المراجعة. راجع القيم الحالية وأعد المحاولة.',
+                            'Inventory changed since review. Review the current values and try again.',
+                        )],
+                    ]);
+                }
+                if (array_key_exists('expected_reserved_quantity', $data)
+                    && $data['expected_reserved_quantity'] !== null
+                    && abs((float) $existing->reserved_quantity - (float) $data['expected_reserved_quantity']) > 0.0001) {
+                    throw ValidationException::withMessages([
+                        'quantity' => [$this->msg(
+                            'تغيّرت الكمية المحجوزة منذ المراجعة. راجع القيم الحالية وأعد المحاولة.',
+                            'Reserved stock changed since review. Review the current values and try again.',
+                        )],
+                    ]);
+                }
+                if ((float) $data['quantity'] < (float) $existing->reserved_quantity) {
+                    throw ValidationException::withMessages([
+                        'quantity' => [$this->msg('لا يمكن جعل الكمية أقل من الكمية المحجوزة.', 'Quantity cannot be below the reserved quantity.')],
+                    ]);
+                }
+            }
 
-        if ($existing === null) {
-            DB::table('inventories')->insert([
-                'warehouse_id' => $data['warehouse_id'],
-                'product_id' => $data['product_id'],
-                'quantity' => $data['quantity'],
-                'reserved_quantity' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } else {
-            DB::table('inventories')->where('id', $existing->id)->update([
-                'quantity' => $data['quantity'],
-                'updated_at' => now(),
-            ]);
-        }
+            if ($existing === null) {
+                DB::table('inventories')->insert([
+                    'warehouse_id' => $data['warehouse_id'],
+                    'product_id' => $data['product_id'],
+                    'quantity' => $data['quantity'],
+                    'reserved_quantity' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('inventories')->where('id', $existing->id)->update([
+                    'quantity' => $data['quantity'],
+                    'updated_at' => now(),
+                ]);
+            }
+        }, 3);
 
         return back()->with('status', $this->msg('تم إنشاء/تحديث رصيد المخزون.', 'Inventory balance created/updated.'));
     }
@@ -561,6 +588,8 @@ class B2cWorkspaceController extends Controller
             'inventory_id' => ['required', 'integer', 'exists:inventories,id'],
             'target_warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'quantity' => ['required', 'numeric', 'gt:0'],
+            'expected_quantity' => ['nullable', 'numeric'],
+            'expected_reserved_quantity' => ['nullable', 'numeric'],
         ]);
 
         DB::transaction(function () use ($data, $storeId, $user, $audit, $request): void {
@@ -571,6 +600,26 @@ class B2cWorkspaceController extends Controller
                 ->lockForUpdate()
                 ->first(['inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity', 'inventories.reserved_quantity']);
             abort_unless($source !== null, 404);
+            if (array_key_exists('expected_quantity', $data)
+                && $data['expected_quantity'] !== null
+                && abs((float) $source->quantity - (float) $data['expected_quantity']) > 0.0001) {
+                throw ValidationException::withMessages([
+                    'quantity' => [$this->msg(
+                        'تغيّر رصيد المصدر منذ المراجعة. راجع القيم الحالية وأعد المحاولة.',
+                        'Source stock changed since review. Review the current values and try again.',
+                    )],
+                ]);
+            }
+            if (array_key_exists('expected_reserved_quantity', $data)
+                && $data['expected_reserved_quantity'] !== null
+                && abs((float) $source->reserved_quantity - (float) $data['expected_reserved_quantity']) > 0.0001) {
+                throw ValidationException::withMessages([
+                    'quantity' => [$this->msg(
+                        'تغيّرت الكمية المحجوزة منذ المراجعة. راجع القيم الحالية وأعد المحاولة.',
+                        'Reserved stock changed since review. Review the current values and try again.',
+                    )],
+                ]);
+            }
             abort_unless((int) $source->warehouse_id !== (int) $data['target_warehouse_id'], 422, 'Target warehouse must be different.');
             abort_unless(DB::table('warehouses')->where('id', $data['target_warehouse_id'])->where('store_id', $storeId)->where('is_active', true)->exists(), 404);
 
