@@ -344,7 +344,7 @@ return [
         'entitlements' => 'الاستحقاقات',
         'total' => 'الإجمالي',
         'enabled' => 'مفعّل',
-        'outbox_title' => 'Transactional Outbox',
+        'outbox_title' => 'صندوق الأحداث المعاملاتي',
         'no_outbox' => 'لا توجد رسائل Outbox.',
         'event_type' => 'النوع',
         'status' => 'الحالة',
