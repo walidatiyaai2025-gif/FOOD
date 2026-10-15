@@ -31,6 +31,9 @@ final class SmartOrderingQrController extends Controller
         $storeIds = $scope->allowedStoreIds($actor, 'smart_ordering.qr.view', 'b2c');
         abort_if($storeIds === [], 403);
 
+        $canCreate = collect($storeIds)
+            ->contains(fn (int $storeId): bool => $actor->hasPermission('smart_ordering.qr.manage', $storeId));
+
         $filters = $request->validate([
             'store_id' => ['nullable', 'integer', 'min:1'],
             'type' => ['nullable', Rule::in(SmartOrderingQrManager::TYPES)],
@@ -100,6 +103,7 @@ final class SmartOrderingQrController extends Controller
             'promotions' => $promotions,
             'types' => SmartOrderingQrManager::TYPES,
             'filters' => $filters,
+            'canCreate' => $canCreate,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => 'smart_ordering_qr',
         ]);
