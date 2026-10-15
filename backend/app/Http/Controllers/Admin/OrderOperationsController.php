@@ -25,6 +25,7 @@ use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderManualDispatchService;
+use App\Services\OrderOperationsRowContext;
 use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
@@ -84,6 +85,7 @@ final class OrderOperationsController extends Controller
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $operationalChannel = isset($data['channel'])
@@ -91,6 +93,7 @@ final class OrderOperationsController extends Controller
             : $this->defaultOperationalChannel($actor);
         $this->assertOperationalChannelAllowed($availableChannels, $operationalChannel);
         $data['channel'] = $operationalChannel;
+        $perPage = isset($data['per_page']) ? (int) $data['per_page'] : 25;
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
@@ -162,7 +165,7 @@ final class OrderOperationsController extends Controller
         $orders = (clone $orderQuery)
             ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
             ->latest('id')
-            ->paginate(50)
+            ->paginate($perPage)
             ->withQueryString();
 
         $statusLabels = collect($statusOptions)
@@ -171,6 +174,7 @@ final class OrderOperationsController extends Controller
             ])
             ->all();
         $activeStatusCodes = $this->activeOrderStatusCodes();
+        $rowContext = $this->listRowContext($orders->items());
         $statusTabs = collect($statusOptions)
             ->map(static fn (array $option): array => [
                 ...$option,
@@ -187,6 +191,7 @@ final class OrderOperationsController extends Controller
                 $dispatchScopes,
                 $manageScopes,
                 $financeScopes,
+                $rowContext,
             ))
             ->all();
 
@@ -1076,6 +1081,255 @@ final class OrderOperationsController extends Controller
     }
 
     /**
+     * @param  list<Order>  $orders
+     */
+    private function listRowContext(array $orders): OrderOperationsRowContext
+    {
+        if ($orders === []) {
+            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], []);
+        }
+
+        $orderIds = array_map(
+            static fn (Order $order): int => (int) $order->getKey(),
+            $orders,
+        );
+
+        $assignments = [];
+        foreach (
+            DriverAssignment::query()
+                ->whereIn('order_id', $orderIds)
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MAX(id)')
+                        ->from('driver_assignments')
+                        ->whereIn('order_id', $orderIds)
+                        ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                        ->groupBy('order_id');
+                })
+                ->get() as $assignment
+        ) {
+            $assignments[(int) $assignment->order_id] = $assignment;
+        }
+
+        $dispatchStates = [];
+        foreach (
+            OrderDispatchState::query()
+                ->whereIn('order_id', $orderIds)
+                ->orderByDesc('id')
+                ->get() as $dispatch
+        ) {
+            $orderId = (int) $dispatch->order_id;
+            if (isset($dispatchStates[$orderId]) === false) {
+                $dispatchStates[$orderId] = $dispatch;
+            }
+        }
+
+        $driverIds = [];
+        foreach ($assignments as $assignment) {
+            $driverIds[] = (int) $assignment->driver_id;
+        }
+        $vanIds = [];
+        $territoryIds = [];
+        foreach ($dispatchStates as $dispatch) {
+            if ($dispatch->current_assignee_type === 'driver' && $dispatch->current_assignee_id !== null) {
+                $driverIds[] = (int) $dispatch->current_assignee_id;
+            }
+            if ($dispatch->current_assignee_type === 'van' && $dispatch->current_assignee_id !== null) {
+                $vanIds[] = (int) $dispatch->current_assignee_id;
+            }
+            if ($dispatch->service_territory_id !== null) {
+                $territoryIds[] = (int) $dispatch->service_territory_id;
+            }
+        }
+
+        $drivers = [];
+        $driverIds = array_values(array_unique($driverIds));
+        if ($driverIds !== []) {
+            foreach (
+                DB::table('drivers')
+                    ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                    ->whereIn('drivers.id', $driverIds)
+                    ->get(['drivers.id', 'drivers.user_id', 'users.name']) as $driver
+            ) {
+                $drivers[(int) $driver->id] = $driver;
+            }
+        }
+
+        $vans = [];
+        $vanIds = array_values(array_unique($vanIds));
+        if ($vanIds !== []) {
+            foreach (
+                DB::table('vans')
+                    ->whereIn('id', $vanIds)
+                    ->get(['id', 'code', 'plate_number']) as $van
+            ) {
+                $vans[(int) $van->id] = $van;
+            }
+        }
+
+        $territories = [];
+        $territoryIds = array_values(array_unique($territoryIds));
+        if ($territoryIds !== []) {
+            foreach (
+                DB::table('service_territories')
+                    ->whereIn('id', $territoryIds)
+                    ->get(['id', 'code', 'name_ar', 'name_en']) as $territory
+            ) {
+                $territories[(int) $territory->id] = $territory;
+            }
+        }
+
+        $b2bCustomerIds = [];
+        $b2cCustomerIds = [];
+        $storeIds = [];
+        foreach ($orders as $order) {
+            $storeIds[] = (int) $order->store_id;
+            if (strtolower((string) $order->channel) === 'b2b' && $order->b2b_customer_id !== null) {
+                $b2bCustomerIds[] = (int) $order->b2b_customer_id;
+            }
+            if (strtolower((string) $order->channel) === 'b2c' && $order->b2c_customer_id !== null) {
+                $b2cCustomerIds[] = (int) $order->b2c_customer_id;
+            }
+        }
+
+        $b2bNames = [];
+        $b2bCustomerIds = array_values(array_unique($b2bCustomerIds));
+        if ($b2bCustomerIds !== []) {
+            $b2bNames = DB::table('b2b_customers')
+                ->whereIn('id', $b2bCustomerIds)
+                ->pluck('name', 'id')
+                ->map(static fn ($name): string => (string) $name)
+                ->all();
+        }
+
+        $b2cNames = [];
+        $b2cCustomerIds = array_values(array_unique($b2cCustomerIds));
+        if ($b2cCustomerIds !== []) {
+            $b2cNames = DB::table('b2c_customers')
+                ->whereIn('id', $b2cCustomerIds)
+                ->pluck('name', 'id')
+                ->map(static fn ($name): string => (string) $name)
+                ->all();
+        }
+
+        $customerNames = [];
+        foreach ($orders as $order) {
+            $orderId = (int) $order->getKey();
+            if (strtolower((string) $order->channel) === 'b2b') {
+                $customerNames[$orderId] = (string) ($b2bNames[(int) $order->b2b_customer_id] ?? '-');
+            } else {
+                $customerNames[$orderId] = (string) ($b2cNames[(int) $order->b2c_customer_id] ?? '-');
+            }
+        }
+
+        $payments = [];
+        foreach (
+            DB::table('payments')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MAX(id)')
+                        ->from('payments')
+                        ->whereIn('order_id', $orderIds)
+                        ->groupBy('order_id');
+                })
+                ->get(['id', 'order_id', 'status', 'provider', 'amount', 'currency']) as $payment
+        ) {
+            $payments[(int) $payment->order_id] = $payment;
+        }
+
+        $invoices = [];
+        foreach (
+            DB::table('invoices')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MAX(id)')
+                        ->from('invoices')
+                        ->whereIn('order_id', $orderIds)
+                        ->groupBy('order_id');
+                })
+                ->get(['id', 'order_id', 'invoice_number', 'status', 'total', 'currency']) as $invoice
+        ) {
+            $invoices[(int) $invoice->order_id] = $invoice;
+        }
+
+        $issuedInvoiceOrders = [];
+        foreach (
+            DB::table('invoices')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('status', ['issued', 'reissued'])
+                ->distinct()
+                ->pluck('order_id') as $orderId
+        ) {
+            $issuedInvoiceOrders[(int) $orderId] = true;
+        }
+
+        $stores = [];
+        $storeIds = array_values(array_unique($storeIds));
+        foreach (
+            DB::table('stores')
+                ->whereIn('id', $storeIds)
+                ->get(['id', 'name', 'code']) as $store
+        ) {
+            $stores[(int) $store->id] = $store;
+        }
+
+        $sources = [];
+        foreach (
+            DB::table('order_status_history')
+                ->whereIn('order_id', $orderIds)
+                ->whereNull('from_status')
+                ->where('to_status', 'pending')
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MIN(id)')
+                        ->from('order_status_history')
+                        ->whereIn('order_id', $orderIds)
+                        ->whereNull('from_status')
+                        ->where('to_status', 'pending')
+                        ->groupBy('order_id');
+                })
+                ->get(['order_id', 'note']) as $history
+        ) {
+            $sources[(int) $history->order_id] = $history->note === 'dashboard_order_created'
+                ? 'dashboard'
+                : ($history->note === 'checkout' ? 'customer_checkout' : 'legacy');
+        }
+
+        $settlementRows = [];
+        foreach ($orders as $order) {
+            if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
+                continue;
+            }
+
+            $orderId = (int) $order->getKey();
+            $invoice = $invoices[$orderId] ?? null;
+            $settlementRows[] = [
+                'order_id' => $orderId,
+                'customer_id' => (int) $order->b2b_customer_id,
+                'store_id' => (int) $order->store_id,
+                'invoice_id' => $invoice?->id === null ? null : (int) $invoice->id,
+                'invoice_status' => $invoice?->status === null ? null : (string) $invoice->status,
+                'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
+                'payment_method' => is_string($order->payment_method) ? $order->payment_method : null,
+            ];
+        }
+
+        return new OrderOperationsRowContext(
+            assignments: $assignments,
+            drivers: $drivers,
+            dispatchStates: $dispatchStates,
+            vans: $vans,
+            territories: $territories,
+            customerNames: $customerNames,
+            payments: $payments,
+            invoices: $invoices,
+            issuedInvoiceOrders: $issuedInvoiceOrders,
+            stores: $stores,
+            sources: $sources,
+            settlements: $this->accountLedger->orderRowSettlements($settlementRows),
+        );
+    }
+
+    /**
      * @param  array<string,string>  $statusLabels
      * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
@@ -1087,39 +1341,49 @@ final class OrderOperationsController extends Controller
         array $dispatchScopes,
         array $manageScopes,
         array $financeScopes,
+        ?OrderOperationsRowContext $context = null,
     ): array {
+        $orderId = (int) $order->getKey();
 
-        $assignment = DriverAssignment::query()
-            ->where('order_id', $order->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->latest('id')
-            ->first();
+        $assignment = $context === null
+            ? DriverAssignment::query()
+                ->where('order_id', $orderId)
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->latest('id')
+                ->first()
+            : ($context->assignments[$orderId] ?? null);
 
         $driver = $assignment === null
             ? null
-            : DB::table('drivers')
-                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-                ->where('drivers.id', $assignment->driver_id)
-                ->first(['drivers.id', 'drivers.user_id', 'users.name']);
+            : ($context === null
+                ? DB::table('drivers')
+                    ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.id', $assignment->driver_id)
+                    ->first(['drivers.id', 'drivers.user_id', 'users.name'])
+                : ($context->drivers[(int) $assignment->driver_id] ?? null));
 
-        $dispatch = OrderDispatchState::query()
-            ->where('order_id', $order->getKey())
-            ->first();
+        $dispatch = $context === null
+            ? OrderDispatchState::query()->where('order_id', $orderId)->first()
+            : ($context->dispatchStates[$orderId] ?? null);
         /** @var OrderDispatchState|null $dispatch */
         $dispatchAssignee = null;
         if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'driver') {
-            $dispatchDriver = DB::table('drivers')
-                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-                ->where('drivers.id', (int) $dispatch->current_assignee_id)
-                ->first(['users.name']);
+            $dispatchDriver = $context === null
+                ? DB::table('drivers')
+                    ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.id', (int) $dispatch->current_assignee_id)
+                    ->first(['drivers.id', 'users.name'])
+                : ($context->drivers[(int) $dispatch->current_assignee_id] ?? null);
             $dispatchAssignee = $dispatchDriver === null
                 ? $this->msg('سائق بدون اسم', 'Unnamed driver')
                 : (trim((string) $dispatchDriver->name)
                     ?: $this->msg('سائق بدون اسم', 'Unnamed driver'));
         } elseif ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'van') {
-            $dispatchVan = DB::table('vans')
-                ->where('id', (int) $dispatch->current_assignee_id)
-                ->first(['code', 'plate_number']);
+            $dispatchVan = $context === null
+                ? DB::table('vans')
+                    ->where('id', (int) $dispatch->current_assignee_id)
+                    ->first(['id', 'code', 'plate_number'])
+                : ($context->vans[(int) $dispatch->current_assignee_id] ?? null);
             if ($dispatchVan !== null) {
                 $dispatchAssignee = trim((string) $dispatchVan->code)
                     .($dispatchVan->plate_number ? ' · '.$dispatchVan->plate_number : '');
@@ -1128,23 +1392,31 @@ final class OrderOperationsController extends Controller
 
         $dispatchTerritory = $dispatch?->service_territory_id === null
             ? null
-            : DB::table('service_territories')
-                ->where('id', (int) $dispatch->service_territory_id)
-                ->first(['code', 'name_ar', 'name_en']);
+            : ($context === null
+                ? DB::table('service_territories')
+                    ->where('id', (int) $dispatch->service_territory_id)
+                    ->first(['id', 'code', 'name_ar', 'name_en'])
+                : ($context->territories[(int) $dispatch->service_territory_id] ?? null));
 
-        $customerName = strtolower((string) $order->channel) === 'b2b'
-            ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
-            : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->value('name');
+        $customerName = $context === null
+            ? (strtolower((string) $order->channel) === 'b2b'
+                ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
+                : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->value('name'))
+            : ($context->customerNames[$orderId] ?? '-');
 
-        $payment = DB::table('payments')
-            ->where('order_id', $order->getKey())
-            ->latest('id')
-            ->first(['status', 'provider', 'amount', 'currency']);
+        $payment = $context === null
+            ? DB::table('payments')
+                ->where('order_id', $orderId)
+                ->latest('id')
+                ->first(['status', 'provider', 'amount', 'currency'])
+            : ($context->payments[$orderId] ?? null);
 
-        $invoice = DB::table('invoices')
-            ->where('order_id', $order->getKey())
-            ->latest('id')
-            ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+        $invoice = $context === null
+            ? DB::table('invoices')
+                ->where('order_id', $orderId)
+                ->latest('id')
+                ->first(['id', 'invoice_number', 'status', 'total', 'currency'])
+            : ($context->invoices[$orderId] ?? null);
 
         $channel = strtolower((string) $order->channel);
         $canManage = in_array(
@@ -1157,17 +1429,20 @@ final class OrderOperationsController extends Controller
             $financeScopes[$channel] ?? [],
             true,
         );
+        $hasIssuedInvoice = $context === null
+            ? DB::table('invoices')
+                ->where('order_id', $orderId)
+                ->whereIn('status', ['issued', 'reissued'])
+                ->exists()
+            : isset($context->issuedInvoiceOrders[$orderId]);
         $canEdit = $canManage
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
             && ($payment->status ?? null) !== 'paid'
-            && ! DB::table('invoices')
-                ->where('order_id', $order->getKey())
-                ->whereIn('status', ['issued', 'reissued'])
-                ->exists();
+            && $hasIssuedInvoice === false;
 
-        $settlement = null;
-        if ($channel === 'b2b' && $order->b2b_customer_id !== null) {
+        $settlement = $context?->settlements[$orderId] ?? null;
+        if ($context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
             $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
             if (
                 $customer instanceof B2bCustomer
@@ -1198,19 +1473,25 @@ final class OrderOperationsController extends Controller
             }
         }
 
-        $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
+        $store = $context === null
+            ? DB::table('stores')->where('id', $order->store_id)->first(['id', 'name', 'code'])
+            : ($context->stores[(int) $order->store_id] ?? null);
         $storeLabel = $store === null
             ? '#'.$order->store_id
             : ($store->name ?? $store->code ?? '#'.$order->store_id);
-        $sourceNote = DB::table('order_status_history')
-            ->where('order_id', $order->getKey())
-            ->whereNull('from_status')
-            ->where('to_status', 'pending')
-            ->oldest('id')
-            ->value('note');
-        $source = $sourceNote === 'dashboard_order_created'
-            ? 'dashboard'
-            : ($sourceNote === 'checkout' ? 'customer_checkout' : 'legacy');
+        if ($context === null) {
+            $sourceNote = DB::table('order_status_history')
+                ->where('order_id', $orderId)
+                ->whereNull('from_status')
+                ->where('to_status', 'pending')
+                ->oldest('id')
+                ->value('note');
+            $source = $sourceNote === 'dashboard_order_created'
+                ? 'dashboard'
+                : ($sourceNote === 'checkout' ? 'customer_checkout' : 'legacy');
+        } else {
+            $source = $context->sources[$orderId] ?? 'legacy';
+        }
 
         $status = (string) $order->status;
         $availableStatuses = array_values(array_filter(
