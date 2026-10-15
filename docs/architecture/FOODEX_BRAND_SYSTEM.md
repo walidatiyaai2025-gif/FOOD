@@ -38,10 +38,11 @@ FOODEX mobile apps use **Alexandria** as the premium bilingual UI typeface for A
 ## Implementation contract
 
 Laravel/Admin consumes `backend/resources/views/admin/_brand.blade.php`.
-Customer Flutter consumes `apps/customer_app/lib/core/theme/foodex_theme.dart`.
+Customer Flutter consumes the separately approved Customer UI V3 palette through `apps/customer_app/lib/core/theme/customer_ui_v3_tokens.dart`.
 Driver Flutter consumes `apps/driver_app/lib/core/theme/foodex_theme.dart`.
+Van Flutter consumes `apps/van_app/lib/core/theme/foodex_van_theme.dart`.
 
-The numeric color values must stay identical across these three sources. Any palette change requires one Issue updating all three surfaces and visual-regression evidence.
+Dashboard, Driver and Van share the normal-text primary/danger interaction colors and keep those contrast-critical values aligned. Customer UI V3 retains its approved deep-green palette and must satisfy the same accessibility requirement independently. Any shared palette change requires one Issue updating every applicable consumer plus exact-lineage visual-regression evidence.
 
 ## Branding rules
 
