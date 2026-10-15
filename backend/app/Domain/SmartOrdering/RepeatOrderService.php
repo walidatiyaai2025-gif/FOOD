@@ -12,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 final class RepeatOrderService
 {
-    public function __construct(private readonly CommerceQuoteService $quotes) {}
+    public function __construct(
+        private readonly CommerceQuoteService $quotes,
+        private readonly SmartOrderingAnalyticsService $analytics,
+    ) {}
 
     /**
      * Build a repeat-order draft from historical quantities and live server pricing.
@@ -96,6 +99,21 @@ final class RepeatOrderService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $sourceBranchId = DB::table('smart_ordering_order_contexts')
+            ->where('order_id', $sourceOrderId)
+            ->value('branch_id');
+
+        $this->analytics->record(
+            (int) $site->store_id,
+            'repeat_order_started',
+            'repeat-draft:'.$publicId.':started',
+            [
+                'branch_id' => $sourceBranchId === null ? null : (int) $sourceBranchId,
+                'order_id' => $sourceOrderId,
+                'customer_type' => 'repeat',
+            ],
+        );
 
         $unavailable = collect((array) ($quote['items'] ?? []))
             ->filter(static fn (array $line): bool => (bool) ($line['is_available'] ?? false) === false)
