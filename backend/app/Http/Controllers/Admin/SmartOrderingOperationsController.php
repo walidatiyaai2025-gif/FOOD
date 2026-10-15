@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\LifecycleService;
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
-use App\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
@@ -22,6 +23,7 @@ final class SmartOrderingOperationsController extends Controller
         private readonly OperationalTenantScope $scope,
         private readonly AdminNavigation $navigation,
         private readonly LifecycleService $lifecycle,
+        private readonly SmartOrderingSiteService $sites,
     ) {}
 
     public function index(Request $request): View
@@ -63,32 +65,42 @@ final class SmartOrderingOperationsController extends Controller
                 'o.currency',
                 'o.created_at',
                 'b.public_id as branch_public_id',
-                'b.name as branch_name',
+                DB::raw('COALESCE(b.name_en, b.name_ar) as branch_name'),
             ]);
 
         $orders = $query->paginate(25)->withQueryString();
         $rows = collect($orders->items())->map(function (object $row) use ($actor): array {
+            $allowedTargets = $this->lifecycle->allowedTargets(
+                (string) $row->lifecycle_status,
+                (string) $row->fulfillment_mode,
+            );
+
             return [
                 ...((array) $row),
                 'can_manage' => $actor->hasPermission('orders.manage', (int) $row->store_id)
                     || $actor->hasPermission('orders.manage'),
-                'allowed_targets' => $this->lifecycle->allowedTargets(
-                    (string) $row->lifecycle_status,
-                    (string) $row->fulfillment_mode,
-                ),
+                'allowed_targets' => $allowedTargets,
+                'transition_keys' => collect($allowedTargets)
+                    ->mapWithKeys(fn (string $target): array => [$target => (string) Str::uuid()])
+                    ->all(),
+                'scheduled_display' => $row->scheduled_for
+                    ? date('Y-m-d H:i', strtotime((string) $row->scheduled_for))
+                    : '—',
+                'created_display' => date('Y-m-d H:i', strtotime((string) $row->created_at)),
             ];
         })->all();
 
         $branches = SmartOrderingBranch::query()
-            ->whereIn('store_id', $storeIds)
-            ->orderBy('name')
+            ->with('site')
+            ->whereHas('site', fn ($query) => $query->whereIn('store_id', $storeIds))
+            ->orderBy('name_en')
             ->get();
         $stores = DB::table('stores')
             ->whereIn('id', $storeIds)
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return view('admin.smart-ordering', [
+        return view('admin.smart-ordering-operations', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'smart_ordering',
@@ -108,14 +120,16 @@ final class SmartOrderingOperationsController extends Controller
         $storeId = (int) $data['store_id'];
         $this->scope->assertStore($actor, $storeId, 'orders.manage', 'b2c');
 
+        $site = $this->sites->ensureForStore($storeId, $actor, $request);
         $branch = SmartOrderingBranch::query()->create([
             ...$this->branchAttributes($data),
             'public_id' => (string) Str::uuid(),
-            'store_id' => $storeId,
+            'site_id' => $site->getKey(),
+            'code' => 'branch-'.Str::lower(Str::random(10)),
         ]);
         $this->syncHours($branch, (array) ($data['hours'] ?? []));
 
-        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+        return redirect()->route('admin.smart-ordering.operations.index', ['tab' => 'branches'])
             ->with('status', __('smart_ordering.branch_saved'));
     }
 
@@ -129,7 +143,7 @@ final class SmartOrderingOperationsController extends Controller
         $model->update($this->branchAttributes($data));
         $this->syncHours($model, (array) ($data['hours'] ?? []));
 
-        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+        return redirect()->route('admin.smart-ordering.operations.index', ['tab' => 'branches'])
             ->with('status', __('smart_ordering.branch_saved'));
     }
 
@@ -148,7 +162,7 @@ final class SmartOrderingOperationsController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+        return redirect()->route('admin.smart-ordering.operations.index', ['tab' => 'branches'])
             ->with('status', __('smart_ordering.zone_saved'));
     }
 
@@ -170,7 +184,7 @@ final class SmartOrderingOperationsController extends Controller
                 'updated_at' => now(),
             ]);
 
-        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+        return redirect()->route('admin.smart-ordering.operations.index', ['tab' => 'branches'])
             ->with('status', __('smart_ordering.zone_saved'));
     }
 
@@ -186,7 +200,7 @@ final class SmartOrderingOperationsController extends Controller
             ->delete();
         abort_unless($deleted === 1, 404);
 
-        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+        return redirect()->route('admin.smart-ordering.operations.index', ['tab' => 'branches'])
             ->with('status', __('smart_ordering.zone_deleted'));
     }
 
@@ -285,7 +299,8 @@ final class SmartOrderingOperationsController extends Controller
     private function branchAttributes(array $data): array
     {
         return [
-            'name' => (string) $data['name'],
+            'name_ar' => (string) $data['name'],
+            'name_en' => (string) $data['name'],
             'timezone' => (string) $data['timezone'],
             'is_active' => (bool) ($data['is_active'] ?? false),
             'accepting_orders' => (bool) ($data['accepting_orders'] ?? false),
