@@ -613,15 +613,17 @@
                     <summary>{{ __('field_operations.rule_details') }}</summary>
                     @foreach($policy->rules->sortBy('position') as $rule)
                         @php
-                            $legacyConditionKeys = array_diff(array_keys((array) $rule->conditions), ['channel','store_id','territory_id','territory_code','latitude','longitude']);
-                            $legacyActionKeys = array_diff(array_keys((array) $rule->actions), ['van_id','manual_dispatch_required','action']);
+                            $ruleConditions = (array) $rule->conditions;
+                            $ruleActions = (array) $rule->actions;
+                            $legacyConditionKeys = array_diff(array_keys($ruleConditions), ['channel','store_id','territory_id','territory_code','latitude','longitude']);
+                            $legacyActionKeys = array_diff(array_keys($ruleActions), ['van_id','manual_dispatch_required','action']);
                         @endphp
                         <section class="fieldops-card" style="margin-top:8px">
                             <div class="fieldops-actions">
                                 <strong>{{ $rule->position }}. {{ $rule->name }}</strong>
                                 <span class="fieldops-status">{{ $rule->enabled ? __('field_operations.enabled') : __('field_operations.disabled') }}</span>
                             </div>
-                            @foreach((array) $rule->conditions as $key => $value)
+                            @foreach($ruleConditions as $key => $value)
                                 @php
                                     $conditionLabel = in_array($key, ['channel','store_id','territory_id','territory_code','latitude','longitude'], true)
                                         ? __('field_operations.routing_fields.'.$key)
@@ -636,7 +638,7 @@
                                 @endphp
                                 <p class="fieldops-muted"><strong>{{ __('field_operations.if') }} {{ $conditionLabel }}</strong> — {{ $conditionValue }}</p>
                             @endforeach
-                            @foreach((array) $rule->actions as $key => $value)
+                            @foreach($ruleActions as $key => $value)
                                 @php
                                     $actionLabel = in_array($key, ['van_id','manual_dispatch_required','action'], true)
                                         ? __('field_operations.routing_fields.'.$key)
