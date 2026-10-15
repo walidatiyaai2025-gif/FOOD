@@ -578,7 +578,7 @@ final class SupplyIntelligenceService
     }
 
     /**
-     * @param array<int|string,mixed> $quantities
+     * @param  array<int|string,mixed>  $quantities
      * @return array<string,mixed>
      */
     public function createDraft(
