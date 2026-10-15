@@ -20,7 +20,12 @@
 .inspector-enterprise-section{margin-top:var(--foodex-space-5)}
 .inspector-enterprise-statuses{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap;margin:var(--foodex-space-3) 0}
 .inspector-enterprise-table{min-width:760px}
-@media(max-width:900px){.inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inspector-health{grid-template-columns:1fr}}
+.restaurant-operator-heading{display:flex;justify-content:space-between;gap:var(--foodex-space-3);align-items:flex-start;flex-wrap:wrap}
+.restaurant-operator-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--foodex-space-3);margin-top:var(--foodex-space-4)}
+.restaurant-operator-form label{display:grid;gap:6px;font-weight:700}.restaurant-operator-form input,.restaurant-operator-form select{width:100%}
+.restaurant-operator-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap;align-items:end;margin-top:var(--foodex-space-4)}
+.restaurant-operator-actions form{margin:0}
+@media(max-width:900px){.inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inspector-health{grid-template-columns:1fr}.restaurant-operator-form{grid-template-columns:1fr}}
 @media(max-width:560px){.inspector-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -44,6 +49,9 @@
                 </form>
             </div>
         </header>
+
+        @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
+        @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
         <section class="inspector-grid">
             <article class="foodex-card inspector-stat"><strong>{{ $ar?'إجمالي الأحداث':'Total events' }}</strong><b class="foodex-number">{{ $stats['total'] }}</b></article>
@@ -197,6 +205,151 @@
                     </div>
                     {{ $enterpriseData['workflow_requests']->links() }}
                 </div>
+            @endif
+        </section>
+
+        <section class="foodex-card inspector-enterprise" data-restaurant-operator-console>
+            <div class="restaurant-operator-heading">
+                <div>
+                    <span class="foodex-subtitle">{{ __('restaurant_operator.eyebrow') }}</span>
+                    <h2>{{ __('restaurant_operator.title') }}</h2>
+                    <p>{{ __('restaurant_operator.description') }}</p>
+                </div>
+                @if($restaurantOperator)
+                    @php($operatorHealth = $restaurantOperator['health'])
+                    <span class="badge {{ ($operatorHealth['overall'] ?? '')==='HEALTHY'?'active':'' }}">
+                        {{ __('restaurant_operator.health_states.'.($operatorHealth['overall'] ?? 'UNAVAILABLE')) }}
+                    </span>
+                @endif
+            </div>
+
+            <form class="inspector-toolbar" method="get" action="{{ route('admin.inspector.index') }}">
+                <label>{{ __('restaurant_operator.select_store') }}
+                    <select name="restaurant_store_id" required>
+                        <option value="">{{ __('restaurant_operator.select_store_placeholder') }}</option>
+                        @foreach($restaurantStores as $restaurantStore)
+                            <option value="{{ $restaurantStore->id }}" @selected($restaurantStoreId===(int)$restaurantStore->id)>
+                                {{ $restaurantStore->name }} · {{ $restaurantStore->code }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <button class="foodex-action-primary foodex-filter-action" type="submit">{{ __('restaurant_operator.load') }}</button>
+            </form>
+
+            @if(!$restaurantOperator)
+                <div class="foodex-empty-state">{{ __('restaurant_operator.not_selected') }}</div>
+            @else
+                @php($operatorControl = $restaurantOperator['control_plane'])
+                @php($operatorLocation = $operatorControl['location'])
+                @php($operatorState = (string)($operatorLocation['lifecycle_state'] ?? 'DRAFT'))
+                @php($operatorSupport = $restaurantOperator['support_access'])
+                <div class="inspector-grid">
+                    <article class="foodex-card inspector-stat">
+                        <strong>{{ __('restaurant_operator.lifecycle') }}</strong>
+                        <b>{{ __('restaurant_operator.states.'.$operatorState) }}</b>
+                    </article>
+                    <article class="foodex-card inspector-stat">
+                        <strong>{{ __('restaurant_operator.health') }}</strong>
+                        <b>{{ __('restaurant_operator.health_states.'.($restaurantOperator['health']['overall'] ?? 'UNAVAILABLE')) }}</b>
+                    </article>
+                    <article class="foodex-card inspector-stat">
+                        <strong>{{ __('restaurant_operator.support_access') }}</strong>
+                        <b>{{ $operatorSupport ? __('restaurant_operator.active') : __('restaurant_operator.inactive') }}</b>
+                    </article>
+                    <article class="foodex-card inspector-stat">
+                        <strong>{{ __('restaurant_operator.support_sessions') }}</strong>
+                        <b class="foodex-number">{{ $restaurantOperator['support_sessions']['active'] }}</b>
+                    </article>
+                </div>
+
+                <div class="inspector-health">
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.account') }}</strong>
+                        <span>{{ $operatorControl['organization']['name'] ?? '—' }}</span>
+                    </div>
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.brand') }}</strong>
+                        <span>{{ $operatorControl['brand']['name'] ?? '—' }}</span>
+                    </div>
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.entitlements') }}</strong>
+                        <span class="foodex-number">{{ $restaurantOperator['entitlements']['enabled'] }} / {{ $restaurantOperator['entitlements']['total'] }} {{ __('restaurant_operator.enabled') }}</span>
+                    </div>
+                    <div class="inspector-health-row">
+                        <strong>{{ __('restaurant_operator.data_retention') }}</strong>
+                        <span class="badge active">{{ __('restaurant_operator.retained') }}</span>
+                    </div>
+                </div>
+
+                @if($operatorSupport)
+                    <div class="inspector-health">
+                        <div class="inspector-health-row">
+                            <strong>{{ __('restaurant_operator.case_reference') }}</strong>
+                            <code>{{ $operatorSupport['case_reference'] }}</code>
+                        </div>
+                        <div class="inspector-health-row">
+                            <strong>{{ __('restaurant_operator.reason') }}</strong>
+                            <span>{{ __('restaurant_operator.reasons.'.$operatorSupport['reason_code']) }}</span>
+                        </div>
+                        <div class="inspector-health-row">
+                            <strong>{{ __('restaurant_operator.ttl') }}</strong>
+                            <span class="foodex-number">{{ \Illuminate\Support\Carbon::parse($operatorSupport['expires_at'])->format('Y-m-d H:i') }}</span>
+                        </div>
+                    </div>
+                @else
+                    @if($operatorControl['provisioned'])
+                    <form class="restaurant-operator-form" method="post" action="{{ route('admin.inspector.restaurant-support.grant',['store'=>$restaurantStoreId]) }}">
+                        @csrf
+                        <label>{{ __('restaurant_operator.case_reference') }}
+                            <input name="case_reference" required maxlength="120" pattern="[A-Za-z0-9._:/-]{3,120}" autocomplete="off">
+                        </label>
+                        <label>{{ __('restaurant_operator.reason') }}
+                            <select name="reason_code" required>
+                                @foreach(\App\Domain\RestaurantSaaS\RestaurantOperatorService::SUPPORT_REASON_CODES as $reasonCode)
+                                    <option value="{{ $reasonCode }}">{{ __('restaurant_operator.reasons.'.$reasonCode) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('restaurant_operator.ttl') }}
+                            <select name="ttl_minutes" required>
+                                @foreach(\App\Domain\RestaurantSaaS\RestaurantOperatorService::SUPPORT_TTL_MINUTES as $ttl)
+                                    <option value="{{ $ttl }}">{{ $ttl }} {{ __('restaurant_operator.minutes') }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <div><button class="foodex-action-primary" type="submit">{{ __('restaurant_operator.grant') }}</button></div>
+                    </form>
+                    @endif
+                @endif
+
+                @if($operatorControl['provisioned'])
+                <div class="restaurant-operator-actions">
+                    @if($operatorSupport)
+                    <form method="post" action="{{ route('admin.inspector.restaurant-support.revoke',['store'=>$restaurantStoreId]) }}" onsubmit="return confirm(@js(__('restaurant_operator.confirm_revoke')))">
+                        @csrf @method('DELETE')
+                        <button class="foodex-action-secondary" type="submit">{{ __('restaurant_operator.revoke') }}</button>
+                    </form>
+                    @endif
+                    <form method="post" action="{{ route('admin.inspector.restaurant-support.sessions.revoke',['store'=>$restaurantStoreId]) }}" onsubmit="return confirm(@js(__('restaurant_operator.confirm_sessions')))">
+                        @csrf
+                        <button class="foodex-action-secondary" type="submit">{{ __('restaurant_operator.revoke_sessions') }}</button>
+                    </form>
+                    @if(!in_array($operatorState,['CANCELED','OFFBOARDED'],true))
+                    <form method="post" action="{{ route('admin.inspector.restaurant-lifecycle.update',['store'=>$restaurantStoreId]) }}" onsubmit="return confirm(@js(__('restaurant_operator.confirm_cancel')))">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="target_state" value="CANCELED">
+                        <button class="foodex-action-secondary" type="submit">{{ __('restaurant_operator.cancel') }}</button>
+                    </form>
+                    @elseif($operatorState==='CANCELED')
+                    <form method="post" action="{{ route('admin.inspector.restaurant-lifecycle.update',['store'=>$restaurantStoreId]) }}" onsubmit="return confirm(@js(__('restaurant_operator.confirm_offboard')))">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="target_state" value="OFFBOARDED">
+                        <button class="foodex-action-secondary" type="submit">{{ __('restaurant_operator.offboard') }}</button>
+                    </form>
+                    @endif
+                </div>
+                @endif
             @endif
         </section>
 
