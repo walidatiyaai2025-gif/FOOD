@@ -94,6 +94,13 @@ Durable invariants:
 - SaaS commercial lifecycle (plans, subscriptions, trials, billing/dunning, onboarding and offboarding) is a first-class platform concern;
 - restaurant operations modules (tables/reservations/KDS/workforce/inventory/integrations) consume shared Enterprise Core registry/entitlements/events/workflow/health contracts.
 
+
+## Enterprise WMS boundary
+
+Wave 3 WMS extends the existing warehouses, inventories, and stock_movements authority; it does not introduce a second stock ledger. Warehouse access remains subordinate to existing store RBAC and can be narrowed through explicit warehouse-user scopes. Transfers use a draft -> dispatched -> received lifecycle: dispatch decrements source inventory and writes the authoritative outbound stock movement, while receipt increments target inventory and writes the authoritative inbound movement. Retries are idempotent and transitions lock the affected records.
+
+Inventory-count sessions snapshot authoritative inventory quantity, then lock and reconcile the same inventory rows on completion. A session is rejected as stale when inventory changed after the snapshot, preventing a physical count from overwriting legitimate concurrent movements. Transfer/count lists are bounded and indexed; WMS foundation services add no global request, scheduler, or provider work when unused.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
