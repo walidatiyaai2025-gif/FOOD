@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\NotificationCampaign;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\EngagementDestinationCatalog;
@@ -102,6 +103,52 @@ class EngagementDestinationBuilderTest extends TestCase
             'store_id' => $storeId,
             'popup_cta_target' => '/admin/users',
         ]))->assertSessionHasErrors('popup_cta_destination');
+    }
+
+    public function test_runtime_payloads_fail_closed_for_legacy_noncanonical_targets(): void
+    {
+        $storeId = $this->store('B2C', 'DEST-RUNTIME-RETAIL');
+        $admin = $this->superAdmin('en', 'dest-runtime@example.test');
+
+        $this->actingAs($admin)->post('/admin/live-ads', $this->liveAdPayload([
+            'channel' => 'b2c',
+            'store_id' => $storeId,
+            'cta_destination' => 'customer.retail_offers',
+        ]))->assertRedirect();
+
+        DB::table('live_ads')->update(['cta_target' => '/admin/users']);
+
+        $this->getJson("/api/v1/live-ads?channel=b2c&store_id={$storeId}&locale=en")
+            ->assertOk()
+            ->assertJsonPath('data.0.cta_target', null);
+
+        NotificationCampaign::query()->create([
+            'name' => 'Legacy unsafe target',
+            'type' => 'promotion',
+            'title_ar' => 'عرض',
+            'title_en' => 'Offer',
+            'body_ar' => 'نص',
+            'body_en' => 'Body',
+            'audience' => 'all',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'delivery_channel' => 'in_app',
+            'popup_frequency' => 'once_per_session',
+            'popup_cta_target' => '/admin/users',
+            'store_id' => $storeId,
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addHour(),
+            'next_run_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $this->getJson(
+            "/api/v1/notification-campaign-popups?channel=b2c&store_id={$storeId}&locale=en&install_id=dest-runtime",
+        )
+            ->assertOk()
+            ->assertJsonPath('data.0.cta_target', null);
     }
 
     public function test_destination_catalog_is_bilingual_and_locked_to_registered_route_authorities(): void
