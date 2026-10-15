@@ -512,11 +512,19 @@ async function captureSecurityPermissionEvidence(page, locale) {
   }
 
   await createForm.evaluate((form) => {
+    const host = form.closest('.foodex-operational-dialog-host');
+    const trigger = host?.querySelector('[data-foodex-dialog-open]');
+    if (trigger instanceof HTMLElement) {
+      trigger.click();
+      return;
+    }
+
     const details = form.closest('details');
-    if (details) details.open = true;
+    if (details instanceof HTMLDetailsElement) details.open = true;
   });
 
   const search = createForm.locator('[data-list-search]');
+  await search.waitFor({ state: 'visible' });
   await search.fill('roles.manage');
 
   const visiblePermissions = createForm.locator('[data-search-item]:visible input[name="permission_ids[]"]');
