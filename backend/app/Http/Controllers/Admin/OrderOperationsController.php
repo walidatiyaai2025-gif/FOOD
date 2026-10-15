@@ -1119,7 +1119,7 @@ final class OrderOperationsController extends Controller
                 ->get() as $dispatch
         ) {
             $orderId = (int) $dispatch->order_id;
-            if (! isset($dispatchStates[$orderId])) {
+            if (isset($dispatchStates[$orderId]) === false) {
                 $dispatchStates[$orderId] = $dispatch;
             }
         }
@@ -1439,7 +1439,7 @@ final class OrderOperationsController extends Controller
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
             && ($payment->status ?? null) !== 'paid'
-            && ! $hasIssuedInvoice;
+            && $hasIssuedInvoice === false;
 
         $settlement = $context?->settlements[$orderId] ?? null;
         if ($context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
