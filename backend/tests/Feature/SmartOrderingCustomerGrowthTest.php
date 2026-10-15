@@ -8,6 +8,7 @@ use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\RepeatOrderService;
+use App\Domain\SmartOrdering\RuntimeState;
 use App\Domain\SmartOrdering\RestaurantCustomerService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\WhatsApp\MarketingConsentService;
@@ -18,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Sanctum;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -29,6 +31,59 @@ class SmartOrderingCustomerGrowthTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        config()->set('smart_ordering.base_domain', 'foodex.com');
+    }
+
+    public function test_verified_customer_api_is_tenant_scoped_and_public_safe(): void
+    {
+        [$storeA, $adminA, $siteA] = $this->restaurant('PUBLIC-CUSTOMER-A');
+        [$storeB, $adminB, $siteB] = $this->restaurant('PUBLIC-CUSTOMER-B');
+        $customerA = $this->customer($storeA, 'Public Customer A', '+96550000901');
+        $customerB = $this->customer($storeB, 'Public Customer B', '+96550000902');
+
+        $product = $this->sellableProduct($storeA, 'SAFE-SKU-01', 'Safe Meal', 6.500, 20);
+        $order = $this->order($storeA, $customerA['legacy_id'], $customerA['b2c_id'], 'COMPLETED', 6.500);
+        $this->orderItem($order, $product, 'Safe Meal', 1, 5.000);
+
+        foreach ([Module::PUBLIC_MENU, Module::ORDERING, Module::LOYALTY, Module::REVIEWS] as $module) {
+            $this->enable($adminA, $siteA, $module);
+        }
+        foreach ([Module::PUBLIC_MENU, Module::ORDERING] as $module) {
+            $this->enable($adminB, $siteB, $module);
+        }
+        app(SmartOrderingSiteService::class)->updateRuntime($adminA, $siteA, RuntimeState::ENABLED, true);
+        app(SmartOrderingSiteService::class)->updateRuntime($adminB, $siteB, RuntimeState::ENABLED, true);
+
+        Sanctum::actingAs(User::query()->findOrFail($customerA['user_id']));
+
+        $history = $this->getJson('https://'.$siteA->slug.'.foodex.com/api/v1/smart-ordering/customer/orders')
+            ->assertOk()
+            ->assertJsonPath('data.0.order_number', (string) DB::table('orders')->where('id', $order)->value('order_number'))
+            ->assertJsonPath('data.0.items.0.sku', 'HIST-'.$product);
+
+        $historyBody = $history->getContent();
+        $this->assertStringNotContainsString('"order_id"', $historyBody);
+        $this->assertStringNotContainsString('"customer_id"', $historyBody);
+        $this->assertStringNotContainsString('"product_id"', $historyBody);
+
+        $orderNumber = (string) DB::table('orders')->where('id', $order)->value('order_number');
+        $repeat = $this->postJson(
+            'https://'.$siteA->slug.'.foodex.com/api/v1/smart-ordering/customer/orders/'.$orderNumber.'/repeat',
+            ['skus' => ['HIST-'.$product]],
+        )->assertCreated();
+
+        $repeatBody = $repeat->getContent();
+        $this->assertStringNotContainsString('"source_order_id"', $repeatBody);
+        $this->assertStringNotContainsString('"customer_id"', $repeatBody);
+        $this->assertStringNotContainsString('"store_id"', $repeatBody);
+        $this->assertStringNotContainsString('"product_id"', $repeatBody);
+        $this->assertSame(6.5, (float) $repeat->json('data.quote.items.0.unit_price'));
+
+        $this->getJson('https://'.$siteB->slug.'.foodex.com/api/v1/smart-ordering/customer/orders')
+            ->assertNotFound();
+
+        $this->assertSame(0, DB::table('orders')->where('store_id', $storeB)->where('customer_id', $customerA['legacy_id'])->count());
+        $this->assertNotSame($customerA['legacy_id'], $customerB['legacy_id']);
     }
 
     public function test_customer_profile_is_restaurant_scoped_and_same_phone_never_merges_tenants(): void
