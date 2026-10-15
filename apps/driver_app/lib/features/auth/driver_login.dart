@@ -132,9 +132,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
     final passwordMissing = password.isEmpty;
     if (emailMissing || passwordMissing) {
       setState(() {
-        _emailErrorKey = emailMissing ? 'driver.login.email_required' : null;
+        _emailErrorKey = emailMissing ? 'driver.login.required' : null;
         _passwordErrorKey =
-            passwordMissing ? 'driver.login.password_required' : null;
+            passwordMissing ? 'driver.login.required' : null;
         _errorKey = null;
       });
       if (emailMissing) {
