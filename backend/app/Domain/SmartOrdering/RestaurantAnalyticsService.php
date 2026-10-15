@@ -42,12 +42,16 @@ final class RestaurantAnalyticsService
         $orders = $eventCounts['order_created'] ?? 0;
         $completed = $eventCounts['order_completed'] ?? 0;
         $cancelled = $eventCounts['order_cancelled'] ?? 0;
-        $revenue = $this->completedRevenue($storeIds, $filters, $from, $to, $rawDimensionFilter);
+        $grossRevenue = $this->completedRevenue($storeIds, $filters, $from, $to, $rawDimensionFilter);
+        $refunds = $this->refundedCompleted($storeIds, $filters, $from, $to);
+        $recognizedCompleted = max(0, $completed - $refunds['orders']);
+        $revenue = max(0.0, $grossRevenue - $refunds['revenue']);
         $uniqueVisitors = $this->uniqueVisitors($storeIds, $filters, $from, $to);
         $offerImpressions = $eventCounts['offer_impression'] ?? 0;
         $offerRedeemed = $eventCounts['offer_redeemed'] ?? 0;
         $repeatStarted = $eventCounts['repeat_order_started'] ?? 0;
         $repeatCompleted = $eventCounts['repeat_order_completed'] ?? 0;
+        $rating = $this->ratingSummary($storeIds, $filters, $from, $to);
 
         $kpis = [
             'menu_views' => $views,
@@ -55,14 +59,17 @@ final class RestaurantAnalyticsService
             'carts' => $carts,
             'checkout_starts' => $checkouts,
             'orders' => $orders,
-            'completed_orders' => $completed,
+            'completed_orders' => $recognizedCompleted,
+            'refunded_orders' => $refunds['orders'],
             'conversion_rate' => $views > 0 ? round(($orders / $views) * 100, 2) : 0.0,
             'revenue' => round($revenue, 3),
-            'aov' => $completed > 0 ? round($revenue / $completed, 3) : 0.0,
+            'aov' => $recognizedCompleted > 0 ? round($revenue / $recognizedCompleted, 3) : 0.0,
             'cancellation_rate' => $orders > 0 ? round(($cancelled / $orders) * 100, 2) : 0.0,
             'abandoned_carts' => max(0, $carts - $orders),
             'repeat_conversion' => $repeatStarted > 0 ? round(($repeatCompleted / $repeatStarted) * 100, 2) : 0.0,
             'offer_conversion' => $offerImpressions > 0 ? round(($offerRedeemed / $offerImpressions) * 100, 2) : 0.0,
+            'feedback_count' => $rating['count'],
+            'average_rating' => $rating['average'],
         ];
 
         $funnel = [
@@ -70,7 +77,7 @@ final class RestaurantAnalyticsService
             ['key' => 'cart_started', 'count' => $carts],
             ['key' => 'checkout_started', 'count' => $checkouts],
             ['key' => 'order_created', 'count' => $orders],
-            ['key' => 'order_completed', 'count' => $completed],
+            ['key' => 'order_completed', 'count' => $recognizedCompleted],
         ];
 
         $sources = $this->sourcePerformance($storeIds, $filters, $from, $to);
@@ -98,8 +105,8 @@ final class RestaurantAnalyticsService
             'formula_version' => 'smart_ordering_analytics_v1',
             'formulas' => [
                 'conversion_rate' => 'order_created / storefront_viewed',
-                'revenue' => 'sum(revenue on order_completed only)',
-                'aov' => 'completed revenue / order_completed',
+                'revenue' => 'sum(order_completed revenue) - revenue of orders currently refunded',
+                'aov' => 'recognized completed revenue / non-refunded order_completed',
                 'cancellation_rate' => 'order_cancelled / order_created',
                 'abandoned_carts' => 'max(cart_started - order_created, 0)',
                 'offer_conversion' => 'offer_redeemed / offer_impression',
@@ -166,6 +173,73 @@ final class RestaurantAnalyticsService
         return (float) $query->sum('revenue');
     }
 
+    /**
+     * @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return array{orders:int,revenue:float}
+     */
+    private function refundedCompleted(
+        array $storeIds,
+        array $filters,
+        CarbonImmutable $from,
+        CarbonImmutable $to,
+    ): array {
+        $query = DB::table('smart_ordering_analytics_events as e')
+            ->join('orders as o', 'o.id', '=', 'e.order_id')
+            ->whereIn('e.store_id', $storeIds)
+            ->where('e.event_name', 'order_completed')
+            ->where('o.status', 'refunded')
+            ->whereBetween('e.occurred_at', [$from, $to]);
+
+        if (! empty($filters['branch_id'])) $query->where('e.branch_id', (int) $filters['branch_id']);
+        if (! empty($filters['qr_public_id'])) $query->where('e.qr_public_id', (string) $filters['qr_public_id']);
+        if (! empty($filters['source'])) $query->where('e.source_snapshot', (string) $filters['source']);
+        if (! empty($filters['campaign'])) $query->where('e.campaign_snapshot', (string) $filters['campaign']);
+        if (! empty($filters['offer'])) $query->where('e.offer_reference', (string) $filters['offer']);
+        if (! empty($filters['customer_type'])) $query->where('e.customer_type', (string) $filters['customer_type']);
+        if (! empty($filters['fulfillment'])) $query->where('e.fulfillment_mode', (string) $filters['fulfillment']);
+        if (! empty($filters['product_id'])) $query->where('e.product_id', (int) $filters['product_id']);
+        if (! empty($filters['category_id'])) $query->where('e.category_id', (int) $filters['category_id']);
+
+        $row = $query->selectRaw('COUNT(*) AS orders_count, COALESCE(SUM(e.revenue),0) AS refunded_revenue')->first();
+
+        return [
+            'orders' => (int) ($row->orders_count ?? 0),
+            'revenue' => (float) ($row->refunded_revenue ?? 0),
+        ];
+    }
+
+    /**
+     * @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return array{count:int,average:float}
+     */
+    private function ratingSummary(
+        array $storeIds,
+        array $filters,
+        CarbonImmutable $from,
+        CarbonImmutable $to,
+    ): array {
+        if (! empty($filters['product_id']) || ! empty($filters['category_id'])) {
+            return ['count' => 0, 'average' => 0.0];
+        }
+
+        $query = DB::table('smart_ordering_analytics_daily')
+            ->whereIn('store_id', $storeIds)
+            ->where('event_name', 'feedback_submitted')
+            ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()]);
+        $this->applyRollupDimensions($query, $filters);
+
+        $row = $query->selectRaw('COALESCE(SUM(rating_count),0) AS rating_count, COALESCE(SUM(rating_sum),0) AS rating_sum')->first();
+        $count = (int) ($row->rating_count ?? 0);
+        $sum = (float) ($row->rating_sum ?? 0);
+
+        return [
+            'count' => $count,
+            'average' => $count > 0 ? round($sum / $count, 2) : 0.0,
+        ];
+    }
+
     /** @param list<int> $storeIds
      * @param array<string,mixed> $filters
      */
@@ -177,6 +251,9 @@ final class RestaurantAnalyticsService
 
         if (! empty($filters['branch_id'])) {
             $query->where('branch_key', (int) $filters['branch_id']);
+        }
+        if (! empty($filters['qr_public_id'])) {
+            $query->where('qr_key', (string) $filters['qr_public_id']);
         }
         if (! empty($filters['source'])) {
             $query->where('source_key', (string) $filters['source']);
@@ -200,8 +277,8 @@ final class RestaurantAnalyticsService
             ->whereIn('event_name', ['storefront_viewed', 'order_created', 'order_completed']);
         $this->applyRollupDimensions($query, $filters);
 
-        return $query->groupBy('source_key', 'campaign_key')
-            ->selectRaw('source_key, campaign_key')
+        return $query->groupBy('qr_key', 'source_key', 'campaign_key')
+            ->selectRaw('qr_key, source_key, campaign_key')
             ->selectRaw("SUM(CASE WHEN event_name='storefront_viewed' THEN event_count ELSE 0 END) AS views")
             ->selectRaw("SUM(CASE WHEN event_name='order_created' THEN event_count ELSE 0 END) AS orders")
             ->selectRaw("SUM(CASE WHEN event_name='order_completed' THEN revenue ELSE 0 END) AS revenue")
@@ -214,6 +291,7 @@ final class RestaurantAnalyticsService
                 $revenue = (float) $row->revenue;
 
                 return [
+                    'qr_public_id' => (string) $row->qr_key,
                     'source' => (string) $row->source_key,
                     'campaign' => (string) $row->campaign_key,
                     'views' => $views,
@@ -415,6 +493,7 @@ final class RestaurantAnalyticsService
             ->where('event_name', 'order_created');
 
         if (! empty($filters['branch_id'])) $query->where('branch_key', (int) $filters['branch_id']);
+        if (! empty($filters['qr_public_id'])) $query->where('qr_key', (string) $filters['qr_public_id']);
         if (! empty($filters['source'])) $query->where('source_key', (string) $filters['source']);
         if (! empty($filters['campaign'])) $query->where('campaign_key', (string) $filters['campaign']);
         if (! empty($filters['fulfillment'])) $query->where('fulfillment_mode_key', (string) $filters['fulfillment']);
@@ -485,6 +564,7 @@ final class RestaurantAnalyticsService
             ->whereBetween('occurred_at', [$from, $to]);
 
         if (! empty($filters['branch_id'])) $query->where('branch_id', (int) $filters['branch_id']);
+        if (! empty($filters['qr_public_id'])) $query->where('qr_public_id', (string) $filters['qr_public_id']);
         if (! empty($filters['source'])) $query->where('source_snapshot', (string) $filters['source']);
         if (! empty($filters['campaign'])) $query->where('campaign_snapshot', (string) $filters['campaign']);
         if (! empty($filters['offer'])) $query->where('offer_reference', (string) $filters['offer']);
@@ -502,6 +582,7 @@ final class RestaurantAnalyticsService
     private function applyRollupDimensions(Builder $query, array $filters, array $skip = [], string $prefix = ''): void
     {
         if (! in_array('branch', $skip, true) && ! empty($filters['branch_id'])) $query->where($prefix.'branch_key', (int) $filters['branch_id']);
+        if (! in_array('qr', $skip, true) && ! empty($filters['qr_public_id'])) $query->where($prefix.'qr_key', (string) $filters['qr_public_id']);
         if (! in_array('source', $skip, true) && ! empty($filters['source'])) $query->where($prefix.'source_key', (string) $filters['source']);
         if (! in_array('campaign', $skip, true) && ! empty($filters['campaign'])) $query->where($prefix.'campaign_key', (string) $filters['campaign']);
         if (! in_array('offer', $skip, true) && ! empty($filters['offer'])) $query->where($prefix.'offer_key', (string) $filters['offer']);
@@ -518,7 +599,8 @@ final class RestaurantAnalyticsService
                 'menu_views' => 0, 'unique_visitors' => 0, 'carts' => 0, 'checkout_starts' => 0,
                 'orders' => 0, 'completed_orders' => 0, 'conversion_rate' => 0.0, 'revenue' => 0.0,
                 'aov' => 0.0, 'cancellation_rate' => 0.0, 'abandoned_carts' => 0,
-                'repeat_conversion' => 0.0, 'offer_conversion' => 0.0,
+                'repeat_conversion' => 0.0, 'offer_conversion' => 0.0, 'refunded_orders' => 0,
+                'feedback_count' => 0, 'average_rating' => 0.0,
             ],
             'funnel' => [], 'sources' => [], 'branches' => [], 'products' => [], 'categories' => [],
             'fulfillment' => [], 'customer_mix' => [], 'offers' => [], 'peak_hours' => [], 'insights' => [],
