@@ -34,3 +34,5 @@ jobs:
           echo '===BEGIN_DRIVER_TEST==='
           cat test/driver_login_persistence_test.dart
           echo '===END_DRIVER_TEST==='
+
+# second push activates branch-local capture workflow
