@@ -642,8 +642,6 @@ class _Visits implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           routeKey: 'R-024',
-          latitude: 29.3412,
-          longitude: 47.6654,
           address: 'Block 5 · Street 9',
           status: 'planned',
           plannedAt: '2026-10-07T10:30:00+03:00',
