@@ -60,7 +60,11 @@
                 <p>{{ __('smart_ordering_menu.description') }}</p>
             </div>
             <div class="so-actions">
-                <a class="foodex-action-primary so-review-link" href="#so-draft-review">{{ $isAr ? 'مراجعة المنيو قبل النشر' : 'Review menu before publishing' }}</a>
+                @if($reviewMode)
+                <a class="foodex-action-primary so-review-link" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'العودة للمحرر' : 'Back to editor' }}</a>
+                @else
+                <a class="foodex-action-primary so-review-link" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المنيو قبل النشر' : 'Review menu before publishing' }}</a>
+                @endif
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
             </div>
         </header>
@@ -78,14 +82,55 @@
                     </label>
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 </form>
+                @unless($reviewMode)
+                <form method="get" action="{{ route('admin.smart-ordering.menu.index') }}" class="so-inline" data-menu-focus-form>
+                    <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <label>{{ $isAr ? 'المنيو النشطة' : 'Focused menu' }}
+                        <select class="foodex-control" name="menu_id" onchange="this.form.submit()">
+                            @foreach($menuIndex as $menuOption)
+                            <option value="{{ $menuOption->id }}" @selected((int)$menuOption->id===(int)$focusedMenuId)>{{ $localized($menuOption, 'name') }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label>{{ $isAr ? 'ابحث داخل المسودة' : 'Find draft record' }}
+                        <input class="foodex-control" name="q" value="{{ $focusQuery }}" placeholder="{{ $isAr ? 'منيو، تصنيف، صنف أو خيار' : 'Menu, category, item or option' }}">
+                    </label>
+                    <button class="foodex-secondary" type="submit">{{ $isAr ? 'بحث' : 'Find' }}</button>
+                </form>
+                @endunless
                 <div>
                     <span class="so-badge">{{ $isAr ? 'مسودة' : 'Draft' }} #{{ $draft->public_id }}</span>
-                    <span class="so-badge">{{ $menus->count() }} {{ $isAr ? 'منيو' : 'menus' }}</span>
-                    <span class="so-badge">{{ $allItems->count() }} {{ $isAr ? 'صنف' : 'items' }}</span>
+                    <span class="so-badge">{{ $menuIndex->count() }} {{ $isAr ? 'منيو' : 'menus' }}</span>
+                    @unless($reviewMode)<span class="so-badge" data-menu-editor-bounded>{{ $isAr ? 'تحرير مركز' : 'Focused editor' }}</span>@endunless
+                    @if($reviewMode)<span class="so-badge">{{ $isAr ? 'مراجعة كاملة' : 'Full review' }}</span>@endif
                 </div>
             </div>
         </section>
 
+        @if(!$reviewMode && $focusQuery !== '')
+        <section class="panel" data-menu-focus-results>
+            <div class="so-section-title">
+                <div>
+                    <h2>{{ $isAr ? 'نتائج البحث داخل المسودة' : 'Draft record results' }}</h2>
+                    <p class="so-muted">{{ $isAr ? 'افتح السجل المطلوب مباشرة داخل المنيو المرتبطة به.' : 'Open the exact record in its owning menu.' }}</p>
+                </div>
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'مسح البحث' : 'Clear search' }}</a>
+            </div>
+            <div class="so-actions">
+                @forelse($focusResults as $result)
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$result['menu_id'], 'q'=>$focusQuery] + ($supportAccess ? ['support_access'=>1] : [])) }}#{{ $result['anchor'] }}">
+                    <span class="so-badge">{{ $isAr ? ['menu'=>'منيو','category'=>'تصنيف','item'=>'صنف','group'=>'مجموعة','option'=>'خيار'][$result['type']] : ucfirst($result['type']) }}</span>
+                    {{ $result['label'] }}
+                </a>
+                @empty
+                <div class="so-empty">{{ $isAr ? 'لا توجد سجلات مطابقة.' : 'No matching draft records.' }}</div>
+                @endforelse
+            </div>
+        </section>
+        @endif
+
+        @unless($reviewMode)
         <section class="panel">
             <div class="so-section-title"><div><h2>{{ $isAr ? 'إضافة منيو' : 'Add menu' }}</h2><p class="so-muted">{{ $isAr ? 'يمكن ترك الفروع بدون تحديد لتكون المنيو متاحة لكل الفروع.' : 'Leave branches empty to make the menu global.' }}</p></div></div>
             <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.menus.store') }}">
@@ -143,7 +188,7 @@
             <div class="so-section-title"><div><h2>{{ $isAr ? 'هيكل المنيو' : 'Menu structure' }}</h2><p class="so-muted">{{ $isAr ? 'كل التغييرات أدناه تبقى في المسودة حتى الضغط على نشر.' : 'Everything below stays in the draft until you publish.' }}</p></div></div>
 
             @forelse($menus as $menu)
-            <article class="so-menu">
+            <article class="so-menu" id="menu-{{ $menu->id }}">
                 <div class="so-section-title"><h3>{{ $localized($menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
                 <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
                     @csrf @method('PUT')
@@ -193,7 +238,7 @@
                 </details>
 
                 @foreach($menu->categories as $category)
-                <article class="so-category">
+                <article class="so-category" id="menu-category-{{ $category->id }}">
                     <div class="so-section-title"><h4>{{ $localized($category, 'name') }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
                     <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.update',$category) }}">
                         @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -343,7 +388,7 @@
                         </details>
 
                         @foreach($item->modifierGroups as $group)
-                        <article class="so-group">
+                        <article class="so-group" id="menu-group-{{ $group->id }}">
                             <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.groups.update',$group) }}">
                                 @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                 <div class="so-grid">
@@ -361,7 +406,7 @@
                             <form method="post" action="{{ route('admin.smart-ordering.menu.groups.destroy',$group) }}" data-confirm-delete>@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="so-danger" type="submit">{{ $isAr?'حذف المجموعة':'Delete group' }}</button></form>
 
                             @foreach($group->options as $option)
-                            <div class="so-option">
+                            <div class="so-option" id="menu-option-{{ $option->id }}">
                                 <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.update',$option) }}">
                                     @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                     @include('admin._smart-ordering-product-picker',['selectedId'=>$option->source_product_id,'selectedLabel'=>$productLabels[(int)$option->source_product_id] ?? '','id'=>'option-product-'.$option->id])
@@ -417,6 +462,7 @@
             <div class="so-empty">{{ $isAr ? 'لا توجد منيو بعد. أضف أول منيو من الأعلى.' : 'No menu yet. Add the first menu above.' }}</div>
             @endforelse
         </section>
+        @endunless
 
         @if(!empty($itemPriceErrors))
         <section class="panel so-invalid-summary" id="so-invalid-items" role="alert" aria-labelledby="so-invalid-items-title">
@@ -432,6 +478,7 @@
         </section>
         @endif
 
+        @if($reviewMode)
         <section class="panel" id="so-draft-review">
             <div class="so-section-title">
                 <div>
@@ -506,11 +553,17 @@
             </div>
         </section>
 
+        @endif
+
         <div class="so-sticky">
             <form class="so-actions" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
                 @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
-                <a class="foodex-secondary" href="#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
+                @if($reviewMode)
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'العودة للمحرر' : 'Back to editor' }}</a>
+                @else
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
+                @endif
                 <button class="primary" type="submit" @disabled(!empty($itemPriceErrors)) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
                 @if(!empty($itemPriceErrors))<a class="foodex-secondary" href="#so-invalid-items">{{ __('smart_ordering_menu.invalid_item.review_before_publish') }}</a>@endif
             </form>
