@@ -204,8 +204,10 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('__(\'order_operations.title\')', $view);
-        $this->assertStringNotContainsString('name="channel"', $view);
-        $this->assertStringNotContainsString('name="store_id"', $view);
+        $this->assertStringContainsString("__('order_operations.filters.channel')", $view);
+        $this->assertStringContainsString("__('order_operations.filters.store')", $view);
+        $this->assertStringContainsString('type="hidden" name="channel"', $view);
+        $this->assertStringContainsString('<select name="store_id">', $view);
         $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
         $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
         $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
