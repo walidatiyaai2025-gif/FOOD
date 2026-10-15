@@ -10,7 +10,8 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 
 | Token | Value | Use |
 |---|---|---|
-| Primary green | `#158A3A` | active navigation, primary actions, positive brand emphasis |
+| Primary green | `#158A3A` | brand/positive emphasis and non-text accents; do not pair with normal white action text |
+| Accessible action green | `#137A35` | normal-sized primary action, active navigation/pill and pagination fills with white text (WCAG AA >= 4.5:1) |
 | Dark green | `#165D2D` | wordmark, high-contrast brand text |
 | Bright green | `#27B658` | chart/positive accents |
 | Green soft | `#EAF7EF` | selected/positive surfaces |
@@ -18,7 +19,8 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 | Bright orange | `#FC8F33` | charts and soft emphasis |
 | Orange soft | `#FFF1E6` | warm card surfaces |
 | Info blue | `#4B8CF5` | in-transit/info states and charts |
-| Error red | `#EF5350` | cancelled/destructive states |
+| Error red | `#EF5350` | cancelled/destructive non-text accents |
+| Accessible danger text | `#B42318` | destructive/danger text on white or `#FFF0F0` soft-danger surfaces |
 | Ink | `#172033` | primary text |
 | Muted | `#667085` | secondary text |
 | Surface | `#FFFFFF` | cards/topbar/sidebar |
@@ -38,14 +40,15 @@ FOODEX mobile apps use **Alexandria** as the premium bilingual UI typeface for A
 ## Implementation contract
 
 Laravel/Admin consumes `backend/resources/views/admin/_brand.blade.php`.
-Customer Flutter consumes `apps/customer_app/lib/core/theme/foodex_theme.dart`.
+Customer Flutter consumes its approved UI V3 palette through `apps/customer_app/lib/core/theme/customer_ui_v3_tokens.dart`.
 Driver Flutter consumes `apps/driver_app/lib/core/theme/foodex_theme.dart`.
+Van Flutter consumes `apps/van_app/lib/core/theme/foodex_van_theme.dart`.
 
-The numeric color values must stay identical across these three sources. Any palette change requires one Issue updating all three surfaces and visual-regression evidence.
+Dashboard, Driver and Van keep the shared contrast-critical semantic action/danger values aligned. Customer UI V3 keeps its separately approved deep-green palette and must satisfy the same accessibility target independently. Any shared semantic palette change requires one Issue updating all applicable consumers plus exact-lineage visual-regression evidence.
 
 ## Branding rules
 
-- FOODEX green is the primary interactive brand color.
+- FOODEX green is the primary interactive brand family. Normal-sized white text on filled actions/active navigation uses the semantic accessible action green `#137A35`; hover/pressed uses dark green `#165D2D`. The base `#158A3A` remains available for non-text brand accents.
 - FOODEX orange is an accent, not the dominant page background.
 - Primary application surfaces are white/light neutral as in the approved dashboard.
 - Arabic is RTL-first. English mirrors layout direction without changing information hierarchy.

@@ -25,7 +25,7 @@
         .evidence-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem)}.muted{color:var(--foodex-muted)}
         .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
         .commercial-tabs a{min-height:40px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
-        .commercial-tabs a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}
+        .commercial-tabs a.active{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
         .analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
         .metric,.analytics-card{padding:16px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
         .metric strong{display:block;font-size:1.65rem;margin-top:6px}

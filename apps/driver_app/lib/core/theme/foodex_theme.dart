@@ -6,11 +6,13 @@ abstract final class FoodexBrand {
   static const greenDark = Color(0xFF165D2D);
   static const greenBright = Color(0xFF27B658);
   static const greenSoft = Color(0xFFEAF7EF);
+  static const actionGreen = Color(0xFF137A35);
   static const orange = Color(0xFFEE731C);
   static const orangeBright = Color(0xFFFC8F33);
   static const orangeSoft = Color(0xFFFFF1E6);
   static const blue = Color(0xFF4B8CF5);
   static const red = Color(0xFFEF5350);
+  static const dangerText = Color(0xFFB42318);
   static const ink = Color(0xFF172033);
   static const muted = Color(0xFF667085);
   static const surface = Color(0xFFFFFFFF);
@@ -35,7 +37,7 @@ abstract final class FoodexBrand {
       case 'refunded':
       case 'failed':
       case 'error':
-        return red;
+        return dangerText;
       case 'pending':
       case 'confirmed':
       case 'processing':
@@ -81,27 +83,21 @@ abstract final class FoodexBrand {
 abstract final class FoodexTheme {
   static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(
-      primary: FoodexBrand.green,
+      primary: FoodexBrand.actionGreen,
       onPrimary: Colors.white,
       secondary: FoodexBrand.orange,
       onSecondary: Colors.white,
       surface: FoodexBrand.surface,
       onSurface: FoodexBrand.ink,
-      error: FoodexBrand.red,
+      error: FoodexBrand.dangerText,
       onError: Colors.white,
     );
 
-    final base = ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-    );
+    final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     final textTheme = (fontFamily == null
             ? GoogleFonts.alexandriaTextTheme(base.textTheme)
             : base.textTheme.apply(fontFamily: fontFamily))
-        .apply(
-      bodyColor: FoodexBrand.ink,
-      displayColor: FoodexBrand.ink,
-    );
+        .apply(bodyColor: FoodexBrand.ink, displayColor: FoodexBrand.ink);
     final primaryTextTheme = fontFamily == null
         ? GoogleFonts.alexandriaTextTheme(base.primaryTextTheme)
         : base.primaryTextTheme.apply(fontFamily: fontFamily);
@@ -137,7 +133,7 @@ abstract final class FoodexTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: FoodexBrand.green,
+          backgroundColor: FoodexBrand.actionGreen,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 52),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -174,17 +170,13 @@ abstract final class FoodexTheme {
         backgroundColor: FoodexBrand.ink,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: FoodexBrand.surface,
         selectedColor: FoodexBrand.greenSoft,
         side: const BorderSide(color: FoodexBrand.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         labelStyle: textTheme.labelLarge,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
@@ -198,7 +190,10 @@ abstract final class FoodexTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: FoodexBrand.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         hintStyle: textTheme.bodyMedium?.copyWith(color: FoodexBrand.muted),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
