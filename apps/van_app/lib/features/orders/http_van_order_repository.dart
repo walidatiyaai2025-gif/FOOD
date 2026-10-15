@@ -158,21 +158,32 @@ class HttpVanOrderRepository implements VanOrderRepository {
   }
 
   @override
-  Future<List<VanOrderRecord>> orders({
+  Future<VanOrderPage> orders({
     VanCustomerScope? customer,
     String? status,
+    int page = 1,
+    int perPage = 50,
   }) async {
+    final requestedPage = page < 1 ? 1 : page;
+    final requestedPerPage = perPage.clamp(1, 100);
     final params = <String>[
-      'per_page=100',
+      'page=$requestedPage',
+      'per_page=$requestedPerPage',
       if (customer != null) 'customer_type=${customer.type}',
       if (customer != null) 'customer_id=${customer.id}',
       if (status != null && status.trim().isNotEmpty)
         'status=${Uri.encodeQueryComponent(status.trim())}',
     ];
     final decoded = _map(await api.getJson('van/orders?${params.join('&')}'));
-    return _list(
-      decoded['data'],
-    ).map((row) => _order(_map(row))).toList(growable: false);
+    final meta = _map(decoded['meta']);
+    return VanOrderPage(
+      items: _list(
+        decoded['data'],
+      ).map((row) => _order(_map(row))).toList(growable: false),
+      currentPage: _requiredInt(meta['current_page']),
+      perPage: _requiredInt(meta['per_page']),
+      total: _requiredInt(meta['total']),
+    );
   }
 
   @override
