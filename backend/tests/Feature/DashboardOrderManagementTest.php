@@ -836,8 +836,8 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('data-wizard-idempotency', $view);
         $this->assertStringContainsString('data-wizard-submit-state', $view);
-        $this->assertStringContainsString("if (isSubmitting) {", $view);
-        $this->assertStringContainsString("form.setAttribute('aria-busy', active ? 'true' : 'false');", $view);
+        $this->assertStringContainsString('if (isSubmitting) {', $view);
+        $this->assertStringContainsString('form.setAttribute(\'aria-busy\', active ? \'true\' : \'false\');', $view);
         $this->assertStringContainsString('setSubmitting(true);', $view);
         $this->assertStringContainsString('if (restoreServerInput()) open();', $view);
 
