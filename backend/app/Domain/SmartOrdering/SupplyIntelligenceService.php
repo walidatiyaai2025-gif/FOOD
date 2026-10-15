@@ -952,11 +952,11 @@ final class SupplyIntelligenceService
             ->whereIn('id', $ids)
             ->get(['id', 'sku', 'name', 'is_active'])
             ->mapWithKeys(static fn (object $row): array => [
-                (int) $row->id => [[
+                (int) $row->id => [
                     'sku' => (string) $row->sku,
                     'name' => (string) $row->name,
                     'active' => (bool) $row->is_active,
-                ]],
+                ],
             ])
             ->all();
     }
@@ -988,13 +988,19 @@ final class SupplyIntelligenceService
 
     private function liveAvailable(int $storeId, int $productId): float
     {
-        return round((float) DB::table('inventories')
+        $rows = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->where('warehouses.store_id', $storeId)
             ->where('warehouses.is_active', true)
             ->where('inventories.product_id', $productId)
-            ->selectRaw('COALESCE(SUM(GREATEST(inventories.quantity - inventories.reserved_quantity, 0)), 0) AS available')
-            ->value('available'), 3);
+            ->get(['inventories.quantity', 'inventories.reserved_quantity']);
+
+        return round((float) $rows->sum(
+            static fn (object $row): float => max(
+                0.0,
+                (float) $row->quantity - (float) $row->reserved_quantity,
+            ),
+        ), 3);
     }
 
     private function roundUp(float $quantity, float $minimum, float $increment): float
