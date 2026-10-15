@@ -63,6 +63,7 @@ const b2c = [
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu'],
+  ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply'],
 ];
 
 async function ensureDir(dir) {
@@ -769,6 +770,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'smart-ordering',
     '/admin/smart-ordering',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-supply',
+    '/admin/smart-ordering/supply',
   );
   await captureResponsiveRoute(
     page,
