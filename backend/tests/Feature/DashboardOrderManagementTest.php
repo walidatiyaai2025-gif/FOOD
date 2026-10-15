@@ -670,6 +670,64 @@ class DashboardOrderManagementTest extends TestCase
         ]));
     }
 
+    public function test_central_new_order_wizard_has_localized_recoverable_draft_close_contract(): void
+    {
+        $store = $this->store('B2C', 'WIZARD-DRAFT-SAFETY');
+        [$product] = $this->product($store, 'b2c', 'WIZARD-DRAFT-SKU', 4.000, 10);
+        $admin = $this->storeAdmin($store, 'wizard-draft@example.test');
+        app(B2cCustomerService::class)->create($store, [
+            'name' => 'Wizard Draft Buyer',
+            'email' => 'wizard-draft-buyer@example.test',
+        ]);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertSee('data-new-order-discard', false)
+            ->assertSee('role="alertdialog"', false)
+            ->assertSee('Continue editing')
+            ->assertSee('Discard draft')
+            ->assertSee('WIZARD-DRAFT-SKU');
+
+        $expected = [
+            'en' => [
+                'title' => 'Keep this unfinished order?',
+                'description' => 'You have unsaved order details. Continue editing, or discard them deliberately to start fresh.',
+                'continue_editing' => 'Continue editing',
+                'discard' => 'Discard draft',
+            ],
+            'ar' => [
+                'title' => 'الاحتفاظ بالطلب غير المكتمل؟',
+                'description' => 'لديك بيانات طلب غير محفوظة. واصل التعديل أو تخلّص من المسودة بشكل صريح لبدء طلب جديد.',
+                'continue_editing' => 'متابعة التعديل',
+                'discard' => 'التخلص من المسودة',
+            ],
+        ];
+
+        foreach ($expected as $locale => $labels) {
+            app()->setLocale($locale);
+            foreach ($labels as $key => $label) {
+                $this->assertSame($label, __('order_operations.new_order_draft.'.$key));
+            }
+        }
+
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('if (!initialized) reset();', $view);
+        $this->assertStringContainsString('const requestClose = (trigger = null) => {', $view);
+        $this->assertStringContainsString('const discardAndClose = () => {', $view);
+        $this->assertStringContainsString("form.addEventListener('input', () => { dirty = true; invalidateQuote(); });", $view);
+        $this->assertStringContainsString("discardPanel?.dataset.visible === '1' && event.key === 'Tab'", $view);
+        $this->assertStringContainsString('node.inert = active;', $view);
+        $this->assertStringNotContainsString("const open = () => {\n        reset();", $view);
+
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $store,
+            'product_id' => $product,
+        ]);
+    }
+
     public function test_central_new_order_endpoint_rejects_invalid_and_foreign_store_submissions_without_partial_order(): void
     {
         $storeA = $this->store('B2C', 'WIZARD-SCOPE-A');

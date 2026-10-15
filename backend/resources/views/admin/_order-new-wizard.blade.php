@@ -4,8 +4,8 @@
 .new-order-backdrop[data-open="1"]{display:flex}.new-order-dialog{width:min(980px,100%);max-height:92vh;overflow:auto;background:var(--foodex-surface,#fff);border-radius:22px;border:1px solid var(--foodex-border);box-shadow:0 24px 80px rgba(0,0,0,.28)}
 .new-order-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding:22px 24px;border-bottom:1px solid var(--foodex-border)}.new-order-head h2{margin:0}.new-order-close{font-size:24px;line-height:1;border:0;background:transparent;cursor:pointer}
 .new-order-progress{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:16px 24px;border-bottom:1px solid var(--foodex-border)}.new-order-progress span{padding:8px 6px;border-radius:10px;text-align:center;font-size:.78rem;font-weight:800;background:rgba(0,0,0,.05)}.new-order-progress span[data-active="1"]{outline:2px solid currentColor}.new-order-progress span[data-complete="1"]{background:rgba(16,185,129,.13)}
-.new-order-body{padding:24px}.new-order-step{display:none}.new-order-step[data-active="1"]{display:block}.new-order-step h3{margin-top:0}.new-order-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.new-order-field{display:grid;gap:6px;font-weight:700}.new-order-field select,.new-order-field input,.new-order-field textarea{width:100%;box-sizing:border-box}.new-order-lines{display:grid;gap:10px}.new-order-line{display:grid;grid-template-columns:minmax(260px,1fr) 150px auto;gap:8px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.new-order-quote,.new-order-review{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:rgba(0,0,0,.025);display:grid;gap:8px}.new-order-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.new-order-review-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.new-order-error{display:none;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid #dc2626}.new-order-error[data-visible="1"]{display:block}.new-order-actions{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:18px 24px;border-top:1px solid var(--foodex-border)}.new-order-actions-right{display:flex;gap:8px}.new-order-actions button[disabled]{opacity:.45;cursor:not-allowed}
-@media(max-width:760px){.new-order-progress{grid-template-columns:repeat(3,1fr)}.new-order-grid,.new-order-review-grid{grid-template-columns:1fr}.new-order-line{grid-template-columns:1fr 120px}.new-order-line .js-wizard-remove-line{grid-column:1/-1}.new-order-body{padding:16px}.new-order-head,.new-order-actions{padding-inline:16px}}
+.new-order-body{padding:24px}.new-order-step{display:none}.new-order-step[data-active="1"]{display:block}.new-order-step h3{margin-top:0}.new-order-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.new-order-field{display:grid;gap:6px;font-weight:700}.new-order-field select,.new-order-field input,.new-order-field textarea{width:100%;box-sizing:border-box}.new-order-lines{display:grid;gap:10px}.new-order-line{display:grid;grid-template-columns:minmax(260px,1fr) 150px auto;gap:8px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.new-order-quote,.new-order-review{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:rgba(0,0,0,.025);display:grid;gap:8px}.new-order-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.new-order-review-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.new-order-error{display:none;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid #dc2626}.new-order-error[data-visible="1"]{display:block}.new-order-discard{display:none;position:sticky;bottom:0;z-index:4;margin:0 24px 18px;padding:16px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface,#fff);box-shadow:0 16px 42px rgba(15,23,42,.18)}.new-order-discard[data-visible="1"]{display:grid;gap:12px}.new-order-discard h3,.new-order-discard p{margin:0}.new-order-discard-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.new-order-actions{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:18px 24px;border-top:1px solid var(--foodex-border)}.new-order-actions-right{display:flex;gap:8px}.new-order-actions button[disabled]{opacity:.45;cursor:not-allowed}
+@media(max-width:760px){.new-order-progress{grid-template-columns:repeat(3,1fr)}.new-order-grid,.new-order-review-grid{grid-template-columns:1fr}.new-order-line{grid-template-columns:1fr 120px}.new-order-line .js-wizard-remove-line{grid-column:1/-1}.new-order-body{padding:16px}.new-order-head,.new-order-actions{padding-inline:16px}.new-order-discard{margin-inline:16px}.new-order-discard-actions{display:grid}.new-order-discard-actions button{width:100%;min-height:44px}}
 </style>
 
 <div class="new-order-backdrop" data-new-order-modal data-open="0" aria-hidden="true">
@@ -76,6 +76,15 @@
 </section>
 </div>
 
+<div class="new-order-discard" data-new-order-discard data-visible="0" role="alertdialog" aria-modal="true" aria-labelledby="new-order-discard-title" aria-describedby="new-order-discard-description" aria-hidden="true">
+<h3 id="new-order-discard-title">{{ __('order_operations.new_order_draft.title') }}</h3>
+<p id="new-order-discard-description">{{ __('order_operations.new_order_draft.description') }}</p>
+<div class="new-order-discard-actions">
+<button type="button" class="btn secondary" data-new-order-continue>{{ __('order_operations.new_order_draft.continue_editing') }}</button>
+<button type="button" class="foodex-primary" data-new-order-discard-confirm>{{ __('order_operations.new_order_draft.discard') }}</button>
+</div>
+</div>
+
 <div class="new-order-actions">
 <button type="button" class="btn secondary" data-new-order-cancel>{{ $isAr?'إلغاء':'Cancel' }}</button>
 <div class="new-order-actions-right">
@@ -128,8 +137,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const backButton = form.querySelector('[data-wizard-back]');
     const createButton = form.querySelector('[data-wizard-create]');
     const quoteBox = form.querySelector('[data-wizard-quote]');
+    const discardPanel = modal.querySelector('[data-new-order-discard]');
+    const continueButton = discardPanel?.querySelector('[data-new-order-continue]');
+    const discardButton = discardPanel?.querySelector('[data-new-order-discard-confirm]');
+    const modalHeader = modal.querySelector('.new-order-head');
+    const modalProgress = modal.querySelector('.new-order-progress');
+    const modalBody = modal.querySelector('.new-order-body');
+    const modalActions = modal.querySelector('.new-order-actions');
     let step = 0;
     let quoteReady = false;
+    let initialized = false;
+    let dirty = false;
+    let discardReturnFocus = null;
 
     const makeOption = (value, label) => {
         const node = document.createElement('option');
@@ -257,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (linesBox.querySelectorAll('[data-wizard-line]').length <= 1) return;
             row.remove();
             reindexLines();
+            dirty = true;
             invalidateQuote();
         });
 
@@ -344,6 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const setDiscardIsolation = (active) => {
+        [modalHeader, modalProgress, modalBody, modalActions].forEach((node) => {
+            if (node) node.inert = active;
+        });
+    };
+
+    const hideDiscardPrompt = ({ restoreFocus = true } = {}) => {
+        if (!discardPanel) return;
+        discardPanel.dataset.visible = '0';
+        discardPanel.setAttribute('aria-hidden', 'true');
+        setDiscardIsolation(false);
+        if (restoreFocus && discardReturnFocus instanceof HTMLElement) discardReturnFocus.focus();
+        discardReturnFocus = null;
+    };
+
     const reset = () => {
         form.reset();
         channelSelect.innerHTML = '';
@@ -354,33 +389,82 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paymentSelect.options.length === 2) paymentSelect.selectedIndex = 1;
         invalidateQuote();
         setStep(0);
+        dirty = false;
+        hideDiscardPrompt({ restoreFocus: false });
+        initialized = true;
     };
 
-    const open = () => {
-        reset();
-        modal.dataset.open = '1';
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        channelSelect.focus();
-    };
-    const close = () => {
+    const closeModal = () => {
+        hideDiscardPrompt({ restoreFocus: false });
         modal.dataset.open = '0';
         modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+    };
+
+    const open = () => {
+        if (!initialized) reset();
+        modal.dataset.open = '1';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        const focusTarget = step === 0 ? channelSelect : form.querySelector('[data-wizard-step="' + step + '"] input, [data-wizard-step="' + step + '"] select, [data-wizard-step="' + step + '"] textarea, [data-wizard-step="' + step + '"] button');
+        (focusTarget || channelSelect).focus();
+    };
+
+    const requestClose = (trigger = null) => {
+        if (!dirty) {
+            closeModal();
+            return;
+        }
+        if (!discardPanel) return;
+        discardReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
+        setDiscardIsolation(true);
+        discardPanel.dataset.visible = '1';
+        discardPanel.setAttribute('aria-hidden', 'false');
+        continueButton?.focus();
+    };
+
+    const discardAndClose = () => {
         reset();
+        closeModal();
     };
 
     document.querySelectorAll('[data-new-order-open]').forEach((button) => button.addEventListener('click', open));
-    modal.querySelectorAll('[data-new-order-cancel]').forEach((button) => button.addEventListener('click', close));
-    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.dataset.open === '1') close(); });
+    modal.querySelectorAll('[data-new-order-cancel]').forEach((button) => button.addEventListener('click', (event) => requestClose(event.currentTarget)));
+    continueButton?.addEventListener('click', () => hideDiscardPrompt());
+    discardButton?.addEventListener('click', discardAndClose);
+    modal.addEventListener('click', (event) => { if (event.target === modal) requestClose(modal.querySelector('[data-new-order-cancel]')); });
+    document.addEventListener('keydown', (event) => {
+        if (modal.dataset.open !== '1') return;
+
+        if (discardPanel?.dataset.visible === '1' && event.key === 'Tab') {
+            const focusable = [continueButton, discardButton].filter((node) => node instanceof HTMLElement && !node.disabled);
+            if (focusable.length) {
+                const currentIndex = focusable.indexOf(document.activeElement);
+                const nextIndex = event.shiftKey
+                    ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+                    : (currentIndex < 0 || currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+                event.preventDefault();
+                focusable[nextIndex].focus();
+            }
+            return;
+        }
+
+        if (event.key !== 'Escape') return;
+        if (discardPanel?.dataset.visible === '1') {
+            event.preventDefault();
+            hideDiscardPrompt();
+            return;
+        }
+        event.preventDefault();
+        requestClose(document.activeElement);
+    });
 
     channelSelect.addEventListener('change', () => { refillStores(); invalidateQuote(); });
     storeSelect.addEventListener('change', () => { refillStoreData(); invalidateQuote(); });
     customerSelect.addEventListener('change', () => { refillAddresses(); invalidateQuote(); });
-    form.addEventListener('input', invalidateQuote);
-    form.addEventListener('change', invalidateQuote);
-    form.querySelector('[data-wizard-add-line]').addEventListener('click', () => { addLine(); invalidateQuote(); });
+    form.addEventListener('input', () => { dirty = true; invalidateQuote(); });
+    form.addEventListener('change', () => { dirty = true; invalidateQuote(); });
+    form.querySelector('[data-wizard-add-line]').addEventListener('click', () => { addLine(); dirty = true; invalidateQuote(); });
 
     nextButton.addEventListener('click', () => {
         const error = validateStep();
