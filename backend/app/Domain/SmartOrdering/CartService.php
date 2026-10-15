@@ -35,11 +35,11 @@ final class CartService
         return ['cart' => $cart, 'token' => $token, 'quote' => $this->preview($cart)];
     }
 
-    public function authorized(string $publicId, string $token): SmartOrderingCart
+    public function authorized(string $publicId, string $token, bool $allowCheckedOut = false): SmartOrderingCart
     {
         $cart = SmartOrderingCart::query()
             ->where('public_id', $publicId)
-            ->where('status', 'active')
+            ->whereIn('status', $allowCheckedOut ? ['active', 'checked_out'] : ['active'])
             ->firstOrFail();
 
         abort_unless(hash_equals((string) $cart->token_hash, hash('sha256', $token)), 404);
