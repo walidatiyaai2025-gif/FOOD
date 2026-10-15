@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\MarketingImageService;
 use App\Support\AdminNavigation;
+use App\Support\EngagementDestinationCatalog;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,7 @@ final class LiveAdController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly AuditLogger $audit,
         private readonly MarketingImageService $images,
+        private readonly EngagementDestinationCatalog $destinations,
     ) {}
 
     public function index(Request $request): View
@@ -66,6 +68,17 @@ final class LiveAdController extends Controller
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || ($actor->hasRole('B2B_ADMIN') && $actor->hasPermission('live_ads.manage')),
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
             'retailStores' => $this->allowedRetailStores($actor),
+            'engagementDestinations' => $this->destinations->uiDefinitions(),
+            'adDestinationSelections' => $ads->getCollection()
+                ->mapWithKeys(fn (LiveAd $ad): array => [
+                    (int) $ad->getKey() => $this->destinations->codeForTarget(
+                        $ad->cta_target,
+                        'customer',
+                        (string) $ad->channel,
+                        $ad->store_id === null ? null : (int) $ad->store_id,
+                    ) ?? 'none',
+                ])
+                ->all(),
         ]);
     }
 
@@ -74,11 +87,18 @@ final class LiveAdController extends Controller
         $actor = $this->authorizeAccess($request, 'live_ads.manage');
         $data = $this->validated($request);
         [$channel, $storeId, $scopeKey] = $this->assertScope($actor, $data);
+        $ctaTarget = $this->destinations->resolveInput(
+            $data['cta_destination'] ?? null,
+            $data['cta_target'] ?? null,
+            'customer',
+            $channel,
+            $storeId,
+        );
         $imagePath = $this->storeImage($request, $storeId);
 
         try {
             $ad = LiveAd::query()->create([
-                ...$this->payload($data),
+                ...$this->payload($data, $ctaTarget),
                 'channel' => $channel,
                 'store_id' => $storeId,
                 'scope_key' => $scopeKey,
@@ -100,12 +120,19 @@ final class LiveAdController extends Controller
         $actor = $this->authorizeAd($request, $liveAd, 'live_ads.manage');
         $data = $this->validated($request);
         [$channel, $storeId, $scopeKey] = $this->assertScope($actor, $data);
+        $ctaTarget = $this->destinations->resolveInput(
+            $data['cta_destination'] ?? null,
+            $data['cta_target'] ?? null,
+            'customer',
+            $channel,
+            $storeId,
+        );
         $before = $liveAd->toArray();
         $newImage = $request->hasFile('image') ? $this->storeImage($request, $storeId) : null;
 
         try {
             $liveAd->update([
-                ...$this->payload($data),
+                ...$this->payload($data, $ctaTarget),
                 'channel' => $channel,
                 'store_id' => $storeId,
                 'scope_key' => $scopeKey,
@@ -274,6 +301,7 @@ final class LiveAdController extends Controller
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
             'cta_label_ar' => ['nullable', 'string', 'max:120'],
             'cta_label_en' => ['nullable', 'string', 'max:120'],
+            'cta_destination' => ['nullable', 'string', Rule::in($this->destinations->codes())],
             'cta_target' => ['nullable', 'string', 'max:500'],
             'frequency' => ['required', Rule::in(['once_per_install', 'once_per_session', 'every_open'])],
             'priority' => ['required', 'integer', 'min:0', 'max:9999'],
@@ -298,7 +326,7 @@ final class LiveAdController extends Controller
     /** @param array<string,mixed> $data
      * @return array<string,mixed>
      */
-    private function payload(array $data): array
+    private function payload(array $data, ?string $ctaTarget): array
     {
         $startsAt = ! empty($data['starts_at'])
             ? CarbonImmutable::parse((string) $data['starts_at'], self::TIMEZONE)->utc()
@@ -320,7 +348,7 @@ final class LiveAdController extends Controller
             'body_en' => $data['body_en'] ?? null,
             'cta_label_ar' => $data['cta_label_ar'] ?? null,
             'cta_label_en' => $data['cta_label_en'] ?? null,
-            'cta_target' => $data['cta_target'] ?? null,
+            'cta_target' => $ctaTarget,
             'frequency' => (string) $data['frequency'],
             'priority' => (int) $data['priority'],
             'starts_at' => $startsAt,
