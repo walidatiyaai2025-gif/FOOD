@@ -6,7 +6,7 @@
     <title>{{ app()->getLocale()==='ar'?'فاتورة':'Invoice' }} {{ $invoice['display_invoice_number'] ?? $invoice['invoice_number'] }} · FOODEX</title>
     @include('admin._brand-components')
     <style>
-        body{margin:0;background:var(--foodex-background);color:var(--foodex-text)}
+        body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
         .wrap{max-width:1120px;margin:0 auto;padding:28px}
         .invoice-card{padding:24px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}
         .head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
