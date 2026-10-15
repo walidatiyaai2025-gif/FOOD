@@ -132,8 +132,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
     final passwordMissing = password.isEmpty;
     if (emailMissing || passwordMissing) {
       setState(() {
-        _emailErrorKey =
-            emailMissing ? 'driver.login.email_required' : null;
+        _emailErrorKey = emailMissing ? 'driver.login.email_required' : null;
         _passwordErrorKey =
             passwordMissing ? 'driver.login.password_required' : null;
         _errorKey = null;
@@ -220,7 +219,10 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                               Text(
                                 context.tr('driver.login.welcome'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                     ),
                               ),
@@ -228,7 +230,10 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                               Text(
                                 context.tr('driver.login.subtitle'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
                                       color: FoodexBrand.muted,
                                     ),
                               ),
@@ -258,7 +263,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
                                     labelText: context.tr('driver.login.email'),
-                                    prefixIcon: const Icon(Icons.alternate_email_rounded),
+                                    prefixIcon: const Icon(
+                                        Icons.alternate_email_rounded),
                                     errorText: _emailErrorKey == null
                                         ? null
                                         : context.tr(_emailErrorKey!),
@@ -277,8 +283,10 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   autocorrect: false,
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
-                                    labelText: context.tr('driver.login.password'),
-                                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                    labelText:
+                                        context.tr('driver.login.password'),
+                                    prefixIcon:
+                                        const Icon(Icons.lock_outline_rounded),
                                     errorText: _passwordErrorKey == null
                                         ? null
                                         : context.tr(_passwordErrorKey!),
@@ -290,7 +298,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                             : 'driver.login.show_password',
                                       ),
                                       onPressed: () => setState(
-                                        () => _passwordVisible = !_passwordVisible,
+                                        () => _passwordVisible =
+                                            !_passwordVisible,
                                       ),
                                       icon: Icon(
                                         _passwordVisible
@@ -342,14 +351,16 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                           ),
                                         )
                                       : const Icon(Icons.login_rounded),
-                                  label: Text(context.tr('driver.login.submit')),
+                                  label:
+                                      Text(context.tr('driver.login.submit')),
                                 ),
                                 if (_savedBiometricLogin) ...[
                                   const SizedBox(height: 12),
                                   OutlinedButton.icon(
                                     key: const Key('driver-login-biometric'),
-                                    onPressed:
-                                        _submitting ? null : _loginWithBiometrics,
+                                    onPressed: _submitting
+                                        ? null
+                                        : _loginWithBiometrics,
                                     icon: const Icon(Icons.fingerprint_rounded),
                                     label: Text(
                                       context.tr('driver.login.biometric'),
@@ -360,10 +371,12 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 CheckboxListTile(
                                   key: const Key('driver-login-remember'),
                                   contentPadding: EdgeInsets.zero,
-                                  controlAffinity: ListTileControlAffinity.leading,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
                                   value: _rememberMe,
                                   dense: true,
-                                  title: Text(context.tr('driver.login.remember_me')),
+                                  title: Text(
+                                      context.tr('driver.login.remember_me')),
                                   onChanged: _submitting
                                       ? null
                                       : (value) => setState(() {
@@ -375,13 +388,16 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 ),
                                 if (!_checkingBiometrics && _biometricAvailable)
                                   CheckboxListTile(
-                                    key: const Key('driver-login-biometric-toggle'),
+                                    key: const Key(
+                                        'driver-login-biometric-toggle'),
                                     contentPadding: EdgeInsets.zero,
-                                    controlAffinity: ListTileControlAffinity.leading,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
                                     value: _enableBiometrics,
                                     dense: true,
                                     title: Text(
-                                      context.tr('driver.login.enable_biometric'),
+                                      context
+                                          .tr('driver.login.enable_biometric'),
                                     ),
                                     subtitle: Text(
                                       context.tr('driver.login.biometric_hint'),
@@ -389,7 +405,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     onChanged: _submitting
                                         ? null
                                         : (value) => setState(() {
-                                              _enableBiometrics = value ?? false;
+                                              _enableBiometrics =
+                                                  value ?? false;
                                               if (_enableBiometrics) {
                                                 _rememberMe = true;
                                               }
