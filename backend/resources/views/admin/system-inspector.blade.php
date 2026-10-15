@@ -65,70 +65,48 @@
         </section>
 
 
-        @php
-            $enterpriseLabels = [
-                'NOT_INSTALLED' => $ar ? 'غير مثبت' : 'Not installed',
-                'INSTALLED' => $ar ? 'مثبت' : 'Installed',
-                'ENABLING' => $ar ? 'جارٍ التفعيل' : 'Enabling',
-                'ENABLED' => $ar ? 'مفعّل' : 'Enabled',
-                'DISABLED' => $ar ? 'معطّل' : 'Disabled',
-                'SUSPENDED' => $ar ? 'موقوف مؤقتًا' : 'Suspended',
-                'MAINTENANCE' => $ar ? 'صيانة' : 'Maintenance',
-                'HEALTHY' => $ar ? 'سليم' : 'Healthy',
-                'DEGRADED' => $ar ? 'متدهور' : 'Degraded',
-                'ERROR' => $ar ? 'خطأ' : 'Error',
-                'pending' => $ar ? 'قيد الانتظار' : 'Pending',
-                'retry' => $ar ? 'إعادة محاولة' : 'Retry',
-                'processing' => $ar ? 'قيد التنفيذ' : 'Processing',
-                'dispatched' => $ar ? 'تم الإرسال' : 'Dispatched',
-                'dead' => $ar ? 'معزول نهائيًا' : 'Dead letter',
-                'PENDING' => $ar ? 'قيد الانتظار' : 'Pending',
-                'APPROVED' => $ar ? 'موافق عليه' : 'Approved',
-                'REJECTED' => $ar ? 'مرفوض' : 'Rejected',
-                'CANCELLED' => $ar ? 'ملغى' : 'Cancelled',
-            ];
-        @endphp
+        @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
         <section class="foodex-card inspector-enterprise" data-enterprise-inspector>
             <div class="inspector-enterprise-heading">
                 <div>
-                    <span class="foodex-subtitle">{{ $ar?'منصة المؤسسات':'Enterprise platform' }}</span>
-                    <h2>{{ $ar?'تشخيص الموديولات والخلفية':'Modules & background diagnostics' }}</h2>
-                    <p>{{ $ar?'حالة آمنة ومحدودة للموديولات والصلاحيات وOutbox وسير العمل بدون عرض payload أو أسرار.':'A safe, bounded view of modules, entitlements, outbox and workflow without exposing payloads or secrets.' }}</p>
+                    <span class="foodex-subtitle">{{ __('admin.system_inspector_enterprise.eyebrow') }}</span>
+                    <h2>{{ __('admin.system_inspector_enterprise.title') }}</h2>
+                    <p>{{ __('admin.system_inspector_enterprise.description') }}</p>
                 </div>
-                <span class="badge {{ $enterprise['available']?'active':'' }}">{{ $enterprise['available']?($ar?'متاح':'Available'):($ar?'غير متاح':'Unavailable') }}</span>
+                <span class="badge {{ $enterprise['available']?'active':'' }}">{{ $enterprise['available'] ? __('admin.system_inspector_enterprise.available') : __('admin.system_inspector_enterprise.unavailable') }}</span>
             </div>
 
             @if(! $enterprise['available'])
                 <div class="foodex-empty-state">
                     {{ $enterprise['migration_pending']
-                        ? ($ar?'تشخيص المؤسسات سيظهر بعد تطبيق migrations الحالية.':'Enterprise diagnostics will appear after the current migrations are applied.')
-                        : ($ar?'تعذر تحميل تشخيص المؤسسات بأمان. راجع سجلات الخادم.':'Enterprise diagnostics could not be loaded safely. Check server logs.') }}
+                        ? __('admin.system_inspector_enterprise.migration_pending')
+                        : __('admin.system_inspector_enterprise.load_failed') }}
                 </div>
             @else
                 <div class="inspector-enterprise-section">
-                    <h3>{{ $ar?'سجل الموديولات وصحتها':'Module registry & health' }}</h3>
+                    <h3>{{ __('admin.system_inspector_enterprise.module_registry_health') }}</h3>
                     <div class="inspector-table-wrap">
                         <table class="foodex-table inspector-enterprise-table">
                             <thead><tr>
-                                <th>{{ $ar?'الموديول':'Module' }}</th>
-                                <th>{{ $ar?'الفئة':'Category' }}</th>
-                                <th>{{ $ar?'نسخة التعريف':'Manifest version' }}</th>
-                                <th>{{ $ar?'دورة الحياة':'Lifecycle' }}</th>
-                                <th>{{ $ar?'الصحة':'Health' }}</th>
-                                <th>{{ $ar?'الفحوصات المنفذة':'Checks run' }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.module') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.category') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.manifest_version') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.lifecycle') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.health') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.checks_run') }}</th>
                             </tr></thead>
                             <tbody>
                             @forelse($enterprise['modules'] as $module)
                                 <tr>
                                     <td><code>{{ $module['code'] }}</code></td>
-                                    <td>{{ $module['category']==='platform' ? ($ar?'المنصة':'Platform') : $module['category'] }}</td>
+                                    <td>{{ $module['category']==='platform' ? __('admin.system_inspector_enterprise.platform') : $module['category'] }}</td>
                                     <td class="foodex-number">{{ $module['manifest_version'] }}</td>
-                                    <td><span class="badge">{{ $enterpriseLabels[$module['lifecycle_state']] ?? $module['lifecycle_state'] }}</span></td>
-                                    <td><span class="badge {{ $module['health_status']==='HEALTHY'?'active':'' }}">{{ $enterpriseLabels[$module['health_status']] ?? $module['health_status'] }}</span></td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$module['lifecycle_state']] ?? __('admin.system_inspector_enterprise.unknown_state') }}</span></td>
+                                    <td><span class="badge {{ $module['health_status']==='HEALTHY'?'active':'' }}">{{ $enterpriseLabels[$module['health_status']] ?? __('admin.system_inspector_enterprise.unknown_state') }}</span></td>
                                     <td class="foodex-number">{{ $module['check_count'] }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6"><div class="foodex-empty-state">{{ $ar?'لا توجد موديولات معرفة.':'No Enterprise modules are registered.' }}</div></td></tr>
+                                <tr><td colspan="6"><div class="foodex-empty-state">{{ __('admin.system_inspector_enterprise.no_modules') }}</div></td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -136,45 +114,45 @@
                 </div>
 
                 <div class="inspector-enterprise-section">
-                    <h3>{{ $ar?'الاستحقاقات':'Entitlements' }}</h3>
+                    <h3>{{ __('admin.system_inspector_enterprise.entitlements') }}</h3>
                     <div class="inspector-enterprise-statuses">
-                        <span class="badge">{{ $ar?'الإجمالي':'Total' }}: <span class="foodex-number">{{ $enterprise['entitlements']['total'] }}</span></span>
-                        <span class="badge active">{{ $ar?'مفعّل':'Enabled' }}: <span class="foodex-number">{{ $enterprise['entitlements']['enabled'] }}</span></span>
+                        <span class="badge">{{ __('admin.system_inspector_enterprise.total') }}: <span class="foodex-number">{{ $enterprise['entitlements']['total'] }}</span></span>
+                        <span class="badge active">{{ __('admin.system_inspector_enterprise.enabled') }}: <span class="foodex-number">{{ $enterprise['entitlements']['enabled'] }}</span></span>
                         @foreach($enterprise['entitlements']['by_module'] as $entitlement)
-                            <span class="badge"><code>{{ $entitlement['module_code'] }}</code> · {{ $ar?'مفعّل':'Enabled' }} {{ $entitlement['enabled'] }}/{{ $entitlement['total'] }}</span>
+                            <span class="badge"><code>{{ $entitlement['module_code'] }}</code> · {{ __('admin.system_inspector_enterprise.enabled') }} {{ $entitlement['enabled'] }}/{{ $entitlement['total'] }}</span>
                         @endforeach
                     </div>
                 </div>
 
                 <div class="inspector-enterprise-section">
-                    <h3>{{ $ar?'Transactional Outbox':'Transactional Outbox' }}</h3>
+                    <h3>{{ __('admin.system_inspector_enterprise.outbox_title') }}</h3>
                     <div class="inspector-enterprise-statuses">
                         @forelse($enterprise['outbox_status_counts'] as $status => $count)
-                            <span class="badge">{{ $enterpriseLabels[$status] ?? $status }}: <span class="foodex-number">{{ $count }}</span></span>
+                            <span class="badge">{{ $enterpriseLabels[$status] ?? __('admin.system_inspector_enterprise.unknown_state') }}: <span class="foodex-number">{{ $count }}</span></span>
                         @empty
-                            <span class="foodex-subtitle">{{ $ar?'لا توجد رسائل Outbox.':'No outbox messages.' }}</span>
+                            <span class="foodex-subtitle">{{ __('admin.system_inspector_enterprise.no_outbox') }}</span>
                         @endforelse
                     </div>
                     <div class="inspector-table-wrap">
                         <table class="foodex-table inspector-enterprise-table">
                             <thead><tr>
-                                <th>{{ $ar?'النوع':'Event type' }}</th>
-                                <th>{{ $ar?'الحالة':'Status' }}</th>
-                                <th>{{ $ar?'المحاولات':'Attempts' }}</th>
-                                <th>{{ $ar?'متاح من':'Available at' }}</th>
-                                <th>{{ $ar?'آخر فشل':'Last failure' }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.event_type') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.status') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.attempts') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.available_at') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.last_failure') }}</th>
                             </tr></thead>
                             <tbody>
                             @forelse($enterprise['outbox_messages'] as $message)
                                 <tr>
                                     <td><code>{{ $message->event_type }}</code></td>
-                                    <td><span class="badge">{{ $enterpriseLabels[$message->status] ?? $message->status }}</span></td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$message->status] ?? __('admin.system_inspector_enterprise.unknown_state') }}</span></td>
                                     <td class="foodex-number">{{ $message->attempt_count }}</td>
                                     <td class="foodex-number">{{ $message->available_at?->format('Y-m-d H:i:s') }}</td>
                                     <td class="foodex-number">{{ $message->failed_at?->format('Y-m-d H:i:s') ?: '—' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5"><div class="foodex-empty-state">{{ $ar?'لا توجد رسائل Outbox.':'No outbox messages.' }}</div></td></tr>
+                                <tr><td colspan="5"><div class="foodex-empty-state">{{ __('admin.system_inspector_enterprise.no_outbox') }}</div></td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -183,22 +161,22 @@
                 </div>
 
                 <div class="inspector-enterprise-section">
-                    <h3>{{ $ar?'طلبات سير العمل':'Workflow requests' }}</h3>
+                    <h3>{{ __('admin.system_inspector_enterprise.workflow_requests') }}</h3>
                     <div class="inspector-enterprise-statuses">
                         @forelse($enterprise['workflow_status_counts'] as $status => $count)
-                            <span class="badge">{{ $enterpriseLabels[$status] ?? $status }}: <span class="foodex-number">{{ $count }}</span></span>
+                            <span class="badge">{{ $enterpriseLabels[$status] ?? __('admin.system_inspector_enterprise.unknown_state') }}: <span class="foodex-number">{{ $count }}</span></span>
                         @empty
-                            <span class="foodex-subtitle">{{ $ar?'لا توجد طلبات سير عمل.':'No workflow requests.' }}</span>
+                            <span class="foodex-subtitle">{{ __('admin.system_inspector_enterprise.no_workflows') }}</span>
                         @endforelse
                     </div>
                     <div class="inspector-table-wrap">
                         <table class="foodex-table inspector-enterprise-table">
                             <thead><tr>
-                                <th>{{ $ar?'سير العمل':'Workflow' }}</th>
-                                <th>{{ $ar?'نوع الكيان':'Entity type' }}</th>
-                                <th>{{ $ar?'الحالة':'Status' }}</th>
-                                <th>{{ $ar?'تاريخ الإنشاء':'Created at' }}</th>
-                                <th>{{ $ar?'تاريخ الإكمال':'Completed at' }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.workflow') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.entity_type') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.status') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.created_at') }}</th>
+                                <th>{{ __('admin.system_inspector_enterprise.completed_at') }}</th>
                             </tr></thead>
                             <tbody>
                             @forelse($enterprise['workflow_requests'] as $workflow)
@@ -206,12 +184,12 @@
                                 <tr>
                                     <td><code>{{ $workflow->workflow_key }}</code></td>
                                     <td><code>{{ $workflow->entity_type }}</code></td>
-                                    <td><span class="badge">{{ $enterpriseLabels[$workflowStatus] ?? $workflowStatus }}</span></td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$workflowStatus] ?? __('admin.system_inspector_enterprise.unknown_state') }}</span></td>
                                     <td class="foodex-number">{{ $workflow->created_at?->format('Y-m-d H:i:s') }}</td>
                                     <td class="foodex-number">{{ $workflow->completed_at?->format('Y-m-d H:i:s') ?: '—' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5"><div class="foodex-empty-state">{{ $ar?'لا توجد طلبات سير عمل.':'No workflow requests.' }}</div></td></tr>
+                                <tr><td colspan="5"><div class="foodex-empty-state">{{ __('admin.system_inspector_enterprise.no_workflows') }}</div></td></tr>
                             @endforelse
                             </tbody>
                         </table>
