@@ -8,6 +8,48 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  test('Van order history preserves pagination and filter scope', () async {
+    late Uri requested;
+    final repository = HttpVanOrderRepository(
+      VanApiClient(
+        'https://foodex.example/',
+        'van-token',
+        client: MockClient((request) async {
+          requested = request.url;
+          return http.Response(
+            '{"data":[{"id":7101,"display_order_number":"FDX-B2B-101","customer_type":"b2b","customer_id":42,"store_id":7,"status":"pending","currency":"KWD","grand_total":12.5,"van_execution_status":"assigned"}],"meta":{"current_page":3,"per_page":50,"total":101,"scope":"active_van_assignment"}}',
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      ),
+    );
+
+    final page = await repository.orders(
+      customer: const VanCustomerScope(
+        type: 'b2b',
+        id: 42,
+        name: 'Acme Grocery',
+        storeId: 7,
+      ),
+      status: 'pending',
+      page: 3,
+      perPage: 50,
+    );
+
+    expect(requested.path, '/api/v1/van/orders');
+    expect(requested.queryParameters['page'], '3');
+    expect(requested.queryParameters['per_page'], '50');
+    expect(requested.queryParameters['customer_type'], 'b2b');
+    expect(requested.queryParameters['customer_id'], '42');
+    expect(requested.queryParameters['status'], 'pending');
+    expect(page.currentPage, 3);
+    expect(page.perPage, 50);
+    expect(page.total, 101);
+    expect(page.hasMore, isFalse);
+    expect(page.items.single.id, 7101);
+  });
+
   test('Van delivery repository uses configured failure reasons', () async {
     final repository = HttpVanOrderRepository(
       VanApiClient(
