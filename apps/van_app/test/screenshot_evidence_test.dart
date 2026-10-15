@@ -754,22 +754,29 @@ class _Orders implements VanOrderRepository {
         grandTotal: 12,
       );
   @override
-  Future<List<VanOrderRecord>> orders({
+  Future<VanOrderPage> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async => const [
-        VanOrderRecord(
-          id: 7001,
-          orderNumber: 'FDX-B2B-20261007-A1',
-          customerType: 'b2b',
-          customerId: 42,
-          storeId: 7,
-          status: 'pending',
-          currency: 'KWD',
-          grandTotal: 12,
-          vanExecutionStatus: 'assigned',
-        ),
-      ];
+    int page = 1,
+    int perPage = 50,
+  }) async => VanOrderPage(
+        items: const [
+          VanOrderRecord(
+            id: 7001,
+            orderNumber: 'FDX-B2B-20261007-A1',
+            customerType: 'b2b',
+            customerId: 42,
+            storeId: 7,
+            status: 'pending',
+            currency: 'KWD',
+            grandTotal: 12,
+            vanExecutionStatus: 'assigned',
+          ),
+        ],
+        currentPage: page,
+        perPage: perPage,
+        total: 1,
+      );
 
   @override
   Future<VanOrderDetail> order(int orderId) async => const VanOrderDetail(
