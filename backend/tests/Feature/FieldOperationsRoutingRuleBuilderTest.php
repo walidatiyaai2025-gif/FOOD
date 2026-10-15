@@ -214,7 +214,7 @@ class FieldOperationsRoutingRuleBuilderTest extends TestCase
         $role = Role::query()->create([
             'code' => 'TEST_FIELD_ROUTING',
             'name' => 'Test Field Routing',
-            'scope' => 'store',
+            'scope' => 'global',
             'is_system' => false,
             'is_active' => true,
         ]);
