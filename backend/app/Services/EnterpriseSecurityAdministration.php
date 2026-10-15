@@ -598,7 +598,11 @@ final class EnterpriseSecurityAdministration
             'updated_at' => now(),
         ];
 
-        DB::table('enterprise_user_data_scopes')->updateOrInsert($key, $values + ['created_at' => now()]);
+        if ($before === null) {
+            DB::table('enterprise_user_data_scopes')->insert($key + $values + ['created_at' => now()]);
+        } else {
+            DB::table('enterprise_user_data_scopes')->where($key)->update($values);
+        }
         $after = DB::table('enterprise_user_data_scopes')->where($key)->first();
 
         return [$before === null ? null : (array) $before, (array) $after];
@@ -644,7 +648,11 @@ final class EnterpriseSecurityAdministration
             'updated_at' => now(),
         ];
 
-        DB::table('enterprise_user_approval_limits')->updateOrInsert($key, $values + ['created_at' => now()]);
+        if ($before === null) {
+            DB::table('enterprise_user_approval_limits')->insert($key + $values + ['created_at' => now()]);
+        } else {
+            DB::table('enterprise_user_approval_limits')->where($key)->update($values);
+        }
         $after = DB::table('enterprise_user_approval_limits')->where($key)->first();
 
         return [$before === null ? null : (array) $before, (array) $after];
