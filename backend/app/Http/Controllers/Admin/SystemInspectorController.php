@@ -164,11 +164,11 @@ final class SystemInspectorController extends Controller
         $this->platformAdmin($request);
 
         $root = (string) config('filesystems.disks.public.root');
-        if (! is_dir($root)) {
+        if (is_dir($root) === false) {
             File::makeDirectory($root, 0750, true, true);
         }
 
-        if (! is_dir($root)) {
+        if (is_dir($root) === false) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء مجلد التخزين العام.',
                 'The public storage directory could not be created.',
@@ -178,7 +178,7 @@ final class SystemInspectorController extends Controller
         Artisan::call('storage:link');
 
         $diagnostics = $this->diagnostics();
-        if (! $diagnostics['public_link_exists']) {
+        if ($diagnostics['public_link_exists'] === false) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء رابط public/storage. راجع صلاحيات الاستضافة.',
                 'public/storage could not be linked. Check hosting permissions.',
@@ -236,7 +236,10 @@ final class SystemInspectorController extends Controller
     {
         $publicRoot = (string) config('filesystems.disks.public.root');
         $publicLink = public_path('storage');
-        $version = trim((string) @file_get_contents(base_path('../VERSION')));
+        $versionPath = base_path('../VERSION');
+        $version = is_readable($versionPath)
+            ? trim((string) file_get_contents($versionPath))
+            : '';
 
         return [
             'version' => $version !== '' ? $version : 'unknown',
