@@ -22,6 +22,7 @@ Current Van tokens:
 - Green `#158A3A`
 - Green Dark `#165D2D`
 - Green Soft `#EAF7EF`
+- Accessible Action Green `#137A35` (normal action/text pairings)
 - Surface `#FFFFFF`
 - Background `#F6F8F6`
 - Ink `#172033`
@@ -29,6 +30,7 @@ Current Van tokens:
 - Border `#E3E8E4`
 - Warning `#EE731C`
 - Danger `#EF5350`
+- Accessible Danger Text `#B42318`
 - minimum touch target: 48 px
 - card radius: 16 px
 
