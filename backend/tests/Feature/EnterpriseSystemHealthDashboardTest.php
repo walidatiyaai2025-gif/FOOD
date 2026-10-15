@@ -13,6 +13,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class EnterpriseSystemHealthDashboardTest extends TestCase
@@ -35,7 +36,7 @@ final class EnterpriseSystemHealthDashboardTest extends TestCase
         $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'health-owner@example.test');
 
         EnterpriseOutboxMessage::query()->create([
-            'event_id' => (string) \Illuminate\Support\Str::uuid(),
+            'event_id' => (string) Str::uuid(),
             'event_type' => 'health.test',
             'event_version' => 1,
             'payload' => json_encode(['kind' => 'health-test'], JSON_THROW_ON_ERROR),
