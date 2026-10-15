@@ -47,6 +47,26 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
 
+    public function test_portalled_row_actions_preserve_native_keyboard_disclosure_contract(): void
+    {
+        $brand = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+
+        $this->assertIsString($brand);
+        $this->assertStringContainsString('summary.setAttribute(\'aria-controls\', menu.id)', $brand);
+        $this->assertStringContainsString('summary.setAttribute(\'aria-expanded\', details.open ? \'true\' : \'false\')', $brand);
+        $this->assertStringContainsString('menu.setAttribute(\'aria-labelledby\', summary.id)', $brand);
+        $this->assertStringContainsString('openIntents.set(details, \'keyboard\')', $brand);
+        $this->assertStringContainsString('if (intent === \'keyboard\') focusFirstAction(details)', $brand);
+        $this->assertStringContainsString('if (event.key !== \'Escape\') return', $brand);
+        $this->assertStringContainsString('closeMenu(detailsToClose, { restoreFocus: true })', $brand);
+        $this->assertStringContainsString('closeMenu(other, { restoreFocus: false })', $brand);
+        $this->assertStringContainsString('closeMenu(details, { restoreFocus: focusWasInsideMenu })', $brand);
+        $this->assertStringContainsString('\'button:not([disabled])\'', $brand);
+        $this->assertStringContainsString('\'input:not([disabled]):not([type="hidden"])\'', $brand);
+        $this->assertStringNotContainsString('menu.setAttribute(\'role\', \'menu\')', $brand);
+        $this->assertStringNotContainsString('element.setAttribute(\'role\', \'menuitem\')', $brand);
+    }
+
     public function test_order_management_exposes_canonical_pending_dispatch_workflow(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
