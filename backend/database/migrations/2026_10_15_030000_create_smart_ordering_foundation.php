@@ -181,7 +181,7 @@ return new class extends Migration
     {
         $now = now();
         $rows = collect((array) config('smart_ordering.entitlements', []))
-            ->filter('is_string')
+            ->filter(static fn (mixed $module): bool => is_string($module))
             ->map(fn (string $module): array => [
                 'site_id' => $siteId,
                 'branch_id' => null,
