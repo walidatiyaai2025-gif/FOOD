@@ -86,8 +86,6 @@ class DriverTranslations extends InheritedWidget {
     'driver.login.biometric_unavailable':
         'الدخول بالبصمة غير متاح. سجل الدخول بكلمة المرور.',
     'driver.login.required': 'أدخل البريد الإلكتروني وكلمة المرور',
-    'driver.login.email_required': 'البريد الإلكتروني مطلوب',
-    'driver.login.password_required': 'كلمة المرور مطلوبة',
     'driver.login.invalid': 'بيانات الدخول غير صحيحة',
     'driver.login.role_denied': 'هذا الحساب ليس حساب سائق فودكس مصرحًا له',
     'driver.config.missing': 'عنوان خادم فودكس غير مضبوط لهذا الإصدار',
@@ -366,8 +364,6 @@ class DriverTranslations extends InheritedWidget {
     'driver.login.biometric_unavailable':
         'Biometric sign-in is unavailable. Sign in with your password.',
     'driver.login.required': 'Enter email and password',
-    'driver.login.email_required': 'Email is required',
-    'driver.login.password_required': 'Password is required',
     'driver.login.invalid': 'Invalid sign-in details',
     'driver.login.role_denied':
         'This account is not an authorized FOODEX driver',
