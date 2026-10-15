@@ -38,6 +38,9 @@ return [
         'chatbot.sessions.view' => 'View chatbot sessions',
         'chatbot.sessions.takeover' => 'Take over chatbot sessions',
         'chatbot.audit.view' => 'View chatbot audit events',
+        'smart_ordering.view' => 'View Smart Ordering configuration',
+        'smart_ordering.manage' => 'Manage Smart Ordering runtime, site and menu configuration',
+        'smart_ordering.publish' => 'Publish Smart Ordering revisions',
         'platform.manage' => 'Manage platform-wide settings and permissions',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
@@ -151,7 +154,7 @@ return [
             'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
         'B2C_STORE_ADMIN' => [
-            'stores.view',
+            'stores.view', 'smart_ordering.view', 'smart_ordering.manage', 'smart_ordering.publish',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete', 'catalog.manage',
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',

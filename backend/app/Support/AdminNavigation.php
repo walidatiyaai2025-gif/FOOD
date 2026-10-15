@@ -44,6 +44,7 @@ class AdminNavigation
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
+                $this->routeItemScoped($user, 'smart_ordering', 'smart_ordering.nav_title', 'admin.smart-ordering.index', 'smart_ordering.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
             ]),
@@ -65,7 +66,6 @@ class AdminNavigation
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $this->whatsAppInboxItem($user),
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
-                $this->routeItemScoped($user, 'smart_ordering', 'smart_ordering.nav_title', 'admin.smart-ordering.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
