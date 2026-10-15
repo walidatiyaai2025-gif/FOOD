@@ -3,7 +3,7 @@ name: Worker Watchdog
 on:
   # Quiet mode (#1637): one periodic reconciliation per hour is enough while
   # active program lanes are converging. Event fan-out from comments, every
-  # synchronize push, and Required CI completion is intentionally disabled.
+  # branch-update event, and Required CI completion is intentionally disabled.
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
