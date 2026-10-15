@@ -203,7 +203,11 @@ final class EnterpriseReorderPolicyFoundationTest extends TestCase
                 'updated_at' => $now,
             ];
         }
-        DB::table('inventories')->upsert(\n            $inventories,\n            ['warehouse_id', 'product_id'],\n            ['quantity', 'reserved_quantity', 'updated_at'],\n        );
+        DB::table('inventories')->upsert(
+            $inventories,
+            ['warehouse_id', 'product_id'],
+            ['quantity', 'reserved_quantity', 'updated_at'],
+        );
         DB::table('enterprise_reorder_policies')->insert($policies);
 
         DB::flushQueryLog();
