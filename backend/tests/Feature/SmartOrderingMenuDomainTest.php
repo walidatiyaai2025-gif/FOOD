@@ -197,7 +197,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertIsString($view);
         $this->assertSame(2, substr_count($view, '@foreach($modifierKindValues as $kind)'));
         $this->assertStringNotContainsString('ucfirst($kind)', $view);
-        $this->assertStringContainsString("in_array(\$group->kind, \$modifierKindValues, true)", $view);
+        $this->assertStringContainsString('in_array($group->kind, $modifierKindValues, true)', $view);
 
         $fixture = $this->fixture('KIND', 5.000);
         $writer = app(SmartOrderingMenuWriteService::class);
