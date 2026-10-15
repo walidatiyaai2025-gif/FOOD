@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const discardButton = discardPanel?.querySelector('[data-new-order-discard-confirm]');
     const modalHeader = modal.querySelector('.new-order-head');
     const modalProgress = modal.querySelector('.new-order-progress');
+    const modalBody = modal.querySelector('.new-order-body');
     const modalActions = modal.querySelector('.new-order-actions');
     let step = 0;
     let quoteReady = false;
@@ -364,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const setDiscardIsolation = (active) => {
-        [form, modalHeader, modalProgress, modalActions].forEach((node) => {
+        [modalHeader, modalProgress, modalBody, modalActions].forEach((node) => {
             if (node) node.inert = active;
         });
     };
