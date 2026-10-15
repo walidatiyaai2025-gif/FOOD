@@ -93,6 +93,7 @@ return [
         'time_window_invalid' => 'The effective end must be after the start.',
         'amount_invalid' => 'Enter a positive amount with no more than four decimal places.',
         'policy_missing' => 'The selected security policy no longer exists.',
+        'policy_changed' => 'This security policy changed after the request was created. Review the current state and submit a new request.',
         'operation_invalid' => 'The requested security operation is not supported.',
         'delegation_overlap' => 'An active delegation already overlaps this permission, delegate and scope.',
     ],
