@@ -1407,8 +1407,7 @@ void main() {
     expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
     expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
 
-    final refreshedScrollable =
-        find.byKey(const ValueKey('van-orders-page'));
+    final refreshedScrollable = find.byKey(const ValueKey('van-orders-page'));
     expect(refreshedScrollable, findsOneWidget);
     for (var attempt = 0; attempt < 12; attempt++) {
       await tester.drag(refreshedScrollable, const Offset(0, 400));
