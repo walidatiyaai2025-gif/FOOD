@@ -19,7 +19,9 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -33,6 +35,74 @@ class SmartOrderingMenuDomainTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+    }
+
+    public function test_menu_media_and_draft_review_are_available_before_publish(): void
+    {
+        Storage::fake('public');
+        $fixture = $this->fixture('MEDIA', 4.250);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.menus.store'), [
+                'store_id' => $fixture['store_id'],
+                'name_en' => 'Visual Menu',
+                'sort_order' => 0,
+                'is_default' => 1,
+                'is_visible' => 1,
+                'image' => UploadedFile::fake()->image('menu.jpg', 900, 600),
+            ])
+            ->assertRedirect();
+
+        $menu = SmartOrderingMenu::query()
+            ->where('revision_id', $draft->id)
+            ->where('name_en', 'Visual Menu')
+            ->firstOrFail();
+
+        $this->assertNotNull($menu->image_path);
+        Storage::disk('public')->assertExists((string) $menu->image_path);
+
+        $category = $writer->createCategory($fixture['admin'], $fixture['site'], $draft->fresh(), $menu, [
+            'name_en' => 'Meals',
+            'image_path' => 'smart-ordering/demo/category.webp',
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+        ]);
+        $writer->createItem($fixture['admin'], $fixture['site'], $draft->fresh(), $category, [
+            'name_en' => 'Review Burger',
+            'image_path' => 'smart-ordering/demo/item.webp',
+            'price_override' => 4.250,
+            'is_visible' => true,
+            'sold_out' => false,
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('Review menu before publishing')
+            ->assertSee('data-smart-ordering-draft-review', false)
+            ->assertSee('Current category image')
+            ->assertSee('Current item image')
+            ->assertSee('Visual Menu')
+            ->assertSee('Review Burger');
+
+        $published = app(SmartOrderingMenuRevisionService::class)->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $draft->fresh(),
+        );
+
+        $publishedMenu = SmartOrderingMenu::query()
+            ->where('revision_id', $published->id)
+            ->where('public_id', $menu->public_id)
+            ->firstOrFail();
+
+        $this->assertSame($menu->image_path, $publishedMenu->image_path);
     }
 
     public function test_modifier_bounds_and_price_deltas_are_deterministic(): void
@@ -172,6 +242,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         $menu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
             'name_ar' => 'القائمة الرئيسية',
             'name_en' => 'Main Menu',
+            'image_path' => 'smart-ordering/menu-main.webp',
             'is_default' => true,
             'is_visible' => true,
             'sort_order' => 0,
@@ -200,6 +271,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu?locale=ar')
             ->assertOk()
             ->assertJsonPath('data.menus.0.name', 'القائمة الرئيسية')
+            ->assertJsonPath('data.menus.0.image', 'http://localhost/storage/smart-ordering/menu-main.webp')
             ->assertJsonPath('data.menus.0.categories.0.name', 'البرجر')
             ->assertJsonPath('data.menus.0.categories.0.items.0.name', 'Burger V1');
 
