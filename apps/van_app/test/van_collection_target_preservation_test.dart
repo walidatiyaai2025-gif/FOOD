@@ -143,10 +143,7 @@ void main() {
     );
 
     repository.invoices = const [_TargetRepository.invoice92];
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle();
+    await _simulateAppResume(tester);
 
     final amountField = tester.widget<TextField>(
       find.byKey(const ValueKey('van-collection-amount')),
@@ -212,6 +209,7 @@ Widget _host(
 }) {
   return MaterialApp(
     locale: locale,
+    supportedLocales: const [Locale('en'), Locale('ar')],
     home: Scaffold(
       body: VanCollectionPage(
         repository: repository,
@@ -221,6 +219,23 @@ Widget _host(
       ),
     ),
   );
+}
+
+Future<void> _simulateAppResume(WidgetTester tester) async {
+  final lifecycleState = tester.binding.lifecycleState;
+  if (lifecycleState == AppLifecycleState.paused) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+  } else if (lifecycleState == AppLifecycleState.detached) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+  }
+  if (tester.binding.lifecycleState != AppLifecycleState.inactive) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+  }
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _selectInvoice(
