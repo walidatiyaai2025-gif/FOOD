@@ -162,7 +162,7 @@ class SystemInspectorTest extends TestCase
             'state_changed_at' => now(),
         ]);
 
-        foreach (range(1, 25) as $index) {
+        foreach (range(1, 26) as $index) {
             EnterpriseOutboxMessage::query()->create([
                 'event_id' => (string) Str::uuid(),
                 'event_type' => "SafeEvent{$index}",
@@ -197,10 +197,10 @@ class SystemInspectorTest extends TestCase
             ->assertSee('Enterprise platform')
             ->assertSee('sample_optional')
             ->assertSee('Disabled')
-            ->assertSee('SafeEvent25')
-            ->assertDontSee('SafeEvent5')
-            ->assertSee('wf-25')
-            ->assertDontSee('wf-5')
+            ->assertSee('SafeEvent26')
+            ->assertDontSee('SafeEvent1')
+            ->assertSee('wf-26')
+            ->assertDontSee('wf-1')
             ->assertDontSee('super-secret')
             ->assertDontSee('secret-idempotency');
 
@@ -209,8 +209,8 @@ class SystemInspectorTest extends TestCase
         $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
         $export->assertOk();
         $exportContent = $export->streamedContent();
-        $this->assertStringContainsString('SafeEvent25', $exportContent);
-        $this->assertStringContainsString('wf-25', $exportContent);
+        $this->assertStringContainsString('SafeEvent26', $exportContent);
+        $this->assertStringContainsString('wf-26', $exportContent);
         $this->assertStringNotContainsString('super-secret', $exportContent);
         $this->assertStringNotContainsString('secret-idempotency', $exportContent);
 
@@ -225,6 +225,31 @@ class SystemInspectorTest extends TestCase
             'تشخيص الموديولات والخلفية',
             trans('admin.system_inspector_enterprise.title', [], 'ar'),
         );
+    }
+
+    public function test_enterprise_diagnostics_render_failing_module_health(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-health@example.test');
+
+        config()->set('enterprise_module_health.probes.sample_optional', [
+            InspectorFailingProbe::class,
+        ]);
+
+        EnterpriseModule::query()->create([
+            'code' => 'sample_optional',
+            'category' => 'platform',
+            'manifest_version' => 1,
+            'state' => 'ENABLED',
+            'manifest' => ['code' => 'sample_optional', 'version' => 1],
+            'enabled_at' => now(),
+            'state_changed_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.inspector.index'))
+            ->assertOk()
+            ->assertSee('sample_optional')
+            ->assertSee('Error');
     }
 
     private function userWithRole(string $roleCode, string $email): User
@@ -255,5 +280,14 @@ final class InspectorForbiddenProbe implements ModuleHealthProbe
     public function check(): ModuleHealthCheck
     {
         return ModuleHealthCheck::healthy('inspector-forbidden-probe');
+    }
+}
+
+
+final class InspectorFailingProbe implements ModuleHealthProbe
+{
+    public function check(): ModuleHealthCheck
+    {
+        return ModuleHealthCheck::error('inspector-failing-probe', 'Expected diagnostic failure.');
     }
 }
