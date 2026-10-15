@@ -51,7 +51,7 @@ class SmartOrderingMenuDomainTest extends TestCase
                 'sort_order' => 0,
                 'is_default' => 1,
                 'is_visible' => 1,
-                'image' => UploadedFile::fake()->image('menu.webp', 900, 600),
+                'image' => UploadedFile::fake()->image('menu.jpg', 900, 600),
             ])
             ->assertRedirect();
 
