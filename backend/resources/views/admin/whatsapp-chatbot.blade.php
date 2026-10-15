@@ -360,12 +360,12 @@
                     <div class="cb-card cb-col-6">
                         <h2>{{ __('chatbot.admin.feature_usage') }}</h2>
                         @if(($analytics['features'] ?? collect())->isEmpty())<div class="foodex-empty-state">{{ __('chatbot.admin.no_data') }}</div>@else
-                        <table class="cb-analytics-table"><thead><tr><th>{{ __('chatbot.admin.feature') }}</th><th>{{ __('chatbot.admin.events') }}</th></tr></thead><tbody>@foreach($analytics['features'] as $row)<tr><td>{{ $row->feature_code }}</td><td>{{ $row->uses }}</td></tr>@endforeach</tbody></table>@endif
+                        <table class="cb-analytics-table" data-pagination-exempt="bounded-analytics-summary"><thead><tr><th>{{ __('chatbot.admin.feature') }}</th><th>{{ __('chatbot.admin.events') }}</th></tr></thead><tbody>@foreach($analytics['features'] as $row)<tr><td>{{ $row->feature_code }}</td><td>{{ $row->uses }}</td></tr>@endforeach</tbody></table>@endif
                     </div>
                     <div class="cb-card cb-col-6">
                         <h2>{{ __('chatbot.admin.daily_events') }}</h2>
                         @if(($analytics['daily'] ?? collect())->isEmpty())<div class="foodex-empty-state">{{ __('chatbot.admin.no_data') }}</div>@else
-                        <table class="cb-analytics-table"><thead><tr><th>{{ __('chatbot.admin.analytics_period') }}</th><th>{{ __('chatbot.admin.events') }}</th></tr></thead><tbody>@foreach($analytics['daily'] as $row)<tr><td>{{ $row->day }}</td><td>{{ $row->events }}</td></tr>@endforeach</tbody></table>@endif
+                        <table class="cb-analytics-table" data-pagination-exempt="bounded-analytics-summary"><thead><tr><th>{{ __('chatbot.admin.analytics_period') }}</th><th>{{ __('chatbot.admin.events') }}</th></tr></thead><tbody>@foreach($analytics['daily'] as $row)<tr><td>{{ $row->day }}</td><td>{{ $row->events }}</td></tr>@endforeach</tbody></table>@endif
                     </div>
                 </section>
             @endif
