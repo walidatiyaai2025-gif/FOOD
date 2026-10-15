@@ -27,63 +27,65 @@
 <main class="foodex-admin-main foodex-admin-page">
 <header class="foodex-page-header">
 <div>
-<span class="foodex-subtitle">{{ app()->getLocale()==='ar'?'النمو التجاري للمطعم':'Restaurant commercial growth' }}</span>
-<h1>{{ app()->getLocale()==='ar'?'تحليلات الطلب الذكي':'Smart Ordering Analytics' }}</h1>
-<p>{{ app()->getLocale()==='ar'?'مسار التحويل، الإيراد، الفروع، QR والحملات والعروض والعملاء المتكررين.':'Conversion funnel, revenue, branches, QR/campaign attribution, offers and repeat customers.' }}</p>
+<span class="foodex-subtitle">{{ __('smart_ordering.analytics.eyebrow') }}</span>
+<h1>{{ __('smart_ordering.analytics.title') }}</h1>
+<p>{{ __('smart_ordering.analytics.description') }}</p>
 </div>
 <div class="foodex-header-actions">
 @include('admin._live-notifications',['user'=>$user])
-<a class="foodex-action-primary" href="{{ route('admin.smart-ordering.analytics.export',request()->query()) }}">{{ app()->getLocale()==='ar'?'تصدير CSV':'Export CSV' }}</a>
+<a class="foodex-action-primary" href="{{ route('admin.smart-ordering.analytics.export',request()->query()) }}">{{ __('smart_ordering.analytics.export_csv') }}</a>
 </div>
 </header>
 
 <div class="so-a-shell">
 <section class="foodex-card so-a-card">
 <form method="get" class="so-a-filters">
-<label>{{ app()->getLocale()==='ar'?'من':'From' }}<input type="date" name="from" value="{{ $filters['from']??'' }}"></label>
-<label>{{ app()->getLocale()==='ar'?'إلى':'To' }}<input type="date" name="to" value="{{ $filters['to']??'' }}"></label>
-<label>{{ app()->getLocale()==='ar'?'المتجر':'Store' }}
-<select name="store_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
+<label>{{ __('smart_ordering.analytics.from') }}<input type="date" name="from" value="{{ $filters['from']??'' }}"></label>
+<label>{{ __('smart_ordering.analytics.to') }}<input type="date" name="to" value="{{ $filters['to']??'' }}"></label>
+<label>{{ __('smart_ordering.analytics.store') }}
+<select name="store_id"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
 </label>
-<label>{{ app()->getLocale()==='ar'?'الفرع':'Branch' }}
-<select name="branch_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($branches as $branch)<option value="{{ $branch->id }}" @selected((string)($filters['branch_id']??'')===(string)$branch->id)>{{ app()->getLocale()==='ar'?($branch->name_ar?:$branch->name_en):($branch->name_en?:$branch->name_ar) }}</option>@endforeach</select>
+<label>{{ __('smart_ordering.analytics.branch') }}
+<select name="branch_id"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach($branches as $branch)<option value="{{ $branch->id }}" @selected((string)($filters['branch_id']??'')===(string)$branch->id)>{{ app()->getLocale()==='ar'?($branch->name_ar?:$branch->name_en):($branch->name_en?:$branch->name_ar) }}</option>@endforeach</select>
 </label>
-<label>{{ app()->getLocale()==='ar'?'التنفيذ':'Fulfillment' }}
-<select name="fulfillment"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach(['dine_in','pickup','delivery'] as $mode)<option value="{{ $mode }}" @selected(($filters['fulfillment']??'')===$mode)>{{ $mode }}</option>@endforeach</select>
+<label>{{ __('smart_ordering.analytics.fulfillment') }}
+<select name="fulfillment"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach(['dine_in','pickup','delivery'] as $mode)<option value="{{ $mode }}" @selected(($filters['fulfillment']??'')===$mode)>{{ __('smart_ordering.analytics.fulfillment_modes.'.$mode) }}</option>@endforeach</select>
 </label>
-<label>QR ID<input name="qr_public_id" maxlength="36" value="{{ $filters['qr_public_id']??'' }}" placeholder="UUID"></label>
-<label>Source<input name="source" maxlength="64" value="{{ $filters['source']??'' }}"></label>
-<label>Campaign<input name="campaign" maxlength="120" value="{{ $filters['campaign']??'' }}"></label>
-<label>Offer<input name="offer" maxlength="120" value="{{ $filters['offer']??'' }}"></label>
-<label>{{ app()->getLocale()==='ar'?'العميل':'Customer' }}
-<select name="customer_type"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option><option value="new" @selected(($filters['customer_type']??'')==='new')>New</option><option value="repeat" @selected(($filters['customer_type']??'')==='repeat')>Repeat</option></select>
+<label>{{ __('smart_ordering.analytics.qr') }}
+<select name="qr_public_id"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach($qrCodes as $qr)<option value="{{ $qr->public_id }}" @selected((string)($filters['qr_public_id']??'')===(string)$qr->public_id)>{{ $qr->label }}@if($qr->source) — {{ $qr->source }}@endif @if($qr->campaign) / {{ $qr->campaign }}@endif</option>@endforeach</select>
 </label>
-<label>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}
-<select name="product_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($filters['product_id']??'')===(string)$product->id)>{{ $product->sku }} — {{ $product->name }}</option>@endforeach</select>
+<label>{{ __('smart_ordering.analytics.source') }}<input name="source" maxlength="64" value="{{ $filters['source']??'' }}"></label>
+<label>{{ __('smart_ordering.analytics.campaign') }}<input name="campaign" maxlength="120" value="{{ $filters['campaign']??'' }}"></label>
+<label>{{ __('smart_ordering.analytics.offer') }}<input name="offer" maxlength="120" value="{{ $filters['offer']??'' }}"></label>
+<label>{{ __('smart_ordering.analytics.customer') }}
+<select name="customer_type"><option value="">{{ __('smart_ordering.analytics.all') }}</option><option value="new" @selected(($filters['customer_type']??'')==='new')>{{ __('smart_ordering.analytics.new_customer') }}</option><option value="repeat" @selected(($filters['customer_type']??'')==='repeat')>{{ __('smart_ordering.analytics.repeat_customer') }}</option></select>
 </label>
-<label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}
-<select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string)($filters['category_id']??'')===(string)$category->id)>{{ $category->name }}</option>@endforeach</select>
+<label>{{ __('smart_ordering.analytics.product') }}
+<select name="product_id"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($filters['product_id']??'')===(string)$product->id)>{{ $product->sku }} — {{ $product->name }}</option>@endforeach</select>
 </label>
-<div><button class="foodex-action-primary" type="submit">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button></div>
+<label>{{ __('smart_ordering.analytics.category') }}
+<select name="category_id"><option value="">{{ __('smart_ordering.analytics.all') }}</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string)($filters['category_id']??'')===(string)$category->id)>{{ $category->name }}</option>@endforeach</select>
+</label>
+<div><button class="foodex-action-primary" type="submit">{{ __('smart_ordering.analytics.apply') }}</button></div>
 </form>
 </section>
 
 @php($k=$dashboard['kpis'])
 <section class="so-a-kpis">
 @foreach([
-'menu_views'=>app()->getLocale()==='ar'?'مشاهدات المنيو':'Menu views',
-'unique_visitors'=>app()->getLocale()==='ar'?'زوار فريدون':'Unique visitors',
-'carts'=>app()->getLocale()==='ar'?'سلات':'Carts',
-'orders'=>app()->getLocale()==='ar'?'طلبات':'Orders',
-'conversion_rate'=>app()->getLocale()==='ar'?'التحويل %':'Conversion %',
-'revenue'=>app()->getLocale()==='ar'?'الإيراد':'Revenue',
-'aov'=>'AOV',
-'abandoned_carts'=>app()->getLocale()==='ar'?'سلات متروكة':'Abandoned carts',
-'cancellation_rate'=>app()->getLocale()==='ar'?'الإلغاء %':'Cancellation %',
-'repeat_conversion'=>app()->getLocale()==='ar'?'تحويل إعادة الطلب %':'Repeat conversion %',
-'offer_conversion'=>app()->getLocale()==='ar'?'تحويل العروض %':'Offer conversion %',
-'feedback_count'=>app()->getLocale()==='ar'?'عدد التقييمات':'Feedback count',
-'average_rating'=>app()->getLocale()==='ar'?'متوسط التقييم':'Average rating'
+'menu_views'=>__('smart_ordering.analytics.menu_views'),
+'unique_visitors'=>__('smart_ordering.analytics.unique_visitors'),
+'carts'=>__('smart_ordering.analytics.carts'),
+'orders'=>__('smart_ordering.analytics.orders'),
+'conversion_rate'=>__('smart_ordering.analytics.conversion_rate'),
+'revenue'=>__('smart_ordering.analytics.revenue'),
+'aov'=>__('smart_ordering.analytics.aov'),
+'abandoned_carts'=>__('smart_ordering.analytics.abandoned_carts'),
+'cancellation_rate'=>__('smart_ordering.analytics.cancellation_rate'),
+'repeat_conversion'=>__('smart_ordering.analytics.repeat_conversion'),
+'offer_conversion'=>__('smart_ordering.analytics.offer_conversion'),
+'feedback_count'=>__('smart_ordering.analytics.feedback_count'),
+'average_rating'=>__('smart_ordering.analytics.average_rating')
 ] as $key=>$label)
 <article class="foodex-card so-a-kpi"><span>{{ $label }}</span><strong class="foodex-number">{{ is_float($k[$key])?number_format($k[$key],3):$k[$key] }}</strong></article>
 @endforeach
@@ -91,65 +93,65 @@
 
 <section class="so-a-grid">
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'مسار التحويل':'Conversion funnel' }}</h2>
+<h2>{{ __('smart_ordering.analytics.conversion_funnel') }}</h2>
 @php($max=max(1,(int)($dashboard['funnel'][0]['count']??0)))
 <div class="so-a-funnel">@foreach($dashboard['funnel'] as $stage)
-<div class="so-a-stage"><span>{{ str_replace('_',' ',$stage['key']) }}</span><div class="so-a-bar"><div class="so-a-fill" style="width:{{ min(100,round(($stage['count']/$max)*100,2)) }}%"></div></div><strong>{{ $stage['count'] }}</strong></div>
+<div class="so-a-stage"><span>{{ __('smart_ordering.analytics.events.'.$stage['key']) }}</span><div class="so-a-bar"><div class="so-a-fill" style="width:{{ min(100,round(($stage['count']/$max)*100,2)) }}%"></div></div><strong>{{ $stage['count'] }}</strong></div>
 @endforeach</div>
 </div>
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'استنتاجات قابلة للتنفيذ':'Actionable insights' }}</h2>
-<div class="so-a-insights">@forelse($dashboard['insights'] as $insight)<div class="so-a-insight" data-insight="{{ $insight['code'] }}">{{ $insight['message'] }}</div>@empty<div class="so-a-empty">{{ app()->getLocale()==='ar'?'لا توجد إشارة قوية في الفترة المحددة.':'No strong signal in the selected period.' }}</div>@endforelse</div>
+<h2>{{ __('smart_ordering.analytics.actionable_insights') }}</h2>
+<div class="so-a-insights">@forelse($dashboard['insights'] as $insight)<div class="so-a-insight" data-insight="{{ $insight['code'] }}">{{ $insight['message'] }}</div>@empty<div class="so-a-empty">{{ __('smart_ordering.analytics.no_strong_signal') }}</div>@endforelse</div>
 </div>
 </section>
 
 <section class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'أداء المصدر والحملة':'Source & campaign performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-analytics-snapshot"><thead><tr><th>QR</th><th>Source</th><th>Campaign</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th><th>AOV</th></tr></thead><tbody>
-@forelse($dashboard['sources'] as $row)<tr><td>{{ $row['qr_public_id']?:'—' }}</td><td>{{ $row['source']?:'direct' }}</td><td>{{ $row['campaign']?:'—' }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td><td>{{ number_format($row['aov'],3) }}</td></tr>@empty<tr><td colspan="8" class="so-a-empty">—</td></tr>@endforelse
+<h2>{{ __('smart_ordering.analytics.source_campaign_performance') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.qr') }}</th><th>{{ __('smart_ordering.analytics.source') }}</th><th>{{ __('smart_ordering.analytics.campaign') }}</th><th>{{ __('smart_ordering.analytics.views') }}</th><th>{{ __('smart_ordering.analytics.orders') }}</th><th>{{ __('smart_ordering.analytics.conversion_short') }}</th><th>{{ __('smart_ordering.analytics.revenue') }}</th><th>{{ __('smart_ordering.analytics.aov') }}</th></tr></thead><tbody>
+@forelse($dashboard['sources'] as $row)<tr><td>{{ $row['qr_public_id']?:'—' }}</td><td>{{ $row['source']?:__('smart_ordering.analytics.direct') }}</td><td>{{ $row['campaign']?:'—' }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td><td>{{ number_format($row['aov'],3) }}</td></tr>@empty<tr><td colspan="8" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </section>
 
 <section class="so-a-grid">
-<div class="foodex-card so-a-card"><h2>{{ app()->getLocale()==='ar'?'أداء الفروع':'Branch performance' }}</h2><div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Branch</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th></tr></thead><tbody>@foreach($dashboard['branches'] as $row)<tr><td>{{ app()->getLocale()==='ar'?($row['name_ar']?:$row['name_en']):($row['name_en']?:$row['name_ar']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td></tr>@endforeach</tbody></table></div></div>
-<div class="foodex-card so-a-card"><h2>{{ app()->getLocale()==='ar'?'معادلات قابلة لإعادة الإنتاج':'Reproducible formulas' }}</h2><div class="so-a-formulas"><strong>{{ $dashboard['formula_version'] }}</strong>@foreach($dashboard['formulas'] as $name=>$formula)<div><code>{{ $name }}</code> = {{ $formula }}</div>@endforeach</div></div>
+<div class="foodex-card so-a-card"><h2>{{ __('smart_ordering.analytics.branch_performance') }}</h2><div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.branch') }}</th><th>{{ __('smart_ordering.analytics.views') }}</th><th>{{ __('smart_ordering.analytics.orders') }}</th><th>{{ __('smart_ordering.analytics.conversion_short') }}</th><th>{{ __('smart_ordering.analytics.revenue') }}</th></tr></thead><tbody>@forelse($dashboard['branches'] as $row)<tr><td>{{ app()->getLocale()==='ar'?($row['name_ar']?:$row['name_en']):($row['name_en']?:$row['name_ar']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td></tr>@empty<tr><td colspan="5" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse</tbody></table></div></div>
+<div class="foodex-card so-a-card"><h2>{{ __('smart_ordering.analytics.reproducible_formulas') }}</h2><div class="so-a-formulas"><strong>{{ $dashboard['formula_version'] }}</strong>@foreach($dashboard['formulas'] as $name=>$formula)<div><code>{{ $name }}</code> = {{ $formula }}</div>@endforeach</div></div>
 </section>
 
 <section class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'أداء المنتجات':'Product performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Product</th><th>Views</th><th>Adds</th><th>Completed</th><th>Conv %</th><th>Revenue</th></tr></thead><tbody>
-@forelse($dashboard['products'] as $row)<tr><td>{{ $row['name']?:('#'.$row['product_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['adds'] }}</td><td>{{ $row['completed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td></tr>@empty<tr><td colspan="6" class="so-a-empty">—</td></tr>@endforelse
+<h2>{{ __('smart_ordering.analytics.product_performance') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.product') }}</th><th>{{ __('smart_ordering.analytics.views') }}</th><th>{{ __('smart_ordering.analytics.adds') }}</th><th>{{ __('smart_ordering.analytics.completed') }}</th><th>{{ __('smart_ordering.analytics.conversion_short') }}</th><th>{{ __('smart_ordering.analytics.revenue') }}</th></tr></thead><tbody>
+@forelse($dashboard['products'] as $row)<tr><td>{{ $row['name']?:('#'.$row['product_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['adds'] }}</td><td>{{ $row['completed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td></tr>@empty<tr><td colspan="6" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </section>
 
 <section class="so-a-grid">
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'أداء التصنيفات':'Category performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Category</th><th>Views</th><th>Completed</th></tr></thead><tbody>
-@forelse($dashboard['categories'] as $row)<tr><td>{{ $row['name']?:('#'.$row['category_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['completed'] }}</td></tr>@empty<tr><td colspan="3" class="so-a-empty">—</td></tr>@endforelse
+<h2>{{ __('smart_ordering.analytics.category_performance') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.category') }}</th><th>{{ __('smart_ordering.analytics.views') }}</th><th>{{ __('smart_ordering.analytics.completed') }}</th></tr></thead><tbody>
+@forelse($dashboard['categories'] as $row)<tr><td>{{ $row['name']?:('#'.$row['category_id']) }}</td><td>{{ $row['views'] }}</td><td>{{ $row['completed'] }}</td></tr>@empty<tr><td colspan="3" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </div>
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'ساعات الذروة':'Peak order hours' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Hour</th><th>Orders</th></tr></thead><tbody>
-@forelse($dashboard['peak_hours'] as $row)<tr><td>{{ str_pad((string)$row['hour'],2,'0',STR_PAD_LEFT) }}:00</td><td>{{ $row['orders'] }}</td></tr>@empty<tr><td colspan="2" class="so-a-empty">—</td></tr>@endforelse
+<h2>{{ __('smart_ordering.analytics.peak_order_hours') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.hour') }}</th><th>{{ __('smart_ordering.analytics.orders') }}</th></tr></thead><tbody>
+@forelse($dashboard['peak_hours'] as $row)<tr><td>{{ str_pad((string)$row['hour'],2,'0',STR_PAD_LEFT) }}:00</td><td>{{ $row['orders'] }}</td></tr>@empty<tr><td colspan="2" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </div>
 </section>
 
 <section class="so-a-grid">
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'مزيج التنفيذ والعملاء':'Fulfillment & customer mix' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Dimension</th><th>Count</th></tr></thead><tbody>
-@foreach($dashboard['fulfillment'] as $row)<tr><td>{{ $row['key'] }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
-@foreach($dashboard['customer_mix'] as $row)<tr><td>{{ $row['key'] }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
-@if($dashboard['fulfillment']===[] && $dashboard['customer_mix']===[])<tr><td colspan="2" class="so-a-empty">—</td></tr>@endif
+<h2>{{ __('smart_ordering.analytics.fulfillment_customer_mix') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.dimension') }}</th><th>{{ __('smart_ordering.analytics.count') }}</th></tr></thead><tbody>
+@foreach($dashboard['fulfillment'] as $row)<tr><td>{{ __('smart_ordering.analytics.fulfillment_modes.'.$row['key']) }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
+@foreach($dashboard['customer_mix'] as $row)<tr><td>{{ __('smart_ordering.analytics.customer_types.'.$row['key']) }}</td><td>{{ $row['count'] }}</td></tr>@endforeach
+@if($dashboard['fulfillment']===[] && $dashboard['customer_mix']===[])<tr><td colspan="2" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endif
 </tbody></table></div>
 </div>
 <div class="foodex-card so-a-card">
-<h2>{{ app()->getLocale()==='ar'?'أداء العروض':'Offer performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Offer</th><th>Impressions</th><th>Clicks</th><th>Redeemed</th><th>Conv %</th></tr></thead><tbody>
-@forelse($dashboard['offers'] as $row)<tr><td>{{ $row['offer'] }}</td><td>{{ $row['impressions'] }}</td><td>{{ $row['clicks'] }}</td><td>{{ $row['redeemed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td></tr>@empty<tr><td colspan="5" class="so-a-empty">—</td></tr>@endforelse
+<h2>{{ __('smart_ordering.analytics.offer_performance') }}</h2>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-read-model"><thead><tr><th>{{ __('smart_ordering.analytics.offer') }}</th><th>{{ __('smart_ordering.analytics.impressions') }}</th><th>{{ __('smart_ordering.analytics.clicks') }}</th><th>{{ __('smart_ordering.analytics.redeemed') }}</th><th>{{ __('smart_ordering.analytics.conversion_short') }}</th></tr></thead><tbody>
+@forelse($dashboard['offers'] as $row)<tr><td>{{ $row['offer'] }}</td><td>{{ $row['impressions'] }}</td><td>{{ $row['clicks'] }}</td><td>{{ $row['redeemed'] }}</td><td>{{ number_format($row['conversion'],2) }}</td></tr>@empty<tr><td colspan="5" class="so-a-empty">{{ __('smart_ordering.analytics.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </div>
 </section>
