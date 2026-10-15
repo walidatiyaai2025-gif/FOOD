@@ -23,7 +23,9 @@ final class EnterpriseSavedViewService
         'store',
     ];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit)
+    {
+    }
 
     /**
      * @return Collection<int, EnterpriseSavedView>
@@ -33,8 +35,7 @@ final class EnterpriseSavedViewService
         string $surfaceKey,
         string $scopeType,
         ?int $scopeId,
-    ): Collection
-    {
+    ): Collection {
         $surfaceKey = $this->surfaceKey($surfaceKey);
         $scopeKey = $this->authorizeScope($actor, $scopeType, $scopeId);
 
@@ -55,8 +56,7 @@ final class EnterpriseSavedViewService
         string $scopeType,
         ?int $scopeId,
         EnterpriseGridState $state,
-    ): string
-    {
+    ): string {
         $surfaceKey = $this->surfaceKey($surfaceKey);
         $scopeKey = $this->scopeKey($scopeType, $scopeId);
 
@@ -76,8 +76,7 @@ final class EnterpriseSavedViewService
         string $name,
         string $visibility,
         string $token,
-    ): EnterpriseSavedView
-    {
+    ): EnterpriseSavedView {
         $surfaceKey = $this->surfaceKey($surfaceKey);
         $scopeKey = $this->authorizeScope($actor, $scopeType, $scopeId);
         $name = trim($name);
