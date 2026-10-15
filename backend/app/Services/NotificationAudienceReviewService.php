@@ -91,10 +91,13 @@ final class NotificationAudienceReviewService
             'title_en' => (string) $target->title_en,
             'body_ar' => (string) $target->body_ar,
             'body_en' => (string) $target->body_en,
+            'status' => (string) $target->status,
         ];
 
         if ($target instanceof NotificationCampaign) {
             $payload['schedule_kind'] = (string) $target->schedule_kind;
+            $payload['next_run_at'] = (string) $target->getRawOriginal('next_run_at');
+            $payload['run_count'] = (int) $target->run_count;
             $payload['starts_at'] = (string) $target->getRawOriginal('starts_at');
             $payload['ends_at'] = (string) $target->getRawOriginal('ends_at');
             $payload['interval_value'] = $target->interval_value === null ? null : (int) $target->interval_value;
