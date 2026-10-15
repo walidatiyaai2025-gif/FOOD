@@ -215,7 +215,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <option value="{{ $p->unit_id }}" selected data-current-lookup-option data-lookup-state="{{ $currentUnit===null?'missing':($currentUnit->is_active?'current':'inactive') }}">{{ $currentUnit->name ?? __('catalog.unavailable_current_reference',['id'=>$p->unit_id]) }}{{ $currentUnit?->code ? ' ('.$currentUnit->code.')' : '' }} · {{ $currentUnit===null?__('catalog.unavailable'):($currentUnit->is_active?__('catalog.current_reference'):__('catalog.inactive')) }}</option>
 @endif
 @foreach($units as $u)@php($scope=(string)($u->scope ?? 'global'))@if($scope === 'global' || ($scope === 'b2b' && strtolower((string)$p->catalog_channel) === 'b2b') || ($scope === 'store' && strtolower((string)$p->catalog_channel) === 'b2c' && (int)$u->store_id === (int)$p->catalog_store_id))<option value="{{ $u->id }}" data-active-lookup-option @selected($p->unit_id==$u->id)>{{ $u->name }} ({{ $u->code }})</option>@endif @endforeach
-@if($p->unit_id===null)<option value="" selected>{{ __('catalog.unavailable') }}</option>@endif
+@if($p->unit_id===null)<option value="" selected>{{ __('catalog.unavailable') }}</option>@endif {{-- localization-gate: allow — technical Blade null-state condition; rendered option text is localized. --}}
 </select></label>
 <label>{{ app()->getLocale()==='ar'?'إضافة صور':'Add images' }}<input class="image-upload js-catalog-image-preview" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple></label>
 <label class="check"><input type="checkbox" name="is_active" value="1" @checked($p->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
