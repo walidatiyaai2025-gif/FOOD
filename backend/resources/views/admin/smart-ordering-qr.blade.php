@@ -128,10 +128,10 @@
                                 </td>
                                 <td data-label="{{ __('smart_ordering_qr.context') }}">
                                     <div class="so-qr-meta">
-                                        @if($qr->branch_reference)<span>{{ __('smart_ordering_qr.branch_reference') }}: {{ $qr->branch_reference }}</span>@endif
-                                        @if($qr->table_reference)<span>{{ __('smart_ordering_qr.table_reference') }}: {{ $qr->table_reference }}</span>@endif
-                                        @if($qr->campaign)<span>{{ __('smart_ordering_qr.campaign') }}: {{ $qr->campaign }}</span>@endif
-                                        @if($qr->promotion)<span>{{ __('smart_ordering_qr.promotion') }}: {{ $qr->promotion->name }}</span>@endif
+                                        @if($qr->branch_reference)<span>{{ __('smart_ordering_qr.context_branch', ['value' => $qr->branch_reference]) }}</span>@endif
+                                        @if($qr->table_reference)<span>{{ __('smart_ordering_qr.context_table', ['value' => $qr->table_reference]) }}</span>@endif
+                                        @if($qr->campaign)<span>{{ __('smart_ordering_qr.context_campaign', ['value' => $qr->campaign]) }}</span>@endif
+                                        @if($qr->promotion)<span>{{ __('smart_ordering_qr.context_promotion', ['value' => $qr->promotion->name]) }}</span>@endif
                                     </div>
                                 </td>
                                 <td data-label="{{ __('smart_ordering_qr.state') }}"><span class="so-qr-badge {{ $state==='enabled'?'':'off' }}">{{ __('smart_ordering_qr.states.'.$state) }}</span></td>
