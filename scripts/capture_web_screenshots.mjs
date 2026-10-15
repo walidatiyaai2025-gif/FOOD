@@ -1166,6 +1166,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'treasury-master',
+    '/admin/treasury/master-data',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'settings-center',
     '/admin/settings',
   );
