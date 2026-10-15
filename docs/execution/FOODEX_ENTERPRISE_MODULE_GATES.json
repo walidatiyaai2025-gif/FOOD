@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "program": "FOODEX Enterprise ERP",
+  "issue": 1482,
+  "authoritative_docs": [
+    "docs/architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE.md",
+    "docs/quality/CPANEL_PERFORMANCE_CONTRACT.md",
+    "docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md"
+  ],
+  "module_states": [
+    "NOT_INSTALLED",
+    "INSTALLED",
+    "DISABLED",
+    "ENABLING",
+    "ENABLED",
+    "SUSPENDED",
+    "MAINTENANCE",
+    "ERROR"
+  ],
+  "hard_invariants": {
+    "main_releasable_during_program": true,
+    "module_default_disabled_until_rollout_approval": true,
+    "disabled_module_must_not_break_core": true,
+    "disabled_module_data_preserved": true,
+    "external_calls_inside_db_transaction": false,
+    "unbounded_high_growth_queries": false,
+    "mandatory_new_persistent_daemon_for_optional_module": false,
+    "destructive_same_release_migration": false,
+    "direct_child_pr_to_main_before_module_certification": false
+  },
+  "cpanel_profile": {
+    "first_class": true,
+    "reuse_existing_scheduler_contract": true,
+    "persistent_supervisor_required": false,
+    "target_job_slice_seconds_max": 45,
+    "default_page_size": 25,
+    "normal_page_size_max": 100,
+    "async_or_chunk_export_rows_threshold": 5000,
+    "target_normal_request_memory_mib_max": 96,
+    "target_job_memory_mib_max": 128,
+    "configured_memory_limit_fraction_max": 0.75
+  },
+  "performance_gates": {
+    "relative_regression": {
+      "p95_percent_max": 15,
+      "p99_percent_max": 20,
+      "query_count_percent_max": 15,
+      "peak_memory_percent_max": 15
+    },
+    "absolute_p95_seconds": {
+      "warm_lightweight_read": 1,
+      "standard_paginated_crud": 1.5,
+      "standard_transactional_write": 1.8,
+      "dashboard": 2,
+      "bounded_interactive_report": 2.5,
+      "provider_independent_order_commit": 1.8
+    },
+    "slow_query_investigation_ms": 250,
+    "benchmark_rounds_min": 3
+  },
+  "promotion_gates": [
+    "G0_ownership_convergence",
+    "G1_architecture_boundary",
+    "G2_data_migration",
+    "G3_rbac_tenancy_scope",
+    "G4_functional",
+    "G5_enterprise_ux",
+    "G6_audit_workflow",
+    "G7_failure_isolation",
+    "G8_performance_cpanel",
+    "G9_security",
+    "G10_regression",
+    "G11_operational_readiness",
+    "G12_disable_reenable",
+    "G13_pilot",
+    "G14_exact_head_main_promotion"
+  ],
+  "reference_scale_fixture": {
+    "orders_min": 100000,
+    "order_items_min": 500000,
+    "stock_movements_min": 250000,
+    "finance_records_combined_min": 100000,
+    "audit_or_event_records_min": 250000
+  },
+  "rollout": [
+    "DISABLED",
+    "INTERNAL",
+    "PILOT",
+    "LIMITED",
+    "GA"
+  ],
+  "waves": [
+    "W0_enterprise_core_platform",
+    "W1_enterprise_shell_administration",
+    "W2_procurement_suppliers",
+    "W3_inventory_wms",
+    "W4_finance_gl_ar_ap",
+    "W5_treasury",
+    "W6_commercial_distribution_convergence",
+    "W7_reporting_bi_profitability"
+  ]
+}
