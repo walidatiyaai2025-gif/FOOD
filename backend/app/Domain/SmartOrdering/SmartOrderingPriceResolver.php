@@ -68,6 +68,82 @@ final class SmartOrderingPriceResolver
         return ['amount' => round((float) $price, 3), 'source' => 'store_product'];
     }
 
+    /**
+     * Resolve editor prices for a bounded collection without issuing one product query per item.
+     *
+     * @param  iterable<SmartOrderingMenuItem>  $items
+     * @return array{prices:array<int,array{amount:float,source:string}>,errors:array<int,string>}
+     */
+    public function displayPrices(SmartOrderingSite $site, iterable $items): array
+    {
+        $items = collect($items)->values();
+
+        foreach ($items as $item) {
+            abort_unless((int) $item->site_id === (int) $site->id, 404);
+        }
+
+        $sourceProductIds = $items
+            ->filter(fn (SmartOrderingMenuItem $item): bool => $item->price_override === null && $item->source_product_id !== null)
+            ->pluck('source_product_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $sourcePrices = $sourceProductIds->isEmpty()
+            ? collect()
+            : DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('store_products', function ($join) use ($site): void {
+                    $join->on('store_products.product_id', '=', 'products.id')
+                        ->where('store_products.store_id', '=', $site->store_id);
+                })
+                ->whereIn('products.id', $sourceProductIds)
+                ->where('products.is_active', true)
+                ->where('catalogs.store_id', $site->store_id)
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_active', true)
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('store_products.is_active', true)
+                ->whereNotNull('store_products.price')
+                ->pluck('store_products.price', 'products.id');
+
+        $prices = [];
+        $errors = [];
+
+        foreach ($items as $item) {
+            $itemId = (int) $item->id;
+
+            if ($item->price_override !== null) {
+                $prices[$itemId] = [
+                    'amount' => round((float) $item->price_override, 3),
+                    'source' => 'item_override',
+                ];
+
+                continue;
+            }
+
+            if ($item->source_product_id === null) {
+                $errors[$itemId] = __('smart_ordering_menu.validation.price_required');
+
+                continue;
+            }
+
+            $productId = (int) $item->source_product_id;
+            if (! $sourcePrices->has($productId)) {
+                $errors[$itemId] = __('smart_ordering_menu.validation.product_unavailable');
+
+                continue;
+            }
+
+            $prices[$itemId] = [
+                'amount' => round((float) $sourcePrices->get($productId), 3),
+                'source' => 'store_product',
+            ];
+        }
+
+        return ['prices' => $prices, 'errors' => $errors];
+    }
+
     public function modifierDelta(
         SmartOrderingSite $site,
         SmartOrderingModifierOption $option,

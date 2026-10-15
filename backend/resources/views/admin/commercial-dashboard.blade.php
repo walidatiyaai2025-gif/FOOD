@@ -207,9 +207,20 @@
             </div>
             <div class="sales-product-selector"
                  data-sales-product-selector
-                 data-search-url="{{ route('admin.commercial.sales-control.products', $scope) }}"
-                 data-no-results="{{ __('commercial.sales.product_selector_no_results') }}"
-                 data-search-error="{{ __('commercial.sales.product_selector_error') }}">
+                 data-foodex-entity-picker
+                 data-entity-search-url="{{ route('admin.commercial.sales-control.products', $scope) }}"
+                 data-entity-result-key="products"
+                 data-entity-selection-mode="navigate"
+                 data-entity-query-param="product"
+                 data-entity-meta-fields="sku"
+                 data-entity-option-class="sales-product-option"
+                 data-entity-state-class="sales-product-result-message"
+                 data-entity-selected-label="{{ $selectedProduct ? $selectedProduct->name.($selectedProduct->sku ? ' · '.$selectedProduct->sku : '') : '' }}"
+                 data-entity-loading="{{ __('commercial.sales.product_selector_loading') }}"
+                 data-entity-no-results="{{ __('commercial.sales.product_selector_no_results') }}"
+                 data-entity-error="{{ __('commercial.sales.product_selector_error') }}"
+                 data-entity-retry="{{ __('commercial.sales.product_selector_retry') }}"
+                 data-entity-inactive="{{ __('commercial.sales.product_selector_inactive') }}">
                 <label for="sales-control-product-search">{{ __('commercial.sales.product_selector_label') }}</label>
                 <div class="sales-product-combobox">
                     <input
@@ -221,9 +232,10 @@
                         aria-expanded="false"
                         autocomplete="off"
                         data-sales-product-search
+                        data-foodex-entity-search
                         placeholder="{{ __('commercial.sales.product_selector_placeholder') }}"
                         value="{{ $selectedProduct ? $selectedProduct->name.($selectedProduct->sku ? ' · '.$selectedProduct->sku : '') : '' }}">
-                    <div id="sales-control-product-results" class="sales-product-results" role="listbox" data-sales-product-results hidden></div>
+                    <div id="sales-control-product-results" class="sales-product-results" role="listbox" data-sales-product-results data-foodex-entity-results hidden></div>
                 </div>
                 <div class="muted" data-sales-product-hint>{{ $selectedProduct ? __('commercial.sales.product_selector_selected_hint') : __('commercial.sales.product_selector_hint') }}</div>
             </div>
@@ -794,112 +806,11 @@
     @endif
     </main>
 </div>
+<script src="{{ asset('assets/admin/entity-lookup.js') }}"></script>
 <script>
 (() => {
     document.documentElement.dataset.foodexCommercialScriptInit = '1';
 
-    const salesProductSelector = document.querySelector('[data-sales-product-selector]');
-    if (salesProductSelector) {
-        const input = salesProductSelector.querySelector('[data-sales-product-search]');
-        const results = salesProductSelector.querySelector('[data-sales-product-results]');
-        const noResults = salesProductSelector.dataset.noResults || '';
-        const searchError = salesProductSelector.dataset.searchError || '';
-        const selectedLabel = input?.defaultValue.trim() || '';
-        let searchTimer = null;
-        let searchRequest = null;
-
-        const closeResults = () => {
-            if (!results || !input) return;
-            results.hidden = true;
-            input.setAttribute('aria-expanded', 'false');
-        };
-
-        const showMessage = (message) => {
-            if (!results || !input) return;
-            results.replaceChildren();
-            const row = document.createElement('div');
-            row.className = 'sales-product-result-message';
-            row.setAttribute('role', 'option');
-            row.setAttribute('aria-disabled', 'true');
-            row.textContent = message;
-            results.appendChild(row);
-            results.hidden = false;
-            input.setAttribute('aria-expanded', 'true');
-        };
-
-        const renderProducts = (products) => {
-            if (!results || !input) return;
-            results.replaceChildren();
-            if (!Array.isArray(products) || products.length === 0) {
-                showMessage(noResults);
-                return;
-            }
-
-            products.forEach((product) => {
-                const option = document.createElement('button');
-                option.type = 'button';
-                option.className = 'sales-product-option';
-                option.setAttribute('role', 'option');
-
-                const name = document.createElement('strong');
-                name.textContent = product.name || '';
-                const sku = document.createElement('small');
-                sku.textContent = product.sku || '—';
-
-                option.append(name, sku);
-                option.addEventListener('click', () => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('product', String(product.id));
-                    window.location.assign(url.toString());
-                });
-                results.appendChild(option);
-            });
-
-            results.hidden = false;
-            input.setAttribute('aria-expanded', 'true');
-        };
-
-        const searchProducts = async () => {
-            if (!input || !results) return;
-            if (searchRequest) searchRequest.abort();
-            searchRequest = new AbortController();
-
-            const url = new URL(salesProductSelector.dataset.searchUrl || window.location.href, window.location.origin);
-            const query = input.value.trim();
-            url.searchParams.set('q', selectedLabel !== '' && query === selectedLabel ? '' : query);
-
-            try {
-                const response = await fetch(url.toString(), {
-                    headers: { Accept: 'application/json' },
-                    signal: searchRequest.signal,
-                });
-                if (!response.ok) throw new Error('product-search-failed');
-                const payload = await response.json();
-                renderProducts(payload.products || []);
-            } catch (error) {
-                if (error?.name === 'AbortError') return;
-                showMessage(searchError);
-            }
-        };
-
-        input?.addEventListener('input', () => {
-            window.clearTimeout(searchTimer);
-            searchTimer = window.setTimeout(searchProducts, 180);
-        });
-        input?.addEventListener('focus', () => {
-            if (selectedLabel !== '' && input.value.trim() === selectedLabel) input.select();
-            if (results?.hidden) searchProducts();
-        });
-        input?.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeResults();
-                input.blur();
-            }
-        });
-        document.addEventListener('click', (event) => {
-            if (!salesProductSelector.contains(event.target)) closeResults();
-        });
-    }
     document.querySelectorAll('[data-commercial-channel-picker]').forEach((picker) => {
         const output = picker.querySelector('[data-commercial-channels-json]');
         const boxes = [...picker.querySelectorAll('[data-commercial-channel]')];
