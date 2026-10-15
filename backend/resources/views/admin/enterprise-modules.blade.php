@@ -54,7 +54,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <section class="module-card module-selected" aria-labelledby="selected-module-title">
 <div class="module-card__head">
 <div><div class="foodex-subtitle">{{ __('enterprise_modules.details') }}</div><h2 id="selected-module-title">{{ $selected['name'] }}</h2></div>
-<span class="module-state">{{ __('enterprise_modules.states.'.$selected['state']) }}</span>
+<div><div class="foodex-subtitle">{{ __('enterprise_modules.state') }}</div><span class="module-state">{{ __('enterprise_modules.states.'.$selected['state']) }}</span></div>
 </div>
 <div class="module-meta">
 <div><span>{{ __('enterprise_modules.category') }}</span><strong>{{ $selected['category'] }}</strong></div>
@@ -100,7 +100,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <article class="module-card">
 <div class="module-card__head">
 <div><h3>{{ $module['name'] }}</h3><div class="foodex-subtitle">{{ $module['category'] }}</div></div>
-<span class="module-state">{{ __('enterprise_modules.states.'.$module['state']) }}</span>
+<div><div class="foodex-subtitle">{{ __('enterprise_modules.state') }}</div><span class="module-state">{{ __('enterprise_modules.states.'.$module['state']) }}</span></div>
 </div>
 <div class="module-meta">
 <div><span>{{ __('enterprise_modules.dependencies') }}</span><strong>{{ count($module['dependencies']) }}</strong></div>
