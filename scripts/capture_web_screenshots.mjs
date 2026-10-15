@@ -207,7 +207,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const smartOrderingSettings = await page.goto(`${baseUrl}/admin/smart-ordering/settings`, { waitUntil: 'networkidle' });
   if (smartOrderingSettings?.ok() && !page.url().includes('/login')) {
     const supplyHref = await page
-      .locator('a[href*="/admin/smart-ordering/sites/"][href$="/supply"]')
+      .locator('a[href*="/admin/smart-ordering/sites/"][href*="/supply"]')
       .first()
       .getAttribute('href')
       .catch(() => null);
