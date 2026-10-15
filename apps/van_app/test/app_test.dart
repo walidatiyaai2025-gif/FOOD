@@ -1409,10 +1409,15 @@ void main() {
 
     final refreshedScrollable = find.byKey(const ValueKey('van-orders-page'));
     expect(refreshedScrollable, findsOneWidget);
-    for (var attempt = 0; attempt < 12; attempt++) {
-      await tester.drag(refreshedScrollable, const Offset(0, 400));
-      await tester.pump();
-    }
+    final refreshedScrollState = tester.state<ScrollableState>(
+      find.descendant(
+        of: refreshedScrollable,
+        matching: find.byType(Scrollable),
+      ),
+    );
+    refreshedScrollState.position.jumpTo(
+      refreshedScrollState.position.minScrollExtent,
+    );
     await tester.pumpAndSettle();
 
     final newFilter = find.byKey(const ValueKey('van-orders-filter-new'));
