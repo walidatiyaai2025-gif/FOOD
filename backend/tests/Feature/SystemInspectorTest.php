@@ -10,6 +10,7 @@ use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Role;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
+use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -205,6 +206,10 @@ class SystemInspectorTest extends TestCase
             ->assertDontSee('secret-idempotency');
 
         $this->assertSame(0, InspectorForbiddenProbe::$constructed);
+
+        $enterprisePage = app(EnterpriseSystemInspector::class)->page();
+        $this->assertCount(25, $enterprisePage['outbox_messages']->items());
+        $this->assertCount(25, $enterprisePage['workflow_requests']->items());
 
         $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
         $export->assertOk();
