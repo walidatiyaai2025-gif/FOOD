@@ -167,6 +167,7 @@ class SmartOrderingCoreTest extends TestCase
     public function test_delivery_zone_fee_and_minimum_are_enforced(): void
     {
         DB::table('smart_ordering_delivery_zones')->insert([
+            'public_id' => (string) Str::uuid(),
             'branch_id' => $this->branch->id,
             'name' => 'Central Kuwait',
             'center_latitude' => 29.3759000,
