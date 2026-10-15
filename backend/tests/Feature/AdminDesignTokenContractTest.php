@@ -141,7 +141,7 @@ class AdminDesignTokenContractTest extends TestCase
     private function dynamicTokens(string $contents): array
     {
         preg_match_all(
-            '/setProperty\\(\\s*[\\'"](--foodex-[a-z0-9-]+)[\\'"]/i',
+            "/setProperty\\(\\s*[\'\"](--foodex-[a-z0-9-]+)[\'\"]/i",
             $contents,
             $matches,
         );
