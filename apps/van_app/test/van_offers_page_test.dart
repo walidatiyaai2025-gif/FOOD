@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/commercial/van_commercial_contract.dart';
 import 'package:foodex_van_app/features/commercial/van_offers_page.dart';
@@ -55,6 +56,94 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
   });
 
+  testWidgets('Van offers localize blocked commercial reasons in English',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        home: Scaffold(
+          body: VanOffersPage(
+            session: const VanSession(
+              token: 'token',
+              name: 'Van Operator',
+              email: 'van@example.test',
+              locale: 'en',
+              permissions: {'van.login'},
+            ),
+            commercialRepository: const _BlockedCommercialRepository([
+              'PRODUCT_CLOSED',
+              'MAX_PER_DAY_EXCEEDED',
+              'FLASH_SOLD_OUT',
+              'FUTURE_INTERNAL_CODE',
+            ]),
+            customerRepository: const _CustomerRepository(),
+            onSessionExpired: _noop,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('van-flash-buy-50')));
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('van-commercial-policy-blocked')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Product is closed for sale'), findsOneWidget);
+    expect(
+        find.textContaining('Daily quantity limit exceeded'), findsOneWidget);
+    expect(find.textContaining('Flash offer is sold out'), findsOneWidget);
+    expect(
+        find.textContaining('Commercial policy restriction'), findsOneWidget);
+    expect(find.textContaining('PRODUCT_CLOSED'), findsNothing);
+    expect(find.textContaining('FUTURE_INTERNAL_CODE'), findsNothing);
+  });
+
+  testWidgets('Van offers localize blocked commercial reasons in Arabic',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        home: Scaffold(
+          body: VanOffersPage(
+            session: const VanSession(
+              token: 'token',
+              name: 'مشغل الفان',
+              email: 'van@example.test',
+              locale: 'ar',
+              permissions: {'van.login'},
+            ),
+            commercialRepository: const _BlockedCommercialRepository([
+              'CHANNEL_BLOCKED',
+              'FLASH_RESERVATION_EXPIRED',
+              'OVERRIDE_REQUIRED',
+            ]),
+            customerRepository: const _CustomerRepository(),
+            onSessionExpired: _noop,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('van-flash-buy-50')));
+    await tester.pump();
+
+    expect(find.textContaining('قناة البيع غير متاحة'), findsOneWidget);
+    expect(find.textContaining('انتهت صلاحية حجز Flash'), findsOneWidget);
+    expect(
+      find.textContaining('يلزم تجاوز بموافقة مشرف أو مدير'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('CHANNEL_BLOCKED'), findsNothing);
+    expect(find.textContaining('OVERRIDE_REQUIRED'), findsNothing);
+  });
   testWidgets(
       'Van offers use safe labels when legacy display names are missing',
       (tester) async {
@@ -85,6 +174,7 @@ void main() {
     expect(find.textContaining('Product #99'), findsNothing);
     expect(find.textContaining('CARTON'), findsNothing);
   });
+
 }
 
 Future<void> _noop() async {}
@@ -106,7 +196,7 @@ class _CommercialRepository implements VanCommercialRepository {
           value: 10,
         ),
       ],
-      offers: const [
+      offers: [
         VanCommercialOffer(
           id: 10,
           storeId: 7,
@@ -170,6 +260,51 @@ class _CommercialRepository implements VanCommercialRepository {
     String? overrideReason,
   }) async {
     throw const VanCommercialContractPendingException();
+  }
+}
+
+class _BlockedCommercialRepository extends _CommercialRepository {
+  const _BlockedCommercialRepository(this.reasons);
+
+  final List<String> reasons;
+
+  @override
+  Future<VanCommercialQuote> quoteForCustomer({
+    required VanCustomerScope customer,
+    required int productId,
+    required String sellingUnitCode,
+    required double quantity,
+    String? overrideReason,
+  }) async {
+    return VanCommercialQuote(
+      allowed: false,
+      status: 'BLOCKED',
+      reasonCodes: reasons,
+      sellingUnit: const VanSellingUnit(
+        code: 'CARTON',
+        name: 'Carton',
+        conversionFactor: 10,
+      ),
+      sellingUnits: const [
+        VanSellingUnit(
+          code: 'CARTON',
+          name: 'Carton',
+          conversionFactor: 10,
+        ),
+      ],
+      overrideApplied: false,
+    );
+  }
+
+  @override
+  Future<void> reserveFlashForCustomer({
+    required VanCustomerScope customer,
+    required int offerProductId,
+    required double quantity,
+    required String idempotencyKey,
+    String? overrideReason,
+  }) {
+    throw StateError('Blocked quotes must not reserve stock.');
   }
 }
 

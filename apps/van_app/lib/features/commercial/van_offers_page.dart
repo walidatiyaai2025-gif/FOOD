@@ -99,6 +99,64 @@ class _VanOffersPageState extends State<VanOffersPage>
         '${safeSellingUnitName == null ? '' : ' · $safeSellingUnitName'}';
   }
 
+  String _commercialReasonLabel(String value) =>
+      switch (value.trim().toUpperCase()) {
+        'PRODUCT_INACTIVE' => _text('Product is inactive', 'المنتج غير نشط'),
+        'PRODUCT_CLOSED' =>
+          _text('Product is closed for sale', 'المنتج مغلق للبيع'),
+        'PRODUCT_RESTRICTED' => _text('Product is restricted', 'المنتج مقيد'),
+        'CHANNEL_BLOCKED' =>
+          _text('Sales channel is blocked', 'قناة البيع غير متاحة'),
+        'OUTSIDE_AVAILABILITY' =>
+          _text('Outside availability schedule', 'خارج أوقات الإتاحة'),
+        'MAX_PER_ORDER_EXCEEDED' =>
+          _text('Per-order limit exceeded', 'تم تجاوز حد الطلب'),
+        'MAX_PER_DAY_EXCEEDED' =>
+          _text('Daily quantity limit exceeded', 'تم تجاوز الحد اليومي'),
+        'MAX_PER_WEEK_EXCEEDED' =>
+          _text('Weekly quantity limit exceeded', 'تم تجاوز الحد الأسبوعي'),
+        'MAX_PER_MONTH_EXCEEDED' =>
+          _text('Monthly quantity limit exceeded', 'تم تجاوز الحد الشهري'),
+        'MAX_LIFETIME_EXCEEDED' => _text(
+            'Customer lifetime limit exceeded',
+            'تم تجاوز الحد الإجمالي للعميل',
+          ),
+        'FLASH_NOT_ACTIVE' =>
+          _text('Flash offer is not active', 'عرض Flash غير نشط'),
+        'FLASH_SOLD_OUT' =>
+          _text('Flash offer is sold out', 'نفدت كمية عرض Flash'),
+        'FLASH_CUSTOMER_LIMIT_REACHED' => _text(
+            'Customer Flash limit reached',
+            'تم بلوغ حد العميل لعرض Flash',
+          ),
+        'FLASH_RESERVATION_EXPIRED' =>
+          _text('Flash reservation expired', 'انتهت صلاحية حجز Flash'),
+        'ONLINE_VALIDATION_REQUIRED' =>
+          _text('Online validation required', 'يلزم التحقق عبر الإنترنت'),
+        'OVERRIDE_REQUIRED' => _text(
+            'Supervisor/admin override required',
+            'يلزم تجاوز بموافقة مشرف أو مدير',
+          ),
+        _ => _text(
+            'Commercial policy restriction',
+            'قيد من السياسة التجارية',
+          ),
+      };
+
+  String _commercialReasonSummary(List<String> reasonCodes) {
+    final source = reasonCodes.isEmpty
+        ? const <String>['ONLINE_VALIDATION_REQUIRED']
+        : reasonCodes;
+    final seen = <String>{};
+    final labels = <String>[];
+    for (final reasonCode in source) {
+      final normalized = reasonCode.trim().toUpperCase();
+      if (!seen.add(normalized)) continue;
+      labels.add(_commercialReasonLabel(normalized));
+    }
+    return labels.join(' • ');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -220,9 +278,7 @@ class _VanOffersPageState extends State<VanOffersPage>
 
       if (!quote.allowed) {
         if (!mounted) return;
-        final reasons = quote.reasonCodes.isEmpty
-            ? 'ONLINE_VALIDATION_REQUIRED'
-            : quote.reasonCodes.join(', ');
+        final reasons = _commercialReasonSummary(quote.reasonCodes);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             key: const Key('van-commercial-policy-blocked'),

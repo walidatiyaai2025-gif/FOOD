@@ -58,8 +58,7 @@ final class VanFlashOfferController extends Controller
 
         $sellingUnitNamesByProductCode = $sellingUnitRows
             ->mapWithKeys(static fn (object $unit): array => [
-                (int) $unit->product_id.'|'.strtolower(trim((string) $unit->code))
-                    => trim((string) $unit->name),
+                (int) $unit->product_id.'|'.strtolower(trim((string) $unit->code)) => trim((string) $unit->name),
             ])
             ->all();
 
