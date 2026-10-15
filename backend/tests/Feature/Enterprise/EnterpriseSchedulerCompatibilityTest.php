@@ -33,7 +33,7 @@ class EnterpriseSchedulerCompatibilityTest extends TestCase
 
         $message = app(TransactionalOutbox::class)->enqueue(
             VersionedDomainEvent::create(
-                type: 'sample.scheduler.disabled',
+                type: 'EnterpriseModuleStateChanged',
                 version: 1,
                 scope: ['organization_id' => 10],
                 payload: ['reference' => 'disabled'],
@@ -59,7 +59,7 @@ class EnterpriseSchedulerCompatibilityTest extends TestCase
         foreach (range(1, 3) as $index) {
             app(TransactionalOutbox::class)->enqueue(
                 VersionedDomainEvent::create(
-                    type: 'sample.scheduler.enabled',
+                    type: 'EnterpriseModuleStateChanged',
                     version: 1,
                     scope: ['organization_id' => 20],
                     payload: ['sequence' => $index],
@@ -87,7 +87,7 @@ class EnterpriseSchedulerCompatibilityTest extends TestCase
         foreach (range(1, 101) as $index) {
             app(TransactionalOutbox::class)->enqueue(
                 VersionedDomainEvent::create(
-                    type: 'sample.scheduler.boundary',
+                    type: 'EnterpriseModuleStateChanged',
                     version: 1,
                     scope: ['organization_id' => 30],
                     payload: ['sequence' => $index],
