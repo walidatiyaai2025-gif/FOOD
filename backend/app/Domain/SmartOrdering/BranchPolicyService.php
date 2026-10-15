@@ -81,7 +81,7 @@ final class BranchPolicyService
 
         $closedDates = array_values(array_filter(
             (array) $branch->holiday_closed_dates,
-            static fn ($value): bool => is_string($value) && $value !== '',
+            static fn (string $value): bool => $value !== '',
         ));
         abort_if(in_array($scheduled->format('Y-m-d'), $closedDates, true), 409, 'This branch is closed on the selected date.');
 
@@ -164,14 +164,6 @@ final class BranchPolicyService
 
     private function assertMode(SmartOrderingBranch $branch, string $mode): void
     {
-        $supported = match ($mode) {
-            'dine_in' => (bool) $branch->supports_dine_in,
-            'pickup' => (bool) $branch->supports_pickup,
-            'delivery' => (bool) $branch->supports_delivery,
-            default => false,
-        };
-        abort_unless($supported, 422, 'Fulfillment mode is not available for this branch.');
-
         $module = match ($mode) {
             'dine_in' => Module::DINE_IN,
             'pickup' => Module::PICKUP,
@@ -179,6 +171,14 @@ final class BranchPolicyService
             default => null,
         };
         abort_unless($module instanceof Module, 422, 'Fulfillment mode is not available for this branch.');
+
+        $supported = match ($module) {
+            Module::DINE_IN => (bool) $branch->supports_dine_in,
+            Module::PICKUP => (bool) $branch->supports_pickup,
+            Module::DELIVERY => (bool) $branch->supports_delivery,
+            default => false,
+        };
+        abort_unless($supported, 422, 'Fulfillment mode is not available for this branch.');
         $this->runtime->assertRequest(
             $branch->site()->firstOrFail(),
             $module,
