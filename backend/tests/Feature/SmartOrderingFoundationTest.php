@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class SmartOrderingFoundationTest extends TestCase
@@ -172,7 +173,7 @@ class SmartOrderingFoundationTest extends TestCase
         try {
             $service->setEntitlement($adminA, $siteA, Module::PUBLIC_MENU, true, $branchB);
             $this->fail('Cross-tenant branch override must fail.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             $this->assertSame(404, $exception->getStatusCode());
         }
     }
