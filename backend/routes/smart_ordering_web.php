@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\SmartOrderingController;
 use App\Http\Controllers\Admin\SmartOrderingCustomerGrowthController;
 use App\Http\Controllers\Admin\SmartOrderingMenuAdminController;
+use App\Http\Controllers\Admin\SmartOrderingSupplyController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin/smart-ordering')
@@ -41,6 +42,19 @@ Route::prefix('admin/smart-ordering')
         Route::put('/menu/options/{option}/branch', [SmartOrderingMenuAdminController::class, 'optionBranch'])->whereNumber('option')->name('menu.options.branch');
         Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
         Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
+
+        Route::get('/sites/{site}/supply', [SmartOrderingSupplyController::class, 'index'])
+            ->whereNumber('site')->name('supply.index');
+        Route::post('/sites/{site}/supply/mappings', [SmartOrderingSupplyController::class, 'storeMapping'])
+            ->whereNumber('site')->name('supply.mappings.store');
+        Route::post('/sites/{site}/supply/mappings/{mapping}/deactivate', [SmartOrderingSupplyController::class, 'deactivateMapping'])
+            ->whereNumber('site')->whereUuid('mapping')->name('supply.mappings.deactivate');
+        Route::put('/sites/{site}/supply/stock', [SmartOrderingSupplyController::class, 'stock'])
+            ->whereNumber('site')->name('supply.stock');
+        Route::post('/sites/{site}/supply/draft', [SmartOrderingSupplyController::class, 'draft'])
+            ->whereNumber('site')->name('supply.draft');
+        Route::post('/sites/{site}/supply/recommendations/{product}/dismiss', [SmartOrderingSupplyController::class, 'dismiss'])
+            ->whereNumber('site')->whereNumber('product')->name('supply.dismiss');
 
         Route::get('/sites/{site}/customers/{customer}', [SmartOrderingCustomerGrowthController::class, 'profile'])
             ->whereNumber('site')->whereNumber('customer')->name('customers.show');
