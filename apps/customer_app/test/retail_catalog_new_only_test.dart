@@ -194,6 +194,72 @@ void main() {
     expect(capturedQuantity, 2);
   });
 
+  testWidgets(
+    'full category and offer browse can reach records after the first page',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final api = _PagedCollectionCatalogApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogCategoriesScreen(
+            storeId: 7,
+            catalogApi: api,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-category-grid-1')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('retail-categories-load-more')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('retail-category-grid-21')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retail-categories-end')),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCatalogOffersScreen(
+              storeId: 7,
+              catalogApi: api,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('retail-offers-load-more')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('retail-offers-load-more')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second page offer'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('retail-offers-end')),
+        findsOneWidget,
+      );
+      expect(api.categoryPages, <int>[1, 2]);
+      expect(api.offerPages, <int>[1, 2]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   test('HTTP catalog API sends authoritative Retail store header', () async {
     final requests = <http.Request>[];
     final api = HttpB2cCatalogApi(
@@ -356,6 +422,74 @@ void main() {
       expect(error.isNetworkUnavailable, isTrue);
     }
   });
+}
+
+class _PagedCollectionCatalogApi extends _FakeCatalogApi
+    implements B2cPagedCatalogApi {
+  final List<int> categoryPages = <int>[];
+  final List<int> offerPages = <int>[];
+
+  @override
+  Future<B2cCatalogPage<B2cCategory>> categoryPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    categoryPages.add(page);
+    return B2cCatalogPage<B2cCategory>(
+      items: <B2cCategory>[
+        B2cCategory(
+          id: page == 1 ? 1 : 21,
+          name: page == 1 ? 'First page category' : 'Second page category',
+        ),
+      ],
+      currentPage: page,
+      perPage: 20,
+      total: 21,
+    );
+  }
+
+  @override
+  Future<B2cCatalogPage<B2cOffer>> offerPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    offerPages.add(page);
+    return B2cCatalogPage<B2cOffer>(
+      items: <B2cOffer>[
+        B2cOffer(
+          id: page == 1 ? 1 : 21,
+          name: page == 1 ? 'First page offer' : 'Second page offer',
+          type: 'percentage',
+          value: 10,
+        ),
+      ],
+      currentPage: page,
+      perPage: 20,
+      total: 21,
+    );
+  }
+
+  @override
+  Future<B2cCatalogPage<B2cProduct>> productPage(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+    int page = 1,
+    int perPage = 20,
+  }) async =>
+      B2cCatalogPage<B2cProduct>.single(
+        await products(
+          storeId,
+          query: query,
+          categoryId: categoryId,
+          sort: sort,
+          direction: direction,
+        ),
+      );
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
