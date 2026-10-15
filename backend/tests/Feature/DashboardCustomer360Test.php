@@ -538,7 +538,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('data-finance-invoice-picker', false)
             ->assertSee('name="invoice_id"', false)
-            ->assertDontSee('FIN-PICK-30');
+            ->assertDontSee('<select name="invoice_id"', false);
 
         $this->actingAs($super)
             ->getJson(route('admin.customer-360.finance-invoices', [
