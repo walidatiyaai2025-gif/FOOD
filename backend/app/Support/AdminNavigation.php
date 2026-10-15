@@ -65,6 +65,7 @@ class AdminNavigation
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $this->whatsAppInboxItem($user),
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
+                $this->routeItemScoped($user, 'smart_ordering', 'smart_ordering.nav_title', 'admin.smart-ordering.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
