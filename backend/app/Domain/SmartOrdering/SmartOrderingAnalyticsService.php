@@ -206,6 +206,10 @@ final class SmartOrderingAnalyticsService
             $dimensions + [
                 'branch_id' => (int) $branch->getKey(),
                 'cart_public_id' => (string) $cart->public_id,
+                'qr_public_id' => $cart->qr_public_id,
+                'source' => $cart->source_snapshot,
+                'campaign' => $cart->campaign_snapshot,
+                'offer_reference' => $cart->offer_reference,
             ],
         );
     }
