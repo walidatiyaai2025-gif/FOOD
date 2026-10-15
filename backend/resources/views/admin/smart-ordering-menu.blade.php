@@ -567,6 +567,8 @@
                 @if($reviewMode)
                 <button class="primary" type="submit" @disabled(!empty($itemPriceErrors)) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
                 @if(!empty($itemPriceErrors))<a class="foodex-secondary" href="#so-invalid-items">{{ __('smart_ordering_menu.invalid_item.review_before_publish') }}</a>@endif
+                @else
+                <button class="primary" type="button" disabled aria-disabled="true">{{ $isAr ? 'راجع المسودة قبل النشر' : 'Review draft before publishing' }}</button>
                 @endif
             </form>
         </div>
