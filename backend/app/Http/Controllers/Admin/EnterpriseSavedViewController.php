@@ -50,8 +50,7 @@ final class EnterpriseSavedViewController extends Controller
         Request $request,
         EnterpriseSavedView $savedView,
         EnterpriseSavedViewService $savedViews,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
