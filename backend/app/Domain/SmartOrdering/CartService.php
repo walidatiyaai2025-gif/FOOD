@@ -14,6 +14,7 @@ final class CartService
     public function __construct(
         private readonly BranchPolicyService $branches,
         private readonly CommerceQuoteService $quotes,
+        private readonly SmartOrderingRevisionService $revisions,
     ) {}
 
     /** @return array{cart:SmartOrderingCart,token:string,quote:array<string,mixed>} */
@@ -22,12 +23,19 @@ final class CartService
         $branch = $this->branches->branch($branchPublicId);
         $this->branches->assertAccepting($branch);
 
+        $site = $branch->site()->firstOrFail();
+        $published = $this->revisions->published($site);
+        abort_unless($published !== null, 409, 'Smart Ordering has no published revision.');
+        if ($revisionPublicId !== null && ! hash_equals((string) $published->public_id, $revisionPublicId)) {
+            abort(409, 'Requested Smart Ordering revision is stale or unpublished.');
+        }
+
         $token = Str::random(64);
         $cart = SmartOrderingCart::query()->create([
             'public_id' => (string) Str::uuid(),
             'token_hash' => hash('sha256', $token),
             'branch_id' => $branch->getKey(),
-            'revision_public_id' => $revisionPublicId,
+            'revision_public_id' => (string) $published->public_id,
             'status' => 'active',
             'expires_at' => now()->addHours(4),
         ]);
