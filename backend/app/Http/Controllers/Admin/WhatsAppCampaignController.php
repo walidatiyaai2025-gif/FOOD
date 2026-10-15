@@ -291,7 +291,7 @@ final class WhatsAppCampaignController extends Controller
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'provider_name' => ['required', 'string', 'max:160', 'regex:/^[a-z0-9_]+$/'],
+            'provider_name' => ['required', 'string', 'max:160'],
             'locale' => ['required', Rule::in(['ar', 'en'])],
             'category' => ['required', Rule::in(['marketing', 'utility'])],
             'body_preview' => ['required', 'string', 'max:1024'],
