@@ -5,13 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Http\Controllers\Controller;
+use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 final class SmartOrderingAnalyticsEventController extends Controller
 {
-    public function store(Request $request, SmartOrderingAnalyticsService $analytics): JsonResponse
+    public function store(
+        Request $request,
+        SmartOrderingAnalyticsService $analytics,
+        SmartOrderingAttributionService $attribution,
+    ): JsonResponse
     {
         $data = $request->validate([
             'site_public_id' => ['required', 'uuid'],
@@ -21,9 +26,7 @@ final class SmartOrderingAnalyticsEventController extends Controller
             'visitor_token' => ['required', 'string', 'min:16', 'max:160'],
             'product_id' => ['nullable', 'integer', 'min:1'],
             'category_id' => ['nullable', 'integer', 'min:1'],
-            'source' => ['nullable', 'string', 'max:64'],
-            'campaign' => ['nullable', 'string', 'max:120'],
-            'offer_reference' => ['nullable', 'string', 'max:120'],
+            'attribution_context' => ['nullable', 'string', 'max:512'],
             'metadata' => ['nullable', 'array'],
             'metadata.placement' => ['nullable', 'string', 'max:160'],
             'metadata.query_length' => ['nullable', 'integer', 'min:0', 'max:1000'],
@@ -35,6 +38,14 @@ final class SmartOrderingAnalyticsEventController extends Controller
             ->where('master_enabled', true)
             ->firstOrFail();
 
+        $trustedAttribution = null;
+        if (! empty($data['attribution_context'])) {
+            $trustedAttribution = $attribution->serverContext(
+                (string) $data['attribution_context'],
+                (int) $site->store_id,
+            );
+        }
+
         $recorded = $analytics->recordPublic(
             $site,
             (string) $data['branch_public_id'],
@@ -44,9 +55,11 @@ final class SmartOrderingAnalyticsEventController extends Controller
             [
                 'product_id' => $data['product_id'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
-                'source' => $data['source'] ?? null,
-                'campaign' => $data['campaign'] ?? null,
-                'offer_reference' => $data['offer_reference'] ?? null,
+                'source' => $trustedAttribution['source'] ?? null,
+                'campaign' => $trustedAttribution['campaign'] ?? null,
+                'offer_reference' => isset($trustedAttribution['promotion_id'])
+                    ? 'promotion:'.$trustedAttribution['promotion_id']
+                    : null,
                 'metadata' => (array) ($data['metadata'] ?? []),
             ],
         );
