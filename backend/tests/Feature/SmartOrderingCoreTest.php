@@ -366,7 +366,8 @@ class SmartOrderingCoreTest extends TestCase
     public function test_notification_failure_never_rolls_back_valid_order(): void
     {
         $this->app->bind(OrderNotificationBridge::class, function () {
-            return new class implements OrderNotificationBridge {
+            return new class implements OrderNotificationBridge
+            {
                 public function notify(Order $order, SmartOrderingOrderContext $context): void
                 {
                     throw new \RuntimeException('Simulated downstream WhatsApp failure.');
