@@ -877,6 +877,25 @@ final class SmartOrderingMerchandisingService
                 continue;
             }
 
+            $days = array_map('intval', (array) ($conditions['days'] ?? []));
+            if ($days !== []) {
+                $clock = now((string) $branch->timezone);
+                if (! in_array($clock->dayOfWeekIso, $days, true)) {
+                    continue;
+                }
+                $start = (string) ($conditions['time_start'] ?? '');
+                $end = (string) ($conditions['time_end'] ?? '');
+                $time = $clock->format('H:i');
+                if ($start !== '' && $end !== '') {
+                    $inside = $start <= $end
+                        ? ($time >= $start && $time < $end)
+                        : ($time >= $start || $time < $end);
+                    if (! $inside) {
+                        continue;
+                    }
+                }
+            }
+
             $product = $this->recommendableProduct($site, $branch, (int) $rule->recommended_product_id);
             if ($product === null) {
                 continue;
@@ -891,8 +910,18 @@ final class SmartOrderingMerchandisingService
         }
 
         usort($result, static fn (array $a, array $b): int =>
-            [$a['personalized'] ? 0 : 1, $a['priority'], $a['id']]
-            <=> [$b['personalized'] ? 0 : 1, $b['priority'], $b['id']]
+            [
+                $a['personalized'] ? 0 : 1,
+                ($a['product']['best_seller'] ?? false) ? 0 : 1,
+                $a['priority'],
+                $a['id'],
+            ]
+            <=> [
+                $b['personalized'] ? 0 : 1,
+                ($b['product']['best_seller'] ?? false) ? 0 : 1,
+                $b['priority'],
+                $b['id'],
+            ]
         );
 
         return array_slice($result, 0, 8);
