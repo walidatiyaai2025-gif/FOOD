@@ -67,7 +67,8 @@ void main() {
     expect(draft.customerNote, 'Keep note');
   });
 
-  test('removed selections clear instead of silently falling back to defaults', () {
+  test('removed selections clear instead of silently falling back to defaults',
+      () {
     final draft = VanOrderDraftController();
     draft.selectCustomer(_customer);
     draft.applyOptions(_options);

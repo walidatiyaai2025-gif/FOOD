@@ -464,8 +464,7 @@ class VanOrderDraftController extends ChangeNotifier {
     }
 
     if (!_warehouseSelectionInitialized) {
-      warehouseId =
-          value.warehouses.isEmpty ? null : value.warehouses.first.id;
+      warehouseId = value.warehouses.isEmpty ? null : value.warehouses.first.id;
       _warehouseSelectionInitialized = true;
     } else if (warehouseId != null &&
         !value.warehouses.any((item) => item.id == warehouseId)) {
