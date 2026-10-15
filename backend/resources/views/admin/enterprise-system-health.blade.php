@@ -11,7 +11,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}.healt
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page health-page" data-enterprise-system-health="true">
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="health-head"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_health.eyebrow') }}</div><h1>{{ __('enterprise_health.title') }}</h1><p>{{ __('enterprise_health.description') }}</p></div><div class="health-actions"><a class="health-link" href="{{ route('admin.inspector.index') }}">{{ __('enterprise_health.inspector') }}</a><a class="health-link" href="{{ route('admin.administration.index') }}">{{ __('enterprise_health.back') }}</a></div></header>
+<header class="health-head foodex-page-header"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_health.eyebrow') }}</div><h1>{{ __('enterprise_health.title') }}</h1><p>{{ __('enterprise_health.description') }}</p></div><div class="health-actions"><a class="health-link" href="{{ route('admin.inspector.index') }}">{{ __('enterprise_health.inspector') }}</a><a class="health-link" href="{{ route('admin.administration.index') }}">{{ __('enterprise_health.back') }}</a></div></header>
 
 <h2>{{ __('enterprise_health.system_signals') }}</h2>
 <div class="signal-grid">
