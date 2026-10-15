@@ -7,6 +7,7 @@ use App\Models\EnterpriseModule;
 use App\Models\EnterpriseModuleEntitlement;
 use App\Models\EnterpriseOutboxMessage;
 use App\Models\EnterpriseWorkflowRequest;
+use DateTimeInterface;
 use Illuminate\Contracts\Pagination\Paginator;
 
 final class EnterpriseSystemInspector
@@ -43,46 +44,23 @@ final class EnterpriseSystemInspector
      */
     public function snapshot(): array
     {
-        $outboxMessages = [];
-        foreach (
-            EnterpriseOutboxMessage::query()
-                ->orderByDesc('id')
-                ->limit(self::SNAPSHOT_LIMIT)
-                ->get($this->outboxColumns()) as $message
-        ) {
-            $outboxMessages[] = [
-                'event_type' => (string) $message->getAttribute('event_type'),
-                'status' => (string) $message->getAttribute('status'),
-                'attempt_count' => (int) $message->getAttribute('attempt_count'),
-                'available_at' => $this->isoDateTime($message->getAttribute('available_at')),
-                'failed_at' => $this->isoDateTime($message->getAttribute('failed_at')),
-                'created_at' => $this->isoDateTime($message->getAttribute('created_at')),
-            ];
-        }
-
-        $workflowRequests = [];
-        foreach (
-            EnterpriseWorkflowRequest::query()
-                ->orderByDesc('id')
-                ->limit(self::SNAPSHOT_LIMIT)
-                ->get($this->workflowColumns()) as $request
-        ) {
-            $workflowRequests[] = [
-                'workflow_key' => (string) $request->getAttribute('workflow_key'),
-                'entity_type' => (string) $request->getAttribute('entity_type'),
-                'status' => (string) $request->getRawOriginal('status'),
-                'completed_at' => $this->isoDateTime($request->getAttribute('completed_at')),
-                'created_at' => $this->isoDateTime($request->getAttribute('created_at')),
-            ];
-        }
-
         return [
             'modules' => $this->modules(),
             'entitlements' => $this->entitlements(),
             'outbox_status_counts' => $this->outboxStatusCounts(),
-            'outbox_messages' => $outboxMessages,
+            'outbox_messages' => EnterpriseOutboxMessage::query()
+                ->orderByDesc('id')
+                ->limit(self::SNAPSHOT_LIMIT)
+                ->get($this->outboxColumns())
+                ->map(fn (EnterpriseOutboxMessage $message): array => $this->outboxSnapshotRow($message))
+                ->all(),
             'workflow_status_counts' => $this->workflowStatusCounts(),
-            'workflow_requests' => $workflowRequests,
+            'workflow_requests' => EnterpriseWorkflowRequest::query()
+                ->orderByDesc('id')
+                ->limit(self::SNAPSHOT_LIMIT)
+                ->get($this->workflowColumns())
+                ->map(fn (EnterpriseWorkflowRequest $request): array => $this->workflowSnapshotRow($request))
+                ->all(),
         ];
     }
 
@@ -206,17 +184,42 @@ final class EnterpriseSystemInspector
             ->withQueryString();
     }
 
-    private function isoDateTime(mixed $value): ?string
+    /**
+     * @return array{event_type:string,status:string,attempt_count:int,available_at:?string,failed_at:?string,created_at:?string}
+     */
+    private function outboxSnapshotRow(EnterpriseOutboxMessage $message): array
     {
-        if ($value instanceof \DateTimeInterface) {
+        return [
+            'event_type' => (string) $message->getAttribute('event_type'),
+            'status' => (string) $message->getAttribute('status'),
+            'attempt_count' => (int) $message->getAttribute('attempt_count'),
+            'available_at' => $this->dateTime($message->getAttribute('available_at')),
+            'failed_at' => $this->dateTime($message->getAttribute('failed_at')),
+            'created_at' => $this->dateTime($message->getAttribute('created_at')),
+        ];
+    }
+
+    /**
+     * @return array{workflow_key:string,entity_type:string,status:string,completed_at:?string,created_at:?string}
+     */
+    private function workflowSnapshotRow(EnterpriseWorkflowRequest $request): array
+    {
+        return [
+            'workflow_key' => (string) $request->getAttribute('workflow_key'),
+            'entity_type' => (string) $request->getAttribute('entity_type'),
+            'status' => (string) $request->getRawOriginal('status'),
+            'completed_at' => $this->dateTime($request->getAttribute('completed_at')),
+            'created_at' => $this->dateTime($request->getAttribute('created_at')),
+        ];
+    }
+
+    private function dateTime(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
             return $value->format(DATE_ATOM);
         }
 
-        if (is_string($value) && $value !== '') {
-            return $value;
-        }
-
-        return null;
+        return is_string($value) ? $value : null;
     }
 
     /** @return list<string> */
