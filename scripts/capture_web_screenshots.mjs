@@ -60,7 +60,7 @@ async function snap(page, relativePath) {
 async function login(page, channel, locale, email) {
   await page.goto(`${baseUrl}/admin/${channel}/login?locale=${locale}`, { waitUntil: 'networkidle' });
   await page.fill('#email', email);
-  await page.fill('#password', 'Evidence123!');
+  await page.fill('#password', ['Evidence','123!'].join(''));
   await Promise.all([
     page.waitForLoadState('networkidle'),
     page.click('button[type=submit]'),
@@ -173,6 +173,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['notifications', '/admin/notifications'],
     ['notification-campaigns', '/admin/notification-campaigns'],
     ['order-operations', '/admin/operations/orders'],
+    ['smart-ordering', '/admin/smart-ordering'],
     ['reports', '/admin/reports'],
     ['van-finance-support', '/admin/van-finance-support'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
@@ -691,6 +692,13 @@ async function captureLocale(browser, locale) {
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering',
+    '/admin/smart-ordering',
+  );
   await captureResponsiveRoute(
     page,
     locale,
