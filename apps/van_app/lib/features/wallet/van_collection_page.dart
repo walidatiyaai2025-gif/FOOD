@@ -85,8 +85,10 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       generation == _contextRequestGeneration &&
       _sameCustomer(_customer, customer);
 
-  void _resetPendingCollection() {
-    _lastResult = null;
+  void _resetPendingCollection({bool clearResult = true}) {
+    if (clearResult) {
+      _lastResult = null;
+    }
     _amount.clear();
     _pendingOperation = null;
     _pendingIdempotencyKey = null;
@@ -231,7 +233,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
           preferredInvoiceId != null && selected == null;
       _initialInvoiceResolutionPending = false;
       if (intendedInvoiceMissing) {
-        _resetPendingCollection();
+        _resetPendingCollection(clearResult: false);
       }
 
       setState(() {
@@ -250,7 +252,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     } catch (error) {
       if (!_ownsContextRequest(generation, customer)) return;
       if (error is VanApiException && error.statusCode == 404) {
-        _resetPendingCollection();
+        _resetPendingCollection(clearResult: false);
         setState(() {
           _customer = null;
           _context = null;
