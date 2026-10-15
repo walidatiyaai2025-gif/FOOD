@@ -28,6 +28,7 @@ final class CheckoutService
         private readonly CommercialPolicyService $commercialPolicy,
         private readonly InventoryService $inventory,
         private readonly OrderNotificationBridge $notifications,
+        private readonly SmartOrderingAnalyticsService $analytics,
     ) {}
 
     /**
@@ -111,6 +112,13 @@ final class CheckoutService
         $phone = trim((string) ($payload['phone'] ?? ''));
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         abort_if($name === '' || $phone === '', 422, 'Customer name and phone are required.');
+
+        $this->analytics->recordForCart(
+            $cart,
+            'checkout_started',
+            'cart:'.$cart->public_id.':checkout-started',
+            ['fulfillment_mode' => $mode],
+        );
 
         $result = DB::transaction(function () use (
             $cart,
@@ -302,6 +310,27 @@ final class CheckoutService
 
             return ['order' => $order, 'context' => $context, 'replayed' => false];
         }, 3);
+
+        $priorCompleted = DB::table('orders')
+            ->where('store_id', (int) $branch->store_id)
+            ->where('customer_id', (int) $result['order']->customer_id)
+            ->where('id', '<>', (int) $result['order']->getKey())
+            ->whereIn('status', ['delivered', 'completed'])
+            ->exists();
+
+        $this->analytics->record(
+            (int) $branch->store_id,
+            'order_created',
+            'order:'.$result['order']->getKey().':order-created',
+            [
+                'branch_id' => (int) $branch->getKey(),
+                'cart_public_id' => (string) $cart->public_id,
+                'order_id' => (int) $result['order']->getKey(),
+                'customer_type' => $priorCompleted ? 'repeat' : 'new',
+                'fulfillment_mode' => $mode,
+                'metadata' => ['order_reference' => (string) $result['order']->order_number],
+            ],
+        );
 
         try {
             $this->notifications->notify($result['order'], $result['context']);
