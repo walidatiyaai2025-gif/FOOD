@@ -10,6 +10,11 @@ use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Domain\SmartOrdering\SmartOrderingLoyaltyOrderObserver;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Search\GlobalSearchRegistry;
+use App\Enterprise\Search\OrderGlobalSearchProvider;
+use App\Enterprise\Search\OrganizationGlobalSearchProvider;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Order;
@@ -31,6 +36,16 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(GlobalSearchRegistry::class, function ($app): GlobalSearchRegistry {
+            $registry = new GlobalSearchRegistry(
+                $app->make(ModuleRegistry::class),
+                $app->make(ModuleEntitlementResolver::class),
+            );
+
+            return $registry
+                ->registerCore('orders', fn (): OrderGlobalSearchProvider => $app->make(OrderGlobalSearchProvider::class))
+                ->registerCore('organizations', fn (): OrganizationGlobalSearchProvider => $app->make(OrganizationGlobalSearchProvider::class));
+        });
         $this->app->singleton(AssistantToolRegistry::class, function ($app): AssistantToolRegistry {
             return new AssistantToolRegistry([
                 ...$app->make(AssistantBusinessToolSet::class)->all(),
