@@ -74,6 +74,31 @@ class _VanOffersPageState extends State<VanOffersPage>
         _ => _text('Offer status', 'حالة العرض'),
       };
 
+  String _flashProductSummary(
+    VanCommercialOfferProduct product,
+    String currency,
+  ) {
+    final productName = product.productName?.trim();
+    final sellingUnitName = product.sellingUnitName?.trim();
+    final safeProductName = productName == null || productName.isEmpty
+        ? _text('Product', 'منتج')
+        : productName;
+    final safeSellingUnitName =
+        product.sellingUnitCode?.trim().isNotEmpty == true
+            ? (sellingUnitName == null || sellingUnitName.isEmpty
+                ? _text('Unit', 'وحدة')
+                : sellingUnitName)
+            : null;
+    final price = foodexMoneyText(
+      product.flashPrice,
+      currency,
+      currencyFirst: true,
+    );
+
+    return '$safeProductName · $price'
+        '${safeSellingUnitName == null ? '' : ' · $safeSellingUnitName'}';
+  }
+
   String _commercialReasonLabel(String value) =>
       switch (value.trim().toUpperCase()) {
         'PRODUCT_INACTIVE' => _text('Product is inactive', 'المنتج غير نشط'),
@@ -509,12 +534,7 @@ class _VanOffersPageState extends State<VanOffersPage>
                       children: [
                         Expanded(
                           child: Text(
-                            _text(
-                              'Product #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                                  '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                              'منتج #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                                  '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                            ),
+                            _flashProductSummary(product, offer.currency),
                           ),
                         ),
                         FilledButton.tonal(
