@@ -5,9 +5,12 @@ namespace App\Enterprise\Workflow;
 use App\Models\EnterpriseWorkflowRequest;
 use App\Models\EnterpriseWorkflowStep;
 use App\Models\User;
+use App\Services\EnterpriseSecurityAccessResolver;
 
 final class WorkflowAuthorizer
 {
+    public function __construct(private readonly EnterpriseSecurityAccessResolver $access) {}
+
     public function canDecide(
         User $actor,
         EnterpriseWorkflowRequest $request,
@@ -22,10 +25,21 @@ final class WorkflowAuthorizer
             return false;
         }
 
-        $storeId = $request->scope_type === 'store' && $request->scope_id !== null
-            ? (int) $request->scope_id
+        $context = is_array($request->context) ? $request->context : [];
+        $amount = isset($context['amount']) && is_numeric($context['amount'])
+            ? (string) $context['amount']
+            : null;
+        $currency = isset($context['currency']) && is_string($context['currency'])
+            ? strtoupper($context['currency'])
             : null;
 
-        return $actor->hasPermission((string) $step->required_permission, $storeId);
+        return $this->access->allows(
+            $actor,
+            (string) $step->required_permission,
+            (string) $request->scope_type,
+            $request->scope_id === null ? null : (int) $request->scope_id,
+            $amount,
+            $currency,
+        );
     }
 }
