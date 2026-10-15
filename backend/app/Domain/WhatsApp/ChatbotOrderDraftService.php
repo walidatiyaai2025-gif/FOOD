@@ -89,6 +89,7 @@ final class ChatbotOrderDraftService
 
                 if ($price === null) {
                     $skipped++;
+
                     continue;
                 }
 
