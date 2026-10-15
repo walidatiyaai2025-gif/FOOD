@@ -92,7 +92,8 @@ class _VanDashboardPageState extends State<VanDashboardPage>
       var orders = _orders;
       var ordersUnavailable = false;
       try {
-        orders = await widget.orderRepository.orders();
+        final orderPage = await widget.orderRepository.orders(perPage: 100);
+        orders = orderPage.items;
       } on VanSessionExpiredException {
         rethrow;
       } catch (_) {
