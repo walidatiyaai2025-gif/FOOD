@@ -86,10 +86,10 @@ final class ChatbotFlowEngine
             ['conversation_id' => $conversationId],
             [
                 'platform_customer_id' => $platformCustomerId,
-                'state' => $existing?->state ?? 'ACTIVE',
+                'state' => $existing->state ?? 'ACTIVE',
                 'context' => json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'updated_at' => now(),
-                'created_at' => $existing?->created_at ?? now(),
+                'created_at' => $existing->created_at ?? now(),
             ],
         );
     }
