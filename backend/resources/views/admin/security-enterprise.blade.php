@@ -12,7 +12,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .es-notice{padding:12px 14px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;margin-bottom:12px}.es-note{padding:12px;border-radius:10px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);margin-bottom:16px}
 .es-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}.es-card{background:#fff;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:17px;box-shadow:var(--foodex-shadow-sm);min-width:0}.es-card h2,.es-card h3{margin-top:0}.es-help{color:var(--foodex-muted);line-height:1.55;margin-top:-5px}
 .es-form{display:grid;gap:10px}.es-form label{display:grid;gap:5px;font-weight:700}.es-form select,.es-form input,.es-form textarea{min-height:42px;border:1px solid var(--foodex-border);border-radius:9px;padding:8px 10px;background:#fff;color:var(--foodex-ink);font:inherit;max-width:100%}.es-form textarea{min-height:72px;resize:vertical}
-.es-button{min-height:42px;border:0;border-radius:9px;background:var(--foodex-green);color:#fff;font:inherit;font-weight:800;padding:8px 13px;cursor:pointer}.es-button.secondary{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border:1px solid var(--foodex-green)}.es-button.danger{background:var(--foodex-danger-soft,#fff1f2);color:var(--foodex-danger-text,#b42318);border:1px solid var(--foodex-border)}
+.es-button{min-height:42px;border:0;border-radius:9px;background:var(--foodex-green);color:#fff;font:inherit;font-weight:800;padding:8px 13px;cursor:pointer}.es-button.secondary{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border:1px solid var(--foodex-green)}.es-button.danger{background:var(--foodex-danger-soft);color:var(--foodex-danger-text);border:1px solid var(--foodex-border)}
 .es-list{display:grid;gap:10px}.es-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px;border:1px solid var(--foodex-border);border-radius:11px}.es-row p{margin:4px 0}.es-meta{color:var(--foodex-muted);font-size:.9rem;line-height:1.55}.es-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.es-badge{display:inline-flex;align-items:center;min-height:26px;padding:3px 8px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:.82rem;font-weight:800}.es-badge.muted{background:var(--foodex-background);color:var(--foodex-muted)}
 .es-pager{margin-top:12px}.es-empty{color:var(--foodex-muted);padding:12px 0}.es-wide{grid-column:1/-1}
 @media(max-width:900px){.es-grid{grid-template-columns:1fr}.es-head{flex-direction:column}.es-back{width:100%}.es-row{grid-template-columns:1fr}.es-actions{justify-content:flex-start}.es-wide{grid-column:auto}}
@@ -64,7 +64,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="es-note">{{ __('enterprise_security.delegator_is_you') }}</div>
 <form class="es-form" method="post" action="{{ route('admin.enterprise-security.delegations.store') }}">@csrf
 <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
-<label>{{ __('enterprise_security.delegate') }}<select name="delegate_id" required>@foreach($users as $managedUser)@if((int)$managedUser->id !== (int)$user->id)<option value="{{ $managedUser->id }}">{{ $managedUser->name }}</option>@endif @endforeach</select></label>
+<label>{{ __('enterprise_security.delegate') }}
+<select name="delegate_id" required>
+@foreach($users as $managedUser)
+@if((int) $managedUser->id !== (int) $user->id)
+<option value="{{ $managedUser->id }}">{{ $managedUser->name }}</option>
+@endif
+@endforeach
+</select>
+</label>
 <label>{{ __('enterprise_security.permission') }}<select name="permission_code" required>@foreach($permissionLabels as $code=>$label)<option value="{{ $code }}">{{ $label }}</option>@endforeach</select></label>
 </div>
 <label>{{ __('enterprise_security.scope') }}<select name="scope_key" required>@foreach($scopeOptions as $scope)<option value="{{ $scope['key'] }}">{{ $scope['label'] }}</option>@endforeach</select></label>
@@ -107,7 +115,23 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 $delegationState = $delegation->revoked_at ? 'revoked' : ($delegation->ends_at->isPast() ? 'expired' : ($delegation->starts_at->isFuture() ? 'scheduled' : 'active'));
 @endphp
 <div class="es-row"><div><strong>{{ $delegation->delegator?->name ?? __('enterprise_security.unknown_user') }} → {{ $delegation->delegate?->name ?? __('enterprise_security.unknown_user') }}</strong><p>{{ $permissionLabels[$delegation->permission_code] ?? $delegation->permission_code }}</p><div class="es-meta">{{ $scopeLabels[$delegation->scope_key] ?? __('enterprise_security.unavailable_scope') }} · {{ __('enterprise_security.starts_at') }}: {{ $delegation->starts_at->format('Y-m-d H:i') }} · {{ __('enterprise_security.ends_at') }}: {{ $delegation->ends_at->format('Y-m-d H:i') }}</div><span class="es-badge {{ $delegationState === 'active' ? '' : 'muted' }}">{{ __('enterprise_security.'.$delegationState) }}</span></div>
-@can('security.delegations.manage')@if(!$delegation->revoked_at && !$delegation->ends_at->isPast() && ((int)$delegation->delegator_id === (int)$user->id || $user->hasRole('SUPER_ADMIN')))<form method="post" action="{{ route('admin.enterprise-security.delegations.destroy',$delegation) }}">@csrf @method('delete')<button class="es-button danger" type="submit">{{ __('enterprise_security.revoke_delegation') }}</button></form>@endif @endcan</div>
+@can('security.delegations.manage')
+@if(
+    ! $delegation->revoked_at
+    && ! $delegation->ends_at->isPast()
+    && (
+        (int) $delegation->delegator_id === (int) $user->id
+        || $user->hasRole('SUPER_ADMIN')
+    )
+)
+<form method="post" action="{{ route('admin.enterprise-security.delegations.destroy', $delegation) }}">
+@csrf
+@method('delete')
+<button class="es-button danger" type="submit">{{ __('enterprise_security.revoke_delegation') }}</button>
+</form>
+@endif
+@endcan
+</div>
 @empty<p class="es-empty">{{ __('enterprise_security.none') }}</p>@endforelse
 </div><div class="es-pager">{{ $delegations->links() }}</div>
 </section>
