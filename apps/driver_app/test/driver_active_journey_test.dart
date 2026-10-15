@@ -5,6 +5,7 @@ import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/delivery/active/driver_active_journey.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
+import 'package:foodex_driver_app/features/wallet/driver_wallet_contract.dart';
 
 class _FakeActiveRepo
     implements DriverAssignmentRepository, DriverInvoiceDocumentRepository {
@@ -83,6 +84,42 @@ class _FakeActiveRepo
       completedAt: current.completedAt,
       createdAt: current.createdAt,
       invoice: current.invoice,
+    );
+  }
+}
+
+class _CollectingActiveRepo extends _FakeActiveRepo
+    implements DriverCollectionRepository {
+  _CollectingActiveRepo(
+    super.current, {
+    this.remainingAfterCollect = 0,
+  });
+
+  final double remainingAfterCollect;
+  int collectCount = 0;
+  double? collectedAmount;
+  String? collectedIdempotencyKey;
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) async {
+    collectCount += 1;
+    collectedAmount = amount;
+    collectedIdempotencyKey = idempotencyKey;
+
+    return DriverCollectionResult(
+      receipt: DriverCollectionReceipt(
+        id: 700 + collectCount,
+        amount: amount,
+        currency: current.settlement?.currency ?? current.currency,
+        status: 'collected',
+        createdAt: '2026-10-15T14:00:00Z',
+      ),
+      remainingAmount: remainingAfterCollect,
+      currency: current.settlement?.currency ?? current.currency,
     );
   }
 }
@@ -858,6 +895,133 @@ void main() {
     expect(find.byKey(const Key('driver-settlement-41')), findsOneWidget);
     expect(find.text('Account debt'), findsOneWidget);
     expect(find.text('Do not collect'), findsOneWidget);
+  });
+
+  testWidgets(
+      'collection amount stays in the dialog until valid and submits once',
+      (tester) async {
+    final repo = _CollectingActiveRepo(
+      const DriverAssignment(
+        id: 61,
+        channel: DriverChannel.b2c,
+        reference: 'COLLECT-61',
+        status: 'out_for_delivery',
+        availableStatuses: ['delivered', 'failed'],
+        settlement: DriverSettlement(
+          currency: 'KWD',
+          orderTotal: 20,
+          balanceApplied: 0,
+          paidAmount: 7.655,
+          remainingAmount: 12.345,
+          remainderMethod: 'cash_on_delivery',
+          paymentState: 'partially_settled',
+          amountToCollectNow: 12.345,
+          invoiceOutstandingAmount: 12.345,
+        ),
+      ),
+    );
+    var deliveredCount = 0;
+
+    await tester.pumpWidget(
+      _host(
+        repo,
+        onDeliveredRequested: (assignment) async {
+          deliveredCount += 1;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _openCardActions(tester, 61);
+    await tester.tap(find.byKey(const Key('driver-active-delivered-61')));
+    await tester.pumpAndSettle();
+
+    final amountField = find.byKey(const Key('driver-collection-amount'));
+    final confirm = find.byKey(const Key('driver-collection-confirm'));
+    expect(amountField, findsOneWidget);
+    expect(find.textContaining('12.345 KWD'), findsOneWidget);
+
+    for (final invalid in ['', 'not-a-number', '0', '12.346', '12.3456']) {
+      await tester.enterText(amountField, invalid);
+      await tester.tap(confirm);
+      await tester.pump();
+
+      expect(amountField, findsOneWidget);
+      expect(
+        find.text('Enter a valid amount no greater than required'),
+        findsOneWidget,
+      );
+      expect(repo.collectCount, 0);
+      expect(deliveredCount, 0);
+    }
+
+    await tester.enterText(amountField, '12.345');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-collection-amount')), findsNothing);
+    expect(repo.collectCount, 1);
+    expect(repo.collectedAmount, 12.345);
+    expect(repo.collectedIdempotencyKey, isNotEmpty);
+    expect(deliveredCount, 1);
+  });
+
+  testWidgets(
+      'Arabic compact collection dialog enforces settlement currency precision',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final repo = _CollectingActiveRepo(
+      const DriverAssignment(
+        id: 62,
+        channel: DriverChannel.b2c,
+        reference: 'COLLECT-62',
+        status: 'out_for_delivery',
+        availableStatuses: ['delivered', 'failed'],
+        settlement: DriverSettlement(
+          currency: 'EGP',
+          orderTotal: 10.25,
+          balanceApplied: 0,
+          paidAmount: 0,
+          remainingAmount: 10.25,
+          remainderMethod: 'cash_on_delivery',
+          paymentState: 'unpaid',
+          amountToCollectNow: 10.25,
+          invoiceOutstandingAmount: 10.25,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo, locale: const Locale('ar')));
+    await tester.pumpAndSettle();
+
+    await _openCardActions(tester, 62);
+    await tester.tap(find.byKey(const Key('driver-active-delivered-62')));
+    await tester.pumpAndSettle();
+
+    final amountField = find.byKey(const Key('driver-collection-amount'));
+    await tester.enterText(amountField, '10.251');
+    await tester.tap(find.byKey(const Key('driver-collection-confirm')));
+    await tester.pump();
+
+    expect(amountField, findsOneWidget);
+    expect(
+      find.text('أدخل مبلغًا صحيحًا لا يتجاوز المطلوب'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('10.25 EGP'), findsOneWidget);
+    expect(repo.collectCount, 0);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(amountField, findsNothing);
+    expect(repo.collectCount, 0);
   });
 
   testWidgets('Arabic host keeps the new journey RTL', (tester) async {
