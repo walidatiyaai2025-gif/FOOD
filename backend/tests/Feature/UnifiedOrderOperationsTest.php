@@ -130,6 +130,66 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_order_list_query_growth_is_bounded_across_supported_page_sizes(): void
+    {
+        $store = $this->retailStore('UNIFIED-PERF');
+        $admin = $this->retailAdmin($store, 'unified-perf@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Performance Buyer']);
+
+        $now = now();
+        $orders = [];
+        for ($index = 1; $index <= 100; $index++) {
+            $orders[] = [
+                'store_id' => $store,
+                'customer_id' => (int) $customer->legacy_customer_id,
+                'b2c_customer_id' => (int) $customer->id,
+                'order_number' => sprintf('PERF-ORDER-%03d', $index),
+                'channel' => 'b2c',
+                'status' => 'pending',
+                'currency' => 'KWD',
+                'subtotal' => 10,
+                'discount_total' => 0,
+                'delivery_total' => 0,
+                'grand_total' => 10,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        DB::table('orders')->insert($orders);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&per_page=25')
+            ->assertOk()
+            ->assertViewHas('orders', static fn ($paginator): bool => $paginator->perPage() === 25);
+        $page25Queries = count(DB::getQueryLog());
+
+        DB::flushQueryLog();
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&per_page=100')
+            ->assertOk()
+            ->assertViewHas('orders', static fn ($paginator): bool => $paginator->perPage() === 100);
+        $page100Queries = count(DB::getQueryLog());
+
+        $this->assertLessThanOrEqual(
+            $page25Queries + 12,
+            $page100Queries,
+            'Order Operations queries must stay bounded instead of growing per rendered row.',
+        );
+        $this->assertLessThan(
+            120,
+            $page100Queries,
+            'The optimized 100-row page must remain materially below the 458-query baseline.',
+        );
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&per_page=101')
+            ->assertSessionHasErrors('per_page');
+    }
+
     private function retailStore(string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
