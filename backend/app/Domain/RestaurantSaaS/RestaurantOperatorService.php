@@ -3,6 +3,7 @@
 namespace App\Domain\RestaurantSaaS;
 
 use App\Domain\RestaurantSaaS\Models\RestaurantLocationProfile;
+use App\Domain\RestaurantSaaS\Models\RestaurantSaasSubscription;
 use App\Domain\RestaurantSaaS\Models\RestaurantSupportAccessGrant;
 use App\Enterprise\Health\ModuleHealthService;
 use App\Models\AppPreviewSession;
@@ -68,6 +69,13 @@ final class RestaurantOperatorService
         $controlPlane = $this->controlPlane->context($store);
         $grant = $this->activeGrant($store);
         $scopeKey = 'store:'.(int) $store->getKey();
+        $organizationId = (int) ($controlPlane['organization']['id'] ?? 0);
+        $subscription = $organizationId > 0
+            ? RestaurantSaasSubscription::query()
+                ->with('plan:id,code,name')
+                ->where('organization_id', $organizationId)
+                ->first()
+            : null;
 
         $entitlements = EnterpriseModuleEntitlement::query()
             ->where('scope_key', $scopeKey)
@@ -93,6 +101,14 @@ final class RestaurantOperatorService
             'entitlements' => [
                 'total' => (int) ($entitlements?->getAttribute('total') ?? 0),
                 'enabled' => (int) ($entitlements?->getAttribute('enabled') ?? 0),
+            ],
+            'subscription' => $subscription === null ? null : [
+                'state' => (string) $subscription->state,
+                'plan_code' => (string) $subscription->plan->code,
+                'plan_name' => (string) $subscription->plan->name,
+                'is_complimentary' => (bool) $subscription->is_complimentary,
+                'cancel_at_period_end' => (bool) $subscription->cancel_at_period_end,
+                'current_period_ends_at' => $this->isoTimestamp($subscription->current_period_ends_at),
             ],
             'retention' => [
                 'business_data_deletion_allowed' => false,
