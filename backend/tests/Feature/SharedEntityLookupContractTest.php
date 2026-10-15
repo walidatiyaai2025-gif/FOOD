@@ -22,9 +22,9 @@ class SharedEntityLookupContractTest extends TestCase
             "event.key === 'Enter'",
             "event.key === 'Escape'",
             "event.key === 'Tab'",
-            'data.foodexEntityOption',
+            'dataset.foodexEntityOption',
             'next_page',
-            'data.foodexEntityRetry',
+            'dataset.foodexEntityRetry',
             'foodex:entity-selected',
             'foodex:entity-cleared',
         ] as $contract) {
