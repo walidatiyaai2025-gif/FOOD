@@ -96,84 +96,117 @@ final class MetaTemplateService
         ];
     }
 
-    /** @return array{updated:int,approved:int,pending:int,rejected:int} */
+    /** @return array{fetched:int,updated:int,imported:int,approved:int,pending:int,rejected:int} */
     public function sync(): array
     {
         $profile = $this->primaryProfile();
+        $endpoint = $this->graphUrl($profile, (string) $profile->provider_account_id).'/message_templates';
 
-        try {
-            $response = Http::withToken($this->token($profile))
-                ->acceptJson()
-                ->timeout($this->timeout())
-                ->get($this->graphUrl($profile, (string) $profile->provider_account_id).'/message_templates', [
-                    'fields' => 'id,name,status,category,language,components',
-                    'limit' => 100,
-                ]);
-        } catch (Throwable) {
-            throw ValidationException::withMessages([
-                'template' => [__('whatsapp.campaigns.meta_template_provider_unavailable')],
-            ]);
-        }
-
-        if (! $response->successful()) {
-            throw ValidationException::withMessages([
-                'template' => [__('whatsapp.campaigns.meta_template_sync_failed')],
-            ]);
-        }
-
-        $remote = $response->json('data');
-        $remote = is_array($remote) ? $remote : [];
+        $fetched = 0;
         $updated = 0;
+        $imported = 0;
         $approved = 0;
         $pending = 0;
         $rejected = 0;
+        $after = null;
+        $seenCursors = [];
+        $pages = 0;
 
-        foreach ($remote as $item) {
-            if (! is_array($item)) {
+        do {
+            $query = [
+                'fields' => 'id,name,status,category,language,components',
+                'limit' => 100,
+            ];
+            if ($after !== null) {
+                $query['after'] = $after;
+            }
+
+            try {
+                $response = Http::withToken($this->token($profile))
+                    ->acceptJson()
+                    ->timeout($this->timeout())
+                    ->get($endpoint, $query);
+            } catch (Throwable) {
+                throw ValidationException::withMessages([
+                    'template' => [__('whatsapp.campaigns.meta_template_provider_unavailable')],
+                ]);
+            }
+
+            if (! $response->successful()) {
+                throw ValidationException::withMessages([
+                    'template' => [__('whatsapp.campaigns.meta_template_sync_failed')],
+                ]);
+            }
+
+            $remote = $response->json('data');
+            $remote = is_array($remote) ? $remote : [];
+
+            foreach ($remote as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $providerName = $this->canonicalProviderName((string) ($item['name'] ?? ''));
+                $locale = $this->localLocale($item['language'] ?? null);
+                if ($providerName === '' || $locale === null) {
+                    continue;
+                }
+
+                $fetched++;
+                $local = DB::table('whats_app_templates')
+                    ->where('provider_name', $providerName)
+                    ->where('locale', $locale)
+                    ->first();
+
+                $status = $this->status((string) ($item['status'] ?? 'pending'));
+                $category = strtolower((string) ($item['category'] ?? ($local->category ?? 'marketing')));
+                $components = is_array($item['components'] ?? null) ? $item['components'] : [];
+                $body = $this->bodyFromComponents($components) ?? (string) ($local->body_preview ?? '');
+
+                $this->registry->upsert([
+                    'name' => $local === null ? $providerName : (string) $local->name,
+                    'provider_name' => $providerName,
+                    'locale' => $locale,
+                    'category' => $category,
+                    'provider_status' => $status,
+                    'body_preview' => $body,
+                    'components' => $components,
+                    'is_active' => $local === null ? true : (bool) $local->is_active,
+                ], $local === null || $local->created_by === null ? null : (int) $local->created_by);
+
+                if ($local === null) {
+                    $imported++;
+                } else {
+                    $updated++;
+                }
+
+                if ($status === 'approved') {
+                    $approved++;
+                } elseif ($status === 'rejected') {
+                    $rejected++;
+                } else {
+                    $pending++;
+                }
+            }
+
+            $pages++;
+            $nextAfter = $this->nullableString($response->json('paging.cursors.after'));
+            if ($nextAfter === null || $nextAfter === $after || isset($seenCursors[$nextAfter])) {
+                $after = null;
                 continue;
             }
 
-            $providerName = $this->nullableString($item['name'] ?? null);
-            $locale = $this->localLocale($item['language'] ?? null);
-            if ($providerName === null || $locale === null) {
-                continue;
+            $seenCursors[$nextAfter] = true;
+            $after = $nextAfter;
+
+            if ($pages >= 50 && $after !== null) {
+                throw ValidationException::withMessages([
+                    'template' => [__('whatsapp.campaigns.meta_template_sync_failed')],
+                ]);
             }
+        } while ($after !== null);
 
-            $local = DB::table('whats_app_templates')
-                ->where('provider_name', $providerName)
-                ->where('locale', $locale)
-                ->first();
-            if ($local === null) {
-                continue;
-            }
-
-            $status = $this->status((string) ($item['status'] ?? 'pending'));
-            $category = strtolower((string) ($item['category'] ?? $local->category ?? 'marketing'));
-            $components = is_array($item['components'] ?? null) ? $item['components'] : [];
-            $body = $this->bodyFromComponents($components) ?? (string) ($local->body_preview ?? '');
-
-            $this->registry->upsert([
-                'name' => (string) $local->name,
-                'provider_name' => $providerName,
-                'locale' => $locale,
-                'category' => $category,
-                'provider_status' => $status,
-                'body_preview' => $body,
-                'components' => $components,
-                'is_active' => (bool) $local->is_active,
-            ], $local->created_by === null ? null : (int) $local->created_by);
-
-            $updated++;
-            if ($status === 'approved') {
-                $approved++;
-            } elseif ($status === 'rejected') {
-                $rejected++;
-            } else {
-                $pending++;
-            }
-        }
-
-        return compact('updated', 'approved', 'pending', 'rejected');
+        return compact('fetched', 'updated', 'imported', 'approved', 'pending', 'rejected');
     }
 
     private function primaryProfile(): WhatsAppConnectionProfile
