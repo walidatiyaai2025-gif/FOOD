@@ -194,6 +194,11 @@ return [
     'business_labels' => [
         'b2b' => 'الجملة',
         'b2c' => 'التجزئة',
+        'platform' => 'المنصة',
+        'customer_app' => 'تطبيق العميل',
+        'dashboard' => 'لوحة الإدارة',
+        'import' => 'استيراد',
+        'migration' => 'ترحيل',
         'active' => 'نشط',
         'inactive' => 'غير نشط',
         'pending' => 'قيد الانتظار',

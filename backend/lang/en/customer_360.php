@@ -194,6 +194,11 @@ return [
     'business_labels' => [
         'b2b' => 'Wholesale',
         'b2c' => 'Retail',
+        'platform' => 'Platform',
+        'customer_app' => 'Customer App',
+        'dashboard' => 'Dashboard',
+        'import' => 'Import',
+        'migration' => 'Migration',
         'active' => 'Active',
         'inactive' => 'Inactive',
         'pending' => 'Pending',

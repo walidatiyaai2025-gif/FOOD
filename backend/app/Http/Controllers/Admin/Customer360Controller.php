@@ -108,6 +108,7 @@ final class Customer360Controller extends Controller
             'customers' => $customers,
             'filters' => $filters,
             'access' => $access,
+            'accessModeLabel' => $this->businessLabel((string) $access['mode']),
             'originStores' => $this->originStores($access),
         ]);
     }
@@ -1039,6 +1040,14 @@ final class Customer360Controller extends Controller
         $wholesale = $this->wholesaleInfo($customer, $access);
         $relatedUser = $customer->user;
         $userIsActive = $relatedUser instanceof User ? $relatedUser->is_active : true;
+        $registrationSource = strtolower(trim((string) $customer->registration_source));
+        $registrationSourceLabel = in_array(
+            $registrationSource,
+            ['customer_app', 'dashboard', 'import', 'migration'],
+            true,
+        )
+            ? $this->businessLabel($registrationSource)
+            : $this->businessLabel('unknown');
 
         return [
             'id' => (int) $customer->getKey(),
@@ -1047,8 +1056,8 @@ final class Customer360Controller extends Controller
             'phone' => $customer->phone,
             'active' => (bool) $customer->is_active && $userIsActive,
             'origin' => $origin,
-            'registration_source' => (string) $customer->registration_source,
-            'registration_source_label' => $this->businessLabel((string) $customer->registration_source),
+            'registration_source' => $registrationSource,
+            'registration_source_label' => $registrationSourceLabel,
             'origin_channel_label' => $this->businessLabel((string) ($customer->origin_channel ?: 'unknown')),
             'registered_at' => $customer->registered_at,
             'orders_count' => (clone $orders)->count(),

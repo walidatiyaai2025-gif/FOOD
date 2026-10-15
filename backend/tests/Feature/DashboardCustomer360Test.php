@@ -40,6 +40,95 @@ class DashboardCustomer360Test extends TestCase
             ->assertRedirect(route('admin.customer-360.index'));
     }
 
+    public function test_customer_360_localizes_registration_source_filter_rows_and_access_context(): void
+    {
+        $storeId = $this->store('B2C', 'SOURCE-LABELS', 'Source Labels');
+
+        $importUser = app(PlatformCustomerService::class)->register([
+            'name' => 'Imported Customer',
+            'email' => 'source-import@example.test',
+            'phone' => '+201000000101',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $storeId,
+        ], 'import');
+        $dashboardUser = app(PlatformCustomerService::class)->register([
+            'name' => 'Dashboard Customer',
+            'email' => 'source-dashboard@example.test',
+            'phone' => '+201000000102',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $storeId,
+        ], 'dashboard');
+        $unknownUser = app(PlatformCustomerService::class)->register([
+            'name' => 'Unknown Source Customer',
+            'email' => 'source-unknown@example.test',
+            'phone' => '+201000000103',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $storeId,
+        ], 'customer_app');
+
+        DB::table('platform_customers')
+            ->where('user_id', $unknownUser->id)
+            ->update([
+                'registration_source' => 'legacy_unknown',
+                'updated_at' => now(),
+            ]);
+
+        $importPlatform = PlatformCustomer::query()
+            ->where('user_id', $importUser->id)
+            ->firstOrFail();
+        $admin = $this->globalAdmin('SUPER_ADMIN');
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.index', ['registration_source' => 'import']))
+            ->assertOk()
+            ->assertSee('FOODEX · المنصة')
+            ->assertSee('تطبيق العميل')
+            ->assertSee('لوحة الإدارة')
+            ->assertSee('استيراد')
+            ->assertSee('ترحيل')
+            ->assertSee('value="import"', false)
+            ->assertSee('source-import@example.test')
+            ->assertDontSee('source-dashboard@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.index'))
+            ->assertOk()
+            ->assertSee('غير معروف')
+            ->assertDontSee('legacy_unknown');
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $importPlatform->id]))
+            ->assertOk()
+            ->assertSee('استيراد');
+
+        $admin->forceFill(['locale' => 'en'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.index'))
+            ->assertOk()
+            ->assertSee('FOODEX · Platform')
+            ->assertSee('Customer App')
+            ->assertSee('Dashboard')
+            ->assertSee('Import')
+            ->assertSee('Migration')
+            ->assertSee('Unknown')
+            ->assertDontSee('legacy_unknown');
+
+        $this->actingAs($admin)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $importPlatform->id]))
+            ->assertOk()
+            ->assertSee('Import');
+
+        $this->assertSame('dashboard', PlatformCustomer::query()
+            ->where('user_id', $dashboardUser->id)
+            ->value('registration_source'));
+    }
+
     public function test_retail_scope_hides_foreign_customer_store_and_invoice(): void
     {
         $storeA = $this->store('B2C', 'RETAIL-A', 'Retail A');
