@@ -34,11 +34,11 @@ final readonly class ModuleManifest
             throw new InvalidArgumentException('Module manifest version must be >= 1.');
         }
 
-        if (! in_array($this->defaultState, [
+        if (in_array($this->defaultState, [
             ModuleState::NOT_INSTALLED,
             ModuleState::INSTALLED,
             ModuleState::DISABLED,
-        ], true)) {
+        ], true) === false) {
             throw new InvalidArgumentException('Module default state must be non-operational.');
         }
 
@@ -99,7 +99,7 @@ final readonly class ModuleManifest
      */
     private static function stringList(mixed $value): array
     {
-        if (! is_array($value)) {
+        if (is_array($value) === false) {
             throw new InvalidArgumentException('Module manifest list fields must be arrays.');
         }
 
