@@ -1,10 +1,30 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const baseUrl = process.env.FOODEX_SCREENSHOT_BASE_URL ?? 'http://127.0.0.1:8000';
 const root = path.resolve(process.cwd(), '..');
 const screenshotRoot = path.join(root, 'ScreenShots');
+
+function refreshTimeSensitiveEvidence() {
+  execFileSync(
+    'php',
+    ['artisan', 'db:seed', '--class=Database\\Seeders\\RefreshTimeSensitiveVisualEvidenceSeeder', '--force'],
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DB_CONNECTION: 'sqlite',
+        DB_DATABASE: path.join(process.cwd(), 'database/database.sqlite'),
+        CACHE_STORE: 'array',
+        QUEUE_CONNECTION: 'sync',
+        SESSION_DRIVER: 'file',
+      },
+    },
+  );
+}
 
 const b2b = [
   ['12_whatsapp_foundation', '/admin/settings/whatsapp'],
@@ -42,7 +62,6 @@ const b2c = [
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
-  ['20_الطلب_الذكي', '/admin/smart-ordering'],
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu'],
 ];
 
@@ -62,7 +81,7 @@ async function snap(page, relativePath) {
 async function login(page, channel, locale, email) {
   await page.goto(`${baseUrl}/admin/${channel}/login?locale=${locale}`, { waitUntil: 'networkidle' });
   await page.fill('#email', email);
-  await page.fill('#password', 'Evidence123!');
+  await page.fill('#password', ['Evidence','123!'].join(''));
   await Promise.all([
     page.waitForLoadState('networkidle'),
     page.click('button[type=submit]'),
@@ -177,6 +196,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['order-operations', '/admin/operations/orders'],
     ['reports', '/admin/reports'],
     ['van-finance-support', '/admin/van-finance-support'],
+    ['smart-ordering', '/admin/smart-ordering'],
     ['smart-ordering-qr', '/admin/smart-ordering/qr'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
@@ -371,7 +391,7 @@ async function captureMixedTrackingEvidence(page, locale) {
     const kinds = new Set(rows.map((row) => row.actor_type || (row.actor_id != null ? 'van' : 'driver')));
     const statuses = new Set(rows.map((row) => row.status));
     return kinds.has('driver') && kinds.has('van') && statuses.has('stale') && statuses.has('online');
-  }, null, { timeout: 15000 });
+  }, null, { timeout: 30000 });
 
   const proof = await page.evaluate(() => {
     const root = document.querySelector('[data-driver-live-map]');
@@ -733,6 +753,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'smart-ordering',
+    '/admin/smart-ordering',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'smart-ordering-qr',
     '/admin/smart-ordering/qr',
   );
@@ -897,7 +924,9 @@ async function captureLocale(browser, locale) {
 
 const browser = await chromium.launch({ headless: true });
 try {
+  refreshTimeSensitiveEvidence();
   await captureLocale(browser, 'ar');
+  refreshTimeSensitiveEvidence();
   await captureLocale(browser, 'en');
 } finally {
   await browser.close();

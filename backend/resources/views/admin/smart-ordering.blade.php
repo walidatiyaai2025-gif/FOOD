@@ -18,6 +18,7 @@
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
         <header class="foodex-page-header">
             <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
+            <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
         </header>
         <section class="panel">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
