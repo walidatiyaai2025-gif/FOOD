@@ -123,7 +123,7 @@ final class SmartOrderingAnalyticsService
                 return false;
             }
 
-            $date = $occurredAt->toDateString();
+            $date = $this->localEventDate($branchId, $occurredAt);
             $branchKey = $branchId ?? 0;
             $this->incrementDaily(
                 $date,
@@ -195,7 +195,7 @@ final class SmartOrderingAnalyticsService
         $occurredAt ??= now();
         DB::transaction(function () use ($storeId, $branchId, $productId, $eventName, $revenue, $occurredAt): void {
             $this->incrementProductDaily(
-                $occurredAt->toDateString(),
+                $this->localEventDate($branchId, $occurredAt),
                 $storeId,
                 $branchId,
                 $productId,
@@ -360,6 +360,21 @@ final class SmartOrderingAnalyticsService
         }
 
         return $safe;
+    }
+
+    private function localEventDate(?int $branchId, CarbonInterface $occurredAt): string
+    {
+        $timezone = (string) config('app.timezone', 'UTC');
+        if ($branchId !== null) {
+            $branchTimezone = DB::table('smart_ordering_branches')
+                ->where('id', $branchId)
+                ->value('timezone');
+            if (is_string($branchTimezone) && trim($branchTimezone) !== '') {
+                $timezone = trim($branchTimezone);
+            }
+        }
+
+        return $occurredAt->copy()->setTimezone($timezone)->toDateString();
     }
 
     private function nullablePositiveInt(mixed $value): ?int
