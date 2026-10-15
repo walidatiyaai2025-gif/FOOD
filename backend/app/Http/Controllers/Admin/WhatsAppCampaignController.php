@@ -310,7 +310,7 @@ final class WhatsAppCampaignController extends Controller
                 'summary' => json_encode([
                     'customer_ids' => $result['customer_ids'],
                     'errors' => $result['errors'],
-                    'consent_skipped' => $result['consent_skipped'] ?? 0,
+                    'consent_skipped' => $result['consent_skipped'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'updated_at' => now(),
             ]);
