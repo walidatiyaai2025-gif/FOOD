@@ -1272,13 +1272,13 @@ final class OrderOperationsController extends Controller
                     : null,
                 'customer_name' => $channel === 'b2b'
                     ? ($b2bCustomer?->name ?? null)
-                    : data_get($b2cCustomer, 'name'),
+                    : ($b2cCustomer->name ?? null),
                 'b2b_customer' => $b2bCustomer instanceof B2bCustomer ? $b2bCustomer : null,
                 'payment' => $payments->get($orderId),
                 'invoice' => $invoices->get($orderId),
                 'has_issued_invoice' => (bool) ($issuedInvoiceOrders[$orderId] ?? false),
                 'store' => $stores->get((int) $order->store_id),
-                'source_note' => data_get($sourceNotes->get($orderId), 'note'),
+                'source_note' => $sourceNotes->get($orderId)?->note,
             ];
         }
 
@@ -1363,10 +1363,11 @@ final class OrderOperationsController extends Controller
                 ->latest('id')
                 ->first(['status', 'provider', 'amount', 'currency']);
 
-            $invoice = Invoice::query()
+            $invoice = DB::table('invoices')
                 ->where('order_id', $order->getKey())
                 ->latest('id')
-                ->first();
+                ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+
         }
 
         $channel = strtolower((string) $order->channel);
@@ -1407,7 +1408,9 @@ final class OrderOperationsController extends Controller
                 $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
                 $invoiceOutstanding = null;
                 if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
-                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
+                    $invoiceModel = $invoice instanceof Invoice
+                        ? $invoice
+                        : Invoice::query()->find((int) $invoice->id);
                     if ($invoiceModel instanceof Invoice) {
                         $amounts = $this->accountLedger->invoiceAmounts($invoiceModel);
                         $invoiceOutstanding = (float) $amounts['outstanding_amount'];
@@ -1485,9 +1488,7 @@ final class OrderOperationsController extends Controller
             'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
-            'assignment_id' => $assignment instanceof DriverAssignment
-                ? $assignment->getKey()
-                : null,
+            'assignment_id' => $assignment?->getKey(),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
             'driver' => $driver?->name,
