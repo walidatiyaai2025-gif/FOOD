@@ -149,6 +149,71 @@ final class LoyaltyAdminService
         ];
     }
 
+    /** @return array<string,mixed> */
+    public function updateReward(
+        User $actor,
+        SmartOrderingSite $site,
+        string $publicId,
+        string $nameEn,
+        ?string $nameAr,
+        int $pointsCost,
+        ?int $branchId,
+        bool $active,
+        array $payload = [],
+    ): array {
+        abort_unless($actor->hasPermission('smart_ordering.manage', (int) $site->store_id), 403);
+        abort_if($pointsCost <= 0, 422);
+
+        if ($branchId !== null) {
+            abort_unless(
+                DB::table('smart_ordering_branches')
+                    ->where('id', $branchId)
+                    ->where('site_id', $site->id)
+                    ->exists(),
+                404,
+            );
+        }
+
+        $reward = DB::table('smart_ordering_loyalty_rewards')
+            ->where('site_id', $site->id)
+            ->where('public_id', $publicId)
+            ->first();
+        abort_unless($reward !== null, 404);
+
+        DB::table('smart_ordering_loyalty_rewards')->where('id', $reward->id)->update([
+            'branch_id' => $branchId,
+            'name_ar' => $nameAr === null ? null : mb_substr(trim($nameAr), 0, 255),
+            'name_en' => mb_substr(trim($nameEn), 0, 255),
+            'points_cost' => $pointsCost,
+            'payload' => $payload === [] ? null : json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'is_active' => $active,
+            'updated_at' => now(),
+        ]);
+
+        $this->audit->record('smart_ordering.loyalty.reward_updated', $actor, $site, [
+            'store_id' => (int) $site->store_id,
+            'reward_public_id' => $publicId,
+            'branch_id' => $reward->branch_id,
+            'points_cost' => (int) $reward->points_cost,
+            'is_active' => (bool) $reward->is_active,
+        ], [
+            'store_id' => (int) $site->store_id,
+            'reward_public_id' => $publicId,
+            'branch_id' => $branchId,
+            'points_cost' => $pointsCost,
+            'is_active' => $active,
+        ]);
+
+        return [
+            'id' => $publicId,
+            'branch_id' => $branchId,
+            'name_ar' => $nameAr,
+            'name_en' => $nameEn,
+            'points_cost' => $pointsCost,
+            'is_active' => $active,
+        ];
+    }
+
     /** @return list<array<string,mixed>> */
     public function rewards(SmartOrderingSite $site, ?int $branchId = null): array
     {
