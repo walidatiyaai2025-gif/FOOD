@@ -8,11 +8,13 @@ use App\Enterprise\Workflow\WorkflowStepDefinition;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\EnterpriseSecurityAdministration;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use LogicException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -277,6 +279,124 @@ final class EnterpriseSecurityGovernanceTest extends TestCase
             ->assertOk()
             ->assertSee('حوكمة الوصول المؤسسي')
             ->assertSee('التفويضات المؤقتة');
+    }
+
+    public function test_security_change_idempotency_token_is_bound_to_exact_payload(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $firstTarget = User::factory()->create(['is_active' => true]);
+        $secondTarget = User::factory()->create(['is_active' => true]);
+        $organizationId = (int) DB::table('enterprise_organizations')->value('id');
+        $service = app(EnterpriseSecurityAdministration::class);
+        $token = (string) Str::uuid();
+        $payload = [
+            'target_user_id' => $firstTarget->id,
+            'scope_type' => 'organization',
+            'scope_id' => $organizationId,
+            'scope_key' => 'organization:'.$organizationId,
+            'starts_at' => null,
+            'ends_at' => null,
+        ];
+
+        $first = $service->requestChange($admin, EnterpriseSecurityAdministration::DATA_SCOPE_UPSERT, $payload, $token);
+        $retry = $service->requestChange($admin, EnterpriseSecurityAdministration::DATA_SCOPE_UPSERT, $payload, $token);
+
+        $this->assertSame($first->id, $retry->id);
+        $this->assertDatabaseCount('enterprise_workflow_requests', 1);
+
+        $this->expectException(LogicException::class);
+        $service->requestChange(
+            $admin,
+            EnterpriseSecurityAdministration::DATA_SCOPE_UPSERT,
+            [...$payload, 'target_user_id' => $secondTarget->id],
+            $token,
+        );
+    }
+
+    public function test_stale_removal_review_is_rejected_without_mutating_policy(): void
+    {
+        $maker = $this->userWithRole('SUPER_ADMIN');
+        $checker = $this->userWithRole('SUPER_ADMIN');
+        $target = User::factory()->create(['is_active' => true]);
+        $organizationId = (int) DB::table('enterprise_organizations')->value('id');
+        $policyId = (int) DB::table('enterprise_user_data_scopes')->insertGetId([
+            'user_id' => $target->id,
+            'scope_type' => 'organization',
+            'scope_id' => $organizationId,
+            'starts_at' => null,
+            'ends_at' => null,
+            'granted_by' => $maker->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($maker)
+            ->post('/admin/security/enterprise/changes', [
+                'operation' => 'data_scope.remove',
+                'request_token' => (string) Str::uuid(),
+                'policy_id' => $policyId,
+            ])
+            ->assertRedirect();
+
+        $workflowId = (int) DB::table('enterprise_workflow_requests')
+            ->where('workflow_key', 'enterprise.security.change')
+            ->latest('id')
+            ->value('id');
+
+        DB::table('enterprise_user_data_scopes')->where('id', $policyId)->update([
+            'ends_at' => now()->addDay(),
+            'updated_at' => now()->addMinute(),
+        ]);
+
+        $this->actingAs($checker)
+            ->post("/admin/security/enterprise/changes/{$workflowId}/decision", [
+                'decision' => 'APPROVED',
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('enterprise_user_data_scopes', ['id' => $policyId]);
+        $this->assertDatabaseHas('enterprise_workflow_requests', [
+            'id' => $workflowId,
+            'status' => 'PENDING',
+        ]);
+    }
+
+    public function test_governance_dashboard_filters_enterprise_policies_to_configured_actor_scope(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $actor = $this->userWithGlobalPermission('roles.manage', 'SCOPED_SECURITY_REVIEWER');
+        $targetOne = User::factory()->create(['is_active' => true]);
+        $targetTwo = User::factory()->create(['is_active' => true]);
+        $firstOrganizationId = (int) DB::table('enterprise_organizations')->value('id');
+        $secondOrganizationId = (int) DB::table('enterprise_organizations')->insertGetId([
+            'code' => 'VISIBILITY_ORG',
+            'name' => 'Visibility Organization',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach ([
+            [$actor->id, $firstOrganizationId],
+            [$targetOne->id, $firstOrganizationId],
+            [$targetTwo->id, $secondOrganizationId],
+        ] as [$userId, $scopeId]) {
+            DB::table('enterprise_user_data_scopes')->insert([
+                'user_id' => $userId,
+                'scope_type' => 'organization',
+                'scope_id' => $scopeId,
+                'starts_at' => null,
+                'ends_at' => null,
+                'granted_by' => $admin->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $dashboard = app(EnterpriseSecurityAdministration::class)->dashboard($actor);
+
+        $this->assertSame([$actor->id, $targetOne->id], $dashboard['data_scopes']->pluck('user_id')->sort()->values()->all());
+        $this->assertFalse($dashboard['data_scopes']->contains('user_id', $targetTwo->id));
     }
 
     public function test_governance_schema_is_additive_and_reversible(): void
