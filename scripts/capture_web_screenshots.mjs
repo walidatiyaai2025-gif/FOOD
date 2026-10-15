@@ -11,7 +11,18 @@ function refreshTimeSensitiveEvidence() {
   execFileSync(
     'php',
     ['artisan', 'db:seed', '--class=Database\\Seeders\\RefreshTimeSensitiveVisualEvidenceSeeder', '--force'],
-    { cwd: process.cwd(), stdio: 'inherit' },
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DB_CONNECTION: 'sqlite',
+        DB_DATABASE: path.join(process.cwd(), 'database/database.sqlite'),
+        CACHE_STORE: 'array',
+        QUEUE_CONNECTION: 'sync',
+        SESSION_DRIVER: 'file',
+      },
+    },
   );
 }
 
