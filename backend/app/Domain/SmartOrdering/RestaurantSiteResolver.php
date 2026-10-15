@@ -2,6 +2,7 @@
 
 namespace App\Domain\SmartOrdering;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 
 final class RestaurantSiteResolver
@@ -16,5 +17,10 @@ final class RestaurantSiteResolver
     public function fromSlug(string $slug): ?SmartOrderingSite
     {
         return $this->runtime->resolveBySlug($slug);
+    }
+
+    public function branch(SmartOrderingSite $site, string $publicId): SmartOrderingBranch
+    {
+        return $this->runtime->branch($site, $publicId);
     }
 }
