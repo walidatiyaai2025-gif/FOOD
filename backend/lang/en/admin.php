@@ -10,6 +10,8 @@ return [
     'profile' => 'My Profile',
     'sidebar_search' => 'Search navigation',
     'sidebar_toggle' => 'Toggle navigation',
+    'sidebar_open' => 'Open navigation',
+    'sidebar_close' => 'Close navigation',
     'role_names' => [
         'SUPER_ADMIN' => 'Platform Owner / Super Admin',
         'B2B_ADMIN' => 'B2B Admin',

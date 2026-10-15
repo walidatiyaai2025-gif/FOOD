@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Models\Role;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -252,6 +254,153 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             'platform_customer_id' => $unknownId,
             'eligibility_status' => 'suppressed',
             'suppression_reason' => 'no_consent',
+        ]);
+    }
+
+    public function test_recipient_level_consent_columns_are_audited_to_the_import_batch(): void
+    {
+        $storeId = $this->store('B2B', 'WA-FIRST-CONTACT-CONSENT');
+        $this->enableCampaigns(['+96550000229']);
+        $admin = $this->superAdmin();
+
+        $preview = $this->actingAs($admin)
+            ->withHeader('Accept', 'application/json')
+            ->post(
+                route('admin.whatsapp-campaigns.audience.import.preview'),
+                [
+                    'store_id' => $storeId,
+                    'file' => UploadedFile::fake()->createWithContent(
+                        'contacts-with-consent.csv',
+                        "Customer Name,Mobile,Consent State,Consent Source,Consent Evidence,Consent Date\n"
+                        ."First Contact,+96550000229,granted,landing_page,Form submission #77,2026-10-15\n",
+                    ),
+                ],
+            )->assertOk()->json('preview');
+
+        $this->assertSame('Consent State', $preview['mapping']['consent_state']);
+        $this->assertSame('Consent Source', $preview['mapping']['consent_source']);
+        $this->assertSame('Consent Evidence', $preview['mapping']['consent_evidence']);
+        $this->assertSame('Consent Date', $preview['mapping']['consent_date']);
+
+        $result = $this->actingAs($admin)->postJson(
+            route('admin.whatsapp-campaigns.audience.import.commit', ['batch' => $preview['batch_id']]),
+            [
+                'store_id' => $storeId,
+                'mapping' => [
+                    'name' => 'Customer Name',
+                    'phone' => 'Mobile',
+                    'consent_state' => 'Consent State',
+                    'consent_source' => 'Consent Source',
+                    'consent_evidence' => 'Consent Evidence',
+                    'consent_date' => 'Consent Date',
+                ],
+            ],
+        )->assertOk()->json();
+
+        $customerId = (int) $result['customer_ids'][0];
+        $this->assertSame('granted', app(MarketingConsentService::class)->state($customerId));
+        $metadata = json_decode((string) DB::table('whats_app_marketing_consents')
+            ->where('platform_customer_id', $customerId)
+            ->orderByDesc('id')
+            ->value('metadata'), true);
+
+        $this->assertSame((int) $preview['batch_id'], $metadata['source_reference']);
+        $this->assertSame('campaign_import', $metadata['source_type']);
+        $this->assertSame('Form submission #77', $metadata['evidence']);
+        $this->assertSame('2026-10-15', $metadata['evidence_date']);
+    }
+
+    public function test_first_contact_campaign_needs_no_prior_conversation_and_queues_approved_template(): void
+    {
+        Queue::fake();
+
+        $storeId = $this->store('B2C', 'WA-FIRST-CONTACT-SEND');
+        $phone = '+96550000559';
+        $this->enableCampaigns([$phone]);
+        $admin = $this->superAdmin();
+        $customerId = $this->customer($storeId, 'b2c', $phone);
+        app(MarketingConsentService::class)->record(
+            $customerId,
+            MarketingConsentService::GRANTED,
+            'verified',
+            $admin->id,
+            ['evidence' => 'first-contact fixture'],
+        );
+        $templateId = $this->template();
+        $this->metaProfile();
+
+        $this->assertDatabaseMissing('whats_app_conversations', [
+            'platform_customer_id' => $customerId,
+            'channel' => 'whatsapp',
+        ]);
+
+        $preview = $this->actingAs($admin)->postJson(route('admin.whatsapp-campaigns.preview'), [
+            'customer_ids' => [$customerId],
+            'store_ids' => [$storeId],
+            'template_id' => $templateId,
+            'test_mode' => true,
+            'test_allowlist' => $phone,
+            'max_recipients' => 10,
+            'batch_size' => 1,
+        ])->assertOk()->json();
+
+        $this->assertSame(1, $preview['eligible']);
+        $this->assertSame(1, $preview['first_contact']);
+        $this->assertSame(0, $preview['existing_contact']);
+        $this->assertSame(1, $preview['estimated_batches']);
+        $this->assertTrue($preview['template']['approved']);
+        $this->assertSame('first_contact', $preview['sample'][0]['contact_type']);
+
+        $this->actingAs($admin)->post(route('admin.whatsapp-campaigns.store'), [
+            'name' => 'First Contact Campaign',
+            'template_id' => $templateId,
+            'audience_source' => 'existing',
+            'customer_ids' => [$customerId],
+            'store_ids' => [$storeId],
+            'test_mode' => 1,
+            'test_allowlist' => $phone,
+            'batch_size' => 1,
+            'per_minute_limit' => 10,
+            'max_recipients' => 10,
+            'launch_action' => 'send_now',
+        ])->assertRedirect();
+
+        $campaignId = (int) DB::table('whats_app_campaigns')
+            ->where('name', 'First Contact Campaign')
+            ->value('id');
+        $snapshot = json_decode((string) DB::table('whats_app_campaign_recipients')
+            ->where('campaign_id', $campaignId)
+            ->where('platform_customer_id', $customerId)
+            ->value('snapshot'), true);
+
+        $this->assertSame('first_contact', $snapshot['contact_type']);
+        $this->assertDatabaseMissing('whats_app_conversations', [
+            'platform_customer_id' => $customerId,
+            'channel' => 'whatsapp',
+        ]);
+
+        $this->assertSame(1, app(CampaignService::class)->dispatchDue());
+
+        $conversationId = (int) DB::table('whats_app_conversations')
+            ->where('platform_customer_id', $customerId)
+            ->where('channel', 'whatsapp')
+            ->value('id');
+        $this->assertGreaterThan(0, $conversationId);
+
+        $message = DB::table('whats_app_messages')
+            ->where('conversation_id', $conversationId)
+            ->where('content_type', 'template')
+            ->orderByDesc('id')
+            ->first();
+        $this->assertNotNull($message);
+
+        $metadata = json_decode((string) $message->attachment_metadata, true);
+        $this->assertSame('campaigns', $metadata['purpose']);
+        $this->assertSame($campaignId, (int) $metadata['campaign_id']);
+        $this->assertDatabaseHas('whats_app_outbound_dispatches', [
+            'message_id' => $message->id,
+            'status' => 'queued',
+            'recipient' => $phone,
         ]);
     }
 
@@ -524,6 +673,9 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ->assertSee('Import CSV / Excel')
             ->assertSee('Add manually')
             ->assertSee('id="wa-manual-consent-state" autocomplete="off"', false)
+            ->assertSee('id="wa-map-consent-state"', false)
+            ->assertSee('id="wa-preview-first-contact"', false)
+            ->assertSee('id="wa-review-summary"', false)
             ->assertSee('id="wa-manual-consent-source" maxlength="64" placeholder="admin_verified" autocomplete="off" disabled', false)
             ->assertSee('const resetConsentFields = prefix => syncConsentFields(prefix,true);', false)
             ->assertSee('if(!state)return {consent_state:null};', false)
@@ -548,6 +700,8 @@ final class WhatsAppCampaignBuilderTest extends TestCase
         $this->assertSame('إنشاء قالب واتساب', $arabic['campaigns']['create_meta_template']);
         $this->assertSame('Reports', $english['campaigns']['reports']);
         $this->assertSame('التقارير', $arabic['campaigns']['reports']);
+        $this->assertSame('First contact', $english['campaigns']['contact_type_values']['first_contact']);
+        $this->assertSame('أول تواصل', $arabic['campaigns']['contact_type_values']['first_contact']);
     }
 
     private function superAdmin(): User

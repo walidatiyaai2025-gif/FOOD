@@ -20,10 +20,40 @@ final class SmartOrderingStorefrontTest extends TestCase
                     ->assertSee('data-template="'.$theme.'"', false)
                     ->assertSee('dir="'.($locale === 'ar' ? 'rtl' : 'ltr').'"', false)
                     ->assertSee('data-theme="'.($locale === 'ar' ? 'dark' : 'light').'"', false)
+                    ->assertSee('aria-labelledby="so-item-dialog-title"', false)
+                    ->assertSee('aria-describedby="so-item-dialog-description"', false)
+                    ->assertSee('id="so-item-dialog-title"', false)
+                    ->assertSee('id="so-item-dialog-description"', false)
                     ->assertDontSee('secret-token')
                     ->assertDontSee('internal_id');
             }
         }
+    }
+
+    public function test_public_item_dialog_and_icon_only_actions_keep_accessible_item_context(): void
+    {
+        foreach (['quick-bite', 'signature-brand'] as $theme) {
+            foreach (['en', 'ar'] as $locale) {
+                $snapshot = $this->snapshot($theme, 'light');
+                $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+                $label = $locale === 'ar' ? 'تخصيص برجر كلاسيك' : 'Customize Classic Burger';
+
+                $this->get('/smart-ordering/demo?lang='.$locale)
+                    ->assertOk()
+                    ->assertSee('aria-label="'.$label.'"', false);
+            }
+        }
+
+        $script = file_get_contents(public_path('js/smart-ordering-storefront.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString('let dialogTrigger=null;', $script);
+        $this->assertStringContainsString('dialogTrigger=trigger;', $script);
+        $this->assertStringContainsString("dialog.querySelector('.so-dialog-close')?.focus();", $script);
+        $this->assertStringContainsString("dialog.addEventListener('close'", $script);
+        $this->assertStringContainsString('trigger.focus();', $script);
+        $this->assertStringContainsString("dialog.removeAttribute('aria-describedby')", $script);
     }
 
     public function test_public_storefront_ignores_untrusted_theme_override_and_emits_seo(): void

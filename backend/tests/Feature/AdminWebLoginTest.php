@@ -202,6 +202,49 @@ class AdminWebLoginTest extends TestCase
         $this->post('/api/v1/b2b/register')->assertNotFound();
     }
 
+    public function test_login_validation_errors_render_field_associations_and_preserve_entered_email(): void
+    {
+        $response = $this->followingRedirects()
+            ->from('/admin/b2b/login?locale=en')
+            ->post('/admin/b2b/login', [
+                'email' => 'not-an-email',
+                'password' => '',
+                'locale' => 'en',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('value="not-an-email"', false)
+            ->assertSee('data-foodex-native-error-summary', false)
+            ->assertSee('data-foodex-error-summary-key="email"', false)
+            ->assertSee('data-foodex-error-summary-key="password"', false)
+            ->assertSee('aria-invalid="true"', false)
+            ->assertSee('aria-describedby="foodex-server-error-email"', false)
+            ->assertSee('aria-errormessage="foodex-server-error-email"', false)
+            ->assertSee('id="foodex-server-error-email"', false)
+            ->assertSee('aria-describedby="foodex-server-error-password"', false)
+            ->assertSee('aria-errormessage="foodex-server-error-password"', false)
+            ->assertSee('id="foodex-server-error-password"', false);
+    }
+
+    public function test_invalid_credentials_keep_generic_non_enumerating_email_error_association(): void
+    {
+        $response = $this->followingRedirects()
+            ->from('/admin/b2c/login?locale=en')
+            ->post('/admin/b2c/login', [
+                'email' => 'unknown-user@example.test',
+                'password' => 'wrong-password',
+                'locale' => 'en',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertSee(__('admin_login.invalid_credentials'))
+            ->assertSee('data-foodex-error-summary-key="email"', false)
+            ->assertSee('aria-describedby="foodex-server-error-email"', false)
+            ->assertDontSee('data-foodex-error-summary-key="password"', false);
+    }
+
     public function test_authenticated_management_user_can_logout_and_session_is_invalidated(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');

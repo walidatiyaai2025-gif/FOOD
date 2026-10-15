@@ -23,15 +23,34 @@ final class CampaignService
      * @param  list<string>  $testAllowlist
      * @return array<string, mixed>
      */
-    public function preview(array $segment, bool $testMode, array $testAllowlist, int $maxRecipients = 1000): array
-    {
+    public function preview(
+        array $segment,
+        bool $testMode,
+        array $testAllowlist,
+        int $maxRecipients = 1000,
+        int $batchSize = 50,
+        bool $templateApproved = true,
+    ): array {
         $allowlist = $this->normalizeAllowlist($testAllowlist);
+        $customers = $this->segments->customers($segment);
+        $existingConversationCustomerIds = $this->existingConversationCustomerIds($customers->pluck('id')->all());
         $rows = [];
         $eligible = 0;
+        $firstContact = 0;
+        $existingContact = 0;
         $reasons = [];
 
-        foreach ($this->segments->customers($segment) as $customer) {
+        foreach ($customers as $customer) {
+            $contactType = isset($existingConversationCustomerIds[(int) $customer->id])
+                ? 'existing_contact'
+                : 'first_contact';
+            $contactType === 'first_contact' ? $firstContact++ : $existingContact++;
+
             [$ok, $reason, $phone] = $this->eligibility($customer, $testMode, $allowlist);
+            if ($ok && ! $templateApproved) {
+                $ok = false;
+                $reason = 'template_policy';
+            }
             if ($ok && $eligible >= max(1, $maxRecipients)) {
                 $ok = false;
                 $reason = 'campaign_limit';
@@ -47,6 +66,7 @@ final class CampaignService
                     'platform_customer_id' => (int) $customer->id,
                     'name' => $customer->name,
                     'phone' => $phone,
+                    'contact_type' => $contactType,
                     'eligible' => $ok,
                     'reason' => $reason,
                 ];
@@ -56,6 +76,9 @@ final class CampaignService
         return [
             'eligible' => $eligible,
             'suppressed' => array_sum($reasons),
+            'first_contact' => $firstContact,
+            'existing_contact' => $existingContact,
+            'estimated_batches' => $eligible === 0 ? 0 : (int) ceil($eligible / max(1, $batchSize)),
             'suppression_reasons' => $reasons,
             'sample' => $rows,
         ];
@@ -76,12 +99,21 @@ final class CampaignService
 
             DB::table('whats_app_campaign_recipients')->where('campaign_id', $campaignId)->delete();
 
+            $customers = $this->segments->customers($segment);
+            $existingConversationCustomerIds = $this->existingConversationCustomerIds($customers->pluck('id')->all());
             $eligible = 0;
             $suppressed = 0;
+            $firstContact = 0;
+            $existingContact = 0;
             $reasons = [];
             $now = now();
 
-            foreach ($this->segments->customers($segment) as $customer) {
+            foreach ($customers as $customer) {
+                $contactType = isset($existingConversationCustomerIds[(int) $customer->id])
+                    ? 'existing_contact'
+                    : 'first_contact';
+                $contactType === 'first_contact' ? $firstContact++ : $existingContact++;
+
                 [$ok, $reason, $phone] = $this->eligibility($customer, (bool) $campaign->test_mode, $allowlist);
                 if ($ok && $eligible >= max(1, (int) $campaign->max_recipients)) {
                     $ok = false;
@@ -101,6 +133,7 @@ final class CampaignService
                         'email' => $customer->email,
                         'origin_channel' => $customer->origin_channel,
                         'origin_store_id' => $customer->origin_store_id,
+                        'contact_type' => $contactType,
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     'eligibility_status' => $ok ? 'eligible' : 'suppressed',
                     'suppression_reason' => $ok ? null : $reason,
@@ -110,7 +143,13 @@ final class CampaignService
                 ]);
             }
 
-            return compact('eligible', 'suppressed', 'reasons');
+            return [
+                'eligible' => $eligible,
+                'suppressed' => $suppressed,
+                'first_contact' => $firstContact,
+                'existing_contact' => $existingContact,
+                'reasons' => $reasons,
+            ];
         }, 3);
     }
 
@@ -444,6 +483,27 @@ final class CampaignService
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    /**
+     * @param  list<int|string>  $customerIds
+     * @return array<int, true>
+     */
+    private function existingConversationCustomerIds(array $customerIds): array
+    {
+        $existing = [];
+
+        foreach (array_chunk(array_values(array_unique(array_map('intval', $customerIds))), 1000) as $chunk) {
+            foreach (DB::table('whats_app_conversations')
+                ->where('channel', 'whatsapp')
+                ->whereIn('platform_customer_id', $chunk)
+                ->distinct()
+                ->pluck('platform_customer_id') as $customerId) {
+                $existing[(int) $customerId] = true;
+            }
+        }
+
+        return $existing;
     }
 
     /**
