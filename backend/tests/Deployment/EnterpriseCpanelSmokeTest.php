@@ -36,6 +36,7 @@ final class EnterpriseCpanelSmokeTest extends TestCase
             'route:cache' => ['route:cache', []],
             'view:cache' => ['view:cache', []],
             'schedule:list' => ['schedule:list', []],
+            'migrate' => ['migrate', ['--force' => true, '--no-interaction' => true]],
             'migrate:status' => ['migrate:status', ['--no-interaction' => true]],
         ];
 
