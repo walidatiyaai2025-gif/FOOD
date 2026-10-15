@@ -27,7 +27,16 @@ final class SmartOrderingSupplyController extends Controller
         abort_if($storeIds === [], 403);
 
         $requested = $request->integer('store_id');
-        $storeId = in_array($requested, $storeIds, true) ? $requested : (int) $storeIds[0];
+        $storeId = in_array($requested, $storeIds, true)
+            ? $requested
+            : (int) (DB::table('smart_ordering_sites as sites')
+                ->join('smart_ordering_entitlements as entitlements', 'entitlements.site_id', '=', 'sites.id')
+                ->whereIn('sites.store_id', $storeIds)
+                ->where('entitlements.scope_key', 'site')
+                ->where('entitlements.module', 'foodex_supply_intelligence')
+                ->where('entitlements.enabled', true)
+                ->orderBy('sites.store_id')
+                ->value('sites.store_id') ?? $storeIds[0]);
         abort_unless($actor->hasPermission('smart_ordering.view', $storeId), 403);
 
         $site = $sites->ensureForStore($storeId, $actor, $request);
@@ -82,6 +91,7 @@ final class SmartOrderingSupplyController extends Controller
             'to' => $to,
             'menuItems' => $supply->menuItems($site),
             'foodexProducts' => $supply->foodexProducts($request->string('q')->toString()),
+            'restaurantProducts' => $supply->restaurantProducts($site),
             'mappings' => $supply->mappings($site),
             'consumption' => $supply->consumption($site, $from, $to, $branchId),
             'recommendations' => $supply->recommendations($site, $branchId, $from, $to),
