@@ -396,6 +396,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
                     ]],
                     'paging' => [
                         'cursors' => ['after' => 'cursor-page-2'],
+                        'next' => 'https://graph.facebook.com/v26.0/waba-foodex/message_templates?after=cursor-page-2',
                     ],
                 ], 200);
             }
