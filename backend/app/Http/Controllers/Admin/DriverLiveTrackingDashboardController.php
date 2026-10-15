@@ -112,10 +112,11 @@ final class DriverLiveTrackingDashboardController extends Controller
                 ...$this->driverLookup($scopes, $query, 10),
                 ...$this->vanLookup($user, $scopes, $query, 10),
             ], 0, 20),
+            default => throw new \LogicException('Validated tracking lookup kind is unsupported.'),
         };
 
         return response()->json([
-            'data' => array_values($options),
+            'data' => $options,
             'meta' => ['limit' => 20],
         ]);
     }
