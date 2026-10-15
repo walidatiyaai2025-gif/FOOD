@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 final class ChatbotFeatureRegistry
 {
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function all(): Collection
     {
         if (! Schema::hasTable('whats_app_chatbot_features')) {
@@ -21,7 +21,7 @@ final class ChatbotFeatureRegistry
             ->get();
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function visibleEnabled(?array $segmentCodes = null): Collection
     {
         $features = $this->all()
