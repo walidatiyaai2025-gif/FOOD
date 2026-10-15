@@ -32,27 +32,30 @@ final class EnterpriseSystemHealthDashboardTest extends TestCase
         $manager->transition('sample_optional', ModuleState::ENABLING);
         $manager->transition('sample_optional', ModuleState::ENABLED);
 
+        $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'health-owner@example.test');
+
         EnterpriseOutboxMessage::query()->create([
             'event_id' => (string) \Illuminate\Support\Str::uuid(),
             'event_type' => 'health.test',
             'event_version' => 1,
-            'aggregate_type' => 'test',
-            'aggregate_id' => '1',
-            'payload' => [],
+            'payload' => json_encode(['kind' => 'health-test'], JSON_THROW_ON_ERROR),
             'status' => 'pending',
             'attempt_count' => 0,
             'available_at' => now(),
         ]);
         EnterpriseWorkflowRequest::query()->create([
             'workflow_key' => 'health_test',
+            'definition_version' => 1,
             'entity_type' => 'test',
             'entity_id' => '1',
+            'scope_type' => 'platform',
+            'scope_id' => null,
+            'requester_id' => $admin->id,
             'status' => 'PENDING',
-            'requested_by' => 1,
+            'idempotency_key' => 'health-test-1',
             'context' => [],
         ]);
 
-        $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'health-owner@example.test');
         $this->actingAs($admin)->get(route('admin.enterprise-system-health.index'))
             ->assertOk()
             ->assertSee('dir="ltr"', false)
