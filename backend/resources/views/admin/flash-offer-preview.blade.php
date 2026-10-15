@@ -29,11 +29,11 @@
         .evidence-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem)}.muted{color:var(--foodex-muted)}
         .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
         .commercial-tabs a{min-height:40px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
-        .commercial-tabs a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green)}
+        .commercial-tabs a.active{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
         .preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
         .preview-card{padding:18px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
         .preview-card h2,.preview-card h3{margin-top:0}
-        .preview-cta{display:inline-flex;min-height:42px;align-items:center;padding:0 14px;border-radius:var(--foodex-radius-control);background:var(--foodex-green);color:#fff;font-weight:800}
+        .preview-cta{display:inline-flex;min-height:42px;align-items:center;padding:0 14px;border-radius:var(--foodex-radius-control);background:var(--foodex-action-green);color:#fff;font-weight:800}
         .preview-table{width:100%;border-collapse:collapse}.preview-table th,.preview-table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start}
         @media(max-width:1023px){.commercial-evidence-layout{grid-template-columns:1fr!important}.commercial-evidence-layout>.sidebar,.commercial-evidence-layout>.evidence-shell{grid-column:1!important;grid-row:auto!important}.commercial-evidence-layout>.sidebar{min-height:auto}.evidence-shell{padding:14px}}
     </style>

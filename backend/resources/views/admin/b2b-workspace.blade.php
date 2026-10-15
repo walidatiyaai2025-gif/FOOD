@@ -111,6 +111,7 @@
     @if($module === 'dashboard' && $dashboard)
     @php
         $isAr = app()->getLocale() === 'ar';
+        $dashboardCurrency = strtoupper(trim((string) $dashboard['currency']));
         $kpiConfig = [
             ['key'=>'sales','label'=>$isAr?'مبيعات الفترة':'Period sales','icon'=>'revenue','money'=>true],
             ['key'=>'orders','label'=>$isAr?'عدد الطلبات':'Orders','icon'=>'orders','money'=>false],
@@ -161,6 +162,10 @@
             'delivered'=>$isAr?'تم التوصيل':'Delivered',
             'overdue_invoice'=>$isAr?'فاتورة متأخرة':'Overdue invoice',
         ];
+        $dashboardPeriodQuery = [
+            'from'=>$dashboard['selected_from'],
+            'to'=>$dashboard['selected_to'],
+        ];
     @endphp
     <section class="b2b-reference-dashboard" data-b2b-reference-dashboard="841x564">
         <div class="b2b-ref-header-tools">
@@ -170,8 +175,11 @@
             @foreach($kpiConfig as $config)
                 @php
                     $kpi = $dashboard['kpis'][$config['key']];
+                    $kpiExactValue = $config['money']
+                        ? \App\Support\DisplayNumber::money((float) $kpi['value'], $dashboardCurrency)
+                        : null;
                     $kpiValue = $config['money']
-                        ? 'EGP '.number_format((float) $kpi['value'], 0)
+                        ? $dashboardCurrency.' '.$kpiExactValue
                         : number_format((float) $kpi['value'], 0);
                     $delta = $kpi['delta'];
                     $deltaClass = $delta !== null && $delta < 0
@@ -181,7 +189,7 @@
                 <article class="b2b-ref-card b2b-ref-kpi">
                     <div class="b2b-ref-kpi-copy">
                         <div class="b2b-ref-kpi-label">{{ $config['label'] }}</div>
-                        <div class="b2b-ref-kpi-value">{{ $kpiValue }}</div>
+                        <div class="b2b-ref-kpi-value foodex-number" @if($config['money']) dir="ltr" aria-label="{{ $dashboardCurrency }} {{ $kpiExactValue }}" @endif>{{ $kpiValue }}</div>
                         <div class="b2b-ref-kpi-delta {{ $deltaClass }}">
                             @if($delta === null)
                                 <span>—</span>
@@ -204,9 +212,10 @@
                 <div class="b2b-ref-panel-head foodex-viz-header">
                     <div><h2 class="foodex-viz-title">{{ $isAr?'المبيعات':'Sales' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'اتجاه المبيعات من بيانات الطلبات المعتمدة':'Sales trend from authoritative order data' }}</p></div>
                     <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
-                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ request('from') }}"></label>
-                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
+                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}"></label>
+                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}"></label>
                         <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
+                        <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">{{ $isAr?'إعادة ضبط الفترة':'Reset period' }}</a>
                     </form>
                 </div>
                 <div class="b2b-ref-chart-wrap foodex-viz-canvas">
@@ -214,24 +223,24 @@
                         <defs><linearGradient id="b2bRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#33c56b" stop-opacity=".26"/><stop offset="100%" stop-color="#33c56b" stop-opacity=".02"/></linearGradient></defs>
                         @foreach([46,90,134,178] as $gridY)<line class="b2b-ref-chart-grid" x1="38" y1="{{ $gridY }}" x2="524" y2="{{ $gridY }}"/>@endforeach
                         <text class="b2b-ref-axis" x="5" y="181">0</text>
-                        <text class="b2b-ref-axis" x="2" y="137">{{ number_format($maxRevenue*.33/1000,0) }}K</text>
-                        <text class="b2b-ref-axis" x="2" y="93">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
-                        <text class="b2b-ref-axis" x="2" y="49">{{ number_format($maxRevenue/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="137" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue*.33, $dashboardCurrency) }}">{{ number_format($maxRevenue*.33/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="93" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue*.66, $dashboardCurrency) }}">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="49" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue, $dashboardCurrency) }}">{{ number_format($maxRevenue/1000,0) }}K</text>
                         @if($areaPath)<path class="b2b-ref-chart-area" d="{{ $areaPath }}"/>@endif
                         @if($polyline)<polyline class="b2b-ref-chart-line foodex-viz-line" points="{{ $polyline }}"/>@endif
-                        @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8"/>@endforeach
+                        @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8" role="img" aria-label="{{ $point['label'] }} · {{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($point['revenue'], $dashboardCurrency) }}"/>@endforeach
                         @if(count($chartPoints))
                             @php
                                 $tooltipX = min(466, max(392, $lastPoint['x'] - 58));
                                 $tooltipY = max(6, $lastPoint['y'] - 35);
                             @endphp
                             <rect class="b2b-ref-tooltip" x="{{ $tooltipX }}" y="{{ $tooltipY }}" rx="5" ry="5" width="88" height="24"/>
-                            <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle">EGP {{ number_format($lastPoint['revenue'],0) }}</text>
+                            <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle" direction="ltr">{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($lastPoint['revenue'], $dashboardCurrency) }}</text>
                         @endif
                     </svg>
                     <div class="b2b-ref-chart-labels" style="grid-template-columns:repeat({{ max(1,count($dashboard['series'])) }},minmax(0,1fr))">@foreach($dashboard['series'] as $index=>$point)<span>{{ ($index % $labelEvery === 0 || $index === count($dashboard['series'])-1) ? $point['label'] : '' }}</span>@endforeach</div>
                 </div>
-                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-sales" href="{{ route('admin.b2b.module',['module'=>'reports']) }}">{{ $isAr?'فتح تقارير الجملة':'Open Wholesale reports' }}</a>
+                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-sales" href="{{ route('admin.b2b.module',array_merge(['module'=>'reports'],$dashboardPeriodQuery)) }}">{{ $isAr?'فتح تقارير الجملة':'Open Wholesale reports' }}</a>
             </article>
 
             @if($canViewDriverTracking)
@@ -251,7 +260,7 @@
             @endif
 
             <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="order-distribution" data-platform-analytics="b2b-order-distribution">
-                <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
+                <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',array_merge(['module'=>'orders'],$dashboardPeriodQuery)) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
                 <div class="b2b-ref-donut-body">
                     <div class="foodex-viz-donut" role="img" aria-label="{{ $isAr?'توزيع حالات طلبات الجملة':'Wholesale order status distribution' }}" style="--foodex-viz-p1:{{ $distributionCount > 0 ? $processingEnd : 0 }}%;--foodex-viz-p2:{{ $distributionCount > 0 ? $deliveryEnd : 0 }}%;--foodex-viz-p3:{{ $distributionCount > 0 ? 100 : 0 }}%"></div>
                     <div class="b2b-ref-legend foodex-viz-legend">
@@ -277,7 +286,7 @@
                                 <td class="b2b-ref-order-number">#{{ $order['number'] }}</td>
                                 <td>{{ $order['customer'] }}</td>
                                 <td>{{ $order['warehouse'] ?: ($isAr?'غير محدد':'Not set') }}</td>
-                                <td class="foodex-number">{{ $order['currency'] }} {{ number_format($order['amount'],0) }}</td>
+                                <td class="foodex-number" dir="ltr">{{ strtoupper(trim((string) $order['currency'])) }} {{ \App\Support\DisplayNumber::money($order['amount'], $order['currency']) }}</td>
                                 <td><span class="b2b-ref-status {{ $order['status'] }}">{{ $statusLabels[$order['status']] ?? $order['status'] }}</span></td>
                             </tr>
                         @endforeach
@@ -287,7 +296,7 @@
                 @else
                     <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد طلبات حتى الآن' : 'No orders yet' }}</div>
                 @endif
-                <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
+                <a class="b2b-ref-more" href="{{ route('admin.b2b.module',array_merge(['module'=>'orders'],$dashboardPeriodQuery)) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
             </article>
 
             <article class="b2b-ref-card b2b-ref-panel">
@@ -371,6 +380,16 @@
       <div class="toolbar">
         <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق هو متجر الجملة الرئيسي ومخازنه؛ لا توجد فروع جملة مستقلة.' : 'The scope is the main Wholesale operation and its warehouses; there are no separate Wholesale branches.' }}</div></div>
       </div>
+      @if(in_array($module, ['orders','reports'], true) && !empty($moduleData['filters']['from']) && !empty($moduleData['filters']['to']))
+      @php
+        $activePeriodQuery = ['from'=>$moduleData['filters']['from'],'to'=>$moduleData['filters']['to']];
+      @endphp
+      <div class="links workspace-inline-form" aria-label="{{ app()->getLocale()==='ar'?'نطاق فترة التقارير':'Reporting period scope' }}">
+        <strong>{{ app()->getLocale()==='ar'?'الفترة المحددة':'Selected period' }}: {{ $moduleData['filters']['from'] }} — {{ $moduleData['filters']['to'] }}</strong>
+        <a href="{{ route('admin.b2b.module',array_merge(['module'=>'dashboard'],$activePeriodQuery)) }}">{{ app()->getLocale()==='ar'?'العودة للوحة بنفس الفترة':'Back to dashboard with this period' }}</a>
+        <a href="{{ route('admin.b2b.module',['module'=>$module]) }}">{{ app()->getLocale()==='ar'?'إعادة ضبط الفترة':'Reset period' }}</a>
+      </div>
+      @endif
       @if(!empty($moduleData['actions']))
       <div class="links workspace-inline-form">
         @foreach($moduleData['actions'] as $action)<a class="foodex-primary" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach

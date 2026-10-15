@@ -154,6 +154,117 @@ class SmartOrderingCoreTest extends TestCase
         ]);
     }
 
+    public function test_branch_timezone_is_selected_from_supported_lookup_and_invalid_values_fail_closed(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('data-timezone-search', false)
+            ->assertSee('Asia/Kuwait')
+            ->assertSee('UTC+03:00')
+            ->assertSee('Changing it affects future schedule interpretation.');
+
+        $payload = [
+            'name' => 'Kuwait City Branch',
+            'timezone' => 'Mars/Olympus',
+            'is_active' => 1,
+            'accepting_orders' => 1,
+            'supports_dine_in' => 1,
+            'supports_pickup' => 1,
+            'supports_delivery' => 1,
+            'allow_scheduled' => 1,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'service_charge' => 0,
+        ];
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.branches.update', $this->branch->public_id), $payload)
+            ->assertSessionHasErrors('timezone');
+
+        $this->assertSame('Asia/Kuwait', $this->branch->fresh()->timezone);
+
+        $payload['timezone'] = 'Europe/London';
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.branches.update', $this->branch->public_id), $payload)
+            ->assertRedirect();
+
+        $this->assertSame('Europe/London', $this->branch->fresh()->timezone);
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('ابحث بالمدينة أو المنطقة أو فرق التوقيت أو اسم IANA')
+            ->assertSee('Europe/London');
+    }
+
+    public function test_branch_delivery_zone_editor_is_map_first_and_geometry_remains_server_authoritative(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $zonePublicId = (string) Str::uuid();
+
+        DB::table('smart_ordering_delivery_zones')->insert([
+            'public_id' => $zonePublicId,
+            'branch_id' => $this->branch->id,
+            'name' => 'Central Coverage',
+            'center_latitude' => 29.3759000,
+            'center_longitude' => 47.9774000,
+            'radius_km' => 5,
+            'delivery_fee' => 0.750,
+            'minimum_order' => 2.000,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('/assets/leaflet/1.9.4/leaflet.css', false)
+            ->assertSee('/assets/leaflet/1.9.4/leaflet.js', false)
+            ->assertSee('/assets/admin/smart-ordering-zone-map.js', false)
+            ->assertSee('data-zone-map-editor', false)
+            ->assertSee('data-current-zone="'.$zonePublicId.'"', false)
+            ->assertSee('data-zone-location-search', false)
+            ->assertSee('data-zone-map-canvas tabindex="0" role="application"', false)
+            ->assertSee('Advanced coordinates')
+            ->assertSee('Keyboard: arrow keys move the center');
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.zones.update', [$this->branch->public_id, $zonePublicId]), [
+                'name' => 'Central Coverage',
+                'center_latitude' => 91,
+                'center_longitude' => 47.9774,
+                'radius_km' => 5,
+                'delivery_fee' => 0.750,
+                'minimum_order' => 2.000,
+                'is_active' => 1,
+            ])
+            ->assertSessionHasErrors('center_latitude');
+
+        $this->assertDatabaseHas('smart_ordering_delivery_zones', [
+            'public_id' => $zonePublicId,
+            'center_latitude' => 29.3759000,
+            'center_longitude' => 47.9774000,
+        ]);
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('خريطة نطاق التغطية')
+            ->assertSee('لوحة المفاتيح: استخدم الأسهم لتحريك المركز');
+    }
+
     public function test_cart_is_pinned_to_published_revision_and_rejects_stale_revision(): void
     {
         $response = $this->postJson('/api/smart-ordering/carts', [
@@ -485,6 +596,85 @@ class SmartOrderingCoreTest extends TestCase
         $this->assertStringNotContainsString('Tracking Secret Name', $body);
         $this->assertStringNotContainsString('+96555555555', $body);
         $this->assertStringNotContainsString('"customer_id"', $body);
+    }
+
+    public function test_public_menu_cart_bridge_resolves_public_item_and_modifier_ids_server_side(): void
+    {
+        $menuItemPublicId = $this->menuItem($this->productId, false);
+        $itemId = (int) DB::table('smart_ordering_menu_items')
+            ->where('public_id', $menuItemPublicId)
+            ->value('id');
+        $revisionId = (int) DB::table('smart_ordering_revisions')
+            ->where('site_id', $this->branch->site_id)
+            ->where('public_id', $this->publishedRevisionPublicId)
+            ->value('id');
+
+        $groupPublicId = (string) Str::uuid();
+        $groupId = (int) DB::table('smart_ordering_modifier_groups')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'item_id' => $itemId,
+            'public_id' => $groupPublicId,
+            'name_en' => 'Add-on',
+            'kind' => 'modifier',
+            'selection_type' => 'single',
+            'is_required' => true,
+            'min_selections' => 1,
+            'max_selections' => 1,
+            'is_visible' => true,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $optionPublicId = (string) Str::uuid();
+        DB::table('smart_ordering_modifier_options')->insert([
+            'group_id' => $groupId,
+            'public_id' => $optionPublicId,
+            'source_product_id' => $this->extraProductId,
+            'name_en' => 'Extra',
+            'price_delta' => 0.500,
+            'is_default' => false,
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        [$cart, $token] = $this->cart();
+
+        $this->withHeader('X-Smart-Cart-Token', $token)
+            ->postJson('/api/smart-ordering/carts/'.$cart.'/menu-items/'.$menuItemPublicId, [
+                'quantity' => 1,
+                'selections' => [],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('selections.'.$groupPublicId);
+
+        $response = $this->withHeader('X-Smart-Cart-Token', $token)
+            ->postJson('/api/smart-ordering/carts/'.$cart.'/menu-items/'.$menuItemPublicId, [
+                'quantity' => 1,
+                'selections' => [[
+                    'group_id' => $groupPublicId,
+                    'option_ids' => [$optionPublicId],
+                ]],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.item.menu_item_public_id', $menuItemPublicId);
+
+        $this->assertSame(1.75, (float) $response->json('data.quote.subtotal'));
+        $this->assertDatabaseHas('smart_ordering_cart_items', [
+            'cart_id' => DB::table('smart_ordering_carts')->where('public_id', $cart)->value('id'),
+            'product_id' => $this->productId,
+            'menu_item_public_id' => $menuItemPublicId,
+        ]);
+
+        $selection = json_decode((string) DB::table('smart_ordering_cart_items')
+            ->where('menu_item_public_id', $menuItemPublicId)
+            ->value('selection'), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame($groupPublicId, $selection['menu_selections'][0]['group_id']);
+        $this->assertSame($optionPublicId, $selection['menu_selections'][0]['option_ids'][0]);
+        $this->assertSame($this->extraProductId, $selection['modifiers'][0]['product_id']);
     }
 
     public function test_merchandising_precedence_and_cart_recalculation_are_server_authoritative(): void

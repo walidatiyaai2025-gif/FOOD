@@ -10,7 +10,7 @@
     a{color:var(--foodex-green-dark)}
     button,input,select,textarea{font-family:inherit}
     input:not([type="checkbox"]):not([type="radio"]),select,textarea,.foodex-control{min-height:var(--foodex-control-height);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);padding-inline:var(--foodex-space-3)}
-    input:focus,select:focus,textarea:focus,.foodex-control:focus{outline:none;border-color:var(--foodex-green)!important;box-shadow:0 0 0 3px rgba(21,138,58,.11)}
+    input:focus,select:focus,textarea:focus,.foodex-control:focus{outline:none;border-color:var(--foodex-action-green)!important;box-shadow:0 0 0 3px rgba(21,138,58,.11)}
     :focus-visible{outline:2px solid var(--foodex-green);outline-offset:2px}
 
     aside.sidebar,.sidebar{background:var(--foodex-surface)!important;color:var(--foodex-ink)!important;border-color:var(--foodex-border)!important}
@@ -24,13 +24,13 @@
     .foodex-subtitle{display:block;margin-top:2px;color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-regular)}
     .foodex-icon{inline-size:var(--foodex-icon-md);block-size:var(--foodex-icon-md);display:inline-grid;place-items:center;flex:0 0 auto}
 
-    .primary,.button,.btn.primary,button.foodex-primary,.foodex-action-primary,.foodex-filter-action{min-height:var(--foodex-touch-target);border:0;border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-4);display:inline-flex;align-items:center;justify-content:center;gap:var(--foodex-space-2);font-weight:var(--foodex-font-weight-bold);background:var(--foodex-green)!important;color:#fff!important;text-decoration:none;cursor:pointer}
-    .primary:hover,.button:hover,.btn.primary:hover,button.foodex-primary:hover,.foodex-action-primary:hover,.foodex-filter-action:hover{background:var(--foodex-green-dark)!important}
+    .primary,.button,.btn.primary,button.foodex-primary,.foodex-action-primary,.foodex-filter-action{min-height:var(--foodex-touch-target);border:0;border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-4);display:inline-flex;align-items:center;justify-content:center;gap:var(--foodex-space-2);font-weight:var(--foodex-font-weight-bold);background:var(--foodex-action-green)!important;color:#fff!important;text-decoration:none;cursor:pointer}
+    .primary:hover,.button:hover,.btn.primary:hover,button.foodex-primary:hover,.foodex-action-primary:hover,.foodex-filter-action:hover{background:var(--foodex-action-green-hover)!important}
     .secondary,.button.secondary,.btn.secondary,.foodex-action-secondary{background:var(--foodex-green-soft)!important;color:var(--foodex-green-dark)!important}
-    .danger,.btn.danger{background:#fff0f0!important;color:var(--foodex-red)!important}
+    .danger,.btn.danger{background:var(--foodex-danger-soft)!important;color:var(--foodex-danger-text)!important}
     .success,.notice,.flash{background:var(--foodex-green-soft)!important;color:var(--foodex-green-dark)!important;border-color:#b7dfc4!important}
     .warning,.error,.errors{background:var(--foodex-orange-soft)!important;color:#9a4b0b!important;border-color:#ffd0a6!important}
-    .pill.active{background:var(--foodex-green)!important;color:#fff!important;border-color:var(--foodex-green)!important}
+    .pill.active{background:var(--foodex-action-green)!important;color:#fff!important;border-color:var(--foodex-action-green)!important}
     .back{color:var(--foodex-green-dark)!important;box-shadow:none}
     .badge.active,.active.badge{background:var(--foodex-green-soft)!important;color:var(--foodex-green-dark)!important}
 
@@ -67,7 +67,7 @@
     body.foodex-modal-open{overflow:hidden}
     .pagination,.pager{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;margin-top:var(--foodex-space-5)}
     .pagination a,.pagination span,.pager a,.pager span{min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);display:inline-grid;place-items:center;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none;padding:0 var(--foodex-space-2)}
-    .pagination [aria-current="page"],.pager [aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}
+    .pagination [aria-current="page"],.pager [aria-current="page"]{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff}
     .pagination nav,.pager nav{max-width:100%}
     .pagination svg,.pager svg{width:18px;height:18px}
     html[dir=rtl] .pagination svg,html[dir=rtl] .pager svg{transform:scaleX(-1)}
@@ -76,7 +76,7 @@
     .foodex-pagination{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);flex-wrap:wrap;margin-top:var(--foodex-space-5)}
     .foodex-pagination-pages,.foodex-pagination-controls{display:flex;align-items:center;gap:var(--foodex-space-2);flex-wrap:wrap}
     .foodex-pagination a,.foodex-pagination span{min-width:40px;min-height:40px;display:inline-grid;place-items:center;padding:0 10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none}
-    .foodex-pagination .foodex-pagination-current{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff;font-weight:var(--foodex-font-weight-bold)}
+    .foodex-pagination .foodex-pagination-current{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff;font-weight:var(--foodex-font-weight-bold)}
     .foodex-pagination .foodex-pagination-disabled{opacity:.45;cursor:not-allowed}
     .foodex-pagination-summary{color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
     @media(max-width:767px){.pagination a,.pagination span,.pager a,.pager span{min-width:38px;min-height:38px;padding-inline:7px;font-size:.82rem}.foodex-pagination{justify-content:center}.foodex-pagination-summary{width:100%;text-align:center}.foodex-pagination-pages{justify-content:center}}
@@ -150,7 +150,7 @@
     .foodex-ops-actions[open]>.foodex-ops-menu{visibility:visible}
     .foodex-ops-menu a,.foodex-ops-menu button{width:100%;min-height:40px;display:flex;align-items:center;justify-content:flex-start;padding:0 var(--foodex-space-3);border:0;border-radius:8px;background:transparent;color:var(--foodex-ink);text-decoration:none;font:inherit;cursor:pointer}
     .foodex-ops-menu a:hover,.foodex-ops-menu button:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-    .foodex-ops-menu .danger{color:var(--foodex-red)!important;background:transparent!important}
+    .foodex-ops-menu .danger{color:var(--foodex-danger-text)!important;background:transparent!important}
     .foodex-ops-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-4)}
     .foodex-ops-state{min-height:140px;display:grid;place-items:center;text-align:center;padding:var(--foodex-space-6);border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;color:var(--foodex-muted)}
     @media(max-width:1023px){.foodex-ops-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -265,6 +265,90 @@
 </script>
 <script id="foodex-operational-modal-runtime">
 (() => {
+    const modalA11y = window.FoodexModalA11y || (() => {
+        const focusableSelector = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+        const activeStack = [];
+        const focusables = (root) => [...root.querySelectorAll(focusableSelector)].filter((node) => {
+            if (!(node instanceof HTMLElement) || node.hidden || node.closest('[hidden],[aria-hidden="true"]')) return false;
+            const style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden' && node.getClientRects().length > 0;
+        });
+        const isolateOutside = (root) => {
+            const changed = [];
+            let current = root;
+            while (current instanceof HTMLElement && current !== document.body) {
+                const parent = current.parentElement;
+                if (!parent) break;
+                [...parent.children].forEach((sibling) => {
+                    if (sibling === current || !(sibling instanceof HTMLElement) || sibling.inert) return;
+                    sibling.inert = true;
+                    changed.push(sibling);
+                });
+                current = parent;
+            }
+            return () => changed.reverse().forEach((node) => { node.inert = false; });
+        };
+        const activate = ({ root, dialog, initialFocus = null, returnFocus = null, fallbackFocus = null, onEscape = null }) => {
+            if (!(root instanceof HTMLElement) || !(dialog instanceof HTMLElement)) return null;
+            const priorFocus = returnFocus instanceof HTMLElement ? returnFocus : document.activeElement;
+            const token = Symbol('foodex-modal-session');
+            activeStack.push(token);
+            const restoreIsolation = isolateOutside(root);
+            if (!dialog.hasAttribute('tabindex')) dialog.setAttribute('tabindex', '-1');
+            let active = true;
+            const focusInitial = () => {
+                if (!active || activeStack[activeStack.length - 1] !== token) return;
+                const targets = focusables(dialog);
+                const target = initialFocus instanceof HTMLElement && !initialFocus.disabled ? initialFocus : (targets[0] || dialog);
+                target.focus();
+            };
+            const onKeydown = (event) => {
+                if (!active || activeStack[activeStack.length - 1] !== token || event.defaultPrevented) return;
+                if (event.key === 'Escape' && typeof onEscape === 'function') {
+                    event.preventDefault();
+                    onEscape();
+                    return;
+                }
+                if (event.key !== 'Tab') return;
+                const targets = focusables(dialog);
+                if (!targets.length) {
+                    event.preventDefault();
+                    dialog.focus();
+                    return;
+                }
+                const first = targets[0];
+                const last = targets[targets.length - 1];
+                const outside = !dialog.contains(document.activeElement);
+                if (event.shiftKey && (document.activeElement === first || outside)) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            };
+            document.addEventListener('keydown', onKeydown);
+            queueMicrotask(focusInitial);
+            return {
+                deactivate({ restoreFocus = true } = {}) {
+                    if (!active) return;
+                    active = false;
+                    document.removeEventListener('keydown', onKeydown);
+                    const stackIndex = activeStack.lastIndexOf(token);
+                    if (stackIndex !== -1) activeStack.splice(stackIndex, 1);
+                    restoreIsolation();
+                    if (!restoreFocus) return;
+                    const target = priorFocus instanceof HTMLElement && priorFocus.isConnected && !priorFocus.inert
+                        ? priorFocus
+                        : (fallbackFocus instanceof HTMLElement && fallbackFocus.isConnected && !fallbackFocus.inert ? fallbackFocus : null);
+                    target?.focus();
+                },
+            };
+        };
+        return { activate, focusables };
+    })();
+    window.FoodexModalA11y = modalA11y;
+
     const enhance = (details, index) => {
         if (!(details instanceof HTMLDetailsElement) || details.dataset.foodexModalReady === '1') return;
         const summary = details.querySelector(':scope > summary');
@@ -314,24 +398,30 @@
         host.append(trigger, backdrop);
         details.replaceWith(host);
 
-        let priorFocus = null;
-        const open = () => {
-            priorFocus = document.activeElement;
-            backdrop.hidden = false;
-            document.body.classList.add('foodex-modal-open');
-            close.focus();
-        };
+        let modalSession = null;
         const shut = () => {
+            if (backdrop.hidden) return;
+            modalSession?.deactivate();
+            modalSession = null;
             backdrop.hidden = true;
             document.body.classList.remove('foodex-modal-open');
-            if (priorFocus instanceof HTMLElement) priorFocus.focus();
+        };
+        const open = () => {
+            if (!backdrop.hidden) return;
+            backdrop.hidden = false;
+            document.body.classList.add('foodex-modal-open');
+            modalSession = modalA11y.activate({
+                root: backdrop,
+                dialog,
+                initialFocus: close,
+                returnFocus: trigger,
+                fallbackFocus: trigger,
+                onEscape: shut,
+            });
         };
         trigger.addEventListener('click', open);
         close.addEventListener('click', shut);
         backdrop.addEventListener('click', (event) => { if (event.target === backdrop) shut(); });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !backdrop.hidden) shut();
-        });
     };
     const initOperationalModals = () => {
         document.querySelectorAll('details[data-foodex-operational-modal]').forEach(enhance);
@@ -346,6 +436,16 @@
 <script id="foodex-ops-popover-runtime">
 (() => {
     const portals = new WeakMap();
+    const openIntents = new WeakMap();
+    const focusableSelector = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+    let disclosureSequence = 0;
 
     const isEllipsisActions = (details) => {
         if (!(details instanceof HTMLDetailsElement)) return false;
@@ -367,12 +467,27 @@
         ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
     };
 
+    const configureDisclosure = (details, menu = findMenu(details)) => {
+        if (!(details instanceof HTMLDetailsElement) || !(menu instanceof HTMLElement)) return null;
+        const summary = details.querySelector(':scope > summary');
+        if (!(summary instanceof HTMLElement)) return null;
+
+        disclosureSequence += 1;
+        if (!summary.id) summary.id = 'foodex-row-action-trigger-' + disclosureSequence;
+        if (!menu.id) menu.id = 'foodex-row-action-panel-' + disclosureSequence;
+        summary.setAttribute('aria-controls', menu.id);
+        summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+        menu.setAttribute('aria-labelledby', summary.id);
+        return { summary, menu };
+    };
+
     const portalMenu = (details) => {
         const existing = portals.get(details);
         if (existing?.menu?.isConnected) return existing.menu;
 
         const menu = findMenu(details);
         if (!(menu instanceof HTMLElement)) return null;
+        configureDisclosure(details, menu);
 
         const placeholder = document.createComment('foodex-action-menu-portal');
         menu.parentNode?.insertBefore(placeholder, menu);
@@ -427,9 +542,6 @@
         menu.style.left = '0px';
 
         const menuRect = menu.getBoundingClientRect();
-        // Row actions normally live at the visual edge of a grid. Prefer opening the
-        // menu inward (to the left of the trigger) in both RTL and LTR, then fall
-        // back to the opposite side only when that side has materially more room.
         const inwardLeft = trigger.right - menuRect.width;
         const outwardLeft = trigger.left;
         const fitsInward = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;
@@ -448,24 +560,82 @@
         menu.style.visibility = 'visible';
     };
 
-    const closeMenu = (details) => {
+    const focusFirstAction = (details) => {
+        const menu = findMenu(details);
+        if (!(menu instanceof HTMLElement)) return;
+        const target = [...menu.querySelectorAll(focusableSelector)]
+            .find((element) => element instanceof HTMLElement && element.getClientRects().length > 0);
+        target?.focus();
+    };
+
+    const closeMenu = (details, { restoreFocus = false } = {}) => {
         if (!(details instanceof HTMLDetailsElement)) return;
+        const summary = details.querySelector(':scope > summary');
         details.open = false;
+        if (summary instanceof HTMLElement) summary.setAttribute('aria-expanded', 'false');
         restoreMenu(details);
+        if (restoreFocus && summary instanceof HTMLElement && summary.isConnected) {
+            summary.focus();
+        }
     };
 
     const repositionOpenMenus = () => actionMenus().forEach(positionMenu);
 
+    const initDisclosures = () => {
+        document.querySelectorAll('details').forEach((details) => {
+            if (isEllipsisActions(details)) configureDisclosure(details);
+        });
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDisclosures, { once: true });
+    } else {
+        initDisclosures();
+    }
+
+    document.addEventListener('pointerdown', (event) => {
+        const summary = event.target instanceof Element ? event.target.closest('summary') : null;
+        const details = summary?.parentElement;
+        if (isEllipsisActions(details)) openIntents.set(details, 'pointer');
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        const summary = event.target instanceof Element ? event.target.closest('summary') : null;
+        const details = summary?.parentElement;
+        if (isEllipsisActions(details) && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) {
+            openIntents.set(details, 'keyboard');
+            return;
+        }
+
+        if (event.key !== 'Escape') return;
+        const active = document.activeElement;
+        const opened = actionMenus();
+        const detailsToClose = opened.find((item) => {
+            const menu = portals.get(item)?.menu;
+            return menu instanceof HTMLElement && active instanceof Node && menu.contains(active);
+        }) || opened.at(-1);
+        if (!detailsToClose) return;
+        event.preventDefault();
+        event.stopPropagation();
+        closeMenu(detailsToClose, { restoreFocus: true });
+    }, true);
+
     document.addEventListener('toggle', (event) => {
         const details = event.target;
         if (!isEllipsisActions(details)) return;
+        const configured = configureDisclosure(details);
 
         if (details.open) {
             actionMenus().forEach((other) => {
-                if (other !== details) closeMenu(other);
+                if (other !== details) closeMenu(other, { restoreFocus: false });
             });
-            requestAnimationFrame(() => positionMenu(details));
+            const intent = openIntents.get(details);
+            openIntents.delete(details);
+            requestAnimationFrame(() => {
+                positionMenu(details);
+                if (intent === 'keyboard') focusFirstAction(details);
+            });
         } else {
+            if (configured?.summary instanceof HTMLElement) configured.summary.setAttribute('aria-expanded', 'false');
             restoreMenu(details);
         }
     }, true);
@@ -475,7 +645,11 @@
             const portal = portals.get(details);
             const insideTrigger = details.contains(event.target);
             const insideMenu = portal?.menu instanceof HTMLElement && portal.menu.contains(event.target);
-            if (!insideTrigger && !insideMenu) closeMenu(details);
+            if (insideTrigger || insideMenu) return;
+            const focusWasInsideMenu = portal?.menu instanceof HTMLElement
+                && document.activeElement instanceof Node
+                && portal.menu.contains(document.activeElement);
+            closeMenu(details, { restoreFocus: focusWasInsideMenu });
         });
     });
 
@@ -506,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-premium-auto-form>button,.foodex-premium-auto-form>.foodex-action-primary,.foodex-premium-auto-form>.foodex-action-secondary{align-self:end}
     .foodex-auto-field{display:grid!important;gap:7px!important;min-width:0;font-weight:var(--foodex-font-weight-medium)!important;color:var(--foodex-ink)}
     .foodex-auto-field>.foodex-field-caption,.foodex-field-caption{display:flex;align-items:center;gap:5px;font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);color:#344054;line-height:1.35}
-    .foodex-required-mark{color:var(--foodex-red);font-family:var(--foodex-font-en)}
+    .foodex-required-mark{color:var(--foodex-danger-text);font-family:var(--foodex-font-en)}
     .foodex-control-premium{width:100%;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
     .foodex-control-premium:hover{border-color:#b6c2d1}
     .foodex-control-premium[aria-invalid="true"],.foodex-control-premium:invalid:not(:placeholder-shown){border-color:#e36a6a}
@@ -522,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .active>.foodex-tab-icon,.foodex-tabs a.active .foodex-tab-icon,.tabs a.active .foodex-tab-icon{background:rgba(255,255,255,.18)}
     .foodex-step-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 var(--foodex-space-4);padding-bottom:var(--foodex-space-2);border-bottom:1px solid var(--foodex-border)}
     .foodex-step-tab{min-height:44px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:0 14px;background:#fff;color:var(--foodex-ink);display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:700;cursor:pointer}
-    .foodex-step-tab[aria-selected="true"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}
+    .foodex-step-tab[aria-selected="true"]{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff}
     .foodex-step-panel[hidden]{display:none!important}
     .foodex-step-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:var(--foodex-space-4)}
     .foodex-feedback-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:rgba(17,24,39,.48);backdrop-filter:blur(2px)}
@@ -532,6 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-feedback-modal .modal-title{margin:0;font-size:1.08rem;font-weight:800}
     .foodex-feedback-modal .modal-body{padding:20px;line-height:1.7}
     .foodex-feedback-modal .modal-body ul{margin:0;padding-inline-start:20px}
+    .foodex-feedback-modal .modal-body a[data-foodex-validation-link]{color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+    .foodex-field-error{margin-top:6px;color:#b42318;font-size:var(--foodex-text-xs);line-height:1.5}
+    .foodex-field-error[hidden]{display:none!important}
     .foodex-feedback-modal .btn-close{width:36px;height:36px;border:0;border-radius:10px;background:#f2f4f7;color:#475467;cursor:pointer;font-size:20px}
     .foodex-feedback-modal.is-success .modal-header{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     .foodex-feedback-modal.is-error .modal-header{background:#fff0f0;color:#b42318}
@@ -546,7 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 @php
     $foodexUiStatus = session('status');
-    $foodexUiErrors = isset($errors) && $errors->any() ? $errors->all() : [];
+    $foodexUiErrors = isset($errors) && $errors->any() ? $errors->messages() : [];
 @endphp
 <script id="foodex-premium-form-runtime">
 (() => {
@@ -590,6 +767,160 @@ document.addEventListener('DOMContentLoaded', () => {
         const placeholder = field.getAttribute('placeholder');
         if (placeholder && !/^e\.g\.|^مثال[:：]?/i.test(placeholder)) return placeholder;
         return key ? key.replace(/[_-]+/g,' ').replace(/\b\w/g, ch => ch.toUpperCase()) : (isArabic ? 'الحقل' : 'Field');
+    };
+
+    const normalizeValidationKey = (value) => String(value || '')
+        .replace(/\[([^\]]*)\]/g, (_, segment) => '.'+(segment === '' ? '*' : segment))
+        .replace(/^\./,'')
+        .replace(/\.+/g,'.')
+        .replace(/\.$/,'');
+    const wildcardValidationKey = (value) => normalizeValidationKey(value)
+        .split('.')
+        .map((segment) => /^\d+$/.test(segment) ? '*' : segment)
+        .join('.');
+    const validationErrorId = (value) => {
+        const normalized = normalizeValidationKey(value) || 'form';
+        return 'foodex-server-error-'+normalized.replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');
+    };
+    const feedbackEntries = (messages) => {
+        if (messages === null || messages === undefined || messages === '') return [];
+        if (Array.isArray(messages)) {
+            return messages.flatMap((message) => {
+                if (message && typeof message === 'object' && !Array.isArray(message)) return feedbackEntries(message);
+                return message === null || message === undefined || message === '' ? [] : [{ key:null, message:String(message) }];
+            });
+        }
+        if (typeof messages === 'object') {
+            return Object.entries(messages).flatMap(([key, values]) => {
+                const list = Array.isArray(values) ? values : [values];
+                return list
+                    .filter((message) => message !== null && message !== undefined && message !== '')
+                    .map((message) => ({ key:normalizeValidationKey(key), message:String(message) }));
+            });
+        }
+        return [{ key:null, message:String(messages) }];
+    };
+    const hasFeedbackErrors = (messages) => feedbackEntries(messages).length > 0;
+    const namedValidationControls = () => [...document.querySelectorAll('input[name],select[name],textarea[name]')];
+    const controlsForValidationKey = (key) => {
+        const normalized = normalizeValidationKey(key);
+        if (!normalized) return [];
+        const controls = namedValidationControls();
+        const exact = controls.filter((field) => normalizeValidationKey(field.name) === normalized);
+        if (exact.length) return exact;
+        const wildcard = wildcardValidationKey(normalized);
+        return controls.filter((field) => {
+            const fieldKey = normalizeValidationKey(field.name);
+            return fieldKey === wildcard || wildcardValidationKey(fieldKey) === wildcard;
+        });
+    };
+    const isVisibleValidationControl = (field) => {
+        if (!(field instanceof HTMLElement) || field.hidden || field.closest('[hidden],[aria-hidden="true"],[inert]')) return false;
+        const style = window.getComputedStyle(field);
+        return style.display !== 'none' && style.visibility !== 'hidden' && field.getClientRects().length > 0;
+    };
+    const ensureValidationControlId = (field, key, index = 0) => {
+        if (field.id) return field.id;
+        const base = 'foodex-validation-field-'+normalizeValidationKey(key).replace(/[^A-Za-z0-9_-]+/g,'-');
+        field.id = index > 0 ? base+'-'+index : base;
+        return field.id;
+    };
+    const addDescribedBy = (field, id) => {
+        const tokens = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        if (!tokens.includes(id)) tokens.push(id);
+        field.setAttribute('aria-describedby', tokens.join(' '));
+    };
+    const removeDescribedBy = (field, id) => {
+        const tokens = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter((token) => token && token !== id);
+        if (tokens.length) field.setAttribute('aria-describedby', tokens.join(' '));
+        else field.removeAttribute('aria-describedby');
+    };
+    const removeNativeSummaryKey = (key) => {
+        const normalized = normalizeValidationKey(key);
+        document.querySelectorAll('[data-foodex-error-summary-key]').forEach((item) => {
+            if (normalizeValidationKey(item.getAttribute('data-foodex-error-summary-key')) === normalized) item.remove();
+        });
+        document.querySelectorAll('[data-foodex-native-error-summary]').forEach((summary) => {
+            if (!summary.querySelector('[data-foodex-error-summary-key]')) summary.remove();
+        });
+    };
+    const clearFieldValidation = (field) => {
+        if (!(field instanceof HTMLElement)) return;
+        const errorId = field.dataset.foodexServerErrorId;
+        const key = field.dataset.foodexServerErrorKey || normalizeValidationKey(field.getAttribute('name'));
+        if (errorId) {
+            removeDescribedBy(field, errorId);
+            if (field.getAttribute('aria-errormessage') === errorId) field.removeAttribute('aria-errormessage');
+            const node = document.getElementById(errorId);
+            if (node?.dataset.foodexServerError === '1') node.remove();
+        }
+        if (field.dataset.foodexServerInvalid === '1') field.removeAttribute('aria-invalid');
+        delete field.dataset.foodexServerInvalid;
+        delete field.dataset.foodexServerErrorId;
+        delete field.dataset.foodexServerErrorKey;
+        if (key) removeNativeSummaryKey(key);
+    };
+    const bindValidationClearing = (field) => {
+        if (field.dataset.foodexServerValidationReady === '1') return;
+        field.dataset.foodexServerValidationReady = '1';
+        const clear = () => clearFieldValidation(field);
+        field.addEventListener('input', clear);
+        field.addEventListener('change', clear);
+    };
+    const clearServerValidation = () => {
+        namedValidationControls().forEach((field) => {
+            if (field.dataset.foodexServerInvalid === '1') clearFieldValidation(field);
+        });
+        document.querySelectorAll('[data-foodex-server-error="1"]').forEach((node) => node.remove());
+    };
+    const applyServerValidation = (messages, scope = null) => {
+        const entries = feedbackEntries(messages);
+        const grouped = new Map();
+        entries.forEach((entry) => {
+            if (!entry.key) return;
+            if (!grouped.has(entry.key)) grouped.set(entry.key, []);
+            grouped.get(entry.key).push(entry.message);
+        });
+        const associations = new Map();
+        const scopedRoot = scope instanceof Element ? scope : null;
+
+        grouped.forEach((keyMessages, key) => {
+            const controls = controlsForValidationKey(key)
+                .filter((field) => !scopedRoot || scopedRoot.contains(field));
+            controls.forEach((field, index) => {
+                const actualKey = normalizeValidationKey(field.name) || key;
+                const errorId = validationErrorId(actualKey);
+                ensureValidationControlId(field, actualKey, index);
+                let inline = document.getElementById(errorId);
+                if (!(inline instanceof HTMLElement)) {
+                    inline = document.createElement('div');
+                    inline.id = errorId;
+                    inline.className = 'foodex-field-error';
+                    inline.dataset.foodexServerError = '1';
+                    const placement = field.closest('.foodex-password-control') || field;
+                    placement.insertAdjacentElement('afterend', inline);
+                }
+                inline.dataset.foodexServerError = '1';
+                inline.dataset.foodexServerErrorKey = key;
+                inline.textContent = [...new Set(keyMessages)].join(' ');
+                field.setAttribute('aria-invalid','true');
+                field.setAttribute('aria-errormessage', errorId);
+                addDescribedBy(field, errorId);
+                field.dataset.foodexServerInvalid = '1';
+                field.dataset.foodexServerErrorId = errorId;
+                field.dataset.foodexServerErrorKey = key;
+                bindValidationClearing(field);
+                if (!associations.has(key) && isVisibleValidationControl(field)) associations.set(key, field);
+            });
+        });
+
+        return associations;
+    };
+    window.FoodexValidationA11y = {
+        apply: applyServerValidation,
+        clear: clearServerValidation,
+        controlsForKey: controlsForValidationKey,
+        normalizeKey: normalizeValidationKey,
     };
 
     const enhanceForms = () => {
@@ -718,31 +1049,88 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showFeedback = (kind, messages) => {
-        const clean = (Array.isArray(messages) ? messages : [messages]).filter(Boolean);
+        const entries = feedbackEntries(messages);
+        const clean = entries.map((entry) => entry.message).filter(Boolean);
         if (!clean.length) return;
-        document.querySelector('.foodex-feedback-modal')?.remove();
+        window.FoodexFeedbackClose?.();
+
+        const validationScope = kind === 'error' && document.activeElement instanceof HTMLElement
+            ? document.activeElement.closest('form')
+            : null;
+        const associations = kind === 'error' ? applyServerValidation(messages, validationScope) : new Map();
         const overlay = document.createElement('div');
         overlay.className = 'foodex-feedback-modal modal fade show '+(kind === 'success' ? 'is-success' : 'is-error');
         overlay.setAttribute('role','dialog');
         overlay.setAttribute('aria-modal','true');
-        overlay.innerHTML = '<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><div class="foodex-feedback-title-wrap"><span class="foodex-feedback-icon">'+(kind === 'success' ? '✓' : '!')+'</span><h2 class="modal-title"></h2></div><button class="btn-close" type="button" aria-label="Close">×</button></div><div class="modal-body"></div></div></div>';
+        const headingId = 'foodex-feedback-title';
+        overlay.setAttribute('aria-labelledby', headingId);
+        overlay.innerHTML = '<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><div class="foodex-feedback-title-wrap"><span class="foodex-feedback-icon" aria-hidden="true">'+(kind === 'success' ? '✓' : '!')+'</span><h2 class="modal-title" id="'+headingId+'"></h2></div><button class="btn-close" type="button">×</button></div><div class="modal-body"></div></div></div>';
         overlay.querySelector('.modal-title').textContent = kind === 'success'
             ? (isArabic ? 'تمت العملية بنجاح' : 'Saved successfully')
             : (isArabic ? 'تعذر إكمال العملية' : 'Action could not be completed');
+        const closeButton = overlay.querySelector('.btn-close');
+        closeButton.setAttribute('aria-label', isArabic ? 'إغلاق' : 'Close');
         const body = overlay.querySelector('.modal-body');
-        if (clean.length === 1) body.textContent = clean[0];
-        else {
+        const focusLinks = [];
+        const renderMessage = (entry) => {
+            const target = entry.key ? associations.get(entry.key) : null;
+            if (!(target instanceof HTMLElement)) return document.createTextNode(entry.message);
+            const link = document.createElement('a');
+            link.href = '#'+ensureValidationControlId(target, entry.key);
+            link.dataset.foodexValidationLink = entry.key;
+            link.textContent = entry.message;
+            focusLinks.push({ link, target });
+            return link;
+        };
+        if (entries.length === 1) {
+            body.appendChild(renderMessage(entries[0]));
+        } else {
             const ul = document.createElement('ul');
-            clean.forEach(message => { const li=document.createElement('li'); li.textContent=message; ul.appendChild(li); });
+            entries.forEach((entry) => {
+                const li = document.createElement('li');
+                li.appendChild(renderMessage(entry));
+                ul.appendChild(li);
+            });
             body.appendChild(ul);
         }
-        const close = () => overlay.remove();
-        overlay.querySelector('.btn-close').addEventListener('click', close);
+
+        const priorFocus = document.activeElement;
+        const fallbackFocus = document.querySelector('[autofocus],main input:not([type="hidden"]),main select,main textarea,main button,main a[href]');
+        let modalSession = null;
+        let dismissTimer = null;
+        const close = ({ restoreFocus = true } = {}) => {
+            if (!overlay.isConnected) return;
+            if (dismissTimer !== null) window.clearTimeout(dismissTimer);
+            modalSession?.deactivate({ restoreFocus });
+            modalSession = null;
+            overlay.remove();
+            if (window.FoodexFeedbackClose === close) window.FoodexFeedbackClose = null;
+        };
+        window.FoodexFeedbackClose = close;
+        focusLinks.forEach(({ link, target }) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                close({ restoreFocus: false });
+                target.focus({ preventScroll:false });
+                requestAnimationFrame(() => {
+                    target.scrollIntoView({ block:'center', inline:'nearest' });
+                });
+            });
+        });
+        closeButton.addEventListener('click', close);
         overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-        document.addEventListener('keydown', function esc(event){ if(event.key==='Escape'){close();document.removeEventListener('keydown',esc);} });
         document.body.appendChild(overlay);
-        if (kind === 'success') window.setTimeout(() => overlay.isConnected && close(), 5500);
+        modalSession = window.FoodexModalA11y?.activate({
+            root: overlay,
+            dialog: overlay,
+            initialFocus: closeButton,
+            returnFocus: priorFocus instanceof HTMLElement ? priorFocus : null,
+            fallbackFocus: fallbackFocus instanceof HTMLElement ? fallbackFocus : null,
+            onEscape: close,
+        }) || null;
+        if (kind === 'success') dismissTimer = window.setTimeout(() => overlay.isConnected && close(), 5500);
     };
+    window.FoodexValidationA11y.showFeedback = showFeedback;
 
     const reportInspector = (payload) => {
         if (inspectorSuppressed || Date.now() < inspectorSuppressedUntil || !inspectorEnabled || !nativeFetch || location.pathname.startsWith('/admin/inspector')) return;
@@ -800,14 +1188,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) {
                     const method = String(options.method || request?.method || 'GET').toUpperCase();
                     let responseMessage = '';
+                    let responseErrors = null;
                     try {
                         const clone = response.clone();
                         const contentType = clone.headers.get('content-type') || '';
                         if (contentType.includes('application/json')) {
                             const payload = await clone.json();
                             responseMessage = payload?.message || payload?.error || '';
-                            if (!responseMessage && payload?.errors) {
-                                responseMessage = Object.values(payload.errors).flat().filter(Boolean).join('\n');
+                            if (payload?.errors && typeof payload.errors === 'object') {
+                                responseErrors = payload.errors;
+                                if (!responseMessage) responseMessage = Object.values(payload.errors).flat().filter(Boolean).join('\n');
                             }
                         }
                     } catch (_) {}
@@ -827,9 +1217,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     if (method !== 'GET') {
-                        showFeedback('error', responseMessage || (isArabic
+                        showFeedback('error', hasFeedbackErrors(responseErrors) ? responseErrors : (responseMessage || (isArabic
                             ? 'تعذر تنفيذ العملية ('+response.status+'). راجع البيانات وحاول مرة أخرى.'
-                            : 'The action could not be completed ('+response.status+'). Review the data and try again.'));
+                            : 'The action could not be completed ('+response.status+'). Review the data and try again.')));
                     }
                 }
                 return response;
@@ -853,8 +1243,10 @@ document.addEventListener('DOMContentLoaded', () => {
         enhanceForms();
         enhancePasswords();
         enhanceTabs();
-        if (feedback.errors?.length) showFeedback('error', feedback.errors);
-        else if (feedback.status) showFeedback('success', feedback.status);
+        if (hasFeedbackErrors(feedback.errors)) {
+            if (document.body.dataset.foodexValidationSummaryNative === '1') applyServerValidation(feedback.errors);
+            else showFeedback('error', feedback.errors);
+        } else if (feedback.status) showFeedback('success', feedback.status);
     });
 })();
 </script>

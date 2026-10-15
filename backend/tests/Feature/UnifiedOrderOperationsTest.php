@@ -100,6 +100,41 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-channel-tab="all"', false);
     }
 
+    public function test_order_filters_preserve_authorized_channel_and_store_workspace_context(): void
+    {
+        $super = $this->superAdmin('unified-context@example.test');
+        app(WholesalePrincipal::class)->storeId();
+        $selectedStore = $this->retailStore('UNIFIED-CONTEXT-RETAIL');
+        $this->retailStore('UNIFIED-CONTEXT-OTHER');
+
+        $response = $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c&store_id='.$selectedStore.'&status=pending&from=2026-10-01');
+
+        $response->assertOk()
+            ->assertViewHas('selectedChannel', 'b2c')
+            ->assertViewHas('selectedStoreId', $selectedStore)
+            ->assertSee('data-order-workspace-context', false)
+            ->assertSee('data-channel="b2c"', false)
+            ->assertSee('data-store-id="'.$selectedStore.'"', false)
+            ->assertSee('name="channel" value="b2c"', false)
+            ->assertSee('<option value="'.$selectedStore.'" selected>', false)
+            ->assertSee(
+                'data-order-filter-reset-context href="'.e(route('admin.operations.orders.index', [
+                    'channel' => 'b2c',
+                    'store_id' => $selectedStore,
+                ])),
+                false,
+            );
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=all&store_id='.$selectedStore.'&status=pending')
+            ->assertOk()
+            ->assertViewHas('selectedChannel', 'all')
+            ->assertViewHas('selectedStoreId', $selectedStore)
+            ->assertSee('name="channel" value="all"', false)
+            ->assertSee('data-store-id="'.$selectedStore.'"', false);
+    }
+
     public function test_pending_order_actions_are_compact_and_edit_is_inside_ellipsis_menu(): void
     {
         $store = $this->retailStore('UNIFIED-ACTIONS');

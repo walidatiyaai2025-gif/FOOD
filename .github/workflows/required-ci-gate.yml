@@ -27,6 +27,7 @@ jobs:
       c13_integrated_e2e: ${{ steps.filter.outputs.c13_integrated_e2e }}
       dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}
       mobile_ui: ${{ steps.filter.outputs.mobile_ui }}
+      enterprise_performance: ${{ steps.filter.outputs.enterprise_performance }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -244,6 +245,15 @@ jobs:
         run: python3 scripts/foodex-branch-policy.py validate "${{ github.head_ref }}" --base "${{ github.base_ref }}"
 
 
+  enterprise-performance:
+    name: Enterprise performance certification
+    needs: changes
+    if: ${{ needs.changes.outputs.enterprise_performance == 'true' }}
+    uses: ./.github/workflows/enterprise-performance-gate.yml
+    with:
+      source_head: ${{ github.event.pull_request.head.sha }}
+      baseline_head: d171df2961687455f08c14b9419df83027edcbf0
+
   backend-validation:
     name: Backend validation
     needs: changes
@@ -379,6 +389,7 @@ jobs:
       - screenshot-evidence
       - operational-completion-e2e
       - c13-integrated-e2e
+      - enterprise-performance
     runs-on: ubuntu-latest
     steps:
       - name: Enforce applicable validation results
@@ -409,6 +420,8 @@ jobs:
           OPERATIONAL_COMPLETION_E2E_RESULT: ${{ needs.operational-completion-e2e.result }}
           C13_INTEGRATED_E2E: ${{ needs.changes.outputs.c13_integrated_e2e }}
           C13_INTEGRATED_E2E_RESULT: ${{ needs.c13-integrated-e2e.result }}
+          ENTERPRISE_PERFORMANCE_CHANGED: ${{ needs.changes.outputs.enterprise_performance }}
+          ENTERPRISE_PERFORMANCE_RESULT: ${{ needs.enterprise-performance.result }}
         run: |
           set -euo pipefail
 
@@ -448,6 +461,7 @@ jobs:
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"
           require_applicable_success "$C13_INTEGRATED_E2E" "C13 integrated Customer journey gate" "$C13_INTEGRATED_E2E_RESULT"
+          require_applicable_success "$ENTERPRISE_PERFORMANCE_CHANGED" "Enterprise performance certification" "$ENTERPRISE_PERFORMANCE_RESULT"
 
           if [[ "$MOBILE_PROD_UX_ACCEPTANCE" == "true" || "${{ github.head_ref }}" == test/1359-* || "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
             require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"

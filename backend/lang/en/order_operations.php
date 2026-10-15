@@ -4,6 +4,28 @@ return [
     'title' => 'Orders · Order Management',
     'description' => 'Monitor and operate every order allowed by the current platform/store scope.',
     'new_order' => 'Create new order',
+    'lookup' => [
+        'search_customer' => 'Search by customer name, phone, email or company',
+        'search_product' => 'Search by product name, SKU or barcode',
+        'searching' => 'Searching…',
+        'no_results' => 'No matching records.',
+        'load_more' => 'Load more',
+        'retry' => 'Retry',
+        'failed' => 'Unable to load records. Try again.',
+        'selected_unavailable' => 'Selected record is no longer available',
+        'select_customer_first' => 'Select a customer before choosing an address.',
+        'address_loading' => 'Loading customer addresses…',
+        'results_help' => 'Search results are limited and loaded on demand.',
+    ],
+    'new_order_draft' => [
+        'title' => 'Keep this unfinished order?',
+        'description' => 'You have unsaved order details. Continue editing, or discard them deliberately to start fresh.',
+        'continue_editing' => 'Continue editing',
+        'discard' => 'Discard draft',
+    ],
+    'new_order_submit' => [
+        'submitting' => 'Creating order…',
+    ],
     'statuses' => 'Order statuses',
     'all' => 'All',
     'filters' => [
@@ -83,6 +105,7 @@ return [
     ],
     'detail' => [
         'context' => 'Order context',
+        'close' => 'Close order details',
         'source' => 'Source',
         'authorized_channel' => 'Authorized channel',
         'delivery_address' => 'Delivery address',

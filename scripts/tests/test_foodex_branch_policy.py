@@ -19,4 +19,13 @@ class BranchPolicyTest(unittest.TestCase):
 
     def test_main_push_can_be_explicitly_allowed(self):
         self.assertTrue(module.is_valid("main", allow_main=True))
+
+    def test_accepts_canonical_integration_promotion_to_main(self):
+        self.assertTrue(module.is_valid("feature/enterprise-performance-gates","main"))
+        self.assertTrue(module.is_valid("feature/enterprise-core-platform","main"))
+
+    def test_rejects_integration_branch_outside_main_promotion(self):
+        self.assertFalse(module.is_valid("feature/enterprise-performance-gates"))
+        self.assertFalse(module.is_valid("feature/enterprise-performance-gates","feature/enterprise-core-platform"))
+        self.assertFalse(module.is_valid("feature/random-unregistered-program","main"))
 if __name__=="__main__": unittest.main()

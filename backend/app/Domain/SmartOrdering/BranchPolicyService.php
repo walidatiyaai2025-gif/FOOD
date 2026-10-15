@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class BranchPolicyService
@@ -158,6 +159,28 @@ final class BranchPolicyService
             404,
             'Dining table token is invalid.',
         );
+
+        return $table;
+    }
+
+    public function trustedTableReference(SmartOrderingBranch $branch, string $reference): object
+    {
+        $reference = trim($reference);
+        abort_if($reference === '', 422, 'Dining table context is required.');
+
+        $query = DB::table('smart_ordering_tables')
+            ->where('branch_id', (int) $branch->getKey())
+            ->where('is_active', true);
+
+        $query->where(function ($nested) use ($reference): void {
+            $nested->where('label', $reference);
+            if (Str::isUuid($reference)) {
+                $nested->orWhere('public_id', $reference);
+            }
+        });
+
+        $table = $query->first();
+        abort_unless($table !== null, 404, 'Dining table is not available.');
 
         return $table;
     }

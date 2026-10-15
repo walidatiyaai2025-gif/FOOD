@@ -4,8 +4,8 @@
 .new-order-backdrop[data-open="1"]{display:flex}.new-order-dialog{width:min(980px,100%);max-height:92vh;overflow:auto;background:var(--foodex-surface,#fff);border-radius:22px;border:1px solid var(--foodex-border);box-shadow:0 24px 80px rgba(0,0,0,.28)}
 .new-order-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding:22px 24px;border-bottom:1px solid var(--foodex-border)}.new-order-head h2{margin:0}.new-order-close{font-size:24px;line-height:1;border:0;background:transparent;cursor:pointer}
 .new-order-progress{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:16px 24px;border-bottom:1px solid var(--foodex-border)}.new-order-progress span{padding:8px 6px;border-radius:10px;text-align:center;font-size:.78rem;font-weight:800;background:rgba(0,0,0,.05)}.new-order-progress span[data-active="1"]{outline:2px solid currentColor}.new-order-progress span[data-complete="1"]{background:rgba(16,185,129,.13)}
-.new-order-body{padding:24px}.new-order-step{display:none}.new-order-step[data-active="1"]{display:block}.new-order-step h3{margin-top:0}.new-order-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.new-order-field{display:grid;gap:6px;font-weight:700}.new-order-field select,.new-order-field input,.new-order-field textarea{width:100%;box-sizing:border-box}.new-order-lines{display:grid;gap:10px}.new-order-line{display:grid;grid-template-columns:minmax(260px,1fr) 150px auto;gap:8px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.new-order-quote,.new-order-review{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:rgba(0,0,0,.025);display:grid;gap:8px}.new-order-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.new-order-review-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.new-order-error{display:none;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid #dc2626}.new-order-error[data-visible="1"]{display:block}.new-order-actions{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:18px 24px;border-top:1px solid var(--foodex-border)}.new-order-actions-right{display:flex;gap:8px}.new-order-actions button[disabled]{opacity:.45;cursor:not-allowed}
-@media(max-width:760px){.new-order-progress{grid-template-columns:repeat(3,1fr)}.new-order-grid,.new-order-review-grid{grid-template-columns:1fr}.new-order-line{grid-template-columns:1fr 120px}.new-order-line .js-wizard-remove-line{grid-column:1/-1}.new-order-body{padding:16px}.new-order-head,.new-order-actions{padding-inline:16px}}
+.new-order-body{padding:24px}.new-order-step{display:none}.new-order-step[data-active="1"]{display:block}.new-order-step h3{margin-top:0}.new-order-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.new-order-field{display:grid;gap:6px;font-weight:700}.new-order-field select,.new-order-field input,.new-order-field textarea{width:100%;box-sizing:border-box}.new-order-lines{display:grid;gap:10px}.new-order-line{display:grid;grid-template-columns:minmax(260px,1fr) 150px auto;gap:8px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.new-order-quote,.new-order-review{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:rgba(0,0,0,.025);display:grid;gap:8px}.new-order-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.new-order-review-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.new-order-error{display:none;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid #dc2626}.new-order-error[data-visible="1"]{display:block}.new-order-discard{display:none;position:sticky;bottom:0;z-index:4;margin:0 24px 18px;padding:16px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface,#fff);box-shadow:0 16px 42px rgba(15,23,42,.18)}.new-order-discard[data-visible="1"]{display:grid;gap:12px}.new-order-discard h3,.new-order-discard p{margin:0}.new-order-discard-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.new-order-actions{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:18px 24px;border-top:1px solid var(--foodex-border)}.new-order-actions-right{display:flex;gap:8px}.new-order-actions button[disabled]{opacity:.45;cursor:not-allowed}
+@media(max-width:760px){.new-order-progress{grid-template-columns:repeat(3,1fr)}.new-order-grid,.new-order-review-grid{grid-template-columns:1fr}.new-order-line{grid-template-columns:1fr 120px}.new-order-line .js-wizard-remove-line{grid-column:1/-1}.new-order-body{padding:16px}.new-order-head,.new-order-actions{padding-inline:16px}.new-order-discard{margin-inline:16px}.new-order-discard-actions{display:grid}.new-order-discard-actions button{width:100%;min-height:44px}}
 </style>
 
 <div class="new-order-backdrop" data-new-order-modal data-open="0" aria-hidden="true">
@@ -21,8 +21,28 @@
 @endforeach
 </div>
 
-<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}">
+@php
+$newOrderRestore = old('_order_create_context') === 'central';
+$newOrderIdempotencyKey = $newOrderRestore && trim((string) old('idempotency_key', '')) !== ''
+    ? trim((string) old('idempotency_key'))
+    : 'dashboard:'.(string) \Illuminate\Support\Str::uuid();
+$newOrderOldInput = $newOrderRestore ? [
+    'channel' => old('channel'),
+    'store_id' => old('store_id'),
+    'warehouse_id' => old('warehouse_id'),
+    'customer_id' => old('customer_id'),
+    'address_id' => old('address_id'),
+    'payment_method' => old('payment_method'),
+    'coupon_code' => old('coupon_code'),
+    'customer_note' => old('customer_note'),
+    'items' => (array) old('items', []),
+    'idempotency_key' => $newOrderIdempotencyKey,
+] : null;
+@endphp
+<form method="post" action="{{ route('admin.operations.orders.store') }}" data-new-order-form data-quote-url="{{ route('admin.operations.orders.quote') }}" data-lookup-url="{{ route('admin.operations.orders.lookups',['type'=>'__TYPE__'],false) }}" aria-busy="false">
 @csrf
+<input type="hidden" name="_order_create_context" value="central">
+<input type="hidden" name="idempotency_key" data-wizard-idempotency value="{{ $newOrderIdempotencyKey }}">
 <div class="new-order-body">
 <div class="new-order-error" data-wizard-error role="alert"></div>
 
@@ -37,7 +57,12 @@
 
 <section class="new-order-step" data-wizard-step="1" data-active="0">
 <h3>{{ $isAr?'2. العميل':'2. Customer' }}</h3>
-<label class="new-order-field"><span>{{ $isAr?'العميل':'Customer' }}</span><select name="customer_id" data-wizard-customer required><option value="">{{ $isAr?'اختر العميل':'Select customer' }}</option></select></label>
+<label class="new-order-field"><span>{{ $isAr?'العميل':'Customer' }}</span>
+<input type="search" data-wizard-customer-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_customer') }}" aria-describedby="new-order-customer-status">
+<select name="customer_id" data-wizard-customer required disabled><option value="">{{ $isAr?'اختر العميل':'Select customer' }}</option></select>
+<small id="new-order-customer-status" data-wizard-customer-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
+<button type="button" class="btn secondary" data-wizard-customer-more hidden>{{ __('order_operations.lookup.load_more') }}</button>
+</label>
 </section>
 
 <section class="new-order-step" data-wizard-step="2" data-active="0">
@@ -48,8 +73,9 @@
 
 <section class="new-order-step" data-wizard-step="3" data-active="0">
 <h3>{{ $isAr?'4. عنوان التوصيل':'4. Delivery address' }}</h3>
-<label class="new-order-field"><span>{{ $isAr?'العنوان':'Address' }}</span><select name="address_id" data-wizard-address><option value="">{{ $isAr?'بدون عنوان / استلام':'No address / pickup' }}</option></select></label>
-<small>{{ $isAr?'العناوين المعروضة تخص العميل المختار فقط.':'Only addresses belonging to the selected customer are shown.' }}</small>
+<label class="new-order-field"><span>{{ $isAr?'العنوان':'Address' }}</span><select name="address_id" data-wizard-address disabled><option value="">{{ $isAr?'بدون عنوان / استلام':'No address / pickup' }}</option></select></label>
+<small data-wizard-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.select_customer_first') }}</small>
+<button type="button" class="btn secondary" data-wizard-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button>
 </section>
 
 <section class="new-order-step" data-wizard-step="4" data-active="0">
@@ -76,6 +102,16 @@
 </section>
 </div>
 
+<div class="new-order-discard" data-new-order-discard data-visible="0" role="alertdialog" aria-modal="true" aria-labelledby="new-order-discard-title" aria-describedby="new-order-discard-description" aria-hidden="true">
+<h3 id="new-order-discard-title">{{ __('order_operations.new_order_draft.title') }}</h3>
+<p id="new-order-discard-description">{{ __('order_operations.new_order_draft.description') }}</p>
+<div class="new-order-discard-actions">
+<button type="button" class="btn secondary" data-new-order-continue>{{ __('order_operations.new_order_draft.continue_editing') }}</button>
+<button type="button" class="foodex-primary" data-new-order-discard-confirm>{{ __('order_operations.new_order_draft.discard') }}</button>
+</div>
+</div>
+
+<div class="foodex-state" data-wizard-submit-state role="status" aria-live="polite" hidden></div>
 <div class="new-order-actions">
 <button type="button" class="btn secondary" data-new-order-cancel>{{ $isAr?'إلغاء':'Cancel' }}</button>
 <div class="new-order-actions-right">
@@ -91,6 +127,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const source = @json($newOrderWizard);
+    const restoreInput = @json($newOrderOldInput);
+    const restoreAfterValidation = @json($newOrderRestore && $errors->any());
+    const restoreError = @json($newOrderRestore ? $errors->first() : '');
     const modal = document.querySelector('[data-new-order-modal]');
     const form = modal?.querySelector('[data-new-order-form]');
     if (!modal || !form) return;
@@ -113,6 +152,17 @@ document.addEventListener('DOMContentLoaded', () => {
         tax: isAr ? 'الضريبة' : 'Tax',
         total: isAr ? 'الإجمالي النهائي' : 'Grand total',
         pickup: isAr ? 'بدون عنوان / استلام' : 'No address / pickup',
+        submitting: @json(__('order_operations.new_order_submit.submitting')),
+        searchCustomer: @json(__('order_operations.lookup.search_customer')),
+        searchProduct: @json(__('order_operations.lookup.search_product')),
+        searching: @json(__('order_operations.lookup.searching')),
+        noResults: @json(__('order_operations.lookup.no_results')),
+        loadMore: @json(__('order_operations.lookup.load_more')),
+        lookupFailed: @json(__('order_operations.lookup.failed')),
+        selectedUnavailable: @json(__('order_operations.lookup.selected_unavailable')),
+        selectCustomerFirst: @json(__('order_operations.lookup.select_customer_first')),
+        addressLoading: @json(__('order_operations.lookup.address_loading')),
+        resultsHelp: @json(__('order_operations.lookup.results_help')),
     };
 
     const channelSelect = form.querySelector('[data-wizard-channel]');
@@ -120,16 +170,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const warehouseWrap = form.querySelector('[data-wizard-warehouse-wrap]');
     const warehouseSelect = form.querySelector('[data-wizard-warehouse]');
     const customerSelect = form.querySelector('[data-wizard-customer]');
+    const customerSearch = form.querySelector('[data-wizard-customer-search]');
+    const customerStatus = form.querySelector('[data-wizard-customer-status]');
+    const customerMore = form.querySelector('[data-wizard-customer-more]');
     const addressSelect = form.querySelector('[data-wizard-address]');
+    const addressStatus = form.querySelector('[data-wizard-address-status]');
+    const addressRetry = form.querySelector('[data-wizard-address-retry]');
     const paymentSelect = form.querySelector('[data-wizard-payment]');
     const linesBox = form.querySelector('[data-wizard-lines]');
     const errorBox = form.querySelector('[data-wizard-error]');
     const nextButton = form.querySelector('[data-wizard-next]');
     const backButton = form.querySelector('[data-wizard-back]');
     const createButton = form.querySelector('[data-wizard-create]');
+    const idempotencyInput = form.querySelector('[data-wizard-idempotency]');
+    const submitState = form.querySelector('[data-wizard-submit-state]');
     const quoteBox = form.querySelector('[data-wizard-quote]');
+    const discardPanel = modal.querySelector('[data-new-order-discard]');
+    const continueButton = discardPanel?.querySelector('[data-new-order-continue]');
+    const discardButton = discardPanel?.querySelector('[data-new-order-discard-confirm]');
+    const modalHeader = modal.querySelector('.new-order-head');
+    const modalProgress = modal.querySelector('.new-order-progress');
+    const modalBody = modal.querySelector('.new-order-body');
+    const modalActions = modal.querySelector('.new-order-actions');
     let step = 0;
     let quoteReady = false;
+    let initialized = false;
+    let dirty = false;
+    let isSubmitting = false;
+    let discardReturnFocus = null;
+    let modalSession = null;
+    let quoteRevision = 0;
+    let quoteSession = 0;
+    let quoteAbortController = null;
+    let quoteOwner = null;
+    let customerLookupAbort = null;
+    let customerLookupPage = 1;
+    let customerLookupQuery = '';
+    let customerLookupSequence = 0;
+    let lookupScopeVersion = 0;
+    let customerSearchTimer = null;
+    let addressLookupAbort = null;
+    const createButtonLabel = createButton.textContent;
 
     const makeOption = (value, label) => {
         const node = document.createElement('option');
@@ -153,10 +234,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return amount.toFixed(3).replace(/\.?0+$/, '');
     };
     const showError = (message = '') => { errorBox.textContent = message; errorBox.dataset.visible = message ? '1' : '0'; };
-    const invalidateQuote = () => { quoteReady = false; createButton.disabled = true; };
+    const createIdempotencyKey = () => {
+        const randomPart = globalThis.crypto?.randomUUID?.()
+            || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + '-' + Math.random().toString(36).slice(2));
+        return 'dashboard:' + randomPart;
+    };
+    const ownsCurrentQuote = (owner) => owner !== null
+        && owner.revision === quoteRevision
+        && owner.session === quoteSession;
+    const setSubmitting = (active) => {
+        isSubmitting = active;
+        form.setAttribute('aria-busy', active ? 'true' : 'false');
+        createButton.disabled = active || !quoteReady || !ownsCurrentQuote(quoteOwner);
+        createButton.textContent = active ? t.submitting : createButtonLabel;
+        if (submitState) {
+            submitState.hidden = !active;
+            submitState.textContent = active ? t.submitting : '';
+        }
+    };
+    const invalidateQuote = () => {
+        quoteRevision += 1;
+        quoteReady = false;
+        quoteOwner = null;
+        quoteAbortController?.abort();
+        quoteAbortController = null;
+        if (!isSubmitting) createButton.disabled = true;
+    };
 
     const setStep = (target) => {
         step = Math.max(0, Math.min(5, target));
+        if (step !== 5) invalidateQuote();
         form.querySelectorAll('[data-wizard-step]').forEach((node) => { node.dataset.active = Number(node.dataset.wizardStep) === step ? '1' : '0'; });
         form.querySelectorAll('[data-wizard-progress]').forEach((node) => {
             const index = Number(node.dataset.wizardProgress);
@@ -180,7 +287,162 @@ document.addEventListener('DOMContentLoaded', () => {
         refillStoreData();
     };
 
+    const lookupUrl = (type) => String(form.dataset.lookupUrl || '').replace('__TYPE__', encodeURIComponent(type));
+    const scopedLookupParams = () => ({
+        channel: channelSelect.value,
+        store_id: storeSelect.value,
+    });
+    const lookupLabel = (item) => {
+        const base = [item.label, item.meta].filter(Boolean).join(' · ');
+        return item.active === false ? base + ' · ' + t.selectedUnavailable : base;
+    };
+    const replaceLookupOptions = (select, items, placeholder, { append = false, selectedId = null } = {}) => {
+        const previousValue = selectedId ? String(selectedId) : select.value;
+        const previousOption = previousValue
+            ? [...select.options].find((option) => option.value === previousValue)?.cloneNode(true)
+            : null;
+        if (!append) {
+            select.innerHTML = '';
+            select.appendChild(makeOption('', placeholder));
+        }
+        const existing = new Set([...select.options].map((option) => option.value));
+        (items || []).forEach((item) => {
+            const value = String(item.id);
+            if (existing.has(value)) return;
+            const option = makeOption(value, lookupLabel(item));
+            option.dataset.active = item.active === false ? '0' : '1';
+            if (item.price !== undefined && item.price !== null) option.dataset.price = String(item.price);
+            select.appendChild(option);
+            existing.add(value);
+        });
+        if (previousValue && !existing.has(previousValue) && previousOption) {
+            select.appendChild(previousOption);
+        }
+        if (previousValue && [...select.options].some((option) => option.value === previousValue)) {
+            select.value = previousValue;
+        }
+    };
+    const fetchLookup = async (type, params, signal) => {
+        const url = new URL(lookupUrl(type), window.location.origin);
+        Object.entries({...scopedLookupParams(), ...params}).forEach(([key, value]) => {
+            if (value !== '' && value !== null && value !== undefined) url.searchParams.set(key, String(value));
+        });
+        const response = await fetch(url, {
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(firstApiError(payload));
+        return payload.data || {items: [], page: 1, has_more: false};
+    };
+    const loadCustomers = async (query = customerLookupQuery, page = 1, selectedId = null) => {
+        if (!channelSelect.value || !storeSelect.value) return;
+        customerLookupAbort?.abort();
+        const controller = new AbortController();
+        customerLookupAbort = controller;
+        const sequence = ++customerLookupSequence;
+        const scopeVersion = lookupScopeVersion;
+        customerStatus.textContent = t.searching;
+        customerMore.dataset.retry = '0';
+        customerMore.textContent = t.loadMore;
+        customerSelect.disabled = true;
+        if (page === 1 && !selectedId) customerSelect.value = '';
+        try {
+            const result = await fetchLookup('customer', {q: query, page, selected_id: selectedId}, controller.signal);
+            if (sequence !== customerLookupSequence || scopeVersion !== lookupScopeVersion) return;
+            customerLookupQuery = query;
+            customerLookupPage = page;
+            replaceLookupOptions(customerSelect, result.items, isAr ? 'اختر العميل' : 'Select customer', {append: page > 1, selectedId});
+            customerSelect.disabled = false;
+            customerStatus.textContent = result.items.length ? t.resultsHelp : t.noResults;
+            customerMore.dataset.retry = '0';
+            customerMore.textContent = t.loadMore;
+            customerMore.hidden = !result.has_more;
+            if (selectedId) customerSelect.value = String(selectedId);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (scopeVersion !== lookupScopeVersion) return;
+            customerSelect.disabled = false;
+            customerStatus.textContent = t.lookupFailed;
+            customerMore.dataset.retry = '1';
+            customerMore.textContent = @json(__('order_operations.lookup.retry'));
+            customerMore.hidden = false;
+        }
+    };
+    const loadAddresses = async (selectedId = null) => {
+        addressLookupAbort?.abort();
+        const controller = new AbortController();
+        addressLookupAbort = controller;
+        const scopeVersion = lookupScopeVersion;
+        const customerId = customerSelect.value;
+        addressSelect.innerHTML = '';
+        addressSelect.appendChild(makeOption('', t.pickup));
+        if (!customerId) {
+            addressSelect.disabled = true;
+            addressStatus.textContent = t.selectCustomerFirst;
+            return;
+        }
+        addressSelect.disabled = true;
+        addressRetry.hidden = true;
+        addressStatus.textContent = t.addressLoading;
+        try {
+            const result = await fetchLookup('address', {customer_id: customerId, selected_id: selectedId}, controller.signal);
+            if (scopeVersion !== lookupScopeVersion || String(customerSelect.value) !== String(customerId)) return;
+            replaceLookupOptions(addressSelect, result.items, t.pickup, {selectedId});
+            addressSelect.disabled = false;
+            addressRetry.hidden = true;
+            addressStatus.textContent = result.items.length ? t.resultsHelp : t.noResults;
+            if (selectedId) addressSelect.value = String(selectedId);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (scopeVersion !== lookupScopeVersion) return;
+            addressSelect.disabled = false;
+            addressStatus.textContent = t.lookupFailed;
+            addressRetry.hidden = false;
+        }
+    };
+    const loadProducts = async (row, query = '', page = 1, selectedId = null) => {
+        const select = row.querySelector('[data-wizard-product]');
+        const status = row.querySelector('[data-wizard-product-status]');
+        const more = row.querySelector('[data-wizard-product-more]');
+        if (!select || !status || !channelSelect.value || !storeSelect.value) return;
+        row._lookupAbort?.abort();
+        const controller = new AbortController();
+        row._lookupAbort = controller;
+        const sequence = (row._lookupSequence || 0) + 1;
+        row._lookupSequence = sequence;
+        const scopeVersion = lookupScopeVersion;
+        status.textContent = t.searching;
+        more.dataset.retry = '0';
+        more.textContent = t.loadMore;
+        select.disabled = true;
+        try {
+            const result = await fetchLookup('product', {q: query, page, selected_id: selectedId}, controller.signal);
+            if (row._lookupSequence !== sequence || scopeVersion !== lookupScopeVersion) return;
+            row._lookupQuery = query;
+            row._lookupPage = page;
+            replaceLookupOptions(select, result.items, isAr ? 'اختر المنتج' : 'Select product', {append: page > 1, selectedId});
+            select.disabled = false;
+            status.textContent = result.items.length ? t.resultsHelp : t.noResults;
+            more.dataset.retry = '0';
+            more.textContent = t.loadMore;
+            more.hidden = !result.has_more;
+            if (selectedId) select.value = String(selectedId);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (scopeVersion !== lookupScopeVersion) return;
+            select.disabled = false;
+            status.textContent = t.lookupFailed;
+            more.dataset.retry = '1';
+            more.textContent = @json(__('order_operations.lookup.retry'));
+            more.hidden = false;
+        }
+    };
+
     const refillStoreData = () => {
+        lookupScopeVersion += 1;
+        customerLookupAbort?.abort();
+        addressLookupAbort?.abort();
         const currentStore = activeStore();
         const isB2b = channelSelect.value === 'b2b';
         warehouseWrap.style.display = isB2b ? '' : 'none';
@@ -190,24 +452,23 @@ document.addEventListener('DOMContentLoaded', () => {
         (currentStore?.warehouses || []).forEach((item) => warehouseSelect.appendChild(makeOption(item.id, item.code + ' · ' + item.name)));
         if (isB2b && warehouseSelect.options.length === 2) warehouseSelect.selectedIndex = 1;
 
+        customerSearch.value = '';
         customerSelect.innerHTML = '';
         customerSelect.appendChild(makeOption('', isAr ? 'اختر العميل' : 'Select customer'));
-        (currentStore?.customers || []).forEach((item) => customerSelect.appendChild(makeOption(item.id, item.name)));
-        if (customerSelect.options.length === 2) customerSelect.selectedIndex = 1;
+        customerSelect.disabled = !currentStore;
+        customerStatus.textContent = currentStore ? t.searching : t.resultsHelp;
+        customerMore.hidden = true;
+        customerLookupQuery = '';
+        customerLookupPage = 1;
 
         linesBox.innerHTML = '';
         addLine();
-        refillAddresses();
-        invalidateQuote();
-    };
-
-    const refillAddresses = () => {
-        const previous = addressSelect.value;
         addressSelect.innerHTML = '';
         addressSelect.appendChild(makeOption('', t.pickup));
-        const customerId = customerSelect.value;
-        (activeStore()?.addresses || []).filter((item) => !customerId || String(item.customer_id) === customerId).forEach((item) => addressSelect.appendChild(makeOption(item.id, item.label)));
-        if ([...addressSelect.options].some((node) => node.value === previous)) addressSelect.value = previous;
+        addressSelect.disabled = true;
+        addressStatus.textContent = t.selectCustomerFirst;
+        if (currentStore) loadCustomers('', 1);
+        invalidateQuote();
     };
 
     const reindexLines = () => {
@@ -217,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const addLine = () => {
+    const addLine = (selectedProductId = null) => {
         const row = document.createElement('div');
         row.className = 'new-order-line';
         row.dataset.wizardLine = '1';
@@ -226,28 +487,51 @@ document.addEventListener('DOMContentLoaded', () => {
         productLabel.className = 'new-order-field';
         const productCaption = document.createElement('span');
         productCaption.textContent = isAr ? 'المنتج' : 'Product';
+        const productSearch = document.createElement('input');
+        productSearch.type = 'search';
+        productSearch.autocomplete = 'off';
+        productSearch.placeholder = t.searchProduct;
+        productSearch.dataset.wizardProductSearch = '1';
         const productSelect = document.createElement('select');
         productSelect.dataset.wizardProduct = '1';
         productSelect.required = true;
+        productSelect.disabled = true;
         productSelect.appendChild(makeOption('', isAr ? 'اختر المنتج' : 'Select product'));
-        (activeStore()?.products || []).forEach((item) => {
-            const price = item.price === null || item.price === undefined ? '' : ' · ' + money(item.price, 'EGP');
-            productSelect.appendChild(makeOption(item.id, item.sku + ' · ' + item.name + price));
+        const productStatus = document.createElement('small');
+        productStatus.dataset.wizardProductStatus = '1';
+        productStatus.setAttribute('role', 'status');
+        productStatus.setAttribute('aria-live', 'polite');
+        productStatus.textContent = t.resultsHelp;
+        const productMore = document.createElement('button');
+        productMore.type = 'button';
+        productMore.className = 'btn secondary';
+        productMore.dataset.wizardProductMore = '1';
+        productMore.textContent = t.loadMore;
+        productMore.hidden = true;
+        productLabel.append(productCaption, productSearch, productSelect, productStatus, productMore);
+
+        let searchTimer = null;
+        productSearch.addEventListener('input', () => {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(() => loadProducts(row, productSearch.value.trim(), 1), 250);
         });
-        productLabel.append(productCaption, productSelect);
+        productMore.addEventListener('click', () => {
+            const retrying = productMore.dataset.retry === '1';
+            loadProducts(row, row._lookupQuery || '', retrying ? (row._lookupPage || 1) : (row._lookupPage || 1) + 1);
+        });
 
         const quantityLabel = document.createElement('label');
         quantityLabel.className = 'new-order-field';
         const quantityCaption = document.createElement('span');
         quantityCaption.textContent = isAr ? 'الكمية' : 'Quantity';
-        const quantity = document.createElement('input');
-        quantity.type = 'number';
-        quantity.min = '0.001';
-        quantity.step = '0.001';
-        quantity.value = '1';
-        quantity.required = true;
-        quantity.dataset.wizardQuantity = '1';
-        quantityLabel.append(quantityCaption, quantity);
+        const quantityInput = document.createElement('input');
+        quantityInput.type = 'number';
+        quantityInput.min = '0.001';
+        quantityInput.step = '0.001';
+        quantityInput.value = '1';
+        quantityInput.required = true;
+        quantityInput.dataset.wizardQuantity = '1';
+        quantityLabel.append(quantityCaption, quantityInput);
 
         const remove = document.createElement('button');
         remove.type = 'button';
@@ -255,14 +539,18 @@ document.addEventListener('DOMContentLoaded', () => {
         remove.textContent = isAr ? 'حذف' : 'Remove';
         remove.addEventListener('click', () => {
             if (linesBox.querySelectorAll('[data-wizard-line]').length <= 1) return;
+            row._lookupAbort?.abort();
             row.remove();
             reindexLines();
+            dirty = true;
             invalidateQuote();
         });
 
         row.append(productLabel, quantityLabel, remove);
         linesBox.appendChild(row);
         reindexLines();
+        loadProducts(row, '', 1, selectedProductId);
+        return row;
     };
 
     const validateStep = () => {
@@ -305,7 +593,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const renderQuote = (quote) => {
+    const renderQuote = (quote, owner) => {
+        if (!ownsCurrentQuote(owner)) return;
         quoteBox.innerHTML = '';
         const currency = quote.currency || 'EGP';
         const lines = document.createElement('div');
@@ -319,14 +608,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const grand = document.createElement('strong');
         grand.textContent = t.total + ': ' + money(quote.grand_total, currency) + ' ' + currency;
         quoteBox.append(lines, totals, grand);
+        quoteOwner = owner;
         quoteReady = !quote.has_unavailable_items;
-        createButton.disabled = !quoteReady;
+        if (!isSubmitting) createButton.disabled = !quoteReady || !ownsCurrentQuote(quoteOwner);
         if (!quoteReady) showError(t.unavailable);
     };
 
     const loadReviewAndQuote = async () => {
         renderReview();
         invalidateQuote();
+        const owner = { revision: quoteRevision, session: quoteSession };
+        const controller = new AbortController();
+        quoteAbortController = controller;
         quoteBox.textContent = t.quoteLoading;
         showError('');
         try {
@@ -334,18 +627,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 body: new FormData(form),
                 headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                signal: controller.signal,
             });
             const payload = await response.json().catch(() => ({}));
+            if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;
             if (!response.ok) throw new Error(firstApiError(payload));
-            renderQuote(payload.data || {});
+            renderQuote(payload.data || {}, owner);
         } catch (error) {
+            if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;
             quoteBox.textContent = t.quoteFailed;
             showError(error.message || t.quoteFailed);
+        } finally {
+            if (quoteAbortController === controller) quoteAbortController = null;
         }
     };
 
-    const reset = () => {
+    const setDiscardIsolation = (active) => {
+        [modalHeader, modalProgress, modalBody, modalActions].forEach((node) => {
+            if (node) node.inert = active;
+        });
+    };
+
+    const hideDiscardPrompt = ({ restoreFocus = true } = {}) => {
+        if (!discardPanel) return;
+        discardPanel.dataset.visible = '0';
+        discardPanel.setAttribute('aria-hidden', 'true');
+        setDiscardIsolation(false);
+        if (restoreFocus && discardReturnFocus instanceof HTMLElement) discardReturnFocus.focus();
+        discardReturnFocus = null;
+    };
+
+    const reset = ({ freshIdentity = initialized } = {}) => {
+        quoteSession += 1;
+        invalidateQuote();
         form.reset();
+        setSubmitting(false);
+        if (freshIdentity && idempotencyInput) idempotencyInput.value = createIdempotencyKey();
         channelSelect.innerHTML = '';
         channelSelect.appendChild(makeOption('', isAr ? 'اختر القناة' : 'Select channel'));
         (source.channels || []).forEach((item) => channelSelect.appendChild(makeOption(item.code, item.label)));
@@ -354,33 +671,144 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paymentSelect.options.length === 2) paymentSelect.selectedIndex = 1;
         invalidateQuote();
         setStep(0);
+        dirty = false;
+        hideDiscardPrompt({ restoreFocus: false });
+        initialized = true;
     };
 
-    const open = () => {
-        reset();
-        modal.dataset.open = '1';
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        channelSelect.focus();
-    };
-    const close = () => {
+    const closeModal = () => {
+        quoteSession += 1;
+        invalidateQuote();
+        hideDiscardPrompt({ restoreFocus: false });
+        modalSession?.deactivate({ restoreFocus: true });
+        modalSession = null;
         modal.dataset.open = '0';
         modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
-        reset();
+    };
+
+    const open = (event) => {
+        if (modal.dataset.open === '1') return;
+        if (!initialized) reset();
+        const opener = event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement;
+        modal.dataset.open = '1';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        const focusTarget = step === 0 ? channelSelect : form.querySelector('[data-wizard-step="' + step + '"] input, [data-wizard-step="' + step + '"] select, [data-wizard-step="' + step + '"] textarea, [data-wizard-step="' + step + '"] button');
+        modalSession = window.FoodexModalA11y?.activate({
+            root: modal,
+            dialog: modal.querySelector('.new-order-dialog'),
+            initialFocus: focusTarget || channelSelect,
+            returnFocus: opener instanceof HTMLElement ? opener : null,
+            fallbackFocus: document.querySelector('[data-new-order-open]'),
+        }) || null;
+        if (!modalSession) (focusTarget || channelSelect).focus();
+    };
+
+    const requestClose = (trigger = null) => {
+        if (!dirty) {
+            closeModal();
+            return;
+        }
+        if (!discardPanel) return;
+        discardReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
+        setDiscardIsolation(true);
+        discardPanel.dataset.visible = '1';
+        discardPanel.setAttribute('aria-hidden', 'false');
+        continueButton?.focus();
+    };
+
+    const discardAndClose = () => {
+        reset({ freshIdentity: true });
+        closeModal();
+    };
+
+    const restoreServerInput = async () => {
+        if (!restoreAfterValidation || !restoreInput) return false;
+
+        channelSelect.value = String(restoreInput.channel || '');
+        refillStores();
+        storeSelect.value = String(restoreInput.store_id || '');
+        refillStoreData();
+        warehouseSelect.value = String(restoreInput.warehouse_id || '');
+        await loadCustomers('', 1, restoreInput.customer_id || null);
+        customerSelect.value = String(restoreInput.customer_id || '');
+        await loadAddresses(restoreInput.address_id || null);
+        addressSelect.value = String(restoreInput.address_id || '');
+        paymentSelect.value = String(restoreInput.payment_method || '');
+
+        const couponInput = form.querySelector('[name="coupon_code"]');
+        const noteInput = form.querySelector('[name="customer_note"]');
+        if (couponInput) couponInput.value = String(restoreInput.coupon_code || '');
+        if (noteInput) noteInput.value = String(restoreInput.customer_note || '');
+
+        const restoredItems = Array.isArray(restoreInput.items) ? restoreInput.items : [];
+        linesBox.innerHTML = '';
+        for (const item of (restoredItems.length ? restoredItems : [{}])) {
+            const row = addLine(item?.product_id || null);
+            const quantityInput = row?.querySelector('[data-wizard-quantity]');
+            if (quantityInput) quantityInput.value = String(item?.quantity || '1');
+        }
+        reindexLines();
+
+        if (idempotencyInput) {
+            idempotencyInput.value = String(restoreInput.idempotency_key || idempotencyInput.value || createIdempotencyKey());
+        }
+
+        dirty = true;
+        invalidateQuote();
+        setStep(5);
+        if (restoreError) showError(restoreError);
+
+        return true;
     };
 
     document.querySelectorAll('[data-new-order-open]').forEach((button) => button.addEventListener('click', open));
-    modal.querySelectorAll('[data-new-order-cancel]').forEach((button) => button.addEventListener('click', close));
-    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.dataset.open === '1') close(); });
+    modal.querySelectorAll('[data-new-order-cancel]').forEach((button) => button.addEventListener('click', (event) => requestClose(event.currentTarget)));
+    continueButton?.addEventListener('click', () => hideDiscardPrompt());
+    discardButton?.addEventListener('click', discardAndClose);
+    modal.addEventListener('click', (event) => { if (event.target === modal) requestClose(modal.querySelector('[data-new-order-cancel]')); });
+    document.addEventListener('keydown', (event) => {
+        if (modal.dataset.open !== '1') return;
+
+        if (discardPanel?.dataset.visible === '1' && event.key === 'Tab') {
+            const focusable = [continueButton, discardButton].filter((node) => node instanceof HTMLElement && !node.disabled);
+            if (focusable.length) {
+                const currentIndex = focusable.indexOf(document.activeElement);
+                const nextIndex = event.shiftKey
+                    ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+                    : (currentIndex < 0 || currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+                event.preventDefault();
+                focusable[nextIndex].focus();
+            }
+            return;
+        }
+
+        if (event.key !== 'Escape') return;
+        if (discardPanel?.dataset.visible === '1') {
+            event.preventDefault();
+            hideDiscardPrompt();
+            return;
+        }
+        event.preventDefault();
+        requestClose(document.activeElement);
+    });
 
     channelSelect.addEventListener('change', () => { refillStores(); invalidateQuote(); });
     storeSelect.addEventListener('change', () => { refillStoreData(); invalidateQuote(); });
-    customerSelect.addEventListener('change', () => { refillAddresses(); invalidateQuote(); });
-    form.addEventListener('input', invalidateQuote);
-    form.addEventListener('change', invalidateQuote);
-    form.querySelector('[data-wizard-add-line]').addEventListener('click', () => { addLine(); invalidateQuote(); });
+    customerSearch.addEventListener('input', () => {
+        window.clearTimeout(customerSearchTimer);
+        customerSearchTimer = window.setTimeout(() => loadCustomers(customerSearch.value.trim(), 1), 250);
+    });
+    customerMore.addEventListener('click', () => {
+        const retrying = customerMore.dataset.retry === '1';
+        loadCustomers(customerLookupQuery, retrying ? customerLookupPage : customerLookupPage + 1);
+    });
+    addressRetry.addEventListener('click', () => loadAddresses(addressSelect.value || null));
+    customerSelect.addEventListener('change', () => { loadAddresses(); invalidateQuote(); });
+    form.addEventListener('input', () => { dirty = true; invalidateQuote(); });
+    form.addEventListener('change', () => { dirty = true; invalidateQuote(); });
+    form.querySelector('[data-wizard-add-line]').addEventListener('click', () => { addLine(); dirty = true; invalidateQuote(); });
 
     nextButton.addEventListener('click', () => {
         const error = validateStep();
@@ -390,6 +818,11 @@ document.addEventListener('DOMContentLoaded', () => {
     backButton.addEventListener('click', () => setStep(step - 1));
 
     form.addEventListener('submit', (event) => {
+        if (isSubmitting) {
+            event.preventDefault();
+            return;
+        }
+
         if (step !== 5) {
             event.preventDefault();
             const error = validateStep();
@@ -401,13 +834,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!quoteReady) {
+        if (!quoteReady || !ownsCurrentQuote(quoteOwner)) {
             event.preventDefault();
             loadReviewAndQuote();
+            return;
         }
+
+        if (idempotencyInput && !idempotencyInput.value.trim()) {
+            idempotencyInput.value = createIdempotencyKey();
+        }
+        setSubmitting(true);
+        dirty = false;
     });
 
     reset();
+    restoreServerInput().then((restored) => { if (restored) open(); });
 });
 </script>
 @endif

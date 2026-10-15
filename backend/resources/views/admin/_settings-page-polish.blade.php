@@ -1,5 +1,5 @@
 <style>
-.foodex-settings-surface{min-width:0;max-width:none!important;margin:0!important;background:var(--foodex-page);color:var(--foodex-ink)}
+.foodex-settings-surface{min-width:0;max-width:none!important;margin:0!important;background:var(--foodex-background);color:var(--foodex-ink)}
 .foodex-settings-surface>.admin-center-switcher{margin-top:0}
 .foodex-settings-surface .foodex-page-header{max-width:1180px;margin:0 auto 18px;background:#fff;border:1px solid var(--foodex-border);border-radius:16px;padding:20px;box-shadow:var(--foodex-shadow-sm)}
 .foodex-settings-surface .foodex-page-header h1{margin:3px 0 8px;font-size:clamp(1.5rem,2.2vw,2rem)}

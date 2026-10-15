@@ -8,8 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  testWidgets('NEW Retail home keeps explicit store context in every intent',
-      (tester) async {
+  testWidgets('NEW Retail home keeps explicit store context in every intent', (
+    tester,
+  ) async {
     final api = _FakeCatalogApi();
     int? navigatedStore;
     int? navigatedCategory;
@@ -35,16 +36,10 @@ void main() {
         navigatedStore = storeId;
         navigatedProduct = productId;
       },
-      openCart: (
-        BuildContext context, {
-        required int storeId,
-      }) {
+      openCart: (BuildContext context, {required int storeId}) {
         navigatedStore = storeId;
       },
-      openNotifications: (
-        BuildContext context, {
-        required int storeId,
-      }) {
+      openNotifications: (BuildContext context, {required int storeId}) {
         navigatedStore = storeId;
       },
     );
@@ -95,8 +90,9 @@ void main() {
     expect(navigatedStore, 7);
   });
 
-  testWidgets('NEW Retail catalog refreshes authoritative data on resume',
-      (tester) async {
+  testWidgets('NEW Retail catalog refreshes authoritative data on resume', (
+    tester,
+  ) async {
     final api = _FakeCatalogApi();
 
     await tester.pumpWidget(
@@ -110,13 +106,9 @@ void main() {
     final beforeResume = api.seenStoreIds.length;
     expect(beforeResume, 4);
 
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.inactive,
-    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.resumed,
-    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(api.seenStoreIds.length, beforeResume + 4);
@@ -125,30 +117,32 @@ void main() {
   });
 
   testWidgets(
-      'NEW Retail home hides unwired controls instead of silent buttons',
-      (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
-        home: RetailCatalogHomeScreen(
-          storeId: 7,
-          catalogApi: _FakeCatalogApi(),
+    'NEW Retail home hides unwired controls instead of silent buttons',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogHomeScreen(
+            storeId: 7,
+            catalogApi: _FakeCatalogApi(),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('retail-catalog-search')), findsNothing);
-    expect(find.byKey(const ValueKey('retail-catalog-cart')), findsNothing);
-    expect(
-      find.byKey(const ValueKey('retail-catalog-notifications')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('retail-product-add-42')), findsNothing);
-  });
+      expect(find.byKey(const ValueKey('retail-catalog-search')), findsNothing);
+      expect(find.byKey(const ValueKey('retail-catalog-cart')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('retail-catalog-notifications')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('retail-product-add-42')), findsNothing);
+    },
+  );
 
-  testWidgets('NEW product add-to-cart entry carries exact store and product',
-      (tester) async {
+  testWidgets('NEW product add-to-cart entry carries exact store and product', (
+    tester,
+  ) async {
     int? capturedStoreId;
     int? capturedProductId;
     double? capturedQuantity;
@@ -194,6 +188,66 @@ void main() {
     expect(capturedQuantity, 2);
   });
 
+  testWidgets(
+    'full category and offer browse can reach records after the first page',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final api = _PagedCollectionCatalogApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogCategoriesScreen(storeId: 7, catalogApi: api),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-category-grid-1')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('retail-categories-load-more')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('retail-category-grid-21')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retail-categories-end')),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCatalogOffersScreen(storeId: 7, catalogApi: api),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-offers-load-more')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('retail-offers-load-more')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second page offer'), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-offers-end')), findsOneWidget);
+      expect(api.categoryPages, <int>[1, 2]);
+      expect(api.offerPages, <int>[1, 2]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   test('HTTP catalog API sends authoritative Retail store header', () async {
     final requests = <http.Request>[];
     final api = HttpB2cCatalogApi(
@@ -229,7 +283,13 @@ void main() {
             200,
           );
         }
-        return http.Response(jsonEncode({'data': <Object>[]}), 200);
+        return http.Response(
+          jsonEncode({
+            'data': <Object>[],
+            'meta': {'current_page': 1, 'per_page': 20, 'total': 0},
+          }),
+          200,
+        );
       }),
     );
 
@@ -253,6 +313,76 @@ void main() {
     expect(requests.last.url.queryParameters['store'], '7');
   });
 
+  test(
+    'HTTP catalog API preserves paginator metadata and request scope',
+    () async {
+      final requests = <http.Request>[];
+      final api = HttpB2cCatalogApi(
+        baseUrl: 'https://foodex.example',
+        client: MockClient((request) async {
+          requests.add(request);
+          final page = int.parse(request.url.queryParameters['page'] ?? '1');
+          final total = request.url.path.endsWith('/products') ? 45 : 21;
+          final data = request.url.path.endsWith('/products')
+              ? <Object>[
+                  {
+                    'id': page * 100,
+                    'name': 'Paged product',
+                    'sku': 'PAGE-$page',
+                    'price': 2.5,
+                  },
+                ]
+              : <Object>[];
+          return http.Response(
+            jsonEncode({
+              'data': data,
+              'meta': {'current_page': page, 'per_page': 20, 'total': total},
+            }),
+            200,
+          );
+        }),
+      );
+
+      final products = await api.productPage(
+        7,
+        query: ' coffee ',
+        categoryId: 3,
+        sort: 'price',
+        direction: 'desc',
+        page: 2,
+      );
+      final categories = await api.categoryPage(7, page: 2);
+      final offers = await api.offerPage(7, page: 2);
+
+      expect(products.items.single.id, 200);
+      expect(products.currentPage, 2);
+      expect(products.perPage, 20);
+      expect(products.total, 45);
+      expect(products.lastPage, 3);
+      expect(products.hasNextPage, isTrue);
+      expect(categories.currentPage, 2);
+      expect(categories.lastPage, 2);
+      expect(categories.hasNextPage, isFalse);
+      expect(offers.currentPage, 2);
+      expect(offers.lastPage, 2);
+      expect(offers.hasNextPage, isFalse);
+
+      expect(requests, hasLength(3));
+      expect(requests[0].url.queryParameters, containsPair('q', 'coffee'));
+      expect(requests[0].url.queryParameters, containsPair('category', '3'));
+      expect(requests[0].url.queryParameters, containsPair('sort', 'price'));
+      expect(
+        requests[0].url.queryParameters,
+        containsPair('direction', 'desc'),
+      );
+      for (final request in requests) {
+        expect(request.url.queryParameters['page'], '2');
+        expect(request.url.queryParameters['per_page'], '20');
+        expect(request.headers['X-FOODEX-Store-ID'], '7');
+      }
+    },
+  );
+
   test('HTTP catalog API rejects missing/invalid store context', () async {
     final api = HttpB2cCatalogApi(
       baseUrl: 'https://foodex.example',
@@ -265,22 +395,92 @@ void main() {
     await expectLater(api.product(42, storeId: -1), throwsArgumentError);
   });
 
-  test('HTTP catalog API normalizes transport failures as offline state',
-      () async {
-    final api = HttpB2cCatalogApi(
-      baseUrl: 'https://foodex.example',
-      client: MockClient((request) async {
-        throw http.ClientException('offline', request.url);
-      }),
-    );
+  test(
+    'HTTP catalog API normalizes transport failures as offline state',
+    () async {
+      final api = HttpB2cCatalogApi(
+        baseUrl: 'https://foodex.example',
+        client: MockClient((request) async {
+          throw http.ClientException('offline', request.url);
+        }),
+      );
 
-    try {
-      await api.products(7);
-      fail('Expected an offline catalog exception.');
-    } on B2cCatalogException catch (error) {
-      expect(error.isNetworkUnavailable, isTrue);
-    }
-  });
+      try {
+        await api.products(7);
+        fail('Expected an offline catalog exception.');
+      } on B2cCatalogException catch (error) {
+        expect(error.isNetworkUnavailable, isTrue);
+      }
+    },
+  );
+}
+
+class _PagedCollectionCatalogApi extends _FakeCatalogApi
+    implements B2cPagedCatalogApi {
+  final List<int> categoryPages = <int>[];
+  final List<int> offerPages = <int>[];
+
+  @override
+  Future<B2cCatalogPage<B2cCategory>> categoryPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    categoryPages.add(page);
+    return B2cCatalogPage<B2cCategory>(
+      items: <B2cCategory>[
+        B2cCategory(
+          id: page == 1 ? 1 : 21,
+          name: page == 1 ? 'First page category' : 'Second page category',
+        ),
+      ],
+      currentPage: page,
+      perPage: 20,
+      total: 21,
+    );
+  }
+
+  @override
+  Future<B2cCatalogPage<B2cOffer>> offerPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    offerPages.add(page);
+    return B2cCatalogPage<B2cOffer>(
+      items: <B2cOffer>[
+        B2cOffer(
+          id: page == 1 ? 1 : 21,
+          name: page == 1 ? 'First page offer' : 'Second page offer',
+          type: 'percentage',
+          value: 10,
+        ),
+      ],
+      currentPage: page,
+      perPage: 20,
+      total: 21,
+    );
+  }
+
+  @override
+  Future<B2cCatalogPage<B2cProduct>> productPage(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+    int page = 1,
+    int perPage = 20,
+  }) async =>
+      B2cCatalogPage<B2cProduct>.single(
+        await products(
+          storeId,
+          query: query,
+          categoryId: categoryId,
+          sort: sort,
+          direction: direction,
+        ),
+      );
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
@@ -294,9 +494,7 @@ class _FakeCatalogApi implements B2cCatalogApi {
   @override
   Future<List<B2cCategory>> categories(int storeId) async {
     _remember(storeId);
-    return const <B2cCategory>[
-      B2cCategory(id: 3, name: 'Vegetables'),
-    ];
+    return const <B2cCategory>[B2cCategory(id: 3, name: 'Vegetables')];
   }
 
   @override
@@ -309,12 +507,7 @@ class _FakeCatalogApi implements B2cCatalogApi {
   }) async {
     _remember(storeId);
     return const <B2cProduct>[
-      B2cProduct(
-        id: 42,
-        name: 'Tomato Box',
-        sku: 'TOM-42',
-        price: 3.25,
-      ),
+      B2cProduct(id: 42, name: 'Tomato Box', sku: 'TOM-42', price: 3.25),
     ];
   }
 
@@ -329,9 +522,7 @@ class _FakeCatalogApi implements B2cCatalogApi {
   @override
   Future<List<B2cBanner>> banners(int storeId) async {
     _remember(storeId);
-    return const <B2cBanner>[
-      B2cBanner(id: 11, title: 'Fresh every day'),
-    ];
+    return const <B2cBanner>[B2cBanner(id: 11, title: 'Fresh every day')];
   }
 
   @override

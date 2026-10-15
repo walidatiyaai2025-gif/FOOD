@@ -11,7 +11,7 @@
 <article class="so-item-card so-quick-card" data-menu-item data-search="{{ mb_strtolower($item['name'].' '.$item['description']) }}">
 <div class="so-item-copy"><div class="so-item-badges">@if($item['best_seller'])<span>{{ $locale === 'ar' ? 'الأكثر طلباً' : 'Best seller' }}</span>@endif @if($item['new'])<span>{{ $locale === 'ar' ? 'جديد' : 'New' }}</span>@endif</div><h3>{{ $item['name'] }}</h3>@if($item['description'])<p>{{ $item['description'] }}</p>@endif<strong>{{ $item['price_display'] }}</strong></div>
 <div class="so-item-media">@if($item['image_url'])<img src="{{ $item['image_url'] }}" alt="" loading="lazy" decoding="async">@endif
-<button type="button" class="so-add-button" data-open-item data-name="{{ $item['name'] }}" data-description="{{ $item['description'] }}" data-image="{{ $item['image_url'] }}" data-modifiers='@json($item["modifiers"], JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_TAG | JSON_HEX_QUOT)' @disabled($item['sold_out'] || ! $is_open)>{{ $item['sold_out'] ? ($locale === 'ar' ? 'نفد' : 'Sold out') : '+' }}</button></div>
+<button type="button" class="so-add-button" aria-label="{{ $item['sold_out'] ? (($locale === 'ar' ? 'نفد: ' : 'Sold out: ').$item['name']) : (($locale === 'ar' ? 'تخصيص ' : 'Customize ').$item['name']) }}" data-open-item data-item-id="{{ $item['public_key'] }}" data-name="{{ $item['name'] }}" data-description="{{ $item['description'] }}" data-image="{{ $item['image_url'] }}" data-modifiers='@json($item["modifiers"], JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_TAG | JSON_HEX_QUOT)' @disabled($item['sold_out'] || ! $is_open)>{{ $item['sold_out'] ? ($locale === 'ar' ? 'نفد' : 'Sold out') : '+' }}</button></div>
 </article>
 @endforeach
 </div></section>

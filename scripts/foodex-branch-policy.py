@@ -4,6 +4,12 @@ import argparse, re, sys
 
 KINDS=("feat","fix","chore","docs","refactor","test","ci","worker")
 SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot"}
+PROMOTION_BRANCHES={
+    "feature/enterprise-core-platform",
+    "feature/enterprise-performance-gates",
+    "feature/smart-ordering-program",
+    "feature/whatsapp-crm-dark-launch",
+}
 STANDARD_RE=re.compile(r"^(feat|fix|chore|docs|refactor|test|ci|worker)/([0-9]+)-[a-z0-9-]+$")
 RELEASE_RE=re.compile(r"^release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+$")
 
@@ -20,6 +26,7 @@ def build_name(issue:int, kind:str, slug:str)->str:
 
 def is_valid(branch:str, base:str|None=None, allow_main:bool=False)->bool:
     if branch in SPECIAL: return True
+    if branch in PROMOTION_BRANCHES: return base=="main"
     if branch=="main":
         return allow_main or bool(base and RELEASE_RE.fullmatch(base))
     return bool(STANDARD_RE.fullmatch(branch) or RELEASE_RE.fullmatch(branch))

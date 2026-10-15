@@ -146,6 +146,9 @@ class AppTranslations extends InheritedWidget {
     'customer.products.search_name_sku_barcode':
         'البحث بالاسم أو SKU أو الباركود',
     'customer.products.empty': 'لا توجد منتجات مطابقة',
+    'customer.catalog.load_more': 'عرض المزيد',
+    'customer.catalog.loading_more': 'جارٍ تحميل المزيد',
+    'customer.catalog.end': 'تم عرض كل النتائج',
     'customer.products.all_categories': 'كل الأقسام',
     'customer.products.searching': 'جارٍ البحث…',
     'customer.products.suggestions': 'اقتراحات',
@@ -859,6 +862,9 @@ class AppTranslations extends InheritedWidget {
     'customer.products.search_name_sku_barcode':
         'Search by name, SKU, or barcode',
     'customer.products.empty': 'No matching products found',
+    'customer.catalog.load_more': 'Load more',
+    'customer.catalog.loading_more': 'Loading more',
+    'customer.catalog.end': 'All results are loaded',
     'customer.products.all_categories': 'All categories',
     'customer.products.searching': 'Searching…',
     'customer.products.suggestions': 'Suggestions',

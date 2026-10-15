@@ -126,11 +126,112 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
         const rect = document.querySelector('aside.sidebar').getBoundingClientRect();
         return locale === 'ar' ? Math.abs(rect.right - width) < 2 : Math.abs(rect.left) < 2;
       }, { locale, width });
+      const drawerOpenProof = await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const main = document.querySelector('.foodex-admin-main, main');
+        const launcher = document.querySelector('.foodex-mobile-nav-launcher');
+        const closeControl = drawer?.querySelector('[data-foodex-sidebar-toggle]');
+        return {
+          activeInside: Boolean(drawer?.contains(document.activeElement)),
+          ariaHidden: drawer?.getAttribute('aria-hidden'),
+          ariaModal: drawer?.getAttribute('aria-modal'),
+          mainInert: Boolean(main?.hasAttribute('inert')),
+          launcherExpanded: launcher?.getAttribute('aria-expanded'),
+          launcherLabel: launcher?.getAttribute('aria-label'),
+          closeLabel: closeControl?.getAttribute('aria-label'),
+        };
+      });
+      const expectedCloseLabel = locale === 'ar' ? 'إغلاق قائمة التنقل' : 'Close navigation';
+      if (
+        !drawerOpenProof.activeInside
+        || drawerOpenProof.ariaHidden !== 'false'
+        || drawerOpenProof.ariaModal !== 'true'
+        || !drawerOpenProof.mainInert
+        || drawerOpenProof.launcherExpanded !== 'true'
+        || drawerOpenProof.launcherLabel !== expectedCloseLabel
+        || drawerOpenProof.closeLabel !== expectedCloseLabel
+      ) {
+        throw new Error(`Mobile drawer accessibility open state failed: ${name}/${locale}/${width} ${JSON.stringify(drawerOpenProof)}`);
+      }
+
+      await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const focusable = [...drawer.querySelectorAll(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+        )].filter((element) => {
+          const style = getComputedStyle(element);
+          return !element.hidden && !element.closest('[inert]') && style.display !== 'none'
+            && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+        });
+        focusable.at(-1)?.focus();
+      });
+      await page.keyboard.press('Tab');
+      if (!(await page.evaluate(() => document.querySelector('aside.sidebar')?.contains(document.activeElement)))) {
+        throw new Error(`Mobile drawer Tab escaped the active drawer: ${name}/${locale}/${width}`);
+      }
+
+      await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const focusable = [...drawer.querySelectorAll(
+          'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+        )].filter((element) => {
+          const style = getComputedStyle(element);
+          return !element.hidden && !element.closest('[inert]') && style.display !== 'none'
+            && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+        });
+        focusable[0]?.focus();
+      });
+      await page.keyboard.press('Shift+Tab');
+      if (!(await page.evaluate(() => document.querySelector('aside.sidebar')?.contains(document.activeElement)))) {
+        throw new Error(`Mobile drawer Shift+Tab escaped the active drawer: ${name}/${locale}/${width}`);
+      }
+
       await page.keyboard.press('Escape');
       await page.waitForFunction(() => {
         const rect = document.querySelector('aside.sidebar').getBoundingClientRect();
         return rect.left >= innerWidth - 1 || rect.right <= 1;
       });
+      const drawerClosedProof = await page.evaluate(() => {
+        const drawer = document.querySelector('aside.sidebar');
+        const main = document.querySelector('.foodex-admin-main, main');
+        const launcher = document.querySelector('.foodex-mobile-nav-launcher');
+        return {
+          drawerInert: Boolean(drawer?.hasAttribute('inert')),
+          ariaHidden: drawer?.getAttribute('aria-hidden'),
+          mainInert: Boolean(main?.hasAttribute('inert')),
+          launcherFocused: launcher === document.activeElement,
+          launcherExpanded: launcher?.getAttribute('aria-expanded'),
+          launcherLabel: launcher?.getAttribute('aria-label'),
+        };
+      });
+      const expectedOpenLabel = locale === 'ar' ? 'فتح قائمة التنقل' : 'Open navigation';
+      if (
+        !drawerClosedProof.drawerInert
+        || drawerClosedProof.ariaHidden !== 'true'
+        || drawerClosedProof.mainInert
+        || !drawerClosedProof.launcherFocused
+        || drawerClosedProof.launcherExpanded !== 'false'
+        || drawerClosedProof.launcherLabel !== expectedOpenLabel
+      ) {
+        throw new Error(`Mobile drawer accessibility closed state failed: ${name}/${locale}/${width} ${JSON.stringify(drawerClosedProof)}`);
+      }
+
+      if (width === 430) {
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: 768, height: viewport.height });
+        await page.waitForFunction(() => {
+          const drawer = document.querySelector('aside.sidebar');
+          return drawer
+            && !drawer.hasAttribute('inert')
+            && !drawer.hasAttribute('aria-hidden')
+            && !drawer.hasAttribute('aria-modal');
+        });
+        await page.setViewportSize({ width, height: viewport.height });
+        await page.waitForFunction(() => {
+          const drawer = document.querySelector('aside.sidebar');
+          return drawer?.hasAttribute('inert') && drawer.getAttribute('aria-hidden') === 'true';
+        });
+      }
       for (const field of ['confirmation', 'current_password']) {
         const placeholder = await page.locator(`input[name="${field}"]`).getAttribute('placeholder');
         if (!placeholder || placeholder.includes(field)) {
@@ -187,9 +288,282 @@ async function openFirstRecordActionMenu(page, selector, label) {
   await menu.waitFor({ state: 'visible' });
 }
 
+async function exerciseOrderWizardDraftSafety(page, locale) {
+  const openWizard = async () => {
+    const openButton = page.locator('[data-new-order-open]').first();
+    if (await openButton.count() !== 1) {
+      throw new Error(`Order wizard launch action missing (${locale})`);
+    }
+    await openButton.click();
+    const modal = page.locator('[data-new-order-modal]');
+    if ((await modal.getAttribute('data-open')) !== '1') {
+      throw new Error(`Order wizard did not open (${locale})`);
+    }
+    return modal;
+  };
+
+  const setDraftCoupon = async (modal, value) => {
+    const coupon = modal.locator('input[name="coupon_code"]');
+    if (await coupon.count() !== 1) {
+      throw new Error(`Order wizard coupon field missing (${locale})`);
+    }
+    await coupon.evaluate((node, draftValue) => {
+      node.value = draftValue;
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    }, value);
+  };
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  let response = await page.goto(`${baseUrl}/admin/operations/orders`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Order wizard evidence route failed (${locale})`);
+  }
+
+  let modal = await openWizard();
+
+  const headerClose = modal.locator('[data-new-order-cancel]').first();
+  await headerClose.click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Pristine order wizard did not close directly (${locale})`);
+  }
+
+  modal = await openWizard();
+  await modal.evaluate((root) => {
+    root.querySelectorAll('[data-wizard-step]').forEach((node) => {
+      node.dataset.active = node.dataset.wizardStep === '2' ? '1' : '0';
+    });
+    root.querySelectorAll('[data-wizard-progress]').forEach((node) => {
+      const index = Number(node.dataset.wizardProgress);
+      node.dataset.active = index === 2 ? '1' : '0';
+      node.dataset.complete = index < 2 ? '1' : '0';
+    });
+  });
+
+  const validationMessages = locale === 'ar'
+    ? {
+        'items.0.quantity': ['أدخل كمية صحيحة.'],
+        coupon_code: ['راجع رمز الخصم.'],
+      }
+    : {
+        'items.0.quantity': ['Enter a valid quantity.'],
+        coupon_code: ['Review the coupon code.'],
+      };
+  await page.evaluate((messages) => {
+    if (!window.FoodexValidationA11y?.showFeedback) {
+      throw new Error('Shared server-validation accessibility runtime is unavailable.');
+    }
+    window.FoodexValidationA11y.showFeedback('error', messages);
+  }, validationMessages);
+
+  const validationModal = page.locator('.foodex-feedback-modal');
+  await validationModal.waitFor({ state: 'visible' });
+  const quantityField = modal.locator('input[name="items[0][quantity]"]');
+  const couponField = modal.locator('input[name="coupon_code"]');
+  if (!(await quantityField.isVisible())) {
+    throw new Error(`Nested quantity evidence field is not visible in the active wizard step (${locale})`);
+  }
+  for (const [field, key] of [[quantityField, 'items.0.quantity'], [couponField, 'coupon_code']]) {
+    if ((await field.getAttribute('aria-invalid')) !== 'true') {
+      throw new Error(`Server validation did not mark ${key} invalid (${locale})`);
+    }
+    const describedBy = (await field.getAttribute('aria-describedby')) || '';
+    const errorMessage = (await field.getAttribute('aria-errormessage')) || '';
+    if (!describedBy.split(/\s+/).includes(errorMessage) || !errorMessage) {
+      throw new Error(`Server validation did not associate ${key} with a stable inline error (${locale})`);
+    }
+    if (await page.locator('#'+errorMessage).count() !== 1) {
+      throw new Error(`Server validation inline error is missing for ${key} (${locale})`);
+    }
+  }
+
+  const quantityLink = validationModal.locator('[data-foodex-validation-link="items.0.quantity"]');
+  const couponLink = validationModal.locator('[data-foodex-validation-link="coupon_code"]');
+  if (await quantityLink.count() !== 1) {
+    throw new Error(`Visible nested server validation error was not linked (${locale})`);
+  }
+  if (await couponLink.count() !== 0) {
+    throw new Error(`Hidden wizard field was linked instead of remaining a plain summary message (${locale})`);
+  }
+  if (await validationModal.getByText(validationMessages.coupon_code[0], { exact: true }).count() !== 1) {
+    throw new Error(`Hidden coupon validation message was lost from the summary (${locale})`);
+  }
+
+  await quantityLink.click();
+  await validationModal.waitFor({ state: 'detached' });
+  if (!(await quantityField.evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Server validation summary link did not focus the visible nested business field (${locale})`);
+  }
+
+  await quantityField.fill('2');
+  if (await quantityField.getAttribute('aria-invalid')) {
+    throw new Error(`Correcting nested quantity left stale invalid state (${locale})`);
+  }
+  if ((await couponField.getAttribute('aria-invalid')) !== 'true') {
+    throw new Error(`Correcting one field cleared an unrelated server validation error (${locale})`);
+  }
+  await page.evaluate(() => window.FoodexValidationA11y.clear());
+  if (await couponField.getAttribute('aria-invalid')) {
+    throw new Error(`Explicit server validation reset left stale coupon state (${locale})`);
+  }
+
+  await modal.locator('[data-new-order-cancel]').first().click();
+  const validationDiscard = modal.locator('[data-new-order-discard]');
+  if ((await validationDiscard.getAttribute('data-visible')) !== '1') {
+    throw new Error(`Validation evidence edit did not preserve the wizard dirty-state contract (${locale})`);
+  }
+  await validationDiscard.locator('[data-new-order-discard-confirm]').click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Validation evidence draft was not discarded cleanly (${locale})`);
+  }
+
+  modal = await openWizard();
+  await setDraftCoupon(modal, 'DRAFT-KEEP');
+  await modal.locator('[data-new-order-cancel]').first().click();
+
+  let discardPanel = modal.locator('[data-new-order-discard]');
+  if (
+    (await discardPanel.getAttribute('data-visible')) !== '1'
+    || (await discardPanel.getAttribute('aria-hidden')) !== 'false'
+  ) {
+    throw new Error(`Dirty order wizard did not require discard confirmation (${locale})`);
+  }
+  if (!(await page.locator('[data-new-order-continue]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Dirty order wizard did not move focus into discard confirmation (${locale})`);
+  }
+  await snap(page, `02_Web/B2C_Admin/23_order_wizard_dirty__desktop__${locale}.png`);
+
+  await page.keyboard.press('Escape');
+  if ((await discardPanel.getAttribute('data-visible')) !== '0' || (await modal.getAttribute('data-open')) !== '1') {
+    throw new Error(`Escape did not safely return to the dirty order draft (${locale})`);
+  }
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== 'DRAFT-KEEP') {
+    throw new Error(`Order wizard draft was lost after cancelling discard (${locale})`);
+  }
+
+  await page.keyboard.press('Escape');
+  if ((await discardPanel.getAttribute('data-visible')) !== '1') {
+    throw new Error(`Dirty order wizard Escape did not reopen discard confirmation (${locale})`);
+  }
+  await discardPanel.locator('[data-new-order-discard-confirm]').click();
+  if ((await modal.getAttribute('data-open')) !== '0') {
+    throw new Error(`Order wizard discard did not close the modal (${locale})`);
+  }
+
+  modal = await openWizard();
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== '') {
+    throw new Error(`Discarded order draft was restored instead of starting fresh (${locale})`);
+  }
+  await modal.locator('[data-new-order-cancel]').first().click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  response = await page.goto(`${baseUrl}/admin/operations/orders`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Order wizard mobile evidence route failed (${locale})`);
+  }
+  modal = await openWizard();
+  await setDraftCoupon(modal, 'MOBILE-DRAFT');
+  await modal.locator('[data-new-order-cancel]').first().click();
+  discardPanel = modal.locator('[data-new-order-discard]');
+  await discardPanel.scrollIntoViewIfNeeded();
+
+  const panelBox = await discardPanel.boundingBox();
+  if (!panelBox || panelBox.x < -1 || panelBox.x + panelBox.width > 391) {
+    throw new Error(`Order wizard discard confirmation overflows mobile viewport (${locale}): ${JSON.stringify(panelBox)}`);
+  }
+  for (const selector of ['[data-new-order-continue]', '[data-new-order-discard-confirm]']) {
+    const box = await discardPanel.locator(selector).boundingBox();
+    if (!box || box.height < 44 || box.x < -1 || box.x + box.width > 391) {
+      throw new Error(`Order wizard discard action is not mobile-safe (${locale}/${selector}): ${JSON.stringify(box)}`);
+    }
+  }
+
+  await page.keyboard.press('Tab');
+  if (!(await discardPanel.locator('[data-new-order-discard-confirm]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Order wizard discard focus trap did not advance (${locale})`);
+  }
+  await page.keyboard.press('Tab');
+  if (!(await discardPanel.locator('[data-new-order-continue]').evaluate((node) => node === document.activeElement))) {
+    throw new Error(`Order wizard discard focus trap did not wrap (${locale})`);
+  }
+
+  await snap(page, `02_Web/B2C_Admin/23_order_wizard_dirty__mobile-390__${locale}.png`);
+
+  await discardPanel.locator('[data-new-order-continue]').click();
+  if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== 'MOBILE-DRAFT') {
+    throw new Error(`Mobile order draft was lost after Continue editing (${locale})`);
+  }
+  await page.keyboard.press('Escape');
+  await discardPanel.locator('[data-new-order-discard-confirm]').click();
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  console.log(`verified recoverable Order wizard draft behavior (${locale})`);
+}
+
+async function captureSecurityPermissionEvidence(page, locale) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const response = await page.goto(`${baseUrl}/admin/security`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Security permission runtime route failed: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
+  }
+
+  const createForm = page.locator('form[action$="/admin/security/roles"]').first();
+  if (await createForm.count() !== 1) {
+    throw new Error('Security create-role form was not rendered.');
+  }
+
+  await createForm.evaluate((form) => {
+    const host = form.closest('.foodex-operational-dialog-host');
+    const trigger = host?.querySelector('[data-foodex-dialog-open]');
+    if (trigger instanceof HTMLElement) {
+      trigger.click();
+      return;
+    }
+
+    const details = form.closest('details');
+    if (details instanceof HTMLDetailsElement) details.open = true;
+  });
+
+  const search = createForm.locator('[data-list-search]');
+  await search.waitFor({ state: 'visible' });
+  await search.fill('roles.manage');
+
+  const visiblePermissions = createForm.locator('[data-search-item]:visible input[name="permission_ids[]"]');
+  if (await visiblePermissions.count() < 1) {
+    throw new Error('Security permission search did not expose the expected roles.manage result.');
+  }
+
+  const firstPermission = visiblePermissions.first();
+  await firstPermission.check();
+
+  const proof = await createForm.evaluate((form) => {
+    const summary = form.querySelector('[data-impact-summary] span');
+    const checked = [...form.querySelectorAll('input[name="permission_ids[]"]:checked')];
+    const visible = [...form.querySelectorAll('[data-search-item]')].filter((item) => !item.hidden);
+    return {
+      checked: checked.length,
+      visible: visible.length,
+      impactText: summary?.textContent?.trim() ?? '',
+      addedLabel: form.querySelector('[data-permission-picker]')?.dataset.impactAdded ?? '',
+      hasTechnicalCode: visible.some((item) => item.querySelector('code')?.textContent?.includes('roles.manage')),
+    };
+  });
+
+  if (proof.checked < 1 || proof.visible < 1 || !proof.hasTechnicalCode || !proof.impactText.includes(proof.addedLabel)) {
+    throw new Error(`Security permission search/impact evidence failed: ${JSON.stringify(proof)}`);
+  }
+
+  await assertNoPageOverflow(page, `security-permissions/${locale}/desktop-1280`);
+  await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await assertNoPageOverflow(page, `security-permissions/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__mobile-390__${locale}.png`);
+}
+
 async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
+    ['security', '/admin/security'],
     ['live-tracking', '/admin/driver-live-tracking'],
     ['mobile-settings', '/admin/settings/mobile?app=van&environment=production'],
     ['notifications', '/admin/notifications'],
@@ -232,6 +606,9 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     }
     await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
   }
+
+  await exerciseOrderWizardDraftSafety(page, locale);
+  await captureSecurityPermissionEvidence(page, locale);
 
   await page.goto(`${baseUrl}/admin/settings/mobile?app=van&environment=production`, { waitUntil: 'networkidle' });
   const mobileSettingsProof = await page.evaluate(() => {
@@ -429,6 +806,33 @@ async function captureMixedTrackingEvidence(page, locale) {
   await snap(
     page,
     `02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__${locale}.png`,
+  );
+
+  const entityLookup = page.locator('[data-live-lookup-search="entity"]');
+  await entityLookup.focus();
+  const entityResults = page.locator('[data-live-lookup-results="entity"]');
+  await entityResults.waitFor({ state: 'visible', timeout: 10000 });
+  const lookupProof = await page.evaluate(() => {
+    const input = document.querySelector('[data-live-lookup-search="entity"]');
+    const listbox = document.querySelector('[data-live-lookup-results="entity"]');
+    const options = Array.from(listbox?.querySelectorAll('[role="option"]') ?? []);
+    return {
+      expanded: input?.getAttribute('aria-expanded'),
+      optionCount: options.length,
+      labels: options.map((option) => option.querySelector('strong')?.textContent?.trim() ?? ''),
+      contexts: options.map((option) => option.querySelector('small')?.textContent?.trim() ?? ''),
+    };
+  });
+  if (lookupProof.expanded !== 'true' || lookupProof.optionCount < 2) {
+    throw new Error(`Live Tracking entity lookup evidence incomplete: ${JSON.stringify(lookupProof)}`);
+  }
+  if (lookupProof.labels.some((label) => label === '' || /^#?\d+$/.test(label))) {
+    throw new Error(`Live Tracking entity lookup exposed raw identity labels: ${JSON.stringify(lookupProof)}`);
+  }
+  await assertNoPageOverflow(page, `live-tracking/entity-lookup/${locale}`);
+  await snap(
+    page,
+    `02_Web/B2B_SuperAdmin/11_live_tracking_entity_lookup_open__${locale}.png`,
   );
 }
 

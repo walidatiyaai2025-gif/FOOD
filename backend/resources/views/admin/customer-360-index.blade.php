@@ -23,7 +23,7 @@
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header">
             <div>
-                <span class="foodex-subtitle">FOODEX · {{ strtoupper($access['mode']) }}</span>
+                <span class="foodex-subtitle">FOODEX · {{ $accessModeLabel }}</span>
                 <h1>{{ $ar?'العميل 360':'Customer 360' }}</h1>
                 <p>{{ $ar?'هوية عميل واحدة مع مصدر التسجيل والتعاملات المصرح بها حسب نطاقك.':'One customer identity with registration provenance and commerce history limited to your authorized scope.' }}</p>
             </div>
@@ -53,8 +53,8 @@
                     <label>{{ $ar?'مصدر التسجيل':'Registration source' }}
                         <select name="registration_source">
                             <option value="">{{ $ar?'الكل':'All' }}</option>
-                            @foreach(['customer_app'=>'Customer App','dashboard'=>'Dashboard','import'=>'Import','migration'=>'Migration'] as $value=>$label)
-                                <option value="{{ $value }}" @selected(($filters['registration_source']??'')===$value)>{{ $label }}</option>
+                            @foreach(['customer_app','dashboard','import','migration'] as $value)
+                                <option value="{{ $value }}" @selected(($filters['registration_source']??'')===$value)>{{ __('customer_360.business_labels.'.$value) }}</option>
                             @endforeach
                         </select>
                     </label>
@@ -116,7 +116,7 @@
                                 <td data-label="{{ $ar?'مصدر التسجيل':'Registration origin' }}">
                                     <span class="c360-badge {{ $row['origin']['channel'] }}">{{ __('customer_360.business_labels.'.strtolower((string)($row['origin']['channel'] ?? 'unknown'))) }}</span>
                                     <div style="margin-top:5px;font-weight:700">{{ $row['origin']['label'] }}</div>
-                                    <small>{{ $row['registration_source'] }}</small>
+                                    <small>{{ $row['registration_source_label'] }}</small>
                                 </td>
                                 <td data-label="{{ $ar?'الحالة':'Status' }}"><span class="c360-badge {{ $row['active']?'active':'' }}">{{ $row['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></td>
                                 @if($access['mode']!=='b2c')<td data-label="{{ $ar?'شريحة الجملة':'Wholesale tier' }}">{{ $row['wholesale_tier'] ?: '-' }}</td>@endif

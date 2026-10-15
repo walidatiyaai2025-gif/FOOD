@@ -621,13 +621,28 @@ class DashboardOrderManagementTest extends TestCase
             ->assertSee('data-wizard-step="0"', false)
             ->assertSee('data-wizard-step="5"', false)
             ->assertSee('WIZARD-STORE-A')
-            ->assertSee('Wizard Buyer A')
-            ->assertSee('WIZARD-A-SKU')
+            ->assertSee('data-lookup-url', false)
+            ->assertDontSee('Wizard Buyer A')
+            ->assertDontSee('WIZARD-A-SKU')
             ->assertDontSee('WIZARD-STORE-B')
             ->assertDontSee('Wizard Buyer B')
             ->assertDontSee('WIZARD-B-SKU');
 
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$storeA.'&q=Wizard')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $customerA->id, 'label' => 'Wizard Buyer A'])
+            ->assertJsonMissing(['label' => 'Wizard Buyer B']);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/product?channel=b2c&store_id='.$storeA.'&q=WIZARD')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $productA, 'label' => 'WIZARD-A-SKU'])
+            ->assertJsonMissing(['label' => 'WIZARD-B-SKU']);
+
         $payload = [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-wizard-price-0001',
             'channel' => 'b2c',
             'store_id' => $storeA,
             'customer_id' => $customerA->id,
@@ -670,6 +685,65 @@ class DashboardOrderManagementTest extends TestCase
         ]));
     }
 
+    public function test_central_new_order_wizard_has_localized_recoverable_draft_close_contract(): void
+    {
+        $store = $this->store('B2C', 'WIZARD-DRAFT-SAFETY');
+        [$product] = $this->product($store, 'b2c', 'WIZARD-DRAFT-SKU', 4.000, 10);
+        $admin = $this->storeAdmin($store, 'wizard-draft@example.test');
+        app(B2cCustomerService::class)->create($store, [
+            'name' => 'Wizard Draft Buyer',
+            'email' => 'wizard-draft-buyer@example.test',
+        ]);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertSee('data-new-order-discard', false)
+            ->assertSee('role="alertdialog"', false)
+            ->assertSee('Continue editing')
+            ->assertSee('Discard draft')
+            ->assertSee('data-lookup-url', false)
+            ->assertDontSee('WIZARD-DRAFT-SKU');
+
+        $expected = [
+            'en' => [
+                'title' => 'Keep this unfinished order?',
+                'description' => 'You have unsaved order details. Continue editing, or discard them deliberately to start fresh.',
+                'continue_editing' => 'Continue editing',
+                'discard' => 'Discard draft',
+            ],
+            'ar' => [
+                'title' => 'الاحتفاظ بالطلب غير المكتمل؟',
+                'description' => 'لديك بيانات طلب غير محفوظة. واصل التعديل أو تخلّص من المسودة بشكل صريح لبدء طلب جديد.',
+                'continue_editing' => 'متابعة التعديل',
+                'discard' => 'التخلص من المسودة',
+            ],
+        ];
+
+        foreach ($expected as $locale => $labels) {
+            app()->setLocale($locale);
+            foreach ($labels as $key => $label) {
+                $this->assertSame($label, __('order_operations.new_order_draft.'.$key));
+            }
+        }
+
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('if (!initialized) reset();', $view);
+        $this->assertStringContainsString('const requestClose = (trigger = null) => {', $view);
+        $this->assertStringContainsString('const discardAndClose = () => {', $view);
+        $this->assertStringContainsString("form.addEventListener('input', () => { dirty = true; invalidateQuote(); });", $view);
+        $this->assertStringContainsString("discardPanel?.dataset.visible === '1' && event.key === 'Tab'", $view);
+        $this->assertStringContainsString('node.inert = active;', $view);
+        $this->assertStringNotContainsString("const open = () => {\n        reset();", $view);
+
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $store,
+            'product_id' => $product,
+        ]);
+    }
+
     public function test_central_new_order_endpoint_rejects_invalid_and_foreign_store_submissions_without_partial_order(): void
     {
         $storeA = $this->store('B2C', 'WIZARD-SCOPE-A');
@@ -678,16 +752,25 @@ class DashboardOrderManagementTest extends TestCase
         $admin = $this->storeAdmin($storeA, 'wizard-scope@example.test');
         $customerA = app(B2cCustomerService::class)->create($storeA, ['name' => 'Wizard Scope Buyer']);
 
+        $validationKey = 'dashboard-wizard-validation-0001';
         $this->actingAs($admin)->post('/admin/operations/orders', [
+            '_order_create_context' => 'central',
+            'idempotency_key' => $validationKey,
             'channel' => 'b2c',
             'store_id' => $storeA,
             'customer_id' => $customerA->id,
             'items' => [['product_id' => $productA, 'quantity' => 1]],
         ])->assertSessionHasErrors('payment_method');
 
+        $this->assertSame('central', session()->getOldInput('_order_create_context'));
+        $this->assertSame($validationKey, session()->getOldInput('idempotency_key'));
+        $this->assertSame((string) $customerA->id, (string) session()->getOldInput('customer_id'));
+
         $this->assertDatabaseCount('orders', 0);
 
         $this->actingAs($admin)->post('/admin/operations/orders', [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-wizard-foreign-0001',
             'channel' => 'b2c',
             'store_id' => $storeB,
             'customer_id' => $customerA->id,
@@ -696,6 +779,161 @@ class DashboardOrderManagementTest extends TestCase
         ])->assertNotFound();
 
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_central_new_order_submission_uses_one_idempotent_business_mutation(): void
+    {
+        $store = $this->store('B2C', 'WIZARD-IDEMPOTENCY');
+        [$product, $inventory] = $this->product($store, 'b2c', 'WIZARD-IDEMPOTENT-SKU', 5.000, 10);
+        $admin = $this->storeAdmin($store, 'wizard-idempotent@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'Idempotent Wizard Buyer',
+            'email' => 'wizard-idempotent-buyer@example.test',
+        ]);
+
+        $payload = [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-order-1585-0001',
+            'channel' => 'b2c',
+            'store_id' => $store,
+            'customer_id' => $customer->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [['product_id' => $product, 'quantity' => 1]],
+        ];
+
+        $this->actingAs($admin)->post('/admin/operations/orders', $payload)->assertRedirect();
+
+        $order = DB::table('orders')
+            ->where('store_id', $store)
+            ->where('checkout_idempotency_key', $payload['idempotency_key'])
+            ->first();
+
+        $this->assertNotNull($order);
+        $this->actingAs($admin)
+            ->post('/admin/operations/orders', $payload)
+            ->assertRedirect(route('admin.operations.orders.index', [
+                'channel' => 'b2c',
+                'store_id' => $store,
+                'status' => 'pending',
+                'order' => $order->id,
+            ]));
+
+        $this->assertSame(
+            1,
+            DB::table('orders')->where('checkout_idempotency_key', $payload['idempotency_key'])->count(),
+        );
+        $this->assertSame(
+            1.0,
+            (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'),
+        );
+
+        $changedPayload = $payload;
+        $changedPayload['items'][0]['quantity'] = 2;
+
+        $this->actingAs($admin)
+            ->post('/admin/operations/orders', $changedPayload)
+            ->assertStatus(409);
+
+        $this->assertSame(
+            1,
+            DB::table('orders')->where('checkout_idempotency_key', $payload['idempotency_key'])->count(),
+        );
+        $this->assertSame(
+            1.0,
+            (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'),
+        );
+    }
+
+    public function test_central_new_order_wizard_rejects_stale_quote_ownership(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('let quoteRevision = 0;', $view);
+        $this->assertStringContainsString('let quoteSession = 0;', $view);
+        $this->assertStringContainsString('quoteAbortController?.abort();', $view);
+        $this->assertStringContainsString('signal: controller.signal,', $view);
+        $this->assertStringContainsString('if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;', $view);
+        $this->assertStringContainsString('quoteOwner = owner;', $view);
+        $this->assertStringContainsString('if (!quoteReady || !ownsCurrentQuote(quoteOwner)) {', $view);
+        $this->assertStringContainsString('quoteSession += 1;', $view);
+    }
+
+    public function test_central_new_order_wizard_exposes_submit_lock_and_validation_restore_contract(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-wizard-idempotency', $view);
+        $this->assertStringContainsString('data-wizard-submit-state', $view);
+        $this->assertStringContainsString('if (isSubmitting) {', $view);
+        $this->assertStringContainsString('form.setAttribute(\'aria-busy\', active ? \'true\' : \'false\');', $view);
+        $this->assertStringContainsString('setSubmitting(true);', $view);
+        $this->assertStringContainsString('restoreServerInput().then((restored) => { if (restored) open(); });', $view);
+
+        $expected = [
+            'en' => 'Creating order…',
+            'ar' => 'جارٍ إنشاء الطلب…',
+        ];
+
+        foreach ($expected as $locale => $label) {
+            app()->setLocale($locale);
+            $this->assertSame($label, __('order_operations.new_order_submit.submitting'));
+        }
+    }
+
+    public function test_order_create_lookups_are_bounded_scoped_and_not_eagerly_embedded(): void
+    {
+        $store = $this->store('B2C', 'ORDER-LOOKUP');
+        $foreignStore = $this->store('B2C', 'ORDER-LOOKUP-FOREIGN');
+        [$product] = $this->product($store, 'b2c', 'LOOKUP-SKU', 4.5, 10);
+        $this->product($foreignStore, 'b2c', 'FOREIGN-LOOKUP-SKU', 9.5, 10);
+        $admin = $this->storeAdmin($store, 'lookup-orders@example.test');
+
+        for ($index = 1; $index <= 22; $index++) {
+            app(B2cCustomerService::class)->create($store, [
+                'name' => sprintf('Lookup Buyer %02d', $index),
+                'phone' => '+9655555'.sprintf('%04d', $index),
+                'email' => sprintf('lookup-buyer-%02d@example.test', $index),
+            ]);
+        }
+        app(B2cCustomerService::class)->create($foreignStore, [
+            'name' => 'Foreign Lookup Buyer',
+            'phone' => '+96550000000',
+            'email' => 'foreign-lookup@example.test',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&store_id='.$store)
+            ->assertOk()
+            ->assertDontSee('Lookup Buyer 01')
+            ->assertDontSee('LOOKUP-SKU')
+            ->assertSee('data-lookup-url', false);
+
+        $pageOne = $this->actingAs($admin)->getJson(
+            '/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$store.'&q=Lookup&page=1'
+        );
+        $pageOne
+            ->assertOk()
+            ->assertJsonPath('data.page', 1)
+            ->assertJsonPath('data.has_more', true)
+            ->assertJsonCount(20, 'data.items');
+        $this->assertSame('Lookup Buyer 01', $pageOne->json('data.items.0.label'));
+        $this->assertStringContainsString('+9655555', (string) $pageOne->json('data.items.0.meta'));
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$store.'&q=Lookup&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.has_more', false)
+            ->assertJsonCount(2, 'data.items');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/product?channel=b2c&store_id='.$store.'&q=LOOKUP-SKU')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $product, 'label' => 'LOOKUP-SKU'])
+            ->assertJsonMissing(['label' => 'FOREIGN-LOOKUP-SKU']);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$foreignStore.'&q=Foreign')
+            ->assertNotFound();
     }
 
     private function store(string $type, string $code): int

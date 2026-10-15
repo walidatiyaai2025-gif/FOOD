@@ -45,7 +45,7 @@
         .dashboard-tabs{display:flex;align-items:center;gap:8px;margin:0 0 var(--foodex-space-4);padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);box-shadow:var(--foodex-shadow-sm);width:max-content;max-width:100%;overflow:auto}
         .dashboard-tab{min-height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:calc(var(--foodex-radius-control) - 4px);font-weight:var(--foodex-font-weight-bold);font-size:var(--foodex-text-sm);color:var(--foodex-muted);white-space:nowrap}
         .dashboard-tab:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-        .dashboard-tab.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.16)}
+        .dashboard-tab.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.16)}
         .headline{display:flex;justify-content:space-between;align-items:end;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
         .headline h1{margin:0 0 4px;font-size:clamp(1.55rem,2.2vw,1.9rem);font-weight:var(--foodex-font-weight-bold);line-height:var(--foodex-leading-tight)}
         .headline p{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
@@ -153,16 +153,16 @@
         .module-table{min-width:760px}
         .module-table th,.module-table td{vertical-align:middle}
         .state-dot{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state-dot.off:before{background:var(--foodex-muted)}
-        .module-links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;justify-content:flex-end}.module-links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.module-links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.module-links a.active{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.14)}
+        .module-links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;justify-content:flex-end}.module-links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.module-links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.module-links a.active{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff;box-shadow:0 8px 20px rgba(21,138,58,.14)}
         .module-actions{justify-content:flex-start;margin-bottom:var(--foodex-space-4)}
-        .module-actions a{background:var(--foodex-green)!important;color:#fff!important;border-color:var(--foodex-green)!important}
+        .module-actions a{background:var(--foodex-action-green)!important;color:#fff!important;border-color:var(--foodex-action-green)!important}
         .module-inline-form{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;margin-bottom:var(--foodex-space-4);padding:var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}
         .module-inline-form select,.module-inline-form input{min-width:150px;flex:1 1 160px}
         .module-inline-form button{flex:0 0 auto}
         .module-empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}
         .flash{margin-bottom:var(--foodex-space-4);padding:10px 12px;border-radius:var(--foodex-radius-control);border:1px solid var(--foodex-border);font-weight:var(--foodex-font-weight-medium)}
         .flash.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-        .flash.err{background:#fff1f0;color:var(--foodex-red)}
+        .flash.err{background:#fff1f0;color:var(--foodex-danger-text)}
 
         @media(min-width:1600px){
             .content{padding-inline:40px}
@@ -580,7 +580,7 @@
                         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة مخزن':'Add warehouse' }}</button>
                     </form>
                     @if(!empty($moduleData['warehouses']) && !empty($moduleData['products']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.ensure') }}" class="module-inline-form">
+                    <form method="post" action="{{ route('admin.b2c.inventory.ensure') }}" class="module-inline-form" data-inventory-review-form="absolute">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -593,11 +593,14 @@
                             @foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
                         </select>
                         <input name="quantity" type="number" step="0.001" min="0" required placeholder="{{ app()->getLocale()==='ar'?'الكمية الحالية':'Current quantity' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء / تحديث الرصيد':'Create / update balance' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'إنشاء / تحديث الرصيد':'Create / update balance' }}</button>
                     </form>
                     @endif
                     @if(!empty($moduleData['inventory_options']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
+                    <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" data-inventory-review-form="adjust" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -607,10 +610,13 @@
                         </select>
                         <input name="quantity_delta" type="number" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'التغيير + أو -':'Adjustment + or -' }}">
                         <input name="reason" maxlength="255" required placeholder="{{ app()->getLocale()==='ar'?'سبب التعديل':'Adjustment reason' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
                     </form>
                     @if(!empty($moduleData['warehouses']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.transfer') }}" class="module-inline-form">
+                    <form method="post" action="{{ route('admin.b2c.inventory.transfer') }}" class="module-inline-form" data-inventory-review-form="transfer">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -623,11 +629,132 @@
                             @foreach($moduleData['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}">{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
                         </select>
                         <input name="quantity" type="number" min="0.001" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'الكمية المراد نقلها':'Quantity to transfer' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'نقل إلى مخزن آخر':'Transfer warehouse' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'نقل إلى مخزن آخر':'Transfer warehouse' }}</button>
                     </form>
                     @endif
                     @endif
                 </div>
+                <script>
+                    (() => {
+                        const inventories = @json($moduleData['inventory_options'] ?? []);
+                        const warehouses = @json($moduleData['warehouses'] ?? []);
+                        const products = @json($moduleData['products'] ?? []);
+                        const labels = @json(__('admin.b2c_workspace.inventory_review'));
+                        const byId = new Map(inventories.map((item) => [String(item.id), item]));
+                        const byRelationship = new Map(inventories.map((item) => [String(item.warehouse_id) + ':' + String(item.product_id), item]));
+                        const quantity = (value) => Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+                        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+
+                        document.querySelectorAll('[data-inventory-review-form]').forEach((form) => {
+                            const kind = form.dataset.inventoryReviewForm;
+                            const review = form.querySelector('[data-inventory-review]');
+                            const submit = form.querySelector('[data-review-submit]');
+                            const originalSubmit = submit?.textContent ?? '';
+                            const expectedQuantity = form.querySelector('[name="expected_quantity"]');
+                            const expectedReserved = form.querySelector('[name="expected_reserved_quantity"]');
+
+                            const source = () => {
+                                if (kind === 'absolute') {
+                                    const warehouseId = form.querySelector('[name="warehouse_id"]')?.value;
+                                    const productId = form.querySelector('[name="product_id"]')?.value;
+                                    return byRelationship.get(String(warehouseId) + ':' + String(productId)) ?? null;
+                                }
+                                return byId.get(String(form.querySelector('[name="inventory_id"]')?.value)) ?? null;
+                            };
+
+                            const resetReview = () => {
+                                form.dataset.reviewReady = '0';
+                                if (review) review.hidden = true;
+                                if (submit) {
+                                    submit.disabled = false;
+                                    submit.textContent = originalSubmit;
+                                }
+                            };
+
+                            const syncTransferTargets = () => {
+                                if (kind !== 'transfer') return;
+                                const item = source();
+                                const target = form.querySelector('[name="target_warehouse_id"]');
+                                if (!target) return;
+                                for (const option of target.options) {
+                                    option.disabled = Boolean(item) && option.value === String(item.warehouse_id);
+                                }
+                                if (item && target.value === String(item.warehouse_id)) target.value = '';
+                            };
+
+                            form.addEventListener('input', () => {
+                                resetReview();
+                                syncTransferTargets();
+                            });
+                            form.addEventListener('change', () => {
+                                resetReview();
+                                syncTransferTargets();
+                            });
+
+                            form.addEventListener('submit', (event) => {
+                                if (form.dataset.reviewReady === '1') {
+                                    if (submit) submit.disabled = true;
+                                    return;
+                                }
+
+                                event.preventDefault();
+                                const item = source();
+                                const current = Number(item?.quantity ?? 0);
+                                const reserved = Number(item?.reserved ?? 0);
+                                const available = Number(item?.available ?? (current - reserved));
+                                const requested = Number(kind === 'adjust'
+                                    ? form.querySelector('[name="quantity_delta"]')?.value
+                                    : form.querySelector('[name="quantity"]')?.value);
+                                const resulting = kind === 'adjust'
+                                    ? current + requested
+                                    : kind === 'transfer'
+                                        ? current - requested
+                                        : requested;
+
+                                expectedQuantity.value = item ? String(item.quantity) : '';
+                                expectedReserved.value = item ? String(item.reserved) : '';
+
+                                let targetLine = '';
+                                if (kind === 'transfer') {
+                                    const targetId = form.querySelector('[name="target_warehouse_id"]')?.value;
+                                    const targetWarehouse = warehouses.find((warehouse) => String(warehouse.id) === String(targetId));
+                                    targetLine = targetWarehouse
+                                        ? '<div><strong>' + escapeHtml(labels.target) + ':</strong> ' + escapeHtml(targetWarehouse.code + ' · ' + targetWarehouse.name) + '</div>'
+                                        : '';
+                                }
+
+                                const selectedProductId = form.querySelector('[name="product_id"]')?.value;
+                                const selectedProduct = products.find((product) => String(product.id) === String(selectedProductId));
+                                const selectedWarehouseId = form.querySelector('[name="warehouse_id"]')?.value;
+                                const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === String(selectedWarehouseId));
+                                const productLabel = item?.product ?? (selectedProduct ? selectedProduct.sku + ' · ' + selectedProduct.name : '—');
+                                const warehouseLabel = item?.warehouse ?? (selectedWarehouse ? selectedWarehouse.code + ' · ' + selectedWarehouse.name : '—');
+                                const unitLabel = item?.unit ?? selectedProduct?.unit ?? '—';
+
+                                review.innerHTML =
+                                    '<strong>' + escapeHtml(labels.title) + '</strong>' +
+                                    '<div><strong>' + escapeHtml(labels.product) + ':</strong> ' + escapeHtml(productLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.warehouse) + ':</strong> ' + escapeHtml(warehouseLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.unit) + ':</strong> ' + escapeHtml(unitLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.on_hand) + ':</strong> ' + quantity(current) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.reserved) + ':</strong> ' + quantity(reserved) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.available) + ':</strong> ' + quantity(available) + '</div>' +
+                                    targetLine +
+                                    '<div><strong>' + escapeHtml(labels.requested) + ':</strong> ' + quantity(requested) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.result) + ':</strong> ' + quantity(resulting) + '</div>';
+                                review.hidden = false;
+                                form.dataset.reviewReady = '1';
+                                if (submit) submit.textContent = labels.confirm;
+                                submit?.focus();
+                            });
+
+                            syncTransferTargets();
+                        });
+                    })();
+                </script>
             @endif
 
             @if($module==='customers' && $storeId > 0 && ($user->hasPermission('customers.create',$storeId) || $user->hasPermission('customers.create')))

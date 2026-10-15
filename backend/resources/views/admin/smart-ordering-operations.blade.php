@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('smart_ordering.title') }} · FOODEX</title>
 @include('admin._brand-components')
+@if($tab==='branches')
+<link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
+@endif
 <style>
 .so-toolbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-bottom:16px}
 .so-toolbar label,.so-grid label{display:grid;gap:6px;font-weight:700;font-size:.82rem}
@@ -12,15 +15,15 @@
 .so-table-wrap{width:100%;max-width:100%;overflow:visible}
 .so-order-number{white-space:nowrap}
 .so-row-actions{position:relative;display:inline-block}
-.so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green);color:#fff;cursor:pointer;font-size:20px}
+.so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px}
 .so-row-actions summary::-webkit-details-marker{display:none}
-.so-menu{position:absolute;z-index:30;inset-inline-end:0;top:42px;width:min(300px,80vw);padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:var(--foodex-shadow-md);display:grid;gap:8px}
+.so-menu{position:absolute;z-index:30;inset-inline-end:0;top:42px;width:min(300px,80vw);padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:var(--foodex-shadow);display:grid;gap:8px}
 .so-menu form{display:grid;gap:8px}
 .so-branch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
 .so-branch{padding:16px;display:grid;gap:12px}
 .so-branch-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .so-badges{display:flex;flex-wrap:wrap;gap:6px}
-.so-dialog{width:min(760px,94vw);max-height:90vh;border:0;border-radius:16px;padding:0;box-shadow:0 20px 60px rgba(15,23,42,.25)}
+.so-dialog{width:min(920px,96vw);max-height:90vh;border:0;border-radius:16px;padding:0;box-shadow:0 20px 60px rgba(15,23,42,.25)}
 .so-dialog::backdrop{background:rgba(15,23,42,.42)}
 .so-dialog-body{padding:20px;overflow:auto;max-height:90vh}
 .so-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -37,9 +40,23 @@
 .so-zone-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
 .so-zone-grid label{display:grid;gap:6px;font-weight:700;font-size:.82rem}
 .so-zone-check{display:flex!important;align-items:center;gap:8px;min-height:44px}
+.so-zone-map-editor{grid-column:1/-1;display:grid;gap:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface)}
+.so-zone-map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.so-zone-map-head p,.so-zone-map-hint,.so-zone-advanced p{margin:4px 0 0;color:var(--foodex-muted);font-size:.82rem}
+.so-zone-location-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.so-zone-location-search label{min-width:0}
+.so-zone-map-canvas{width:100%;height:clamp(260px,38vh,420px);min-height:260px;border:1px solid var(--foodex-border);border-radius:12px;overflow:hidden;background:var(--foodex-background)}
+.so-zone-map-canvas:focus-visible{outline:3px solid var(--foodex-action-green);outline-offset:2px}
+.so-zone-search-results{display:grid;gap:6px;max-height:180px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface)}
+.so-zone-search-results button{width:100%;text-align:start;border:0;border-radius:8px;background:transparent;padding:9px;cursor:pointer}
+.so-zone-search-results button:hover,.so-zone-search-results button:focus-visible{background:var(--foodex-green-soft)}
+.so-zone-map-status{min-height:1.25em;color:var(--foodex-muted);font-size:.82rem}
+.so-zone-advanced{grid-column:1/-1;border:1px dashed var(--foodex-border);border-radius:12px;padding:10px}
+.so-zone-advanced summary{cursor:pointer;font-weight:800}
+.so-zone-coordinate-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:1023px){.so-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.so-toolbar .so-actions{grid-column:1/-1}}
 @media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}}
-@media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}}
+@media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}.so-zone-location-search,.so-zone-coordinate-grid{grid-template-columns:1fr}.so-zone-location-search button{width:100%}.so-dialog-body{padding:14px}}
 </style>
 </head>
 <body>
@@ -139,5 +156,20 @@
 <div class="so-dialog-head"><h2>{{ __('smart_ordering.add_branch') }}</h2><button type="button" class="so-close" onclick="this.closest('dialog').close()">×</button></div>
 @include('admin._smart-ordering-branch-form',['branchModel'=>null,'formAction'=>route('admin.smart-ordering.branches.store'),'method'=>'POST'])
 </div></dialog>
+@if($tab==='branches')
+<script>
+window.FoodexSmartOrderingZoneMap = {
+    searching: @json(__('smart_ordering.zones.map_searching')),
+    empty: @json(__('smart_ordering.zones.map_search_empty')),
+    error: @json(__('smart_ordering.zones.map_search_error')),
+    selected: @json(__('smart_ordering.zones.map_selected')),
+    centerRequired: @json(__('smart_ordering.zones.map_center_required')),
+    existing: @json(__('smart_ordering.zones.map_existing')),
+    saving: @json(__('smart_ordering.zones.saving'))
+};
+</script>
+<script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
+<script src="{{ asset('assets/admin/smart-ordering-zone-map.js') }}"></script>
+@endif
 </body>
 </html>

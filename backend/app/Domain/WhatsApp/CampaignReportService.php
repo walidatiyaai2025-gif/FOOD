@@ -341,6 +341,7 @@ final class CampaignReportService
         return $query->orderBy('r.id')->get([
             'pc.name as customer_name',
             'r.phone',
+            'r.snapshot',
             'pc.email',
             'pc.origin_channel',
             's.name as store_name',
@@ -365,6 +366,12 @@ final class CampaignReportService
 
     private function decorateRecipient(object $row): object
     {
+        $snapshot = json_decode((string) ($row->snapshot ?? ''), true);
+        $snapshot = is_array($snapshot) ? $snapshot : [];
+        $row->contact_type = in_array(($snapshot['contact_type'] ?? null), ['first_contact', 'existing_contact'], true)
+            ? (string) $snapshot['contact_type']
+            : 'existing_contact';
+
         $row->first_reply_seconds = null;
         if ($row->sent_at !== null && $row->replied_at !== null) {
             $row->first_reply_seconds = Carbon::parse((string) $row->sent_at)

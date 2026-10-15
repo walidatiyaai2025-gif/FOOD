@@ -32,7 +32,7 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
 .foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
-.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
+.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
 .foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
@@ -155,6 +155,24 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const nav = shell.querySelector('[data-foodex-nav]');
     const search = shell.querySelector('[data-foodex-nav-search]');
     const stateKey = 'foodex.sidebar.expanded.{{ $user->id ?? 'guest' }}';
+    const desktopToggleLabel = @json(__('admin.sidebar_toggle'));
+    const mobileOpenLabel = @json(__('admin.sidebar_open'));
+    const mobileCloseLabel = @json(__('admin.sidebar_close'));
+    const navigationLabel = @json(__('admin.navigation'));
+    const originalShellState = {
+        role: shell.getAttribute('role'),
+        ariaModal: shell.getAttribute('aria-modal'),
+        ariaHidden: shell.getAttribute('aria-hidden'),
+        ariaLabel: shell.getAttribute('aria-label'),
+        tabIndex: shell.getAttribute('tabindex'),
+        inert: shell.hasAttribute('inert'),
+    };
+    if (!shell.id) shell.id = 'foodex-mobile-navigation';
+
+    const restoreAttribute = (name, value) => {
+        if (value === null) shell.removeAttribute(name);
+        else shell.setAttribute(name, value);
+    };
 
     const setExpanded = (expanded, persist = true) => {
         shell.classList.toggle('foodex-sidebar-expanded', expanded);
@@ -177,9 +195,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const launcher = document.createElement('button');
     launcher.type = 'button';
     launcher.className = 'foodex-mobile-nav-launcher';
-    const mobileNavLabel = toggle?.getAttribute('aria-label') || 'FOODEX';
-    launcher.setAttribute('aria-label', mobileNavLabel);
+    launcher.setAttribute('aria-label', mobileOpenLabel);
     launcher.setAttribute('aria-expanded', 'false');
+    launcher.setAttribute('aria-controls', shell.id);
     launcher.textContent = '☰';
 
     const mobileBrand = document.createElement('a');
@@ -195,27 +213,114 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
     backdrop.className = 'foodex-mobile-nav-backdrop';
-    backdrop.setAttribute('aria-label', mobileNavLabel);
+    backdrop.setAttribute('aria-label', mobileCloseLabel);
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.tabIndex = -1;
 
     document.body.append(backdrop, bar);
 
-    const setDrawer = (open) => {
-        const enabled = mobileMedia.matches;
-        document.body.classList.toggle('foodex-mobile-nav-open', enabled && open);
-        launcher.setAttribute('aria-expanded', enabled && open ? 'true' : 'false');
-        if (enabled) {
-            toggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
-            if (toggle) toggle.textContent = open ? '×' : '☰';
-        } else if (toggle) {
-            toggle.textContent = '☰';
+    const backgroundTargets = () => [...new Set([
+        ...document.querySelectorAll('.foodex-admin-main,.dashboard-shell,.layout>.main,.module-layout>main,.catalog-layout>main,.lookup-layout>main,.page>main,.shell>.main'),
+    ])].filter((target) => target !== shell && !shell.contains(target));
+
+    const setBackgroundInert = (inert) => {
+        backgroundTargets().forEach((target) => {
+            if (inert) {
+                if (!target.hasAttribute('inert')) {
+                    target.setAttribute('inert', '');
+                    target.dataset.foodexMobileNavInert = '1';
+                }
+            } else if (target.dataset.foodexMobileNavInert === '1') {
+                target.removeAttribute('inert');
+                delete target.dataset.foodexMobileNavInert;
+            }
+        });
+        if (inert) {
+            bar.setAttribute('inert', '');
+        } else {
+            bar.removeAttribute('inert');
         }
+    };
+
+    const focusableInDrawer = () => [...shell.querySelectorAll(
+        'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'
+    )].filter((element) => {
+        if (element.hidden || element.closest('[inert]')) return false;
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+    });
+
+    const restoreDesktopShellSemantics = () => {
+        restoreAttribute('role', originalShellState.role);
+        restoreAttribute('aria-modal', originalShellState.ariaModal);
+        restoreAttribute('aria-hidden', originalShellState.ariaHidden);
+        restoreAttribute('aria-label', originalShellState.ariaLabel);
+        restoreAttribute('tabindex', originalShellState.tabIndex);
+        if (originalShellState.inert) shell.setAttribute('inert', '');
+        else shell.removeAttribute('inert');
+        setBackgroundInert(false);
+    };
+
+    let previousFocus = null;
+
+    const setDrawer = (open, { restoreFocus = true } = {}) => {
+        const enabled = mobileMedia.matches;
+        const wasOpen = document.body.classList.contains('foodex-mobile-nav-open');
+        const shouldOpen = enabled && open;
+
+        if (shouldOpen && !wasOpen) {
+            previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : launcher;
+        }
+
+        document.body.classList.toggle('foodex-mobile-nav-open', shouldOpen);
+        launcher.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        launcher.setAttribute('aria-label', shouldOpen ? mobileCloseLabel : mobileOpenLabel);
+
+        if (!enabled) {
+            launcher.setAttribute('aria-label', mobileOpenLabel);
+            toggle?.setAttribute('aria-label', desktopToggleLabel);
+            if (toggle) toggle.textContent = '☰';
+            restoreDesktopShellSemantics();
+            previousFocus = null;
+            return;
+        }
+
+        shell.setAttribute('role', 'dialog');
+        shell.setAttribute('aria-label', navigationLabel);
+        shell.setAttribute('tabindex', '-1');
+        toggle?.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        toggle?.setAttribute('aria-label', shouldOpen ? mobileCloseLabel : mobileOpenLabel);
+        if (toggle) toggle.textContent = shouldOpen ? '×' : '☰';
+
+        if (shouldOpen) {
+            shell.removeAttribute('inert');
+            shell.setAttribute('aria-hidden', 'false');
+            shell.setAttribute('aria-modal', 'true');
+            setBackgroundInert(true);
+            requestAnimationFrame(() => {
+                const target = search || toggle || focusableInDrawer()[0] || shell;
+                target.focus({ preventScroll: true });
+            });
+            return;
+        }
+
+        setBackgroundInert(false);
+        shell.removeAttribute('aria-modal');
+        shell.setAttribute('aria-hidden', 'true');
+        shell.setAttribute('inert', '');
+
+        if (wasOpen && restoreFocus) {
+            const target = previousFocus?.isConnected && !previousFocus.closest('[inert]') ? previousFocus : launcher;
+            target.focus({ preventScroll: true });
+        }
+        previousFocus = null;
     };
 
     const syncViewport = () => {
         const compact = compactMedia.matches;
         const mobile = mobileMedia.matches;
         document.body.classList.toggle('foodex-mobile-web', mobile);
-        if (!mobile) setDrawer(false);
+        setDrawer(false, { restoreFocus: false });
         setExpanded(compact ? true : localStorage.getItem(stateKey) === '1', false);
     };
 
@@ -229,7 +334,36 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         setExpanded(shell.classList.contains('foodex-sidebar-collapsed'));
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && document.body.classList.contains('foodex-mobile-nav-open')) setDrawer(false);
+        if (!mobileMedia.matches || !document.body.classList.contains('foodex-mobile-nav-open')) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setDrawer(false);
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+        const focusable = focusableInDrawer();
+        if (!focusable.length) {
+            event.preventDefault();
+            shell.focus({ preventScroll: true });
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement;
+
+        if (!shell.contains(active)) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus({ preventScroll: true });
+        } else if (event.shiftKey && active === first) {
+            event.preventDefault();
+            last.focus({ preventScroll: true });
+        } else if (!event.shiftKey && active === last) {
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+        }
     });
     nav?.addEventListener('click', (event) => {
         if (mobileMedia.matches && event.target.closest('a.foodex-nav-link')) setDrawer(false);

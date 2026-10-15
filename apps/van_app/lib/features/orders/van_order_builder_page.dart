@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_order_contract.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrderBuilderPage extends StatefulWidget {
   const VanOrderBuilderPage({
@@ -41,15 +41,20 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
       if (payment == null) {
         throw StateError('No configured payment method.');
       }
+      final revision = widget.draft.revision;
+      final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+      final addressId = widget.draft.addressId;
+      final warehouseId = widget.draft.warehouseId;
+      final customerNote = widget.draft.customerNote;
       final quote = await widget.repository.quote(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: widget.draft.customerNote,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
       );
-      widget.draft.setQuote(quote);
+      if (!widget.draft.setQuoteForRevision(quote, revision)) return;
       if (!mounted) return;
       widget.onReview();
     } on VanSessionExpiredException {
@@ -147,14 +152,20 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                         Row(
                           children: [
                             Text(
-                              foodexMoneyText(line.product.unitPrice, line.product.currency),
+                              foodexMoneyText(
+                                line.product.unitPrice,
+                                line.product.currency,
+                              ),
                             ),
                             const Spacer(),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity - line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity -
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.remove, size: 18),
                             ),
                             SizedBox(
@@ -166,15 +177,19 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                                       : 3,
                                 ),
                                 textAlign: TextAlign.center,
-                                style:
-                                    const TextStyle(fontWeight: FontWeight.w900),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity + line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity +
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.add, size: 18),
                             ),
                           ],
@@ -223,7 +238,11 @@ class _Totals extends StatelessWidget {
               _row(arabic ? 'التوصيل' : 'Delivery', quote.deliveryTotal),
               _row(arabic ? 'الضريبة' : 'Tax', quote.taxTotal),
               const Divider(),
-              _row(arabic ? 'الإجمالي' : 'Total', quote.grandTotal, strong: true),
+              _row(
+                arabic ? 'الإجمالي' : 'Total',
+                quote.grandTotal,
+                strong: true,
+              ),
             ],
           ),
         ),

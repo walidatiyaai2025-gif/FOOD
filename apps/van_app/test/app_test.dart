@@ -13,6 +13,7 @@ import 'package:foodex_van_app/features/notifications/van_notification_contract.
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 import 'package:foodex_van_app/features/orders/van_order_detail_page.dart';
+import 'package:foodex_van_app/features/orders/van_orders_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_proof_picker.dart';
 import 'package:foodex_van_app/shared/van_action_button.dart';
 
@@ -21,11 +22,41 @@ Future<void> _scrollUntilBuilt(
   Finder scrollable,
   Finder target,
 ) async {
-  for (var attempt = 0;
-      attempt < 12 && target.evaluate().isEmpty;
-      attempt++) {
-    await tester.drag(scrollable, const Offset(0, -180));
+  for (var attempt = 0; attempt < 80 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(scrollable, const Offset(0, -400));
     await tester.pumpAndSettle();
+  }
+}
+
+class _PagedOrderRepository extends _OrderRepository {
+  final List<int> requestedPages = <int>[];
+
+  @override
+  Future<VanCatalogPage> catalog(
+    VanCustomerScope customer, {
+    String search = '',
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    requestedPages.add(page);
+    return VanCatalogPage(
+      page: page,
+      perPage: perPage,
+      hasMore: page == 1,
+      products: [
+        VanCatalogProduct(
+          id: 300 + page,
+          name: 'Page $page Product',
+          sku: 'PAGE-$page',
+          unitPrice: 12,
+          minimumQuantity: 1,
+          orderingIncrement: 1,
+          availableQuantity: 20,
+          isAvailable: true,
+          currency: 'KWD',
+        ),
+      ],
+    );
   }
 }
 
@@ -40,7 +71,9 @@ void main() {
     );
   });
 
-  testWidgets('authenticated Van shell exposes production navigation instead of legacy tabs', (tester) async {
+  testWidgets(
+      'authenticated Van shell exposes production navigation instead of legacy tabs',
+      (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
         locale: Locale('en'),
@@ -74,7 +107,8 @@ void main() {
     expect(find.text('Product Catalog'), findsOneWidget);
     expect(find.text('Order Builder'), findsOneWidget);
     expect(vanProductionScreenInventory.contains(VanScreenId.orders), isTrue);
-    expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
+    expect(vanProductionScreenInventory.contains(VanScreenId.notifications),
+        isTrue);
     expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 
     final navigation = tester.widget<NavigationBar>(find.byType(NavigationBar));
@@ -133,7 +167,8 @@ void main() {
     expect(find.text('المسارات'), findsWidgets);
   });
 
-  testWidgets('Van Customer 360 renders authoritative customer financial context',
+  testWidgets(
+      'Van Customer 360 renders authoritative customer financial context',
       (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
@@ -154,15 +189,16 @@ void main() {
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
-    final target =
-        find.byKey(const ValueKey('van-screen-customer360'));
+    final target = find.byKey(const ValueKey('van-screen-customer360'));
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -175,7 +211,6 @@ void main() {
     );
     expect(outstanding.data, '12.500 KWD');
   });
-
 
   testWidgets('Van Collection posts through authoritative repository contract',
       (tester) async {
@@ -202,10 +237,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -220,11 +257,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('van-collection-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
     expect(find.textContaining('#77'), findsOneWidget);
     expect(find.textContaining('7.500 KWD'), findsOneWidget);
   });
-
 
   testWidgets('Van Receipt renders custody-ledger receipt history',
       (tester) async {
@@ -251,10 +288,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -265,8 +304,8 @@ void main() {
     expect(find.text('5.000 KWD'), findsOneWidget);
   });
 
-
-  testWidgets('Van Remittance submits through authoritative repository contract',
+  testWidgets(
+      'Van Remittance submits through authoritative repository contract',
       (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
@@ -291,10 +330,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -306,7 +347,8 @@ void main() {
       find.byKey(const ValueKey('van-remittance-amount')),
       '5.000',
     );
-    final remittanceSubmit = find.byKey(const ValueKey('van-remittance-submit'));
+    final remittanceSubmit =
+        find.byKey(const ValueKey('van-remittance-submit'));
     await tester.ensureVisible(remittanceSubmit);
     await tester.pumpAndSettle();
     await tester.tap(remittanceSubmit);
@@ -316,8 +358,8 @@ void main() {
     expect(find.textContaining('5.000 KWD'), findsWidgets);
   });
 
-
-  testWidgets('Van Profile renders authenticated session identity and access scope',
+  testWidgets(
+      'Van Profile renders authenticated session identity and access scope',
       (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
@@ -342,10 +384,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.ensureVisible(target);
     await tester.pumpAndSettle();
@@ -363,7 +407,6 @@ void main() {
     expect(find.text('finance.view'), findsOneWidget);
     expect(find.text('van.login'), findsOneWidget);
   });
-
 
   testWidgets('Van Dashboard renders authoritative operational totals',
       (tester) async {
@@ -386,10 +429,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-dashboard-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-dashboard-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     expect(
       find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
@@ -401,7 +446,6 @@ void main() {
     expect(find.text('9.000 KWD'), findsOneWidget);
     expect(find.text('1'), findsWidgets);
   });
-
 
   testWidgets('Van Visit Workspace uses canonical visit lifecycle transitions',
       (tester) async {
@@ -430,10 +474,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -451,7 +497,6 @@ void main() {
     expect(find.text('Started'), findsOneWidget);
     expect(find.text('Planned'), findsNothing);
   });
-
 
   testWidgets('Van Routes renders canonical route context from visit feed',
       (tester) async {
@@ -475,12 +520,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-routes-page')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-routes-status-chart')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-routes-status-chart')), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('ROUTE-A'), findsOneWidget);
     expect(find.text('2 assigned visits'), findsOneWidget);
   });
-
 
   testWidgets('Van Route Detail opens the exact linked B2B order',
       (tester) async {
@@ -510,10 +555,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -524,14 +571,17 @@ void main() {
     expect(find.text('Planned · 1'), findsOneWidget);
     expect(find.text('Started · 1'), findsOneWidget);
 
-    final linkedVisit = find.byKey(const ValueKey('van-route-detail-visit-601'));
+    final linkedVisit =
+        find.byKey(const ValueKey('van-route-detail-visit-601'));
     await tester.scrollUntilVisible(
       linkedVisit,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-route-detail-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-route-detail-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     final tile = tester.widget<ListTile>(
       find.descendant(of: linkedVisit, matching: find.byType(ListTile)),
@@ -543,7 +593,6 @@ void main() {
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
     expect(find.text('Acme Grocery'), findsOneWidget);
   });
-
 
   testWidgets('canonical Van Orders preserves collection settlement context',
       (tester) async {
@@ -577,10 +626,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -596,7 +647,6 @@ void main() {
     await tester.ensureVisible(collectAction);
     expect(collectAction, findsOneWidget);
   });
-
 
   testWidgets('Van push tap opens finance-aware canonical B2B Order Detail',
       (tester) async {
@@ -749,7 +799,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);
     expect(find.text('Route updated'), findsOneWidget);
     expect(find.text('Stop sequence changed.'), findsOneWidget);
 
@@ -757,7 +808,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(notifications.markedRead, 91);
   });
-
 
   testWidgets('Van Route Map plots only authoritative visit coordinates',
       (tester) async {
@@ -784,10 +834,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -799,7 +851,6 @@ void main() {
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
     expect(find.text('Block 3 · Street 17'), findsOneWidget);
   });
-
 
   testWidgets('Van Order Detail opens authoritative delivery coordinates',
       (tester) async {
@@ -827,10 +878,12 @@ void main() {
     await tester.scrollUntilVisible(
       mapAction,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-order-detail-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-order-detail-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     final button = tester.widget<VanActionButton>(mapAction);
     expect(button.onPressed, isNotNull);
@@ -840,7 +893,6 @@ void main() {
     expect(openedLatitude, closeTo(29.3375, 0.000001));
     expect(openedLongitude, closeTo(47.6581, 0.000001));
   });
-
 
   testWidgets('Van Dashboard opens exact active B2B order', (tester) async {
     final orders = _OrderRepository()..createdCount = 1;
@@ -864,10 +916,12 @@ void main() {
     await tester.scrollUntilVisible(
       orderLink,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-dashboard-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-dashboard-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     expect(orderLink, findsOneWidget);
     final dashboardTile = tester.widget<ListTile>(orderLink);
@@ -878,6 +932,76 @@ void main() {
     expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
+  testWidgets('Van Catalog loads later pages and preserves selected cart items',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final orders = _PagedOrderRepository();
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
+    await tester.scrollUntilVisible(
+      catalogTarget,
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(catalogTarget);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Page 1 Product'), findsOneWidget);
+    expect(orders.requestedPages, <int>[1]);
+
+    final catalogScrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('van-catalog-page')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final addProduct = find.byKey(const ValueKey('van-catalog-add-301'));
+    final addButton = tester.widget<IconButton>(addProduct);
+    addButton.onPressed?.call();
+    await tester.pumpAndSettle();
+
+    final loadMore = find.text('Load more products');
+    await tester.fling(catalogScrollable, const Offset(0, -2000), 2000);
+    await tester.pumpAndSettle();
+    expect(loadMore, findsOneWidget);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Page 2 Product'), findsOneWidget);
+    expect(orders.requestedPages, <int>[1, 2]);
+    expect(find.text('Open cart · 1 items'), findsOneWidget);
+    expect(
+      find.text('Loaded 2 products · end of results'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('Van sales flow reaches Catalog Builder Review and Orders',
       (tester) async {
@@ -898,31 +1022,35 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    var scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
     await tester.scrollUntilVisible(
       catalogTarget,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(catalogTarget);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-catalog-page')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-catalog-stock-chart')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-catalog-stock-chart')), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('Water Case'), findsOneWidget);
-    final catalogScrollable = find.descendant(
-      of: find.byKey(const ValueKey('van-catalog-page')),
-      matching: find.byType(Scrollable),
-    ).first;
-    final addProduct =
-        find.byKey(const ValueKey('van-catalog-add-301'));
+    final catalogScrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('van-catalog-page')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final addProduct = find.byKey(const ValueKey('van-catalog-add-301'));
     await tester.scrollUntilVisible(
       addProduct,
       180,
@@ -934,8 +1062,7 @@ void main() {
     await tester.tap(addProduct);
     await tester.pumpAndSettle();
 
-    final openCart =
-        find.byKey(const ValueKey('van-catalog-open-cart'));
+    final openCart = find.byKey(const ValueKey('van-catalog-open-cart'));
     await _scrollUntilBuilt(tester, catalogScrollable, openCart);
     expect(openCart, findsOneWidget);
     await tester.ensureVisible(openCart);
@@ -956,10 +1083,12 @@ void main() {
     await tester.scrollUntilVisible(
       orderSubmit,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-order-review-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-order-review-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.ensureVisible(orderSubmit);
     await tester.pumpAndSettle();
@@ -967,7 +1096,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-orders-status-chart')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-orders-status-chart')), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
     expect(find.text('12.000 KWD'), findsWidgets);
@@ -982,26 +1112,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
     expect(find.textContaining('Warehouse gate'), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-order-action-accepted')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-action-accepted')),
+        findsOneWidget);
 
     final timeline = find.byKey(const ValueKey('van-order-detail-timeline'));
     await tester.scrollUntilVisible(
       timeline,
       220,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-order-detail-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-order-detail-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     expect(timeline, findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('van-order-action-accepted')),
       -220,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-order-detail-page')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-order-detail-page')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
 
     final acceptedAction =
@@ -1010,10 +1145,10 @@ void main() {
     acceptedButton.onPressed?.call();
     await tester.pumpAndSettle();
     expect(orders.transitions, contains('accepted'));
-    expect(find.byKey(const ValueKey('van-order-action-picked_up')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-action-picked_up')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('van-order-fail-action')), findsOneWidget);
   });
-
 
   testWidgets('Van Visit Workspace completes with authoritative order lookup',
       (tester) async {
@@ -1043,10 +1178,12 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -1056,7 +1193,9 @@ void main() {
     await tester.tap(exactOrder);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
-    Navigator.of(tester.element(find.byKey(const ValueKey('van-order-detail-page')))).pop();
+    Navigator.of(
+            tester.element(find.byKey(const ValueKey('van-order-detail-page'))))
+        .pop();
     await tester.pumpAndSettle();
 
     final visitOrder = find.byKey(const ValueKey('van-visit-order-801'));
@@ -1068,7 +1207,8 @@ void main() {
     expect(orderOption, findsOneWidget);
     await tester.tap(orderOption);
     await tester.pumpAndSettle();
-    final completeOrder = find.byKey(const ValueKey('van-visit-complete-order-801'));
+    final completeOrder =
+        find.byKey(const ValueKey('van-visit-complete-order-801'));
     await tester.ensureVisible(completeOrder);
     await tester.pumpAndSettle();
     await tester.tap(completeOrder);
@@ -1216,7 +1356,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('van-collection-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('van-collection-view-receipt')),
       findsOneWidget,
@@ -1299,9 +1440,94 @@ void main() {
       findsOneWidget,
     );
   });
+  testWidgets(
+      'Van Orders loads later pages with retry and preserves paging on refresh',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
+    final orders = _OrderRepository()
+      ..historyTotal = 101
+      ..failPageTwoOnce = true;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: VanOrdersPage(
+            repository: orders,
+            customerRepository: const _CustomerWalletRepository(),
+            onSessionExpired: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Showing 50 of 101 orders'), findsOneWidget);
+    expect(orders.requestedOrderPages, [1]);
+
+    await tester.tap(find.byKey(const ValueKey('van-orders-filter-new')));
+    await tester.pumpAndSettle();
+
+    final scrollable = find.byKey(const ValueKey('van-orders-page'));
+    final loadMore = find.byKey(const ValueKey('van-orders-load-more'));
+    await _scrollUntilBuilt(tester, scrollable, loadMore);
+    await tester.ensureVisible(loadMore);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('van-orders-load-more-error')),
+      findsOneWidget,
+    );
+    final retry = tester.widget<OutlinedButton>(
+      find.byKey(const ValueKey('van-orders-load-more-retry')),
+    );
+    retry.onPressed?.call();
+    await tester.pumpAndSettle();
+    expect(orders.requestedOrderPages, [1, 2, 2]);
+
+    await _scrollUntilBuilt(tester, scrollable, loadMore);
+    await tester.ensureVisible(loadMore);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-orders-end')), findsOneWidget);
+    expect(find.text('All 101 orders are loaded.'), findsOneWidget);
+    expect(orders.requestedOrderPages, [1, 2, 2, 3]);
+
+    final refresh = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    await refresh.onRefresh();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
+    expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
+
+    final refreshedScrollable = find.byKey(const ValueKey('van-orders-page'));
+    expect(refreshedScrollable, findsOneWidget);
+    final refreshedScrollState = tester.state<ScrollableState>(
+      find.descendant(
+        of: refreshedScrollable,
+        matching: find.byType(Scrollable),
+      ),
+    );
+    refreshedScrollState.position.jumpTo(
+      refreshedScrollState.position.minScrollExtent,
+    );
+    await tester.pumpAndSettle();
+
+    final newFilter = find.byKey(const ValueKey('van-orders-filter-new'));
+    expect(newFilter, findsOneWidget);
+    final selected = tester.widget<ChoiceChip>(newFilter);
+    expect(selected.selected, isTrue);
+  });
 }
-
 
 class _EmptyWalletRepository implements VanWalletRepository {
   const _EmptyWalletRepository();
@@ -1340,7 +1566,6 @@ class _EmptyWalletRepository implements VanWalletRepository {
     throw UnimplementedError();
   }
 }
-
 
 class _CustomerWalletRepository implements VanWalletRepository {
   const _CustomerWalletRepository();
@@ -1397,7 +1622,6 @@ class _CustomerWalletRepository implements VanWalletRepository {
     throw UnimplementedError();
   }
 }
-
 
 class _CollectionWalletRepository implements VanWalletRepository {
   const _CollectionWalletRepository();
@@ -1472,7 +1696,6 @@ class _CollectionWalletRepository implements VanWalletRepository {
     throw UnimplementedError();
   }
 }
-
 
 class _OrderFlowWalletRepository implements VanWalletRepository {
   _OrderFlowWalletRepository(this.orders);
@@ -1585,7 +1808,6 @@ class _OrderFlowWalletRepository implements VanWalletRepository {
   }
 }
 
-
 class _ReceiptsWalletRepository implements VanWalletRepository {
   const _ReceiptsWalletRepository();
 
@@ -1642,7 +1864,6 @@ class _ReceiptsWalletRepository implements VanWalletRepository {
     throw UnimplementedError();
   }
 }
-
 
 class _RemittanceWalletRepository implements VanWalletRepository {
   const _RemittanceWalletRepository();
@@ -1709,7 +1930,6 @@ class _RemittanceWalletRepository implements VanWalletRepository {
         ],
       );
 }
-
 
 class _DashboardWalletRepository implements VanWalletRepository {
   const _DashboardWalletRepository();
@@ -1780,7 +2000,6 @@ class _DashboardWalletRepository implements VanWalletRepository {
   }
 }
 
-
 class _VisitRepository implements VanVisitRepository {
   const _VisitRepository();
 
@@ -1833,7 +2052,6 @@ class _VisitRepository implements VanVisitRepository {
     );
   }
 }
-
 
 class _RoutesVisitRepository implements VanVisitRepository {
   const _RoutesVisitRepository();
@@ -1894,7 +2112,6 @@ class _RoutesVisitRepository implements VanVisitRepository {
   }
 }
 
-
 class _NotificationRepository implements VanNotificationRepository {
   int? markedRead;
 
@@ -1918,7 +2135,6 @@ class _NotificationRepository implements VanNotificationRepository {
     markedRead = notificationId;
   }
 }
-
 
 class _RouteCustomersRepository implements VanWalletRepository {
   const _RouteCustomersRepository();
@@ -1961,9 +2177,11 @@ class _RouteCustomersRepository implements VanWalletRepository {
   }
 }
 
-
 class _OrderRepository implements VanOrderRepository {
   int createdCount = 0;
+  int historyTotal = 0;
+  bool failPageTwoOnce = false;
+  final List<int> requestedOrderPages = [];
   String executionStatus = 'assigned';
   bool deliveryProofReady = false;
   String? failureReasonCode;
@@ -1993,23 +2211,30 @@ class _OrderRepository implements VanOrderRepository {
       );
 
   @override
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   }) async =>
-      const [
-        VanCatalogProduct(
-          id: 301,
-          name: 'Water Case',
-          sku: 'WATER-CASE',
-          unitPrice: 12,
-          minimumQuantity: 1,
-          orderingIncrement: 1,
-          isAvailable: true,
-          availableQuantity: 20,
-          currency: 'KWD',
-        ),
-      ];
+      VanCatalogPage(
+        page: page,
+        perPage: perPage,
+        hasMore: false,
+        products: const [
+          VanCatalogProduct(
+            id: 301,
+            name: 'Water Case',
+            sku: 'WATER-CASE',
+            unitPrice: 12,
+            minimumQuantity: 1,
+            orderingIncrement: 1,
+            availableQuantity: 20,
+            isAvailable: true,
+            currency: 'KWD',
+          ),
+        ],
+      );
 
   @override
   Future<VanOrderOptions> options(VanCustomerScope customer) async =>
@@ -2063,10 +2288,52 @@ class _OrderRepository implements VanOrderRepository {
   }
 
   @override
-  Future<List<VanOrderRecord>> orders({
+  Future<VanOrderPage> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async => createdCount == 0 ? const [] : [_record()];
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    requestedOrderPages.add(page);
+    if (failPageTwoOnce && page == 2) {
+      failPageTwoOnce = false;
+      throw StateError('page two unavailable');
+    }
+
+    final total = historyTotal > 0 ? historyTotal : (createdCount == 0 ? 0 : 1);
+    final start = (page - 1) * perPage;
+    final available = total - start;
+    final length =
+        available <= 0 ? 0 : (available < perPage ? available : perPage);
+    final items = historyTotal > 0
+        ? List<VanOrderRecord>.generate(
+            length,
+            (offset) {
+              final index = start + offset;
+              return VanOrderRecord(
+                id: 7001 + index,
+                orderNumber:
+                    'FDX-B2B-HISTORY-${(index + 1).toString().padLeft(3, '0')}',
+                customerType: 'b2b',
+                customerId: 42,
+                storeId: 7,
+                status: 'pending',
+                currency: 'KWD',
+                grandTotal: 12,
+                vanExecutionStatus: 'assigned',
+              );
+            },
+            growable: false,
+          )
+        : (page == 1 && createdCount > 0 ? [_record()] : <VanOrderRecord>[]);
+
+    return VanOrderPage(
+      items: items,
+      currentPage: page,
+      perPage: perPage,
+      total: total,
+    );
+  }
 
   @override
   Future<VanOrderDetail> order(int orderId) async => VanOrderDetail(
@@ -2227,7 +2494,6 @@ class _ProofPicker implements VanOrderProofPicker {
   @override
   Future<VanProofAttachment?> pickGallery() => pickCamera();
 }
-
 
 class _StartedVisitRepository implements VanVisitRepository {
   String? lastStatus;
