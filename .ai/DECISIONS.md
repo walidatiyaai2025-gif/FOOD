@@ -44,3 +44,12 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Reason:** the delivered Smart Ordering baseline already owns first-party menu/order/growth flows, while Enterprise Core is establishing generic modularity. A second set of restaurant engines would create drift, cross-tenant risk, duplicate pricing/order truth and a migration burden.
 **Consequences:** new Restaurant SaaS work must begin with a reuse/gap audit; net-new modules integrate through stable domain contracts; plan/subscription state resolves to entitlements instead of plan-name conditionals; public reads use revisioned/cache-friendly projections; module OFF states preserve data and cannot break unrelated modules.
 **Authority:** `docs/execution/FOODEX_RESTAURANT_SAAS_MASTER_PLAN.md`, `docs/execution/FOODEX_RESTAURANT_SAAS_GAP_MATRIX.json`, #1572 and #1573.
+
+## D-012 — Commercial convergence adapts existing truth; it does not fork ledgers
+**Decision (Wave 6 / #1731):** customer identity, orders, pricing, B2B credit/account balance, and collection/custody keep their existing FOODEX authorities. Convergence code may expose compatibility readers, authority metadata, and versioned event handoffs, but it must not create OrdersV2, CustomerV2, a second payment/credit ledger, or client-authoritative pricing.
+
+**Reason:** Sales, B2B/B2C, Van, Collections, CRM, and WhatsApp already share production state. Replacing those records during convergence would split authority, invalidate existing mobile flows, and make financial reconciliation ambiguous.
+
+**Consequences:** `CustomerDomainResolver`, `Order`/`orders`, `CommerceQuoteService`, `B2bAccountLedgerService`, and `CollectionCustodyService` remain canonical. Cross-module consumers use server-scoped compatibility contracts and event version 1; visible flow rewrites and new posting ledgers are outside this foundation.
+
+**Authority:** #1494, #1731, `docs/architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE.md`, and `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`.

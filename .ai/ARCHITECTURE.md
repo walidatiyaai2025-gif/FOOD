@@ -94,6 +94,13 @@ Durable invariants:
 - SaaS commercial lifecycle (plans, subscriptions, trials, billing/dunning, onboarding and offboarding) is a first-class platform concern;
 - restaurant operations modules (tables/reservations/KDS/workforce/inventory/integrations) consume shared Enterprise Core registry/entitlements/events/workflow/health contracts.
 
+
+## Enterprise commercial truth boundary
+
+Wave 6 convergence does not introduce replacement customer, order, pricing, credit, collection, or payment ledgers. `CustomerDomainResolver` remains the channel-aware customer identity authority; `orders` and `Order` remain order truth; `CommerceQuoteService` plus the existing B2B price resolver remain pricing truth; `B2bAccountLedgerService` remains credit/account truth; and `CollectionCustodyService` remains collection/remittance custody truth. Enterprise convergence layers may adapt and version these contracts, but they do not fork commercial state.
+
+Commercial compatibility reads are resolved through server-authoritative store/channel scope. Event handoffs use an explicit versioned envelope and registry-owned event names so downstream CRM, Van, Collections, WhatsApp, Finance, and BI consumers can evolve without replacing the source records. Foundation code emits no new ledger and performs no background work by itself.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
