@@ -3,6 +3,7 @@
 namespace App\Domain\SmartOrdering;
 
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
+use App\Models\MarketingCoupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
@@ -10,7 +11,9 @@ use App\Models\Payment;
 use App\Models\SmartOrderingCart;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\SmartOrderingOrderEvent;
+use App\Models\User;
 use App\Services\B2cCustomerService;
+use App\Services\CouponRedemptionService;
 use App\Services\CommerceQuoteService;
 use App\Services\CommercialPolicyService;
 use Illuminate\Support\Facades\DB;
@@ -28,13 +31,20 @@ final class CheckoutService
         private readonly CommercialPolicyService $commercialPolicy,
         private readonly InventoryService $inventory,
         private readonly OrderNotificationBridge $notifications,
+        private readonly SmartOrderingMerchandisingService $merchandising,
+        private readonly CouponRedemptionService $coupons,
     ) {}
 
     /**
      * @param  array<string,mixed>  $payload
      * @return array{order:Order,context:SmartOrderingOrderContext,replayed:bool}
      */
-    public function checkout(SmartOrderingCart $cart, string $idempotencyKey, array $payload): array
+    public function checkout(
+        SmartOrderingCart $cart,
+        string $idempotencyKey,
+        array $payload,
+        ?User $authenticatedUser = null,
+    ): array
     {
         $idempotencyKey = trim($idempotencyKey);
         if (strlen($idempotencyKey) < 16 || strlen($idempotencyKey) > 100) {
@@ -63,6 +73,8 @@ final class CheckoutService
                 'longitude' => $payload['delivery_longitude'] ?? null,
             ],
             'order_note' => isset($payload['order_note']) ? trim((string) $payload['order_note']) : null,
+            'coupon_code' => strtoupper(trim((string) ($payload['coupon_code'] ?? ''))),
+            'authenticated_user_id' => $authenticatedUser?->getKey(),
         ], JSON_THROW_ON_ERROR));
 
         $existing = SmartOrderingOrderContext::query()
@@ -126,6 +138,7 @@ final class CheckoutService
             $idempotencyKey,
             $idempotencyHash,
             $requestHash,
+            $authenticatedUser,
         ): array {
             $lockedCart = SmartOrderingCart::query()->whereKey($cart->getKey())->lockForUpdate()->firstOrFail();
             abort_unless((string) $lockedCart->status === 'active', 409, 'Cart is no longer active.');
@@ -134,26 +147,49 @@ final class CheckoutService
                 'name' => $name,
                 'phone' => $phone,
                 'email' => $email === '' ? null : $email,
-            ]);
+            ], $authenticatedUser);
             abort_unless($customer->legacy_customer_id !== null, 500, 'Customer compatibility identity is missing.');
 
             $pricingLines = $this->carts->pricingLines($lockedCart);
             abort_if($pricingLines === [], 409, 'The cart is empty.');
 
+            $deliveryGross = $mode === 'delivery' && $zone !== null
+                ? round((float) $zone->delivery_fee, 3)
+                : 0.0;
+            $couponCode = trim((string) ($payload['coupon_code'] ?? ''));
             $quote = $this->quotes->quote(
                 'b2c',
                 (int) $branch->store_id,
                 $customer,
                 $pricingLines,
-                null,
-                null,
+                $authenticatedUser,
+                $couponCode === '' ? null : $couponCode,
                 'cash_on_delivery',
                 true,
+                null,
+                $deliveryGross,
+                false,
             );
+
+            $site = $branch->site()->firstOrFail();
+            $merchandising = $this->merchandising->decorateQuote(
+                $site,
+                $branch,
+                $pricingLines,
+                $quote,
+                (int) $customer->legacy_customer_id,
+                is_array($lockedCart->merchandising_context) ? $lockedCart->merchandising_context : null,
+                $deliveryGross,
+                true,
+            );
+            $quote = $merchandising['quote'];
 
             $subtotal = round((float) $quote['subtotal'], 3);
             $discount = round(min($subtotal, max(0.0, (float) $quote['discount_total'])), 3);
-            $delivery = $mode === 'delivery' && $zone !== null ? round((float) $zone->delivery_fee, 3) : 0.0;
+            $delivery = round(max(
+                0.0,
+                $deliveryGross - max(0.0, (float) ($quote['delivery_discount_total'] ?? 0)),
+            ), 3);
             $service = round(max(0.0, (float) $branch->service_charge), 3);
 
             if ($mode === 'delivery' && $zone !== null) {
@@ -199,6 +235,10 @@ final class CheckoutService
                     'service_charge_total' => $service,
                     'branch_public_id' => (string) $branch->public_id,
                     'fulfillment_mode' => $mode,
+                    'promotion' => $quote['promotion'] ?? null,
+                    'coupon' => $quote['coupon'] ?? null,
+                    'merchandising' => $quote['merchandising'] ?? null,
+                    'delivery_discount_total' => (float) ($quote['delivery_discount_total'] ?? 0),
                 ],
                 'payment_method' => 'cash_on_delivery',
                 'customer_note' => isset($payload['order_note']) ? mb_substr(trim((string) $payload['order_note']), 0, 1000) : null,
@@ -234,6 +274,34 @@ final class CheckoutService
             }
 
             $this->inventory->reserve($order, $pricingLines);
+
+            if (is_array($quote['coupon'] ?? null) && isset($quote['coupon']['id'])) {
+                $couponUser = $authenticatedUser;
+                if (! $couponUser instanceof User && $customer->user_id !== null) {
+                    $couponUser = User::query()->find((int) $customer->user_id);
+                }
+                abort_unless($couponUser instanceof User, 422, 'An authenticated customer is required to redeem a coupon.');
+
+                $coupon = MarketingCoupon::query()
+                    ->whereKey((int) $quote['coupon']['id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $this->coupons->redeem(
+                    $coupon,
+                    $couponUser,
+                    $order,
+                    $subtotal + $deliveryGross,
+                    (float) ($quote['coupon_discount_total'] ?? 0),
+                );
+            }
+
+            $this->merchandising->commitRedemptions(
+                $site,
+                $order,
+                $merchandising['applied'],
+                (int) $customer->legacy_customer_id,
+                (string) $lockedCart->public_id,
+            );
 
             Payment::query()->create([
                 'order_id' => $order->getKey(),
