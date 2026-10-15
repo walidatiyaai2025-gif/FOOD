@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 final class SmartOrderingQrVisit extends Model
 {
     protected $table = 'smart_ordering_qr_visits';
+
     protected $guarded = [];
 
     protected function casts(): array
