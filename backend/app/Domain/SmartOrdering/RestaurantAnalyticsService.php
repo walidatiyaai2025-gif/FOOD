@@ -4,7 +4,6 @@ namespace App\Domain\SmartOrdering;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class RestaurantAnalyticsService
@@ -77,6 +76,11 @@ final class RestaurantAnalyticsService
         $sources = $this->sourcePerformance($storeIds, $filters, $from, $to);
         $branches = $this->branchPerformance($storeIds, $filters, $from, $to);
         $products = $this->productPerformance($storeIds, $filters, $from, $to);
+        $categories = $this->categoryPerformance($storeIds, $filters, $from, $to);
+        $fulfillment = $this->dimensionMix($storeIds, $filters, $from, $to, 'fulfillment_mode_key');
+        $customers = $this->dimensionMix($storeIds, $filters, $from, $to, 'customer_type_key');
+        $offers = $this->offerPerformance($storeIds, $filters, $from, $to);
+        $peakHours = $this->peakHours($storeIds, $filters, $from, $to);
 
         return [
             'filters' => $filters,
@@ -85,6 +89,11 @@ final class RestaurantAnalyticsService
             'sources' => $sources,
             'branches' => $branches,
             'products' => $products,
+            'categories' => $categories,
+            'fulfillment' => $fulfillment,
+            'customer_mix' => $customers,
+            'offers' => $offers,
+            'peak_hours' => $peakHours,
             'insights' => $this->insights($kpis, $products, $sources),
             'formula_version' => 'smart_ordering_analytics_v1',
             'formulas' => [
@@ -297,6 +306,131 @@ final class RestaurantAnalyticsService
             })->all();
     }
 
+    /** @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return list<array<string,mixed>>
+     */
+    private function categoryPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $query = DB::table('smart_ordering_analytics_category_daily as d')
+            ->leftJoin('categories as c', 'c.id', '=', 'd.category_id')
+            ->whereIn('d.store_id', $storeIds)
+            ->whereBetween('d.event_date', [$from->toDateString(), $to->toDateString()])
+            ->whereIn('d.event_name', ['category_viewed', 'product_viewed', 'order_completed']);
+
+        if (! empty($filters['branch_id'])) $query->where('d.branch_key', (int) $filters['branch_id']);
+        if (! empty($filters['category_id'])) $query->where('d.category_id', (int) $filters['category_id']);
+
+        return $query->groupBy('d.category_id', 'c.name')
+            ->selectRaw('d.category_id, c.name')
+            ->selectRaw("SUM(CASE WHEN d.event_name IN ('category_viewed','product_viewed') THEN d.event_count ELSE 0 END) AS views")
+            ->selectRaw("SUM(CASE WHEN d.event_name='order_completed' THEN d.event_count ELSE 0 END) AS completed")
+            ->orderByDesc('completed')
+            ->orderByDesc('views')
+            ->limit(25)
+            ->get()
+            ->map(static fn (object $row): array => [
+                'category_id' => (int) $row->category_id,
+                'name' => $row->name,
+                'views' => (int) $row->views,
+                'completed' => (int) $row->completed,
+            ])->all();
+    }
+
+    /** @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return list<array{key:string,count:int}>
+     */
+    private function dimensionMix(
+        array $storeIds,
+        array $filters,
+        CarbonImmutable $from,
+        CarbonImmutable $to,
+        string $column,
+    ): array {
+        abort_unless(in_array($column, ['fulfillment_mode_key', 'customer_type_key'], true), 500);
+
+        $query = DB::table('smart_ordering_analytics_daily')
+            ->whereIn('store_id', $storeIds)
+            ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
+            ->where('event_name', 'order_created')
+            ->where($column, '<>', '');
+        $skip = $column === 'fulfillment_mode_key' ? ['fulfillment'] : ['customer_type'];
+        $this->applyRollupDimensions($query, $filters, $skip);
+
+        return $query->groupBy($column)
+            ->selectRaw($column.' AS dimension_key, SUM(event_count) AS total')
+            ->orderByDesc('total')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'key' => (string) $row->dimension_key,
+                'count' => (int) $row->total,
+            ])->all();
+    }
+
+    /** @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return list<array<string,mixed>>
+     */
+    private function offerPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $query = DB::table('smart_ordering_analytics_daily')
+            ->whereIn('store_id', $storeIds)
+            ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
+            ->where('offer_key', '<>', '')
+            ->whereIn('event_name', ['offer_impression', 'offer_clicked', 'offer_redeemed']);
+        $this->applyRollupDimensions($query, $filters, ['offer']);
+
+        return $query->groupBy('offer_key')
+            ->selectRaw('offer_key')
+            ->selectRaw("SUM(CASE WHEN event_name='offer_impression' THEN event_count ELSE 0 END) AS impressions")
+            ->selectRaw("SUM(CASE WHEN event_name='offer_clicked' THEN event_count ELSE 0 END) AS clicks")
+            ->selectRaw("SUM(CASE WHEN event_name='offer_redeemed' THEN event_count ELSE 0 END) AS redeemed")
+            ->orderByDesc('redeemed')
+            ->limit(25)
+            ->get()
+            ->map(static function (object $row): array {
+                $impressions = (int) $row->impressions;
+                $redeemed = (int) $row->redeemed;
+
+                return [
+                    'offer' => (string) $row->offer_key,
+                    'impressions' => $impressions,
+                    'clicks' => (int) $row->clicks,
+                    'redeemed' => $redeemed,
+                    'conversion' => $impressions > 0 ? round(($redeemed / $impressions) * 100, 2) : 0.0,
+                ];
+            })->all();
+    }
+
+    /** @param list<int> $storeIds
+     * @param array<string,mixed> $filters
+     * @return list<array{hour:int,orders:int}>
+     */
+    private function peakHours(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $query = DB::table('smart_ordering_analytics_hourly')
+            ->whereIn('store_id', $storeIds)
+            ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
+            ->where('event_name', 'order_created');
+
+        if (! empty($filters['branch_id'])) $query->where('branch_key', (int) $filters['branch_id']);
+        if (! empty($filters['source'])) $query->where('source_key', (string) $filters['source']);
+        if (! empty($filters['campaign'])) $query->where('campaign_key', (string) $filters['campaign']);
+        if (! empty($filters['fulfillment'])) $query->where('fulfillment_mode_key', (string) $filters['fulfillment']);
+
+        return $query->groupBy('event_hour')
+            ->selectRaw('event_hour, SUM(event_count) AS orders')
+            ->orderByDesc('orders')
+            ->orderBy('event_hour')
+            ->limit(8)
+            ->get()
+            ->map(static fn (object $row): array => [
+                'hour' => (int) $row->event_hour,
+                'orders' => (int) $row->orders,
+            ])->all();
+    }
+
     /** @return list<array{code:string,severity:string,message:string}> */
     private function insights(array $kpis, array $products, array $sources): array
     {
@@ -386,7 +520,8 @@ final class RestaurantAnalyticsService
                 'aov' => 0.0, 'cancellation_rate' => 0.0, 'abandoned_carts' => 0,
                 'repeat_conversion' => 0.0, 'offer_conversion' => 0.0,
             ],
-            'funnel' => [], 'sources' => [], 'branches' => [], 'products' => [], 'insights' => [],
+            'funnel' => [], 'sources' => [], 'branches' => [], 'products' => [], 'categories' => [],
+            'fulfillment' => [], 'customer_mix' => [], 'offers' => [], 'peak_hours' => [], 'insights' => [],
             'formula_version' => 'smart_ordering_analytics_v1', 'formulas' => [],
         ];
     }
