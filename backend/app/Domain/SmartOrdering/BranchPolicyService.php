@@ -2,16 +2,23 @@
 
 namespace App\Domain\SmartOrdering;
 
-use App\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class BranchPolicyService
 {
+    public function __construct(
+        private readonly SmartOrderingRuntimePolicy $runtime,
+        private readonly Request $request,
+    ) {}
+
     public function branch(string $publicId): SmartOrderingBranch
     {
         $branch = SmartOrderingBranch::query()
+            ->with('site')
             ->where('public_id', $publicId)
             ->where('is_active', true)
             ->firstOrFail();
@@ -31,6 +38,12 @@ final class BranchPolicyService
     public function assertAccepting(SmartOrderingBranch $branch): void
     {
         abort_unless((bool) $branch->is_active, 404);
+        $this->runtime->assertRequest(
+            $branch->site()->firstOrFail(),
+            Module::ORDERING,
+            $this->request,
+            $branch,
+        );
         abort_unless((bool) $branch->accepting_orders, 409, 'This branch is not accepting orders.');
     }
 
