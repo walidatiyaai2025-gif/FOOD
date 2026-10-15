@@ -66,6 +66,7 @@ final class HttpJourneyBenchmarkRunner
                     $journey();
                 } finally {
                     $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+                    $memorySnapshot = $memory->snapshot();
                     $queryLog = DB::getQueryLog();
                     DB::disableQueryLog();
                 }
@@ -79,7 +80,6 @@ final class HttpJourneyBenchmarkRunner
                     $slowQueries->record($sql, $timeMs, (string) config('database.default', 'default'));
                 }
 
-                $memorySnapshot = $memory->snapshot();
                 $querySnapshot = $queryProbe->snapshot();
 
                 $durations[] = $durationMs;
