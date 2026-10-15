@@ -426,7 +426,7 @@ class _RetailCatalogCategoriesScreenState
                           crossAxisCount: columns,
                           crossAxisSpacing: CustomerUiSpacing.sm,
                           mainAxisSpacing: CustomerUiSpacing.md,
-                          mainAxisExtent: 116,
+                          mainAxisExtent: 128,
                         ),
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
