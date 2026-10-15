@@ -8,6 +8,7 @@ use App\Domain\WhatsApp\CampaignReportExporter;
 use App\Domain\WhatsApp\CampaignReportService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
+use App\Domain\WhatsApp\MetaTemplateService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -282,6 +283,39 @@ final class WhatsAppCampaignController extends Controller
         $id = $templates->upsert($data, $request->user()?->getKey());
 
         return $this->mutationResponse($request, ['template_id' => $id], 'Template registry updated.');
+    }
+
+    public function createMetaTemplate(Request $request, MetaTemplateService $metaTemplates): JsonResponse|RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $this->authorizePermission($request, 'whatsapp.campaigns.manage');
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'provider_name' => ['required', 'string', 'max:160', 'regex:/^[a-z0-9_]+$/'],
+            'locale' => ['required', Rule::in(['ar', 'en'])],
+            'category' => ['required', Rule::in(['marketing', 'utility'])],
+            'body_preview' => ['required', 'string', 'max:1024'],
+        ]);
+
+        $result = $metaTemplates->create($data, $actor->getKey());
+
+        return $this->mutationResponse(
+            $request,
+            $result,
+            __('whatsapp.campaigns.meta_template_created'),
+        );
+    }
+
+    public function syncMetaTemplates(Request $request, MetaTemplateService $metaTemplates): JsonResponse|RedirectResponse
+    {
+        $this->authorizePermission($request, 'whatsapp.campaigns.manage');
+        $result = $metaTemplates->sync();
+
+        return $this->mutationResponse(
+            $request,
+            $result,
+            __('whatsapp.campaigns.meta_templates_synced'),
+        );
     }
 
     public function storeConsent(
