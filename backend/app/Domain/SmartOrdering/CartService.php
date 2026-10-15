@@ -5,6 +5,7 @@ namespace App\Domain\SmartOrdering;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
+use App\Services\SmartOrderingAttributionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,10 +18,15 @@ final class CartService
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingAnalyticsService $analytics,
+        private readonly SmartOrderingAttributionService $attribution,
     ) {}
 
     /** @return array{cart:SmartOrderingCart,token:string,quote:array<string,mixed>} */
-    public function create(string $branchPublicId, ?string $revisionPublicId = null): array
+    public function create(
+        string $branchPublicId,
+        ?string $revisionPublicId = null,
+        ?string $attributionContext = null,
+    ): array
     {
         $branch = $this->branches->branch($branchPublicId);
         $this->branches->assertAccepting($branch);
@@ -32,12 +38,35 @@ final class CartService
             abort(409, 'Requested Smart Ordering revision is stale or unpublished.');
         }
 
+        $trustedAttribution = null;
+        if ($attributionContext !== null && trim($attributionContext) !== '') {
+            $trustedAttribution = $this->attribution->serverContext(
+                trim($attributionContext),
+                (int) $branch->store_id,
+            );
+
+            $branchReference = trim((string) ($trustedAttribution['branch_reference'] ?? ''));
+            if ($branchReference !== '') {
+                abort_unless(
+                    in_array($branchReference, [(string) $branch->public_id, (string) $branch->code], true),
+                    409,
+                    'QR attribution branch does not match the selected Smart Ordering branch.',
+                );
+            }
+        }
+
         $token = Str::random(64);
         $cart = SmartOrderingCart::query()->create([
             'public_id' => (string) Str::uuid(),
             'token_hash' => hash('sha256', $token),
             'branch_id' => $branch->getKey(),
             'revision_public_id' => (string) $published->public_id,
+            'qr_public_id' => $trustedAttribution['qr_public_id'] ?? null,
+            'source_snapshot' => $trustedAttribution['source'] ?? null,
+            'campaign_snapshot' => $trustedAttribution['campaign'] ?? null,
+            'offer_reference' => isset($trustedAttribution['promotion_id'])
+                ? 'promotion:'.$trustedAttribution['promotion_id']
+                : null,
             'status' => 'active',
             'expires_at' => now()->addHours(4),
         ]);
