@@ -27,6 +27,18 @@
             </div>
         </section>
 
+        @if($entitlements['foodex_supply_intelligence'] ?? false)
+        <section class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <div>
+                    <h2>{{ app()->getLocale() === 'ar' ? 'ذكاء توريد FOODEX' : 'FOODEX Supply Intelligence' }}</h2>
+                    <p>{{ app()->getLocale() === 'ar' ? 'استهلاك تقديري من الطلبات المكتملة، ربط وصفات، وتوصيات إعادة طلب آمنة كمسودة فقط.' : 'Estimated consumption from completed orders, recipe mapping, and safe draft-only replenishment.' }}</p>
+                </div>
+                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',$site) }}">{{ app()->getLocale() === 'ar' ? 'فتح ذكاء التوريد' : 'Open supply intelligence' }}</a>
+            </div>
+        </section>
+        @endif
+
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
