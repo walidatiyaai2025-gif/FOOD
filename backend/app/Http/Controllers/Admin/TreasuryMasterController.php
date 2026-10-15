@@ -50,7 +50,7 @@ final class TreasuryMasterController extends Controller
         $manageStoreIds = $this->tenantScope->allowedStoreIds($actor, 'finance.manage');
         $requestedStoreId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
         if ($requestedStoreId !== null) {
-            abort_unless(in_array($requestedStoreId, $viewStoreIds, true), 404);
+            $this->tenantScope->assertStore($actor, $requestedStoreId, 'finance.view');
         }
 
         $search = trim((string) ($filters['q'] ?? ''));
