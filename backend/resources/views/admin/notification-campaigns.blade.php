@@ -66,8 +66,8 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
         </div>
 
         <div class="preview">
-            <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $reviewCampaign->title_ar }}</strong><p>{{ $reviewCampaign->body_ar }}</p></div>
-            <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $reviewCampaign->title_en }}</strong><p>{{ $reviewCampaign->body_en }}</p></div>
+            <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $reviewCampaign->title_ar }}</strong><p>{{ $reviewCampaign->body_ar }}</p></div> {{-- localization-gate: allow intentional bilingual delivery review --}}
+            <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $reviewCampaign->title_en }}</strong><p>{{ $reviewCampaign->body_en }}</p></div> {{-- localization-gate: allow intentional bilingual delivery review --}}
         </div>
 
         @if($reviewSummary['sample'] !== [])
@@ -137,8 +137,8 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
                 <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
 
-                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="{{ __('notifications.title_ar_placeholder') }}"></div>
-                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="{{ __('notifications.title_en_placeholder') }}"></div>
+                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="{{ __('notifications.title_ar_placeholder') }}"></div> {{-- localization-gate: allow explicit bilingual authoring field --}}
+                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="{{ __('notifications.title_en_placeholder') }}"></div> {{-- localization-gate: allow explicit bilingual authoring field --}}
                 <div class="full preview">
                     <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="{{ __('notifications.body_ar_placeholder') }}"></textarea></div>
                     <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="{{ __('notifications.body_en_placeholder') }}"></textarea></div>
