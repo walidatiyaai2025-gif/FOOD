@@ -128,6 +128,7 @@ final class SupplyIntelligenceService
             ->where('m.site_id', $site->getKey())
             ->orderByDesc('m.effective_from')
             ->orderByDesc('m.id')
+            ->limit(500)
             ->get([
                 'm.id', 'm.public_id', 'm.branch_id', 'm.menu_item_public_id',
                 'm.variant_product_id', 'm.foodex_product_id', 'm.quantity_per_item',
