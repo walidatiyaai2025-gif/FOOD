@@ -175,7 +175,8 @@ void main() {
     }
   });
 
-  testWidgets('Driver authentication errors use a live region and clear on edit',
+  testWidgets(
+      'Driver authentication errors use a live region and clear on edit',
       (tester) async {
     await tester.pumpWidget(
       _host(
