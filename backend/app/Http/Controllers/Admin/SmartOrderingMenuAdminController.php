@@ -889,7 +889,7 @@ final class SmartOrderingMenuAdminController extends Controller
     /** @return array{windows:list<array{days:list<int>,start:string,end:string}>}|null */
     private function schedule(Request $request, string $prefix = ''): ?array
     {
-        if (! $request->boolean($prefix.'schedule_enabled')) {
+        if ($request->boolean($prefix.'schedule_enabled') === false) {
             return null;
         }
 
