@@ -161,20 +161,22 @@ final class EnterpriseReportingFoundationTest extends TestCase
 
     private function configureReport(): void
     {
-        config()->set('enterprise_reporting.reports.orders.summary', [
-            'module' => 'enterprise_bi',
-            'view_permission' => 'reports.view',
-            'export_permission' => 'reports.export',
-            'read_capability' => 'reports.read',
-            'export_capability' => 'reports.export',
-            'dimensions' => ['store', 'status', 'date'],
-            'measures' => ['orders', 'gross_total'],
-            'allowed_filters' => ['status', 'store_id'],
-            'read_model' => 'orders_rollup_daily',
-            'drill_down_route' => 'admin.orders.index',
-            'max_range_days' => 31,
-            'max_page_size' => 100,
-            'export_chunk_size' => 500,
+        config()->set('enterprise_reporting.reports', [
+            'orders.summary' => [
+                'module' => 'enterprise_bi',
+                'view_permission' => 'reports.view',
+                'export_permission' => 'reports.export',
+                'read_capability' => 'reports.read',
+                'export_capability' => 'reports.export',
+                'dimensions' => ['store', 'status', 'date'],
+                'measures' => ['orders', 'gross_total'],
+                'allowed_filters' => ['status', 'store_id'],
+                'read_model' => 'orders_rollup_daily',
+                'drill_down_route' => 'admin.orders.index',
+                'max_range_days' => 31,
+                'max_page_size' => 100,
+                'export_chunk_size' => 500,
+            ],
         ]);
     }
 
