@@ -163,11 +163,11 @@ final class SystemInspectorController extends Controller
         $this->platformAdmin($request);
 
         $root = (string) config('filesystems.disks.public.root');
-        if (! is_dir($root)) {
+        if (!is_dir($root)) {
             @mkdir($root, 0750, true);
         }
 
-        if (! is_dir($root)) {
+        if (!is_dir($root)) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء مجلد التخزين العام.',
                 'The public storage directory could not be created.',
