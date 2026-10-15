@@ -63,6 +63,8 @@ return [
         'sms_settings.test' => 'Send controlled SMS gateway tests',
         'stores.view' => 'View stores and channel configuration',
         'stores.manage' => 'Manage stores and channel configuration',
+        'smart_ordering.qr.view' => 'View Smart Ordering QR codes and attribution metrics',
+        'smart_ordering.qr.manage' => 'Create, edit, rotate and disable Smart Ordering QR codes',
         'b2b.accounts.view' => 'View B2B customer accounts',
         'b2b.accounts.manage' => 'Manage B2B customer accounts',
         'b2b.pricing.view' => 'View B2B pricing',
@@ -157,7 +159,7 @@ return [
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
-            'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
+            'promotions.view', 'promotions.manage', 'smart_ordering.qr.view', 'smart_ordering.qr.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
             'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
@@ -182,7 +184,7 @@ return [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'RETAIL_OPERATIONS' => [
-            'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
+            'assistant.use', 'smart_ordering.qr.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'drivers.tracking.view', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'RETAIL_INVENTORY' => [
