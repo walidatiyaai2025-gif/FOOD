@@ -94,11 +94,10 @@ abstract final class FoodexTheme {
     );
 
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
-    final textTheme =
-        (fontFamily == null
-                ? GoogleFonts.alexandriaTextTheme(base.textTheme)
-                : base.textTheme.apply(fontFamily: fontFamily))
-            .apply(bodyColor: FoodexBrand.ink, displayColor: FoodexBrand.ink);
+    final textTheme = (fontFamily == null
+            ? GoogleFonts.alexandriaTextTheme(base.textTheme)
+            : base.textTheme.apply(fontFamily: fontFamily))
+        .apply(bodyColor: FoodexBrand.ink, displayColor: FoodexBrand.ink);
     final primaryTextTheme = fontFamily == null
         ? GoogleFonts.alexandriaTextTheme(base.primaryTextTheme)
         : base.primaryTextTheme.apply(fontFamily: fontFamily);

@@ -35,9 +35,8 @@ void main() {
       ),
     );
 
-    final buttons = tester
-        .widgetList<FilledButton>(find.byType(FilledButton))
-        .toList();
+    final buttons =
+        tester.widgetList<FilledButton>(find.byType(FilledButton)).toList();
     expect(buttons, hasLength(2));
 
     final primaryStyle = buttons[0].style;

@@ -150,13 +150,13 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
               'لا يوجد اتصال بالشبكة. لم يتم تطبيق أي تغيير محليًا.',
             )
           : error is VanAccessDeniedException
-          ? _text('Access denied.', 'غير مصرح بهذه العملية.')
-          : error is VanApiException && error.message.trim().isNotEmpty
-          ? error.message
-          : _text(
-              'The server rejected this delivery action.',
-              'رفض الخادم إجراء التسليم هذا.',
-            );
+              ? _text('Access denied.', 'غير مصرح بهذه العملية.')
+              : error is VanApiException && error.message.trim().isNotEmpty
+                  ? error.message
+                  : _text(
+                      'The server rejected this delivery action.',
+                      'رفض الخادم إجراء التسليم هذا.',
+                    );
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
@@ -166,12 +166,12 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   }
 
   Future<void> _transition(String status) => _applyMutation(
-    () => widget.repository.transitionOrder(
-      orderId: widget.orderId,
-      status: status,
-      idempotencyKey: _idempotencyKey(status),
-    ),
-  );
+        () => widget.repository.transitionOrder(
+          orderId: widget.orderId,
+          status: status,
+          idempotencyKey: _idempotencyKey(status),
+        ),
+      );
 
   Future<void> _captureProof() async {
     if (_submitting || _stale) return;
@@ -391,14 +391,13 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       return;
     }
 
-    final launcher =
-        widget.navigationLauncher ??
+    final launcher = widget.navigationLauncher ??
         (lat, lng) => launchUrl(
-          Uri.parse(
-            'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
-          ),
-          mode: LaunchMode.externalApplication,
-        );
+              Uri.parse(
+                'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+              ),
+              mode: LaunchMode.externalApplication,
+            );
     final opened = await launcher(latitude, longitude);
     if (!opened && mounted) {
       ScaffoldMessenger.of(context)
@@ -486,23 +485,21 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   List<String> get _deliveryActions {
     final execution = _execution;
     final allowed = execution?.allowedActions ?? const <String>[];
-    return allowed
-        .where((action) {
-          if (!_isPrimaryAction(action)) return false;
-          if (execution?.status == 'failed' && action == 'out_for_delivery') {
-            return false;
-          }
-          if (action == 'delivered' &&
-              execution?.proofRequiredForDelivered == true &&
-              execution?.deliveryProofReady != true) {
-            return false;
-          }
-          if (action == 'delivered' && _hasCashOutstanding) {
-            return false;
-          }
-          return true;
-        })
-        .toList(growable: false);
+    return allowed.where((action) {
+      if (!_isPrimaryAction(action)) return false;
+      if (execution?.status == 'failed' && action == 'out_for_delivery') {
+        return false;
+      }
+      if (action == 'delivered' &&
+          execution?.proofRequiredForDelivered == true &&
+          execution?.deliveryProofReady != true) {
+        return false;
+      }
+      if (action == 'delivered' && _hasCashOutstanding) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 
   bool get _canFail => _execution?.allowedActions.contains('failed') == true;
@@ -526,7 +523,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
@@ -537,10 +536,10 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       );
 
   Widget _money(String currency, double amount) => Text(
-    foodexMoneyText(amount, currency),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-  );
+        foodexMoneyText(amount, currency),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -620,7 +619,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                                 order.vanExecutionStatus ??
                                 order.status,
                           ),
-                          style: Theme.of(context).textTheme.titleLarge
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -635,7 +636,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         'Delivery proof is required before Delivered can be accepted by the server.',
                         'إثبات التسليم مطلوب قبل أن يقبل الخادم حالة تم التسليم.',
                       ),
-                      style: Theme.of(context).textTheme.bodySmall
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
                           ?.copyWith(color: FoodexVanTokens.muted),
                     ),
                   ],
@@ -679,9 +682,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         ),
                         key: const ValueKey('van-order-proof-ready'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: FoodexVanTokens.actionGreen,
-                          fontWeight: FontWeight.w800,
-                        ),
+                              color: FoodexVanTokens.actionGreen,
+                              fontWeight: FontWeight.w800,
+                            ),
                       ),
                     ],
                   ],
@@ -806,9 +809,8 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       const SizedBox(height: 10),
                       VanActionButton.secondaryIcon(
                         key: const ValueKey('van-order-collect-action'),
-                        onPressed: _submitting || _stale
-                            ? null
-                            : _openCollectionFlow,
+                        onPressed:
+                            _submitting || _stale ? null : _openCollectionFlow,
                         icon: const Icon(Icons.payments_outlined),
                         label: Text(
                           _text('Collect outstanding', 'تحصيل المبلغ المستحق'),
@@ -820,7 +822,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                           'Delivered stays unavailable until the authoritative COD outstanding is cleared.',
                           'تظل حالة تم التسليم غير متاحة حتى تتم تسوية المبلغ النقدي المستحق بشكل معتمد.',
                         ),
-                        style: Theme.of(context).textTheme.bodySmall
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
                             ?.copyWith(color: FoodexVanTokens.muted),
                       ),
                     ],
@@ -834,7 +838,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         key: const ValueKey(
                           'van-order-account-credit-settlement',
                         ),
-                        style: Theme.of(context).textTheme.bodySmall
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
                             ?.copyWith(color: FoodexVanTokens.muted),
                       ),
                     ],

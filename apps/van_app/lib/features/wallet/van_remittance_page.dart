@@ -168,9 +168,8 @@ class _VanRemittancePageState extends State<VanRemittancePage>
         collectionAccountId: account.id,
         amount: amount,
         method: _method,
-        reference: _reference.text.trim().isEmpty
-            ? null
-            : _reference.text.trim(),
+        reference:
+            _reference.text.trim().isEmpty ? null : _reference.text.trim(),
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         idempotencyKey: _idempotencyKeyFor(operation),
       );
@@ -207,21 +206,21 @@ class _VanRemittancePageState extends State<VanRemittancePage>
     if (error is VanApiException) {
       return switch (error.statusCode) {
         404 => _text(
-          'This customer or financial account is no longer in the current Van scope. Refresh and try again.',
-          'العميل أو الحساب المالي لم يعد ضمن نطاق الفان الحالي. حدّث البيانات وحاول مرة أخرى.',
-        ),
+            'This customer or financial account is no longer in the current Van scope. Refresh and try again.',
+            'العميل أو الحساب المالي لم يعد ضمن نطاق الفان الحالي. حدّث البيانات وحاول مرة أخرى.',
+          ),
         409 => _text(
-          'The financial state changed. Refresh the balance and retry the operation.',
-          'تغيّرت حالة العملية المالية. حدّث الرصيد ثم أعد المحاولة.',
-        ),
+            'The financial state changed. Refresh the balance and retry the operation.',
+            'تغيّرت حالة العملية المالية. حدّث الرصيد ثم أعد المحاولة.',
+          ),
         422 => _text(
-          'Check the amount and operation details, then try again.',
-          'راجع المبلغ وبيانات العملية ثم حاول مرة أخرى.',
-        ),
+            'Check the amount and operation details, then try again.',
+            'راجع المبلغ وبيانات العملية ثم حاول مرة أخرى.',
+          ),
         _ => _text(
-          'The server could not save this financial operation. Try again.',
-          'تعذر على الخادم حفظ العملية المالية. حاول مرة أخرى.',
-        ),
+            'The server could not save this financial operation. Try again.',
+            'تعذر على الخادم حفظ العملية المالية. حاول مرة أخرى.',
+          ),
       };
     }
     return _text(

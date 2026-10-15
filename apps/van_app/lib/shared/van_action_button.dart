@@ -11,8 +11,8 @@ class VanActionButton extends StatelessWidget {
     required this.child,
     this.variant = VanActionVariant.primary,
     this.style,
-  }) : icon = null,
-       label = null;
+  })  : icon = null,
+        label = null;
 
   const VanActionButton.icon({
     super.key,
@@ -28,9 +28,9 @@ class VanActionButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.style,
-  }) : variant = VanActionVariant.secondary,
-       icon = null,
-       label = null;
+  })  : variant = VanActionVariant.secondary,
+        icon = null,
+        label = null;
 
   const VanActionButton.secondaryIcon({
     super.key,
@@ -38,8 +38,8 @@ class VanActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     this.style,
-  }) : variant = VanActionVariant.secondary,
-       child = null;
+  })  : variant = VanActionVariant.secondary,
+        child = null;
 
   final VoidCallback? onPressed;
   final Widget? child;
@@ -52,9 +52,8 @@ class VanActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final secondary = variant == VanActionVariant.secondary;
     final resolvedStyle = FilledButton.styleFrom(
-      backgroundColor: secondary
-          ? Colors.transparent
-          : FoodexVanTokens.actionGreen,
+      backgroundColor:
+          secondary ? Colors.transparent : FoodexVanTokens.actionGreen,
       foregroundColor: secondary ? FoodexVanTokens.actionGreen : Colors.white,
       side: secondary
           ? const BorderSide(color: FoodexVanTokens.border)
@@ -62,8 +61,7 @@ class VanActionButton extends StatelessWidget {
       elevation: 0,
     ).merge(style);
 
-    final content =
-        child ??
+    final content = child ??
         Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,

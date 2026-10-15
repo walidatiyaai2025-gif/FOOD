@@ -107,8 +107,8 @@ class _VanOrdersPageState extends State<VanOrdersPage>
 
   String _effectiveStatus(VanOrderRecord order) =>
       order.vanExecutionStatus?.trim().isNotEmpty == true
-      ? order.vanExecutionStatus!
-      : order.status;
+          ? order.vanExecutionStatus!
+          : order.status;
 
   bool _matchesFilter(VanOrderRecord order) {
     final status = _effectiveStatus(order);
@@ -169,14 +169,14 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   }
 
   int get _activeCount => _orders.where((order) {
-    return !{
-      'delivered',
-      'completed',
-      'cancelled',
-      'refunded',
-      'failed',
-    }.contains(order.status);
-  }).length;
+        return !{
+          'delivered',
+          'completed',
+          'cancelled',
+          'refunded',
+          'failed',
+        }.contains(order.status);
+      }).length;
 
   int get _completedCount => _orders
       .where((order) => {'delivered', 'completed'}.contains(order.status))
@@ -197,64 +197,68 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   }
 
   Widget _analytics(BuildContext context) => Card(
-    key: const ValueKey('van-orders-analytics'),
-    elevation: 0,
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            _text('Order outcomes', 'نتائج الطلبات'),
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _text(
-              'Which orders still need attention, and what has completed?',
-              'ما الطلبات التي ما زالت تحتاج متابعة وما الذي اكتمل؟',
-            ),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Text(
-              _ordersCurrency.isEmpty
-                  ? _ordersValue.toStringAsFixed(3)
-                  : foodexMoneyText(_ordersValue, _ordersCurrency),
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-          ),
-          const SizedBox(height: 10),
-          FoodexDonutChart(
-            key: const ValueKey('van-orders-status-chart'),
-            values: [
-              _activeCount.toDouble(),
-              _completedCount.toDouble(),
-              _exceptionCount.toDouble(),
+        key: const ValueKey('van-orders-analytics'),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _text('Order outcomes', 'نتائج الطلبات'),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _text(
+                  'Which orders still need attention, and what has completed?',
+                  'ما الطلبات التي ما زالت تحتاج متابعة وما الذي اكتمل؟',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  _ordersCurrency.isEmpty
+                      ? _ordersValue.toStringAsFixed(3)
+                      : foodexMoneyText(_ordersValue, _ordersCurrency),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FoodexDonutChart(
+                key: const ValueKey('van-orders-status-chart'),
+                values: [
+                  _activeCount.toDouble(),
+                  _completedCount.toDouble(),
+                  _exceptionCount.toDouble(),
+                ],
+                semanticLabel: _text(
+                  'Active, completed and exception order distribution',
+                  'توزيع الطلبات النشطة والمكتملة والاستثنائية',
+                ),
+                size: 134,
+                strokeWidth: 18,
+              ),
+              const SizedBox(height: 10),
+              FoodexChartLegend(
+                labels: [
+                  _text('Active', 'نشط'),
+                  _text('Completed', 'مكتمل'),
+                  _text('Exceptions', 'استثناءات'),
+                ],
+              ),
             ],
-            semanticLabel: _text(
-              'Active, completed and exception order distribution',
-              'توزيع الطلبات النشطة والمكتملة والاستثنائية',
-            ),
-            size: 134,
-            strokeWidth: 18,
           ),
-          const SizedBox(height: 10),
-          FoodexChartLegend(
-            labels: [
-              _text('Active', 'نشط'),
-              _text('Completed', 'مكتمل'),
-              _text('Exceptions', 'استثناءات'),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   String _statusLabel(String value) {
     switch (value) {
@@ -376,7 +380,8 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     subtitle: Text(
-                      _customerNames['${order.customerType}:${order.customerId}'] ??
+                      _customerNames[
+                              '${order.customerType}:${order.customerId}'] ??
                           _text('Assigned customer', 'عميل مسند'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -397,7 +402,9 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                             _statusLabel(_effectiveStatus(order)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(color: FoodexVanTokens.actionGreen),
                           ),
                         ],
@@ -412,19 +419,19 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   }
 
   Widget _state(String text) => Card(
-    elevation: 0,
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          Text(text, textAlign: TextAlign.center),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: _load,
-            child: Text(_text('Refresh', 'تحديث')),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            children: [
+              Text(text, textAlign: TextAlign.center),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: _load,
+                child: Text(_text('Refresh', 'تحديث')),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }

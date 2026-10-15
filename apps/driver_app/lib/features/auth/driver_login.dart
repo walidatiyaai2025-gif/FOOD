@@ -185,14 +185,18 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                               Text(
                                 context.tr('driver.login.welcome'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
                                     ?.copyWith(fontWeight: FontWeight.w900),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 context.tr('driver.login.subtitle'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
                                     ?.copyWith(color: FoodexBrand.muted),
                               ),
                               const SizedBox(height: 24),
@@ -326,11 +330,11 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   onChanged: _submitting
                                       ? null
                                       : (value) => setState(() {
-                                          _rememberMe = value ?? false;
-                                          if (!_rememberMe) {
-                                            _enableBiometrics = false;
-                                          }
-                                        }),
+                                            _rememberMe = value ?? false;
+                                            if (!_rememberMe) {
+                                              _enableBiometrics = false;
+                                            }
+                                          }),
                                 ),
                                 if (!_checkingBiometrics && _biometricAvailable)
                                   CheckboxListTile(
@@ -353,11 +357,12 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     onChanged: _submitting
                                         ? null
                                         : (value) => setState(() {
-                                            _enableBiometrics = value ?? false;
-                                            if (_enableBiometrics) {
-                                              _rememberMe = true;
-                                            }
-                                          }),
+                                              _enableBiometrics =
+                                                  value ?? false;
+                                              if (_enableBiometrics) {
+                                                _rememberMe = true;
+                                              }
+                                            }),
                                   ),
                               ],
                             ],
@@ -368,7 +373,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                       Text(
                         context.tr('driver.login.secure'),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
                             ?.copyWith(color: FoodexBrand.muted),
                       ),
                     ],
