@@ -292,6 +292,157 @@ class AdminCatalogManagementTest extends TestCase
         ]);
     }
 
+    public function test_catalog_lists_apply_server_filters_and_preserve_store_scope_on_reset(): void
+    {
+        $user = $this->superAdmin('en');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'FILTER-CATALOG',
+            'name' => 'Filter Catalog Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2c');
+        $unitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
+
+        $brandId = (int) DB::table('brands')->insertGetId([
+            'store_id' => $storeId,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeId,
+            'slug' => 'filter-brand-'.$storeId,
+            'name' => 'Filter Brand',
+            'name_ar' => 'علامة الفلترة',
+            'name_en' => 'Filter Brand',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $parentCategoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'name' => 'Beverages Parent',
+            'slug' => 'beverages-parent-'.$storeId,
+            'parent_id' => null,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $childCategoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'name' => 'Cold Drinks Child',
+            'slug' => 'cold-drinks-child-'.$storeId,
+            'parent_id' => $parentCategoryId,
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $availableProductId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'category_id' => $childCategoryId,
+            'brand_id' => $brandId,
+            'unit_id' => $unitId,
+            'sku' => 'FILTER-ALPHA-SKU',
+            'name' => 'Filter Alpha Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $outOfStockProductId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'category_id' => $parentCategoryId,
+            'brand_id' => $brandId,
+            'unit_id' => $unitId,
+            'sku' => 'FILTER-BETA-SKU',
+            'name' => 'Filter Beta Product',
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach ([$availableProductId, $outOfStockProductId] as $productId) {
+            DB::table('store_products')->insert([
+                'store_id' => $storeId,
+                'product_id' => $productId,
+                'price' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        $warehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'FILTER-WH',
+            'name' => 'Filter Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('inventories')->insert([
+            [
+                'warehouse_id' => $warehouseId,
+                'product_id' => $availableProductId,
+                'quantity' => 5,
+                'reserved_quantity' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'warehouse_id' => $warehouseId,
+                'product_id' => $outOfStockProductId,
+                'quantity' => 1,
+                'reserved_quantity' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $base = '/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1';
+        $resetProducts = e(route('admin.catalog.index', [
+            'tab' => 'products',
+            'store_id' => $storeId,
+            'support_access' => 1,
+        ]));
+
+        $this->actingAs($user)
+            ->get($base.'&product_q=FILTER-ALPHA-SKU')
+            ->assertOk()
+            ->assertViewHas('products', fn ($products): bool => $products->total() === 1)
+            ->assertSee('Filter Alpha Product')
+            ->assertDontSee('Filter Beta Product')
+            ->assertSee('data-catalog-product-filters', false)
+            ->assertSee('data-catalog-filter-reset href="'.$resetProducts.'"', false);
+
+        $this->actingAs($user)
+            ->get($base.'&product_category_id='.$childCategoryId.'&product_brand_id='.$brandId.'&product_status=active&product_availability=available')
+            ->assertOk()
+            ->assertViewHas('products', fn ($products): bool => $products->total() === 1)
+            ->assertSee('Filter Alpha Product')
+            ->assertDontSee('Filter Beta Product');
+
+        $this->actingAs($user)
+            ->get($base.'&product_status=inactive&product_availability=out_of_stock')
+            ->assertOk()
+            ->assertViewHas('products', fn ($products): bool => $products->total() === 1)
+            ->assertSee('Filter Beta Product')
+            ->assertDontSee('Filter Alpha Product');
+
+        $resetCategories = e(route('admin.catalog.index', [
+            'tab' => 'categories',
+            'store_id' => $storeId,
+            'support_access' => 1,
+        ]));
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=categories&store_id='.$storeId.'&support_access=1&category_q=Cold&category_parent='.$parentCategoryId.'&category_status=inactive')
+            ->assertOk()
+            ->assertViewHas('categoryRows', fn ($rows): bool => $rows->total() === 1)
+            ->assertSee('Cold Drinks Child')
+            ->assertDontSee('Beverages Parent</td>', false)
+            ->assertSee('data-catalog-category-filters', false)
+            ->assertSee('data-catalog-filter-reset href="'.$resetCategories.'"', false);
+    }
+
     public function test_catalog_management_requires_catalog_permission(): void
     {
         $user = User::query()->create([
