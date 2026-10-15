@@ -457,7 +457,7 @@ final class CartService
 
         foreach ($validated['selections'] as $groupSelection) {
             $groupPublicId = (string) $groupSelection['group_id'];
-            $optionIds = array_values(array_map('strval', (array) $groupSelection['option_ids']));
+            $optionIds = array_map('strval', (array) $groupSelection['option_ids']);
             $publicModifiers[] = [
                 'group_public_id' => $groupPublicId,
                 'option_public_ids' => $optionIds,
