@@ -10,6 +10,7 @@ use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 final class SmartOrderingStorefrontController extends Controller
 {
@@ -43,15 +44,18 @@ final class SmartOrderingStorefrontController extends Controller
             fn (): array => $renderer->prepare($snapshot, null, null, $locale, $canonical),
         );
 
-        $analyticsSite = SmartOrderingSite::query()
-            ->where('master_enabled', true)
-            ->where(function ($query) use ($siteKey): void {
-                $query->where('slug', $siteKey);
-                if (preg_match('/^[0-9a-fA-F-]{36}$/', $siteKey) === 1) {
-                    $query->orWhere('public_id', $siteKey);
-                }
-            })
-            ->first();
+        $analyticsSite = null;
+        if (Schema::hasTable('smart_ordering_sites')) {
+            $analyticsSite = SmartOrderingSite::query()
+                ->where('master_enabled', true)
+                ->where(function ($query) use ($siteKey): void {
+                    $query->where('slug', $siteKey);
+                    if (preg_match('/^[0-9a-fA-F-]{36}$/', $siteKey) === 1) {
+                        $query->orWhere('public_id', $siteKey);
+                    }
+                })
+                ->first();
+        }
 
         $analyticsBranch = null;
         if ($analyticsSite instanceof SmartOrderingSite) {
