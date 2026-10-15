@@ -369,6 +369,7 @@ Route::prefix('admin')
         });
         Route::get('/driver-live-tracking', [DriverLiveTrackingDashboardController::class, 'index'])->name('driver-live-tracking.index');
         Route::get('/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed'])->name('driver-live-tracking.feed');
+        Route::get('/driver-live-tracking/lookups', [DriverLiveTrackingDashboardController::class, 'lookups'])->name('driver-live-tracking.lookups');
         Route::get('/driver-live-tracking/assignments/{assignment}/evidence', [DriverLiveTrackingDashboardController::class, 'evidence'])
             ->whereNumber('assignment')
             ->name('driver-live-tracking.evidence');
