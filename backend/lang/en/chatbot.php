@@ -13,7 +13,7 @@ return [
         'segments' => 'Customer Segments',
         'analytics' => 'Analytics',
     ],
-    'preview' => 'Customer Experience Preview',
+    'preview_title' => 'Customer Experience Preview',
     'preview_screens' => [
         'home' => 'Smart Home',
         'new-order' => 'New Order',
