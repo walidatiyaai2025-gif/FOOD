@@ -611,6 +611,21 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
   }
 
+  const moduleGridRoute = '/admin/administration/modules?state=NOT_INSTALLED&sort=name&direction=asc&columns%5B0%5D=state&columns%5B1%5D=capabilities&per_page=25';
+  await page.goto(`${baseUrl}${moduleGridRoute}`, { waitUntil: 'networkidle' });
+  if (await page.locator('[data-enterprise-saved-views="enterprise.modules"]').count() !== 1
+      || await page.locator('[data-enterprise-grid-filters]').count() !== 1) {
+    throw new Error('Enterprise module saved-view/grid primitives were not rendered.');
+  }
+  await assertNoPageOverflow(page, `enterprise-modules/${locale}/desktop-1440`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_module_saved_views__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}${moduleGridRoute}`, { waitUntil: 'networkidle' });
+  await assertNoPageOverflow(page, `enterprise-modules/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_module_saved_views__mobile-390__${locale}.png`);
+  await page.setViewportSize({ width: 1440, height: 1080 });
+
   await exerciseOrderWizardDraftSafety(page, locale);
   await captureSecurityPermissionEvidence(page, locale);
 
