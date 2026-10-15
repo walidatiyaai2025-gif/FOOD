@@ -74,9 +74,14 @@ class DashboardDateRangeTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
-        $this->assertStringContainsString("\$isAr?'المبيعات':'Sales'", $view);
-        $this->assertStringContainsString('value="{{ request(\'from\') }}"', $view);
-        $this->assertStringContainsString('value="{{ request(\'to\') }}"', $view);
+        $this->assertStringContainsString('$isAr?\'المبيعات\':\'Sales\'', $view);
+        $this->assertStringContainsString('value="{{ $dashboard[\'selected_from\'] }}"', $view);
+        $this->assertStringContainsString('value="{{ $dashboard[\'selected_to\'] }}"', $view);
+        $this->assertStringContainsString('\'from\'=>$dashboard[\'selected_from\']', $view);
+        $this->assertStringContainsString('\'to\'=>$dashboard[\'selected_to\']', $view);
+        $this->assertStringContainsString('array_merge([\'module\'=>\'reports\'],$dashboardPeriodQuery)', $view);
+        $this->assertStringContainsString('array_merge([\'module\'=>\'orders\'],$dashboardPeriodQuery)', $view);
+        $this->assertStringContainsString('Reset period', $view);
         $this->assertStringNotContainsString('المبيعات اليومية', $view);
         $this->assertStringNotContainsString('Daily sales', $view);
         $this->assertStringNotContainsString('آخر 7 أيام', $view);
@@ -124,5 +129,53 @@ class DashboardDateRangeTest extends TestCase
             ]))
             ->assertRedirect()
             ->assertSessionHasErrors('to');
+    }
+
+    public function test_b2b_drillthrough_destinations_consume_the_selected_dashboard_period(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+
+        $user = User::query()->where('email', 'admin.demo@foodex.test')->firstOrFail();
+        $user->forceFill(['locale' => 'en'])->save();
+        $b2bAdminRoleId = (int) DB::table('roles')->where('code', 'B2B_ADMIN')->value('id');
+        DB::table('role_user')->insert([
+            'role_id' => $b2bAdminRoleId,
+            'user_id' => (int) $user->getKey(),
+        ]);
+
+        $to = now('Asia/Kuwait')->startOfDay();
+        $from = $to->copy()->subDays(4);
+        $period = [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ];
+
+        $dashboard = $this->actingAs($user)
+            ->get(route('admin.b2b.module', array_merge(['module' => 'dashboard'], $period)));
+
+        $dashboard->assertOk();
+        $dashboard->assertSee(
+            route('admin.b2b.module', array_merge(['module' => 'reports'], $period)),
+        );
+        $dashboard->assertSee(
+            route('admin.b2b.module', array_merge(['module' => 'orders'], $period)),
+        );
+        $dashboard->assertSee('Reset period');
+
+        $reports = $this->actingAs($user)
+            ->get(route('admin.b2b.module', array_merge(['module' => 'reports'], $period)));
+
+        $reports->assertOk()->assertViewHas('moduleData', function (array $moduleData) use ($period): bool {
+            return data_get($moduleData, 'filters.from') === $period['from']
+                && data_get($moduleData, 'filters.to') === $period['to'];
+        });
+
+        $orders = $this->actingAs($user)
+            ->get(route('admin.b2b.module', array_merge(['module' => 'orders'], $period)));
+
+        $orders->assertOk()
+            ->assertViewIs('admin.order-operations')
+            ->assertSee('name="from" value="'.$period['from'].'"', false)
+            ->assertSee('name="to" value="'.$period['to'].'"', false);
     }
 }

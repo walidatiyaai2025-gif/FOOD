@@ -162,6 +162,10 @@
             'delivered'=>$isAr?'تم التوصيل':'Delivered',
             'overdue_invoice'=>$isAr?'فاتورة متأخرة':'Overdue invoice',
         ];
+        $dashboardPeriodQuery = [
+            'from'=>$dashboard['selected_from'],
+            'to'=>$dashboard['selected_to'],
+        ];
     @endphp
     <section class="b2b-reference-dashboard" data-b2b-reference-dashboard="841x564">
         <div class="b2b-ref-header-tools">
@@ -208,9 +212,10 @@
                 <div class="b2b-ref-panel-head foodex-viz-header">
                     <div><h2 class="foodex-viz-title">{{ $isAr?'المبيعات':'Sales' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'اتجاه المبيعات من بيانات الطلبات المعتمدة':'Sales trend from authoritative order data' }}</p></div>
                     <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
-                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ request('from') }}"></label>
-                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
+                        <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}"></label>
+                        <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}"></label>
                         <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
+                        <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">{{ $isAr?'إعادة ضبط الفترة':'Reset period' }}</a>
                     </form>
                 </div>
                 <div class="b2b-ref-chart-wrap foodex-viz-canvas">
@@ -235,7 +240,7 @@
                     </svg>
                     <div class="b2b-ref-chart-labels" style="grid-template-columns:repeat({{ max(1,count($dashboard['series'])) }},minmax(0,1fr))">@foreach($dashboard['series'] as $index=>$point)<span>{{ ($index % $labelEvery === 0 || $index === count($dashboard['series'])-1) ? $point['label'] : '' }}</span>@endforeach</div>
                 </div>
-                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-sales" href="{{ route('admin.b2b.module',['module'=>'reports']) }}">{{ $isAr?'فتح تقارير الجملة':'Open Wholesale reports' }}</a>
+                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-sales" href="{{ route('admin.b2b.module',array_merge(['module'=>'reports'],$dashboardPeriodQuery)) }}">{{ $isAr?'فتح تقارير الجملة':'Open Wholesale reports' }}</a>
             </article>
 
             @if($canViewDriverTracking)
@@ -255,7 +260,7 @@
             @endif
 
             <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="order-distribution" data-platform-analytics="b2b-order-distribution">
-                <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
+                <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',array_merge(['module'=>'orders'],$dashboardPeriodQuery)) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
                 <div class="b2b-ref-donut-body">
                     <div class="foodex-viz-donut" role="img" aria-label="{{ $isAr?'توزيع حالات طلبات الجملة':'Wholesale order status distribution' }}" style="--foodex-viz-p1:{{ $distributionCount > 0 ? $processingEnd : 0 }}%;--foodex-viz-p2:{{ $distributionCount > 0 ? $deliveryEnd : 0 }}%;--foodex-viz-p3:{{ $distributionCount > 0 ? 100 : 0 }}%"></div>
                     <div class="b2b-ref-legend foodex-viz-legend">
@@ -291,7 +296,7 @@
                 @else
                     <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد طلبات حتى الآن' : 'No orders yet' }}</div>
                 @endif
-                <a class="b2b-ref-more" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
+                <a class="b2b-ref-more" href="{{ route('admin.b2b.module',array_merge(['module'=>'orders'],$dashboardPeriodQuery)) }}">{{ $isAr?'عرض كل الطلبات':'View all orders' }}</a>
             </article>
 
             <article class="b2b-ref-card b2b-ref-panel">
@@ -375,6 +380,16 @@
       <div class="toolbar">
         <div><strong>{{ __('admin.b2b_workspace.authoritative') }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? 'النطاق هو متجر الجملة الرئيسي ومخازنه؛ لا توجد فروع جملة مستقلة.' : 'The scope is the main Wholesale operation and its warehouses; there are no separate Wholesale branches.' }}</div></div>
       </div>
+      @if(in_array($module, ['orders','reports'], true) && !empty($moduleData['filters']['from']) && !empty($moduleData['filters']['to']))
+      @php
+        $activePeriodQuery = ['from'=>$moduleData['filters']['from'],'to'=>$moduleData['filters']['to']];
+      @endphp
+      <div class="links workspace-inline-form" aria-label="{{ app()->getLocale()==='ar'?'نطاق فترة التقارير':'Reporting period scope' }}">
+        <strong>{{ app()->getLocale()==='ar'?'الفترة المحددة':'Selected period' }}: {{ $moduleData['filters']['from'] }} — {{ $moduleData['filters']['to'] }}</strong>
+        <a href="{{ route('admin.b2b.module',array_merge(['module'=>'dashboard'],$activePeriodQuery)) }}">{{ app()->getLocale()==='ar'?'العودة للوحة بنفس الفترة':'Back to dashboard with this period' }}</a>
+        <a href="{{ route('admin.b2b.module',['module'=>$module]) }}">{{ app()->getLocale()==='ar'?'إعادة ضبط الفترة':'Reset period' }}</a>
+      </div>
+      @endif
       @if(!empty($moduleData['actions']))
       <div class="links workspace-inline-form">
         @foreach($moduleData['actions'] as $action)<a class="foodex-primary" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
