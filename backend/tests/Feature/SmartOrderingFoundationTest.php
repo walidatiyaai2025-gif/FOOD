@@ -243,12 +243,10 @@ class SmartOrderingFoundationTest extends TestCase
         $service = app(SmartOrderingSiteService::class);
         $site = $service->ensureForStore($storeId, $admin);
 
-        $this->withHeader('Host', $site->slug.'.foodex.com')
-            ->getJson('/api/v1/smart-ordering/context')
+        $this->getJson('https://'.$site->slug.'.foodex.com/api/v1/smart-ordering/context')
             ->assertNotFound();
 
-        $this->withHeader('Host', 'unknown.foodex.com')
-            ->getJson('/api/v1/smart-ordering/context')
+        $this->getJson('https://unknown.foodex.com/api/v1/smart-ordering/context')
             ->assertNotFound();
 
         $service->setEntitlement($admin, $site, Module::PUBLIC_MENU, true);
@@ -263,12 +261,12 @@ class SmartOrderingFoundationTest extends TestCase
             app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU, $branch),
         );
 
-        $this->withHeader('Host', $site->slug.'.foodex.com')
-            ->getJson('/api/v1/smart-ordering/context')
+        $this->getJson('https://'.$site->slug.'.foodex.com/api/v1/smart-ordering/context')
             ->assertOk();
 
-        $response = $this->withHeader('Host', $site->slug.'.foodex.com')
-            ->getJson('/api/v1/smart-ordering/context?branch='.$branch->public_id)
+        $response = $this->getJson(
+            'https://'.$site->slug.'.foodex.com/api/v1/smart-ordering/context?branch='.$branch->public_id,
+        )
             ->assertOk()
             ->assertJsonPath('site.id', $site->public_id)
             ->assertJsonPath('site.slug', $site->slug)
