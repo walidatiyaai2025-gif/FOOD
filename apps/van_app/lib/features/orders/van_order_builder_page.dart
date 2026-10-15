@@ -177,8 +177,9 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                                       : 3,
                                 ),
                                 textAlign: TextAlign.center,
-                                style:
-                                    const TextStyle(fontWeight: FontWeight.w900),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             IconButton.filledTonal(
@@ -237,7 +238,11 @@ class _Totals extends StatelessWidget {
               _row(arabic ? 'التوصيل' : 'Delivery', quote.deliveryTotal),
               _row(arabic ? 'الضريبة' : 'Tax', quote.taxTotal),
               const Divider(),
-              _row(arabic ? 'الإجمالي' : 'Total', quote.grandTotal, strong: true),
+              _row(
+                arabic ? 'الإجمالي' : 'Total',
+                quote.grandTotal,
+                strong: true,
+              ),
             ],
           ),
         ),
