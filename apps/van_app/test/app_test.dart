@@ -1351,15 +1351,16 @@ void main() {
       find.byKey(const ValueKey('van-orders-load-more-retry')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Showing 100 of 101 orders'), findsOneWidget);
+    expect(orders.requestedOrderPages, [1, 2, 2]);
 
     await _scrollUntilBuilt(tester, scrollable, loadMore);
     await tester.ensureVisible(loadMore);
     await tester.tap(loadMore);
     await tester.pumpAndSettle();
 
-    expect(find.text('Showing 101 of 101 orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
     expect(find.byKey(const ValueKey('van-orders-end')), findsOneWidget);
+    expect(find.text('All 101 orders are loaded.'), findsOneWidget);
     expect(orders.requestedOrderPages, [1, 2, 2, 3]);
 
     final refresh = tester.widget<RefreshIndicator>(
@@ -1368,7 +1369,7 @@ void main() {
     await refresh.onRefresh();
     await tester.pumpAndSettle();
 
-    expect(find.text('Showing 101 of 101 orders'), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
     expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
 
     await tester.scrollUntilVisible(
@@ -2160,7 +2161,8 @@ class _OrderRepository implements VanOrderRepository {
       throw StateError('page two unavailable');
     }
 
-    final total = historyTotal > 0 ? historyTotal : (createdCount == 0 ? 0 : 1);
+    final total =
+        historyTotal > 0 ? historyTotal : (createdCount == 0 ? 0 : 1);
     final start = (page - 1) * perPage;
     final available = total - start;
     final length = available <= 0
