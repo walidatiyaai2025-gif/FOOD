@@ -44,7 +44,8 @@ class _VanOffersPageState extends State<VanOffersPage>
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
-  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _customerTypeLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
         'b2c' || 'retail' => _text('Retail', 'تجزئة'),
         _ => _text('Customer', 'عميل'),
@@ -64,13 +65,97 @@ class _VanOffersPageState extends State<VanOffersPage>
     return _text('Offer', 'عرض');
   }
 
-  String _offerStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _offerStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'active' => _text('Active', 'نشط'),
         'scheduled' || 'upcoming' => _text('Scheduled', 'مجدول'),
         'expired' || 'ended' => _text('Ended', 'منتهي'),
         'paused' || 'inactive' => _text('Paused', 'متوقف'),
         _ => _text('Offer status', 'حالة العرض'),
       };
+
+  String _flashProductSummary(
+    VanCommercialOfferProduct product,
+    String currency,
+  ) {
+    final productName = product.productName?.trim();
+    final sellingUnitName = product.sellingUnitName?.trim();
+    final safeProductName = productName == null || productName.isEmpty
+        ? _text('Product', 'منتج')
+        : productName;
+    final safeSellingUnitName =
+        product.sellingUnitCode?.trim().isNotEmpty == true
+            ? (sellingUnitName == null || sellingUnitName.isEmpty
+                ? _text('Unit', 'وحدة')
+                : sellingUnitName)
+            : null;
+    final price = foodexMoneyText(
+      product.flashPrice,
+      currency,
+      currencyFirst: true,
+    );
+
+    return '$safeProductName · $price'
+        '${safeSellingUnitName == null ? '' : ' · $safeSellingUnitName'}';
+  }
+
+  String _commercialReasonLabel(String value) =>
+      switch (value.trim().toUpperCase()) {
+        'PRODUCT_INACTIVE' => _text('Product is inactive', 'المنتج غير نشط'),
+        'PRODUCT_CLOSED' =>
+          _text('Product is closed for sale', 'المنتج مغلق للبيع'),
+        'PRODUCT_RESTRICTED' => _text('Product is restricted', 'المنتج مقيد'),
+        'CHANNEL_BLOCKED' =>
+          _text('Sales channel is blocked', 'قناة البيع غير متاحة'),
+        'OUTSIDE_AVAILABILITY' =>
+          _text('Outside availability schedule', 'خارج أوقات الإتاحة'),
+        'MAX_PER_ORDER_EXCEEDED' =>
+          _text('Per-order limit exceeded', 'تم تجاوز حد الطلب'),
+        'MAX_PER_DAY_EXCEEDED' =>
+          _text('Daily quantity limit exceeded', 'تم تجاوز الحد اليومي'),
+        'MAX_PER_WEEK_EXCEEDED' =>
+          _text('Weekly quantity limit exceeded', 'تم تجاوز الحد الأسبوعي'),
+        'MAX_PER_MONTH_EXCEEDED' =>
+          _text('Monthly quantity limit exceeded', 'تم تجاوز الحد الشهري'),
+        'MAX_LIFETIME_EXCEEDED' => _text(
+            'Customer lifetime limit exceeded',
+            'تم تجاوز الحد الإجمالي للعميل',
+          ),
+        'FLASH_NOT_ACTIVE' =>
+          _text('Flash offer is not active', 'عرض Flash غير نشط'),
+        'FLASH_SOLD_OUT' =>
+          _text('Flash offer is sold out', 'نفدت كمية عرض Flash'),
+        'FLASH_CUSTOMER_LIMIT_REACHED' => _text(
+            'Customer Flash limit reached',
+            'تم بلوغ حد العميل لعرض Flash',
+          ),
+        'FLASH_RESERVATION_EXPIRED' =>
+          _text('Flash reservation expired', 'انتهت صلاحية حجز Flash'),
+        'ONLINE_VALIDATION_REQUIRED' =>
+          _text('Online validation required', 'يلزم التحقق عبر الإنترنت'),
+        'OVERRIDE_REQUIRED' => _text(
+            'Supervisor/admin override required',
+            'يلزم تجاوز بموافقة مشرف أو مدير',
+          ),
+        _ => _text(
+            'Commercial policy restriction',
+            'قيد من السياسة التجارية',
+          ),
+      };
+
+  String _commercialReasonSummary(List<String> reasonCodes) {
+    final source = reasonCodes.isEmpty
+        ? const <String>['ONLINE_VALIDATION_REQUIRED']
+        : reasonCodes;
+    final seen = <String>{};
+    final labels = <String>[];
+    for (final reasonCode in source) {
+      final normalized = reasonCode.trim().toUpperCase();
+      if (!seen.add(normalized)) continue;
+      labels.add(_commercialReasonLabel(normalized));
+    }
+    return labels.join(' • ');
+  }
 
   @override
   void initState() {
@@ -179,9 +264,8 @@ class _VanOffersPageState extends State<VanOffersPage>
       return;
     }
 
-    final overrideReason = _canOverride
-        ? (_overrideReasons[product.id]?.trim() ?? '')
-        : '';
+    final overrideReason =
+        _canOverride ? (_overrideReasons[product.id]?.trim() ?? '') : '';
 
     try {
       final quote = await widget.commercialRepository.quoteForCustomer(
@@ -194,9 +278,7 @@ class _VanOffersPageState extends State<VanOffersPage>
 
       if (!quote.allowed) {
         if (!mounted) return;
-        final reasons = quote.reasonCodes.isEmpty
-            ? 'ONLINE_VALIDATION_REQUIRED'
-            : quote.reasonCodes.join(', ');
+        final reasons = _commercialReasonSummary(quote.reasonCodes);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             key: const Key('van-commercial-policy-blocked'),
@@ -452,12 +534,7 @@ class _VanOffersPageState extends State<VanOffersPage>
                       children: [
                         Expanded(
                           child: Text(
-                            _text(
-                              'Product #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                              'منتج #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
-                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                            ),
+                            _flashProductSummary(product, offer.currency),
                           ),
                         ),
                         FilledButton.tonal(
@@ -477,7 +554,8 @@ class _VanOffersPageState extends State<VanOffersPage>
                             'سبب التجاوز (للمشرف/المدير فقط)',
                           ),
                         ),
-                        onChanged: (value) => _overrideReasons[product.id] = value,
+                        onChanged: (value) =>
+                            _overrideReasons[product.id] = value,
                       ),
                     ],
                   ],
