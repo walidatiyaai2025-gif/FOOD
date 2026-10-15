@@ -1,0 +1,188 @@
+@php
+    $profile = $onboardingStatus['profile'] ?? null;
+    $completion = (int) ($onboardingStatus['completion_percent'] ?? 0);
+    $supportParams = $supportAccess ? ['support_access' => 1] : [];
+@endphp
+<section class="panel so-onboarding" aria-labelledby="restaurant-onboarding-title">
+    <style>
+        .so-onboarding{display:grid;gap:var(--foodex-space-4)}
+        .so-onboarding-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);flex-wrap:wrap}
+        .so-onboarding-progress{min-width:min(100%,260px);display:grid;gap:8px}
+        .so-onboarding-progress-track{height:10px;border-radius:999px;background:var(--foodex-border);overflow:hidden}
+        .so-onboarding-progress-value{height:100%;background:var(--foodex-green);border-radius:inherit}
+        .so-onboarding-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--foodex-space-4)}
+        .so-onboarding-gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+        .so-onboarding-gate{border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md,12px);padding:12px;display:grid;gap:6px;background:var(--foodex-surface)}
+        .so-onboarding-gate-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+        .so-onboarding-state{display:inline-flex;align-items:center;min-height:28px;padding:3px 9px;border-radius:999px;font-size:var(--foodex-font-xs,.75rem);font-weight:700;background:var(--foodex-background);color:var(--foodex-ink)}
+        .so-onboarding-state[data-state="ready"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .so-onboarding-state[data-state="blocked"]{background:var(--foodex-danger-soft,#fff0f0);color:var(--foodex-danger-text,#b42318)}
+        .so-onboarding-state[data-state="attention"]{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
+        .so-onboarding-actions{display:flex;gap:8px;flex-wrap:wrap}
+        .so-onboarding-imports{display:grid;gap:8px}
+        .so-onboarding-import{border-top:1px solid var(--foodex-border);padding-top:8px;display:grid;gap:4px}
+        .so-onboarding-import:first-child{border-top:0;padding-top:0}
+        .so-onboarding-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .so-onboarding-form-grid .span-2{grid-column:1/-1}
+        @media (max-width:767px){
+            .so-onboarding-form-grid{grid-template-columns:1fr}
+            .so-onboarding-form-grid .span-2{grid-column:auto}
+            .so-onboarding-actions>*{flex:1 1 100%}
+        }
+    </style>
+
+    <div class="so-onboarding-head">
+        <div>
+            <h2 id="restaurant-onboarding-title">{{ __('restaurant_onboarding.title') }}</h2>
+            <p>{{ __('restaurant_onboarding.description') }}</p>
+        </div>
+        <div class="so-onboarding-progress">
+            <strong>{{ __('restaurant_onboarding.completion', ['percent' => $completion]) }}</strong>
+            <div class="so-onboarding-progress-track"
+                 role="progressbar"
+                 aria-label="{{ __('restaurant_onboarding.title') }}"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="{{ $completion }}">
+                <div class="so-onboarding-progress-value" style="width:{{ $completion }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="so-onboarding-gates">
+        @foreach($onboardingStatus['gates'] ?? [] as $gate)
+            <article class="so-onboarding-gate">
+                <div class="so-onboarding-gate-top">
+                    <strong>{{ __('restaurant_onboarding.gates.'.$gate['key']) }}</strong>
+                    <span class="so-onboarding-state" data-state="{{ $gate['state'] }}">
+                        {{ __('restaurant_onboarding.states.'.$gate['state']) }}
+                    </span>
+                </div>
+                <small>{{ $gate['hard'] ? __('restaurant_onboarding.hard_gate') : __('restaurant_onboarding.soft_gate') }}</small>
+            </article>
+        @endforeach
+    </div>
+
+    <div class="so-onboarding-actions">
+        <a class="button" href="{{ route('admin.smart-ordering.operations.index', ['store_id' => $site->store_id] + $supportParams) }}">
+            {{ __('restaurant_onboarding.actions.operations') }}
+        </a>
+        <a class="button" href="{{ route('admin.smart-ordering.menu.index', ['store_id' => $site->store_id] + $supportParams) }}">
+            {{ __('restaurant_onboarding.actions.menu') }}
+        </a>
+        <a class="button" href="{{ route('admin.smart-ordering.qr.index', ['store_id' => $site->store_id] + $supportParams) }}">
+            {{ __('restaurant_onboarding.actions.qr') }}
+        </a>
+    </div>
+
+    <div class="so-onboarding-grid">
+        <section>
+            <h3>{{ __('restaurant_onboarding.profile_title') }}</h3>
+            <p>{{ __('restaurant_onboarding.profile_description') }}</p>
+            @if($canManageOnboarding)
+                <form class="foodex-form js-onboarding-submit-lock" method="post" action="{{ route('admin.smart-ordering.onboarding.profile', [$site] + $supportParams) }}">
+                    @csrf @method('PUT')
+                    <div class="so-onboarding-form-grid">
+                        <label>
+                            {{ __('restaurant_onboarding.business_name') }}
+                            <input class="foodex-control" name="business_name" maxlength="160" required value="{{ old('business_name', $profile?->business_name ?? $site->store?->name) }}">
+                        </label>
+                        <label>
+                            {{ __('restaurant_onboarding.legal_name') }}
+                            <input class="foodex-control" name="legal_name" maxlength="160" required value="{{ old('legal_name', $profile?->legal_name) }}">
+                        </label>
+                        <label>
+                            {{ __('restaurant_onboarding.timezone') }}
+                            <select class="foodex-control" name="timezone" required>
+                                @foreach($onboardingTimezones as $timezone)
+                                    <option value="{{ $timezone }}" @selected(old('timezone', $profile?->timezone ?? 'Asia/Kuwait') === $timezone)>{{ $timezone }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>
+                            {{ __('restaurant_onboarding.currency') }}
+                            <input class="foodex-control so-code" name="currency" inputmode="text" maxlength="3" pattern="[A-Z]{3}" required value="{{ old('currency', $profile?->currency ?? 'KWD') }}">
+                        </label>
+                        <label>
+                            {{ __('restaurant_onboarding.country_code') }}
+                            <input class="foodex-control so-code" name="country_code" inputmode="text" maxlength="2" pattern="[A-Z]{2}" required value="{{ old('country_code', $profile?->country_code ?? 'KW') }}">
+                        </label>
+                        <label>
+                            {{ __('restaurant_onboarding.tax_registration_number') }}
+                            <input class="foodex-control" name="tax_registration_number" maxlength="80" value="{{ old('tax_registration_number', $profile?->tax_registration_number) }}">
+                        </label>
+                    </div>
+                    <button class="primary" type="submit" data-busy-label="{{ __('restaurant_onboarding.saving') }}">
+                        {{ __('restaurant_onboarding.save_profile') }}
+                    </button>
+                </form>
+            @endif
+        </section>
+
+        <section>
+            <h3>{{ __('restaurant_onboarding.import_title') }}</h3>
+            <p>{{ __('restaurant_onboarding.import_description') }}</p>
+            <div class="so-onboarding-actions">
+                <a class="button" href="{{ route('admin.smart-ordering.onboarding.template', [$site] + $supportParams) }}">
+                    {{ __('restaurant_onboarding.download_template') }}
+                </a>
+            </div>
+            @if($canManageOnboarding)
+                <form class="foodex-form js-onboarding-submit-lock" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.onboarding.import', [$site] + $supportParams) }}">
+                    @csrf
+                    <label>
+                        {{ __('restaurant_onboarding.import_file') }}
+                        <input class="foodex-control" type="file" name="menu_import" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+                    </label>
+                    <button class="primary" type="submit" data-busy-label="{{ __('restaurant_onboarding.staging') }}">
+                        {{ __('restaurant_onboarding.stage_import') }}
+                    </button>
+                </form>
+            @endif
+
+            <h4>{{ __('restaurant_onboarding.recent_imports') }}</h4>
+            <div class="so-onboarding-imports">
+                @forelse($onboardingStatus['imports'] ?? [] as $import)
+                    <article class="so-onboarding-import">
+                        <strong>{{ $import->original_filename }}</strong>
+                        <span class="so-onboarding-state" data-state="attention">{{ __('restaurant_onboarding.review_required') }}</span>
+                        <small>
+                            {{ __('restaurant_onboarding.rows', ['count' => $import->rows_total]) }}
+                            · {{ __('restaurant_onboarding.formula_rows', ['count' => $import->formula_rows]) }}
+                        </small>
+                        @if(is_array($import->headers) && $import->headers !== [])
+                            <small>{{ __('restaurant_onboarding.headers') }}: {{ implode(' · ', $import->headers) }}</small>
+                        @endif
+                    </article>
+                @empty
+                    <p>{{ __('restaurant_onboarding.no_imports') }}</p>
+                @endforelse
+            </div>
+        </section>
+    </div>
+
+    <div class="{{ ($onboardingStatus['can_launch'] ?? false) ? 'foodex-alert success' : 'foodex-alert error' }}" role="status">
+        {{ ($onboardingStatus['can_launch'] ?? false) ? __('restaurant_onboarding.ready_to_launch') : __('restaurant_onboarding.blocked_from_launch') }}
+    </div>
+
+    @if($canLaunchOnboarding)
+        <form class="js-onboarding-submit-lock" method="post" action="{{ route('admin.smart-ordering.onboarding.launch', [$site] + $supportParams) }}">
+            @csrf
+            <button class="primary" type="submit" data-busy-label="{{ __('restaurant_onboarding.launching') }}" @disabled(!($onboardingStatus['can_launch'] ?? false))>
+                {{ __('restaurant_onboarding.launch') }}
+            </button>
+        </form>
+    @endif
+
+    <script>
+        document.querySelectorAll('.js-onboarding-submit-lock').forEach((form) => {
+            form.addEventListener('submit', () => {
+                const button = form.querySelector('button[type="submit"]');
+                if (!button || button.disabled) return;
+                button.disabled = true;
+                const busyLabel = button.dataset.busyLabel;
+                if (busyLabel) button.textContent = busyLabel;
+            }, { once: true });
+        });
+    </script>
+</section>
