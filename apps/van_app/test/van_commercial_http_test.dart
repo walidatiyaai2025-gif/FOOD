@@ -52,8 +52,10 @@ void main() {
                 {
                   'id': 51,
                   'product_id': 99,
+                  'product_name': 'Sparkling Water',
                   'selling_unit_id': 5,
                   'selling_unit_code': 'CARTON',
+                  'selling_unit_name': 'Carton',
                   'conversion_factor': 10,
                   'flash_price': 7,
                   'allocation_base': 1000,
@@ -81,7 +83,9 @@ void main() {
     expect(flashRequested.queryParameters.containsKey('channel'), isFalse);
     expect(feed.serverTime, DateTime.parse('2026-10-06T05:30:00Z'));
     expect(feed.offers, hasLength(1));
+    expect(feed.offers.single.products.single.productName, 'Sparkling Water');
     expect(feed.offers.single.products.single.sellingUnitCode, 'CARTON');
+    expect(feed.offers.single.products.single.sellingUnitName, 'Carton');
     expect(feed.offers.single.products.single.conversionFactor, 10);
     expect(feed.offers.single.products.single.flashPrice, 7);
     expect(feed.normalOffers.single.name, 'Normal offer');
