@@ -24,6 +24,18 @@ return [
         'json' => 'Enter a valid JSON value.',
         'non_negative_price' => 'Prices cannot be negative.',
     ],
+    'invalid_item' => [
+        'badge' => 'Needs repair',
+        'title' => 'Linked product needs attention',
+        'summary_title' => 'Resolve unavailable menu items before publishing',
+        'summary_body' => 'The draft remains editable. Repair, replace, unlink and reprice, or hide each affected item; publishing stays blocked until every item has an authoritative price.',
+        'edit' => 'Edit item',
+        'replace' => 'Replace product',
+        'unlink' => 'Unlink product',
+        'reprice' => 'Set override price',
+        'hide' => 'Review visibility',
+        'review_before_publish' => 'Review items that need repair',
+    ],
     'modifier_kinds' => [
         'modifier' => 'Modifier',
         'size' => 'Size',
