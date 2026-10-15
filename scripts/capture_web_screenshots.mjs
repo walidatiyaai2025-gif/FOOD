@@ -731,6 +731,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     'field_operations',
     'marketing',
     'advertising',
+    'finance',
     'analytics',
     'applications',
     'administration',
