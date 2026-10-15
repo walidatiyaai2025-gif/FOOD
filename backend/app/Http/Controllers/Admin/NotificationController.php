@@ -8,6 +8,7 @@ use App\Models\NotificationRead;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\MarketingImageService;
+use App\Services\NotificationAudienceReviewService;
 use App\Services\OperationalTenantScope;
 use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
@@ -16,15 +17,18 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 final class NotificationController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, NotificationAudienceReviewService $reviews): View
     {
-        $this->authorizeManage($request);
+        $actor = $this->authorizeManage($request);
+        App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
@@ -46,7 +50,32 @@ final class NotificationController extends Controller
             ->orderBy('email')
             ->get();
 
-        return view('admin.notifications', compact('notifications', 'search', 'status', 'userTargets'));
+        $reviewNotification = null;
+        $reviewSummary = null;
+        $reviewToken = null;
+        $reviewStoreName = null;
+        $reviewNotificationId = max(0, (int) $request->query('review_notification', 0));
+
+        if ($reviewNotificationId > 0) {
+            $reviewNotification = Notification::query()->whereKey($reviewNotificationId)->firstOrFail();
+            abort_if($reviewNotification->status === 'published', 409);
+            $reviewSummary = $reviews->summarize($reviewNotification);
+            $reviewToken = $reviews->reviewToken($reviewNotification, 'publish');
+            $reviewStoreName = $reviewNotification->store_id === null
+                ? __('notifications.all_stores')
+                : (string) DB::table('stores')->where('id', $reviewNotification->store_id)->value('name');
+        }
+
+        return view('admin.notifications', compact(
+            'notifications',
+            'search',
+            'status',
+            'userTargets',
+            'reviewNotification',
+            'reviewSummary',
+            'reviewToken',
+            'reviewStoreName',
+        ));
     }
 
     public function live(Request $request): JsonResponse
@@ -203,13 +232,47 @@ final class NotificationController extends Controller
         return back()->with('status', __('notifications.updated'));
     }
 
-    public function publish(Request $request, Notification $notification, AuditLogger $audit, PushDeliveryService $push): RedirectResponse
-    {
+    public function publish(
+        Request $request,
+        Notification $notification,
+        AuditLogger $audit,
+        PushDeliveryService $push,
+        NotificationAudienceReviewService $reviews,
+    ): RedirectResponse {
         $actor = $this->authorizeManage($request);
-        $before = $notification->toArray();
-        $notification->update(['status' => 'published', 'published_at' => now()]);
-        $audit->record('notification.published', $actor, $notification, $before, $notification->fresh()->toArray(), $request);
-        $push->dispatchNotification($notification->fresh());
+        abort_if($notification->status === 'published', 409);
+
+        if (! $reviews->validReviewToken($notification, 'publish', $request->input('review_token'))) {
+            throw ValidationException::withMessages([
+                'review_token' => [__('notifications.review_expired')],
+            ]);
+        }
+
+        $summary = $reviews->summarize($notification);
+        if ($summary['count'] < 1) {
+            throw ValidationException::withMessages([
+                'audience' => [__('notifications.empty_effective_audience')],
+            ]);
+        }
+
+        $published = DB::transaction(function () use ($notification, $actor, $audit, $request, $reviews): Notification {
+            $locked = Notification::query()->whereKey($notification->getKey())->lockForUpdate()->firstOrFail();
+            abort_if($locked->status === 'published', 409);
+
+            if (! $reviews->validReviewToken($locked, 'publish', $request->input('review_token'))) {
+                throw ValidationException::withMessages([
+                    'review_token' => [__('notifications.review_expired')],
+                ]);
+            }
+
+            $before = $locked->toArray();
+            $locked->update(['status' => 'published', 'published_at' => now()]);
+            $audit->record('notification.published', $actor, $locked, $before, $locked->fresh()->toArray(), $request);
+
+            return $locked->fresh();
+        }, 3);
+
+        $push->dispatchNotification($published);
 
         return back()->with('status', __('notifications.published'));
     }

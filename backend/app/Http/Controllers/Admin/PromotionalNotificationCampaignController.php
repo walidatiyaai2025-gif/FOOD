@@ -7,6 +7,7 @@ use App\Models\NotificationCampaign;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\MarketingImageService;
+use App\Services\NotificationAudienceReviewService;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
@@ -18,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -32,7 +34,7 @@ final class PromotionalNotificationCampaignController extends Controller
         private readonly EngagementDestinationCatalog $destinations,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request, NotificationAudienceReviewService $reviews): View
     {
         $actor = $this->authorizeAccess($request);
         App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
@@ -51,8 +53,32 @@ final class PromotionalNotificationCampaignController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $reviewCampaign = null;
+        $reviewAction = null;
+        $reviewSummary = null;
+        $reviewToken = null;
+        $reviewStoreName = null;
+        $reviewCampaignId = max(0, (int) $request->query('review_campaign', 0));
+        $requestedReviewAction = (string) $request->query('review_action', '');
+
+        if ($reviewCampaignId > 0 && in_array($requestedReviewAction, ['activate', 'send_now'], true)) {
+            $reviewCampaign = $this->visibleCampaigns($actor)->whereKey($reviewCampaignId)->firstOrFail();
+            abort_if(in_array($reviewCampaign->status, ['completed', 'cancelled'], true), 409);
+            $reviewAction = $requestedReviewAction;
+            $reviewSummary = $reviews->summarize($reviewCampaign);
+            $reviewToken = $reviews->reviewToken($reviewCampaign, $reviewAction);
+            $reviewStoreName = $reviewCampaign->store_id === null
+                ? __('notifications.all_stores')
+                : (string) DB::table('stores')->where('id', $reviewCampaign->store_id)->value('name');
+        }
+
         return view('admin.notification-campaigns', [
             'campaigns' => $campaigns,
+            'reviewCampaign' => $reviewCampaign,
+            'reviewAction' => $reviewAction,
+            'reviewSummary' => $reviewSummary,
+            'reviewToken' => $reviewToken,
+            'reviewStoreName' => $reviewStoreName,
             'search' => $search,
             'status' => $status,
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN'),
@@ -123,7 +149,7 @@ final class PromotionalNotificationCampaignController extends Controller
                 'store_id' => $data['store_id'] ?? null,
                 'created_by' => $actor->id,
                 ...$schedule,
-                'status' => $request->boolean('activate') ? 'active' : 'draft',
+                'status' => 'draft',
             ]);
         } catch (Throwable $exception) {
             $images->delete($imagePath);
@@ -132,7 +158,7 @@ final class PromotionalNotificationCampaignController extends Controller
 
         $audit->record('notification_campaign.created', $actor, $campaign, null, $campaign->toArray(), $request);
 
-        return back()->with('status', app()->getLocale() === 'ar' ? 'تم حفظ الحملة الإعلانية.' : 'Promotional campaign saved.');
+        return back()->with('status', __('notifications.campaign_saved_draft'));
     }
 
     public function update(
@@ -194,30 +220,40 @@ final class PromotionalNotificationCampaignController extends Controller
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث الحملة.' : 'Campaign updated.');
     }
 
-    public function state(Request $request, NotificationCampaign $campaign, AuditLogger $audit): RedirectResponse
-    {
+    public function state(
+        Request $request,
+        NotificationCampaign $campaign,
+        AuditLogger $audit,
+        NotificationAudienceReviewService $reviews,
+    ): RedirectResponse {
         $actor = $this->authorizeCampaign($request, $campaign);
         $data = $request->validate([
             'state' => ['required', Rule::in(['active', 'paused', 'cancelled'])],
+            'review_token' => ['nullable', 'string'],
         ]);
-        $before = $campaign->toArray();
 
         if ($data['state'] === 'active') {
-            abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
-            $campaign->update([
-                'status' => 'active',
-                'next_run_at' => $campaign->next_run_at ?? $campaign->starts_at ?? now(),
-            ]);
+            DB::transaction(function () use ($request, $campaign, $audit, $actor, $reviews): void {
+                $locked = NotificationCampaign::query()->whereKey($campaign->getKey())->lockForUpdate()->firstOrFail();
+                abort_if(in_array($locked->status, ['completed', 'cancelled'], true), 409);
+                $this->assertReviewedAudience($request, $locked, 'activate', $reviews);
+                $before = $locked->toArray();
+                $locked->update([
+                    'status' => 'active',
+                    'next_run_at' => $locked->next_run_at ?? $locked->starts_at ?? now(),
+                ]);
+                $audit->record('notification_campaign.state_changed', $actor, $locked, $before, $locked->fresh()->toArray(), $request);
+            }, 3);
         } else {
+            $before = $campaign->toArray();
             $campaign->update([
                 'status' => $data['state'],
                 'next_run_at' => $data['state'] === 'cancelled' ? null : $campaign->next_run_at,
             ]);
+            $audit->record('notification_campaign.state_changed', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
         }
 
-        $audit->record('notification_campaign.state_changed', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
-
-        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الحملة.' : 'Campaign state updated.');
+        return back()->with('status', __('notifications.campaign_state_updated'));
     }
 
     public function sendNow(
@@ -225,15 +261,38 @@ final class PromotionalNotificationCampaignController extends Controller
         NotificationCampaign $campaign,
         AuditLogger $audit,
         NotificationCampaignDispatcher $dispatcher,
+        NotificationAudienceReviewService $reviews,
     ): RedirectResponse {
         $actor = $this->authorizeCampaign($request, $campaign);
         abort_if(in_array($campaign->status, ['completed', 'cancelled'], true), 409);
-        $before = $campaign->toArray();
-        $campaign->update(['status' => 'active', 'next_run_at' => now()]);
-        $audit->record('notification_campaign.send_now', $actor, $campaign, $before, $campaign->fresh()->toArray(), $request);
-        $dispatcher->dispatchCampaign((int) $campaign->id);
 
-        return back()->with('status', app()->getLocale() === 'ar' ? 'تم تنفيذ الإرسال الآن.' : 'Campaign dispatched now.');
+        $lock = Cache::lock('notification-campaign-send:'.(int) $campaign->getKey(), 30);
+        if (! $lock->get()) {
+            throw ValidationException::withMessages([
+                'send_now' => [__('notifications.delivery_in_progress')],
+            ]);
+        }
+
+        try {
+            $fresh = NotificationCampaign::query()->findOrFail($campaign->getKey());
+            abort_if(in_array($fresh->status, ['completed', 'cancelled'], true), 409);
+            $this->assertReviewedAudience($request, $fresh, 'send_now', $reviews);
+
+            $before = $fresh->toArray();
+            $fresh->update(['status' => 'active', 'next_run_at' => now()]);
+            $dispatched = $dispatcher->dispatchCampaign((int) $fresh->id);
+            if (! $dispatched) {
+                throw ValidationException::withMessages([
+                    'send_now' => [__('notifications.delivery_not_confirmed')],
+                ]);
+            }
+
+            $audit->record('notification_campaign.send_now', $actor, $fresh, $before, $fresh->fresh()->toArray(), $request);
+        } finally {
+            $lock->release();
+        }
+
+        return back()->with('status', __('notifications.campaign_dispatched_now'));
     }
 
     private function authorizeAccess(Request $request): User
@@ -509,6 +568,26 @@ final class PromotionalNotificationCampaignController extends Controller
             'max_runs' => isset($data['max_runs']) ? (int) $data['max_runs'] : null,
             'next_run_at' => $startsAt,
         ];
+    }
+
+    private function assertReviewedAudience(
+        Request $request,
+        NotificationCampaign $campaign,
+        string $action,
+        NotificationAudienceReviewService $reviews,
+    ): void {
+        if (! $reviews->validReviewToken($campaign, $action, $request->input('review_token'))) {
+            throw ValidationException::withMessages([
+                'review_token' => [__('notifications.review_expired')],
+            ]);
+        }
+
+        $summary = $reviews->summarize($campaign);
+        if ($summary['count'] < 1) {
+            throw ValidationException::withMessages([
+                'audience' => [__('notifications.empty_effective_audience')],
+            ]);
+        }
     }
 
     private function storeImage(Request $request, MarketingImageService $images, mixed $storeId): ?string
