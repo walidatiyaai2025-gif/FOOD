@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.86 - 2026-10-15
+- Promote the complete post-1.0.79 Dashboard lineage after the final #1560 P0 Smart Ordering blocker closed on main.
+- Ship the Premium Smart WhatsApp Chatbot plus WhatsApp media/calling/campaign/inbox and Meta-template reliability fixes while preserving fail-closed runtime controls.
+- Ship the certified Smart Ordering GA platform: menu, checkout, customer growth/loyalty, WhatsApp bridge, QR attribution, analytics, merchandising and FOODEX supply intelligence.
+- Add menu/category/item media visibility, draft review-before-publish, business-level QR presets and bundled TCPDF fallback for QR SVG/PDF generation.
+- Include updater canonical SemVer repair so malformed installed versions such as `1.084` self-heal to `1.0.84`, and keep first-contact WhatsApp consent unknown until explicit evidence exists.
+- Synchronize Customer, Driver and Van release identities at 1.0.86+86 and build release artifacts only from an exact-head green promotion commit.
+
 ## 1.0.79 - 2026-10-14
 - Promote the independently certified WhatsApp CRM program from #1399/#1407 into the production release lineage with provider abstraction, secure inbound/outbound transport, dynamic connection profiles, Customer Service roles/assignment, shared inbox, Customer 360, transactional notifications, campaigns, consent/opt-out, supervisor analytics, leads/follow-ups and the Dashboard-global inbound-message popup.
 - Carry certification `FOODEX-WHATSAPP-CRM-GA-1407-V1` with a 20/20 PASS matrix, zero unresolved P0/P1 risks, fail-closed source-controlled GA evidence, audited GA_READY promotion, and a separate emergency outbound stop.
