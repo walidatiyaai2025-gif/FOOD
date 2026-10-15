@@ -216,7 +216,7 @@ final class EnterpriseOrganizationAdministrationController extends Controller
         return back()->with('status', __('enterprise_organization.store_assigned'));
     }
 
-    private function validatedRecord(Request $request, Rule $unique): array
+    private function validatedRecord(Request $request, mixed $unique): array
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z][A-Za-z0-9_-]*$/', $unique],
