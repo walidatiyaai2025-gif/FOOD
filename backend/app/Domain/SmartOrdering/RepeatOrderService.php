@@ -27,8 +27,7 @@ final class RepeatOrderService
         int $customerId,
         int $sourceOrderId,
         array $selectedOrderItemIds = [],
-    ): array
-    {
+    ): array {
         $order = DB::table('orders')
             ->where('id', $sourceOrderId)
             ->where('store_id', $site->store_id)
