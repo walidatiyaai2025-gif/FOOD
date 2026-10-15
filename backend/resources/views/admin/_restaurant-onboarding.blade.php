@@ -54,7 +54,7 @@
             <article class="so-onboarding-gate">
                 <div class="so-onboarding-gate-top">
                     <strong>{{ __('restaurant_onboarding.gates.'.$gate['key']) }}</strong>
-                    <span class="so-onboarding-state" data-state="{{ $gate['state'] }}">
+                    <span class="so-onboarding-state" data-state="{{ $gate['state'] }}"> {{-- localization-gate: allow — data-state is a non-user-facing style selector; visible state text is translated below. --}}
                         {{ __('restaurant_onboarding.states.'.$gate['state']) }}
                     </span>
                 </div>
