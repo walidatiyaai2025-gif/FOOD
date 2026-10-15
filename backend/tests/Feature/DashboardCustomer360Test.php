@@ -376,14 +376,14 @@ class DashboardCustomer360Test extends TestCase
 
         $this->assertStringContainsString('data-address-map-search-state', $view);
         $this->assertStringContainsString('data-address-map-search-retry', $view);
-        $this->assertStringContainsString("role=\"status\" aria-live=\"polite\"", $view);
+        $this->assertStringContainsString('role="status" aria-live="polite"', $view);
         $this->assertStringContainsString('let searchRequestId = 0;', $view);
         $this->assertStringContainsString('let mapSessionId = 0;', $view);
         $this->assertStringContainsString('requestId === searchRequestId', $view);
         $this->assertStringContainsString('sessionId === mapSessionId', $view);
         $this->assertStringContainsString('activeForm === requestForm', $view);
-        $this->assertStringContainsString("if (!response.ok) throw new Error('map-search-http-' + response.status);", $view);
-        $this->assertStringContainsString("runSearch(lastSearchQuery)", $view);
+        $this->assertStringContainsString('if (!response.ok) throw new Error(\'map-search-http-\' + response.status);', $view);
+        $this->assertStringContainsString('runSearch(lastSearchQuery)', $view);
 
         $english = require lang_path('en/customer_360.php');
         $arabic = require lang_path('ar/customer_360.php');
