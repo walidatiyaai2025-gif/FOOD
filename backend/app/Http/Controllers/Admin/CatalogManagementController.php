@@ -113,7 +113,7 @@ final class CatalogManagementController extends Controller
             ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
-            ->join('units', 'units.id', '=', 'products.unit_id')
+            ->leftJoin('units', 'units.id', '=', 'products.unit_id')
             ->whereIn('catalogs.store_id', $storeIds)
             ->where('catalogs.is_migration_quarantine', false)
             ->orderByDesc('products.id')
@@ -156,6 +156,20 @@ final class CatalogManagementController extends Controller
             ->withQueryString();
 
         $pageProductIds = $products->getCollection()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $pageBrandIds = $products->getCollection()
+            ->pluck('brand_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $pageUnitIds = $products->getCollection()
+            ->pluck('unit_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
         return view('admin.catalog-management', [
             'user' => $actor,
@@ -176,6 +190,14 @@ final class CatalogManagementController extends Controller
                 ->where('units.is_active', true)
                 ->orderBy('units.name')
                 ->get(),
+            'currentBrands' => DB::table('brands')
+                ->whereIn('id', $pageBrandIds)
+                ->get(['id', 'name', 'is_active', 'scope', 'store_id'])
+                ->keyBy('id'),
+            'currentUnits' => DB::table('units')
+                ->whereIn('id', $pageUnitIds)
+                ->get(['id', 'name', 'code', 'is_active', 'scope', 'store_id'])
+                ->keyBy('id'),
             'stores' => DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->whereIn('stores.id', $storeIds)
