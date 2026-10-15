@@ -213,7 +213,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param  array{status?:string,from?:string,to?:string} $filters
+     * @param  array{status?:string,from?:string,to?:string}  $filters
      * @return LengthAwarePaginator<int, EnterpriseFinanceJournal>
      */
     public function paginateJournals(
@@ -250,7 +250,7 @@ final class FinanceJournalService
     }
 
     /**
-     * @param  array{account_id?:int,journal_id?:int,from?:string,to?:string} $filters
+     * @param  array{account_id?:int,journal_id?:int,from?:string,to?:string}  $filters
      * @return LengthAwarePaginator<int, EnterpriseFinanceLedgerEntry>
      */
     public function paginateLedger(
