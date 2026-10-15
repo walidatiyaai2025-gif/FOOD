@@ -18,7 +18,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page org-page" data-enterprise-organization-admin="true">
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="org-head"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_organization.eyebrow') }}</div><h1>{{ __('enterprise_organization.title') }}</h1><p>{{ __('enterprise_organization.description') }}</p></div><a class="org-back" href="{{ route('admin.administration.index') }}">{{ __('enterprise_organization.back') }}</a></header>
+<header class="org-head foodex-page-header"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_organization.eyebrow') }}</div><h1>{{ __('enterprise_organization.title') }}</h1><p>{{ __('enterprise_organization.description') }}</p></div><a class="org-back" href="{{ route('admin.administration.index') }}">{{ __('enterprise_organization.back') }}</a></header>
 @if(session('status'))<div class="org-status" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="org-status" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
@@ -71,7 +71,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <section class="org-card" style="margin-top:16px"><h2>{{ __('enterprise_organization.branches') }}</h2>
 @if($stores->isEmpty())<p class="org-empty">{{ __('enterprise_organization.none') }}</p>@else
 @foreach($stores as $store)<div class="org-row"><div><strong>{{ $store->name }}</strong><br><small>{{ $store->code }} · {{ __('enterprise_organization.current_unit') }}: {{ $store->business_unit_name }}</small></div><div class="org-actions">
-@if((int)$store->business_unit_id !== (int)$record->id)<form method="post" action="{{ route('admin.enterprise-business-units.stores.assign',['businessUnit'=>$record,'store'=>$store->id]) }}">@csrf<button class="org-open" type="submit">{{ __('enterprise_organization.assign_here') }}</button></form>@endif
+@if((int)$store->business_unit_id !== (int)$record->id)<form method="post" action="{{ route('admin.enterprise-business-units.stores.assign',['businessUnit'=>$record,'store'=>$store->id]) }}"> {{-- localization-gate: allow route parameter expression --}} @csrf<button class="org-open" type="submit">{{ __('enterprise_organization.assign_here') }}</button></form>@endif
 </div></div>@endforeach{{ $stores->links() }}@endif</section>
 @endif
 @endif
