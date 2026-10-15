@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/auth/driver_session.dart';
@@ -10,7 +11,6 @@ import '../../../core/preview/driver_preview_context.dart';
 import '../../../core/theme/foodex_theme.dart';
 import '../driver_assignment_contract.dart';
 import '../../wallet/driver_wallet_contract.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
