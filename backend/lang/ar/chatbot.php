@@ -13,7 +13,7 @@ return [
         'segments' => 'شرائح العملاء',
         'analytics' => 'التحليلات',
     ],
-    'preview' => 'معاينة تجربة العميل',
+    'preview_title' => 'معاينة تجربة العميل',
     'preview_screens' => [
         'home' => 'القائمة الرئيسية',
         'new-order' => 'طلب جديد',
