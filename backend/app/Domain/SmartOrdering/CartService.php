@@ -2,7 +2,7 @@
 
 namespace App\Domain\SmartOrdering;
 
-use App\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
 use Illuminate\Support\Facades\DB;
