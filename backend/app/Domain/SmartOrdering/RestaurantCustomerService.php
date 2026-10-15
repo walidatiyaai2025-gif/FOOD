@@ -4,6 +4,7 @@ namespace App\Domain\SmartOrdering;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\WhatsApp\MarketingConsentService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -226,7 +227,7 @@ final class RestaurantCustomerService
         }
         if ($lastOrderAt !== null) {
             $cutoff = now()->subDays((int) config('smart_ordering.customer_tags.dormant_days', 60));
-            if (\Illuminate\Support\Carbon::parse($lastOrderAt)->lt($cutoff)) {
+            if (Carbon::parse($lastOrderAt)->lt($cutoff)) {
                 $tags[] = 'DORMANT';
             }
         }
