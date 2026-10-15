@@ -8,7 +8,7 @@ const backend = path.resolve(__dirname, '../..');
 const source = fs.readFileSync(path.join(backend, 'public/assets/admin/driver-live-map.js'), 'utf8');
 const loader = fs.readFileSync(path.join(backend, 'resources/views/admin/_driver-live-map-scripts.blade.php'), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 const i18n = {
-    loading:'Loading', ready:'Live', noDrivers:'No locations', failed:'Failed', assetsFailed:'Assets failed',
+    loading:'Loading', restoring:'Refreshing restored live locations', ready:'Live', noDrivers:'No locations', failed:'Failed', assetsFailed:'Assets failed',
     driver:'Driver', van:'Van', route:'Route', assignment:'Assignment',
     mapFailed:'Map failed', sessionExpired:'Sign in again', forbidden:'Permission denied',
     serverFailed:'Server unavailable', networkFailed:'Network unavailable', invalidFeed:'Invalid response', timeout:'Timed out',
@@ -40,11 +40,12 @@ function setup({mode='full', actorKind='driver', noLeaflet=false, brokenMap=fals
     const calls=[], timers=new Map(), intervals=[], events={};
     let nextTimer=0;
     const layer={clearCount:0,addTo(){return this;},clearLayers(){this.clearCount++;}};
-    const map={removeCount:0,setView(){return this;},fitBounds(){},remove(){this.removeCount++;}};
+    const map={removeCount:0,invalidateCount:0,setView(){return this;},fitBounds(){},invalidateSize(){this.invalidateCount++;return this;},remove(){this.removeCount++;}};
     const leaflet={map(){if(brokenMap) throw Error('init failed');return map;},tileLayer(){return {addTo(){}};},layerGroup(){return layer;},circleMarker(){return {bindPopup(){return this;},addTo(){return this;},openPopup(){}};}};
     const window={L:noLeaflet?undefined:leaflet,location:{origin:'https://dashboard.example'},
         setTimeout(fn,ms){const id=++nextTimer;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
-        setInterval(fn){intervals.push(fn);},addEventListener(type,fn){events[type]=fn;}};
+        setInterval(fn){intervals.push(fn);},addEventListener(type,fn){events[type]=fn;},
+        removeEventListener(type,fn){if(events[type]===fn) delete events[type];}};
     const context=vm.createContext({window,L:window.L,URL,AbortController,document:{querySelectorAll(){return roots;},createElement(){return new Node();},createTextNode(value){return {textContent:value};}},
         fetch:async(url,options)=>{calls.push({url,options});return response ? response(url,options) : {ok:true,json:async()=>({data:[],meta:{generated_at:'2026-10-01T05:00:00Z'}})};}});
     return {roots,calls,timers,intervals,events,layer,map,context,run(){vm.runInContext(source,context);},watchdog(){vm.runInContext(loader,context);}};
@@ -202,12 +203,52 @@ test('background refresh is silent and overlapping refresh work is suppressed',a
     release();await pending;
     assert.equal(view.parts.state.textContent,i18n.ready);
 });
+for (const mode of ['full','compact']) {
+    test(`${mode}: bfcache restoration resumes one live-map loop without destroying retained state`,async()=>{
+        const env=setup({mode});
+        env.run();
+        await settle();
+        const view=env.roots[0];
+        const initialCalls=env.calls.length;
+        if (mode === 'full') {
+            view.parts.channel.value='b2c';
+            view.parts.store.value='7';
+            view.parts.search.value='route-a';
+        }
+
+        env.events.pagehide({persisted:true});
+        assert.equal(env.map.removeCount,0);
+        assert.equal(view.dataset.driverLiveMapReady,'1');
+        assert.equal(view.dataset.liveMapStale,'1');
+        assert.equal(view.parts.state.textContent,i18n.restoring);
+        assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,0);
+        if (mode === 'full') {
+            assert.equal(view.parts.channel.value,'b2c');
+            assert.equal(view.parts.store.value,'7');
+            assert.equal(view.parts.search.value,'route-a');
+        }
+
+        env.events.pageshow({persisted:true});
+        await settle();
+        assert.equal(env.map.invalidateCount,1);
+        assert.equal(env.calls.length,initialCalls+1);
+        assert.equal(view.dataset.liveMapStale,undefined);
+        assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
+
+        env.events.pagehide({persisted:true});
+        env.events.pageshow({persisted:true});
+        await settle();
+        assert.equal(env.map.removeCount,0);
+        assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
+    });
+}
 test('map polling and Leaflet runtime are disposed when the page leaves',async()=>{
     const env=setup();env.run();await settle();const view=env.roots[0];
     assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
-    env.events.pagehide();
+    env.events.pagehide({persisted:false});
     assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,0);
     assert.equal(env.map.removeCount,1);
+    assert.equal(env.events.pageshow,undefined);
     const calls=env.calls.length;
     await view.foodexDriverLiveMap.refresh();
     assert.equal(env.calls.length,calls);
