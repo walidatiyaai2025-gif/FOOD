@@ -17,7 +17,7 @@ final class SmartOrderingModifierService
     ) {}
 
     /**
-     * @param array<string,list<string>> $selections
+     * @param  array<string,list<string>>  $selections
      * @return array{
      *   base_price:float,
      *   modifier_delta:float,
