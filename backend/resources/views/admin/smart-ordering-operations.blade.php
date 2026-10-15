@@ -45,9 +45,9 @@
 .so-zone-map-head p,.so-zone-map-hint,.so-zone-advanced p{margin:4px 0 0;color:var(--foodex-muted);font-size:.82rem}
 .so-zone-location-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .so-zone-location-search label{min-width:0}
-.so-zone-map-canvas{width:100%;height:clamp(260px,38vh,420px);min-height:260px;border:1px solid var(--foodex-border);border-radius:12px;overflow:hidden;background:#f1f5f9}
+.so-zone-map-canvas{width:100%;height:clamp(260px,38vh,420px);min-height:260px;border:1px solid var(--foodex-border);border-radius:12px;overflow:hidden;background:var(--foodex-background)}
 .so-zone-map-canvas:focus-visible{outline:3px solid var(--foodex-action-green);outline-offset:2px}
-.so-zone-search-results{display:grid;gap:6px;max-height:180px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}
+.so-zone-search-results{display:grid;gap:6px;max-height:180px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface)}
 .so-zone-search-results button{width:100%;text-align:start;border:0;border-radius:8px;background:transparent;padding:9px;cursor:pointer}
 .so-zone-search-results button:hover,.so-zone-search-results button:focus-visible{background:var(--foodex-green-soft)}
 .so-zone-map-status{min-height:1.25em;color:var(--foodex-muted);font-size:.82rem}
