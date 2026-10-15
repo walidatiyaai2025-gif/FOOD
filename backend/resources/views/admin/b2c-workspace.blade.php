@@ -641,6 +641,7 @@
                     (() => {
                         const inventories = @json($moduleData['inventory_options'] ?? []);
                         const warehouses = @json($moduleData['warehouses'] ?? []);
+                        const products = @json($moduleData['products'] ?? []);
                         const labels = @json(__('admin.b2c_workspace.inventory_review'));
                         const byId = new Map(inventories.map((item) => [String(item.id), item]));
                         const byRelationship = new Map(inventories.map((item) => [String(item.warehouse_id) + ':' + String(item.product_id), item]));
@@ -725,11 +726,19 @@
                                         : '';
                                 }
 
+                                const selectedProductId = form.querySelector('[name="product_id"]')?.value;
+                                const selectedProduct = products.find((product) => String(product.id) === String(selectedProductId));
+                                const selectedWarehouseId = form.querySelector('[name="warehouse_id"]')?.value;
+                                const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === String(selectedWarehouseId));
+                                const productLabel = item?.product ?? (selectedProduct ? selectedProduct.sku + ' · ' + selectedProduct.name : '—');
+                                const warehouseLabel = item?.warehouse ?? (selectedWarehouse ? selectedWarehouse.code + ' · ' + selectedWarehouse.name : '—');
+                                const unitLabel = item?.unit ?? selectedProduct?.unit ?? '—';
+
                                 review.innerHTML =
                                     '<strong>' + escapeHtml(labels.title) + '</strong>' +
-                                    '<div><strong>' + escapeHtml(labels.product) + ':</strong> ' + escapeHtml(item?.product ?? '—') + '</div>' +
-                                    '<div><strong>' + escapeHtml(labels.warehouse) + ':</strong> ' + escapeHtml(item?.warehouse ?? '—') + '</div>' +
-                                    '<div><strong>' + escapeHtml(labels.unit) + ':</strong> ' + escapeHtml(item?.unit ?? '—') + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.product) + ':</strong> ' + escapeHtml(productLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.warehouse) + ':</strong> ' + escapeHtml(warehouseLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.unit) + ':</strong> ' + escapeHtml(unitLabel) + '</div>' +
                                     '<div><strong>' + escapeHtml(labels.on_hand) + ':</strong> ' + quantity(current) + '</div>' +
                                     '<div><strong>' + escapeHtml(labels.reserved) + ':</strong> ' + quantity(reserved) + '</div>' +
                                     '<div><strong>' + escapeHtml(labels.available) + ':</strong> ' + quantity(available) + '</div>' +
