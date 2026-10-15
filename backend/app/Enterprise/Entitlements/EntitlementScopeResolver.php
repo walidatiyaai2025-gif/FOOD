@@ -14,15 +14,31 @@ final class EntitlementScopeResolver
      */
     public function lineage(EntitlementScope $scope): array
     {
-        return match ($scope->type) {
-            EntitlementScope::PLATFORM => [EntitlementScope::platform()],
-            EntitlementScope::ORGANIZATION => $this->organizationLineage((int) $scope->id),
-            EntitlementScope::COMPANY => $this->companyLineage((int) $scope->id),
-            EntitlementScope::LEGAL_ENTITY => $this->legalEntityLineage((int) $scope->id),
-            EntitlementScope::BUSINESS_UNIT => $this->businessUnitLineage((int) $scope->id),
-            EntitlementScope::STORE => $this->storeLineage((int) $scope->id),
-            default => [],
-        };
+        if ($scope->type === EntitlementScope::PLATFORM) {
+            return [EntitlementScope::platform()];
+        }
+
+        if ($scope->type === EntitlementScope::ORGANIZATION) {
+            return $this->organizationLineage((int) $scope->id);
+        }
+
+        if ($scope->type === EntitlementScope::COMPANY) {
+            return $this->companyLineage((int) $scope->id);
+        }
+
+        if ($scope->type === EntitlementScope::LEGAL_ENTITY) {
+            return $this->legalEntityLineage((int) $scope->id);
+        }
+
+        if ($scope->type === EntitlementScope::BUSINESS_UNIT) {
+            return $this->businessUnitLineage((int) $scope->id);
+        }
+
+        if ($scope->type === EntitlementScope::STORE) {
+            return $this->storeLineage((int) $scope->id);
+        }
+
+        return [];
     }
 
     /**
