@@ -234,6 +234,12 @@ Route::prefix('admin')
                     ->middleware('throttle:30,1')
                     ->name('audience.manual');
                 Route::post('/templates', [WhatsAppCampaignController::class, 'storeTemplate'])->name('templates.store');
+                Route::post('/templates/meta', [WhatsAppCampaignController::class, 'createMetaTemplate'])
+                    ->middleware('throttle:10,1')
+                    ->name('templates.meta.store');
+                Route::post('/templates/meta/sync', [WhatsAppCampaignController::class, 'syncMetaTemplates'])
+                    ->middleware('throttle:10,1')
+                    ->name('templates.meta.sync');
                 Route::post('/consents', [WhatsAppCampaignController::class, 'storeConsent'])->name('consents.store');
                 Route::post('/', [WhatsAppCampaignController::class, 'storeCampaign'])->name('store');
                 Route::get('/{campaign}/report', [WhatsAppCampaignController::class, 'report'])
