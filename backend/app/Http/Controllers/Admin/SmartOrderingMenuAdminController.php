@@ -64,14 +64,25 @@ final class SmartOrderingMenuAdminController extends Controller
             ->orderBy('name_en')
             ->get();
 
-        $sourceIds = $menus
-            ->flatMap(fn (SmartOrderingMenu $menu) => $menu->categories)
-            ->flatMap(fn (SmartOrderingMenuCategory $category) => $category->items)
-            ->flatMap(function (SmartOrderingMenuItem $item) {
-                return collect([$item->source_product_id])
-                    ->merge($item->modifierGroups->flatMap(fn (SmartOrderingModifierGroup $group) => $group->options->pluck('source_product_id')));
-            })
-            ->filter()
+        $categoryIds = SmartOrderingMenuCategory::query()
+            ->whereIn('menu_id', $menuIds)
+            ->pluck('id');
+        $itemIds = SmartOrderingMenuItem::query()
+            ->whereIn('category_id', $categoryIds)
+            ->pluck('id');
+        $groupIds = SmartOrderingModifierGroup::query()
+            ->whereIn('item_id', $itemIds)
+            ->pluck('id');
+        $sourceIds = SmartOrderingMenuItem::query()
+            ->whereIn('id', $itemIds)
+            ->whereNotNull('source_product_id')
+            ->pluck('source_product_id')
+            ->merge(
+                SmartOrderingModifierOption::query()
+                    ->whereIn('group_id', $groupIds)
+                    ->whereNotNull('source_product_id')
+                    ->pluck('source_product_id')
+            )
             ->unique()
             ->values();
 
@@ -577,7 +588,7 @@ final class SmartOrderingMenuAdminController extends Controller
             $data['image_path'] = $current->image_path;
         }
 
-        $gallery = $request->boolean('clear_gallery') ? [] : (array) ($current?->gallery ?? []);
+        $gallery = $request->boolean('clear_gallery') ? [] : (array) ($current->gallery ?? []);
         foreach ((array) $request->file('gallery_images', []) as $image) {
             $gallery[] = $image->store('smart-ordering/'.$site->public_id.'/items/gallery', 'public');
         }
