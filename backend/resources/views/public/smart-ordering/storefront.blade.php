@@ -18,7 +18,11 @@
 <body class="so-page so-font-{{ $appearance['customization']['font'] }} so-card-{{ $appearance['customization']['card_style'] }} so-button-{{ $appearance['customization']['button_style'] }}"
     data-analytics-site="{{ $analytics['site_public_id'] ?? '' }}"
     data-analytics-branch="{{ $analytics['branch_public_id'] ?? '' }}"
-    data-analytics-context="{{ $analytics['attribution_context'] ?? '' }}">
+    data-analytics-context="{{ $analytics['attribution_context'] ?? '' }}"
+    data-menu-search-no-results="{{ trans('smart_ordering_storefront.search.no_results', [], $locale) }}"
+    data-menu-search-result-one="{{ trans('smart_ordering_storefront.search.result_one', [], $locale) }}"
+    data-menu-search-results="{{ trans('smart_ordering_storefront.search.results', [], $locale) }}"
+    data-menu-search-clear="{{ trans('smart_ordering_storefront.search.clear', [], $locale) }}">
 <a class="so-skip" href="#menu">{{ $locale === 'ar' ? 'انتقل إلى القائمة' : 'Skip to menu' }}</a>
 <header class="so-header">
     <div class="so-brand">
