@@ -55,7 +55,8 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
   });
 
-  testWidgets('Van offers use safe labels when legacy display names are missing',
+  testWidgets(
+      'Van offers use safe labels when legacy display names are missing',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
