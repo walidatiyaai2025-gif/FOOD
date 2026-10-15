@@ -136,6 +136,12 @@ class DashboardDateRangeTest extends TestCase
         $this->seed(DashboardDemoSeeder::class);
 
         $user = User::query()->where('email', 'admin.demo@foodex.test')->firstOrFail();
+        $b2bAdminRoleId = (int) DB::table('roles')->where('code', 'B2B_ADMIN')->value('id');
+        DB::table('role_user')->insert([
+            'role_id' => $b2bAdminRoleId,
+            'user_id' => (int) $user->getKey(),
+        ]);
+
         $to = now('Asia/Kuwait')->startOfDay();
         $from = $to->copy()->subDays(4);
         $period = [
