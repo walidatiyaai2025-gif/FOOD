@@ -283,8 +283,8 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('value="'.$unitId.'" selected data-current-lookup-option data-lookup-state="inactive"', false)
             ->assertSee('Inactive brand')
             ->assertSee('Inactive unit')
-            ->assertDontSee('value="'.$brandId.'" data-active-lookup-option', false)
-            ->assertDontSee('value="'.$unitId.'" data-active-lookup-option', false);
+            ->assertViewHas('brands', fn ($brands): bool => ! $brands->contains('id', $brandId))
+            ->assertViewHas('units', fn ($units): bool => ! $units->contains('id', $unitId));
 
         $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
             'name' => 'Inactive Lookup Product Renamed',
