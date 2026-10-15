@@ -24,6 +24,10 @@ final class SmartOrderingStorefrontTest extends TestCase
                     ->assertSee('aria-describedby="so-item-dialog-description"', false)
                     ->assertSee('id="so-item-dialog-title"', false)
                     ->assertSee('id="so-item-dialog-description"', false)
+                    ->assertSee('data-item-public-id="burger-1"', false)
+                    ->assertSee('data-view-cart', false)
+                    ->assertSee('data-cart-dialog', false)
+                    ->assertSee('data-checkout-form', false)
                     ->assertDontSee('secret-token')
                     ->assertDontSee('internal_id');
             }
@@ -54,6 +58,20 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString("dialog.addEventListener('close'", $script);
         $this->assertStringContainsString('trigger.focus();', $script);
         $this->assertStringContainsString("dialog.removeAttribute('aria-describedby')", $script);
+    }
+
+    public function test_public_cart_runtime_uses_scoped_server_cart_and_idempotent_checkout(): void
+    {
+        $script = file_get_contents(public_path('js/smart-ordering-storefront.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString('/api/smart-ordering/carts', $script);
+        $this->assertStringContainsString('menu_item_public_id', $script);
+        $this->assertStringContainsString('menu_modifiers', $script);
+        $this->assertStringContainsString('X-Smart-Cart-Token', $script);
+        $this->assertStringContainsString('Idempotency-Key', $script);
+        $this->assertStringContainsString('sessionStorage', $script);
+        $this->assertStringNotContainsString('product_id:currentItemId', $script);
     }
 
     public function test_public_storefront_ignores_untrusted_theme_override_and_emits_seo(): void
