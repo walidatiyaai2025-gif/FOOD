@@ -41,15 +41,20 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
       if (payment == null) {
         throw StateError('No configured payment method.');
       }
+      final revision = widget.draft.revision;
+      final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+      final addressId = widget.draft.addressId;
+      final warehouseId = widget.draft.warehouseId;
+      final customerNote = widget.draft.customerNote;
       final quote = await widget.repository.quote(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: widget.draft.customerNote,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
       );
-      widget.draft.setQuote(quote);
+      if (!widget.draft.setQuoteForRevision(quote, revision)) return;
       if (!mounted) return;
       widget.onReview();
     } on VanSessionExpiredException {
@@ -151,10 +156,13 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                             ),
                             const Spacer(),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity - line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity -
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.remove, size: 18),
                             ),
                             SizedBox(
@@ -171,10 +179,13 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                               ),
                             ),
                             IconButton.filledTonal(
-                              onPressed: () => widget.draft.changeQuantity(
-                                line.product,
-                                line.quantity + line.product.orderingIncrement,
-                              ),
+                              onPressed: _quoting
+                                  ? null
+                                  : () => widget.draft.changeQuantity(
+                                        line.product,
+                                        line.quantity +
+                                            line.product.orderingIncrement,
+                                      ),
                               icon: const Icon(Icons.add, size: 18),
                             ),
                           ],
