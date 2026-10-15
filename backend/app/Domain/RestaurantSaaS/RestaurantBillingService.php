@@ -495,7 +495,7 @@ final class RestaurantBillingService
             'organization_id' => (int) $subscription->organization_id,
             'plan_id' => (int) $subscription->plan_id,
             'state' => (string) $subscription->state,
-            'effective_at' => $subscription->effective_at?->toISOString(),
+            'effective_at' => $subscription->effective_at->toISOString(),
             'trial_ends_at' => $subscription->trial_ends_at?->toISOString(),
             'current_period_ends_at' => $subscription->current_period_ends_at?->toISOString(),
             'past_due_at' => $subscription->past_due_at?->toISOString(),
@@ -525,7 +525,7 @@ final class RestaurantBillingService
             'payment_method_reference' => $record->payment_method_reference,
             'amount_minor' => (int) $record->amount_minor,
             'currency' => (string) $record->currency,
-            'occurred_at' => $record->occurred_at?->toISOString(),
+            'occurred_at' => $record->occurred_at->toISOString(),
             'metadata' => $record->metadata,
         ];
     }
