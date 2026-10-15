@@ -189,8 +189,8 @@
                         <form class="foodex-form" method="post" action="{{ route('admin.whatsapp-chatbot.flows.store') }}">
                             @csrf
                             <div class="cb-field"><label>{{ __('chatbot.admin.flow_code') }}</label><input class="foodex-control" name="code" required maxlength="64"></div>
-                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" required maxlength="191"></div>
-                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" required maxlength="191" dir="ltr"></div>
+                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" required maxlength="191"></div> {{-- localization-gate: allow — bilingual admin create form field key is technical; visible label is translated --}}
+                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" required maxlength="191" dir="ltr"></div> {{-- localization-gate: allow — bilingual admin create form field key is technical; visible label is translated --}}
                             <div class="cb-field"><label>{{ __('chatbot.admin.message_ar') }}</label><textarea class="foodex-control" name="message_ar" required rows="3"></textarea></div>
                             <div class="cb-field"><label>{{ __('chatbot.admin.message_en') }}</label><textarea class="foodex-control" name="message_en" required rows="3" dir="ltr"></textarea></div>
                             <div class="cb-field"><label>{{ __('chatbot.admin.primary_action') }}</label>
@@ -311,8 +311,8 @@
                         <form class="foodex-form" method="post" action="{{ route('admin.whatsapp-chatbot.segments.store') }}">
                             @csrf
                             <div class="cb-field"><label>{{ __('chatbot.admin.segment_code') }}</label><input class="foodex-control" name="code" required></div>
-                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" required></div>
-                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" required dir="ltr"></div>
+                            <div class="cb-field"><label>{{ __('chatbot.admin.name_ar') }}</label><input class="foodex-control" name="name_ar" required></div> {{-- localization-gate: allow — bilingual admin create form field key is technical; visible label is translated --}}
+                            <div class="cb-field"><label>{{ __('chatbot.admin.name_en') }}</label><input class="foodex-control" name="name_en" required dir="ltr"></div> {{-- localization-gate: allow — bilingual admin create form field key is technical; visible label is translated --}}
                             <input type="hidden" name="enabled" value="0"><label class="cb-switch-row"><input type="checkbox" name="enabled" value="1" checked> {{ __('chatbot.admin.enabled') }}</label>
                             <div class="cb-field"><label>{{ __('chatbot.admin.priority') }}</label><input class="foodex-control" type="number" name="priority" value="100" min="1" max="9999"></div>
                             <div class="cb-field"><label>{{ __('chatbot.admin.customer_type') }}</label><select class="foodex-control" name="customer_type">@foreach(['any','b2b','b2c'] as $type)<option value="{{ $type }}">{{ __('chatbot.admin.'.$type) }}</option>@endforeach</select></div>
