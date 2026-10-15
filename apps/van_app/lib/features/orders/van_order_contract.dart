@@ -470,8 +470,7 @@ class VanOrderDraftController extends ChangeNotifier {
       }
     }
     addressId ??= value.addresses.isEmpty ? null : value.addresses.first.id;
-    warehouseId ??=
-        value.warehouses.isEmpty ? null : value.warehouses.first.id;
+    warehouseId ??= value.warehouses.isEmpty ? null : value.warehouses.first.id;
     paymentMethod ??= value.paymentMethods.contains(value.defaultPaymentMethod)
         ? value.defaultPaymentMethod
         : (value.paymentMethods.isEmpty ? null : value.paymentMethods.first);
