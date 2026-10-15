@@ -71,7 +71,7 @@ final class SmartOrderingStorefrontTest extends TestCase
             ->assertSee('data-template="signature-brand"', false)
             ->assertSee('data-theme="dark"', false)
             ->assertSee('dir="rtl"', false)
-            ->assertHeader('Cache-Control', 'private, no-store')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
             ->assertSee('برجر كلاسيك')
             ->assertDontSee('secret-token');

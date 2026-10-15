@@ -23,11 +23,13 @@ final class SmartOrderingStorefrontController extends Controller
         $locale = $request->query('lang');
         $locale = is_string($locale) ? $locale : null;
         $revision = trim((string) ($snapshot['revision'] ?? 'published'));
+        $appearanceFingerprint = hash('sha256', serialize($snapshot['appearance'] ?? []));
         $canonical = $request->url();
 
         $cacheKey = 'smart-ordering:storefront:'.hash('sha256', implode('|', [
             $siteKey,
             $revision,
+            $appearanceFingerprint,
             (string) $locale,
             $request->getSchemeAndHttpHost(),
             $request->path(),
