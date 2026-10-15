@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,3 +16,6 @@ Route::delete('/branches/{branch}/delivery-zones/{zone}', [SmartOrderingOperatio
     ->whereUuid('branch')->whereUuid('zone')->name('zones.destroy');
 Route::post('/orders/{reference}/status', [SmartOrderingOperationsController::class, 'transition'])
     ->whereUuid('reference')->name('orders.transition');
+
+Route::get('/analytics', [SmartOrderingAnalyticsController::class, 'index'])->name('analytics.index');
+Route::get('/analytics/export', [SmartOrderingAnalyticsController::class, 'export'])->name('analytics.export');
