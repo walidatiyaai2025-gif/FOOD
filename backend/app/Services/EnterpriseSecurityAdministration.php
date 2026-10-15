@@ -100,6 +100,9 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $dataScopes = $dataScopes
+            ->filter(fn ($row): bool => isset($scopeLabels[(string) $row->scope_type.':'.(int) $row->scope_id]))
+            ->values();
         $dataScopes->each(function ($row): void {
             $row->scope_label = $this->scopeLabel((string) $row->scope_type, (int) $row->scope_id);
         });
@@ -126,6 +129,15 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $approvalLimits = $approvalLimits
+            ->filter(function ($row) use ($scopeLabels): bool {
+                $key = $row->scope_type === 'global' || $row->scope_id === null
+                    ? 'global'
+                    : (string) $row->scope_type.':'.(int) $row->scope_id;
+
+                return isset($scopeLabels[$key]);
+            })
+            ->values();
         $approvalLimits->each(function ($row): void {
             $row->scope_label = $this->scopeLabel(
                 (string) $row->scope_type,
@@ -154,6 +166,15 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $delegations = $delegations
+            ->filter(function ($row) use ($scopeLabels): bool {
+                $key = $row->scope_type === 'global' || $row->scope_id === null
+                    ? 'global'
+                    : (string) $row->scope_type.':'.(int) $row->scope_id;
+
+                return isset($scopeLabels[$key]);
+            })
+            ->values();
         $delegations->each(function ($row): void {
             $row->scope_label = $this->scopeLabel(
                 (string) $row->scope_type,
@@ -167,7 +188,15 @@ final class EnterpriseSecurityAdministration
             ->where('status', WorkflowStatus::PENDING)
             ->latest('id')
             ->limit(50)
-            ->get();
+            ->get()
+            ->filter(function (EnterpriseWorkflowRequest $workflow) use ($actor): bool {
+                return $this->actorCanManageScope(
+                    $actor,
+                    (string) $workflow->scope_type,
+                    $workflow->scope_id === null ? null : (int) $workflow->scope_id,
+                );
+            })
+            ->values();
 
         $delegationCandidates = User::query()
             ->where('is_active', true)
@@ -415,6 +444,7 @@ final class EnterpriseSecurityAdministration
                 default => '',
             };
             $row = DB::table($table)->where('id', $id)->first();
+            abort_if($row === null, 404);
 
             return [(string) $row->scope_type, $row->scope_id === null ? null : (int) $row->scope_id];
         }
@@ -557,6 +587,17 @@ final class EnterpriseSecurityAdministration
      */
     private function applyDelegation(array $payload, User $delegator): array
     {
+        abort_unless(
+            (bool) $delegator->is_active
+                && $this->actorHasPermissionInScope(
+                    $delegator,
+                    (string) $payload['permission_code'],
+                    (string) $payload['scope_type'],
+                    $payload['scope_id'] === null ? null : (int) $payload['scope_id'],
+                ),
+            403,
+        );
+
         $overlap = DB::table('enterprise_user_delegations')
             ->where('delegator_id', $delegator->getKey())
             ->where('delegate_id', (int) $payload['delegate_id'])
