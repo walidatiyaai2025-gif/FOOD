@@ -505,13 +505,13 @@ test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascade
   const workflowPath = path.join(__dirname, '..', 'workflows', 'worker-watchdog.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
 
-  assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
+  assert.match(workflow, /cron: "17 \* \* \* \*"/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /types: \[completed\]/);
-  assert.match(workflow, /"FOODEX Required CI Gate"/);
-  assert.doesNotMatch(workflow, /- "Repository Policy"/);
-  assert.doesNotMatch(workflow, /types: \[[^\]]*requested[^\]]*\]/);
-  assert.doesNotMatch(workflow, /types: \[[^\]]*in_progress[^\]]*\]/);
+  assert.doesNotMatch(workflow, /\n\s*issue_comment:\s*\n/);
+  assert.doesNotMatch(workflow, /\n\s*workflow_run:\s*\n/);
+  assert.doesNotMatch(workflow, /synchronize/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*edited[^\]]*\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*converted_to_draft[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*unlabeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /\n\s*push:\s*\n/);
