@@ -8,6 +8,12 @@ import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+enum _CollectionReviewReason {
+  customerUnavailable,
+  invoiceUnavailable,
+  targetChanged,
+}
+
 class VanCollectionPage extends StatefulWidget {
   const VanCollectionPage({
     super.key,
@@ -329,6 +335,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
 
     if (customer == null ||
         invoice == null ||
+        _reviewReason != null ||
         !_hasMatchingContext ||
         !_context!.invoices.any((candidate) => candidate.id == invoice.id) ||
         amount == null ||
@@ -478,27 +485,68 @@ class _VanCollectionPageState extends State<VanCollectionPage>
                       ),
               ),
             ),
-          DropdownButtonFormField<VanCustomerScope>(
-            key: const ValueKey('van-collection-customer'),
-            initialValue: _customer,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: _text('Customer', 'العميل'),
-              border: const OutlineInputBorder(),
-            ),
-            items: [
-              for (final customer in _customers)
-                DropdownMenuItem(
-                  value: customer,
-                  child: Text(
-                    customer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          if (_reviewReason != null)
+            Semantics(
+              liveRegion: true,
+              child: Container(
+                key: const ValueKey('van-collection-target-review'),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: FoodexVanTokens.surface,
+                  border: Border.all(color: FoodexVanTokens.border),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-            ],
-            onChanged: _submitting ? null : _selectCustomer,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_reviewMessage(_reviewReason!))),
+                  ],
+                ),
+              ),
+            ),
+          KeyedSubtree(
+            key: const ValueKey('van-collection-customer'),
+            child: DropdownButtonFormField<VanCustomerScope>(
+              key: ValueKey(
+                'van-collection-customer-state-'
+                '${_customer?.type ?? 'none'}-'
+                '${_customer?.id ?? 'none'}-'
+                '${_customer?.storeId ?? 'none'}',
+              ),
+              initialValue: _customer,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: _text('Customer', 'العميل'),
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                for (final customer in _customers)
+                  DropdownMenuItem(
+                    value: customer,
+                    child: Text(
+                      customer.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: _submitting ? null : _selectCustomer,
+            ),
           ),
+          if (_customer != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _text(
+                'Customer: ${_customer!.name} · ${_customer!.type.toUpperCase()} #${_customer!.id} · Store #${_customer!.storeId}',
+                'العميل: ${_customer!.name} · ${_customer!.type.toUpperCase()} #${_customer!.id} · المتجر #${_customer!.storeId}',
+              ),
+              key: const ValueKey('van-collection-customer-identity'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 12),
           if (_loading)
             const Center(child: CircularProgressIndicator())
@@ -510,6 +558,20 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               ),
               actionLabel: _text('Retry', 'إعادة المحاولة'),
               onAction: _refresh,
+            )
+          else if (_customer == null)
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  _text(
+                    'Choose an assigned customer to load its current collectible invoices.',
+                    'اختر عميلًا مسندًا لتحميل فواتيره الحالية القابلة للتحصيل.',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             )
           else if (invoices.isEmpty)
             Card(
@@ -526,32 +588,48 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               ),
             )
           else ...[
-            DropdownButtonFormField<VanInvoiceBalance>(
+            KeyedSubtree(
               key: const ValueKey('van-collection-invoice'),
-              initialValue: _invoice,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: _text('Invoice', 'الفاتورة'),
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                for (final invoice in invoices)
-                  DropdownMenuItem(
-                    value: invoice,
-                    child: Text(
-                      '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              child: DropdownButtonFormField<VanInvoiceBalance>(
+                key: ValueKey(
+                  'van-collection-invoice-state-${_invoice?.id ?? 'none'}',
+                ),
+                initialValue: _invoice,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: _text('Invoice', 'الفاتورة'),
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  for (final invoice in invoices)
+                    DropdownMenuItem(
+                      value: invoice,
+                      child: Text(
+                        '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-              ],
-              onChanged: _submitting ? null : _selectInvoice,
+                ],
+                onChanged: _submitting ? null : _selectInvoice,
+              ),
             ),
+            if (_invoice != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _text(
+                  'Invoice: ${_invoice!.number} · ${_invoice!.currency} · Outstanding ${foodexMoneyText(_invoice!.outstandingAmount, _invoice!.currency)}',
+                  'الفاتورة: ${_invoice!.number} · ${_invoice!.currency} · المستحق ${foodexMoneyText(_invoice!.outstandingAmount, _invoice!.currency)}',
+                ),
+                key: const ValueKey('van-collection-invoice-identity'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               key: const ValueKey('van-collection-amount'),
               controller: _amount,
-              enabled: !_submitting,
+              enabled: !_submitting && _invoice != null && _reviewReason == null,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
@@ -562,7 +640,12 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             const SizedBox(height: 12),
             VanActionButton.icon(
               key: const ValueKey('van-collection-submit'),
-              onPressed: _submitting || !hasMatchingContext ? null : _collect,
+              onPressed: _submitting ||
+                      !hasMatchingContext ||
+                      _invoice == null ||
+                      _reviewReason != null
+                  ? null
+                  : _collect,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
