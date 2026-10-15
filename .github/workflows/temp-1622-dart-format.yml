@@ -1,0 +1,51 @@
+name: TEMP 1622 Dart Format
+
+on:
+  push:
+    branches:
+      - fix/1622-customer-catalog-pagination
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, '[dartfmt-1622]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/1622-customer-catalog-pagination
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+      - name: Apply canonical Dart formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format \
+            apps/customer_app/lib/core/api/b2c_catalog_api.dart \
+            apps/customer_app/lib/core/localization/app_translations.dart \
+            apps/customer_app/lib/features/retail/catalog/retail_catalog_screens.dart \
+            apps/customer_app/test/customer_preview_transport_test.dart \
+            apps/customer_app/test/customer_ui_v3_browse_test.dart \
+            apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart \
+            apps/customer_app/test/guest_browsing_policy_test.dart \
+            apps/customer_app/test/retail_catalog_new_only_test.dart
+          if git diff --quiet --exit-code; then
+            exit 0
+          fi
+          git config user.name "foodex-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            apps/customer_app/lib/core/api/b2c_catalog_api.dart \
+            apps/customer_app/lib/core/localization/app_translations.dart \
+            apps/customer_app/lib/features/retail/catalog/retail_catalog_screens.dart \
+            apps/customer_app/test/customer_preview_transport_test.dart \
+            apps/customer_app/test/customer_ui_v3_browse_test.dart \
+            apps/customer_app/test/e2e/guest_customer_journey_contract_test.dart \
+            apps/customer_app/test/guest_browsing_policy_test.dart \
+            apps/customer_app/test/retail_catalog_new_only_test.dart
+          git commit -m "style(1622): apply canonical Dart formatting [dartfmt-1622]"
+          git push origin HEAD:fix/1622-customer-catalog-pagination
