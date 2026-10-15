@@ -19,13 +19,14 @@
         .top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:30px}.eyebrow{color:var(--foodex-green,#158A3A);font-weight:var(--foodex-font-weight-bold);font-size:13px;margin:0 0 7px}.card h2{font-size:30px;margin:0}.lang{display:flex;gap:6px}.lang a{border:1px solid var(--foodex-border,#E6EAF0);border-radius:999px;padding:7px 10px;text-decoration:none;color:inherit;font-size:12px}.lang a.active{background:var(--foodex-green-soft,#EAF7EF);border-color:var(--foodex-green,#158A3A);color:var(--foodex-green,#158A3A)}
         label{display:block;font-size:13px;font-weight:var(--foodex-font-weight-bold);margin:0 0 7px}.field{margin-bottom:18px}.field input{width:100%;border:1px solid var(--foodex-border,#D9DEE7);border-radius:12px;padding:13px 14px;font:inherit;outline:none;background:#fff}.field input:focus{border-color:var(--foodex-green,#158A3A);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
         .error{background:#fff2f1;border:1px solid #ffd5d1;color:#a92920;border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:16px}
+        .error ul{margin:0;padding-inline-start:20px}.error a{color:inherit;font-weight:700;text-underline-offset:2px}
         button{width:100%;border:0;border-radius:12px;padding:14px 16px;background:var(--foodex-green,#158A3A);color:#fff;font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}button:hover{filter:brightness(.96)}
         .channel-switch{margin:22px 0 0;text-align:center;color:var(--foodex-muted,#667085);font-size:13px}.channel-switch a{color:var(--foodex-orange,#EE731C);font-weight:var(--foodex-font-weight-bold);text-decoration:none}
         .no-register{margin-top:18px;padding-top:18px;border-top:1px solid var(--foodex-border,#E6EAF0);font-size:12px;color:var(--foodex-muted,#667085);line-height:1.6;text-align:center}
         @media(max-width:820px){.page{grid-template-columns:1fr}.brand-pane{min-height:220px;padding:30px}.brand-copy h1{font-size:30px}.brand-copy p{font-size:14px}.secure{display:none}.form-pane{padding:20px;margin-top:-26px;position:relative;z-index:2}.card{border-radius:20px}}
     </style>
 </head>
-<body data-foodex-mobile-web-exception="auth">
+<body data-foodex-mobile-web-exception="auth" data-foodex-validation-summary-native="1">
 <div class="page">
     <section class="brand-pane">
         <div class="brand">FOOD<span>EX</span></div>
@@ -49,8 +50,24 @@
                 </div>
             </div>
 
+            @php($emailError = $errors->first('email'))
+            @php($passwordError = $errors->first('password'))
             @if($errors->any())
-                <div class="error foodex-state" role="alert">{{ $errors->first() }}</div>
+                <div class="error foodex-state" role="alert" data-foodex-native-error-summary>
+                    <ul>
+                        @foreach($errors->messages() as $field => $messages)
+                            @foreach($messages as $message)
+                                <li data-foodex-error-summary-key="{{ $field }}">
+                                    @if(in_array($field, ['email', 'password'], true))
+                                        <a data-foodex-validation-link href="#{{ $field }}">{{ $message }}</a>
+                                    @else
+                                        <span>{{ $message }}</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
             <form method="post" action="{{ route('admin.'.$channel.'.login.store') }}" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
@@ -58,11 +75,17 @@
                 <input type="hidden" name="locale" value="{{ $locale }}">
                 <div class="field">
                     <label for="email">{{ __('admin_login.email') }}</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="{{ app()->getLocale()==='ar'?'example@company.com':'example@company.com' }}" autocomplete="username" required autofocus>
+                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="{{ app()->getLocale()==='ar'?'example@company.com':'example@company.com' }}" autocomplete="username" required autofocus @if($emailError) aria-invalid="true" aria-describedby="foodex-server-error-email" aria-errormessage="foodex-server-error-email" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-email" data-foodex-server-error-key="email" @endif>
+                    @if($emailError)
+                        <div id="foodex-server-error-email" class="foodex-field-error" data-foodex-server-error="1" data-foodex-server-error-key="email">{{ $emailError }}</div>
+                    @endif
                 </div>
                 <div class="field">
                     <label for="password">{{ __('admin_login.password') }}</label>
-                    <input id="password" name="password" type="password" placeholder="{{ app()->getLocale()==='ar'?'أدخل كلمة المرور':'Enter your password' }}" autocomplete="current-password" required>
+                    <input id="password" name="password" type="password" placeholder="{{ app()->getLocale()==='ar'?'أدخل كلمة المرور':'Enter your password' }}" autocomplete="current-password" required @if($passwordError) aria-invalid="true" aria-describedby="foodex-server-error-password" aria-errormessage="foodex-server-error-password" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-password" data-foodex-server-error-key="password" @endif>
+                    @if($passwordError)
+                        <div id="foodex-server-error-password" class="foodex-field-error" data-foodex-server-error="1" data-foodex-server-error-key="password">{{ $passwordError }}</div>
+                    @endif
                 </div>
                 <button type="submit">{{ __('admin_login.sign_in_action') }}</button>
             </form>
