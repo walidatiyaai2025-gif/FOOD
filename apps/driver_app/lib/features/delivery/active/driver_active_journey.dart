@@ -388,11 +388,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     }
     final collectionRepository = repository as DriverCollectionRepository;
 
-    final amountController = TextEditingController(
-      text: foodexMoneyAmount(
-        settlement.amountToCollectNow,
-        settlement.currency,
-      ),
+    var amountText = foodexMoneyAmount(
+      settlement.amountToCollectNow,
+      settlement.currency,
     );
     final precisionSample = foodexMoneyAmount(0, settlement.currency);
     final decimalIndex = precisionSample.indexOf('.');
@@ -407,7 +405,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             void confirmAmount() {
-              final raw = amountController.text.trim();
+              final raw = amountText.trim();
               final parsed = double.tryParse(raw);
               final fraction = raw.contains('.') ? raw.split('.').last : '';
               final valid = parsed != null &&
@@ -432,15 +430,16 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
               title: Text(
                 dialogContext.tr('driver.collection.collect_and_deliver'),
               ),
-              content: TextField(
+              content: TextFormField(
                 key: const Key('driver-collection-amount'),
-                controller: amountController,
+                initialValue: amountText,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 textInputAction: TextInputAction.done,
-                onSubmitted: (_) => confirmAmount(),
+                onChanged: (value) => amountText = value,
+                onFieldSubmitted: (_) => confirmAmount(),
                 decoration: InputDecoration(
                   labelText: dialogContext.tr('driver.collection.amount'),
                   suffixText: settlement.currency,
@@ -465,8 +464,6 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         );
       },
     );
-    amountController.dispose();
-
     if (amount == null || !mounted) return;
     if (_busyAssignments.contains(assignment.id)) return;
 
