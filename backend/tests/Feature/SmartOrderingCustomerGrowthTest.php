@@ -211,6 +211,47 @@ class SmartOrderingCustomerGrowthTest extends TestCase
         $this->assertSame(20, app(LoyaltyService::class)->balance($site, $customer['legacy_id'])['balance']);
     }
 
+    public function test_expiry_only_removes_unspent_points_from_the_expiring_earning_lot(): void
+    {
+        [$store, $admin, $site] = $this->restaurant('LOYALTY-EXPIRY');
+        $customer = $this->customer($store, 'Expiry Customer', '+96550000041');
+        $this->enable($admin, $site, Module::LOYALTY);
+        app(LoyaltyAdminService::class)->configureRule($admin, $site, 1.0, 0, 1);
+
+        $order = $this->order($store, $customer['legacy_id'], $customer['b2c_id'], 'COMPLETED', 100.000);
+        app(LoyaltyService::class)->earnForCompletedOrder($site, $order);
+        $reward = app(LoyaltyAdminService::class)->createReward($admin, $site, '80 point reward', null, 80);
+        app(LoyaltyService::class)->redeemReward(
+            $site,
+            $customer['legacy_id'],
+            $reward['public_id'],
+            null,
+            'expiry-redemption-1',
+        );
+
+        app(LoyaltyService::class)->adjust($admin, $site, $customer['legacy_id'], 50, 'Non-expiring goodwill points');
+        $this->assertSame(70, app(LoyaltyService::class)->balance($site, $customer['legacy_id'])['balance']);
+
+        DB::table('smart_ordering_loyalty_lots')
+            ->where('account_id', DB::table('smart_ordering_loyalty_accounts')
+                ->where('site_id', $site->id)
+                ->where('customer_id', $customer['legacy_id'])
+                ->value('id'))
+            ->update(['expires_at' => now()->subMinute(), 'updated_at' => now()]);
+
+        $expired = app(LoyaltyService::class)->expireDue($site, $customer['legacy_id']);
+
+        $this->assertSame(20, $expired);
+        $this->assertSame(50, app(LoyaltyService::class)->balance($site, $customer['legacy_id'])['balance']);
+        $this->assertDatabaseHas('smart_ordering_loyalty_ledger', [
+            'site_id' => $site->id,
+            'customer_id' => $customer['legacy_id'],
+            'type' => 'EXPIRY',
+            'points' => -20,
+            'balance_after' => 50,
+        ]);
+    }
+
     public function test_cancelled_order_earning_reversal_is_idempotent_and_balance_stays_non_negative(): void
     {
         [$store, $admin, $site] = $this->restaurant('LOYALTY-REVERSAL');
@@ -280,6 +321,39 @@ class SmartOrderingCustomerGrowthTest extends TestCase
             ->getJson(route('admin.smart-ordering.service-recovery.index', $site))
             ->assertOk()
             ->assertJsonPath('cases.0.id', $result['service_recovery']['case_id']);
+    }
+
+    public function test_high_rating_can_offer_external_review_without_reward_conditioning(): void
+    {
+        [$store, $admin, $site] = $this->restaurant('REVIEWS-HIGH');
+        $customer = $this->customer($store, 'Happy Customer', '+96550000061');
+        $this->enable($admin, $site, Module::REVIEWS);
+        $order = $this->order($store, $customer['legacy_id'], $customer['b2c_id'], 'DELIVERED', 22.000);
+
+        app(FeedbackService::class)->configure(
+            $admin,
+            $site,
+            true,
+            2,
+            4,
+            'https://example.test/public-review',
+        );
+
+        $result = app(FeedbackService::class)->submit(
+            $site,
+            $customer['legacy_id'],
+            $order,
+            5,
+            'Excellent.',
+        );
+
+        $this->assertSame('https://example.test/public-review', $result['external_review_url']);
+        $this->assertNull($result['service_recovery']);
+        $this->assertFalse($result['reward_conditioned_on_review']);
+        $this->assertDatabaseMissing('smart_ordering_service_recovery_cases', [
+            'site_id' => $site->id,
+            'order_id' => $order,
+        ]);
     }
 
     public function test_marketing_opt_out_is_respected_for_service_recovery_followup(): void
