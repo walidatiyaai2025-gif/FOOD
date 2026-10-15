@@ -833,7 +833,7 @@ final class Customer360Controller extends Controller
                 'country_code' => strtoupper((string) $node->country_code),
                 'value' => $node->type === 'country'
                     ? strtoupper((string) $node->country_code)
-                    : (string) ($locale === 'ar' ? $node->name_ar : $node->name_en),
+                    : (string) $node->name_en,
                 'label' => (string) ($locale === 'ar' ? $node->name_ar : $node->name_en),
             ])->values()->all())
             ->all();
