@@ -203,7 +203,7 @@ $businessLabel = static function ($value): string {
 @php($detailCloseQuery=request()->except(['order','edit']))
 <dialog class="order-detail-drawer" open aria-modal="true" aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell">
-<div class="order-detail-drawer-head"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.filters.reset') }}">×</a></div>
+<div class="order-detail-drawer-head"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.detail.close') }}">×</a></div>
 <section class="detail-grid">
 <div class="foodex-card panel">
 <h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
