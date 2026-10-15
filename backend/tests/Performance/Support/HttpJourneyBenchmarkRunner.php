@@ -19,7 +19,12 @@ final class HttpJourneyBenchmarkRunner
     ];
 
     /**
-     * @param callable(): mixed $journey
+     * Setup/cleanup hooks are intentionally outside the measured window so write journeys
+     * can prepare a fresh record per sample without polluting request/query evidence.
+     *
+     * @param callable(mixed): mixed $journey
+     * @param null|callable(): mixed $beforeSample
+     * @param null|callable(mixed): void $afterSample
      * @return array<string, mixed>
      */
     public function run(
@@ -27,6 +32,8 @@ final class HttpJourneyBenchmarkRunner
         string $workloadClass,
         callable $journey,
         string $profileName = 'smoke',
+        ?callable $beforeSample = null,
+        ?callable $afterSample = null,
     ): array {
         $profile = self::PROFILES[$profileName] ?? null;
 
@@ -39,7 +46,15 @@ final class HttpJourneyBenchmarkRunner
         }
 
         for ($warmup = 0; $warmup < $profile['warmups']; $warmup++) {
-            $journey();
+            $context = $beforeSample === null ? null : $beforeSample();
+
+            try {
+                $journey($context);
+            } finally {
+                if ($afterSample !== null) {
+                    $afterSample($context);
+                }
+            }
         }
 
         $allDurations = [];
@@ -55,6 +70,7 @@ final class HttpJourneyBenchmarkRunner
             $memoryPeaks = [];
 
             for ($sample = 1; $sample <= $profile['samples_per_round']; $sample++) {
+                $context = $beforeSample === null ? null : $beforeSample();
                 DB::flushQueryLog();
                 DB::enableQueryLog();
 
@@ -63,12 +79,16 @@ final class HttpJourneyBenchmarkRunner
                 $startedAt = hrtime(true);
 
                 try {
-                    $journey();
+                    $journey($context);
                 } finally {
                     $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
                     $memorySnapshot = $memory->snapshot();
                     $queryLog = DB::getQueryLog();
                     DB::disableQueryLog();
+
+                    if ($afterSample !== null) {
+                        $afterSample($context);
+                    }
                 }
 
                 $queryProbe = new QueryCountProbe;
