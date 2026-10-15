@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -79,7 +80,7 @@ final class RestaurantOperatorService
             'support_access' => $grant === null ? null : [
                 'case_reference' => (string) $grant->case_reference,
                 'reason_code' => (string) $grant->reason_code,
-                'expires_at' => $grant->expires_at?->toIso8601String(),
+                'expires_at' => $this->isoTimestamp($grant->expires_at),
             ],
             'support_sessions' => [
                 'active' => AppPreviewSession::query()
@@ -154,7 +155,7 @@ final class RestaurantOperatorService
                     'case_reference' => $caseReference,
                     'reason_code' => $reasonCode,
                     'ttl_minutes' => $ttlMinutes,
-                    'expires_at' => $grant->expires_at?->toIso8601String(),
+                    'expires_at' => $this->isoTimestamp($grant->expires_at),
                 ],
                 $request,
             );
@@ -184,12 +185,12 @@ final class RestaurantOperatorService
             [
                 'store_id' => (int) $store->getKey(),
                 'case_reference' => (string) $grant->case_reference,
-                'expires_at' => $grant->expires_at?->toIso8601String(),
+                'expires_at' => $this->isoTimestamp($grant->expires_at),
             ],
             [
                 'store_id' => (int) $store->getKey(),
                 'case_reference' => (string) $grant->case_reference,
-                'revoked_at' => $grant->revoked_at?->toIso8601String(),
+                'revoked_at' => $this->isoTimestamp($grant->revoked_at),
             ],
             $request,
         );
@@ -254,8 +255,8 @@ final class RestaurantOperatorService
         $before = [
             'store_id' => (int) $store->getKey(),
             'lifecycle_state' => $current,
-            'canceled_at' => $profile->canceled_at?->toIso8601String(),
-            'offboarded_at' => $profile->offboarded_at?->toIso8601String(),
+            'canceled_at' => $this->isoTimestamp($profile->canceled_at),
+            'offboarded_at' => $this->isoTimestamp($profile->offboarded_at),
         ];
 
         $values = ['lifecycle_state' => $targetState];
@@ -300,8 +301,8 @@ final class RestaurantOperatorService
             [
                 'store_id' => (int) $store->getKey(),
                 'lifecycle_state' => (string) $profile->lifecycle_state,
-                'canceled_at' => $profile->canceled_at?->toIso8601String(),
-                'offboarded_at' => $profile->offboarded_at?->toIso8601String(),
+                'canceled_at' => $this->isoTimestamp($profile->canceled_at),
+                'offboarded_at' => $this->isoTimestamp($profile->offboarded_at),
                 'revoked_support_session_count' => $revokedSupportSessions,
                 'business_data_deleted' => false,
             ],
@@ -309,6 +310,11 @@ final class RestaurantOperatorService
         );
 
         return $profile;
+    }
+
+    private function isoTimestamp(string|\DateTimeInterface|null $value): ?string
+    {
+        return $value === null ? null : Carbon::parse($value)->toIso8601String();
     }
 
     private function activeGrant(Store $store): ?RestaurantSupportAccessGrant
