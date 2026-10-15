@@ -74,12 +74,6 @@ final class CartService
             'offer_reference' => isset($trustedAttribution['promotion_id'])
                 ? 'promotion:'.$trustedAttribution['promotion_id']
                 : null,
-            'qr_public_id' => $trustedAttribution['qr_public_id'] ?? null,
-            'source_snapshot' => $trustedAttribution['source'] ?? null,
-            'campaign_snapshot' => $trustedAttribution['campaign'] ?? null,
-            'offer_reference' => isset($trustedAttribution['promotion_id'])
-                ? 'promotion:'.$trustedAttribution['promotion_id']
-                : null,
             'status' => 'active',
             'merchandising_context' => $trustedContext,
             'expires_at' => now()->addHours(4),
