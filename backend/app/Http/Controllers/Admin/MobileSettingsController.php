@@ -75,6 +75,7 @@ final class MobileSettingsController extends Controller
             'recommended_version' => ['sometimes', 'nullable', 'string', 'max:64'],
             'force_update' => ['sometimes', 'boolean'],
             'maintenance_mode' => ['sometimes', 'boolean'],
+            'critical_policy_confirm' => ['sometimes', 'boolean'],
             'maintenance_message_ar' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'maintenance_message_en' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'google_play_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
@@ -105,6 +106,20 @@ final class MobileSettingsController extends Controller
                 'display_name' => [app()->getLocale() === 'ar'
                     ? 'اسم العرض مطلوب عند إنشاء إعداد تطبيق جديد.'
                     : 'Display name is required when creating a new app setting.'],
+            ]);
+        }
+
+        $criticalPolicyChanged = $data['environment'] === 'production'
+            && (
+                array_key_exists('force_update', $data)
+                    && $request->boolean('force_update') !== (bool) ($before->force_update ?? false)
+                || array_key_exists('maintenance_mode', $data)
+                    && $request->boolean('maintenance_mode') !== (bool) ($before->maintenance_mode ?? false)
+            );
+
+        if ($criticalPolicyChanged && ! $request->boolean('critical_policy_confirm')) {
+            throw ValidationException::withMessages([
+                'critical_policy_confirm' => [__('mobile_settings.critical_review.confirm_required')],
             ]);
         }
 
@@ -192,7 +207,10 @@ final class MobileSettingsController extends Controller
                 'app' => $data['app'],
                 'environment' => $data['environment'],
             ])
-            ->with('status', __('mobile_settings.saved'));
+            ->with('status', __('mobile_settings.saved_record', [
+                'app' => __('mobile_settings.apps.'.$data['app']),
+                'environment' => __('mobile_settings.environments.'.$data['environment']),
+            ]));
     }
 
     public function updateDriverLocationPolicy(

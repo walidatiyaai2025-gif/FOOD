@@ -62,7 +62,11 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store" @if(!$canAllChannels && !$canB2b) required @endif>@if($canAllChannels || $canB2b)<option value="">{{ __('notifications.all_stores') }}</option>@else<option value="" disabled>{{ __('notifications.choose_store') }}</option>@endif @foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b">{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c">{{ $store['name'] }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}">{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.popup_frequency') }}</label><select name="popup_frequency">@foreach(['once_per_user','once_per_session','every_open'] as $v)<option value="{{ $v }}" @selected(old('popup_frequency','once_per_session')===$v)>{{ __('notifications.popup_frequency_options.'.$v) }}</option>@endforeach</select></div>
-                <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ old('popup_cta_target') }}" placeholder="/offers" dir="ltr"></div>
+                @include('admin._engagement-destination-builder', [
+                    'destinationField' => 'popup_cta_destination',
+                    'destinationId' => 'campaign-create',
+                    'currentDestination' => old('popup_cta_destination', 'none'),
+                ])
                 <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ old('popup_cta_label_ar') }}" dir="rtl"></div>
                 <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
                 <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
@@ -139,7 +143,11 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                         <div><label>{{ __('notifications.store') }}</label><select name="store_id" class="js-campaign-store" @if(!$canAllChannels && !$canB2b) required @endif>@if($canAllChannels || $canB2b)<option value="">{{ __('notifications.all_stores') }}</option>@else<option value="" disabled>{{ __('notifications.choose_store') }}</option>@endif @foreach($b2bStores as $store)<option value="{{ $store['id'] }}" data-channel="b2b" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach @foreach($b2cStores as $store)<option value="{{ $store['id'] }}" data-channel="b2c" @selected((int)$campaign->store_id===$store['id'])>{{ $store['name'] }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.delivery_channel') }}</label><select name="delivery_channel">@foreach(['both','push','in_app'] as $v)<option value="{{ $v }}" @selected($campaign->delivery_channel===$v)>{{ __('notifications.delivery_options.'.$v) }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.popup_frequency') }}</label><select name="popup_frequency">@foreach(['once_per_user','once_per_session','every_open'] as $v)<option value="{{ $v }}" @selected(($campaign->popup_frequency ?? 'once_per_session')===$v)>{{ __('notifications.popup_frequency_options.'.$v) }}</option>@endforeach</select></div>
-                        <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ $campaign->popup_cta_target }}" placeholder="/offers" dir="ltr"></div>
+                        @include('admin._engagement-destination-builder', [
+                            'destinationField' => 'popup_cta_destination',
+                            'destinationId' => 'campaign-'.$campaign->id,
+                            'currentDestination' => $campaignDestinationSelections[(int)$campaign->id] ?? 'none',
+                        ])
                         <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ $campaign->popup_cta_label_ar }}" dir="rtl"></div>
                         <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ $campaign->popup_cta_label_en }}" dir="ltr"></div>
                         <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)$campaign->user_id===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
@@ -232,5 +240,6 @@ document.querySelectorAll('.js-campaign-form').forEach((form)=>{
     syncStores();
 });
 </script>
+@include('admin._engagement-destination-script')
 </body>
 </html>

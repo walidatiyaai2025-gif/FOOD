@@ -154,6 +154,56 @@ class SmartOrderingCoreTest extends TestCase
         ]);
     }
 
+    public function test_branch_timezone_is_selected_from_supported_lookup_and_invalid_values_fail_closed(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('data-timezone-search', false)
+            ->assertSee('Asia/Kuwait')
+            ->assertSee('UTC+03:00')
+            ->assertSee('Changing it affects future schedule interpretation.');
+
+        $payload = [
+            'name' => 'Kuwait City Branch',
+            'timezone' => 'Mars/Olympus',
+            'is_active' => 1,
+            'accepting_orders' => 1,
+            'supports_dine_in' => 1,
+            'supports_pickup' => 1,
+            'supports_delivery' => 1,
+            'allow_scheduled' => 1,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'service_charge' => 0,
+        ];
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.branches.update', $this->branch->public_id), $payload)
+            ->assertSessionHasErrors('timezone');
+
+        $this->assertSame('Asia/Kuwait', $this->branch->fresh()->timezone);
+
+        $payload['timezone'] = 'Europe/London';
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.branches.update', $this->branch->public_id), $payload)
+            ->assertRedirect();
+
+        $this->assertSame('Europe/London', $this->branch->fresh()->timezone);
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('ابحث بالمدينة أو المنطقة أو فرق التوقيت أو اسم IANA')
+            ->assertSee('Europe/London');
+    }
+
     public function test_cart_is_pinned_to_published_revision_and_rejects_stale_revision(): void
     {
         $response = $this->postJson('/api/smart-ordering/carts', [

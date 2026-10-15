@@ -436,6 +436,16 @@
 <script id="foodex-ops-popover-runtime">
 (() => {
     const portals = new WeakMap();
+    const openIntents = new WeakMap();
+    const focusableSelector = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+    let disclosureSequence = 0;
 
     const isEllipsisActions = (details) => {
         if (!(details instanceof HTMLDetailsElement)) return false;
@@ -457,12 +467,27 @@
         ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
     };
 
+    const configureDisclosure = (details, menu = findMenu(details)) => {
+        if (!(details instanceof HTMLDetailsElement) || !(menu instanceof HTMLElement)) return null;
+        const summary = details.querySelector(':scope > summary');
+        if (!(summary instanceof HTMLElement)) return null;
+
+        disclosureSequence += 1;
+        if (!summary.id) summary.id = 'foodex-row-action-trigger-' + disclosureSequence;
+        if (!menu.id) menu.id = 'foodex-row-action-panel-' + disclosureSequence;
+        summary.setAttribute('aria-controls', menu.id);
+        summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+        menu.setAttribute('aria-labelledby', summary.id);
+        return { summary, menu };
+    };
+
     const portalMenu = (details) => {
         const existing = portals.get(details);
         if (existing?.menu?.isConnected) return existing.menu;
 
         const menu = findMenu(details);
         if (!(menu instanceof HTMLElement)) return null;
+        configureDisclosure(details, menu);
 
         const placeholder = document.createComment('foodex-action-menu-portal');
         menu.parentNode?.insertBefore(placeholder, menu);
@@ -517,9 +542,6 @@
         menu.style.left = '0px';
 
         const menuRect = menu.getBoundingClientRect();
-        // Row actions normally live at the visual edge of a grid. Prefer opening the
-        // menu inward (to the left of the trigger) in both RTL and LTR, then fall
-        // back to the opposite side only when that side has materially more room.
         const inwardLeft = trigger.right - menuRect.width;
         const outwardLeft = trigger.left;
         const fitsInward = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;
@@ -538,24 +560,82 @@
         menu.style.visibility = 'visible';
     };
 
-    const closeMenu = (details) => {
+    const focusFirstAction = (details) => {
+        const menu = findMenu(details);
+        if (!(menu instanceof HTMLElement)) return;
+        const target = [...menu.querySelectorAll(focusableSelector)]
+            .find((element) => element instanceof HTMLElement && element.getClientRects().length > 0);
+        target?.focus();
+    };
+
+    const closeMenu = (details, { restoreFocus = false } = {}) => {
         if (!(details instanceof HTMLDetailsElement)) return;
+        const summary = details.querySelector(':scope > summary');
         details.open = false;
+        if (summary instanceof HTMLElement) summary.setAttribute('aria-expanded', 'false');
         restoreMenu(details);
+        if (restoreFocus && summary instanceof HTMLElement && summary.isConnected) {
+            summary.focus();
+        }
     };
 
     const repositionOpenMenus = () => actionMenus().forEach(positionMenu);
 
+    const initDisclosures = () => {
+        document.querySelectorAll('details').forEach((details) => {
+            if (isEllipsisActions(details)) configureDisclosure(details);
+        });
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDisclosures, { once: true });
+    } else {
+        initDisclosures();
+    }
+
+    document.addEventListener('pointerdown', (event) => {
+        const summary = event.target instanceof Element ? event.target.closest('summary') : null;
+        const details = summary?.parentElement;
+        if (isEllipsisActions(details)) openIntents.set(details, 'pointer');
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        const summary = event.target instanceof Element ? event.target.closest('summary') : null;
+        const details = summary?.parentElement;
+        if (isEllipsisActions(details) && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) {
+            openIntents.set(details, 'keyboard');
+            return;
+        }
+
+        if (event.key !== 'Escape') return;
+        const active = document.activeElement;
+        const opened = actionMenus();
+        const detailsToClose = opened.find((item) => {
+            const menu = portals.get(item)?.menu;
+            return menu instanceof HTMLElement && active instanceof Node && menu.contains(active);
+        }) || opened.at(-1);
+        if (!detailsToClose) return;
+        event.preventDefault();
+        event.stopPropagation();
+        closeMenu(detailsToClose, { restoreFocus: true });
+    }, true);
+
     document.addEventListener('toggle', (event) => {
         const details = event.target;
         if (!isEllipsisActions(details)) return;
+        const configured = configureDisclosure(details);
 
         if (details.open) {
             actionMenus().forEach((other) => {
-                if (other !== details) closeMenu(other);
+                if (other !== details) closeMenu(other, { restoreFocus: false });
             });
-            requestAnimationFrame(() => positionMenu(details));
+            const intent = openIntents.get(details);
+            openIntents.delete(details);
+            requestAnimationFrame(() => {
+                positionMenu(details);
+                if (intent === 'keyboard') focusFirstAction(details);
+            });
         } else {
+            if (configured?.summary instanceof HTMLElement) configured.summary.setAttribute('aria-expanded', 'false');
             restoreMenu(details);
         }
     }, true);
@@ -565,7 +645,11 @@
             const portal = portals.get(details);
             const insideTrigger = details.contains(event.target);
             const insideMenu = portal?.menu instanceof HTMLElement && portal.menu.contains(event.target);
-            if (!insideTrigger && !insideMenu) closeMenu(details);
+            if (insideTrigger || insideMenu) return;
+            const focusWasInsideMenu = portal?.menu instanceof HTMLElement
+                && document.activeElement instanceof Node
+                && portal.menu.contains(document.activeElement);
+            closeMenu(details, { restoreFocus: focusWasInsideMenu });
         });
     });
 

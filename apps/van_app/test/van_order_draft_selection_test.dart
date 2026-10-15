@@ -67,34 +67,69 @@ void main() {
     expect(draft.customerNote, 'Keep note');
   });
 
-  test('removed selections clear instead of silently falling back to defaults',
-      () {
+  test(
+    'removed selections clear instead of silently falling back to defaults',
+    () {
+      final draft = VanOrderDraftController();
+      draft.selectCustomer(_customer);
+      draft.applyOptions(_options);
+      draft.setSelection(address: 11, warehouse: 21, payment: 'card');
+
+      draft.applyOptions(
+        const VanOrderOptions(
+          addresses: [
+            VanOrderAddressOption(
+              id: 10,
+              label: 'Default',
+              address: 'Street 1',
+              isDefault: true,
+            ),
+          ],
+          warehouses: [
+            VanWarehouseOption(id: 20, code: 'WH-A', name: 'Warehouse A'),
+          ],
+          paymentMethods: ['cash'],
+          defaultPaymentMethod: 'cash',
+        ),
+      );
+
+      expect(draft.addressId, isNull);
+      expect(draft.warehouseId, isNull);
+      expect(draft.paymentMethod, isNull);
+    },
+  );
+
+  test('stale quote cannot attach after the draft revision changes', () {
     final draft = VanOrderDraftController();
     draft.selectCustomer(_customer);
+    draft.add(_product);
     draft.applyOptions(_options);
-    draft.setSelection(address: 11, warehouse: 21, payment: 'card');
 
-    draft.applyOptions(
-      const VanOrderOptions(
-        addresses: [
-          VanOrderAddressOption(
-            id: 10,
-            label: 'Default',
-            address: 'Street 1',
-            isDefault: true,
-          ),
-        ],
-        warehouses: [
-          VanWarehouseOption(id: 20, code: 'WH-A', name: 'Warehouse A'),
-        ],
-        paymentMethods: ['cash'],
-        defaultPaymentMethod: 'cash',
-      ),
-    );
+    final quotedRevision = draft.revision;
+    expect(draft.setQuoteForRevision(_quote, quotedRevision), isTrue);
+    expect(draft.hasCurrentQuote, isTrue);
 
-    expect(draft.addressId, isNull);
-    expect(draft.warehouseId, isNull);
-    expect(draft.paymentMethod, isNull);
+    draft.changeQuantity(_product, 2);
+
+    expect(draft.quote, isNull);
+    expect(draft.hasCurrentQuote, isFalse);
+    expect(draft.setQuoteForRevision(_quote, quotedRevision), isFalse);
+    expect(draft.quote, isNull);
+  });
+
+  test('review selection and note edits invalidate the accepted quote', () {
+    final draft = VanOrderDraftController();
+    draft.selectCustomer(_customer);
+    draft.add(_product);
+    draft.applyOptions(_options);
+
+    expect(draft.setQuoteForRevision(_quote, draft.revision), isTrue);
+    draft.setSelection(payment: 'card');
+    expect(draft.hasCurrentQuote, isFalse);
+
+    expect(draft.setQuoteForRevision(_quote, draft.revision), isTrue);
+    draft.setSelection(note: 'Updated note');
+    expect(draft.hasCurrentQuote, isFalse);
   });
 }
 
@@ -126,4 +161,24 @@ const _options = VanOrderOptions(
   ],
   paymentMethods: ['cash', 'card'],
   defaultPaymentMethod: 'cash',
+);
+
+const _product = VanCatalogProduct(
+  id: 100,
+  name: 'Product',
+  sku: 'SKU-100',
+  unitPrice: 12,
+  minimumQuantity: 1,
+  orderingIncrement: 1,
+  isAvailable: true,
+);
+
+const _quote = VanOrderQuote(
+  currency: 'KWD',
+  subtotal: 12,
+  discountTotal: 0,
+  deliveryTotal: 0,
+  taxTotal: 0,
+  grandTotal: 12,
+  hasUnavailableItems: false,
 );

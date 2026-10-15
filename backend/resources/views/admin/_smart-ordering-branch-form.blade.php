@@ -2,6 +2,10 @@
 $model=$branchModel;
 $hours=$model ? \Illuminate\Support\Facades\DB::table('smart_ordering_branch_hours')->where('branch_id',$model->id)->get()->keyBy('day_of_week') : collect();
 $zones=$model ? \Illuminate\Support\Facades\DB::table('smart_ordering_delivery_zones')->where('branch_id',$model->id)->orderBy('name')->get() : collect();
+$timezoneControlId='smart-ordering-timezone-'.($model?->id ?? 'new');
+$selectedTimezone=(string) old('timezone',$model?->timezone ?? 'Asia/Kuwait');
+$timezoneValues=collect($timezoneOptions)->pluck('value');
+$legacyTimezone=$selectedTimezone !== '' && !$timezoneValues->contains($selectedTimezone);
 @endphp
 <form method="post" action="{{ $formAction }}" class="foodex-form so-grid">
 @csrf
@@ -10,7 +14,20 @@ $zones=$model ? \Illuminate\Support\Facades\DB::table('smart_ordering_delivery_z
 <label>{{ __('smart_ordering.branch_fields.store') }}<select name="store_id" required>@foreach($stores as $store)<option value="{{ $store->id }}">{{ $store->name }}</option>@endforeach</select></label>
 @endif
 <label>{{ __('smart_ordering.branch_fields.name') }}<input name="name" required maxlength="160" value="{{ old('name',$model?->name) }}"></label>
-<label>{{ __('smart_ordering.branch_fields.timezone') }}<input name="timezone" required value="{{ old('timezone',$model?->timezone ?? 'Asia/Kuwait') }}"></label>
+<div class="so-timezone-picker" data-timezone-picker>
+<label for="{{ $timezoneControlId }}-search">{{ __('smart_ordering.branch_fields.timezone') }}</label>
+<input id="{{ $timezoneControlId }}-search" type="search" autocomplete="off" data-timezone-search aria-controls="{{ $timezoneControlId }}" placeholder="{{ __('smart_ordering.branch_fields.timezone_search') }}">
+<select id="{{ $timezoneControlId }}" name="timezone" required data-timezone-select>
+@if($legacyTimezone)<option value="{{ $selectedTimezone }}" selected disabled data-legacy="1">{{ __('smart_ordering.branch_fields.timezone_legacy', ['zone'=>$selectedTimezone]) }}</option>@endif
+@foreach($timezoneOptions as $timezone)
+<option value="{{ $timezone['value'] }}" data-search="{{ $timezone['search'] }}" @selected(!$legacyTimezone && $selectedTimezone===$timezone['value'])>{{ $timezone['label'] }}</option>
+@endforeach
+</select>
+<small>{{ __('smart_ordering.branch_fields.timezone_hint') }}</small>
+@if($legacyTimezone)<div class="foodex-alert error" role="alert">{{ __('smart_ordering.branch_fields.timezone_legacy_help') }}</div>@endif
+<small data-timezone-empty hidden>{{ __('smart_ordering.branch_fields.timezone_empty') }}</small>
+<small data-timezone-status role="status" aria-live="polite"></small>
+</div>
 <label>{{ __('smart_ordering.branch_fields.pickup_lead') }}<input type="number" name="pickup_lead_minutes" min="0" max="1440" value="{{ old('pickup_lead_minutes',$model?->pickup_lead_minutes ?? 15) }}"></label>
 <label>{{ __('smart_ordering.branch_fields.max_schedule_days') }}<input type="number" name="max_schedule_days" min="1" max="90" value="{{ old('max_schedule_days',$model?->max_schedule_days ?? 7) }}"></label>
 <label>{{ __('smart_ordering.branch_fields.service_charge') }}<input type="number" step="0.001" min="0" name="service_charge" value="{{ old('service_charge',$model?->service_charge ?? 0) }}"></label>
@@ -84,3 +101,35 @@ $zones=$model ? \Illuminate\Support\Facades\DB::table('smart_ordering_delivery_z
 </div>
 </section>
 @endif
+
+<script>
+(() => {
+    if (window.__foodexTimezoneLookupBound) return;
+    window.__foodexTimezoneLookupBound = true;
+    const sync = (picker) => {
+        const search = picker.querySelector('[data-timezone-search]');
+        const select = picker.querySelector('[data-timezone-select]');
+        const empty = picker.querySelector('[data-timezone-empty]');
+        if (!search || !select) return;
+        const query = search.value.trim().toLocaleLowerCase();
+        let visible = 0;
+        [...select.options].forEach((option) => {
+            if (option.dataset.legacy === '1') return;
+            const match = query === '' || (option.dataset.search || '').includes(query);
+            option.hidden = !match;
+            if (match) visible += 1;
+        });
+        if (empty) empty.hidden = visible !== 0;
+    };
+    document.addEventListener('input', (event) => {
+        const search = event.target.closest?.('[data-timezone-search]');
+        if (search) sync(search.closest('[data-timezone-picker]'));
+    });
+    document.addEventListener('change', (event) => {
+        const select = event.target.closest?.('[data-timezone-select]');
+        if (!select) return;
+        const status = select.closest('[data-timezone-picker]')?.querySelector('[data-timezone-status]');
+        if (status) status.textContent = @json(__('smart_ordering.branch_fields.timezone_changed'));
+    });
+})();
+</script>

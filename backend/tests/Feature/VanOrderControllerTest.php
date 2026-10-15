@@ -72,7 +72,11 @@ class VanOrderControllerTest extends TestCase
             ->assertJsonPath('data.0.unit_price', 12.5)
             ->assertJsonPath('data.0.minimum_quantity', 1)
             ->assertJsonPath('data.0.ordering_increment', 1)
-            ->assertJsonPath('currency', 'EGP');
+            ->assertJsonPath('currency', 'EGP')
+            ->assertJsonPath('meta.page', 1)
+            ->assertJsonPath('meta.per_page', 50)
+            ->assertJsonPath('meta.returned', 1)
+            ->assertJsonPath('meta.has_more', false);
 
         $tierId = (int) DB::table('b2b_accounts')
             ->where('b2b_customer_id', $customer->id)

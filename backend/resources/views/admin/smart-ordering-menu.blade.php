@@ -27,6 +27,9 @@
         .so-media-current{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.so-media-thumb{width:112px;height:84px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}
         .so-review{display:grid;gap:18px}.so-review-menu{border:1px solid var(--foodex-border);border-radius:18px;overflow:hidden;background:var(--foodex-surface)}.so-review-menu-head{display:grid;grid-template-columns:160px 1fr;gap:16px;align-items:center;padding:16px;background:var(--foodex-background)}.so-review-menu-head img,.so-review-placeholder{width:160px;height:110px;object-fit:cover;border-radius:14px;background:var(--foodex-green-soft);display:grid;place-items:center;color:var(--foodex-muted);font-weight:700}.so-review-categories{display:grid;gap:14px;padding:16px}.so-review-category{border-top:1px solid var(--foodex-border);padding-top:14px}.so-review-category-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.so-review-category-head img,.so-review-category-head .so-review-placeholder{width:88px;height:66px}.so-review-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}.so-review-item{border:1px solid var(--foodex-border);border-radius:14px;padding:10px;display:grid;gap:8px}.so-review-item img,.so-review-item .so-review-placeholder{width:100%;height:130px}.so-review-status{display:flex;gap:6px;flex-wrap:wrap}
         .so-review-link{white-space:nowrap}
+        .so-item-invalid,.so-review-item-invalid{border-color:var(--foodex-red)}
+        .so-invalid-summary{display:grid;gap:8px;margin-bottom:16px}
+        .so-invalid-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
         @media(max-width:760px){.so-category,.so-item,.so-group,.so-option{margin-inline-start:0}.so-sticky{position:static}.so-review-menu-head{grid-template-columns:1fr}.so-review-menu-head img,.so-review-menu-head .so-review-placeholder{width:100%;height:180px}}
     </style>
 </head>
@@ -257,16 +260,31 @@
                     </details>
 
                     @foreach($category->items as $item)
-                    <article class="so-item">
-                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] ?? '—' }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span></div>
+                    @php($itemInvalid = $itemPriceErrors[(int)$item->id] ?? null)
+                    <article class="so-item @if($itemInvalid) so-item-invalid @endif" id="menu-item-{{ $item->public_id }}">
+                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge foodex-number" dir="ltr">@if($itemInvalid){{ __('smart_ordering_menu.invalid_item.badge') }}@else{{ $itemPrices[(int)$item->id]['display'] }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}@endif</span></div>
+                        @if($itemInvalid)
+                        <div class="foodex-alert error" role="alert">
+                            <strong>{{ __('smart_ordering_menu.invalid_item.title') }}</strong>
+                            <div>{{ $itemInvalid }}</div>
+                            <div class="so-invalid-actions">
+                                <a class="foodex-secondary" href="#item-product-{{ $item->id }}">{{ __('smart_ordering_menu.invalid_item.replace') }}</a>
+                                <a class="foodex-secondary" href="#item-price-{{ $item->id }}">{{ __('smart_ordering_menu.invalid_item.reprice') }}</a>
+                                <a class="foodex-secondary" href="#item-visible-{{ $item->id }}">{{ __('smart_ordering_menu.invalid_item.hide') }}</a>
+                            </div>
+                        </div>
+                        @endif
                         <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.update',$item) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                             <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized($targetCategory, 'name') }}</option>@endforeach</select></label>
                             @include('admin._smart-ordering-product-picker',['selectedId'=>$item->source_product_id,'selectedLabel'=>$productLabels[(int)$item->source_product_id] ?? '','id'=>'item-product-'.$item->id])
+                            @if($itemInvalid)
+                            <button type="button" class="foodex-secondary" data-unlink-product data-picker-id="item-product-{{ $item->id }}">{{ __('smart_ordering_menu.invalid_item.unlink') }}</button>
+                            @endif
                             <div class="so-grid">
                                 <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $item->name_ar }}"></label>
                                 <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $item->name_en }}" required></label>
-                                <label>{{ ($isAr?'سعر مستقل/تجاوز':'Standalone/override price').' ('.$checkoutCurrency.')' }}<input class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_override" value="{{ $item->price_override }}"></label>
+                                <label>{{ ($isAr?'سعر مستقل/تجاوز':'Standalone/override price').' ('.$checkoutCurrency.')' }}<input id="item-price-{{ $item->id }}" class="foodex-control" type="number" min="0" step="{{ $moneyStep }}" name="price_override" value="{{ $item->price_override }}"></label>
                                 <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $item->sort_order }}" required></label>
                                 <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes" value="{{ $item->prep_time_minutes }}"></label>
                                 <label>{{ $isAr?'السعرات':'Calories' }}<input class="foodex-control" type="number" min="0" name="calories" value="{{ $item->calories }}"></label>
@@ -278,7 +296,7 @@
                             <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $item->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $item->description_en }}</textarea></label><label>{{ $isAr?'الحساسيات':'Allergens' }}<textarea class="foodex-control" name="allergens_text">{{ implode(', ',(array)$item->allergens) }}</textarea></label><label>{{ $isAr?'المكونات القابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text">{{ implode(', ',(array)$item->removable_ingredients) }}</textarea></label></div>
                             <div class="so-flags">
                                 @foreach(['featured'=>[$item->featured,$isAr?'مميز':'Featured'],'best_seller'=>[$item->best_seller,$isAr?'الأكثر مبيعًا':'Best seller'],'is_new'=>[$item->is_new,$isAr?'جديد':'New'],'vegetarian'=>[$item->vegetarian,$isAr?'نباتي':'Vegetarian'],'sold_out'=>[$item->sold_out,$isAr?'نفد':'Sold out'],'is_visible'=>[$item->is_visible,$isAr?'ظاهر':'Visible'],'allow_customer_notes'=>[$item->allow_customer_notes,$isAr?'يسمح بالملاحظات':'Allow notes']] as $flag=>$meta)
-                                <input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>
+                                <input type="hidden" name="{{ $flag }}" value="0"><label><input @if($flag==='is_visible') id="item-visible-{{ $item->id }}" @endif type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>
                                 @endforeach
                                 <label><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف الصورة':'Remove image' }}</label>
                                 <label><input type="checkbox" name="clear_gallery" value="1"> {{ $isAr?'مسح المعرض':'Clear gallery' }}</label>
@@ -400,6 +418,20 @@
             @endforelse
         </section>
 
+        @if(!empty($itemPriceErrors))
+        <section class="panel so-invalid-summary" id="so-invalid-items" role="alert" aria-labelledby="so-invalid-items-title">
+            <h2 id="so-invalid-items-title">{{ __('smart_ordering_menu.invalid_item.summary_title') }}</h2>
+            <p class="so-muted">{{ __('smart_ordering_menu.invalid_item.summary_body') }}</p>
+            <div class="so-invalid-actions">
+                @foreach($allItems as $item)
+                    @if(isset($itemPriceErrors[(int)$item->id]))
+                    <a class="foodex-secondary" href="#menu-item-{{ $item->public_id }}">{{ $localized($item,'name') }}</a>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+        @endif
+
         <section class="panel" id="so-draft-review">
             <div class="so-section-title">
                 <div>
@@ -440,10 +472,18 @@
                             </div>
                             <div class="so-review-items">
                                 @forelse($category->items as $item)
-                                <article class="so-review-item">
+                                <article class="so-review-item @if(isset($itemPriceErrors[(int)$item->id])) so-review-item-invalid @endif">
                                     @if($mediaUrl($item->image_path))<img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
                                     <strong>{{ $localized($item,'name') }}</strong>
-                                    <span class="foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] ?? '—' }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span>
+                                    @if(isset($itemPriceErrors[(int)$item->id]))
+                                    <div class="foodex-alert error" role="status">
+                                        <strong>{{ __('smart_ordering_menu.invalid_item.badge') }}</strong>
+                                        <div>{{ $itemPriceErrors[(int)$item->id] }}</div>
+                                        <a class="foodex-secondary" href="#menu-item-{{ $item->public_id }}">{{ __('smart_ordering_menu.invalid_item.edit') }}</a>
+                                    </div>
+                                    @else
+                                    <span class="foodex-number" dir="ltr">{{ $itemPrices[(int)$item->id]['display'] }} {{ $itemPrices[(int)$item->id]['currency'] ?? $checkoutCurrency }}</span>
+                                    @endif
                                     <div class="so-review-status">
                                         @unless($item->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
                                         @if($item->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
@@ -471,7 +511,8 @@
                 @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
                 <a class="foodex-secondary" href="#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
-                <button class="primary" type="submit">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
+                <button class="primary" type="submit" @disabled(!empty($itemPriceErrors)) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
+                @if(!empty($itemPriceErrors))<a class="foodex-secondary" href="#so-invalid-items">{{ __('smart_ordering_menu.invalid_item.review_before_publish') }}</a>@endif
             </form>
         </div>
     </main>
@@ -521,6 +562,17 @@
         input.addEventListener('focus',load);
         input.addEventListener('keydown',(event) => { if(event.key==='Escape') close(); });
         document.addEventListener('click',(event) => { if(!picker.contains(event.target)) close(); });
+    });
+
+    document.querySelectorAll('[data-unlink-product]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const picker = document.getElementById(button.dataset.pickerId);
+            if (!picker) return;
+            const hidden = picker.querySelector('[data-product-id]');
+            const input = picker.querySelector('[data-product-search]');
+            if (hidden) hidden.value = '';
+            if (input) { input.value = ''; input.focus(); }
+        });
     });
 
     const bulk = document.querySelector('[data-bulk-form]');
