@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_order_contract.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrderBuilderPage extends StatefulWidget {
   const VanOrderBuilderPage({
@@ -152,7 +152,10 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                         Row(
                           children: [
                             Text(
-                              foodexMoneyText(line.product.unitPrice, line.product.currency),
+                              foodexMoneyText(
+                                line.product.unitPrice,
+                                line.product.currency,
+                              ),
                             ),
                             const Spacer(),
                             IconButton.filledTonal(
