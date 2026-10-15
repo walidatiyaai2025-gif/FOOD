@@ -199,6 +199,106 @@ class SmartOrderingCoreTest extends TestCase
         ]);
     }
 
+    public function test_public_storefront_cart_resolves_public_menu_and_modifier_identities(): void
+    {
+        $revisionId = (int) DB::table('smart_ordering_revisions')
+            ->where('site_id', $this->branch->site_id)
+            ->where('public_id', $this->publishedRevisionPublicId)
+            ->value('id');
+
+        $menuId = (int) DB::table('smart_ordering_menus')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'public_id' => (string) Str::uuid(),
+            'name_en' => 'Public menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $categoryId = (int) DB::table('smart_ordering_menu_categories')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'menu_id' => $menuId,
+            'public_id' => (string) Str::uuid(),
+            'name_en' => 'Meals',
+            'is_visible' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $itemPublicId = (string) Str::uuid();
+        $itemId = (int) DB::table('smart_ordering_menu_items')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'category_id' => $categoryId,
+            'public_id' => $itemPublicId,
+            'source_product_id' => $this->productId,
+            'name_en' => 'Public meal',
+            'is_visible' => true,
+            'sold_out' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $groupPublicId = (string) Str::uuid();
+        $groupId = (int) DB::table('smart_ordering_modifier_groups')->insertGetId([
+            'revision_id' => $revisionId,
+            'site_id' => $this->branch->site_id,
+            'item_id' => $itemId,
+            'public_id' => $groupPublicId,
+            'name_en' => 'Extra',
+            'kind' => 'modifier',
+            'selection_type' => 'single',
+            'is_required' => true,
+            'min_selections' => 1,
+            'max_selections' => 1,
+            'is_visible' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $optionPublicId = (string) Str::uuid();
+        DB::table('smart_ordering_modifier_options')->insert([
+            'group_id' => $groupId,
+            'public_id' => $optionPublicId,
+            'source_product_id' => $this->extraProductId,
+            'name_en' => 'Extra',
+            'price_delta' => 0.500,
+            'is_visible' => true,
+            'sold_out' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        [$cart, $token] = $this->cart();
+        $response = $this->withHeader('X-Smart-Cart-Token', $token)
+            ->postJson('/api/smart-ordering/carts/'.$cart.'/items', [
+                'menu_item_public_id' => $itemPublicId,
+                'quantity' => 2,
+                'selection' => [
+                    'menu_modifiers' => [[
+                        'group_public_id' => $groupPublicId,
+                        'option_public_ids' => [$optionPublicId],
+                    ]],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.item.product_id', $this->productId)
+            ->assertJsonPath('data.item.menu_item_public_id', $itemPublicId)
+            ->assertJsonPath('data.item.selection.menu_modifiers.0.group_public_id', $groupPublicId)
+            ->assertJsonPath('data.item.selection.menu_modifiers.0.option_public_ids.0', $optionPublicId);
+
+        $this->assertSame(3.5, (float) $response->json('data.quote.grand_total'));
+
+        [$invalidCart, $invalidToken] = $this->cart();
+        $this->withHeader('X-Smart-Cart-Token', $invalidToken)
+            ->postJson('/api/smart-ordering/carts/'.$invalidCart.'/items', [
+                'menu_item_public_id' => $itemPublicId,
+                'quantity' => 1,
+            ])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseCount('smart_ordering_cart_items', 1);
+    }
+
     public function test_checkout_rejects_closed_branch_and_revalidates_operational_policy(): void
     {
         [$cart, $token] = $this->cart();
