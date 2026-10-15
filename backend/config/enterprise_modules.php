@@ -13,6 +13,35 @@ return [
     |
     */
     'modules' => [
+        'finance' => [
+            'version' => 1,
+            'category' => 'finance',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => [
+                'sales',
+                'procurement',
+                'inventory',
+                'treasury',
+            ],
+            'capabilities' => [
+                'finance.foundation.read',
+                'finance.foundation.manage',
+            ],
+            'permissions' => [
+                'finance.view',
+                'finance.manage',
+            ],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
         'sample_optional' => [
             'version' => 1,
             'category' => 'platform',
