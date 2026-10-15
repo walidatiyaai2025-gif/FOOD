@@ -129,7 +129,6 @@ void main() {
     draft.setSelection(note: 'Updated note');
     expect(draft.hasCurrentQuote, isFalse);
   });
-
 }
 
 const _customer = VanCustomerScope(
