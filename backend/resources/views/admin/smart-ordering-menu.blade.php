@@ -509,7 +509,7 @@
                         @forelse($menu->categories as $category)
                         <section class="so-review-category">
                             <div class="so-review-category-head">
-                                @if($mediaUrl($category->image_path))<img src="{{ $mediaUrl($category->image_path) }}" alt="{{ $localized($category,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'تصنيف':'Category' }}</div>@endif
+                                @if($mediaUrl($category->image_path))<div><img src="{{ $mediaUrl($category->image_path) }}" alt="{{ $localized($category,'name') }}"><span class="so-muted">{{ $isAr?'الصورة الحالية للتصنيف':'Current category image' }}</span></div>@else<div class="so-review-placeholder">{{ $isAr?'تصنيف':'Category' }}</div>@endif
                                 <div>
                                     <strong>{{ $localized($category,'name') }}</strong>
                                     @if($localized($category,'description'))<div class="so-muted">{{ $localized($category,'description') }}</div>@endif
@@ -523,7 +523,7 @@
                             <div class="so-review-items">
                                 @forelse($category->items as $item)
                                 <article class="so-review-item @if(isset($itemPriceErrors[(int)$item->id])) so-review-item-invalid @endif">
-                                    @if($mediaUrl($item->image_path))<img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
+                                    @if($mediaUrl($item->image_path))<div><img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}"><span class="so-muted">{{ $isAr?'الصورة الحالية للصنف':'Current item image' }}</span></div>@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
                                     <strong>{{ $localized($item,'name') }}</strong>
                                     @if(isset($itemPriceErrors[(int)$item->id]))
                                     <div class="foodex-alert error" role="status">
