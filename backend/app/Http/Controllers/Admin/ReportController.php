@@ -10,6 +10,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,134 @@ final class ReportController extends Controller
             'data' => $data,
             'rowsPaginator' => $rowsPaginator,
             'options' => $this->options($user),
+        ]);
+    }
+
+    public function lookup(Request $request, string $entity): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless(in_array($entity, ['products', 'customers'], true), 404);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'store_id' => ['nullable', 'integer', 'min:1', 'exists:stores,id'],
+            'channel' => ['nullable', 'in:b2b,b2c'],
+            'category_id' => ['nullable', 'integer', 'min:1', 'exists:categories,id'],
+        ]);
+
+        $scope = app(OperationalTenantScope::class);
+        $superAdmin = $user->hasRole('SUPER_ADMIN');
+        $channel = isset($validated['channel']) ? (string) $validated['channel'] : null;
+        $allowedStoreIds = $scope->allowedStoreIds($user, 'reports.view', $channel);
+        abort_unless($superAdmin || $allowedStoreIds !== [], 403);
+
+        $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
+        if ($storeId !== null && ! $superAdmin) {
+            abort_unless(in_array($storeId, $allowedStoreIds, true), 403);
+        }
+
+        $term = trim((string) ($validated['q'] ?? ''));
+        $page = max(1, (int) ($validated['page'] ?? 1));
+        $pageSize = 25;
+
+        if ($entity === 'customers') {
+            if ($channel === null) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'channel' => [__('reports.lookup.channel_required')],
+                ]);
+            }
+
+            $query = $channel === 'b2b'
+                ? DB::table('b2b_customers')
+                    ->whereExists(function (Builder $orders) use ($allowedStoreIds, $storeId, $superAdmin): void {
+                        $orders->selectRaw('1')
+                            ->from('orders')
+                            ->whereColumn('orders.b2b_customer_id', 'b2b_customers.id')
+                            ->where('orders.channel', 'b2b')
+                            ->when($storeId !== null, fn (Builder $query) => $query->where('orders.store_id', $storeId))
+                            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('orders.store_id', $allowedStoreIds));
+                    })
+                : DB::table('b2c_customers')
+                    ->when($storeId !== null, fn (Builder $query) => $query->where('store_id', $storeId))
+                    ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('store_id', $allowedStoreIds));
+
+            $rows = $query
+                ->when($term !== '', function (Builder $query) use ($term): void {
+                    $like = '%'.$term.'%';
+                    $query->where(function (Builder $search) use ($like): void {
+                        $search->where('name', 'like', $like)
+                            ->orWhere('phone', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    });
+                })
+                ->orderBy('name')
+                ->orderBy('id')
+                ->offset(($page - 1) * $pageSize)
+                ->limit($pageSize + 1)
+                ->get(['id', 'name', 'phone', 'email']);
+
+            $hasMore = $rows->count() > $pageSize;
+            $items = $rows->take($pageSize)->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'phone' => $row->phone === null ? null : (string) $row->phone,
+                'email' => $row->email === null ? null : (string) $row->email,
+                'channel' => $channel,
+            ])->values();
+
+            return response()->json([
+                'customers' => $items,
+                'next_page' => $hasMore ? $page + 1 : null,
+                'meta' => ['page' => $page, 'page_size' => $pageSize, 'has_more' => $hasMore],
+            ]);
+        }
+
+        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+        $rows = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->when($storeId !== null, fn (Builder $query) => $query->where('catalogs.store_id', $storeId))
+            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('catalogs.store_id', $allowedStoreIds))
+            ->when($channel !== null, fn (Builder $query) => $query->where('catalogs.channel', $channel))
+            ->when($categoryId !== null, fn (Builder $query) => $query->where('products.category_id', $categoryId))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $like = '%'.$term.'%';
+                $query->where(function (Builder $search) use ($like): void {
+                    $search->where('products.name', 'like', $like)
+                        ->orWhere('products.sku', 'like', $like)
+                        ->orWhere('products.barcode', 'like', $like);
+                });
+            })
+            ->orderBy('products.name')
+            ->orderBy('products.id')
+            ->offset(($page - 1) * $pageSize)
+            ->limit($pageSize + 1)
+            ->get([
+                'products.id',
+                'products.name',
+                'products.sku',
+                'products.barcode',
+                'products.is_active',
+                'catalogs.store_id',
+                'catalogs.channel',
+            ]);
+
+        $hasMore = $rows->count() > $pageSize;
+        $items = $rows->take($pageSize)->map(fn (object $row): array => [
+            'id' => (int) $row->id,
+            'name' => (string) $row->name,
+            'sku' => $row->sku === null ? null : (string) $row->sku,
+            'barcode' => $row->barcode === null ? null : (string) $row->barcode,
+            'is_active' => (bool) $row->is_active,
+            'store_id' => (int) $row->store_id,
+            'channel' => (string) $row->channel,
+        ])->values();
+
+        return response()->json([
+            'products' => $items,
+            'next_page' => $hasMore ? $page + 1 : null,
+            'meta' => ['page' => $page, 'page_size' => $pageSize, 'has_more' => $hasMore],
         ]);
     }
 
