@@ -26,6 +26,7 @@
         const mapNode = find('map');
         const feedUrl = root.dataset.feedUrl;
         const secondaryFeedUrl = root.dataset.secondaryFeedUrl || '';
+        const lookupUrl = root.dataset.lookupUrl || '';
         const actorKind = root.dataset.actorKind || 'driver';
         const fail = (code, key, preserveRenderedData = false) => {
             const message = i18n[key] || i18n.failed || 'Unable to load live locations.';
@@ -70,6 +71,9 @@
 
         root.dataset.driverLiveMapReady = '1';
         const markers = new Map();
+        const listItems = new Map();
+        let emptyListState = null;
+        let selectedEntityKey = null;
         let latestRows = [];
         let fitted = false;
         let refreshing = false;
@@ -101,14 +105,21 @@
             order_id: inputValue('order-id'),
         });
 
+        const selectedEntityKind = () => inputValue('entity-kind');
+        const selectedEntityId = () => inputValue('entity-id');
+
         const values = kind => ({
             ...commonValues(),
             ...(kind === 'van' ? {
                 actor_type: 'van',
-                actor_id: actorKind === 'van' ? inputValue('actor-id') : '',
-                route_key: actorKind === 'van' ? inputValue('route-key') : '',
+                actor_id: selectedEntityKind() === 'van'
+                    ? selectedEntityId()
+                    : (actorKind === 'van' ? inputValue('actor-id') : ''),
+                route_key: inputValue('route-key'),
             } : {
-                driver_id: actorKind === 'driver' ? inputValue('driver-id') : '',
+                driver_id: selectedEntityKind() === 'driver'
+                    ? selectedEntityId()
+                    : (actorKind === 'driver' ? inputValue('driver-id') : ''),
             }),
         });
 
@@ -123,6 +134,11 @@
         const feedSpecs = () => {
             if (actorKind === 'van') return [{url:feedUrl,kind:'van'}];
             if (actorKind === 'driver') return [{url:feedUrl,kind:'driver'}];
+
+            const picked = selectedEntityKind();
+            if (picked === 'driver') return [{url:feedUrl,kind:'driver'}];
+            if (picked === 'van') return [{url:secondaryFeedUrl,kind:'van'}];
+            if (inputValue('route-key')) return [{url:secondaryFeedUrl,kind:'van'}];
 
             const selected = inputValue('entity-type');
             if (selected === 'driver') return [{url:feedUrl,kind:'driver'}];
@@ -146,6 +162,7 @@
         };
 
         const entityId = row => row.actor_id ?? row.driver_id;
+        const entityKey = row => rowKind(row)+':'+String(entityId(row));
         const entityName = row => row.entity_name
             || row.driver_name
             || (kindLabel(rowKind(row))+' #'+entityId(row));
@@ -195,18 +212,22 @@
             if (target) target.textContent = String(value);
         };
 
+        const markerIconFor = row => {
+            if (typeof L.divIcon !== 'function' || typeof L.marker !== 'function') return null;
+            const kind = rowKind(row);
+            const symbol = kind === 'van' ? '🚐' : '👤';
+            return L.divIcon({
+                className:'foodex-tracking-entity-marker foodex-tracking-entity-marker-'+kind+' foodex-tracking-entity-marker-'+(row.status || 'offline'),
+                html:'<span aria-hidden="true">'+symbol+'</span>',
+                iconSize:[30,30],
+                iconAnchor:[15,15],
+            });
+        };
+
         const markerFor = (row, lat, lng, color) => {
             const kind = rowKind(row);
-            if (typeof L.divIcon === 'function' && typeof L.marker === 'function') {
-                const symbol = kind === 'van' ? '🚐' : '👤';
-                const icon = L.divIcon({
-                    className:'foodex-tracking-entity-marker foodex-tracking-entity-marker-'+kind+' foodex-tracking-entity-marker-'+(row.status || 'offline'),
-                    html:'<span aria-hidden="true">'+symbol+'</span>',
-                    iconSize:[30,30],
-                    iconAnchor:[15,15],
-                });
-                return L.marker([lat,lng],{icon});
-            }
+            const icon = markerIconFor(row);
+            if (icon) return L.marker([lat,lng],{icon});
 
             return L.circleMarker([lat,lng],{
                 radius:kind === 'van' ? 11 : 9,
@@ -217,13 +238,55 @@
             });
         };
 
+        const updateMarker = (marker, row, lat, lng, color) => {
+            marker.setLatLng?.([lat,lng]);
+            const icon = markerIconFor(row);
+            if (icon && typeof marker.setIcon === 'function') marker.setIcon(icon);
+            else marker.setStyle?.({fillColor:color});
+
+            const content = popupFor(row);
+            const popup = marker.getPopup?.();
+            if (popup && typeof popup.setContent === 'function') popup.setContent(content);
+            else marker.bindPopup(content);
+        };
+
+        const bindMarkerSelection = (marker, key) => {
+            if (typeof marker.on !== 'function') return;
+            marker.on('popupopen',() => {
+                selectedEntityKey = key;
+            });
+            marker.on('popupclose',() => {
+                if (selectedEntityKey === key) selectedEntityKey = null;
+            });
+        };
+
+        const updateListButton = (button, row, key, color) => {
+            const kind = rowKind(row);
+            button.type = 'button';
+            button.className = 'tracking-driver tracking-'+kind;
+            button.dataset.trackingEntityKey = key;
+
+            const title = document.createElement('strong');
+            const dot = document.createElement('span');
+            dot.className = 'tracking-dot';
+            dot.style.backgroundColor = color;
+            title.append(dot, document.createTextNode(kindLabel(kind)+': '+entityName(row)));
+            button.replaceChildren(
+                title,
+                text(
+                    'small',
+                    (row.channel || '').toUpperCase()+' · '+storeLabel(row)+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
+                )
+            );
+        };
+
         const render = () => {
             const rows = visibleRows();
-            layer.clearLayers();
-            markers.clear();
-
+            const visibleKeys = new Set();
+            const authoritativeKeys = new Set(latestRows.map(entityKey));
             const list = find('list');
-            if (list) list.replaceChildren();
+            const focusedBefore = document.activeElement;
+            let interactionRemoved = false;
 
             const counts = {online:0,stale:0,offline:0};
             rows.forEach(row => {
@@ -231,9 +294,9 @@
             });
             Object.entries(counts).forEach(([key,value]) => updateCount(key,value));
 
-            if (!rows.length) {
-                if (list) list.append(text('div', i18n.noDrivers, 'tracking-empty'));
-                return;
+            if (rows.length && emptyListState) {
+                emptyListState.remove?.();
+                emptyListState = null;
             }
 
             const bounds = [];
@@ -243,41 +306,79 @@
                 if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
                 const color = colors[row.status] || colors.offline;
-                const kind = rowKind(row);
-                const marker = markerFor(row,lat,lng,color)
-                    .bindPopup(popupFor(row))
-                    .addTo(layer);
+                const key = entityKey(row);
+                visibleKeys.add(key);
 
-                markers.set(kind+':'+String(entityId(row)), marker);
+                let marker = markers.get(key);
+                if (marker) {
+                    updateMarker(marker,row,lat,lng,color);
+                } else {
+                    marker = markerFor(row,lat,lng,color)
+                        .bindPopup(popupFor(row))
+                        .addTo(layer);
+                    bindMarkerSelection(marker,key);
+                    markers.set(key,marker);
+                }
                 bounds.push([lat,lng]);
 
                 if (list) {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'tracking-driver tracking-'+kind;
-
-                    const title = document.createElement('strong');
-                    const dot = document.createElement('span');
-                    dot.className = 'tracking-dot';
-                    dot.style.backgroundColor = color;
-                    title.append(dot, document.createTextNode(kindLabel(kind)+': '+entityName(row)));
-                    button.append(title);
-                    button.append(text(
-                        'small',
-                        (row.channel || '').toUpperCase()+' · '+storeLabel(row)+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
-                    ));
-                    button.addEventListener('click',() => {
-                        map.setView([lat,lng],16);
-                        marker.openPopup();
-                    });
-                    list.append(button);
+                    let button = listItems.get(key);
+                    if (!button) {
+                        button = document.createElement('button');
+                        button.addEventListener('click',() => {
+                            const currentKey = button.dataset.trackingEntityKey;
+                            const currentRow = visibleRows().find(candidate => entityKey(candidate) === currentKey);
+                            const currentMarker = markers.get(currentKey);
+                            if (!currentRow || !currentMarker) return;
+                            const currentLat = Number(currentRow.latitude);
+                            const currentLng = Number(currentRow.longitude);
+                            if (!Number.isFinite(currentLat) || !Number.isFinite(currentLng)) return;
+                            selectedEntityKey = currentKey;
+                            map.setView([currentLat,currentLng],16);
+                            currentMarker.openPopup();
+                        });
+                        listItems.set(key,button);
+                        list.append(button);
+                    }
+                    updateListButton(button,row,key,color);
                 }
             });
+
+            for (const [key,marker] of [...markers]) {
+                if (visibleKeys.has(key)) continue;
+                const selectedWasRemoved = selectedEntityKey === key && !authoritativeKeys.has(key);
+                if (selectedWasRemoved) {
+                    interactionRemoved = true;
+                    selectedEntityKey = null;
+                }
+                if (typeof layer.removeLayer === 'function') layer.removeLayer(marker);
+                else marker.remove?.();
+                markers.delete(key);
+            }
+
+            for (const [key,button] of [...listItems]) {
+                if (visibleKeys.has(key)) continue;
+                const focusedWasRemoved = focusedBefore === button;
+                const recordWasRemoved = !authoritativeKeys.has(key);
+                button.remove?.();
+                listItems.delete(key);
+                if (focusedWasRemoved) {
+                    (find('search') || find('recenter'))?.focus?.();
+                    if (recordWasRemoved) interactionRemoved = true;
+                }
+            }
+
+            if (!rows.length && list && !emptyListState) {
+                emptyListState = text('div', i18n.noDrivers, 'tracking-empty');
+                list.append(emptyListState);
+            }
 
             if (!fitted && bounds.length) {
                 map.fitBounds(bounds,{padding:[30,30],maxZoom:15});
                 fitted = true;
             }
+
+            return {interactionRemoved};
         };
 
         const fetchPayload = async (spec, controller) => {
@@ -342,14 +443,18 @@
                     }))
                 );
 
-                render();
+                const renderResult = render();
                 hasSuccessfulRender = true;
                 consecutiveFailures = 0;
                 const error = find('error');
                 if (error) error.hidden = true;
                 delete root.dataset.liveMapError;
                 delete root.dataset.liveMapStale;
-                if (state) state.textContent = latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers;
+                if (state) {
+                    state.textContent = renderResult.interactionRemoved
+                        ? (i18n.entityRemoved || i18n.ready || 'OK')
+                        : (latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers);
+                }
 
                 const generatedTimes = payloads
                     .map(({payload}) => Date.parse(payload.meta?.generated_at || ''))
@@ -383,6 +488,240 @@
             }
         };
 
+        const lookupRegistry = new Map();
+        const lookupDisposers = [];
+
+        const setupLookup = name => {
+            if (!lookupUrl) return null;
+            const search = root.querySelector('[data-live-lookup-search="' + name + '"]');
+            const results = root.querySelector('[data-live-lookup-results="' + name + '"]');
+            const state = root.querySelector('[data-live-lookup-state="' + name + '"]');
+            const clearButton = root.querySelector('[data-live-lookup-clear="' + name + '"]');
+            if (!search || !results) return null;
+
+            let timer = null;
+            let controller = null;
+            let requestSequence = 0;
+            let options = [];
+            let optionNodes = [];
+            let activeIndex = -1;
+
+            const hiddenControls = () => name === 'entity'
+                ? [find('entity-id'), find('entity-kind')].filter(Boolean)
+                : [find(name === 'order' ? 'order-id' : 'route-key')].filter(Boolean);
+
+            const clearHidden = () => {
+                hiddenControls().forEach(control => { control.value = ''; });
+                delete search.dataset.selectedValue;
+                delete search.dataset.selectedKind;
+                if (clearButton) clearButton.hidden = search.value.trim() === '';
+            };
+
+            const setExpanded = expanded => {
+                search.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                results.hidden = !expanded;
+                if (!expanded) {
+                    activeIndex = -1;
+                    search.removeAttribute('aria-activedescendant');
+                }
+            };
+
+            const setState = message => {
+                if (state) state.textContent = message || '';
+            };
+
+            const markActive = index => {
+                if (!optionNodes.length) return;
+                activeIndex = Math.max(0, Math.min(index, optionNodes.length - 1));
+                optionNodes.forEach((node, current) => {
+                    node.setAttribute('aria-selected', current === activeIndex ? 'true' : 'false');
+                });
+                const active = optionNodes[activeIndex];
+                if (active?.id) search.setAttribute('aria-activedescendant', active.id);
+                active?.scrollIntoView?.({block:'nearest'});
+            };
+
+            const select = item => {
+                if (!item || item.value === undefined || item.value === null) return;
+                if (name === 'entity') {
+                    const entityId = find('entity-id');
+                    const entityKind = find('entity-kind');
+                    if (entityId) entityId.value = String(item.value);
+                    if (entityKind) entityKind.value = String(item.kind || '');
+                    const entityType = find('entity-type');
+                    if (entityType && ['driver','van'].includes(String(item.kind || ''))) {
+                        entityType.value = String(item.kind);
+                    }
+                    if (item.kind === 'driver') lookupRegistry.get('route')?.clear();
+                } else {
+                    const hidden = find(name === 'order' ? 'order-id' : 'route-key');
+                    if (hidden) hidden.value = String(item.value);
+                    if (name === 'route') {
+                        const entityType = find('entity-type');
+                        if (entityType) entityType.value = 'van';
+                        if (selectedEntityKind() === 'driver') lookupRegistry.get('entity')?.clear();
+                    }
+                }
+
+                search.value = String(item.label || '');
+                search.dataset.selectedValue = String(item.value);
+                search.dataset.selectedKind = String(item.kind || name);
+                if (clearButton) clearButton.hidden = false;
+                setState(String(item.context || ''));
+                setExpanded(false);
+            };
+
+            const renderOptions = rows => {
+                options = Array.isArray(rows) ? rows : [];
+                optionNodes = [];
+                activeIndex = -1;
+                results.replaceChildren();
+
+                options.forEach((item, index) => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.className = 'tracking-lookup-option';
+                    option.id = (results.id || ('live-lookup-' + name)) + '-option-' + index;
+                    option.setAttribute('role', 'option');
+                    option.setAttribute('aria-selected', 'false');
+
+                    const label = document.createElement('strong');
+                    label.textContent = String(item.label || '—');
+                    option.append(label);
+                    if (item.context) {
+                        const context = document.createElement('small');
+                        context.textContent = String(item.context);
+                        option.append(context);
+                    }
+
+                    option.addEventListener('mousedown', event => event.preventDefault());
+                    option.addEventListener('click', () => select(item));
+                    results.append(option);
+                    optionNodes.push(option);
+                });
+
+                if (!options.length) {
+                    setState(i18n.lookupNoResults || 'No matches.');
+                    setExpanded(false);
+                    return;
+                }
+
+                setState('');
+                setExpanded(true);
+            };
+
+            const load = async () => {
+                controller?.abort();
+                controller = new AbortController();
+                const sequence = ++requestSequence;
+                setState(i18n.lookupLoading || 'Searching…');
+
+                const url = new URL(lookupUrl, window.location.origin);
+                const entityType = inputValue('entity-type');
+                const kind = name === 'entity' && ['driver','van'].includes(entityType)
+                    ? entityType
+                    : name;
+                url.searchParams.set('kind', kind);
+                const query = search.value.trim();
+                if (query) url.searchParams.set('q', query);
+                const channel = inputValue('channel');
+                const store = inputValue('store');
+                if (channel) url.searchParams.set('channel', channel);
+                if (store) url.searchParams.set('store_id', store);
+
+                try {
+                    const response = await fetch(url.toString(), {
+                        credentials:'same-origin',
+                        headers:{Accept:'application/json'},
+                        signal:controller.signal,
+                    });
+                    if (!response.ok) throw new Error('lookup-http-' + response.status);
+                    const payload = await response.json();
+                    if (sequence !== requestSequence || !Array.isArray(payload?.data)) return;
+                    renderOptions(payload.data);
+                } catch (error) {
+                    if (error?.name === 'AbortError' || sequence !== requestSequence) return;
+                    options = [];
+                    optionNodes = [];
+                    results.replaceChildren();
+                    setExpanded(false);
+                    setState(i18n.lookupFailed || 'Unable to load options.');
+                }
+            };
+
+            const schedule = () => {
+                window.clearTimeout(timer);
+                timer = window.setTimeout(load, 250);
+            };
+
+            search.addEventListener('input', () => {
+                if (search.dataset.selectedValue !== undefined) clearHidden();
+                schedule();
+            });
+            search.addEventListener('focus', () => {
+                if (options.length && search.dataset.selectedValue === undefined) {
+                    setExpanded(true);
+                    return;
+                }
+                if (search.dataset.selectedValue === undefined) load();
+            });
+            search.addEventListener('keydown', event => {
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    if (!results.hidden && optionNodes.length) markActive(activeIndex < 0 ? 0 : activeIndex + 1);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    if (!results.hidden && optionNodes.length) markActive(activeIndex < 0 ? optionNodes.length - 1 : activeIndex - 1);
+                } else if (event.key === 'Enter') {
+                    if (!results.hidden && activeIndex >= 0 && options[activeIndex]) {
+                        event.preventDefault();
+                        select(options[activeIndex]);
+                    }
+                } else if (event.key === 'Escape') {
+                    setExpanded(false);
+                }
+            });
+            search.addEventListener('blur', () => {
+                window.setTimeout(() => setExpanded(false), 120);
+            });
+            clearButton?.addEventListener('click', () => {
+                controller?.abort();
+                search.value = '';
+                clearHidden();
+                options = [];
+                optionNodes = [];
+                results.replaceChildren();
+                setState('');
+                setExpanded(false);
+                search.focus();
+            });
+
+            const api = {
+                clear() {
+                    controller?.abort();
+                    window.clearTimeout(timer);
+                    search.value = '';
+                    clearHidden();
+                    options = [];
+                    optionNodes = [];
+                    results.replaceChildren();
+                    setState('');
+                    setExpanded(false);
+                },
+                dispose() {
+                    controller?.abort();
+                    controller = null;
+                    window.clearTimeout(timer);
+                    timer = null;
+                },
+            };
+            lookupRegistry.set(name, api);
+            lookupDisposers.push(api.dispose);
+            return api;
+        };
+
+        ['entity','order','route'].forEach(setupLookup);
+
         find('retry')?.addEventListener('click', event => {
             if (['feed-401','feed-session'].includes(root.dataset.liveMapError)) return;
             event.preventDefault();
@@ -395,16 +734,26 @@
         });
 
         find('clear')?.addEventListener('click',() => {
-            ['channel','store','entity-type','status-filter','driver-id','order-id','actor-id','route-key','search'].forEach(role => {
+            ['channel','store','entity-type','status-filter','driver-id','order-id','actor-id','route-key','entity-id','entity-kind','search'].forEach(role => {
                 const control = find(role);
                 if (control) control.value='';
             });
+            lookupRegistry.forEach(lookup => lookup.clear());
             fitted=false;
             refresh();
         });
 
         find('search')?.addEventListener('input',render);
+        ['channel','store'].forEach(role => {
+            find(role)?.addEventListener('change',() => {
+                lookupRegistry.get('entity')?.clear();
+                lookupRegistry.get('order')?.clear();
+                lookupRegistry.get('route')?.clear();
+            });
+        });
         find('entity-type')?.addEventListener('change',() => {
+            lookupRegistry.get('entity')?.clear();
+            if (inputValue('entity-type') === 'driver') lookupRegistry.get('route')?.clear();
             fitted=false;
             refresh();
         });
@@ -425,6 +774,7 @@
                 activeController.foodexPageCachePause = true;
                 activeController.abort();
             }
+            lookupDisposers.forEach(disposeLookup => disposeLookup());
             if (hasSuccessfulRender) {
                 root.dataset.liveMapStale = '1';
                 const state = find('state');
@@ -471,6 +821,7 @@
             pollTimer = null;
             activeController?.abort();
             activeController = null;
+            lookupDisposers.forEach(disposeLookup => disposeLookup());
             map.remove();
             delete root.dataset.driverLiveMapReady;
             delete root.dataset.liveMapStale;

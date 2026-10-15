@@ -113,7 +113,8 @@ class FieldOperationsAdminExposureTest extends TestCase
 
         $this->assertStringContainsString('data-actor-kind="{{ $trackingActor }}"', $map);
         $this->assertStringContainsString("actorKind === 'van'", $mapRuntime);
-        $this->assertStringContainsString("actor_id: actorKind === 'van' ? inputValue('actor-id') : ''", $mapRuntime);
+        $this->assertStringContainsString("actor_id: selectedEntityKind() === 'van'", $mapRuntime);
+        $this->assertStringContainsString("actorKind === 'van' ? inputValue('actor-id') : ''", $mapRuntime);
 
         $this->assertStringContainsString("\$opsRouteName = \$opsRouteName ?? 'admin.b2b.module';", $finance);
         $this->assertStringContainsString('route($opsReviewRouteName', $finance);
