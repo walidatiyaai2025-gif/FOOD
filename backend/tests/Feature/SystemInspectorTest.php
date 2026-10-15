@@ -2,13 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Health\ModuleHealthCheck;
+use App\Enterprise\Health\ModuleHealthProbe;
+use App\Models\EnterpriseModule;
+use App\Models\EnterpriseOutboxMessage;
+use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Role;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
+use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
@@ -138,6 +145,135 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('data-wizard-panel="review"', $stores);
     }
 
+    public function test_enterprise_diagnostics_are_bounded_redacted_and_do_not_boot_disabled_module_probes(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-inspector@example.test');
+
+        InspectorForbiddenProbe::$constructed = 0;
+        config()->set('enterprise_module_health.probes.sample_optional', [
+            InspectorForbiddenProbe::class,
+        ]);
+
+        EnterpriseModule::query()->create([
+            'code' => 'sample_optional',
+            'category' => 'platform',
+            'manifest_version' => 1,
+            'state' => 'DISABLED',
+            'manifest' => ['code' => 'sample_optional', 'version' => 1],
+            'state_changed_at' => now(),
+        ]);
+
+        foreach (range(1, 26) as $index) {
+            EnterpriseOutboxMessage::query()->create([
+                'event_id' => (string) Str::uuid(),
+                'event_type' => "SafeEvent{$index}",
+                'event_version' => 1,
+                'payload' => json_encode([
+                    'api_secret' => "super-secret-{$index}",
+                ], JSON_THROW_ON_ERROR),
+                'status' => 'pending',
+                'attempt_count' => 0,
+                'available_at' => now(),
+                'claim_token' => sprintf('00000000-0000-4000-8000-%012d', $index),
+                'last_error' => "provider-secret-outbox-{$index}",
+            ]);
+
+            EnterpriseWorkflowRequest::query()->create([
+                'workflow_key' => "wf-{$index}",
+                'definition_version' => 1,
+                'entity_type' => 'Order',
+                'entity_id' => (string) $index,
+                'scope_type' => 'store',
+                'scope_id' => null,
+                'requester_id' => $admin->id,
+                'status' => 'PENDING',
+                'idempotency_key' => "secret-idempotency-{$index}",
+                'context' => [
+                    'token' => "super-secret-{$index}",
+                ],
+            ]);
+        }
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.inspector.index'))
+            ->assertOk()
+            ->assertSee('Enterprise platform')
+            ->assertSee('sample_optional')
+            ->assertSee('Disabled')
+            ->assertSee('SafeEvent26')
+            ->assertDontSee('<code>SafeEvent1</code>', false)
+            ->assertSee('wf-26')
+            ->assertDontSee('<code>wf-1</code>', false)
+            ->assertDontSee('super-secret')
+            ->assertDontSee('secret-idempotency');
+
+        $this->assertSame(0, InspectorForbiddenProbe::$constructed);
+
+        $enterprisePage = app(EnterpriseSystemInspector::class)->page();
+        $this->assertCount(25, $enterprisePage['outbox_messages']->items());
+        $this->assertCount(25, $enterprisePage['workflow_requests']->items());
+        $this->assertFalse(collect($enterprisePage['outbox_messages']->items())
+            ->contains(static fn (EnterpriseOutboxMessage $message): bool => $message->event_type === 'SafeEvent1'));
+        $this->assertFalse(collect($enterprisePage['workflow_requests']->items())
+            ->contains(static fn (EnterpriseWorkflowRequest $request): bool => $request->workflow_key === 'wf-1'));
+
+        $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
+        $export->assertOk();
+        $exportContent = $export->streamedContent();
+        $this->assertStringContainsString('SafeEvent26', $exportContent);
+        $this->assertStringContainsString('wf-26', $exportContent);
+        $this->assertStringNotContainsString('super-secret', $exportContent);
+        $this->assertStringNotContainsString('secret-idempotency', $exportContent);
+        $this->assertStringNotContainsString('provider-secret-outbox', $exportContent);
+        $this->assertStringNotContainsString('00000000-0000-4000-8000-', $exportContent);
+
+        $exportPayload = json_decode($exportContent, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(
+            ['event_type', 'status', 'attempt_count', 'available_at', 'failed_at', 'created_at'],
+            array_keys($exportPayload['enterprise']['outbox_messages'][0]),
+        );
+        $this->assertSame(
+            ['workflow_key', 'entity_type', 'status', 'completed_at', 'created_at'],
+            array_keys($exportPayload['enterprise']['workflow_requests'][0]),
+        );
+
+        $response->assertSee('Modules & background diagnostics');
+        $this->assertSame(
+            'Modules & background diagnostics',
+            trans('admin.system_inspector_enterprise.title', [], 'en'),
+        );
+        $this->assertSame(
+            'تشخيص الموديولات والخلفية',
+            trans('admin.system_inspector_enterprise.title', [], 'ar'),
+        );
+    }
+
+    public function test_enterprise_diagnostics_render_failing_module_health(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-health@example.test');
+
+        config()->set('enterprise_module_health.probes.sample_optional', [
+            InspectorFailingProbe::class,
+        ]);
+
+        EnterpriseModule::query()->create([
+            'code' => 'sample_optional',
+            'category' => 'platform',
+            'manifest_version' => 1,
+            'state' => 'ENABLED',
+            'manifest' => ['code' => 'sample_optional', 'version' => 1],
+            'enabled_at' => now(),
+            'state_changed_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.inspector.index'))
+            ->assertOk()
+            ->assertSee('sample_optional')
+            ->assertSee('Error')
+            ->assertDontSee('provider-secret-token');
+    }
+
     private function userWithRole(string $roleCode, string $email): User
     {
         $user = User::query()->create([
@@ -150,5 +286,28 @@ class SystemInspectorTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
 
         return $user;
+    }
+}
+
+final class InspectorForbiddenProbe implements ModuleHealthProbe
+{
+    public static int $constructed = 0;
+
+    public function __construct()
+    {
+        self::$constructed++;
+    }
+
+    public function check(): ModuleHealthCheck
+    {
+        return ModuleHealthCheck::healthy('inspector-forbidden-probe');
+    }
+}
+
+final class InspectorFailingProbe implements ModuleHealthProbe
+{
+    public function check(): ModuleHealthCheck
+    {
+        return ModuleHealthCheck::error('inspector-failing-probe', 'provider-secret-token');
     }
 }

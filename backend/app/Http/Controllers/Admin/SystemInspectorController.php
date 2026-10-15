@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
+use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -15,13 +16,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 final class SystemInspectorController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, EnterpriseSystemInspector $enterpriseInspector): View
     {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -72,6 +75,7 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
+            'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
 
@@ -111,7 +115,7 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
     {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
@@ -124,6 +128,7 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
                 'occurred_at' => $event->occurred_at->toIso8601String(),
@@ -158,7 +163,11 @@ final class SystemInspectorController extends Controller
         $this->platformAdmin($request);
 
         $root = (string) config('filesystems.disks.public.root');
-        if (! is_dir($root) && ! @mkdir($root, 0750, true) && ! is_dir($root)) {
+        if (is_dir($root) === false) {
+            Storage::disk('public')->makeDirectory('.');
+        }
+
+        if (is_dir($root) === false) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء مجلد التخزين العام.',
                 'The public storage directory could not be created.',
@@ -168,7 +177,7 @@ final class SystemInspectorController extends Controller
         Artisan::call('storage:link');
 
         $diagnostics = $this->diagnostics();
-        if (! $diagnostics['public_link_exists']) {
+        if ($diagnostics['public_link_exists'] === false) {
             return back()->withErrors(['storage' => $this->msg(
                 'تعذر إنشاء رابط public/storage. راجع صلاحيات الاستضافة.',
                 'public/storage could not be linked. Check hosting permissions.',
@@ -181,12 +190,55 @@ final class SystemInspectorController extends Controller
         ));
     }
 
+    /**
+     * @return array{available:bool,migration_pending:bool,data?:array<string,mixed>}
+     */
+    private function enterpriseDiagnostics(
+        EnterpriseSystemInspector $inspector,
+        bool $snapshot = false,
+    ): array {
+        try {
+            $requiredTables = [
+                'enterprise_modules',
+                'enterprise_module_entitlements',
+                'enterprise_outbox_messages',
+                'enterprise_workflow_requests',
+            ];
+
+            foreach ($requiredTables as $table) {
+                if (Schema::hasTable($table)) {
+                    continue;
+                }
+
+                return [
+                    'available' => false,
+                    'migration_pending' => true,
+                ];
+            }
+
+            $data = $snapshot ? $inspector->snapshot() : $inspector->page();
+
+            return array_merge([
+                'available' => true,
+                'migration_pending' => false,
+            ], $data);
+        } catch (Throwable) {
+            return [
+                'available' => false,
+                'migration_pending' => false,
+            ];
+        }
+    }
+
     /** @return array<string,mixed> */
     private function diagnostics(): array
     {
         $publicRoot = (string) config('filesystems.disks.public.root');
         $publicLink = public_path('storage');
-        $version = trim((string) @file_get_contents(base_path('../VERSION')));
+        $versionPath = base_path('../VERSION');
+        $version = is_readable($versionPath)
+            ? trim((string) file_get_contents($versionPath))
+            : '';
 
         return [
             'version' => $version !== '' ? $version : 'unknown',
