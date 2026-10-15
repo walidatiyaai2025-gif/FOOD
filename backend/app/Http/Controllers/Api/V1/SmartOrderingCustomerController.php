@@ -146,7 +146,19 @@ final class SmartOrderingCustomerController extends Controller
         [$site, $customerId] = $this->context($request);
         $balance = $loyalty->balance($site, $customerId);
 
-        $rewards = collect($catalog->rewards($site))
+        $branchReference = trim((string) $request->query('branch', ''));
+        $branchId = null;
+        if ($branchReference !== '') {
+            abort_unless(\Illuminate\Support\Str::isUuid($branchReference), 422);
+            $branchId = DB::table('smart_ordering_branches')
+                ->where('site_id', $site->id)
+                ->where('public_id', $branchReference)
+                ->where('is_active', true)
+                ->value('id');
+            abort_unless($branchId !== null, 404);
+        }
+
+        $rewards = collect($catalog->rewards($site, $branchId === null ? null : (int) $branchId))
             ->map(static function (array $reward) use ($site): array {
                 $branch = $reward['branch_id'] === null
                     ? null
