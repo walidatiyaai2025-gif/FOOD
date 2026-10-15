@@ -42,13 +42,13 @@ class SharedEntityLookupContractTest extends TestCase
         $this->assertIsString($smartOrdering);
         $this->assertIsString($smartPicker);
 
-        $this->assertStringContainsString("assets/admin/entity-lookup.js", $commercial);
+        $this->assertStringContainsString('assets/admin/entity-lookup.js', $commercial);
         $this->assertStringContainsString('data-foodex-entity-picker', $commercial);
         $this->assertStringContainsString('data-foodex-entity-search', $commercial);
         $this->assertStringContainsString('data-foodex-entity-results', $commercial);
-        $this->assertStringNotContainsString("const salesProductSelector = document.querySelector", $commercial);
+        $this->assertStringNotContainsString('const salesProductSelector = document.querySelector', $commercial);
 
-        $this->assertStringContainsString("assets/admin/entity-lookup.js", $smartOrdering);
+        $this->assertStringContainsString('assets/admin/entity-lookup.js', $smartOrdering);
         $this->assertStringContainsString('data-foodex-entity-picker', $smartPicker);
         $this->assertStringContainsString('data-foodex-entity-search', $smartPicker);
         $this->assertStringContainsString('data-foodex-entity-id', $smartPicker);
