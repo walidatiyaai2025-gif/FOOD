@@ -30,6 +30,16 @@ final class CampaignSegmentationService
         $this->applyIds($query, 'pc.id', $segment['customer_ids'] ?? null);
         $this->applyIds($query, 'pc.origin_store_id', $segment['store_ids'] ?? null);
 
+        $search = trim((string) ($segment['search'] ?? ''));
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%';
+            $query->where(function (Builder $builder) use ($like): void {
+                $builder->where('pc.name', 'like', $like)
+                    ->orWhere('pc.phone', 'like', $like)
+                    ->orWhere('pc.email', 'like', $like);
+            });
+        }
+
         $channels = $this->stringList($segment['channels'] ?? null, ['b2b', 'b2c']);
         if ($channels !== []) {
             $query->whereIn('pc.origin_channel', $channels);

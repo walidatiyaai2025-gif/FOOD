@@ -10,10 +10,19 @@ class SmartOrderingCart extends Model
 
     protected $guarded = [];
 
+    /** @return array<string,mixed>|null */
+    public function merchandisingContext(): ?array
+    {
+        $value = $this->getAttribute('merchandising_context');
+
+        return is_array($value) ? $value : null;
+    }
+
     protected function casts(): array
     {
         return [
             'expires_at' => 'datetime',
+            'merchandising_context' => 'array',
         ];
     }
 }

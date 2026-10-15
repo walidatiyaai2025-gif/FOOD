@@ -569,6 +569,13 @@ final class ChatbotAutomationService
     ): bool {
         $metadata = ['purpose' => Capability::AUTOMATION->value];
         if ($interactive !== null) {
+            // Meta renders interactive.body.text as the visible message body and does
+            // not separately render whats_app_messages.body. Keep both surfaces in
+            // sync so a resolved service result is not replaced by a generic menu.
+            $interactive['body'] = is_array($interactive['body'] ?? null)
+                ? $interactive['body']
+                : [];
+            $interactive['body']['text'] = mb_substr(trim($body), 0, 1024);
             $metadata['interactive'] = $interactive;
         }
 

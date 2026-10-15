@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\CartService;
 use App\Domain\SmartOrdering\CheckoutService;
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,11 +19,13 @@ final class SmartOrderingController extends Controller
         $data = $request->validate([
             'branch_public_id' => ['required', 'uuid'],
             'revision_public_id' => ['nullable', 'uuid'],
+            'attribution_context' => ['nullable', 'string', 'max:512'],
         ]);
 
         $result = $carts->create(
             (string) $data['branch_public_id'],
             isset($data['revision_public_id']) ? (string) $data['revision_public_id'] : null,
+            isset($data['attribution_context']) ? (string) $data['attribution_context'] : null,
         );
 
         return response()->json([
@@ -118,12 +121,14 @@ final class SmartOrderingController extends Controller
             'delivery_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'delivery_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'order_note' => ['nullable', 'string', 'max:1000'],
+            'coupon_code' => ['nullable', 'string', 'max:64'],
         ]);
 
         $result = $checkout->checkout(
             $model,
             (string) $request->header('Idempotency-Key', ''),
             $data,
+            $request->user() instanceof User ? $request->user() : null,
         );
 
         return response()->json([

@@ -367,6 +367,25 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('Shared Customer Service Inbox');
     }
 
+    public function test_inbox_auto_scrolls_selected_conversation_to_latest_message(): void
+    {
+        $this->enableInbox();
+        $store = $this->store('B2B', 'WA-AUTOSCROLL');
+        $customer = $this->customer($store, 'b2b', 'Autoscroll Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $this->message($conversation, 'inbound', 'Newest customer message');
+
+        $admin = $this->globalUser('SUPER_ADMIN', 'Autoscroll Admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('id="wa-conversation-timeline"', false)
+            ->assertSee('timeline.scrollTop = timeline.scrollHeight;', false)
+            ->assertSee('new MutationObserver', false)
+            ->assertSee('Newest customer message');
+    }
+
     public function test_inbox_can_send_render_and_securely_open_an_attachment(): void
     {
         Storage::fake('local');
