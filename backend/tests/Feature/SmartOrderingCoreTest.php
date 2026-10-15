@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\Order;
 use App\Models\Role;
-use App\Models\SmartOrderingBranch;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -92,10 +92,31 @@ class SmartOrderingCoreTest extends TestCase
             ]);
         }
 
-        $this->branch = SmartOrderingBranch::query()->create([
+        $siteId = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $this->storeId,
-            'name' => 'Kuwait City Branch',
+            'slug' => 'smart-ordering-test-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('smart_ordering_entitlements')->insert([
+            'site_id' => $siteId,
+            'branch_id' => null,
+            'scope_key' => 'site',
+            'module' => 'ordering',
+            'enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->branch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $siteId,
+            'code' => 'kw-city',
+            'name_ar' => 'فرع مدينة الكويت',
+            'name_en' => 'Kuwait City Branch',
             'timezone' => 'Asia/Kuwait',
             'is_active' => true,
             'accepting_orders' => true,
