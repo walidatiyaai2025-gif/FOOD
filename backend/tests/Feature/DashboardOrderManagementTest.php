@@ -621,11 +621,24 @@ class DashboardOrderManagementTest extends TestCase
             ->assertSee('data-wizard-step="0"', false)
             ->assertSee('data-wizard-step="5"', false)
             ->assertSee('WIZARD-STORE-A')
-            ->assertSee('Wizard Buyer A')
-            ->assertSee('WIZARD-A-SKU')
+            ->assertSee('data-lookup-url', false)
+            ->assertDontSee('Wizard Buyer A')
+            ->assertDontSee('WIZARD-A-SKU')
             ->assertDontSee('WIZARD-STORE-B')
             ->assertDontSee('Wizard Buyer B')
             ->assertDontSee('WIZARD-B-SKU');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/customer?channel=b2c&store_id='.$storeA.'&q=Wizard')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $customerA->id, 'label' => 'Wizard Buyer A'])
+            ->assertJsonMissing(['label' => 'Wizard Buyer B']);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups/product?channel=b2c&store_id='.$storeA.'&q=WIZARD')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $productA, 'label' => 'WIZARD-A-SKU'])
+            ->assertJsonMissing(['label' => 'WIZARD-B-SKU']);
 
         $payload = [
             '_order_create_context' => 'central',
@@ -690,7 +703,8 @@ class DashboardOrderManagementTest extends TestCase
             ->assertSee('role="alertdialog"', false)
             ->assertSee('Continue editing')
             ->assertSee('Discard draft')
-            ->assertSee('WIZARD-DRAFT-SKU');
+            ->assertSee('data-lookup-url', false)
+            ->assertDontSee('WIZARD-DRAFT-SKU');
 
         $expected = [
             'en' => [
@@ -853,7 +867,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertStringContainsString('if (isSubmitting) {', $view);
         $this->assertStringContainsString('form.setAttribute(\'aria-busy\', active ? \'true\' : \'false\');', $view);
         $this->assertStringContainsString('setSubmitting(true);', $view);
-        $this->assertStringContainsString('if (restoreServerInput()) open();', $view);
+        $this->assertStringContainsString('restoreServerInput().then((restored) => { if (restored) open(); });', $view);
 
         $expected = [
             'en' => 'Creating order…',
