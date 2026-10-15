@@ -405,6 +405,98 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'paged product browse loads later records and exposes retry versus end state',
+    (tester) async {
+      final api = _PagedBrowseApi()..failSecondPageOnce = true;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogProductsScreen(
+            storeId: 19,
+            catalogApi: api,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('retail-product-8')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('retail-products-load-more')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-products-load-more')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-products-load-more-retry')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-products-load-more-retry')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('retail-product-10')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('retail-products-end')),
+        findsOneWidget,
+      );
+      expect(api.productPages, <int>[1, 2, 2]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'late product page cannot mix into a newer search scope',
+    (tester) async {
+      final api = _PagedBrowseApi()..delaySecondPage = true;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCatalogProductsScreen(
+              storeId: 19,
+              catalogApi: api,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-products-load-more')),
+      );
+      await tester.pump();
+
+      final searchField = find.descendant(
+        of: find.byKey(const ValueKey('retail-products-search')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(searchField, ' tea ');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
+
+      api.completeDelayedSecondPage();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('retail-product-20')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-product-10')), findsNothing);
+      expect(api.productQueries.last, 'tea');
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _BrowseFakeApi implements B2cCatalogApi {
@@ -456,6 +548,125 @@ class _BrowseFakeApi implements B2cCatalogApi {
         price: 2.5,
         currency: 'KWD',
         description: 'Fresh coffee',
+      );
+}
+
+class _PagedBrowseApi extends _BrowseFakeApi
+    implements B2cPagedCatalogApi {
+  final List<int> productPages = <int>[];
+  final List<String?> productQueries = <String?>[];
+  bool failSecondPageOnce = false;
+  bool delaySecondPage = false;
+  Completer<B2cCatalogPage<B2cProduct>>? _delayedSecondPage;
+
+  @override
+  Future<B2cCatalogPage<B2cCategory>> categoryPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async =>
+      B2cCatalogPage<B2cCategory>.single(
+        await categories(storeId),
+      );
+
+  @override
+  Future<B2cCatalogPage<B2cOffer>> offerPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async =>
+      B2cCatalogPage<B2cOffer>.single(
+        await offers(storeId),
+      );
+
+  @override
+  Future<B2cCatalogPage<B2cProduct>> productPage(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+    int page = 1,
+    int perPage = 20,
+  }) {
+    productPages.add(page);
+    productQueries.add(query);
+
+    if (query == 'tea') {
+      return Future<B2cCatalogPage<B2cProduct>>.value(
+        const B2cCatalogPage<B2cProduct>(
+          items: <B2cProduct>[
+            B2cProduct(
+              id: 20,
+              name: 'Tea',
+              sku: 'TEA-20',
+              price: 1.5,
+            ),
+          ],
+          currentPage: 1,
+          perPage: 20,
+          total: 1,
+        ),
+      );
+    }
+
+    if (page == 2 && failSecondPageOnce) {
+      failSecondPageOnce = false;
+      return Future<B2cCatalogPage<B2cProduct>>.error(
+        const B2cCatalogException('page_failed'),
+      );
+    }
+
+    if (page == 2 && delaySecondPage) {
+      _delayedSecondPage ??= Completer<B2cCatalogPage<B2cProduct>>();
+      return _delayedSecondPage!.future;
+    }
+
+    return Future<B2cCatalogPage<B2cProduct>>.value(
+      page == 1
+          ? const B2cCatalogPage<B2cProduct>(
+              items: <B2cProduct>[
+                B2cProduct(
+                  id: 8,
+                  name: 'Coffee',
+                  sku: 'COF-8',
+                  price: 2.5,
+                ),
+                B2cProduct(
+                  id: 9,
+                  name: 'Coffee Beans',
+                  sku: 'COF-9',
+                  price: 3.5,
+                ),
+              ],
+              currentPage: 1,
+              perPage: 2,
+              total: 3,
+            )
+          : _secondPage(),
+    );
+  }
+
+  void completeDelayedSecondPage() {
+    final pending = _delayedSecondPage;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(_secondPage());
+    }
+  }
+
+  static B2cCatalogPage<B2cProduct> _secondPage() =>
+      const B2cCatalogPage<B2cProduct>(
+        items: <B2cProduct>[
+          B2cProduct(
+            id: 10,
+            name: 'Coffee Pods',
+            sku: 'COF-10',
+            price: 4.5,
+          ),
+        ],
+        currentPage: 2,
+        perPage: 2,
+        total: 3,
       );
 }
 
