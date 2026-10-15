@@ -81,9 +81,18 @@ final class SmartOrderingCustomerController extends Controller
                 static fn ($sku): string => trim((string) $sku),
                 (array) $data['skus'],
             )));
-            $selectedItemIds = DB::table('order_items')
+            $matchingItems = DB::table('order_items')
                 ->where('order_id', (int) $orderId)
                 ->whereIn('sku_snapshot', $skus)
+                ->get(['id', 'sku_snapshot']);
+            $matchedSkus = $matchingItems
+                ->pluck('sku_snapshot')
+                ->map(static fn ($sku): string => (string) $sku)
+                ->unique()
+                ->values()
+                ->all();
+            abort_unless(count($matchedSkus) === count($skus), 422, 'One or more selected SKUs do not belong to this order.');
+            $selectedItemIds = $matchingItems
                 ->pluck('id')
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
@@ -137,10 +146,28 @@ final class SmartOrderingCustomerController extends Controller
         [$site, $customerId] = $this->context($request);
         $balance = $loyalty->balance($site, $customerId);
 
+        $rewards = collect($catalog->rewards($site))
+            ->map(static function (array $reward) use ($site): array {
+                $branch = $reward['branch_id'] === null
+                    ? null
+                    : DB::table('smart_ordering_branches')
+                        ->where('site_id', $site->id)
+                        ->where('id', (int) $reward['branch_id'])
+                        ->value('public_id');
+
+                return [
+                    'id' => (string) $reward['id'],
+                    'branch' => $branch === null ? null : (string) $branch,
+                    'name_ar' => $reward['name_ar'],
+                    'name_en' => (string) $reward['name_en'],
+                    'points_cost' => (int) $reward['points_cost'],
+                ];
+            })->values()->all();
+
         return response()->json([
             'data' => [
                 ...$balance,
-                'rewards' => $catalog->rewards($site),
+                'rewards' => $rewards,
             ],
         ]);
     }
@@ -152,8 +179,18 @@ final class SmartOrderingCustomerController extends Controller
     ): JsonResponse {
         [$site, $customerId] = $this->context($request);
         $data = $request->validate([
-            'branch_id' => ['nullable', 'integer', 'min:1'],
+            'branch' => ['nullable', 'uuid'],
         ]);
+        $branchId = null;
+        if (isset($data['branch'])) {
+            $branchId = DB::table('smart_ordering_branches')
+                ->where('site_id', $site->id)
+                ->where('public_id', (string) $data['branch'])
+                ->where('is_active', true)
+                ->value('id');
+            abort_unless($branchId !== null, 404);
+        }
+
         $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
         abort_if($idempotencyKey === '', 422, 'Idempotency-Key is required.');
 
@@ -161,7 +198,7 @@ final class SmartOrderingCustomerController extends Controller
             $site,
             $customerId,
             $reward,
-            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+            $branchId === null ? null : (int) $branchId,
             $idempotencyKey,
         );
 
