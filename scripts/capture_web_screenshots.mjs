@@ -703,6 +703,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'smart-ordering-qr',
+    '/admin/smart-ordering/qr',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'sales-control',
     '/admin/b2b/commercial/sales-control',
   );
