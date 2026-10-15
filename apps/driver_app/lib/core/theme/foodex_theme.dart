@@ -93,17 +93,12 @@ abstract final class FoodexTheme {
       onError: Colors.white,
     );
 
-    final base = ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-    );
-    final textTheme = (fontFamily == null
-            ? GoogleFonts.alexandriaTextTheme(base.textTheme)
-            : base.textTheme.apply(fontFamily: fontFamily))
-        .apply(
-      bodyColor: FoodexBrand.ink,
-      displayColor: FoodexBrand.ink,
-    );
+    final base = ThemeData(useMaterial3: true, colorScheme: scheme);
+    final textTheme =
+        (fontFamily == null
+                ? GoogleFonts.alexandriaTextTheme(base.textTheme)
+                : base.textTheme.apply(fontFamily: fontFamily))
+            .apply(bodyColor: FoodexBrand.ink, displayColor: FoodexBrand.ink);
     final primaryTextTheme = fontFamily == null
         ? GoogleFonts.alexandriaTextTheme(base.primaryTextTheme)
         : base.primaryTextTheme.apply(fontFamily: fontFamily);
@@ -176,17 +171,13 @@ abstract final class FoodexTheme {
         backgroundColor: FoodexBrand.ink,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: FoodexBrand.surface,
         selectedColor: FoodexBrand.greenSoft,
         side: const BorderSide(color: FoodexBrand.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         labelStyle: textTheme.labelLarge,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
@@ -200,7 +191,10 @@ abstract final class FoodexTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: FoodexBrand.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         hintStyle: textTheme.bodyMedium?.copyWith(color: FoodexBrand.muted),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

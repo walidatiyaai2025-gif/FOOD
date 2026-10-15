@@ -6,6 +6,7 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanProductCatalogPage extends StatefulWidget {
@@ -115,64 +116,63 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
       _products.where((product) => !product.isAvailable).length;
 
   int get _lowStockCount => _products.where((product) {
-        final quantity = product.availableQuantity;
-        return product.isAvailable &&
-            quantity != null &&
-            quantity <= product.minimumQuantity;
-      }).length;
+    final quantity = product.availableQuantity;
+    return product.isAvailable &&
+        quantity != null &&
+        quantity <= product.minimumQuantity;
+  }).length;
 
   int get _healthyCount =>
       _products.length - _unavailableCount - _lowStockCount;
 
   Widget _stockAnalytics(BuildContext context) => Card(
-        key: const ValueKey('van-catalog-stock-analytics'),
-        elevation: 0,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _text('Catalog availability', 'توفر الكتالوج'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _text(
-                  'Which products can be sold now, and which need stock attention?',
-                  'ما المنتجات المتاحة للبيع الآن وما الذي يحتاج متابعة مخزون؟',
-                ),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              FoodexDonutChart(
-                key: const ValueKey('van-catalog-stock-chart'),
-                values: [
-                  _healthyCount.toDouble(),
-                  _lowStockCount.toDouble(),
-                  _unavailableCount.toDouble(),
-                ],
-                semanticLabel: _text(
-                  'Healthy, low-stock and unavailable catalog distribution',
-                  'توزيع منتجات الكتالوج السليمة ومنخفضة المخزون وغير المتاحة',
-                ),
-                size: 134,
-                strokeWidth: 18,
-              ),
-              const SizedBox(height: 10),
-              FoodexChartLegend(
-                labels: [
-                  _text('Available', 'متاح'),
-                  _text('Low stock', 'مخزون منخفض'),
-                  _text('Unavailable', 'غير متاح'),
-                ],
-              ),
+    key: const ValueKey('van-catalog-stock-analytics'),
+    elevation: 0,
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _text('Catalog availability', 'توفر الكتالوج'),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _text(
+              'Which products can be sold now, and which need stock attention?',
+              'ما المنتجات المتاحة للبيع الآن وما الذي يحتاج متابعة مخزون؟',
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          FoodexDonutChart(
+            key: const ValueKey('van-catalog-stock-chart'),
+            values: [
+              _healthyCount.toDouble(),
+              _lowStockCount.toDouble(),
+              _unavailableCount.toDouble(),
+            ],
+            semanticLabel: _text(
+              'Healthy, low-stock and unavailable catalog distribution',
+              'توزيع منتجات الكتالوج السليمة ومنخفضة المخزون وغير المتاحة',
+            ),
+            size: 134,
+            strokeWidth: 18,
+          ),
+          const SizedBox(height: 10),
+          FoodexChartLegend(
+            labels: [
+              _text('Available', 'متاح'),
+              _text('Low stock', 'مخزون منخفض'),
+              _text('Unavailable', 'غير متاح'),
             ],
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -281,21 +281,23 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                               product.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                             Text(
                               product.sku,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: FoodexVanTokens.muted),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              foodexMoneyText(product.unitPrice, product.currency),
+                              foodexMoneyText(
+                                product.unitPrice,
+                                product.currency,
+                              ),
                               style: const TextStyle(
                                 color: FoodexVanTokens.actionGreen,
                                 fontWeight: FontWeight.w900,
@@ -306,8 +308,9 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                       ),
                       IconButton.filledTonal(
                         key: ValueKey('van-catalog-add-${product.id}'),
-                        onPressed:
-                            product.isAvailable ? () => widget.draft.add(product) : null,
+                        onPressed: product.isAvailable
+                            ? () => widget.draft.add(product)
+                            : null,
                         icon: const Icon(Icons.add),
                       ),
                     ],
@@ -345,16 +348,19 @@ class _State extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        elevation: 0,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            children: [
-              Text(text, textAlign: TextAlign.center),
-              const SizedBox(height: 10),
-              VanActionButton.secondary(onPressed: action, child: Text(actionLabel)),
-            ],
+    elevation: 0,
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          Text(text, textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          VanActionButton.secondary(
+            onPressed: action,
+            child: Text(actionLabel),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

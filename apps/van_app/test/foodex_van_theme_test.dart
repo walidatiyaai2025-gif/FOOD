@@ -16,21 +16,28 @@ void main() {
     expect(theme.colorScheme.onError, Colors.white);
   });
 
-  testWidgets('Van primary and secondary shared actions use accessible green', (tester) async {
+  testWidgets('Van primary and secondary shared actions use accessible green', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
           body: Column(
             children: [
               VanActionButton(onPressed: null, child: Text('Primary')),
-              VanActionButton.secondary(onPressed: null, child: Text('Secondary')),
+              VanActionButton.secondary(
+                onPressed: null,
+                child: Text('Secondary'),
+              ),
             ],
           ),
         ),
       ),
     );
 
-    final buttons = tester.widgetList<FilledButton>(find.byType(FilledButton)).toList();
+    final buttons = tester
+        .widgetList<FilledButton>(find.byType(FilledButton))
+        .toList();
     expect(buttons, hasLength(2));
 
     final primaryStyle = buttons[0].style;
