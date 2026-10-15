@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SmartOrderingQrCode;
 use App\Models\SmartOrderingQrToken;
+use App\Models\Store;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -116,14 +117,27 @@ final class SmartOrderingQrManager
 
         abort_unless($token instanceof SmartOrderingQrToken, 404);
         abort_if($token->state === 'revoked', 404);
-        abort_if($token->state === 'legacy' && $token->legacy_expires_at?->isPast(), 404);
+        abort_if(
+            $token->state === 'legacy'
+                && $token->legacy_expires_at !== null
+                && Carbon::parse((string) $token->legacy_expires_at)->isPast(),
+            404,
+        );
 
         $qr = $token->qrCode;
         abort_unless($qr instanceof SmartOrderingQrCode, 404);
         abort_unless($qr->is_enabled, 404);
-        abort_if($qr->valid_from !== null && $qr->valid_from->isFuture(), 404);
-        abort_if($qr->valid_until !== null && $qr->valid_until->isPast(), 404);
-        abort_unless($qr->store?->is_active === true, 404);
+        abort_if(
+            $qr->valid_from !== null && Carbon::parse((string) $qr->valid_from)->isFuture(),
+            404,
+        );
+        abort_if(
+            $qr->valid_until !== null && Carbon::parse((string) $qr->valid_until)->isPast(),
+            404,
+        );
+
+        $store = $qr->store;
+        abort_unless($store instanceof Store && $store->is_active === true, 404);
 
         return ['qr' => $qr, 'token' => $token];
     }
@@ -132,7 +146,7 @@ final class SmartOrderingQrManager
     {
         $token = $qr->relationLoaded('activeToken') ? $qr->activeToken : $qr->activeToken()->first();
 
-        if (! $token instanceof SmartOrderingQrToken || ! is_string($token->token_value) || $token->token_value === '') {
+        if (! $token instanceof SmartOrderingQrToken || $token->token_value === '') {
             return null;
         }
 
