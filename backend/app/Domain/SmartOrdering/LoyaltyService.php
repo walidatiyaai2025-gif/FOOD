@@ -377,49 +377,82 @@ final class LoyaltyService
     {
         $this->assertEnabled($site);
 
-        $query = DB::table('smart_ordering_loyalty_ledger')
-            ->where('site_id', $site->id)
-            ->where('type', 'EARN')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', now())
-            ->orderBy('id');
+        $query = DB::table('smart_ordering_loyalty_lots as lots')
+            ->join('smart_ordering_loyalty_ledger as earn', 'earn.id', '=', 'lots.earn_ledger_id')
+            ->where('earn.site_id', $site->id)
+            ->where('earn.type', 'EARN')
+            ->where('lots.remaining_points', '>', 0)
+            ->whereNotNull('lots.expires_at')
+            ->where('lots.expires_at', '<=', now())
+            ->orderBy('lots.id');
 
         if ($customerId !== null) {
             $this->assertTenantCustomer($site, $customerId);
-            $query->where('customer_id', $customerId);
+            $query->where('earn.customer_id', $customerId);
         }
 
         $expired = 0;
-        foreach ($query->get() as $earning) {
-            $key = 'expire:ledger:'.$earning->id;
-            $expired += DB::transaction(function () use ($site, $earning, $key): int {
+        foreach ($query->get([
+            'lots.id as lot_id',
+            'lots.account_id',
+            'lots.earn_ledger_id',
+            'earn.customer_id',
+            'earn.branch_id',
+            'earn.order_id',
+        ]) as $candidate) {
+            $key = 'expire:lot:'.$candidate->lot_id;
+            $expired += DB::transaction(function () use ($site, $candidate, $key): int {
                 if (DB::table('smart_ordering_loyalty_ledger')->where('idempotency_key', $key)->exists()) {
                     return 0;
                 }
 
-                $account = DB::table('smart_ordering_loyalty_accounts')->where('id', $earning->account_id)->lockForUpdate()->first();
-                if ($account === null || (int) $account->balance <= 0) {
+                $account = DB::table('smart_ordering_loyalty_accounts')
+                    ->where('id', $candidate->account_id)
+                    ->lockForUpdate()
+                    ->first();
+                if ($account === null) {
                     return 0;
                 }
+
+                $lot = DB::table('smart_ordering_loyalty_lots')
+                    ->where('id', $candidate->lot_id)
+                    ->lockForUpdate()
+                    ->first(['id', 'remaining_points']);
+                if ($lot === null || (int) $lot->remaining_points <= 0) {
+                    return 0;
+                }
+
                 if (DB::table('smart_ordering_loyalty_ledger')->where('idempotency_key', $key)->exists()) {
                     return 0;
                 }
 
-                $points = min((int) $earning->points, (int) $account->balance);
+                $points = min((int) $lot->remaining_points, max(0, (int) $account->balance));
+                DB::table('smart_ordering_loyalty_lots')->where('id', $lot->id)->update([
+                    'remaining_points' => 0,
+                    'updated_at' => now(),
+                ]);
+
+                if ($points <= 0) {
+                    return 0;
+                }
+
                 $balance = (int) $account->balance - $points;
                 DB::table('smart_ordering_loyalty_ledger')->insert([
                     'account_id' => $account->id,
                     'site_id' => $site->id,
-                    'customer_id' => $earning->customer_id,
-                    'branch_id' => $earning->branch_id,
-                    'order_id' => $earning->order_id,
+                    'customer_id' => $candidate->customer_id,
+                    'branch_id' => $candidate->branch_id,
+                    'order_id' => $candidate->order_id,
                     'reward_id' => null,
                     'created_by' => null,
                     'type' => 'EXPIRY',
                     'points' => -$points,
                     'balance_after' => $balance,
                     'idempotency_key' => $key,
-                    'metadata' => json_encode(['source_ledger_id' => (int) $earning->id], JSON_THROW_ON_ERROR),
+                    'metadata' => json_encode([
+                        'source_ledger_id' => (int) $candidate->earn_ledger_id,
+                        'source_lot_id' => (int) $candidate->lot_id,
+                    ], JSON_THROW_ON_ERROR),
                     'expires_at' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -462,6 +495,53 @@ final class LoyaltyService
             'expiry_days' => $configuredExpiry === null ? null : (int) $configuredExpiry,
             'is_active' => $row === null ? true : (bool) $row->is_active,
         ];
+    }
+
+    /**
+     * Consume expiring earning lots first. Untracked positive adjustments remain non-expiring.
+     *
+     * @return list<array{earn_ledger_id:int,points:int}>
+     */
+    private function consumeLots(int $accountId, int $points): array
+    {
+        $remaining = max(0, $points);
+        $allocations = [];
+        if ($remaining === 0) {
+            return $allocations;
+        }
+
+        $lots = DB::table('smart_ordering_loyalty_lots')
+            ->where('account_id', $accountId)
+            ->where('remaining_points', '>', 0)
+            ->orderByRaw('CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('expires_at')
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['id', 'earn_ledger_id', 'remaining_points']);
+
+        foreach ($lots as $lot) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $consume = min($remaining, (int) $lot->remaining_points);
+            if ($consume <= 0) {
+                continue;
+            }
+
+            DB::table('smart_ordering_loyalty_lots')->where('id', $lot->id)->update([
+                'remaining_points' => (int) $lot->remaining_points - $consume,
+                'updated_at' => now(),
+            ]);
+
+            $allocations[] = [
+                'earn_ledger_id' => (int) $lot->earn_ledger_id,
+                'points' => $consume,
+            ];
+            $remaining -= $consume;
+        }
+
+        return $allocations;
     }
 
     private function lockedAccount(SmartOrderingSite $site, int $customerId): object
