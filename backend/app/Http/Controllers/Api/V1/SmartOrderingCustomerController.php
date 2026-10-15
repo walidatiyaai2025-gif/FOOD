@@ -56,15 +56,25 @@ final class SmartOrderingCustomerController extends Controller
         abort_unless($orderId !== null, 404);
 
         $data = $request->validate([
-            'order_item_ids' => ['nullable', 'array', 'max:100'],
-            'order_item_ids.*' => ['integer', 'min:1'],
+            'product_ids' => ['nullable', 'array', 'max:100'],
+            'product_ids.*' => ['integer', 'min:1'],
         ]);
+
+        $selectedItemIds = [];
+        if (($data['product_ids'] ?? []) !== []) {
+            $selectedItemIds = DB::table('order_items')
+                ->where('order_id', (int) $orderId)
+                ->whereIn('product_id', array_values(array_unique(array_map('intval', (array) $data['product_ids']))))
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        }
 
         $draft = $repeat->createDraft(
             $site,
             $customerId,
             (int) $orderId,
-            array_values((array) ($data['order_item_ids'] ?? [])),
+            $selectedItemIds,
         );
 
         unset($draft['source_order_id']);
