@@ -185,6 +185,27 @@ final class SmartOrderingCustomerGrowthController extends Controller
         ));
     }
 
+    public function recoveryCases(
+        Request $request,
+        SmartOrderingSite $site,
+        FeedbackService $feedback,
+        TenantContextResolver $tenants,
+    ): JsonResponse {
+        $this->authorizeSite($request, $site, $tenants, 'smart_ordering.view');
+        $data = $request->validate([
+            'status' => ['nullable', 'string', 'in:OPEN,RESOLVED'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        return response()->json([
+            'cases' => $feedback->recoveryCases(
+                $site,
+                (string) ($data['status'] ?? 'OPEN'),
+                (int) ($data['limit'] ?? 50),
+            ),
+        ]);
+    }
+
     public function resolveRecovery(
         Request $request,
         SmartOrderingSite $site,
