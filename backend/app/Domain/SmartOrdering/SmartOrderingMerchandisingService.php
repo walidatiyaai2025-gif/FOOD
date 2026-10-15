@@ -331,7 +331,7 @@ final class SmartOrderingMerchandisingService
         abort_unless(in_array($placement, self::PLACEMENTS, true), 422);
 
         $subtotal = round((float) ($quote['subtotal'] ?? 0), 3);
-        $context = is_array($cart->merchandising_context) ? $cart->merchandising_context : null;
+        $context = $cart->merchandisingContext();
         $lines = DB::table('smart_ordering_cart_items')
             ->where('cart_id', $cart->id)
             ->get(['product_id', 'quantity'])
@@ -548,7 +548,7 @@ final class SmartOrderingMerchandisingService
         }
     }
 
-    /** @return \Illuminate\Support\Collection<int,object> */
+    /** @return \Illuminate\Support\Collection<int,\stdClass> */
     private function activeOfferRules(
         SmartOrderingSite $site,
         SmartOrderingBranch $branch,
@@ -631,8 +631,8 @@ final class SmartOrderingMerchandisingService
 
         $quantities = [];
         foreach ($lines as $line) {
-            $id = (int) ($line['product_id'] ?? 0);
-            $quantities[$id] = round(($quantities[$id] ?? 0) + (float) ($line['quantity'] ?? 0), 3);
+            $id = (int) $line['product_id'];
+            $quantities[$id] = round(($quantities[$id] ?? 0) + (float) $line['quantity'], 3);
         }
         foreach ((array) ($conditions['required_products'] ?? []) as $required) {
             if (! is_array($required)) {
@@ -791,7 +791,7 @@ final class SmartOrderingMerchandisingService
             $normalPerSet += $byProduct[$id]['unit_price'] * $qty;
         }
 
-        if (($sets ?? 0) <= 0) {
+        if ($sets <= 0) {
             return 0.0;
         }
 
