@@ -289,7 +289,8 @@ final class TreasuryMasterController extends Controller
         string $search,
         string $status,
         array $searchColumns,
-    ): Builder {
+    ): Builder
+    {
         $query->whereIn('store_id', $storeIds);
 
         if ($storeId !== null) {
@@ -355,7 +356,8 @@ final class TreasuryMasterController extends Controller
         int $storeId,
         string $code,
         ?int $ignoreId = null,
-    ): void {
+    ): void
+    {
         $query = DB::table($table)
             ->where('company_id', $companyId)
             ->where('store_id', $storeId)
