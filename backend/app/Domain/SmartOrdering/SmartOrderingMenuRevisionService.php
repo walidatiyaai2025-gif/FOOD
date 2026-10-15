@@ -129,6 +129,7 @@ final class SmartOrderingMenuRevisionService
                     'name_en' => $row->name_en,
                     'description_ar' => $row->description_ar,
                     'description_en' => $row->description_en,
+                    'image_path' => $row->image_path,
                     'is_default' => $row->is_default,
                     'is_visible' => $row->is_visible,
                     'sort_order' => $row->sort_order,
