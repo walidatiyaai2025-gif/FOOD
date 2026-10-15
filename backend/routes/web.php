@@ -528,6 +528,7 @@ Route::prefix('admin')
             ->whereNumber('assignment')
             ->whereNumber('proof')
             ->name('operations.orders.van-proofs.show');
+        Route::get('/operations/orders/lookups', [OrderOperationsController::class, 'lookupNewOrder'])->name('operations.orders.lookups');
         Route::post('/operations/orders/quote', [OrderOperationsController::class, 'quoteNewOrder'])->name('operations.orders.quote');
         Route::post('/operations/orders', [OrderOperationsController::class, 'storeNewOrder'])->name('operations.orders.store');
         Route::patch('/operations/orders/{order}', [OrderOperationsController::class, 'update'])->whereNumber('order')->name('operations.orders.update');
