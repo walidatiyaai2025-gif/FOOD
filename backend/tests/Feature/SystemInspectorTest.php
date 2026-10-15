@@ -206,6 +206,14 @@ class SystemInspectorTest extends TestCase
 
         $this->assertSame(0, InspectorForbiddenProbe::$constructed);
 
+        $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
+        $export->assertOk();
+        $exportContent = $export->streamedContent();
+        $this->assertStringContainsString('SafeEvent25', $exportContent);
+        $this->assertStringContainsString('wf-25', $exportContent);
+        $this->assertStringNotContainsString('super-secret', $exportContent);
+        $this->assertStringNotContainsString('secret-idempotency', $exportContent);
+
         $html = $response->getContent();
         $this->assertIsString($html);
         $this->assertStringContainsString('Modules & background diagnostics', $html);
