@@ -333,15 +333,17 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
     double value,
     String currency, {
     bool strong = false,
-  }) => Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(
-            foodexMoneyText(value, currency),
-            style: TextStyle(
-              fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
-            ),
+  }) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        Text(
+          foodexMoneyText(value, currency),
+          style: TextStyle(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
