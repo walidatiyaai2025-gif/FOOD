@@ -79,6 +79,13 @@ class OnePushGreenContractTest(unittest.TestCase):
         text = (ROOT / ".github/workflows/required-ci-gate.yml").read_text(encoding="utf-8")
         self.assertIn("test_foodex_skill_router.py", text)
 
+    def test_localization_mobile_runtime_is_path_scoped(self):
+        gate = (ROOT / ".github/workflows/required-ci-gate.yml").read_text(encoding="utf-8")
+        localization = (ROOT / ".github/workflows/localization-quality-gate.yml").read_text(encoding="utf-8")
+        self.assertIn("run_mobile_runtime:", gate)
+        self.assertIn("backend_dashboard_only != 'true'", gate)
+        self.assertGreaterEqual(localization.count("inputs.run_mobile_runtime || github.event_name == 'workflow_dispatch'"), 4)
+
     def test_redocly_is_version_pinned(self):
         text = (ROOT / ".github/workflows/backend-ci.yml").read_text(encoding="utf-8")
         self.assertNotIn("@redocly/cli@latest", text)
