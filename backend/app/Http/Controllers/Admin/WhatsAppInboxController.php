@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\SmartOrdering\WhatsApp\SmartOrderingConversationContextService;
 use App\Domain\WhatsApp\AgentAssignmentEngine;
 use App\Domain\WhatsApp\ConversationService;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
@@ -32,6 +33,7 @@ final class WhatsAppInboxController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly AgentAssignmentEngine $agents,
         private readonly ConversationService $conversations,
+        private readonly SmartOrderingConversationContextService $smartOrderingContext,
         private readonly OutboundMessageDispatcher $outbound,
         private readonly WhatsAppMediaService $media,
         private readonly RuntimePolicy $policy,
@@ -111,6 +113,7 @@ final class WhatsAppInboxController extends Controller
         $tags = collect();
         $allTags = collect();
         $customer360 = null;
+        $smartOrdering = ['orders' => [], 'timeline' => collect()];
         $agents = collect();
 
         if ($selectedId !== null) {
@@ -144,6 +147,15 @@ final class WhatsAppInboxController extends Controller
                 $actor,
             );
 
+            $smartOrdering = $this->smartOrderingContext->forConversation(
+                $selectedId,
+                $allowedStoreIds,
+            );
+            $timeline = $timeline
+                ->concat($smartOrdering['timeline'])
+                ->sortBy(fn (array $row): string => (string) $row['timestamp'])
+                ->values();
+
             $agents = $this->agents->summaries(
                 $selected->store_id === null ? null : (int) $selected->store_id,
             );
@@ -165,6 +177,7 @@ final class WhatsAppInboxController extends Controller
             'tags' => $tags,
             'allTags' => $allTags,
             'customer360' => $customer360,
+            'smartOrderingContext' => $smartOrdering,
             'agents' => $agents,
             'stores' => $stores,
             'filters' => $filters,

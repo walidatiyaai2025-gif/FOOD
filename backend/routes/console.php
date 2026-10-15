@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\SmartOrdering\LoyaltyService;
+use App\Domain\SmartOrdering\WhatsApp\SmartOrderingScheduledReminderService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
 use App\Domain\WhatsApp\StateManager;
@@ -62,6 +63,15 @@ Artisan::command(
     },
 )->purpose('Apply the source-controlled #1407 WhatsApp CRM GA certificate without enabling production.');
 
+Artisan::command('foodex:dispatch-smart-ordering-whatsapp-reminders', function (SmartOrderingScheduledReminderService $reminders): void {
+    $count = $reminders->dispatchDue();
+    $this->info("Queued {$count} Smart Ordering WhatsApp reminder(s).");
+});
+
+Schedule::command('foodex:dispatch-smart-ordering-whatsapp-reminders')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Artisan::command('foodex:retry-whatsapp-transport', function (TransportRetryService $retry): void {
     $count = $retry->dispatchDue();
     $this->info("Dispatched {$count} due WhatsApp transport retry job(s).");
@@ -79,7 +89,6 @@ Artisan::command('foodex:dispatch-whatsapp-campaigns', function (CampaignService
 Schedule::command('foodex:dispatch-whatsapp-campaigns')
     ->everyMinute()
     ->withoutOverlapping();
-
 
 Artisan::command('foodex:expire-smart-ordering-loyalty', function (LoyaltyService $loyalty): void {
     $count = $loyalty->expireAllDue();

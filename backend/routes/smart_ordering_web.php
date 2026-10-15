@@ -2,13 +2,14 @@
 
 use App\Http\Controllers\Admin\SmartOrderingController;
 use App\Http\Controllers\Admin\SmartOrderingCustomerGrowthController;
+use App\Http\Controllers\Admin\SmartOrderingMenuAdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin/smart-ordering')
     ->name('admin.smart-ordering.')
     ->middleware('management.dashboard')
     ->group(function (): void {
-        Route::get('/', [SmartOrderingController::class, 'index'])->name('index');
+        Route::get('/settings', [SmartOrderingController::class, 'index'])->name('index');
         Route::put('/sites/{site}/runtime', [SmartOrderingController::class, 'runtime'])->whereNumber('site')->name('runtime');
         Route::put('/sites/{site}/entitlements', [SmartOrderingController::class, 'entitlements'])->whereNumber('site')->name('entitlements');
         Route::put('/sites/{site}/slug', [SmartOrderingController::class, 'slug'])->whereNumber('site')->name('slug');
@@ -17,6 +18,29 @@ Route::prefix('admin/smart-ordering')
         Route::post('/sites/{site}/draft', [SmartOrderingController::class, 'draft'])->whereNumber('site')->name('draft');
         Route::put('/revisions/{revision}', [SmartOrderingController::class, 'updateDraft'])->whereNumber('revision')->name('revisions.update');
         Route::post('/revisions/{revision}/publish', [SmartOrderingController::class, 'publish'])->whereNumber('revision')->name('revisions.publish');
+
+        Route::get('/menu', [SmartOrderingMenuAdminController::class, 'index'])->name('menu.index');
+        Route::get('/menu/products', [SmartOrderingMenuAdminController::class, 'products'])->name('menu.products');
+        Route::post('/menu/menus', [SmartOrderingMenuAdminController::class, 'storeMenu'])->name('menu.menus.store');
+        Route::put('/menu/menus/{menu}', [SmartOrderingMenuAdminController::class, 'updateMenu'])->whereNumber('menu')->name('menu.menus.update');
+        Route::delete('/menu/menus/{menu}', [SmartOrderingMenuAdminController::class, 'deleteMenu'])->whereNumber('menu')->name('menu.menus.destroy');
+        Route::post('/menu/menus/{menu}/categories', [SmartOrderingMenuAdminController::class, 'storeCategory'])->whereNumber('menu')->name('menu.categories.store');
+        Route::put('/menu/categories/{category}', [SmartOrderingMenuAdminController::class, 'updateCategory'])->whereNumber('category')->name('menu.categories.update');
+        Route::delete('/menu/categories/{category}', [SmartOrderingMenuAdminController::class, 'deleteCategory'])->whereNumber('category')->name('menu.categories.destroy');
+        Route::put('/menu/categories/{category}/branch', [SmartOrderingMenuAdminController::class, 'categoryBranch'])->whereNumber('category')->name('menu.categories.branch');
+        Route::post('/menu/categories/{category}/items', [SmartOrderingMenuAdminController::class, 'storeItem'])->whereNumber('category')->name('menu.items.store');
+        Route::put('/menu/items/{item}', [SmartOrderingMenuAdminController::class, 'updateItem'])->whereNumber('item')->name('menu.items.update');
+        Route::delete('/menu/items/{item}', [SmartOrderingMenuAdminController::class, 'deleteItem'])->whereNumber('item')->name('menu.items.destroy');
+        Route::put('/menu/items/{item}/branch', [SmartOrderingMenuAdminController::class, 'itemBranch'])->whereNumber('item')->name('menu.items.branch');
+        Route::post('/menu/items/{item}/groups', [SmartOrderingMenuAdminController::class, 'storeGroup'])->whereNumber('item')->name('menu.groups.store');
+        Route::put('/menu/groups/{group}', [SmartOrderingMenuAdminController::class, 'updateGroup'])->whereNumber('group')->name('menu.groups.update');
+        Route::delete('/menu/groups/{group}', [SmartOrderingMenuAdminController::class, 'deleteGroup'])->whereNumber('group')->name('menu.groups.destroy');
+        Route::post('/menu/groups/{group}/options', [SmartOrderingMenuAdminController::class, 'storeOption'])->whereNumber('group')->name('menu.options.store');
+        Route::put('/menu/options/{option}', [SmartOrderingMenuAdminController::class, 'updateOption'])->whereNumber('option')->name('menu.options.update');
+        Route::delete('/menu/options/{option}', [SmartOrderingMenuAdminController::class, 'deleteOption'])->whereNumber('option')->name('menu.options.destroy');
+        Route::put('/menu/options/{option}/branch', [SmartOrderingMenuAdminController::class, 'optionBranch'])->whereNumber('option')->name('menu.options.branch');
+        Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
+        Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
 
         Route::get('/sites/{site}/customers/{customer}', [SmartOrderingCustomerGrowthController::class, 'profile'])
             ->whereNumber('site')->whereNumber('customer')->name('customers.show');

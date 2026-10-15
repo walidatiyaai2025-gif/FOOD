@@ -215,6 +215,35 @@ return [
         ],
     ],
 
+
+    'smart_ordering' => [
+        'timeline_actor' => 'الطلب الذكي',
+        'timeline_status' => 'تغيرت حالة طلب الطلب الذكي :order إلى :status.',
+        'orders_title' => 'طلبات الطلب الذكي',
+        'branch' => 'الفرع',
+        'fulfillment' => 'طريقة الاستلام',
+        'scheduled' => 'موعد الطلب',
+        'table' => 'الطاولة',
+        'delivery_address' => 'عنوان التوصيل',
+        'total' => 'الإجمالي',
+        'note' => 'ملاحظة العميل',
+        'open_order' => 'فتح طلب FOODEX الأساسي',
+        'modes' => [
+            'dine_in' => 'داخل المطعم',
+            'pickup' => 'استلام من الفرع',
+            'delivery' => 'توصيل',
+        ],
+        'statuses' => [
+            'new' => 'جديد',
+            'confirmed' => 'مؤكد',
+            'preparing' => 'قيد التجهيز',
+            'ready' => 'جاهز',
+            'out_for_delivery' => 'خرج للتوصيل',
+            'completed' => 'مكتمل',
+            'cancelled' => 'ملغي',
+        ],
+    ],
+
     'campaigns' => [
         'nav_title' => 'حملات واتساب',
         'page_title' => 'حملات واتساب · فودكس',

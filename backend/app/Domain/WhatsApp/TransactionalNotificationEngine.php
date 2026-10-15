@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\WhatsAppConnectionProfile;
 use App\Support\DisplayNumber;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 final class TransactionalNotificationEngine
@@ -16,6 +16,8 @@ final class TransactionalNotificationEngine
         'order.created',
         'order.confirmed',
         'order.preparing',
+        'order.ready_for_pickup',
+        'order.scheduled_reminder',
         'order.dispatched',
         'order.delivered',
         'order.cancelled',
@@ -28,6 +30,7 @@ final class TransactionalNotificationEngine
     public function __construct(
         private readonly RuntimePolicy $policy,
         private readonly OutboundMessageDispatcher $dispatcher,
+        private readonly ConversationService $conversations,
     ) {}
 
     public static function orderEventForStatus(string $status): ?string
@@ -109,7 +112,7 @@ final class TransactionalNotificationEngine
                 ]);
 
                 $payload = $this->decode((string) $event->payload);
-                $conversationId = $this->conversation(
+                $conversationId = $this->conversations->findOrCreateForSystem(
                     $event->platform_customer_id === null ? null : (int) $event->platform_customer_id,
                     $event->store_id === null ? null : (int) $event->store_id,
                     (string) $event->recipient,
@@ -219,6 +222,8 @@ final class TransactionalNotificationEngine
             $reason = 'policy_blocked';
         } elseif (! $this->hasReadyProfile()) {
             $reason = 'transport_unconfigured';
+        } elseif (! $this->templateAllowed($templateName, $locale)) {
+            $reason = 'template_unavailable';
         }
 
         $status = $reason === null ? 'queued' : 'skipped_'.$reason;
@@ -318,6 +323,21 @@ final class TransactionalNotificationEngine
             ->exists();
     }
 
+    private function templateAllowed(string $templateName, string $locale): bool
+    {
+        if (! Schema::hasTable('whats_app_templates')) {
+            return true;
+        }
+
+        $row = DB::table('whats_app_templates')
+            ->where('provider_name', $templateName)
+            ->whereIn('locale', [$locale, $locale === 'ar' ? 'ar_AR' : 'en_US'])
+            ->first(['provider_status', 'is_active']);
+
+        return $row === null
+            || ((bool) $row->is_active && strtolower((string) $row->provider_status) === 'approved');
+    }
+
     private function templateName(string $eventName, string $locale, ?object $preference): string
     {
         $override = $preference === null
@@ -341,6 +361,8 @@ final class TransactionalNotificationEngine
             'order.created' => ['ar' => "تم استلام طلبك {$order} بنجاح.", 'en' => "Your order {$order} was received successfully."],
             'order.confirmed' => ['ar' => "تم تأكيد طلبك {$order}.", 'en' => "Your order {$order} has been confirmed."],
             'order.preparing' => ['ar' => "طلبك {$order} قيد التجهيز.", 'en' => "Your order {$order} is being prepared."],
+            'order.ready_for_pickup' => ['ar' => "طلبك {$order} جاهز للاستلام.", 'en' => "Your order {$order} is ready for pickup."],
+            'order.scheduled_reminder' => ['ar' => "تذكير: موعد طلبك المجدول {$order} يقترب.", 'en' => "Reminder: your scheduled order {$order} is coming up."],
             'order.dispatched' => ['ar' => "طلبك {$order} في الطريق إليك.", 'en' => "Your order {$order} is on the way."],
             'order.delivered' => ['ar' => "تم تسليم طلبك {$order} بنجاح.", 'en' => "Your order {$order} was delivered successfully."],
             'order.cancelled' => ['ar' => "تم إلغاء طلبك {$order}.", 'en' => "Your order {$order} was cancelled."],
@@ -351,49 +373,6 @@ final class TransactionalNotificationEngine
         ];
 
         return (string) ($copy[$eventName][$locale] ?? $copy[$eventName]['en'] ?? '');
-    }
-
-    private function conversation(?int $platformCustomerId, ?int $storeId, string $recipient): int
-    {
-        $query = DB::table('whats_app_conversations')
-            ->where('store_id', $storeId)
-            ->where('channel', 'whatsapp')
-            ->whereNotIn('status', ['RESOLVED', 'CLOSED']);
-
-        if ($platformCustomerId !== null) {
-            $query->where('platform_customer_id', $platformCustomerId);
-        } else {
-            $query->whereNull('platform_customer_id')->where('external_participant_phone', $recipient);
-        }
-
-        $existing = $query->lockForUpdate()->first();
-        if ($existing !== null) {
-            return (int) $existing->id;
-        }
-
-        $now = now();
-
-        return (int) DB::table('whats_app_conversations')->insertGetId([
-            'public_id' => (string) Str::uuid(),
-            'platform_customer_id' => $platformCustomerId,
-            'external_participant_phone' => $recipient,
-            'store_id' => $storeId,
-            'channel' => 'whatsapp',
-            'status' => 'WAITING_FOR_CUSTOMER',
-            'primary_agent_id' => null,
-            'priority' => 0,
-            'unread_count' => 0,
-            'waiting_since' => null,
-            'first_inbound_at' => null,
-            'first_agent_response_at' => null,
-            'last_inbound_at' => null,
-            'last_outbound_at' => null,
-            'resolved_at' => null,
-            'reopened_at' => null,
-            'lock_version' => 0,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
     }
 
     private function normalizePhone(mixed $value): ?string
