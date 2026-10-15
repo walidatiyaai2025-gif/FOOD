@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\SmartOrdering\LoyaltyService;
+use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Domain\SmartOrdering\WhatsApp\SmartOrderingScheduledReminderService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
@@ -88,6 +89,15 @@ Artisan::command('foodex:dispatch-whatsapp-campaigns', function (CampaignService
 
 Schedule::command('foodex:dispatch-whatsapp-campaigns')
     ->everyMinute()
+    ->withoutOverlapping();
+
+Artisan::command('foodex:prune-smart-ordering-analytics', function (SmartOrderingAnalyticsService $analytics): void {
+    $count = $analytics->pruneExpired();
+    $this->info("Pruned {$count} expired Smart Ordering analytics event(s).");
+});
+
+Schedule::command('foodex:prune-smart-ordering-analytics')
+    ->dailyAt('03:20')
     ->withoutOverlapping();
 
 Artisan::command('foodex:expire-smart-ordering-loyalty', function (LoyaltyService $loyalty): void {
