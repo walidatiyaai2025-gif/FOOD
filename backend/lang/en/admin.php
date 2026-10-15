@@ -310,6 +310,7 @@ return [
         'no_drivers' => 'No live locations match the current filters.',
         'ready' => 'Live',
         'loading' => 'Loading live locations…',
+        'restoring' => 'Refreshing restored live locations… Last confirmed data is shown until the refresh completes.',
         'load_failed' => 'Unable to load live locations.',
         'last_updated' => 'Last updated',
         'recenter' => 'Recenter',
