@@ -9,6 +9,7 @@ import 'package:foodex_van_app/core/push/firebase_push_service.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
+import 'package:foodex_van_app/features/visits/van_route_map_page.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
@@ -759,8 +760,12 @@ void main() {
   });
 
 
-  testWidgets('Van Route Map plots only authoritative visit coordinates',
+  testWidgets(
+      'Van Route Map exposes every stop in ordered accessible semantics',
       (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
     await tester.pumpWidget(
       const FoodexVanApp(
         locale: Locale('en'),
@@ -797,7 +802,89 @@ void main() {
     expect(find.text('ROUTE-A'), findsOneWidget);
     expect(find.text('0/2'), findsOneWidget);
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
-    expect(find.text('Block 3 · Street 17'), findsOneWidget);
+    expect(find.text('Block 3 · Street 17'), findsWidgets);
+    expect(
+      find.textContaining(
+        '1 stop(s) are omitted from the map because the authoritative address has no coordinates.',
+      ),
+      findsOneWidget,
+    );
+
+    final page = find.byKey(const ValueKey('van-route-map-page'));
+    final scrollable = find.descendant(
+      of: page,
+      matching: find.byType(Scrollable),
+    ).first;
+    final firstStop =
+        find.byKey(const ValueKey('van-route-map-stop-601'));
+    await tester.scrollUntilVisible(firstStop, 180, scrollable: scrollable);
+    final firstSemantics = tester.getSemantics(firstStop);
+    expect(firstSemantics.label, contains('Stop 1 of 2'));
+    expect(firstSemantics.label, contains('Acme Grocery'));
+    expect(firstSemantics.label, contains('Status: Planned'));
+    expect(firstSemantics.label, contains('Address: Block 3 · Street 17'));
+    expect(firstSemantics.label, contains('Plotted on map'));
+
+    final secondStop =
+        find.byKey(const ValueKey('van-route-map-stop-602'));
+    await tester.scrollUntilVisible(secondStop, 180, scrollable: scrollable);
+    final secondSemantics = tester.getSemantics(secondStop);
+    expect(secondSemantics.label, contains('Stop 2 of 2'));
+    expect(secondSemantics.label, contains('City Market'));
+    expect(secondSemantics.label, contains('Status: Started'));
+    expect(secondSemantics.label, contains('Address: Block 5 · Street 9'));
+    expect(
+      secondSemantics.label,
+      contains('Not plotted — coordinates missing'),
+    );
+  });
+
+  testWidgets(
+      'Van Route Map ordered alternative remains usable at large text on compact width',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(2),
+          ),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: VanRouteMapPage(
+            visitRepository: const _RoutesVisitRepository(),
+            customerRepository: const _RouteCustomersRepository(),
+            onSessionExpired: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final page = find.byKey(const ValueKey('van-route-map-page'));
+    final secondStop =
+        find.byKey(const ValueKey('van-route-map-stop-602'));
+    await tester.scrollUntilVisible(
+      secondStop,
+      180,
+      scrollable: find.descendant(
+        of: page,
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(secondStop, findsOneWidget);
+    expect(find.text('City Market'), findsOneWidget);
+    expect(find.text('Started'), findsOneWidget);
+    expect(find.text('Not plotted — coordinates missing'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
 
@@ -1860,8 +1947,6 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 43,
           storeId: 8,
           routeKey: 'ROUTE-A',
-          latitude: 29.3412,
-          longitude: 47.6654,
           address: 'Block 5 · Street 9',
           status: 'started',
           plannedAt: '2026-10-07T11:00:00+03:00',
