@@ -150,8 +150,10 @@ return new class extends Migration
 
         Schema::create('smart_ordering_modifier_option_branch_overrides', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('option_id')->constrained('smart_ordering_modifier_options')->cascadeOnDelete();
-            $table->foreignId('branch_id')->constrained('smart_ordering_branches')->cascadeOnDelete();
+            $table->unsignedBigInteger('option_id');
+            $table->unsignedBigInteger('branch_id');
+            $table->foreign('option_id', 'so_option_branch_option_fk')->references('id')->on('smart_ordering_modifier_options')->cascadeOnDelete();
+            $table->foreign('branch_id', 'so_option_branch_branch_fk')->references('id')->on('smart_ordering_branches')->cascadeOnDelete();
             $table->decimal('price_delta', 14, 3)->nullable();
             $table->boolean('is_visible')->nullable();
             $table->boolean('sold_out')->nullable();
