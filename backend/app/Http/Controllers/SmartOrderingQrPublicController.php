@@ -23,7 +23,12 @@ final class SmartOrderingQrPublicController extends Controller
             $visitorToken = Str::random(48);
         }
 
-        $visit = $attribution->startLanding($resolved['qr'], $resolved['token'], $visitorToken);
+        $visit = $attribution->startLanding(
+            $resolved['qr'],
+            $resolved['token'],
+            $visitorToken,
+            $request->headers->get('referer'),
+        );
         $context = $attribution->signedContext($visit);
         $target = $this->targetWithContext((string) $resolved['qr']->target_path, $context);
 
