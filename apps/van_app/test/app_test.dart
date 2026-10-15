@@ -324,8 +324,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
-    scaffold.openDrawer();
+    await tester.tap(find.byKey(const Key('van-menu-toggle')));
     await tester.pumpAndSettle();
 
     final target = find.byKey(const ValueKey('van-screen-receipt'));
