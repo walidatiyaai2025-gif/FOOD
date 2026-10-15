@@ -2,6 +2,7 @@
 
 namespace App\Domain\SmartOrdering;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\SmartOrderingCart;
 use Carbon\CarbonInterface;
