@@ -12,7 +12,7 @@
 .so-table-wrap{width:100%;max-width:100%;overflow:visible}
 .so-order-number{white-space:nowrap}
 .so-row-actions{position:relative;display:inline-block}
-.so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green);color:#fff;cursor:pointer;font-size:20px}
+.so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px}
 .so-row-actions summary::-webkit-details-marker{display:none}
 .so-menu{position:absolute;z-index:30;inset-inline-end:0;top:42px;width:min(300px,80vw);padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:var(--foodex-shadow-md);display:grid;gap:8px}
 .so-menu form{display:grid;gap:8px}
