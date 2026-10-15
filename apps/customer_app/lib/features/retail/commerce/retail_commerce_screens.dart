@@ -434,6 +434,8 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   Object? _error;
   bool _loading = true;
   bool _submitting = false;
+  bool _selectionNeedsReview = false;
+  int _optionsRequestGeneration = 0;
 
   @override
   void initState() {
@@ -456,41 +458,95 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
     }
   }
 
-  Future<void> _loadOptions() async {
+  Future<void> _loadOptions({bool reviewNewChoices = false}) async {
+    final requestGeneration = ++_optionsRequestGeneration;
     if (mounted) {
       setState(() {
         _loading = true;
         _error = null;
       });
     }
+
     try {
       final options = await widget.api.checkoutOptions(
         storeId: widget.storeId,
       );
       final cart = await widget.api.loadCart(storeId: widget.storeId);
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _optionsRequestGeneration) return;
+
+      final hadLoadedOptions = _options != null;
+      final selectedAddressId = _addressId;
+      final selectedPaymentMethod = _paymentMethod;
+
+      final addressStillEligible = selectedAddressId != null &&
+          options.addresses.any((address) => address.id == selectedAddressId);
+      final paymentStillEligible = selectedPaymentMethod != null &&
+          options.paymentMethods.contains(selectedPaymentMethod);
 
       RetailCheckoutAddress? defaultAddress;
-      for (final address in options.addresses) {
-        if (address.isDefault) {
-          defaultAddress = address;
-          break;
+      if (!hadLoadedOptions) {
+        for (final address in options.addresses) {
+          if (address.isDefault) {
+            defaultAddress = address;
+            break;
+          }
         }
       }
+
+      final nextAddressId = hadLoadedOptions
+          ? (addressStillEligible ? selectedAddressId : null)
+          : defaultAddress?.id ??
+              (options.addresses.isEmpty ? null : options.addresses.first.id);
+      final nextPaymentMethod = hadLoadedOptions
+          ? (paymentStillEligible ? selectedPaymentMethod : null)
+          : options.paymentMethods.isEmpty ? null : options.paymentMethods.first;
+
+      final lostSelection = hadLoadedOptions &&
+          ((selectedAddressId != null && !addressStillEligible) ||
+              (selectedPaymentMethod != null && !paymentStillEligible));
+      final hasNewUnselectedChoices = reviewNewChoices &&
+          ((selectedAddressId == null && options.addresses.isNotEmpty) ||
+              (selectedPaymentMethod == null &&
+                  options.paymentMethods.isNotEmpty));
 
       setState(() {
         _options = options;
         _checkoutCart = cart;
-        _addressId = defaultAddress?.id ??
-            (options.addresses.isEmpty ? null : options.addresses.first.id);
-        _paymentMethod = options.paymentMethods.isEmpty
-            ? null
-            : options.paymentMethods.first;
+        _addressId = nextAddressId;
+        _paymentMethod = nextPaymentMethod;
+        _selectionNeedsReview = lostSelection || hasNewUnselectedChoices;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted && requestGeneration == _optionsRequestGeneration) {
+        setState(() => _error = error);
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && requestGeneration == _optionsRequestGeneration) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  void _selectAddress(int? addressId) {
+    setState(() {
+      _addressId = addressId;
+      _clearSelectionReviewIfComplete();
+    });
+  }
+
+  void _selectPayment(String? paymentMethod) {
+    setState(() {
+      _paymentMethod = paymentMethod;
+      _clearSelectionReviewIfComplete();
+    });
+  }
+
+  void _clearSelectionReviewIfComplete() {
+    final paymentMethod = _paymentMethod;
+    if (_addressId != null &&
+        paymentMethod != null &&
+        paymentMethod.isNotEmpty) {
+      _selectionNeedsReview = false;
     }
   }
 
@@ -498,7 +554,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
     final handoff = widget.onAddAddress;
     if (handoff == null) return;
     await handoff(widget.storeId);
-    if (mounted) await _loadOptions();
+    if (mounted) await _loadOptions(reviewNewChoices: true);
   }
 
   Future<void> _editAddress(int addressId) async {
@@ -511,12 +567,22 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   Future<void> _submit() async {
     final addressId = _addressId;
     final payment = _paymentMethod;
-    if (addressId == null || payment == null || payment.isEmpty) {
-      setState(
-        () => _error = const RetailCommerceException(
+    final options = _options;
+    final addressEligible = addressId != null &&
+        options != null &&
+        options.addresses.any((address) => address.id == addressId);
+    final paymentEligible = payment != null &&
+        payment.isNotEmpty &&
+        options != null &&
+        options.paymentMethods.contains(payment);
+
+    if (!addressEligible || !paymentEligible || _selectionNeedsReview) {
+      setState(() {
+        _selectionNeedsReview = true;
+        _error = const RetailCommerceException(
           'checkout_fields_required',
-        ),
-      );
+        );
+      });
       return;
     }
 
@@ -678,6 +744,10 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                       retryLabel: strings.retry,
                       onRetry: _loadOptions,
                     ),
+                  if (_selectionNeedsReview)
+                    _CheckoutSelectionNotice(
+                      message: strings.checkoutOptionsChanged,
+                    ),
                   _CommerceSectionCard(
                     key: const ValueKey('retail-checkout-address-section'),
                     child: Column(
@@ -697,8 +767,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                         else
                           RadioGroup<int>(
                             groupValue: _addressId,
-                            onChanged: (value) =>
-                                setState(() => _addressId = value),
+                            onChanged: _submitting ? null : _selectAddress,
                             child: Column(
                               children: [
                                 for (final address in options.addresses)
@@ -775,11 +844,15 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                           label: strings.paymentMethod,
                         ),
                         const SizedBox(height: CustomerUiSpacing.sm),
-                        DropdownButtonFormField<String>(
+                        KeyedSubtree(
                           key: const ValueKey(
                             'retail-checkout-payment-method',
                           ),
-                          initialValue: _paymentMethod,
+                          child: DropdownButtonFormField<String>(
+                            key: ValueKey(
+                              'retail-checkout-payment-value-${_paymentMethod ?? 'none'}',
+                            ),
+                            initialValue: _paymentMethod,
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: strings.paymentMethod,
@@ -798,10 +871,9 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                                 ),
                               )
                               .toList(growable: false),
-                          onChanged: _submitting
-                              ? null
-                              : (value) =>
-                                  setState(() => _paymentMethod = value),
+                            onChanged:
+                                _submitting ? null : _selectPayment,
+                          ),
                         ),
                         const SizedBox(height: CustomerUiSpacing.md),
                         TextField(
@@ -861,6 +933,46 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
       ),
     );
   }
+}
+
+class _CheckoutSelectionNotice extends StatelessWidget {
+  const _CheckoutSelectionNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        liveRegion: true,
+        container: true,
+        child: Container(
+          key: const ValueKey('retail-checkout-options-changed'),
+          margin: const EdgeInsets.only(bottom: CustomerUiSpacing.md),
+          padding: const EdgeInsets.all(CustomerUiSpacing.md),
+          decoration: BoxDecoration(
+            color: CustomerUiColors.warning.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+            border: Border.all(
+              color: CustomerUiColors.warning.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                color: CustomerUiColors.warning,
+              ),
+              const SizedBox(width: CustomerUiSpacing.sm),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _CommerceSectionCard extends StatelessWidget {
@@ -1192,6 +1304,7 @@ class _RetailCommerceStrings {
     required this.coupon,
     required this.placeOrder,
     required this.completeCheckoutFields,
+    required this.checkoutOptionsChanged,
     required this.checkoutInProgress,
     required this.storeContextError,
     required this.requestFailed,
@@ -1232,6 +1345,7 @@ class _RetailCommerceStrings {
   final String coupon;
   final String placeOrder;
   final String completeCheckoutFields;
+  final String checkoutOptionsChanged;
   final String checkoutInProgress;
   final String storeContextError;
   final String requestFailed;
@@ -1277,6 +1391,8 @@ class _RetailCommerceStrings {
     coupon: 'كود الخصم',
     placeOrder: 'تأكيد الطلب',
     completeCheckoutFields: 'اختر عنوان التوصيل وطريقة الدفع.',
+    checkoutOptionsChanged:
+        'تم تحديث خيارات إتمام الطلب. راجع عنوان التوصيل وطريقة الدفع قبل التأكيد.',
     checkoutInProgress: 'جاري إرسال الطلب بالفعل.',
     storeContextError: 'تعذر الحفاظ على سياق المتجر. أعد فتح السلة من المتجر.',
     requestFailed: 'تعذر تنفيذ الطلب',
@@ -1321,6 +1437,8 @@ class _RetailCommerceStrings {
     coupon: 'Coupon code',
     placeOrder: 'Place order',
     completeCheckoutFields: 'Choose a delivery address and payment method.',
+    checkoutOptionsChanged:
+        'Checkout options changed. Review the delivery address and payment method before placing the order.',
     checkoutInProgress: 'This order is already being submitted.',
     storeContextError:
         'Store context was lost. Reopen the cart from the store.',
