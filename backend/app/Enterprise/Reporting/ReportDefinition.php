@@ -7,9 +7,9 @@ use Illuminate\Validation\ValidationException;
 final readonly class ReportDefinition
 {
     /**
-     * @param list<string> $dimensions
-     * @param list<string> $measures
-     * @param list<string> $allowedFilters
+     * @param  list<string>  $dimensions
+     * @param  list<string>  $measures
+     * @param  list<string>  $allowedFilters
      */
     public function __construct(
         public string $code,
