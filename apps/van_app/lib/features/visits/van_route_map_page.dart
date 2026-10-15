@@ -141,6 +141,54 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
         'closed',
       }.contains(visit.status);
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'planned':
+        return _text('Planned', 'مخطط');
+      case 'started':
+        return _text('Started', 'بدأت');
+      case 'completed_with_order':
+        return _text('Completed with order', 'مكتملة بطلب');
+      case 'completed_no_order':
+        return _text('Completed without order', 'مكتملة بدون طلب');
+      case 'customer_unavailable':
+        return _text('Customer unavailable', 'العميل غير متاح');
+      case 'closed':
+        return _text('Closed', 'مغلقة');
+      default:
+        return _text('Status unavailable', 'الحالة غير متاحة');
+    }
+  }
+
+  String _addressLabel(VanVisitRecord visit) {
+    final address = visit.address?.trim();
+    return address == null || address.isEmpty
+        ? _text('Address unavailable', 'العنوان غير متاح')
+        : address;
+  }
+
+  String _locationLabel(VanVisitRecord visit) {
+    if (visit.latitude != null && visit.longitude != null) {
+      return _text('Plotted on map', 'ظاهر على الخريطة');
+    }
+
+    return _text(
+      'Not plotted — coordinates missing',
+      'غير ظاهر على الخريطة — الإحداثيات غير متاحة',
+    );
+  }
+
+  String _stopSemanticsLabel(
+    VanVisitRecord visit,
+    int index,
+    int total,
+  ) {
+    return _text(
+      'Stop ${index + 1} of $total. ${_customerName(visit)}. Status: ${_statusLabel(visit.status)}. Address: ${_addressLabel(visit)}. ${_locationLabel(visit)}.',
+      'المحطة ${index + 1} من $total. ${_customerName(visit)}. الحالة: ${_statusLabel(visit.status)}. العنوان: ${_addressLabel(visit)}. ${_locationLabel(visit)}.',
+    );
+  }
+
   VanVisitRecord? get _nextVisit {
     for (final visit in _routeVisits) {
       if (!_isDone(visit)) return visit;
@@ -272,13 +320,20 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                           ),
                         ),
                       )
-                    : CustomPaint(
-                        key: const ValueKey('van-route-map-canvas'),
-                        painter: _RoutePainter(
-                          visits: mapped,
-                          done: _isDone,
+                    : Semantics(
+                        label: _text(
+                          'Route map. Accessible stop details follow in route order.',
+                          'خريطة المسار. تتبعها تفاصيل الزيارات بترتيب المسار بشكل ميسر.',
                         ),
-                        child: const SizedBox.expand(),
+                        image: true,
+                        child: CustomPaint(
+                          key: const ValueKey('van-route-map-canvas'),
+                          painter: _RoutePainter(
+                            visits: routeVisits,
+                            done: _isDone,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
                       ),
               ),
             ),
@@ -327,6 +382,114 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                 ),
               ),
             ],
+            const SizedBox(height: 12),
+            Card(
+              key: const ValueKey('van-route-map-stop-list'),
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          _text('Route stops', 'زيارات المسار'),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        _text(
+                          'All assigned stops remain available here, including addresses without coordinates.',
+                          'تظل جميع الزيارات المسندة متاحة هنا، بما فيها العناوين التي لا تحتوي على إحداثيات.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexVanTokens.muted,
+                            ),
+                      ),
+                    ),
+                    for (var index = 0;
+                        index < routeVisits.length;
+                        index++) ...[
+                      if (index > 0)
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                      Semantics(
+                        key: ValueKey(
+                          'van-route-map-stop-${routeVisits[index].id}',
+                        ),
+                        container: true,
+                        label: _stopSemanticsLabel(
+                          routeVisits[index],
+                          index,
+                          routeVisits.length,
+                        ),
+                        child: ExcludeSemantics(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: _isDone(routeVisits[index])
+                                  ? FoodexVanTokens.greenSoft
+                                  : FoodexVanTokens.background,
+                              foregroundColor: _isDone(routeVisits[index])
+                                  ? FoodexVanTokens.greenDark
+                                  : FoodexVanTokens.muted,
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              _customerName(routeVisits[index]),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _statusLabel(routeVisits[index].status),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(_addressLabel(routeVisits[index])),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _locationLabel(routeVisits[index]),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: FoodexVanTokens.muted,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -352,8 +515,13 @@ class _RoutePainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    final lats = visits.map((v) => v.latitude!).toList();
-    final lngs = visits.map((v) => v.longitude!).toList();
+    final mappedStops = [
+      for (final entry in visits.asMap().entries)
+        if (entry.value.latitude != null && entry.value.longitude != null)
+          (stopNumber: entry.key + 1, visit: entry.value),
+    ];
+    final lats = mappedStops.map((stop) => stop.visit.latitude!).toList();
+    final lngs = mappedStops.map((stop) => stop.visit.longitude!).toList();
     var minLat = lats.reduce(math.min);
     var maxLat = lats.reduce(math.max);
     var minLng = lngs.reduce(math.min);
@@ -384,8 +552,8 @@ class _RoutePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     final path = Path();
-    for (var i = 0; i < visits.length; i++) {
-      final p = point(visits[i]);
+    for (var i = 0; i < mappedStops.length; i++) {
+      final p = point(mappedStops[i].visit);
       if (i == 0) {
         path.moveTo(p.dx, p.dy);
       } else {
@@ -394,18 +562,16 @@ class _RoutePainter extends CustomPainter {
     }
     canvas.drawPath(path, routePaint);
 
-    for (var i = 0; i < visits.length; i++) {
-      final visit = visits[i];
+    for (final stop in mappedStops) {
+      final visit = stop.visit;
       final p = point(visit);
       final fill = Paint()
-        ..color = done(visit)
-            ? FoodexVanTokens.green
-            : const Color(0xFF2F6FED);
+        ..color = done(visit) ? FoodexVanTokens.green : const Color(0xFF2F6FED);
       canvas.drawCircle(p, 13, Paint()..color = Colors.white);
       canvas.drawCircle(p, 10, fill);
       final text = TextPainter(
         text: TextSpan(
-          text: '${i + 1}',
+          text: '${stop.stopNumber}',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 10,
