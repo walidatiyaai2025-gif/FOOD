@@ -27,6 +27,8 @@ class VanCommercialOfferProduct {
     required this.flashPrice,
     this.sellingUnitId,
     this.sellingUnitCode,
+    this.productName,
+    this.sellingUnitName,
     this.allocationBase,
   });
 
@@ -34,6 +36,8 @@ class VanCommercialOfferProduct {
   final int productId;
   final int? sellingUnitId;
   final String? sellingUnitCode;
+  final String? productName;
+  final String? sellingUnitName;
   final double conversionFactor;
   final double flashPrice;
   final double? allocationBase;
