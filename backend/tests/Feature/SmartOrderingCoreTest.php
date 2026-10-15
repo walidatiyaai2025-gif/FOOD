@@ -26,6 +26,8 @@ class SmartOrderingCoreTest extends TestCase
 
     private int $warehouseId;
 
+    private string $publishedRevisionPublicId;
+
     private SmartOrderingBranch $branch;
 
     protected function setUp(): void
@@ -101,12 +103,33 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table('smart_ordering_entitlements')->insert([
+        DB::table('smart_ordering_entitlements')->insert(
+            collect(['ordering', 'dine_in', 'pickup', 'delivery'])
+                ->map(fn (string $module): array => [
+                    'site_id' => $siteId,
+                    'branch_id' => null,
+                    'scope_key' => 'site',
+                    'module' => $module,
+                    'enabled' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ])
+                ->all(),
+        );
+
+        $this->publishedRevisionPublicId = (string) Str::uuid();
+        $revisionPayload = json_encode([
+            'schema_version' => 1,
+            'site' => ['slug' => 'smart-ordering-test', 'name_en' => 'Smart Ordering Restaurant'],
+        ], JSON_THROW_ON_ERROR);
+        DB::table('smart_ordering_revisions')->insert([
+            'public_id' => $this->publishedRevisionPublicId,
             'site_id' => $siteId,
-            'branch_id' => null,
-            'scope_key' => 'site',
-            'module' => 'ordering',
-            'enabled' => true,
+            'status' => 'published',
+            'schema_version' => 1,
+            'payload' => $revisionPayload,
+            'checksum' => hash('sha256', $revisionPayload),
+            'published_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -128,6 +151,23 @@ class SmartOrderingCoreTest extends TestCase
             'max_schedule_days' => 7,
             'service_charge' => 0,
         ]);
+    }
+
+    public function test_cart_is_pinned_to_published_revision_and_rejects_stale_revision(): void
+    {
+        $response = $this->postJson('/api/smart-ordering/carts', [
+            'branch_public_id' => (string) $this->branch->public_id,
+        ])->assertCreated();
+
+        $this->withHeader('X-Smart-Cart-Token', (string) $response->json('cart.token'))
+            ->getJson('/api/smart-ordering/carts/'.(string) $response->json('cart.public_id'))
+            ->assertOk()
+            ->assertJsonPath('data.revision_public_id', $this->publishedRevisionPublicId);
+
+        $this->postJson('/api/smart-ordering/carts', [
+            'branch_public_id' => (string) $this->branch->public_id,
+            'revision_public_id' => (string) Str::uuid(),
+        ])->assertConflict();
     }
 
     public function test_checkout_uses_authoritative_server_prices_and_server_priced_extras(): void
