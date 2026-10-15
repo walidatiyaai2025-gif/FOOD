@@ -271,7 +271,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu?locale=ar')
             ->assertOk()
             ->assertJsonPath('data.menus.0.name', 'القائمة الرئيسية')
-            ->assertJsonPath('data.menus.0.image', '/storage/smart-ordering/menu-main.webp')
+            ->assertJsonPath('data.menus.0.image', 'http://localhost/storage/smart-ordering/menu-main.webp')
             ->assertJsonPath('data.menus.0.categories.0.name', 'البرجر')
             ->assertJsonPath('data.menus.0.categories.0.items.0.name', 'Burger V1');
 
