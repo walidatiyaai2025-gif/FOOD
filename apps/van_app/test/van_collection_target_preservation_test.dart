@@ -52,8 +52,16 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('van-collection-invoice-identity')),
-      findsNothing,
+      find.textContaining('Invoice: INV-91'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('van-collection-amount')),
+          )
+          .enabled,
+      isTrue,
     );
     expect(
       tester
@@ -61,7 +69,7 @@ void main() {
             find.byKey(const ValueKey('van-collection-submit')),
           )
           .onPressed,
-      isNull,
+      isNotNull,
     );
   });
 
