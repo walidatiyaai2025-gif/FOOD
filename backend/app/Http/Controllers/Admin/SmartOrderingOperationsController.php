@@ -10,6 +10,7 @@ use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,9 +85,11 @@ final class SmartOrderingOperationsController extends Controller
                     ->mapWithKeys(fn (string $target): array => [$target => (string) Str::uuid()])
                     ->all(),
                 'scheduled_display' => $row->scheduled_for
-                    ? date('Y-m-d H:i', strtotime((string) $row->scheduled_for))
+                    ? Carbon::parse((string) $row->scheduled_for)->timezone('Asia/Kuwait')->format('Y-m-d H:i')
                     : '—',
-                'created_display' => date('Y-m-d H:i', strtotime((string) $row->created_at)),
+                'created_display' => Carbon::parse((string) $row->created_at)
+                    ->timezone('Asia/Kuwait')
+                    ->format('Y-m-d H:i'),
             ];
         })->all();
 
