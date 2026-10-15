@@ -311,8 +311,8 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
               key: const ValueKey('van-order-submit'),
               onPressed:
                   _submitting || quote == null || quote.hasUnavailableItems
-                  ? null
-                  : _submit,
+                      ? null
+                      : _submit,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
