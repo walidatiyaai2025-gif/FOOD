@@ -8,18 +8,18 @@
     <style>
         .si-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
         .si-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-        .si-kpi{padding:14px;border:1px solid var(--foodex-border,#dbe2e8);border-radius:14px}
+        .si-kpi{padding:14px;border:1px solid var(--foodex-border);border-radius:14px}
         .si-kpi strong{display:block;font-size:1.45rem}
         .si-table-wrap{overflow:auto}
         .si-table{width:100%;border-collapse:collapse;min-width:880px}
-        .si-table th,.si-table td{padding:10px;border-bottom:1px solid var(--foodex-border,#e5e7eb);text-align:start;vertical-align:top}
-        .si-note{padding:14px;border:1px solid #c9a227;border-radius:14px;background:rgba(201,162,39,.08);font-weight:650}
+        .si-table th,.si-table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}
+        .si-note{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-orange-soft);font-weight:650}
         .si-badge{display:inline-flex;padding:3px 9px;border-radius:999px;background:rgba(127,127,127,.12);font-size:.82rem}
         .si-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
         .si-muted{opacity:.72}
         .si-form{display:grid;gap:12px}
         .si-form label{display:grid;gap:6px}
-        .si-danger{border:1px solid #b91c1c;color:#b91c1c;background:transparent;border-radius:10px;padding:8px 12px}
+        .si-danger{border:1px solid var(--foodex-red);color:var(--foodex-red);background:transparent;border-radius:10px;padding:8px 12px}
     </style>
 </head>
 <body>
@@ -32,6 +32,7 @@
         return $primary !== '' ? $primary : $fallback;
     };
     $itemIndex = collect($menuItems)->keyBy('public_id');
+    $displayRecommendations = array_slice($recommendations['rows'], 0, 500);
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-supply">
     <aside class="sidebar">
@@ -154,7 +155,7 @@
 
         <section class="panel">
             <h2>{{ __('smart_ordering_supply.mappings_title') }}</h2>
-            <div class="si-table-wrap"><table class="si-table">
+            <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-500-analysis-snapshot">
                 <thead><tr><th>{{ __('smart_ordering_supply.menu_item') }}</th><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.branch') }}</th><th>{{ __('smart_ordering_supply.conversion') }}</th><th>{{ __('smart_ordering_supply.waste') }}</th><th>{{ __('smart_ordering_supply.validity') }}</th><th></th></tr></thead>
                 <tbody>
                 @forelse($mappings as $mapping)
@@ -181,10 +182,10 @@
 
         <section class="panel">
             <h2>{{ __('smart_ordering_supply.consumption_title') }}</h2>
-            <div class="si-table-wrap"><table class="si-table">
+            <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-500-analysis-snapshot">
                 <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.product') }}</th><th>{{ __('smart_ordering_supply.estimated_usage') }}</th><th>{{ __('smart_ordering_supply.daily_average') }}</th><th>{{ __('smart_ordering_supply.evidence') }}</th></tr></thead>
                 <tbody>
-                @forelse($recommendations['rows'] as $row)
+                @forelse($displayRecommendations as $row)
                     <tr>
                         <td>{{ $row['sku'] }}</td><td>{{ $row['name'] }}</td>
                         <td>{{ number_format($row['estimated_usage'],6) }}</td>
@@ -210,10 +211,10 @@
             <form method="post" action="{{ route('admin.smart-ordering.supply.draft',$site) }}">
                 @csrf
                 @if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
-                <div class="si-table-wrap"><table class="si-table">
+                <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-500-analysis-snapshot">
                     <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.state') }}</th><th>{{ __('smart_ordering_supply.basis') }}</th><th>{{ __('smart_ordering_supply.live_price') }}</th><th>{{ __('smart_ordering_supply.foodex_available') }}</th><th>{{ __('smart_ordering_supply.suggested_quantity') }}</th><th>{{ __('smart_ordering_supply.cost') }}</th><th></th></tr></thead>
                     <tbody>
-                    @forelse($recommendations['rows'] as $row)
+                    @forelse($displayRecommendations as $row)
                         <tr>
                             <td>{{ $row['sku'] }}<br><span class="si-muted">{{ $row['name'] }}</span></td>
                             <td><span class="si-badge">{{ __('smart_ordering_supply.states.'.$row['state']) }}</span></td>
@@ -236,11 +237,11 @@
                     @empty<tr><td colspan="8">{{ __('smart_ordering_supply.no_recommendations') }}</td></tr>@endforelse
                     </tbody>
                 </table></div>
-                @if(collect($recommendations['rows'])->contains(fn($row)=>$row['is_executable']))
+                @if(collect($displayRecommendations)->contains(fn($row)=>$row['is_executable']))
                     <button class="primary" type="submit">{{ __('smart_ordering_supply.create_draft') }}</button>
                 @endif
             </form>
-            @foreach($recommendations['rows'] as $row)
+            @foreach($displayRecommendations as $row)
                 <form id="dismiss-{{ $row['foodex_product_id'] }}" method="post" action="{{ route('admin.smart-ordering.supply.dismiss',[$site,$row['foodex_product_id']]) }}" style="display:none">
                     @csrf<input type="hidden" name="days" value="7">@if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
                 </form>
