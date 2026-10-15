@@ -40,6 +40,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class OrderOperationsController extends Controller
 {
+    /** @var array<int,array<string,mixed>> */
+    private array $rowCache = [];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
@@ -84,6 +87,7 @@ final class OrderOperationsController extends Controller
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $operationalChannel = isset($data['channel'])
@@ -159,10 +163,11 @@ final class OrderOperationsController extends Controller
             ->all();
 
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
+        $perPage = isset($data['per_page']) ? (int) $data['per_page'] : 25;
         $orders = (clone $orderQuery)
             ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
             ->latest('id')
-            ->paginate(50)
+            ->paginate($perPage)
             ->withQueryString();
 
         $statusLabels = collect($statusOptions)
@@ -178,6 +183,8 @@ final class OrderOperationsController extends Controller
             ])
             ->values()
             ->all();
+
+        $this->primeRowCache($orders->items());
 
         $rows = collect($orders->items())
             ->map(fn (Order $order): array => $this->row(
