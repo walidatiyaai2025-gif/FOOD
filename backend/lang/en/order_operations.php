@@ -4,6 +4,12 @@ return [
     'title' => 'Orders · Order Management',
     'description' => 'Monitor and operate every order allowed by the current platform/store scope.',
     'new_order' => 'Create new order',
+    'new_order_draft' => [
+        'title' => 'Keep this unfinished order?',
+        'description' => 'You have unsaved order details. Continue editing, or discard them deliberately to start fresh.',
+        'continue_editing' => 'Continue editing',
+        'discard' => 'Discard draft',
+    ],
     'statuses' => 'Order statuses',
     'all' => 'All',
     'filters' => [
