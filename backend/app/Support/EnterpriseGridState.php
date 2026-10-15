@@ -65,7 +65,7 @@ final readonly class EnterpriseGridState
         }
 
         $columns = collect($columnInput)
-            ->filter('is_string')
+            ->filter(static fn ($value): bool => is_string($value))
             ->map(static fn (string $column): string => trim($column))
             ->filter(static fn (string $column): bool => in_array($column, $allowedColumns, true))
             ->unique()
@@ -111,7 +111,7 @@ final readonly class EnterpriseGridState
         }
 
         $columns = collect((array) ($state['columns'] ?? []))
-            ->filter('is_string')
+            ->filter(static fn ($value): bool => is_string($value))
             ->map(static fn (string $column): ?string => self::identifier($column))
             ->filter()
             ->unique()
