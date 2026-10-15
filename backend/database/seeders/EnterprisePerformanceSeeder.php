@@ -379,45 +379,45 @@ class EnterprisePerformanceSeeder extends Seeder
         array $customers,
         array $productsByStore,
     ): void {
-        $orderRows = [];
+        $this->insertGenerated(
+            'orders',
+            $profile['orders'],
+            function (int $index) use ($customers, $profileName): array {
+                $customer = $customers[($index - 1) % count($customers)];
+                $createdAt = $this->anchor
+                    ->addDays(($index - 1) % 365)
+                    ->addSeconds(($index * 37) % 86400);
+                $subtotal = 25 + (($index % 200) / 10);
 
-        for ($index = 1; $index <= $profile['orders']; $index++) {
-            $customer = $customers[($index - 1) % count($customers)];
-            $createdAt = $this->anchor
-                ->addDays(($index - 1) % 365)
-                ->addSeconds(($index * 37) % 86400);
-            $subtotal = 25 + (($index % 200) / 10);
-
-            $orderRows[] = [
-                'store_id' => (int) $customer->store_id,
-                'customer_id' => (int) $customer->legacy_customer_id,
-                'b2b_customer_id' => null,
-                'b2c_customer_id' => (int) $customer->id,
-                'address_id' => null,
-                'order_number' => sprintf(
-                    '%s%s-O-%08d',
-                    self::PREFIX,
-                    strtoupper($profileName),
-                    $index
-                ),
-                'channel' => 'b2c',
-                'status' => match ($index % 4) {
-                    0 => 'pending',
-                    1 => 'confirmed',
-                    2 => 'delivered',
-                    default => 'cancelled',
-                },
-                'currency' => 'EGP',
-                'subtotal' => $subtotal,
-                'discount_total' => 0,
-                'delivery_total' => 5,
-                'grand_total' => $subtotal + 5,
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ];
-        }
-
-        $this->insertRows('orders', $orderRows);
+                return [
+                    'store_id' => (int) $customer->store_id,
+                    'customer_id' => (int) $customer->legacy_customer_id,
+                    'b2b_customer_id' => null,
+                    'b2c_customer_id' => (int) $customer->id,
+                    'address_id' => null,
+                    'order_number' => sprintf(
+                        '%s%s-O-%08d',
+                        self::PREFIX,
+                        strtoupper($profileName),
+                        $index
+                    ),
+                    'channel' => 'b2c',
+                    'status' => match ($index % 4) {
+                        0 => 'pending',
+                        1 => 'confirmed',
+                        2 => 'delivered',
+                        default => 'cancelled',
+                    },
+                    'currency' => 'EGP',
+                    'subtotal' => $subtotal,
+                    'discount_total' => 0,
+                    'delivery_total' => 5,
+                    'grand_total' => $subtotal + 5,
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ];
+            },
+        );
 
         $itemsPerOrder = intdiv($profile['order_items'], $profile['orders']);
 
