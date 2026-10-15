@@ -446,7 +446,7 @@
                                     <div class="so-review-status">
                                         @unless($item->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
                                         @if($item->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
-                                        @if($item->featured)<span class="so-badge">{{ $isAr?'مميز':'Featured' }}</span>@endif
+                                        @if($item->featured)<span class="so-badge">{{ $isAr?'مميز':'Featured' }}</span>@endif {{-- localization-gate: allow Blade control directive; visible badge copy is localized --}}
                                     </div>
                                 </article>
                                 @empty
