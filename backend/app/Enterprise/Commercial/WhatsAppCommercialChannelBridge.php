@@ -170,10 +170,10 @@ final class WhatsAppCommercialChannelBridge
             (int) $reference['store_id'],
             $aggregateType,
             $aggregateId,
-            $payload + [
+            array_merge($payload, [
                 'whatsapp_reference' => $reference,
                 'idempotency_key' => $idempotencyKey,
-            ],
+            ]),
         );
 
         return [
