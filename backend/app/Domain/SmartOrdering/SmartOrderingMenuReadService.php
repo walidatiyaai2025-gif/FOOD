@@ -48,6 +48,44 @@ final class SmartOrderingMenuReadService
     }
 
     /**
+     * @return array{
+     *   revision:array{id:string,checksum:string,published_at:?string},
+     *   read_key:string,
+     *   locale:string,
+     *   branch_id:?string
+     * }
+     */
+    public function readMeta(
+        SmartOrderingSite $site,
+        string $locale = 'en',
+        ?SmartOrderingBranch $branch = null,
+    ): array {
+        $revision = $this->publishedRevision($site);
+        $locale = strtolower(trim($locale));
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+        $branchId = $branch === null ? null : (string) $branch->public_id;
+        $keyMaterial = implode('|', [
+            'restaurant-public-menu-v1',
+            (string) $site->public_id,
+            (string) $revision->public_id,
+            (string) $revision->checksum,
+            $branchId ?? 'default',
+            $locale,
+        ]);
+
+        return [
+            'revision' => [
+                'id' => (string) $revision->public_id,
+                'checksum' => (string) $revision->checksum,
+                'published_at' => $revision->published_at?->toISOString(),
+            ],
+            'read_key' => hash('sha256', $keyMaterial),
+            'locale' => $locale,
+            'branch_id' => $branchId,
+        ];
+    }
+
+    /**
      * @return array{revision_id:string,branch:?array{id:string,name:string,timezone:string},menus:list<array<string,mixed>>}
      */
     public function menu(
@@ -143,6 +181,7 @@ final class SmartOrderingMenuReadService
             ->pluck('id');
 
         $items = SmartOrderingMenuItem::query()
+            ->with(['category.menu'])
             ->where('smart_ordering_menu_items.revision_id', $revision->id)
             ->where('smart_ordering_menu_items.site_id', $site->id)
             ->whereIn('smart_ordering_menu_items.category_id', $categoryIds)
@@ -269,6 +308,7 @@ final class SmartOrderingMenuReadService
 
         if ($site !== null) {
             $resource['items'] = SmartOrderingMenuItem::query()
+                ->with(['category.menu'])
                 ->where('category_id', $category->id)
                 ->orderBy('sort_order')
                 ->get()
@@ -289,8 +329,16 @@ final class SmartOrderingMenuReadService
         ?SmartOrderingBranch $branch,
         bool $detail,
     ): ?array {
-        $category = SmartOrderingMenuCategory::query()->findOrFail($item->category_id);
-        $menu = SmartOrderingMenu::query()->findOrFail($category->menu_id);
+        $category = $item->relationLoaded('category')
+            ? $item->getRelation('category')
+            : SmartOrderingMenuCategory::query()->findOrFail($item->category_id);
+        abort_unless($category instanceof SmartOrderingMenuCategory, 404);
+
+        $menu = $category->relationLoaded('menu')
+            ? $category->getRelation('menu')
+            : SmartOrderingMenu::query()->findOrFail($category->menu_id);
+        abort_unless($menu instanceof SmartOrderingMenu, 404);
+
         if (! $this->menuAppliesToBranch($menu, $branch)) {
             return null;
         }
@@ -312,7 +360,7 @@ final class SmartOrderingMenuReadService
 
         $resource = [
             'id' => (string) $item->public_id,
-            'category_id' => (string) $item->category()->value('public_id'),
+            'category_id' => (string) $category->public_id,
             'name' => $this->localized($item->name_ar, $item->name_en, $locale),
             'description' => $this->localized($item->description_ar, $item->description_en, $locale),
             'image' => $this->publicMediaUrl(is_string($image) ? $image : null),
