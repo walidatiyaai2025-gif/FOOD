@@ -335,8 +335,10 @@ final class PurchaseInvoiceHandoffManager
                     'source_receipt_number' => $invoice->source_receipt_number,
                     'source_order_number' => $invoice->source_order_number,
                     'currency_code' => $invoice->currency_code,
-                    'invoice_date' => $invoice->invoice_date?->format('Y-m-d'),
-                    'due_date' => $invoice->due_date?->format('Y-m-d'),
+                    'invoice_date' => (string) $invoice->getRawOriginal('invoice_date'),
+                    'due_date' => $invoice->getRawOriginal('due_date') === null
+                        ? null
+                        : (string) $invoice->getRawOriginal('due_date'),
                     'total_amount' => (string) $invoice->total_amount,
                     'lines' => $lines->map(static fn ($line): array => [
                         'purchase_invoice_line_id' => $line->id,
