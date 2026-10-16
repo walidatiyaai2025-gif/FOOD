@@ -4,6 +4,7 @@ namespace Tests\Feature\Enterprise;
 
 use App\Domain\Pricing\B2bPriceResolver;
 use App\Enterprise\Commercial\CommercialContextGuard;
+use App\Enterprise\Commercial\CommercialCreditEligibilityPolicy;
 use App\Enterprise\Commercial\CommercialEventFactory;
 use App\Enterprise\Commercial\CommercialTruthRegistry;
 use App\Models\Order;
