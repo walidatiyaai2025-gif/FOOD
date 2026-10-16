@@ -21,7 +21,7 @@ final class RestaurantTableService
     ) {}
 
     /**
-     * @param Collection<int, SmartOrderingBranch> $branches
+     * @param  Collection<int, SmartOrderingBranch>  $branches
      * @return array<string,mixed>
      */
     public function workspace(Collection $branches, ?string $requestedBranch, User $actor): array
@@ -138,7 +138,6 @@ final class RestaurantTableService
                 || $actor->hasPermission('smart_ordering.qr.manage'));
 
         $rows = $tables->map(function (object $table) use (
-            $actor,
             $selected,
             $directCounts,
             $occupied,
