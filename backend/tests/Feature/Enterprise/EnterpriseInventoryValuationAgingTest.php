@@ -10,10 +10,12 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseInventoryValuationAgingTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     public function test_standard_cost_valuation_uses_canonical_inventory_balance_and_is_idempotent(): void
@@ -161,6 +163,7 @@ final class EnterpriseInventoryValuationAgingTest extends TestCase
 
     private function inventoryUser(int $storeId): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'Valuation Inventory',
             'email' => 'valuation-inventory@example.test',
