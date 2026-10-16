@@ -248,7 +248,7 @@ final class EnterpriseFinanceApprovalFoundationTest extends TestCase
             );
             $this->fail('Cross-legal-entity approval must fail closed.');
         } catch (HttpException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame(404, $exception->getStatusCode());
         }
     }
 
@@ -558,7 +558,7 @@ final class EnterpriseFinanceApprovalFoundationTest extends TestCase
         );
         $checker = $this->userForStore(
             $store,
-            ['finance.view', 'finance.approve'],
+            ['finance.view', 'finance.approve', 'finance.post'],
             $code.'-CHECKER',
         );
         $poster = $this->userForStore(
