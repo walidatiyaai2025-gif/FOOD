@@ -55,15 +55,14 @@ final class EnterpriseOrdersSummaryReadModelTest extends TestCase
         );
 
         $this->assertCount(2, $result['rows']);
-        $completed = collect($result['rows'])->firstWhere('status', 'completed');
-        $pending = collect($result['rows'])->firstWhere('status', 'pending');
-
-        $this->assertSame(2, $completed['order_count']);
-        $this->assertSame('30.000', $completed['gross_total']);
-        $this->assertSame('15.000', $completed['average_order_value']);
-        $this->assertSame('b2c', $completed['channel']);
-        $this->assertSame(1, $pending['order_count']);
-        $this->assertSame('9.500', $pending['gross_total']);
+        $this->assertSame('completed', $result['rows'][0]['status']);
+        $this->assertSame(2, $result['rows'][0]['order_count']);
+        $this->assertSame('30.000', $result['rows'][0]['gross_total']);
+        $this->assertSame('15.000', $result['rows'][0]['average_order_value']);
+        $this->assertSame('b2c', $result['rows'][0]['channel']);
+        $this->assertSame('pending', $result['rows'][1]['status']);
+        $this->assertSame(1, $result['rows'][1]['order_count']);
+        $this->assertSame('9.500', $result['rows'][1]['gross_total']);
         $this->assertSame(1, count($orderQueries));
     }
 
