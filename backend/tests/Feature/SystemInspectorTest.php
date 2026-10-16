@@ -146,6 +146,21 @@ class SystemInspectorTest extends TestCase
         $this->assertContains('restaurant_location_profiles', $payload['enterprise']['missing_tables']);
     }
 
+    public function test_enterprise_schema_guard_covers_current_operational_runtime_tables(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/SystemInspectorController.php'));
+        $this->assertIsString($controller);
+
+        foreach ([
+            'enterprise_organizations',
+            'enterprise_workflow_steps',
+            'enterprise_cashboxes',
+            'restaurant_location_profiles',
+        ] as $table) {
+            $this->assertStringContainsString("'{$table}'", $controller);
+        }
+    }
+
     public function test_premium_admin_runtime_contains_feedback_labels_previews_and_client_capture(): void
     {
         $partial = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
