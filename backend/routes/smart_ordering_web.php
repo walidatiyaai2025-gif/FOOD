@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\RestaurantOnboardingController;
 use App\Http\Controllers\Admin\SmartOrderingController;
 use App\Http\Controllers\Admin\SmartOrderingCustomerGrowthController;
 use App\Http\Controllers\Admin\SmartOrderingMenuAdminController;
@@ -19,6 +20,10 @@ Route::prefix('admin/smart-ordering')
         Route::post('/sites/{site}/draft', [SmartOrderingController::class, 'draft'])->whereNumber('site')->name('draft');
         Route::put('/revisions/{revision}', [SmartOrderingController::class, 'updateDraft'])->whereNumber('revision')->name('revisions.update');
         Route::post('/revisions/{revision}/publish', [SmartOrderingController::class, 'publish'])->whereNumber('revision')->name('revisions.publish');
+        Route::put('/sites/{site}/onboarding/profile', [RestaurantOnboardingController::class, 'profile'])->whereNumber('site')->name('onboarding.profile');
+        Route::post('/sites/{site}/onboarding/import', [RestaurantOnboardingController::class, 'import'])->whereNumber('site')->name('onboarding.import');
+        Route::get('/sites/{site}/onboarding/template.csv', [RestaurantOnboardingController::class, 'template'])->whereNumber('site')->name('onboarding.template');
+        Route::post('/sites/{site}/onboarding/launch', [RestaurantOnboardingController::class, 'launch'])->whereNumber('site')->name('onboarding.launch');
 
         Route::get('/menu', [SmartOrderingMenuAdminController::class, 'index'])->name('menu.index');
         Route::get('/menu/products', [SmartOrderingMenuAdminController::class, 'products'])->name('menu.products');
@@ -42,6 +47,7 @@ Route::prefix('admin/smart-ordering')
         Route::put('/menu/options/{option}/branch', [SmartOrderingMenuAdminController::class, 'optionBranch'])->whereNumber('option')->name('menu.options.branch');
         Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
         Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
+        Route::post('/menu/revisions/{revision}/schedule', [SmartOrderingMenuAdminController::class, 'schedulePublish'])->whereNumber('revision')->name('menu.schedule');
 
         Route::get('/supply', [SmartOrderingSupplyController::class, 'entry'])->name('supply.entry');
         Route::get('/sites/{site}/supply', [SmartOrderingSupplyController::class, 'index'])
