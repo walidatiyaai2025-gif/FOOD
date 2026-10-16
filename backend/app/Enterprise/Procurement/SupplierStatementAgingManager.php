@@ -133,28 +133,28 @@ final class SupplierStatementAgingManager
                 'due_0_30' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due30)
+                        ->where('due_date', '>=', $due30)
                         ->where('due_date', '<', $nextDay)
                         ->sum('total_amount'),
                 ),
                 'due_31_60' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due60)
+                        ->where('due_date', '>=', $due60)
                         ->where('due_date', '<', $due30)
                         ->sum('total_amount'),
                 ),
                 'due_61_90' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due90)
+                        ->where('due_date', '>=', $due90)
                         ->where('due_date', '<', $due60)
                         ->sum('total_amount'),
                 ),
                 'due_over_90' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '<', $due90)
+                        ->where('due_date', '<', $due90)
                         ->sum('total_amount'),
                 ),
                 'no_due_date' => $this->amount(
