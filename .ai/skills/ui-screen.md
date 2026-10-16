@@ -4,6 +4,8 @@ This is the default entry skill whenever the request is to build, redesign, spli
 
 ## Mandatory first step
 
+Before inferring a route, tab, Sidebar destination or screen structure, read `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md` and resolve the placement decision. The Issue title is **not** the route specification. Use **Reuse → Extend → Compose → New Screen** and document why a new screen is necessary when selected.
+
 Read:
 1. `.ai/skills/foodex-uiux.md`
 2. `.ai/skills/ui-pattern-library.md`
@@ -39,6 +41,17 @@ Read `.ai/skills/ui-context-authority.md` and resolve Store/channel/tenant conte
 Do not start markup/widget code before this pass.
 
 ## Execution sequence
+
+### 0. Resolve placement before route/code
+- resolve `domain, entity, role, user_goal, workflow_type, frequency, data_density`;
+- identify the existing parent/workspace and canonical route/renderer;
+- select `placement_type` and one primary canonical screen pattern;
+- record navigation impact, Desktop/Tablet/Mobile composition, AR/RTL + EN/LTR, permissions and states;
+- prefer **Reuse → Extend → Compose → New Screen**;
+- if selecting New Screen, record why the first three options are insufficient;
+- if selecting a Sidebar addition, record the stable business-domain owner.
+
+Do not let a phrase such as “new page” in an Issue bypass this decision.
 
 ### 1. Lock route authority and real page context
 - read `docs/execution/UI_ROUTE_AUTHORITY.json`;

@@ -1,0 +1,160 @@
+name: FOODEX UI implementation task
+description: Placement-first business-facing UI work with responsive and AR/EN evidence
+title: "[UI] "
+labels:
+  - "worker:ready"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Business-facing UI must follow `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`.
+        The Issue title is intent, not route authority. Resolve Reuse → Extend → Compose → New Screen before code.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: One atomic user/business outcome.
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes: { label: Scope }
+    validations: { required: true }
+  - type: input
+    id: surface
+    attributes:
+      label: Surface / app
+      description: Dashboard / Customer / Driver / Van / cross-surface.
+    validations: { required: true }
+  - type: input
+    id: domain
+    attributes: { label: domain }
+    validations: { required: true }
+  - type: input
+    id: entity
+    attributes: { label: entity }
+    validations: { required: true }
+  - type: input
+    id: role
+    attributes: { label: role }
+    validations: { required: true }
+  - type: textarea
+    id: user_goal
+    attributes: { label: user_goal }
+    validations: { required: true }
+  - type: input
+    id: workflow_type
+    attributes: { label: workflow_type }
+    validations: { required: true }
+  - type: input
+    id: frequency
+    attributes:
+      label: frequency
+      description: e.g. continuous / daily / weekly / occasional / exceptional.
+    validations: { required: true }
+  - type: input
+    id: data_density
+    attributes:
+      label: data_density
+      description: low / medium / high plus a short explanation.
+    validations: { required: true }
+  - type: textarea
+    id: existing_parent
+    attributes:
+      label: existing_parent
+      description: Existing domain/workspace/record/route that should own this capability; include canonical route when known.
+    validations: { required: true }
+  - type: dropdown
+    id: placement_type
+    attributes:
+      label: placement_type
+      options:
+        - inline
+        - action
+        - modal
+        - drawer / sheet
+        - tab
+        - workbench
+        - dashboard region
+        - standalone page
+    validations: { required: true }
+  - type: dropdown
+    id: pattern
+    attributes:
+      label: pattern
+      options:
+        - Executive Dashboard
+        - Operational Workbench
+        - Data Explorer / Grid
+        - Record 360 / Details
+        - Create/Edit Form
+        - Wizard / multi-step flow
+        - Settings / Master Data
+        - Monitoring / Exceptions
+        - Action Center / Queue
+        - Analytics / BI
+    validations: { required: true }
+  - type: textarea
+    id: placement_decision
+    attributes:
+      label: Reuse → Extend → Compose → New Screen decision
+      description: State the selected step. If New Screen, prove why Reuse, Extend and Compose are insufficient.
+    validations: { required: true }
+  - type: textarea
+    id: navigation_impact
+    attributes:
+      label: navigation_impact
+      description: None / contextual / existing domain item / standalone route / Sidebar change. Sidebar changes must name the business-domain owner.
+    validations: { required: true }
+  - type: textarea
+    id: desktop
+    attributes:
+      label: desktop
+      description: Planned 1024 compact + 1280+ composition and evidence.
+    validations: { required: true }
+  - type: textarea
+    id: tablet
+    attributes:
+      label: tablet
+      description: Planned 768px composition and evidence.
+    validations: { required: true }
+  - type: textarea
+    id: mobile
+    attributes:
+      label: mobile
+      description: Planned 320/360/390/412/430 behavior and evidence where Dashboard web applies.
+    validations: { required: true }
+  - type: textarea
+    id: rtl_ltr
+    attributes:
+      label: rtl_ltr
+      description: Arabic/RTL + English/LTR behavior and evidence plan.
+    validations: { required: true }
+  - type: textarea
+    id: permissions
+    attributes: { label: permissions }
+    validations: { required: true }
+  - type: textarea
+    id: states
+    attributes:
+      label: states
+      description: loading / loaded / empty / error / disabled / stale-offline / permission states as applicable.
+    validations: { required: true }
+  - type: textarea
+    id: dependencies
+    attributes: { label: Dependencies / ownership fences }
+  - type: textarea
+    id: tests
+    attributes: { label: Tests and runtime evidence required }
+    validations: { required: true }
+  - type: input
+    id: branch
+    attributes: { label: Canonical branch name }
+    validations: { required: true }
+  - type: input
+    id: owner
+    attributes: { label: Owner }
+    validations: { required: true }
+  - type: textarea
+    id: dod
+    attributes: { label: Definition of done }
+    validations: { required: true }
