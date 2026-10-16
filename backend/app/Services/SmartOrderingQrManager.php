@@ -154,7 +154,7 @@ final class SmartOrderingQrManager
     }
 
     /**
-     * @return array{url:string,version:string,state:string,legacy_expires_at:?string}
+     * @return array{url:string,version:string,state:string}
      */
     public function printAssetContext(SmartOrderingQrCode $qr, ?string $version = null): array
     {
@@ -183,7 +183,6 @@ final class SmartOrderingQrManager
             'url' => $this->publicUrlFromRaw($rawToken),
             'version' => (string) $token->token_hash,
             'state' => (string) $token->state,
-            'legacy_expires_at' => $token->legacy_expires_at?->toAtomString(),
         ];
     }
 
