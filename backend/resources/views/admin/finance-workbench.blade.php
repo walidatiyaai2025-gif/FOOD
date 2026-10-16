@@ -205,7 +205,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.common.code') }}</th><th>{{ __('finance_workbench.common.name') }}</th><th>{{ __('finance_workbench.common.status') }}</th>@if($access['foundation_manage'])<th>{{ __('finance_workbench.actions.save') }}</th>@endif</tr></thead><tbody>
 @forelse($data['costCenters'] as $center)
-<tr><td><strong>{{ $center->code }}</strong></td><td>{{ $center->name }}</td><td><span class="finance-status">{{ $status($center->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
+<tr><td><strong>{{ $center->code }}</strong></td><td>{{ $center->name }}</td><td><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $center->status)) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.cost-centers.status',['costCenter'=>$center->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="status" value="{{ $center->status==='active' ? 'inactive' : 'active' }}"><button class="finance-button" type="submit">{{ $center->status==='active' ? __('finance_workbench.actions.deactivate') : __('finance_workbench.actions.activate') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="4" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -244,7 +244,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <button class="finance-button primary" type="submit">{{ __('finance_workbench.actions.create') }}</button>
 </form></div></details>
 @endif
-</td><td>{{ optional($year->starts_on)->format('Y-m-d') }}</td><td>{{ optional($year->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($year->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
+</td><td>{{ optional($year->starts_on)->format('Y-m-d') }}</td><td>{{ optional($year->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $year->status)) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.fiscal-years.state',['fiscalYear'=>$year->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="state" value="{{ $year->status==='open' ? 'closed' : 'open' }}"><button class="finance-button" type="submit">{{ $year->status==='open' ? __('finance_workbench.actions.close') : __('finance_workbench.actions.reopen') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="6" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -254,7 +254,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <h3>{{ __('finance_workbench.periods.period_list') }}</h3>
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.common.code') }}</th><th>{{ __('finance_workbench.common.name') }}</th><th>{{ __('finance_workbench.common.sequence') }}</th><th>{{ __('finance_workbench.common.from') }}</th><th>{{ __('finance_workbench.common.to') }}</th><th>{{ __('finance_workbench.common.status') }}</th>@if($access['foundation_manage'])<th>{{ __('finance_workbench.actions.save') }}</th>@endif</tr></thead><tbody>
 @forelse($data['fiscalPeriods'] as $period)
-<tr><td><strong>{{ $period->code }}</strong></td><td>{{ $period->name }}</td><td>{{ $period->sequence }}</td><td>{{ optional($period->starts_on)->format('Y-m-d') }}</td><td>{{ optional($period->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($period->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
+<tr><td><strong>{{ $period->code }}</strong></td><td>{{ $period->name }}</td><td>{{ $period->sequence }}</td><td>{{ optional($period->starts_on)->format('Y-m-d') }}</td><td>{{ optional($period->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $period->status)) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.fiscal-periods.state',['fiscalPeriod'=>$period->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="state" value="{{ $period->status==='open' ? 'closed' : 'open' }}"><button class="finance-button" type="submit">{{ $period->status==='open' ? __('finance_workbench.actions.close') : __('finance_workbench.actions.reopen') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="7" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -291,7 +291,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.journals.number') }}</th><th>{{ __('finance_workbench.common.date') }}</th><th>{{ __('finance_workbench.common.description') }}</th><th>{{ __('finance_workbench.common.debit') }}</th><th>{{ __('finance_workbench.common.credit') }}</th><th>{{ __('finance_workbench.common.status') }}</th><th>{{ __('finance_workbench.actions.view') }}</th></tr></thead><tbody>
 @forelse($data['journals'] as $journal)
-<tr><td><strong>{{ $journal->journal_number }}</strong></td><td>{{ optional($journal->entry_date)->format('Y-m-d') }}</td><td>{{ $journal->description ?: '—' }}</td><td class="finance-money">{{ $money($journal->total_debit) }}</td><td class="finance-money">{{ $money($journal->total_credit) }}</td><td><span class="finance-status">{{ $status($journal->status) }}</span></td><td><a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$journal->id]) }}">{{ __('finance_workbench.actions.view') }}</a></td></tr>
+<tr><td><strong>{{ $journal->journal_number }}</strong></td><td>{{ optional($journal->entry_date)->format('Y-m-d') }}</td><td>{{ $journal->description ?: '—' }}</td><td class="finance-money">{{ $money($journal->total_debit) }}</td><td class="finance-money">{{ $money($journal->total_credit) }}</td><td><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $journal->status)) }}</span></td><td><a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$journal->id]) }}">{{ __('finance_workbench.actions.view') }}</a></td></tr>
 @empty<tr><td colspan="7" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
 </tbody></table></div>
 <div class="finance-pagination">{{ $data['journals']->links() }}</div>
@@ -299,7 +299,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 @if($data['selectedJournal'])
 <section class="finance-panel" id="journal-detail">
-<div class="finance-panel-head"><div><h3>{{ __('finance_workbench.journals.detail') }} · {{ $data['selectedJournal']->journal_number }}</h3><p>{{ __('finance_workbench.journals.source_trace') }}</p></div><span class="finance-status">{{ $status($data['selectedJournal']->status) }}</span></div>
+<div class="finance-panel-head"><div><h3>{{ __('finance_workbench.journals.detail') }} · {{ $data['selectedJournal']->journal_number }}</h3><p>{{ __('finance_workbench.journals.source_trace') }}</p></div><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $data['selectedJournal']->status)) }}</span></div>
 <div class="finance-source-trace">
 <div class="finance-source-step"><strong>{{ __('finance_workbench.common.source') }}</strong>@if($data['sourcePosting']){{ $data['sourcePosting']->source_reference ?: '—' }}<br><span class="finance-muted">{{ optional($data['sourcePosting']->occurred_at)->format('Y-m-d H:i') }}</span>@else<span class="finance-muted">{{ __('finance_workbench.journals.no_source') }}</span>@endif</div>
 <div class="finance-source-step"><strong>{{ __('finance_workbench.common.journal') }}</strong>{{ $data['selectedJournal']->journal_number }}<br><span class="finance-muted">{{ $data['selectedJournal']->fiscalPeriod?->code ?? '—' }}</span></div>
@@ -321,7 +321,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <h3>{{ __('finance_workbench.journals.approval') }}</h3>
 @if($data['approval'])
-<div class="finance-notice"><span class="finance-status">{{ $status($data['approval']->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}} · {{ optional($data['approval']->created_at)->format('Y-m-d H:i') }}</div>
+<div class="finance-notice"><span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $data['approval']->status)) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}} · {{ optional($data['approval']->created_at)->format('Y-m-d H:i') }}</div>
 @else<div class="finance-empty">{{ __('finance_workbench.journals.no_approval') }}</div>@endif
 
 <h3>{{ __('finance_workbench.journals.ledger_entries') }}</h3>
@@ -385,7 +385,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 <a class="finance-button" href="{{ route('admin.action-center.index') }}">{{ __('finance_workbench.actions.open_action_center') }}</a>
 </div>
-@if($data['approval'])<div class="finance-notice"><strong>{{ __('finance_workbench.journals.approval') }}:</strong> <span class="finance-status">{{ $status($data['approval']->status) }}</span></div>@endif
+@if($data['approval'])<div class="finance-notice"><strong>{{ __('finance_workbench.journals.approval') }}:</strong> <span class="finance-status">{{ __('finance_workbench.statuses.'.strtolower((string) $data['approval']->status)) }}</span></div>@endif
 </section>
 @endif
 @endif
