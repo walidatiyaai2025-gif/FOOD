@@ -42,6 +42,17 @@ class MobileCiScopeTest(unittest.TestCase):
         self.assertTrue(plan["android"])
         self.assertFalse(plan["ios"])
 
+    def test_backend_dashboard_only_changes_never_schedule_platform_builds(self) -> None:
+        paths = [
+            "backend/app/Services/OrderService.php",
+            "backend/resources/views/admin/orders/index.blade.php",
+        ]
+        for app in ("customer", "driver", "van"):
+            plan = MODULE.resolve(app, paths)
+            self.assertFalse(plan["android"], app)
+            self.assertFalse(plan["ios"], app)
+            self.assertFalse(plan["web_preview"], app)
+
 
 if __name__ == "__main__":
     unittest.main()
