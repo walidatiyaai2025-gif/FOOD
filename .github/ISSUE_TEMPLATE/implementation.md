@@ -17,6 +17,30 @@ Describe one atomic implementation unit.
 - In:
 - Out:
 
+## UI placement decision — required when business-facing UI changes
+
+Use `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. The Issue title is intent, not route authority.
+
+- domain:
+- entity:
+- role:
+- user_goal:
+- workflow_type:
+- frequency:
+- data_density:
+- existing_parent / canonical route:
+- placement_type:
+- pattern:
+- Reuse / Extend / Compose / New Screen decision:
+- New-screen justification, if applicable:
+- navigation_impact / business-domain owner:
+- desktop:
+- tablet:
+- mobile:
+- rtl_ltr:
+- permissions:
+- states:
+
 ## Acceptance
 
 - [ ]

@@ -38,10 +38,13 @@ Normal task claims, leases and handoffs still belong in the Issue/PR through the
 
 Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
 
+- `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`
 - `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
 - `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md`
 
 These are repository-level Definition-of-Done contracts, not optional visual guidance.
+
+For every new or materially changed business-facing UI capability, the worker **MUST resolve placement before code** using the adaptive placement contract. The mandatory order is **Reuse → Extend → Compose → New Screen**. The Issue title is intent, not route authority, and must never be copied into a new route/Sidebar destination without the required placement decision. The Issue/PR must resolve `domain, entity, role, user_goal, workflow_type, frequency, data_density, existing_parent, placement_type, pattern, navigation_impact, desktop, tablet, mobile, rtl_ltr, permissions, states`. A new screen requires explicit proof that reuse/extend/compose are insufficient; a new Sidebar item additionally requires stable business-domain ownership.
 
 Core invariants include:
 

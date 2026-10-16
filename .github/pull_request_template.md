@@ -11,6 +11,27 @@ Closes #
 ## Screenshots
 N/A unless UI changed.
 
+## UI placement & responsive evidence
+N/A only when no business-facing UI changed.
+
+Placement contract: `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`
+- Placement decision: Reuse / Extend / Compose / New Screen
+- Domain / entity / role / user goal:
+- Canonical existing parent / route:
+- Placement type:
+- Primary screen pattern:
+- Navigation impact / business-domain owner:
+- New-screen justification (required for New Screen; explain why Reuse/Extend/Compose are insufficient):
+- Desktop evidence:
+- Tablet evidence:
+- Mobile evidence:
+- Arabic / RTL evidence:
+- English / LTR evidence:
+- Permissions / entitlement evidence:
+- Loading / empty / error / disabled / stale-offline states:
+
+> The Issue title is intent, not route authority. Do not create a route or Sidebar entry merely because the Issue wording says “page” or “screen”.
+
 ## API changes
 None / describe.
 
