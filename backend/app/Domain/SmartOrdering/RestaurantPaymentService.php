@@ -438,8 +438,10 @@ final class RestaurantPaymentService
             ]);
         }
 
-        if ($operation === 'capture' && $amount !== null && $this->toMills($amount) > $this->toMills((string) $payment->amount)) {
-            throw ValidationException::withMessages(['amount' => ['Capture amount cannot exceed the payment amount.']]);
+        if (in_array($operation, ['authorize', 'capture'], true)
+            && $amount !== null
+            && $this->toMills($amount) > $this->toMills((string) $payment->amount)) {
+            throw ValidationException::withMessages(['amount' => ['Payment amount cannot exceed the canonical payment amount.']]);
         }
 
         if ($operation === 'refund' && $amount !== null) {
@@ -457,18 +459,17 @@ final class RestaurantPaymentService
             'authorize' => 'authorized',
             'capture' => 'captured',
             'void' => 'voided',
-            'refund' => $this->refundStatus($payment, $amount ?? '0.000'),
+            'refund' => $this->refundStatus($payment),
             default => (string) $payment->status,
         };
     }
 
-    private function refundStatus(Payment $payment, string $currentRefund): string
+    private function refundStatus(Payment $payment): string
     {
         $captured = $this->successfulAmount((int) $payment->getKey(), 'capture');
-        $refundedBefore = $this->successfulAmount((int) $payment->getKey(), 'refund');
-        $refundedAfter = $refundedBefore + $this->toMills($currentRefund);
+        $refunded = $this->successfulAmount((int) $payment->getKey(), 'refund');
 
-        return $captured > 0 && $refundedAfter >= $captured ? 'refunded' : 'partially_refunded';
+        return $captured > 0 && $refunded >= $captured ? 'refunded' : 'partially_refunded';
     }
 
     private function settlementMismatch(
