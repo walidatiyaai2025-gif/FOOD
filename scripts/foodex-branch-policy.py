@@ -6,6 +6,13 @@ KINDS=("feat","fix","chore","docs","refactor","test","ci","worker")
 SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot"}
 PROMOTION_BRANCHES={
     "feature/enterprise-core-platform",
+    "feature/enterprise-admin-shell",
+    "feature/enterprise-procurement",
+    "feature/enterprise-wms",
+    "feature/enterprise-finance",
+    "feature/enterprise-treasury",
+    "feature/enterprise-commercial-convergence",
+    "feature/enterprise-bi",
     "feature/enterprise-performance-gates",
     "feature/smart-ordering-program",
     "feature/whatsapp-crm-dark-launch",
@@ -28,7 +35,7 @@ def is_valid(branch:str, base:str|None=None, allow_main:bool=False)->bool:
     if branch in SPECIAL: return True
     if branch in PROMOTION_BRANCHES: return base=="main"
     if branch=="main":
-        return allow_main or bool(base and RELEASE_RE.fullmatch(base))
+        return allow_main or bool(base and (RELEASE_RE.fullmatch(base) or base in PROMOTION_BRANCHES))
     return bool(STANDARD_RE.fullmatch(branch) or RELEASE_RE.fullmatch(branch))
 
 def main()->int:
