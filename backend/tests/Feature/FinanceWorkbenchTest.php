@@ -118,7 +118,7 @@ final class FinanceWorkbenchTest extends TestCase
     }
 
     /** @param list<string> $permissions
-     *  @return array{User,Store,ResolvedTenantContext}
+     * @return array{User,Store,ResolvedTenantContext}
      */
     private function operator(array $permissions, string $storeCode, string $locale): array
     {

@@ -65,7 +65,7 @@ const b2c = [
   ['15_مركز_عمل_المخزون_WMS_ERP', '/admin/erp/wms'],
   ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
   ['15_مركز_ذكاء_الأعمال_ERP', '/admin/erp/bi'],
-  ['15_مساحة_عمل_المحاسب_ERP', '/admin/erp/finance?store_code=FOODEX-EVIDENCE-B2B'],
+  ['15_مساحة_عمل_المحاسب_ERP', '/admin/erp/finance?store_code=FOODEX-DEMO-B2C'],
   ['15_مساحة_عمل_خدمة_العملاء', '/admin/erp/customer-service'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
@@ -607,7 +607,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['erp-center', '/admin/erp'],
     ['erp-wms', '/admin/erp/wms'],
     ['erp-procurement', '/admin/erp/procurement'],
-    ['erp-finance', '/admin/erp/finance?store_code=FOODEX-EVIDENCE-B2B'],
+    ['erp-finance', '/admin/erp/finance?store_code=FOODEX-DEMO-B2C'],
     ['erp-treasury', '/admin/erp/treasury'],
     ['erp-customer-service', '/admin/erp/customer-service'],
     ['erp-bi', '/admin/erp/bi'],
@@ -1264,7 +1264,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'erp-finance-responsive',
-    '/admin/erp/finance?store_code=FOODEX-EVIDENCE-B2B',
+    '/admin/erp/finance?store_code=FOODEX-DEMO-B2C',
   );
   await captureResponsiveRoute(
     page,

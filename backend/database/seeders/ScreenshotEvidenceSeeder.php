@@ -278,6 +278,29 @@ class ScreenshotEvidenceSeeder extends Seeder
             ->where('code', 'FOODEX-DEMO-B2C')
             ->value('id');
 
+        $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
+        $retailFinanceContext = app(TenantContextResolver::class)->retail($procurementActor, $retailStoreId);
+        $retailFinanceScope = $retailFinanceContext->enterpriseScope;
+        if ($retailFinanceScope === null) {
+            throw new RuntimeException('Finance screenshot fixture requires a retail legal-entity scope.');
+        }
+        app(ModuleEntitlementManager::class)->set(
+            FinanceFoundationService::MODULE,
+            new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $retailFinanceScope->legalEntityId),
+            true,
+            [
+                'finance.foundation.read',
+                'finance.gl.read',
+                'finance.opening_balances.read',
+                'finance.ar.read',
+                'finance.ap.read',
+                'finance.credit_terms.read',
+            ],
+            $procurementActor,
+        );
+
+
         $smartOrderingSite = app(SmartOrderingSiteService::class)->ensureForStore($retailStoreId);
         DB::table('smart_ordering_entitlements')
             ->where('site_id', $smartOrderingSite->getKey())
