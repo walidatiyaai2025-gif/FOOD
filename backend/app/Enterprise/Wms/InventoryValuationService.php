@@ -98,7 +98,7 @@ final class InventoryValuationService
         }, attempts: 3);
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function valuation(
         User $actor,
         int $storeId,
@@ -138,7 +138,7 @@ final class InventoryValuationService
             ->get();
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function aging(
         User $actor,
         int $storeId,
@@ -202,7 +202,7 @@ final class InventoryValuationService
             ->get();
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function slowOrDeadStock(
         User $actor,
         int $storeId,
@@ -218,7 +218,7 @@ final class InventoryValuationService
 
         return $this->aging($actor, $storeId, $warehouseId, 100)
             ->filter(
-                static fn (object $row): bool => now()->diffInDays($row->last_inbound_at, true) >= $minimumAgeDays,
+                static fn (\stdClass $row): bool => now()->diffInDays($row->last_inbound_at, true) >= $minimumAgeDays,
             )
             ->take($this->boundedLimit($limit))
             ->values();
