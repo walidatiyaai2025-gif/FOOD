@@ -102,7 +102,7 @@ final class FinanceWorkbenchController extends Controller
         $tabs = $this->tabDefinitions($access);
         $definition = collect($tabs)->firstWhere('key', $tab);
         abort_if(! is_array($definition), 404);
-        abort_unless((bool) ($definition['available'] ?? false), 403);
+        abort_unless($definition['available'], 403);
 
         $data = match ($tab) {
             'overview' => $this->overviewData($actor, $context, $access),
