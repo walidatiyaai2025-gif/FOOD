@@ -14,16 +14,16 @@ This contract creates a real finish line. While active, FOODEX stops expanding t
 | Order | Authority | Closure responsibility |
 |---|---|---|
 | 1 | #1883 | Finish W3 module manifest, entitlement and disable/re-enable gate into `feature/enterprise-wms`. |
-| 2 | #1551 | Execute and accept genuine representative-heavy and supported cPanel/reference certification. |
-| 3 | #1720 / #1489 | Wave 1 certification and promotion. |
-| 4 | #1490 | Wave 2 Procurement promotion. |
-| 5 | #1491 | Wave 3 WMS promotion. |
-| 6 | #1492 | Wave 4 Finance promotion. |
-| 7 | #1493 | Wave 5 Treasury promotion, including applicable real pilot/human evidence. |
-| 8 | #1494 | Wave 6 Commercial/Distribution promotion. |
-| 9 | #1495 | Wave 7 BI/Reporting promotion. |
-| 10 | #1497 | Final cross-module certification. |
-| 11 | #1485 | Close the Enterprise ERP umbrella after all required evidence is green. |
+| Production only | #1551 | Execute genuine representative-heavy cPanel/reference certification only after an explicit owner Production-release command; it does not block W1-W7 closure promotion. |
+| 2 | #1720 / #1489 | Wave 1 certification and promotion. |
+| 3 | #1490 | Wave 2 Procurement promotion. |
+| 4 | #1491 | Wave 3 WMS promotion. |
+| 5 | #1492 | Wave 4 Finance promotion. |
+| 6 | #1493 | Wave 5 Treasury promotion, including applicable real pilot/human evidence. |
+| 7 | #1494 | Wave 6 Commercial/Distribution promotion. |
+| 8 | #1495 | Wave 7 BI/Reporting promotion. |
+| 9 | #1497 | Final cross-module certification. |
+| 10 | #1485 | Close the Enterprise ERP umbrella after all required evidence is green. |
 
 ## Deferred during closure
 
@@ -34,9 +34,9 @@ This contract creates a real finish line. While active, FOODEX stops expanding t
 
 ## Promotion discipline
 
-Promote W1 -> W2 -> W3 -> W4 -> W5 -> W6 -> W7 sequentially. Before each promotion, synchronize the canonical integration branch with current `main`, rerun exact-head required gates, and consume the genuine cPanel/reference authority where required.
+Promote W1 -> W2 -> W3 -> W4 -> W5 -> W6 -> W7 sequentially. Before each promotion, synchronize the canonical integration branch with current `main` and rerun exact-head repository-required gates. cPanel/reference certification is not a per-wave promotion gate.
 
-Do not bypass a human gate, pilot gate, real-reference performance gate, or exact-head CI. A blocked gate is a blocker to solve, not permission to create more scope.
+Run #1551 only when the owner explicitly requests a Production release. At that point the final production candidate must pass the genuine cPanel/reference contract on the exact production SHA before deployment. Human/pilot gates that belong to a wave remain mandatory and are not changed by this policy.
 
 ## Mainline freeze
 
@@ -48,4 +48,4 @@ An already-running non-closure atomic lane may finish only when it is already WA
 
 ## Definition of done
 
-Closure is complete only when #1551 evidence is accepted, required W1-W7 promotions are on `main`, #1497 passes with zero unresolved P0/P1 blockers, and #1485 is closed. Remaining roadmap work stays deferred to a later release boundary.
+Closure is complete when required W1-W7 promotions are on `main`, #1497 passes with zero unresolved P0/P1 blockers, and #1485 is closed. #1551 is a separate production-only gate and becomes mandatory only when the owner explicitly requests Production deployment. Remaining roadmap work stays deferred to a later release boundary.
