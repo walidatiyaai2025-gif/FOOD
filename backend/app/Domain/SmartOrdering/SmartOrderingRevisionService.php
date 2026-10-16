@@ -222,6 +222,13 @@ final class SmartOrderingRevisionService
                 ->firstOrFail();
             abort_unless($draft->status === 'draft', 409);
 
+            $pendingScheduled = SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'scheduled')
+                ->lockForUpdate()
+                ->exists();
+            abort_if($pendingScheduled, 409);
+
             return $this->publishLocked($actor, $site, $draft, $request);
         });
     }
