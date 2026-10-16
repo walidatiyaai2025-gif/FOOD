@@ -7,6 +7,7 @@ use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
 use App\Domain\WhatsApp\StateManager;
 use App\Domain\WhatsApp\TransportRetryService;
+use App\Enterprise\Scheduling\EnterpriseSchedulerAdapter;
 use App\Models\User;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
@@ -28,6 +29,20 @@ Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
 Schedule::command('foodex:dispatch-scheduled-notifications')
     ->everyMinute()
     ->withoutOverlapping();
+
+Artisan::command(
+    'foodex:dispatch-enterprise-outbox {--limit=50 : Maximum Enterprise outbox rows claimed per scheduler tick}',
+    function (EnterpriseSchedulerAdapter $enterprise): int {
+        $count = $enterprise->dispatchDue((int) $this->option('limit'));
+        $this->info("Dispatched {$count} Enterprise outbox message(s).");
+
+        return 0;
+    },
+)->purpose('Dispatch one bounded Enterprise outbox slice through the existing FOODEX scheduler contract.');
+
+Schedule::command('foodex:dispatch-enterprise-outbox --limit=50')
+    ->everyMinute()
+    ->withoutOverlapping(2);
 
 Artisan::command('foodex:dispatch-flash-offer-notifications', function (): void {
     $count = app(FlashOfferNotificationDispatcher::class)->dispatchDue();
