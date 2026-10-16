@@ -13,5 +13,21 @@ return [
     | transaction or during application boot.
     |
     */
-    'consumers' => [],
+    'consumers' => [
+        'ProcurementPurchaseInvoiceHandedOff' => [
+            \App\Enterprise\Finance\FinanceSourcePostingConsumer::class,
+        ],
+        'TreasuryReceiptPosted' => [
+            \App\Enterprise\Finance\FinanceSourcePostingConsumer::class,
+        ],
+        'TreasuryPaymentPosted' => [
+            \App\Enterprise\Finance\FinanceSourcePostingConsumer::class,
+        ],
+        'TreasuryReconciliationClosed' => [
+            \App\Enterprise\Finance\FinanceSourcePostingConsumer::class,
+        ],
+        'TreasuryCashClosingClosed' => [
+            \App\Enterprise\Finance\FinanceSourcePostingConsumer::class,
+        ],
+    ],
 ];
