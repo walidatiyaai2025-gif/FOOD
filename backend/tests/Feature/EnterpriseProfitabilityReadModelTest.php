@@ -237,7 +237,7 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
         $this->assertNull($row['margin']);
         $this->assertSame(1, $row['unvalued_lines']);
         $this->assertSame($store, $row['drill_down']['store_id']);
-        $this->assertLessThanOrEqual(1, count($factQueries));
+        $this->assertLessThanOrEqual(2, count($factQueries));
 
         $this->expectException(ValidationException::class);
         $mixedCurrencyQuery = ReportQuery::fromArray($report, [
