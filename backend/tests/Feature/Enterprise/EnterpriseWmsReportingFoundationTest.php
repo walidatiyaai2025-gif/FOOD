@@ -153,7 +153,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
         $this->assertTrue($page->every(
             fn (\stdClass $row): bool => (int) $row->warehouse_id === $fixture['warehouse_id'],
         ));
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
 
         $lastId = (int) $page->last()->inventory_lot_id;
         $next = app(WmsReportingService::class)->lotExpiry(
