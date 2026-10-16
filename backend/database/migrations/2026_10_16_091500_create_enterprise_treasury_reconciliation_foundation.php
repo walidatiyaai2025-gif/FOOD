@@ -52,12 +52,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(
-                ['reconciliation_id', 'transaction_type', 'transaction_id'],
+                ['transaction_type', 'transaction_id'],
                 'etr_rec_line_txn_uq',
             );
             $table->index(
-                ['transaction_type', 'transaction_id', 'reconciliation_id'],
-                'etr_rec_line_txn_idx',
+                ['reconciliation_id', 'transaction_type', 'transaction_id'],
+                'etr_rec_line_rec_txn_idx',
             );
         });
 
