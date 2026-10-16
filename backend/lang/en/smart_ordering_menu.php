@@ -8,6 +8,7 @@ return [
     'deleted' => 'Menu record deleted from the draft.',
     'draft_ready' => 'Editable menu draft is ready.',
     'published' => 'Menu draft published atomically.',
+    'scheduled' => 'Menu draft scheduled for publishing.',
     'lookup' => [
         'label' => 'Linked FOODEX product',
         'placeholder' => 'Search name, SKU or barcode',
