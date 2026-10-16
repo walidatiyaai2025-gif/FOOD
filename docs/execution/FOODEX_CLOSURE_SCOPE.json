@@ -9,7 +9,6 @@
   },
   "in_scope": [
     1883,
-    1551,
     1720,
     1489,
     1490,
@@ -43,14 +42,21 @@
     "synthetic_evidence": false,
     "bypass_human_gates": false,
     "keep_main_quiet": true,
-    "mobile_builds_path_scoped": true
+    "mobile_builds_path_scoped": true,
+    "cpanel_reference_gate": "production_only_on_owner_command",
+    "cpanel_blocks_wave_promotion": false
   },
   "completion": [
-    "required_real_reference_evidence_accepted",
     "required_w1_w7_promotions_merged_to_main",
     "final_certification_1497_green",
     "zero_unresolved_p0_p1",
     "enterprise_umbrella_1485_closed",
     "remaining_roadmap_explicitly_deferred"
-  ]
+  ],
+  "production_only": {
+    "issue": 1551,
+    "trigger": "explicit_owner_production_release_command",
+    "blocks_wave_promotion": false,
+    "requires_genuine_cpanel_reference_evidence": true
+  }
 }
