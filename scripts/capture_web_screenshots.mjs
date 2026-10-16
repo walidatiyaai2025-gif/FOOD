@@ -129,7 +129,8 @@ async function assertVisibleActionsInViewport(page, label) {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       const visible = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
-        && rect.width > 0 && rect.height > 0;
+        && rect.width > 0 && rect.height > 0
+        && rect.bottom > 0 && rect.top < window.innerHeight;
       return visible && (rect.left < -2 || rect.right > window.innerWidth + 2);
     }).slice(0, 8).map((element) => ({
       text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 80),
