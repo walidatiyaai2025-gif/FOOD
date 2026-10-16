@@ -51,6 +51,12 @@ return [
                 'treasury.payments.read',
                 'treasury.payments.manage',
                 'treasury.payments.approve',
+                'treasury.reconciliation.read',
+                'treasury.reconciliation.manage',
+                'treasury.reconciliation.approve',
+                'treasury.cash_closing.read',
+                'treasury.cash_closing.manage',
+                'treasury.cash_closing.approve',
             ],
             'permissions' => [
                 'finance.view',
