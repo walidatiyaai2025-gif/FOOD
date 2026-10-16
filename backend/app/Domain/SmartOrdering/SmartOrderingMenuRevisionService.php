@@ -7,6 +7,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingModifierGroup;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,9 +22,14 @@ final class SmartOrderingMenuRevisionService
     public function draft(User $actor, SmartOrderingSite $site, ?Request $request = null): SmartOrderingRevision
     {
         $draft = $this->revisions->createOrReuseDraft($actor, $site, $request);
-        $this->clonePublishedMenuIfNeeded($site, $draft);
+        $this->cloneSourceMenuIfNeeded($site, $draft);
 
         return $draft->fresh();
+    }
+
+    public function scheduled(SmartOrderingSite $site): ?SmartOrderingRevision
+    {
+        return $this->revisions->scheduled($site);
     }
 
     public function publish(
@@ -33,10 +39,32 @@ final class SmartOrderingMenuRevisionService
         ?Request $request = null,
     ): SmartOrderingRevision {
         abort_unless((int) $draft->site_id === (int) $site->id && $draft->status === 'draft', 404);
+        abort_if($this->revisions->scheduled($site) instanceof SmartOrderingRevision, 409);
+
         $this->validateDraft($site, $draft);
         $this->refreshChecksum($actor, $draft, $request);
 
         return $this->revisions->publish($actor, $draft->fresh(), $request);
+    }
+
+    public function schedule(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $draft,
+        CarbonInterface $scheduledAt,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        abort_unless((int) $draft->site_id === (int) $site->id && $draft->status === 'draft', 404);
+        if (! $scheduledAt->isFuture()) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => [__('smart_ordering_menu.validation.scheduled_future')],
+            ]);
+        }
+
+        $this->validateDraft($site, $draft);
+        $this->refreshChecksum($actor, $draft, $request);
+
+        return $this->revisions->schedule($actor, $draft->fresh(), $scheduledAt, $request);
     }
 
     public function rollback(
@@ -121,18 +149,18 @@ final class SmartOrderingMenuRevisionService
         }
     }
 
-    private function clonePublishedMenuIfNeeded(SmartOrderingSite $site, SmartOrderingRevision $draft): void
+    private function cloneSourceMenuIfNeeded(SmartOrderingSite $site, SmartOrderingRevision $draft): void
     {
         if (DB::table('smart_ordering_menus')->where('revision_id', $draft->id)->exists()) {
             return;
         }
 
-        $published = $this->revisions->published($site);
-        if (! $published instanceof SmartOrderingRevision || $published->id === $draft->id) {
+        $source = $this->revisions->scheduled($site) ?? $this->revisions->published($site);
+        if (! $source instanceof SmartOrderingRevision || $source->id === $draft->id) {
             return;
         }
 
-        $this->cloneMenuRevision($site, $published, $draft);
+        $this->cloneMenuRevision($site, $source, $draft);
     }
 
     private function cloneMenuRevision(
