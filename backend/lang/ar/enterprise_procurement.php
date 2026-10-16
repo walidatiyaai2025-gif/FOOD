@@ -2,6 +2,10 @@
 
 return [
     'title' => 'مركز عمل المشتريات',
+    'section' => 'ERP · المشتريات',
+    'purchase_order_short' => 'أمر شراء',
+    'goods_receipt_short' => 'إذن استلام',
+    'channels' => ['b2b' => 'جملة (B2B)', 'b2c' => 'تجزئة (B2C)'],
     'description' => 'إدارة دورة المورد إلى السداد من مساحة تشغيل واحدة مترابطة.',
     'store' => 'المتجر التشغيلي',
     'switch_store' => 'تبديل',
