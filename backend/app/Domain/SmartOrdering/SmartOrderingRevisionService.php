@@ -105,13 +105,14 @@ final class SmartOrderingRevisionService
 
             $published = $this->published($site);
             abort_unless($published instanceof SmartOrderingRevision, 409);
+            $source = $this->scheduled($site) ?? $published;
 
-            $draft = $this->createRevision($site, 'draft', (array) $published->payload, $actor, (int) $published->id, false);
+            $draft = $this->createRevision($site, 'draft', (array) $source->payload, $actor, (int) $source->id, false);
             $this->audit->record('smart_ordering.revision.draft_created', $actor, $draft, null, [
                 'store_id' => (int) $site->store_id,
                 'site_public_id' => (string) $site->public_id,
                 'revision_public_id' => (string) $draft->public_id,
-                'parent_revision_public_id' => (string) $published->public_id,
+                'parent_revision_public_id' => (string) $source->public_id,
             ], $request);
 
             return $draft;
