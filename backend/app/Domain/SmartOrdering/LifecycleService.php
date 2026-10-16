@@ -241,6 +241,9 @@ final class LifecycleService
             'scheduled_for' => $context->scheduled_for === null
                 ? null
                 : CarbonImmutable::parse((string) $context->scheduled_for)->toAtomString(),
+            'promised_for' => $context->promised_for === null
+                ? null
+                : CarbonImmutable::parse((string) $context->promised_for)->toAtomString(),
             'currency' => (string) $order->currency,
             'total' => (float) $context->grand_total,
             'timeline' => SmartOrderingOrderEvent::query()
