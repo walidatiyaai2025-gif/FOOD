@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
+use App\Models\EnterpriseModuleEntitlement;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\EnterpriseModuleAdministration;
@@ -81,6 +82,38 @@ final class ErpCenterTest extends TestCase
         $this->assertDatabaseHas('enterprise_module_entitlements', [
             'module_code' => 'procurement',
             'scope_key' => 'platform:0',
+            'is_enabled' => false,
+        ]);
+    }
+
+    public function test_local_super_admin_bootstraps_platform_entitlement_when_only_narrower_scope_is_configured(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-local-narrower-deny@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        EnterpriseModuleEntitlement::query()->create([
+            'module_code' => 'procurement',
+            'scope_type' => EntitlementScope::STORE,
+            'scope_id' => 999,
+            'scope_key' => 'store:999',
+            'is_enabled' => false,
+            'capabilities' => null,
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="available"', false);
+
+        $this->assertDatabaseHas('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+            'scope_key' => 'platform:0',
+            'is_enabled' => true,
+        ]);
+        $this->assertDatabaseHas('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+            'scope_key' => 'store:999',
             'is_enabled' => false,
         ]);
     }
