@@ -153,6 +153,40 @@ final class SmartOrderingQrManager
         return route('smart-ordering.qr.resolve', ['token' => $token->token_value], true);
     }
 
+    /**
+     * @return array{url:string,version:string,state:string,legacy_expires_at:?string}
+     */
+    public function printAssetContext(SmartOrderingQrCode $qr, ?string $version = null): array
+    {
+        if ($version !== null && preg_match('/\\A[a-f0-9]{64}\\z/', $version) !== 1) {
+            abort(404);
+        }
+
+        $query = SmartOrderingQrToken::query()->where('qr_code_id', $qr->getKey());
+        $token = $version === null
+            ? $query->where('state', 'active')->latest('id')->first()
+            : $query->where('token_hash', $version)->first();
+
+        abort_unless($token instanceof SmartOrderingQrToken, 404);
+        abort_unless(in_array($token->state, ['active', 'legacy'], true), 404);
+        abort_if(
+            $token->state === 'legacy'
+                && $token->legacy_expires_at !== null
+                && Carbon::parse((string) $token->legacy_expires_at)->isPast(),
+            404,
+        );
+
+        $rawToken = (string) $token->token_value;
+        abort_if($rawToken === '', 404);
+
+        return [
+            'url' => $this->publicUrlFromRaw($rawToken),
+            'version' => (string) $token->token_hash,
+            'state' => (string) $token->state,
+            'legacy_expires_at' => $token->legacy_expires_at?->toAtomString(),
+        ];
+    }
+
     public function publicUrlFromRaw(string $rawToken): string
     {
         return route('smart-ordering.qr.resolve', ['token' => $rawToken], true);
