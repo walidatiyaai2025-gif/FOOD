@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\EnterpriseSavedViewController;
 use App\Http\Controllers\Admin\EnterpriseSecurityController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\EnterpriseTreasuryController;
+use App\Http\Controllers\Admin\EnterpriseWmsController;
 use App\Http\Controllers\Admin\EnterpriseWorkspaceController;
 use App\Http\Controllers\Admin\ErpCenterController;
 use App\Http\Controllers\Admin\FieldOperationsController;
@@ -170,6 +171,21 @@ Route::prefix('admin')
             Route::post('/receipts/{goodsReceipt}/returns', [EnterpriseProcurementController::class, 'storeReturn'])->whereNumber('goodsReceipt')->middleware('throttle:30,1')->name('returns.store');
             Route::post('/returns/{purchaseReturn}/post', [EnterpriseProcurementController::class, 'postReturn'])->whereNumber('purchaseReturn')->middleware('throttle:30,1')->name('returns.post');
             Route::post('/returns/{purchaseReturn}/cancel', [EnterpriseProcurementController::class, 'cancelReturn'])->whereNumber('purchaseReturn')->middleware('throttle:30,1')->name('returns.cancel');
+        });
+        Route::prefix('erp/wms')->name('erp.wms.')->group(function (): void {
+            Route::get('/', [EnterpriseWmsController::class, 'index'])->name('index');
+            Route::post('/transfers', [EnterpriseWmsController::class, 'createTransfer'])->middleware('throttle:30,1')->name('transfers.store');
+            Route::post('/transfers/{transfer}/dispatch', [EnterpriseWmsController::class, 'dispatchTransfer'])->whereNumber('transfer')->middleware('throttle:30,1')->name('transfers.dispatch');
+            Route::post('/transfers/{transfer}/receive', [EnterpriseWmsController::class, 'receiveTransfer'])->whereNumber('transfer')->middleware('throttle:30,1')->name('transfers.receive');
+            Route::post('/counts', [EnterpriseWmsController::class, 'startCount'])->middleware('throttle:30,1')->name('counts.store');
+            Route::post('/counts/{count}/complete', [EnterpriseWmsController::class, 'completeCount'])->whereNumber('count')->middleware('throttle:30,1')->name('counts.complete');
+            Route::post('/adjustments', [EnterpriseWmsController::class, 'postAdjustment'])->middleware('throttle:30,1')->name('adjustments.store');
+            Route::post('/lots', [EnterpriseWmsController::class, 'saveLot'])->middleware('throttle:30,1')->name('lots.store');
+            Route::post('/lots/{lot}/status', [EnterpriseWmsController::class, 'transitionLot'])->whereNumber('lot')->middleware('throttle:30,1')->name('lots.status');
+            Route::post('/reservations', [EnterpriseWmsController::class, 'saveReservation'])->middleware('throttle:30,1')->name('reservations.store');
+            Route::post('/reorder', [EnterpriseWmsController::class, 'saveReorderPolicy'])->middleware('throttle:30,1')->name('reorder.store');
+            Route::post('/reorder/{policy}/disable', [EnterpriseWmsController::class, 'disableReorderPolicy'])->whereNumber('policy')->middleware('throttle:30,1')->name('reorder.disable');
+            Route::post('/valuation', [EnterpriseWmsController::class, 'saveValuationPolicy'])->middleware('throttle:30,1')->name('valuation.store');
         });
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
