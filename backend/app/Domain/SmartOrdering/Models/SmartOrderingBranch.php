@@ -22,6 +22,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $allow_scheduled
  * @property int $pickup_lead_minutes
  * @property int $max_schedule_days
+ * @property int $max_active_orders
+ * @property int $capacity_window_minutes
+ * @property int $dine_in_promise_minutes
+ * @property int $pickup_promise_minutes
+ * @property int $delivery_promise_minutes
  * @property float $service_charge
  * @property string|null $whatsapp_routing_identity
  * @property array<int,string>|null $holiday_closed_dates
@@ -64,6 +69,11 @@ class SmartOrderingBranch extends Model
             'supports_pickup' => 'boolean',
             'supports_delivery' => 'boolean',
             'allow_scheduled' => 'boolean',
+            'max_active_orders' => 'integer',
+            'capacity_window_minutes' => 'integer',
+            'dine_in_promise_minutes' => 'integer',
+            'pickup_promise_minutes' => 'integer',
+            'delivery_promise_minutes' => 'integer',
             'holiday_closed_dates' => 'array',
             'service_charge' => 'float',
         ];
