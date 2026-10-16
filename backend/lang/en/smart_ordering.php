@@ -133,6 +133,9 @@ return [
             'voided' => 'Voided',
             'failed' => 'Failed',
         ],
+        'providers' => [
+            'cash_on_delivery' => 'Cash on delivery',
+        ],
         'operations' => [
             'authorize' => 'Authorize',
             'capture' => 'Capture',
