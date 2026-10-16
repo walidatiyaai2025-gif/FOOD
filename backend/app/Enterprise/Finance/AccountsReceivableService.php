@@ -292,7 +292,19 @@ final class AccountsReceivableService
                     ],
                 ],
             );
-            $journal = $this->generalLedger->post($actor, $context, $journal->id);
+            $journal = $this->generalLedger->post(
+                $actor,
+                $context,
+                $journal->id,
+                new FinancePostingApprovalContext(
+                    action: FinanceApprovalService::ACTION_AR_POST,
+                    entityType: 'enterprise_ar_document',
+                    entityId: (string) $document->id,
+                    makerId: (int) $document->created_by,
+                    amount: (string) $document->amount,
+                    currencyCode: (string) $document->currency_code,
+                ),
+            );
 
             $before = $document->toArray();
             $document->forceFill([
@@ -547,7 +559,19 @@ final class AccountsReceivableService
                     ],
                 ],
             );
-            $journal = $this->generalLedger->post($actor, $context, $journal->id);
+            $journal = $this->generalLedger->post(
+                $actor,
+                $context,
+                $journal->id,
+                new FinancePostingApprovalContext(
+                    action: FinanceApprovalService::ACTION_AR_ALLOCATION_POST,
+                    entityType: 'enterprise_ar_allocation',
+                    entityId: (string) $allocation->id,
+                    makerId: (int) $allocation->created_by,
+                    amount: (string) $allocation->amount,
+                    currencyCode: (string) $document->currency_code,
+                ),
+            );
 
             $before = $allocation->toArray();
             $allocation->forceFill([
