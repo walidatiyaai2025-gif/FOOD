@@ -21,8 +21,19 @@ class BranchPolicyTest(unittest.TestCase):
         self.assertTrue(module.is_valid("main", allow_main=True))
 
     def test_accepts_canonical_integration_promotion_to_main(self):
-        self.assertTrue(module.is_valid("feature/enterprise-performance-gates","main"))
-        self.assertTrue(module.is_valid("feature/enterprise-core-platform","main"))
+        for branch in [
+            "feature/enterprise-core-platform",
+            "feature/enterprise-admin-shell",
+            "feature/enterprise-procurement",
+            "feature/enterprise-wms",
+            "feature/enterprise-finance",
+            "feature/enterprise-treasury",
+            "feature/enterprise-commercial-convergence",
+            "feature/enterprise-bi",
+            "feature/enterprise-performance-gates",
+        ]:
+            with self.subTest(branch=branch):
+                self.assertTrue(module.is_valid(branch,"main"))
 
     def test_rejects_integration_branch_outside_main_promotion(self):
         self.assertFalse(module.is_valid("feature/enterprise-performance-gates"))
