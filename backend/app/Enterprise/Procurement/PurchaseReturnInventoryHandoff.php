@@ -42,9 +42,21 @@ final class PurchaseReturnInventoryHandoff
             ]);
         }
 
+        $warehouse = Warehouse::query()
+            ->whereKey((int) $sourceLine->warehouse_id)
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->first();
+
+        if ($warehouse === null) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => ['The source warehouse is not active in the authorized store.'],
+            ]);
+        }
+
         $inventory = Inventory::query()
             ->whereKey((int) $sourceLine->inventory_id)
-            ->whereHas('warehouse', static fn ($query) => $query->where('store_id', $storeId))
+            ->where('warehouse_id', $warehouse->getKey())
             ->lockForUpdate()
             ->first();
 
