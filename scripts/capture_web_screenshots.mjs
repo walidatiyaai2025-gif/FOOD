@@ -125,17 +125,55 @@ async function assertVisibleActionsInViewport(page, label) {
   const clipped = await page.evaluate(() => {
     const root = document.querySelector('.foodex-admin-main, main') || document.body;
     const selectors = 'button, a.btn, a.foodex-btn, input[type="submit"], [role="button"]';
+    const reachableHorizontalScroller = (element) => {
+      let parent = element.parentElement;
+      while (parent && parent !== root.parentElement) {
+        const style = getComputedStyle(parent);
+        const rect = parent.getBoundingClientRect();
+        const scrollable = ['auto', 'scroll'].includes(style.overflowX)
+          && parent.scrollWidth > parent.clientWidth + 2
+          && rect.left >= -2 && rect.right <= window.innerWidth + 2;
+        if (scrollable) return true;
+        if (parent === root) break;
+        parent = parent.parentElement;
+      }
+      return false;
+    };
     return [...root.querySelectorAll(selectors)].filter((element) => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       const visible = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
         && rect.width > 0 && rect.height > 0
         && rect.bottom > 0 && rect.top < window.innerHeight;
-      return visible && (rect.left < -2 || rect.right > window.innerWidth + 2);
-    }).slice(0, 8).map((element) => ({
-      text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 80),
-      rect: element.getBoundingClientRect().toJSON(),
-    }));
+      return visible
+        && !reachableHorizontalScroller(element)
+        && (rect.left < -2 || rect.right > window.innerWidth + 2);
+    }).slice(0, 8).map((element) => {
+      const ancestry = [];
+      let parent = element.parentElement;
+      while (parent && ancestry.length < 4) {
+        const rect = parent.getBoundingClientRect();
+        const style = getComputedStyle(parent);
+        ancestry.push({
+          tag: parent.tagName.toLowerCase(),
+          className: String(parent.className || '').slice(0, 120),
+          rect: {left: rect.left, right: rect.right, width: rect.width},
+          overflowX: style.overflowX,
+          display: style.display,
+          gridTemplateColumns: style.gridTemplateColumns,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth,
+        });
+        if (parent === root) break;
+        parent = parent.parentElement;
+      }
+      return {
+        text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 80),
+        rect: element.getBoundingClientRect().toJSON(),
+        viewport: {width: window.innerWidth, height: window.innerHeight},
+        ancestry,
+      };
+    });
   });
   if (clipped.length) {
     throw new Error(`Visible action clipped outside viewport for ${label}: ${JSON.stringify(clipped)}`);
