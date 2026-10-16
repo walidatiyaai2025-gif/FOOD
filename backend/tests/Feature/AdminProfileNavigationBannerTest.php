@@ -50,6 +50,27 @@ class AdminProfileNavigationBannerTest extends TestCase
         $this->assertFalse(collect($keys)->contains(fn (string $key): bool => str_starts_with($key, 'b2b_')));
     }
 
+    public function test_global_role_lookup_is_memoized_across_repeated_authorization_checks(): void
+    {
+        $admin = $this->globalUser('B2B_ADMIN', 'memoized-role@example.test');
+        $superAdminRoleQueries = 0;
+
+        DB::listen(function ($query) use (&$superAdminRoleQueries): void {
+            if (str_contains($query->sql, 'from "roles"')
+                && str_contains($query->sql, '"roles"."code" = ?')
+                && in_array('SUPER_ADMIN', $query->bindings, true)) {
+                $superAdminRoleQueries++;
+            }
+        });
+
+        $this->assertFalse($admin->hasRole('SUPER_ADMIN'));
+        $admin->hasPermission('catalog.view');
+        $admin->hasPermission('reports.view');
+        $this->assertFalse($admin->hasRole('SUPER_ADMIN'));
+
+        $this->assertSame(1, $superAdminRoleQueries);
+    }
+
     public function test_user_can_open_profile_change_password_and_switch_language(): void
     {
         $admin = $this->globalUser('SUPER_ADMIN', 'profile@example.test', 'OldPass1234');
