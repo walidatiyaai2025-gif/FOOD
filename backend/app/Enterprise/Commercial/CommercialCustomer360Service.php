@@ -193,6 +193,7 @@ final class CommercialCustomer360Service
             $items = DB::table('whats_app_conversations')
                 ->where('store_id', $storeId)
                 ->where('platform_customer_id', $platform->getKey())
+                ->where('channel', 'whatsapp')
                 ->when(! $supervisor, fn ($query) => $query->where(fn ($visibility) => $visibility
                     ->whereNull('primary_agent_id')->orWhere('primary_agent_id', $actor->getKey())))
                 ->orderByDesc('id')

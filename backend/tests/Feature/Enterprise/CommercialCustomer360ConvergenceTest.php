@@ -183,6 +183,11 @@ final class CommercialCustomer360ConvergenceTest extends TestCase
                 'status' => 'WAITING_FOR_AGENT', 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
+        DB::table('whats_app_conversations')->insert([
+            'public_id' => (string) Str::uuid(), 'store_id' => $store,
+            'platform_customer_id' => $platform->id, 'channel' => 'other',
+            'status' => 'WAITING_FOR_AGENT', 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $snapshot = $service->snapshot($actor, $store, 'b2c', $buyer->id);
         $this->assertCount(1, $snapshot['communications']['items']);
         $this->assertStringContainsString('conversation=', $snapshot['communications']['items'][0]['url']);
