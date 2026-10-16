@@ -43,7 +43,10 @@ final class SupplierStatementAgingManager
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'currency_code' => ['nullable', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
         ])->validate();
-        $this->assertBoundedDateWindow($validated['from'] ?? null, $validated['to'] ?? null);
+        $window = $this->normalizedDateWindow(
+            $validated['from'] ?? null,
+            $validated['to'] ?? null,
+        );
 
         $perPage = max(10, min(100, $perPage));
         $currency = isset($validated['currency_code'])
@@ -53,14 +56,8 @@ final class SupplierStatementAgingManager
         return $this->visibleInvoiceQuery($scope)
             ->where('supplier_id', $supplierId)
             ->where('status', 'handed_off')
-            ->when(
-                $validated['from'] ?? null,
-                fn (Builder $query, mixed $from): Builder => $query->whereDate('invoice_date', '>=', (string) $from),
-            )
-            ->when(
-                $validated['to'] ?? null,
-                fn (Builder $query, mixed $to): Builder => $query->whereDate('invoice_date', '<=', (string) $to),
-            )
+            ->where('invoice_date', '>=', $window['from'])
+            ->where('invoice_date', '<=', $window['to'])
             ->when(
                 $currency,
                 fn (Builder $query, string $code): Builder => $query->where('currency_code', $code),
@@ -109,7 +106,7 @@ final class SupplierStatementAgingManager
             ->where('supplier_id', $supplierId)
             ->where('status', 'handed_off')
             ->where('currency_code', $currency)
-            ->whereDate('invoice_date', '<=', $asOf->toDateString());
+            ->where('invoice_date', '<=', $asOf->toDateString());
 
         $due30 = $asOf->subDays(30)->toDateString();
         $due31 = $asOf->subDays(31)->toDateString();
@@ -127,34 +124,34 @@ final class SupplierStatementAgingManager
                 'not_due' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>', $asOf->toDateString())
+                        ->where('due_date', '>', $asOf->toDateString())
                         ->sum('total_amount'),
                 ),
                 'due_0_30' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due30)
-                        ->whereDate('due_date', '<=', $asOf->toDateString())
+                        ->where('due_date', '>=', $due30)
+                        ->where('due_date', '<=', $asOf->toDateString())
                         ->sum('total_amount'),
                 ),
                 'due_31_60' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due60)
-                        ->whereDate('due_date', '<=', $due31)
+                        ->where('due_date', '>=', $due60)
+                        ->where('due_date', '<=', $due31)
                         ->sum('total_amount'),
                 ),
                 'due_61_90' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '>=', $due90)
-                        ->whereDate('due_date', '<=', $due61)
+                        ->where('due_date', '>=', $due90)
+                        ->where('due_date', '<=', $due61)
                         ->sum('total_amount'),
                 ),
                 'due_over_90' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->whereDate('due_date', '<', $due90)
+                        ->where('due_date', '<', $due90)
                         ->sum('total_amount'),
                 ),
                 'no_due_date' => $this->amount(
@@ -222,20 +219,35 @@ final class SupplierStatementAgingManager
         return $this->visibleSupplierQuery($scope)->whereKey($supplierId)->firstOrFail();
     }
 
-    private function assertBoundedDateWindow(mixed $from, mixed $to): void
+    /** @return array{from:string,to:string} */
+    private function normalizedDateWindow(mixed $from, mixed $to): array
     {
-        if ($from === null || $to === null) {
-            return;
-        }
+        $start = $from === null
+            ? null
+            : CarbonImmutable::parse((string) $from)->startOfDay();
+        $end = $to === null
+            ? null
+            : CarbonImmutable::parse((string) $to)->startOfDay();
 
-        $start = CarbonImmutable::parse((string) $from)->startOfDay();
-        $end = CarbonImmutable::parse((string) $to)->startOfDay();
+        if ($start === null && $end === null) {
+            $end = CarbonImmutable::today();
+            $start = $end->subDays(366);
+        } elseif ($start === null) {
+            $start = $end->subDays(366);
+        } elseif ($end === null) {
+            $end = $start->addDays(366);
+        }
 
         if ($start->diffInDays($end) > 366) {
             throw ValidationException::withMessages([
                 'to' => ['Supplier statement date window cannot exceed 366 days.'],
             ]);
         }
+
+        return [
+            'from' => $start->toDateString(),
+            'to' => $end->toDateString(),
+        ];
     }
 
     private function amount(mixed $value): string
