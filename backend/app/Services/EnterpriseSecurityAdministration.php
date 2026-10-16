@@ -379,7 +379,6 @@ final class EnterpriseSecurityAdministration
     }
 
     /**
-     * @param  object|null  $row
      * @param  array<string, mixed>  $payload
      */
     private function assertSnapshotCurrent(?object $row, array $payload): void
