@@ -310,6 +310,112 @@ class ScreenshotEvidenceSeeder extends Seeder
                 'updated_at' => $now,
             ]);
 
+        DB::table('smart_ordering_branches')->updateOrInsert(
+            ['site_id' => $smartOrderingSite->getKey(), 'code' => 'EVID-DINING'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'name_ar' => 'فرع المطعم التجريبي',
+                'name_en' => 'Evidence Dining Branch',
+                'timezone' => 'Asia/Kuwait',
+                'is_default' => true,
+                'is_active' => true,
+                'accepting_orders' => true,
+                'supports_dine_in' => true,
+                'supports_pickup' => true,
+                'supports_delivery' => true,
+                'allow_scheduled' => true,
+                'pickup_lead_minutes' => 10,
+                'max_schedule_days' => 7,
+                'service_charge' => 0,
+                'max_active_orders' => 0,
+                'capacity_window_minutes' => 30,
+                'dine_in_promise_minutes' => 20,
+                'pickup_promise_minutes' => 25,
+                'delivery_promise_minutes' => 45,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        $restaurantEvidenceBranchId = (int) DB::table('smart_ordering_branches')
+            ->where('site_id', $smartOrderingSite->getKey())
+            ->where('code', 'EVID-DINING')
+            ->value('id');
+
+        DB::table('smart_ordering_floor_areas')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'name_en' => 'Main Dining Room'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'name_ar' => 'الصالة الرئيسية',
+                'sort_order' => 10,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        DB::table('smart_ordering_floor_areas')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'name_en' => 'Terrace'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'name_ar' => 'التراس',
+                'sort_order' => 20,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        $mainDiningFloorId = (int) DB::table('smart_ordering_floor_areas')
+            ->where('branch_id', $restaurantEvidenceBranchId)
+            ->where('name_en', 'Main Dining Room')
+            ->value('id');
+        $terraceFloorId = (int) DB::table('smart_ordering_floor_areas')
+            ->where('branch_id', $restaurantEvidenceBranchId)
+            ->where('name_en', 'Terrace')
+            ->value('id');
+
+        foreach ([
+            ['label' => 'T01', 'floor' => $mainDiningFloorId, 'capacity' => 2, 'x' => 80, 'y' => 120, 'w' => 150, 'h' => 105, 'shape' => 'round', 'active' => true],
+            ['label' => 'T02', 'floor' => $mainDiningFloorId, 'capacity' => 4, 'x' => 390, 'y' => 120, 'w' => 180, 'h' => 120, 'shape' => 'rectangle', 'active' => true],
+            ['label' => 'T03', 'floor' => $mainDiningFloorId, 'capacity' => 6, 'x' => 680, 'y' => 440, 'w' => 210, 'h' => 130, 'shape' => 'rectangle', 'active' => true],
+            ['label' => 'TR1', 'floor' => $terraceFloorId, 'capacity' => 4, 'x' => 180, 'y' => 180, 'w' => 170, 'h' => 110, 'shape' => 'round', 'active' => true],
+            ['label' => 'TR2', 'floor' => $terraceFloorId, 'capacity' => 2, 'x' => 610, 'y' => 500, 'w' => 150, 'h' => 100, 'shape' => 'rectangle', 'active' => false],
+        ] as $tableFixture) {
+            DB::table('smart_ordering_tables')->updateOrInsert(
+                ['branch_id' => $restaurantEvidenceBranchId, 'label' => $tableFixture['label']],
+                [
+                    'public_id' => (string) Str::uuid(),
+                    'floor_area_id' => $tableFixture['floor'],
+                    'capacity' => $tableFixture['capacity'],
+                    'position_x' => $tableFixture['x'],
+                    'position_y' => $tableFixture['y'],
+                    'visual_width' => $tableFixture['w'],
+                    'visual_height' => $tableFixture['h'],
+                    'shape' => $tableFixture['shape'],
+                    'qr_reference' => (string) Str::uuid(),
+                    'token_hash' => hash('sha256', 'evidence-table-'.$tableFixture['label']),
+                    'is_active' => $tableFixture['active'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        }
+
+        $t02 = (int) DB::table('smart_ordering_tables')
+            ->where('branch_id', $restaurantEvidenceBranchId)->where('label', 'T02')->value('id');
+        $t03 = (int) DB::table('smart_ordering_tables')
+            ->where('branch_id', $restaurantEvidenceBranchId)->where('label', 'T03')->value('id');
+        DB::table('smart_ordering_table_combinations')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'primary_table_id' => $t02, 'member_table_id' => $t03, 'split_at' => null],
+            [
+                'public_id' => (string) Str::uuid(),
+                'combined_by' => null,
+                'split_by' => null,
+                'combined_at' => $now->copy()->subMinutes(12),
+                'note' => 'Evidence family seating',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
         $platformUser = app(PlatformCustomerService::class)->register([
             'name' => 'FOODEX Address Evidence Customer',
             'email' => 'evidence.address@foodex.test',

@@ -105,7 +105,7 @@ jobs:
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
           test "$count" -ge 106
-          test "$responsive_count" -eq 228
+          test "$responsive_count" -eq 236
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/treasury-master__desktop-1280__ar.png"
@@ -128,6 +128,14 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__tablet-768__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__desktop-1280__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__desktop-1280__ar.png"

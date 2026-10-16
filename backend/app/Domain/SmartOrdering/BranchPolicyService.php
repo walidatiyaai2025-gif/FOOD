@@ -175,7 +175,8 @@ final class BranchPolicyService
         $query->where(function ($nested) use ($reference): void {
             $nested->where('label', $reference);
             if (Str::isUuid($reference)) {
-                $nested->orWhere('public_id', $reference);
+                $nested->orWhere('public_id', $reference)
+                    ->orWhere('qr_reference', $reference);
             }
         });
 

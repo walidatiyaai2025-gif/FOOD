@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\RestaurantPaymentService;
+use App\Domain\SmartOrdering\RestaurantTableService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
@@ -30,6 +31,7 @@ final class SmartOrderingOperationsController extends Controller
         private readonly LifecycleService $lifecycle,
         private readonly SmartOrderingSiteService $sites,
         private readonly RestaurantPaymentService $payments,
+        private readonly RestaurantTableService $restaurantTables,
     ) {}
 
     public function index(Request $request): View
@@ -42,7 +44,7 @@ final class SmartOrderingOperationsController extends Controller
             'branch' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'tab' => ['nullable', Rule::in(['orders', 'branches', 'payments'])],
+            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'payments'])],
             'payment_status' => ['nullable', Rule::in(['pending', 'authorized', 'captured', 'partially_refunded', 'refunded', 'voided', 'failed'])],
             'payment_provider' => ['nullable', 'string', 'max:80'],
             'reconciliation' => ['nullable', Rule::in(['mismatch'])],
@@ -114,6 +116,23 @@ final class SmartOrderingOperationsController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $tableWorkspace = [
+            'selected_branch' => null,
+            'floors' => [],
+            'unassigned_tables' => [],
+            'tables' => [],
+            'active_combinations' => [],
+            'can_manage' => false,
+            'can_manage_qr' => false,
+        ];
+        if ($tab === 'tables') {
+            $tableWorkspace = $this->restaurantTables->workspace(
+                $branches,
+                $validated['branch'] ?? null,
+                $actor,
+            );
+        }
+
         $paymentPaginator = null;
         $paymentRows = [];
         $paymentProviderOptions = [];
@@ -174,6 +193,7 @@ final class SmartOrderingOperationsController extends Controller
             'branches' => $branches,
             'stores' => $stores,
             'tab' => $tab,
+            'tableWorkspace' => $tableWorkspace,
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
             'paymentProviderOptions' => $paymentProviderOptions,
