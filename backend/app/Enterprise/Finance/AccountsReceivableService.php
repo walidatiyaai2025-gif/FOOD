@@ -402,12 +402,6 @@ final class AccountsReceivableService
             ]);
         }
 
-        if ($this->toMills($amount) > $this->toMills($this->outstandingAmount($document))) {
-            throw ValidationException::withMessages([
-                'amount' => ['Allocation exceeds the outstanding AR amount.'],
-            ]);
-        }
-
         $allocationDate = CarbonImmutable::parse((string) $data['allocation_date'])->toDateString();
         $idempotencyKey = trim((string) $data['idempotency_key']);
         $reference = $this->trimNullable($data['reference'] ?? null);
@@ -427,6 +421,12 @@ final class AccountsReceivableService
             $this->assertRequestHash($existing->request_hash, $requestHash);
 
             return $existing;
+        }
+
+        if ($this->toMills($amount) > $this->toMills($this->outstandingAmount($document))) {
+            throw ValidationException::withMessages([
+                'amount' => ['Allocation exceeds the outstanding AR amount.'],
+            ]);
         }
 
         $allocation = EnterpriseAccountsReceivableAllocation::query()->create([
