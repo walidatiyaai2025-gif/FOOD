@@ -37,6 +37,9 @@ return [
                 'finance.gl.read',
                 'finance.gl.manage',
                 'finance.gl.post',
+                'finance.opening_balances.read',
+                'finance.opening_balances.manage',
+                'finance.opening_balances.post',
             ],
             'permissions' => [
                 'finance.view',
