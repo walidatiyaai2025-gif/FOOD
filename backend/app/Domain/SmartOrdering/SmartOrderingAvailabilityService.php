@@ -112,6 +112,225 @@ final class SmartOrderingAvailabilityService
         return ['available' => true, 'reason' => null, 'sold_out' => false];
     }
 
+    /**
+     * Resolve a bounded item collection without per-row availability queries.
+     *
+     * @param  iterable<SmartOrderingMenuItem>  $items
+     * @return array<int,array{available:bool,reason:?string,sold_out:bool}>
+     */
+    public function items(
+        SmartOrderingSite $site,
+        iterable $items,
+        ?SmartOrderingBranch $branch = null,
+        ?CarbonInterface $at = null,
+    ): array {
+        $items = collect($items)->values();
+        $this->assertBranch((int) $site->id, $branch);
+
+        if ($items->isEmpty()) {
+            return [];
+        }
+
+        foreach ($items as $item) {
+            abort_unless((int) $item->site_id === (int) $site->id, 404);
+        }
+
+        $categoryIds = $items
+            ->pluck('category_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $categories = SmartOrderingMenuCategory::query()
+            ->where('site_id', $site->id)
+            ->whereIn('id', $categoryIds)
+            ->get()
+            ->keyBy('id');
+
+        $itemIds = $items
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values();
+
+        $categoryOverrides = $branch === null
+            ? collect()
+            : DB::table('smart_ordering_category_branch_overrides')
+                ->where('branch_id', $branch->id)
+                ->whereIn('category_id', $categoryIds)
+                ->get()
+                ->keyBy('category_id');
+
+        $itemOverrides = $branch === null
+            ? collect()
+            : DB::table('smart_ordering_item_branch_overrides')
+                ->where('branch_id', $branch->id)
+                ->whereIn('item_id', $itemIds)
+                ->get()
+                ->keyBy('item_id');
+
+        $sourceProductIds = $items
+            ->pluck('source_product_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $availableSourceProductIds = $sourceProductIds->isEmpty()
+            ? collect()
+            : DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('store_products', function ($join) use ($site): void {
+                    $join->on('store_products.product_id', '=', 'products.id')
+                        ->where('store_products.store_id', '=', $site->store_id);
+                })
+                ->whereIn('products.id', $sourceProductIds)
+                ->where('products.is_active', true)
+                ->where('catalogs.store_id', $site->store_id)
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_active', true)
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('store_products.is_active', true)
+                ->pluck('products.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->flip();
+
+        $clock = $this->clock($branch, $at);
+        $categoryStates = [];
+
+        foreach ($categoryIds as $categoryId) {
+            $category = $categories->get($categoryId);
+            abort_unless($category instanceof SmartOrderingMenuCategory, 404);
+
+            $visible = (bool) $category->is_visible;
+            $soldOut = (bool) $category->sold_out;
+            $schedule = $category->availability_schedule;
+            $override = $categoryOverrides->get((int) $categoryId);
+
+            if ($override !== null) {
+                $visible = $override->is_visible === null ? $visible : (bool) $override->is_visible;
+                $soldOut = $override->sold_out === null ? $soldOut : (bool) $override->sold_out;
+                $schedule = $override->availability_schedule === null
+                    ? $schedule
+                    : $this->decodeSchedule($override->availability_schedule);
+            }
+
+            if (! $visible) {
+                $categoryStates[(int) $categoryId] = [
+                    'available' => false,
+                    'reason' => 'HIDDEN',
+                    'sold_out' => $soldOut,
+                ];
+
+                continue;
+            }
+
+            if ($soldOut) {
+                $categoryStates[(int) $categoryId] = [
+                    'available' => false,
+                    'reason' => 'SOLD_OUT',
+                    'sold_out' => true,
+                ];
+
+                continue;
+            }
+
+            if (! $this->scheduleAllows($schedule, $clock)) {
+                $categoryStates[(int) $categoryId] = [
+                    'available' => false,
+                    'reason' => 'OUTSIDE_SCHEDULE',
+                    'sold_out' => false,
+                ];
+
+                continue;
+            }
+
+            $categoryStates[(int) $categoryId] = [
+                'available' => true,
+                'reason' => null,
+                'sold_out' => false,
+            ];
+        }
+
+        $states = [];
+
+        foreach ($items as $item) {
+            $categoryState = $categoryStates[(int) $item->category_id] ?? null;
+            abort_unless(is_array($categoryState), 404);
+
+            if (! $categoryState['available']) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'CATEGORY_'.$categoryState['reason'],
+                    'sold_out' => $categoryState['sold_out'],
+                ];
+
+                continue;
+            }
+
+            $visible = (bool) $item->is_visible;
+            $soldOut = (bool) $item->sold_out;
+            $schedule = $item->availability_schedule;
+            $override = $itemOverrides->get((int) $item->id);
+
+            if ($override !== null) {
+                $visible = $override->is_visible === null ? $visible : (bool) $override->is_visible;
+                $soldOut = $override->sold_out === null ? $soldOut : (bool) $override->sold_out;
+                $schedule = $override->availability_schedule === null
+                    ? $schedule
+                    : $this->decodeSchedule($override->availability_schedule);
+            }
+
+            if (! $visible) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'HIDDEN',
+                    'sold_out' => $soldOut,
+                ];
+
+                continue;
+            }
+
+            if ($soldOut) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'SOLD_OUT',
+                    'sold_out' => true,
+                ];
+
+                continue;
+            }
+
+            if (! $this->scheduleAllows($schedule, $clock)) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'OUTSIDE_SCHEDULE',
+                    'sold_out' => false,
+                ];
+
+                continue;
+            }
+
+            if ($item->source_product_id !== null
+                && ! $availableSourceProductIds->has((int) $item->source_product_id)) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'SOURCE_PRODUCT_UNAVAILABLE',
+                    'sold_out' => true,
+                ];
+
+                continue;
+            }
+
+            $states[(int) $item->id] = [
+                'available' => true,
+                'reason' => null,
+                'sold_out' => false,
+            ];
+        }
+
+        return $states;
+    }
+
     /** @return array{available:bool,reason:?string,sold_out:bool} */
     public function option(
         SmartOrderingSite $site,
