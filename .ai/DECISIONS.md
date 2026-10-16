@@ -71,3 +71,16 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Consequences:** exports above 5,000 rows emit the shared Enterprise export handoff with requester/store/warehouse scope and resumable chunk metadata; the Enterprise reporting consumer owns durable export execution. Report/export failure cannot mutate or block inventory transactions, and unchanged Customer/Driver/Van applications remain outside this backend-only lane.
 
 **Authority:** #1491, #1807, #1732, #1800, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
+
+## D-014 — Commercial convergence adapts existing truth; it does not fork ledgers
+**Decision (Wave 6 / #1731):** customer identity, orders, pricing, B2B credit/account balance, and collection/custody keep their existing FOODEX authorities. Convergence code may expose compatibility readers, authority metadata, and versioned event handoffs, but it must not create OrdersV2, CustomerV2, a second payment/credit ledger, or client-authoritative pricing.
+
+**Reason:** Sales, B2B/B2C, Van, Collections, CRM, and WhatsApp already share production state. Replacing those records during convergence would split authority, invalidate existing mobile flows, and make financial reconciliation ambiguous.
+
+**Consequences:** `CustomerDomainResolver`, `Order`/`orders`, `CommerceQuoteService`, `B2bAccountLedgerService`, and `CollectionCustodyService` remain canonical. `CommercialCreditEligibilityPolicy` is only a deterministic decision adapter over the existing B2B ledger summary and cannot become a credit ledger or mutate account state. Cross-module consumers use server-scoped compatibility contracts and event version 1; visible flow rewrites and new posting ledgers are outside this foundation.
+
+**Authority:** #1494, #1731, `docs/architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE.md`, and `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`.
+
+## Commercial Customer 360 read composition
+
+Compose existing channel-specific customer identities and source records through a read-only adapter. Keep store/channel and per-section permissions explicit, use bounded order/reference reads and the existing ledger aggregate contract, and expose missing/disabled/unavailable source states. Identity reads must never call materializing customer resolver methods. No registry or WhatsApp authority changes are required for this foundation while those files have active owners.

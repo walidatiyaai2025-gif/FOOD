@@ -107,6 +107,16 @@ Stock reservations also remain inside the canonical inventory authority. A reser
 
 WMS reporting is a read-only composition over these same authorities. Inventory, lot/expiry, valuation/aging, and adjustment reports use warehouse-authorized bounded queries with cursor-style identifiers and canonical drill-down references. WMS does not own a reporting or export ledger: exports above the Enterprise threshold emit the shared queued/chunked export handoff contract so execution remains outside latency-sensitive inventory transactions and requester/store/warehouse scope can be revalidated by the Enterprise reporting consumer.
 
+## Enterprise commercial truth boundary
+
+Wave 6 convergence does not introduce replacement customer, order, pricing, credit, collection, or payment ledgers. `CustomerDomainResolver` remains the channel-aware customer identity authority; `orders` and `Order` remain order truth; `CommerceQuoteService` plus the existing B2B price resolver remain pricing truth; `B2bAccountLedgerService` remains credit/account truth; and `CollectionCustodyService` remains collection/remittance custody truth. Enterprise convergence layers may adapt and version these contracts, but they do not fork commercial state.
+
+Commercial compatibility reads are resolved through server-authoritative store/channel scope. Event handoffs use an explicit versioned envelope and registry-owned event names so downstream CRM, Van, Collections, WhatsApp, Finance, and BI consumers can evolve without replacing the source records. Foundation code emits no new ledger and performs no background work by itself. B2B account-credit eligibility is a compatibility decision over `B2bAccountLedgerService` through `CommercialCreditEligibilityPolicy`; the policy may expose eligibility and shortfall, but it never owns or mutates credit state.
+
+## Commercial Customer 360 composition
+
+`CommercialCustomer360Service` composes read-only channel/store-scoped customer identity from the existing resolver/repository, bounded canonical order references, existing B2B ledger aggregates and optional WhatsApp conversation references. Reads never materialize customer identities or mutate source records. Each section enforces its own permission; disabled or unauthorized optional sections do not query their domain data, and unavailable sources have explicit states instead of fabricated fallback data. Wholesale identity needs an existing order/invoice/retail-wholesale store relationship before composition. No second customer, CRM or financial ledger is introduced.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.

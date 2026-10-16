@@ -13,6 +13,8 @@ return [
     */
     'contracts' => [
         'EnterpriseModuleStateChanged' => [1],
+        'CommercialProfitabilityOrderSnapshot' => [1],
+        'CommercialProfitabilityCollectionAttribution' => [1],
         'ProcurementPurchaseInvoiceHandedOff' => [1],
         'TreasuryReceiptPosted' => [1],
         'TreasuryPaymentPosted' => [1],

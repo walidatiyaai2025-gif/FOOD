@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enterprise\Commercial\CommercialPricingResolver;
+use App\Enterprise\Commercial\CommercialProfitabilityEventPublisher;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
@@ -22,6 +24,8 @@ final class AdminOrderManagementService
 {
     public function __construct(
         private readonly CommerceQuoteService $quotes,
+        private readonly CommercialPricingResolver $commercialPricing,
+        private readonly CommercialProfitabilityEventPublisher $profitabilityEvents,
         private readonly CommercialPolicyService $commercialPolicy,
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
@@ -30,8 +34,12 @@ final class AdminOrderManagementService
     ) {}
 
     /** @return array<string, mixed> */
-    public function quote(Request $request, string $channel, int $storeId): array
-    {
+    public function quote(
+        Request $request,
+        string $channel,
+        int $storeId,
+        string $origin = 'sales',
+    ): array {
         $channel = strtolower($channel);
         $data = $this->validated($request, $channel);
         $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
@@ -48,16 +56,28 @@ final class AdminOrderManagementService
             ? strtoupper(trim((string) $data['coupon_code']))
             : null;
 
-        $quote = $this->quotes->quote(
-            $channel,
-            $storeId,
-            $customer,
-            $data['items'],
-            $customerUser,
-            $couponCode,
-            $paymentMethod,
-            false,
-        );
+        $quote = $origin === 'van' && $channel === 'b2b'
+            ? $this->commercialPricing->resolve(
+                'van',
+                $channel,
+                $storeId,
+                $customer,
+                $data['items'],
+                $customerUser,
+                $couponCode,
+                $paymentMethod,
+                false,
+            )
+            : $this->quotes->quote(
+                $channel,
+                $storeId,
+                $customer,
+                $data['items'],
+                $customerUser,
+                $couponCode,
+                $paymentMethod,
+                false,
+            );
 
         if ($channel === 'b2b' && $warehouseId !== null) {
             $quote['items'] = array_map(function (array $line) use ($warehouseId): array {
@@ -144,6 +164,7 @@ final class AdminOrderManagementService
                 );
 
                 $this->routing->routeCreatedOrder($existing, $actor, $source);
+                $this->profitabilityEvents->publishOrder($existing);
 
                 return $existing->fresh();
             }
@@ -181,17 +202,29 @@ final class AdminOrderManagementService
             $resolvedIdempotencyKey,
             $requestHash,
         ): Order {
-            // Dashboard-submitted prices/discount/delivery values are never authoritative.
-            $quote = $this->quotes->quote(
-                $channel,
-                $storeId,
-                $customer,
-                $data['items'],
-                $customerUser,
-                $couponCode,
-                $paymentMethod,
-                true,
-            );
+            // Client-submitted prices/discount/delivery values are never authoritative.
+            $quote = $source === 'van' && $channel === 'b2b'
+                ? $this->commercialPricing->resolve(
+                    'van',
+                    $channel,
+                    $storeId,
+                    $customer,
+                    $data['items'],
+                    $customerUser,
+                    $couponCode,
+                    $paymentMethod,
+                    true,
+                )
+                : $this->quotes->quote(
+                    $channel,
+                    $storeId,
+                    $customer,
+                    $data['items'],
+                    $customerUser,
+                    $couponCode,
+                    $paymentMethod,
+                    true,
+                );
 
             $currency = (string) $quote['currency'];
             $lines = array_map(
@@ -199,6 +232,19 @@ final class AdminOrderManagementService
                 $quote['items'],
             );
             $header = $this->quotes->orderHeaderSnapshot($quote);
+            if ($source === 'van' && $channel === 'b2b') {
+                $header['pricing_snapshot'] = [
+                    ...$header['pricing_snapshot'],
+                    'commercial_origin' => 'van',
+                    'commercial_pricing_contract' => $quote['pricing_contract'] ?? null,
+                    'field_sale_provenance' => [
+                        'actor_user_id' => (int) $actor->getKey(),
+                        'store_id' => $storeId,
+                        'warehouse_id' => $warehouseId,
+                        'customer_id' => $customerId,
+                    ],
+                ];
+            }
             $customerColumn = $channel === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
 
             $order = Order::query()->create([
@@ -327,6 +373,8 @@ final class AdminOrderManagementService
                 ],
                 $request,
             );
+
+            $this->profitabilityEvents->publishOrder($order);
 
             return $order;
         }, 3);
@@ -573,6 +621,8 @@ final class AdminOrderManagementService
                 ],
                 $request,
             );
+
+            $this->profitabilityEvents->publishOrder($locked);
 
             return $locked->fresh();
         }, 3);

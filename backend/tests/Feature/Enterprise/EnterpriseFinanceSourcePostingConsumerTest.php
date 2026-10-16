@@ -170,7 +170,7 @@ final class EnterpriseFinanceSourcePostingConsumerTest extends TestCase
             (array) config('enterprise_finance_integrations.events'),
         );
         $this->assertSame(
-            ['EnterpriseModuleStateChanged', 'ProcurementPurchaseInvoiceHandedOff', 'TreasuryReceiptPosted', 'TreasuryPaymentPosted', 'TreasuryReconciliationClosed', 'TreasuryCashClosingClosed'],
+            ['EnterpriseModuleStateChanged', 'CommercialProfitabilityOrderSnapshot', 'CommercialProfitabilityCollectionAttribution', 'ProcurementPurchaseInvoiceHandedOff', 'TreasuryReceiptPosted', 'TreasuryPaymentPosted', 'TreasuryReconciliationClosed', 'TreasuryCashClosingClosed'],
             array_keys((array) config('enterprise_events.contracts')),
         );
     }
