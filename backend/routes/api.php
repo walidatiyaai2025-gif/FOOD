@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\QuoteController;
+use App\Http\Controllers\Api\V1\RestaurantSaaSControlPlaneController;
 use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\RoutingPolicyController;
@@ -259,6 +260,12 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/restaurant-saas/locations/{store}', [RestaurantSaaSControlPlaneController::class, 'show'])
+            ->whereNumber('store');
+        Route::post('/admin/restaurant-saas/locations/{store}/provision', [RestaurantSaaSControlPlaneController::class, 'provision'])
+            ->whereNumber('store');
+        Route::patch('/admin/restaurant-saas/locations/{store}', [RestaurantSaaSControlPlaneController::class, 'update'])
+            ->whereNumber('store');
         Route::get('/admin/field-operations/address-quality', [AddressQualityController::class, 'index']);
         Route::get('/admin/field-operations/address-quality/{review}', [AddressQualityController::class, 'show'])->whereNumber('review');
         Route::post('/admin/field-operations/address-quality/{review}/confirm', [AddressQualityController::class, 'confirm'])->whereNumber('review');
