@@ -379,9 +379,6 @@ final class TreasuryReceiptService
             ->where('store_id', $scope->storeId);
     }
 
-    /**
-     * @return EnterpriseCashbox|EnterpriseBankAccount
-     */
     private function targetForUsage(
         EnterpriseDataScope $scope,
         string $targetType,
