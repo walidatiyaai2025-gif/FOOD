@@ -569,7 +569,7 @@ final class AccountsReceivableService
         }, 3);
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function aging(
         User $actor,
         ResolvedTenantContext $context,
