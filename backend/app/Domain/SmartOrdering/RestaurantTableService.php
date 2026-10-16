@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Canonical tenant-scoped floor-plan and table-service operations for Restaurant SaaS W3.
+ * Canonical tenant-scoped floor-plan and table-service operations for Restaurant SaaS W3 tables.
  */
 final class RestaurantTableService
 {
