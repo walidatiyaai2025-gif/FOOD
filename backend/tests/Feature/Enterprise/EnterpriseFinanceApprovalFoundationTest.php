@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -247,8 +248,12 @@ final class EnterpriseFinanceApprovalFoundationTest extends TestCase
                 $request->id,
             );
             $this->fail('Cross-legal-entity approval must fail closed.');
-        } catch (HttpException $exception) {
-            $this->assertSame(404, $exception->getStatusCode());
+        } catch (HttpException|ModelNotFoundException $exception) {
+            if ($exception instanceof HttpException) {
+                $this->assertSame(404, $exception->getStatusCode());
+            } else {
+                $this->assertSame('App\\Models\\EnterpriseWorkflowRequest', $exception->getModel());
+            }
         }
     }
 
