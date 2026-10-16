@@ -32,7 +32,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .finance-check{display:flex;align-items:center;gap:8px;min-height:44px}.finance-check input{inline-size:18px;block-size:18px}
 .finance-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none;font:inherit;font-weight:800;cursor:pointer}
 .finance-button.primary{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff}
-.finance-button.danger{border-color:var(--foodex-danger);color:var(--foodex-danger)}
+.finance-button.danger{border-color:var(--foodex-danger-text);color:var(--foodex-danger-text)}
 .finance-table-wrap{overflow-x:auto;border:1px solid var(--foodex-border);border-radius:10px}
 .finance-table{width:100%;border-collapse:collapse;min-width:760px}
 .finance-table th,.finance-table td{padding:11px 12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}
@@ -42,7 +42,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .finance-status{display:inline-flex;align-items:center;min-height:28px;padding:2px 9px;border:1px solid var(--foodex-border);border-radius:999px;font-size:.78rem;font-weight:900;white-space:nowrap}
 .finance-empty{padding:26px;text-align:center;color:var(--foodex-muted)}
 .finance-flash{padding:12px 14px;margin-bottom:14px;border:1px solid var(--foodex-action-green);border-radius:10px;background:var(--foodex-surface)}
-.finance-errors{padding:12px 14px;margin-bottom:14px;border:1px solid var(--foodex-danger);border-radius:10px;background:var(--foodex-surface)}
+.finance-errors{padding:12px 14px;margin-bottom:14px;border:1px solid var(--foodex-danger-text);border-radius:10px;background:var(--foodex-surface)}
 .finance-errors ul{margin:7px 0 0;padding-inline-start:20px}
 .finance-details{border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);margin-bottom:14px}
 .finance-details>summary{min-height:44px;display:flex;align-items:center;padding:0 14px;cursor:pointer;font-weight:900}
