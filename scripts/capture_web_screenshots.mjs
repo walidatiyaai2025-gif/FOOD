@@ -41,6 +41,7 @@ const b2b = [
   ['09_التقارير_والتحليلات', '/admin/b2b/reports'],
   ['10_إعدادات_المنصة_والصلاحيات', '/admin/b2b/settings-permissions'],
   ['11_التتبع_الحي_للسائقين_والفانات', '/admin/driver-live-tracking'],
+  ['23_مركز_عمل_المشتريات_ERP', '/admin/erp/procurement'],
 ];
 
 const b2c = [
