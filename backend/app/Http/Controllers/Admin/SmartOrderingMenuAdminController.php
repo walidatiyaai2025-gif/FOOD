@@ -600,7 +600,6 @@ final class SmartOrderingMenuAdminController extends Controller
         return back()->with('status', __('smart_ordering_menu.scheduled'));
     }
 
-
     /**
      * @return list<array{type:string,type_label:string,id:int,menu_id:int,label:string,anchor:string}>
      */
