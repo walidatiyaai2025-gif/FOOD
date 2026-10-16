@@ -39,6 +39,8 @@ final class SmartOrderingMenuRevisionService
         ?Request $request = null,
     ): SmartOrderingRevision {
         abort_unless((int) $draft->site_id === (int) $site->id && $draft->status === 'draft', 404);
+        abort_if($this->revisions->scheduled($site) instanceof SmartOrderingRevision, 409);
+
         $this->validateDraft($site, $draft);
         $this->refreshChecksum($actor, $draft, $request);
 
