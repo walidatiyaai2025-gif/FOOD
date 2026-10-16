@@ -247,11 +247,12 @@ final class CommerceQuoteService
             /** @var B2bAccount|null $account */
             $account = $b2bContext['account'];
             abort_unless($account instanceof B2bAccount, 403, 'An active B2B account is required.');
-            $finance = app(B2bAccountLedgerService::class)->summary($customer, $storeId);
-            abort_if(
-                (float) $finance['purchasing_power'] < $grandTotal,
-                409,
-                'The order exceeds the available B2B purchasing power.',
+            abort_unless($customer instanceof B2bCustomer, 403, 'An active B2B customer context is required.');
+
+            app(CommercialCreditEligibilityPolicy::class)->assertEligible(
+                $customer,
+                $storeId,
+                $grandTotal,
             );
         }
 
