@@ -11,10 +11,12 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseWmsReportingFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -357,6 +359,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId, string $suffix): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'WMS Reporting '.$suffix,
             'email' => 'wms-reporting-'.$suffix.'@example.test',
