@@ -28,9 +28,6 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
-    /** @var array<string, bool> */
-    private array $globalRoleAccessMemo = [];
-
     /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {
@@ -46,11 +43,7 @@ class User extends Authenticatable
     public function hasRole(string $roleCode, ?int $storeId = null): bool
     {
         if ($storeId === null) {
-            if (array_key_exists($roleCode, $this->globalRoleAccessMemo)) {
-                return $this->globalRoleAccessMemo[$roleCode];
-            }
-
-            return $this->globalRoleAccessMemo[$roleCode] = $this->roles()
+            return $this->roles()
                 ->where('roles.code', $roleCode)
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'global')
