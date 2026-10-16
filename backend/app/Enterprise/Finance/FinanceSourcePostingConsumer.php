@@ -33,7 +33,7 @@ final class FinanceSourcePostingConsumer implements OutboxConsumer
         }
 
         $module = $this->modules->registration(FinanceFoundationService::MODULE);
-        if ($module === null || $module->state !== ModuleState::ENABLED) {
+        if ($module === null || $this->modules->state(FinanceFoundationService::MODULE) !== ModuleState::ENABLED) {
             return;
         }
 
