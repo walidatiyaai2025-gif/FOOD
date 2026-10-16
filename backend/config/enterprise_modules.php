@@ -43,6 +43,9 @@ return [
                 'finance.ar.read',
                 'finance.ar.manage',
                 'finance.ar.post',
+                'finance.ap.read',
+                'finance.ap.manage',
+                'finance.ap.post',
             ],
             'permissions' => [
                 'finance.view',
