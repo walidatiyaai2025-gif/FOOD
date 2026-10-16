@@ -136,7 +136,7 @@ final class StockExposureReadModel
     }
 
     /**
-     * @param array{sql:string,bindings:list<string>} $status
+     * @param  array{sql:string,bindings:list<string>}  $status
      */
     private function applyFilters(Builder $builder, ReportQuery $query, array $status): void
     {
@@ -169,8 +169,8 @@ final class StockExposureReadModel
     }
 
     /**
-     * @param array{sql:string,bindings:list<string>} $aging
-     * @param array{sql:string,bindings:list<string>} $status
+     * @param  array{sql:string,bindings:list<string>}  $aging
+     * @param  array{sql:string,bindings:list<string>}  $status
      * @return array{0:string,1:list<string>}
      */
     private function dimensionExpression(
@@ -295,7 +295,7 @@ final class StockExposureReadModel
         return $query->to ?? CarbonImmutable::today();
     }
 
-    /** @param list<string> $tables */
+    /** @param  list<string>  $tables */
     private function assertSources(array $tables): void
     {
         foreach ($tables as $table) {
