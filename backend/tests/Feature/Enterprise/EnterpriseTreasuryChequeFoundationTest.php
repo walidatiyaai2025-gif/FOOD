@@ -294,11 +294,6 @@ class EnterpriseTreasuryChequeFoundationTest extends TestCase
         $this->assertTrue($offStore->exists);
         app(ModuleLifecycleManager::class)->transition(
             TreasuryChequeService::MODULE,
-            ModuleState::DISABLING,
-            $maker,
-        );
-        app(ModuleLifecycleManager::class)->transition(
-            TreasuryChequeService::MODULE,
             ModuleState::DISABLED,
             $maker,
         );
