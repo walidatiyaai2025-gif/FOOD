@@ -466,7 +466,6 @@ final class FinanceWorkbenchController extends Controller
                 ->where('organization_id', $scope->organizationId)
                 ->where('company_id', $scope->companyId)
                 ->where('legal_entity_id', $scope->legalEntityId)
-                ->where('store_id', $scope->storeId)
                 ->where('journal_id', $selectedJournal->id)
                 ->first();
 
