@@ -1,4 +1,5 @@
 @php($globalSearchId = 'foodex-global-search-'.substr(md5((string) request()->path()), 0, 8))
+@php($globalSearchVariant = $globalSearchVariant ?? 'default')
 <style id="foodex-global-search-style">
 .foodex-global-search{position:relative}
 .foodex-global-search-label{display:block;margin-bottom:5px;color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:700}
@@ -12,10 +13,14 @@
 .foodex-global-search-result strong,.foodex-global-search-result span{display:block}
 .foodex-global-search-result small{display:block;color:var(--foodex-muted);margin-top:2px}
 .foodex-global-search-status{margin:6px 2px 0;color:var(--foodex-muted);font-size:var(--foodex-text-xs);min-height:1.25em}
+.foodex-global-search--header{width:min(100%,560px);margin-inline:auto}
+.foodex-global-search--header .foodex-global-search-label,.foodex-global-search--header .foodex-global-search-status{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.foodex-global-search--header .foodex-global-search-input{min-height:44px}
 @media(max-width:767px){.foodex-global-search-results{position:fixed;inset-inline:12px;top:112px;max-height:calc(100vh - 132px)}}
 </style>
-<section class="foodex-global-search"
+<section class="foodex-global-search foodex-global-search--{{ $globalSearchVariant }}"
          data-foodex-global-search
+         data-foodex-global-search-variant="{{ $globalSearchVariant }}"
          data-search-url="{{ route('admin.global-search') }}"
          data-loading="{{ __('global_search.loading') }}"
          data-empty="{{ __('global_search.empty') }}"

@@ -13,7 +13,7 @@
         html[dir=ltr] .shell{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .shell-sidebar{grid-column:1;direction:ltr}
         html[dir=ltr] .main{grid-column:2;direction:ltr}
-        .header{display:flex;gap:var(--foodex-space-4);align-items:flex-start;justify-content:space-between;margin-bottom:var(--foodex-space-6);padding:var(--foodex-space-5);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}
+        .header{display:grid;grid-template-columns:minmax(180px,1fr) minmax(280px,560px) minmax(180px,1fr);gap:var(--foodex-space-4);align-items:center;margin-bottom:var(--foodex-space-6);padding:var(--foodex-space-5);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}.header-copy{min-width:0}.header-search{min-width:0;width:100%;justify-self:center}.user-card{justify-self:end}
         .eyebrow{color:var(--foodex-muted);margin:0 0 var(--foodex-space-1);font-size:var(--foodex-text-sm);font-weight:var(--foodex-font-weight-medium)}
         h1{margin:0;font-size:clamp(1.55rem,2.2vw,var(--foodex-text-2xl));line-height:var(--foodex-leading-tight);font-weight:var(--foodex-font-weight-bold)}
         .user-card{text-align:end;min-width:180px}.user-card strong{display:block;font-weight:var(--foodex-font-weight-bold)}.user-card>span{color:var(--foodex-muted);font-size:var(--foodex-text-xs)}
@@ -38,8 +38,9 @@
         @media(max-width:767px){
             .shell-sidebar{padding:var(--foodex-space-4)}
             .main{padding:var(--foodex-space-4)}
-            .header{flex-direction:column;padding:var(--foodex-space-4)}
-            .user-card{text-align:start}
+            .header{grid-template-columns:1fr;padding:var(--foodex-space-4)}
+            .header-search{grid-row:2;width:100%}
+            .user-card{grid-row:3;justify-self:start;text-align:start}
             .roles{justify-content:flex-start}
         }
     </style>
@@ -52,9 +53,13 @@
 
     <main class="main">
         <header class="header foodex-page-header">
-            <div>
+            <div class="header-copy">
                 <p class="eyebrow">{{ __('admin.management_system') }}</p>
                 <h1>{{ $activeChannel ? __($navigation[$activeChannel]['label']) : __('admin.title') }}</h1>
+            </div>
+
+            <div class="header-search" data-foodex-dashboard-header-search>
+                @include('admin._global-search', ['globalSearchVariant' => 'header'])
             </div>
 
             <div class="user-card">

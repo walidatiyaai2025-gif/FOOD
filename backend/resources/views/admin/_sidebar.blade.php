@@ -116,8 +116,6 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         <button class="foodex-sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-expanded="false" data-foodex-sidebar-toggle>☰</button>
     </div>
 
-    @include('admin._global-search')
-
     <div class="foodex-sidebar-search">
         @include('admin._premium-icon',['name'=>'search'])
         <input type="search" data-foodex-nav-search placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
