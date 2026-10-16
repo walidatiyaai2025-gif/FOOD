@@ -1491,7 +1491,7 @@ A worker that receives `CLOSE FOOD` must first read live #1888 and the closure c
 The closure set is intentionally bounded:
 
 - #1883 — W3 module entitlement / disable-re-enable gate;
-- #1551 — representative-heavy + real cPanel/reference certification;
+- #1551 — production-only representative-heavy + real cPanel/reference certification; it runs only after an explicit owner Production-release command and does not block W1-W7 promotion during ordinary `CLOSE FOOD` closure;
 - #1720 and #1489 — Wave 1 certification/promotion;
 - #1490 — Wave 2 Procurement;
 - #1491 — Wave 3 WMS;
@@ -1514,7 +1514,7 @@ When closure mode is active:
 2. do not create duplicate branches or PRs;
 3. finish exact-head red / waiting-CI work already inside the closure set first;
 4. finish #1883 into `feature/enterprise-wms`;
-5. resolve #1551 only with genuine supported reference/cPanel evidence; never synthesize or waive it;
+5. do not block W1-W7 promotion on #1551 during ordinary closure; #1551 becomes mandatory only after an explicit owner Production-release command, and when invoked it still requires genuine supported reference/cPanel evidence with no synthesis or waiver;
 6. promote W1 -> W2 -> W3 -> W4 -> W5 -> W6 -> W7 sequentially, always using each wave's canonical integration branch/PR and current-main synchronization;
 7. keep `main` quiet during the promotion train except P0/P1 blockers and fixes strictly required to pass closure gates;
 8. run #1497 only after the required wave promotions are genuinely ready;
@@ -1540,8 +1540,8 @@ Backend/Dashboard-only closure work must not rebuild Customer/Driver/Van unless 
 `CLOSE FOOD` is complete only when all of the following are true:
 
 - closure-set implementation is merged through canonical lineages;
-- #1551 required real reference evidence is accepted;
 - required W1-W7 promotions are merged to `main`;
+- #1551 is not a closure blocker unless the owner explicitly requests a Production release; when Production is requested, genuine reference evidence must pass on the exact production candidate before deployment;
 - #1497 is green with zero unresolved P0/P1 blockers;
 - #1485 is closed;
 - remaining roadmap work is explicitly deferred outside this release boundary.
