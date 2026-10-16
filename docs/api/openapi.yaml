@@ -2492,6 +2492,39 @@ paths:
         "409": { description: Retry is not allowed from the current execution state }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /van/customers/{type}/{customer}/flash-offers:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get active customer-scoped Van flash offers
+      operationId: getVanCustomerFlashOffers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b, b2c] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: false
+          description: Required when the customer is in more than one assigned Van store scope.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Active Van flash offers with authoritative product and selling-unit business labels.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VanFlashOfferFeed"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /van/customers/{type}/{customer}/collection-context:
     get:
       tags: [Van Fulfillment]
@@ -2749,6 +2782,62 @@ components:
         pattern: '^[A-Za-z0-9._:-]+$'
 
   schemas:
+    VanFlashOfferFeed:
+      type: object
+      additionalProperties: false
+      required: [server_time, data]
+      properties:
+        server_time:
+          type: string
+          format: date-time
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/VanFlashOffer"
+
+    VanFlashOffer:
+      type: object
+      additionalProperties: false
+      required:
+        [id, store_id, title_ar, title_en, status, starts_at, ends_at, priority, reservation_seconds, products]
+      properties:
+        id: { type: integer, minimum: 1 }
+        store_id: { type: integer, minimum: 1 }
+        title_ar: { type: string }
+        title_en: { type: string }
+        body_ar: { type: [string, "null"] }
+        body_en: { type: [string, "null"] }
+        status: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        priority: { type: integer }
+        reservation_seconds: { type: integer, minimum: 1 }
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/VanFlashOfferProduct"
+
+    VanFlashOfferProduct:
+      type: object
+      additionalProperties: false
+      required: [id, product_id, conversion_factor, flash_price]
+      properties:
+        id: { type: integer, minimum: 1 }
+        product_id: { type: integer, minimum: 1 }
+        product_name:
+          type: [string, "null"]
+          description: Authoritative business-facing product name. Null only when legacy data cannot resolve a label.
+        selling_unit_id: { type: [integer, "null"], minimum: 1 }
+        selling_unit_code:
+          type: [string, "null"]
+          description: Stable machine identifier retained for quote/reservation submission and audit.
+        selling_unit_name:
+          type: [string, "null"]
+          description: Authoritative business-facing selling-unit label. Null only when legacy data cannot resolve a label.
+        conversion_factor: { type: number, exclusiveMinimum: 0 }
+        flash_price: { type: number, minimum: 0 }
+        allocation_base: { type: [number, "null"], minimum: 0 }
+
     MobileStoreAnalyticsResponse:
       type: object
       additionalProperties: false
