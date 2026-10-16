@@ -21,8 +21,8 @@
         html[dir=ltr] .dashboard-sidebar{grid-column:1;direction:ltr;border-left:0;border-right:1px solid var(--foodex-border)}
         html[dir=ltr] .dashboard-shell{grid-column:2;direction:ltr}
 
-        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(150px,.45fr) minmax(210px,1fr) minmax(340px,540px);grid-template-areas:"actions profile search";align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
-        html[dir=ltr] .topbar{grid-template-columns:minmax(340px,540px) minmax(210px,1fr) minmax(150px,.45fr);grid-template-areas:"search profile actions"}
+        .topbar{direction:ltr;min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(180px,1fr) minmax(340px,560px) minmax(180px,1fr);grid-template-areas:"actions search profile";align-items:center;gap:var(--foodex-space-4);padding:0 var(--foodex-space-6);position:sticky;top:0;z-index:10}
+        html[dir=ltr] .topbar{grid-template-columns:minmax(180px,1fr) minmax(340px,560px) minmax(180px,1fr);grid-template-areas:"profile search actions"}
         html[dir=rtl] .topbar>*{direction:rtl}
         .profile{grid-area:profile;display:flex;align-items:center;gap:var(--foodex-space-3);justify-self:start}
         .avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:var(--foodex-font-weight-bold);border:1px solid var(--foodex-border)}
@@ -166,8 +166,8 @@
 
         @media(min-width:1600px){
             .content{padding-inline:40px}
-            .topbar{padding-inline:40px;grid-template-columns:minmax(170px,.45fr) minmax(240px,1fr) minmax(420px,620px)}
-            html[dir=ltr] .topbar{grid-template-columns:minmax(420px,620px) minmax(240px,1fr) minmax(170px,.45fr)}
+            .topbar{padding-inline:40px;grid-template-columns:minmax(220px,1fr) minmax(420px,620px) minmax(220px,1fr)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(220px,1fr) minmax(420px,620px) minmax(220px,1fr)}
             .middle{grid-template-columns:minmax(0,2.25fr) minmax(340px,.9fr)}
             .bottom{grid-template-columns:minmax(290px,.9fr) minmax(560px,1.7fr) minmax(280px,.85fr)}
             .chart{height:250px}
@@ -181,8 +181,8 @@
             .kpi-value{font-size:clamp(1.3rem,1.75vw,1.5rem)}
         }
         @media(max-width:1279px){
-            .topbar{grid-template-columns:minmax(140px,.4fr) minmax(180px,.8fr) minmax(300px,1.4fr);padding-inline:var(--foodex-space-4)}
-            html[dir=ltr] .topbar{grid-template-columns:minmax(300px,1.4fr) minmax(180px,.8fr) minmax(140px,.4fr)}
+            .topbar{grid-template-columns:minmax(150px,1fr) minmax(300px,1.55fr) minmax(150px,1fr);padding-inline:var(--foodex-space-4)}
+            html[dir=ltr] .topbar{grid-template-columns:minmax(150px,1fr) minmax(300px,1.55fr) minmax(150px,1fr)}
             .content{padding-inline:var(--foodex-space-4)}
             .kpis{grid-template-columns:1fr 1fr}
             .middle{grid-template-columns:1fr}
@@ -262,7 +262,7 @@
                 <div class="avatar">{{ mb_substr($user->name, 0, 1) }}</div>
                 <div><strong>{{ $user->name }}</strong><small>{{ __('admin.b2c_dashboard.system_manager') }}</small></div>
             </a>
-            <form class="global-search" method="get" action="{{ route('admin.b2c.dashboard') }}">
+            <form class="global-search" data-foodex-dashboard-header-search method="get" action="{{ route('admin.b2c.dashboard') }}">
                 <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
                 <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
