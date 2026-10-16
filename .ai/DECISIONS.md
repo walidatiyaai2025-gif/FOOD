@@ -50,6 +50,6 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 
 **Reason:** Sales, B2B/B2C, Van, Collections, CRM, and WhatsApp already share production state. Replacing those records during convergence would split authority, invalidate existing mobile flows, and make financial reconciliation ambiguous.
 
-**Consequences:** `CustomerDomainResolver`, `Order`/`orders`, `CommerceQuoteService`, `B2bAccountLedgerService`, and `CollectionCustodyService` remain canonical. Cross-module consumers use server-scoped compatibility contracts and event version 1; visible flow rewrites and new posting ledgers are outside this foundation.
+**Consequences:** `CustomerDomainResolver`, `Order`/`orders`, `CommerceQuoteService`, `B2bAccountLedgerService`, and `CollectionCustodyService` remain canonical. `CommercialCreditEligibilityPolicy` is only a deterministic decision adapter over the existing B2B ledger summary and cannot become a credit ledger or mutate account state. Cross-module consumers use server-scoped compatibility contracts and event version 1; visible flow rewrites and new posting ledgers are outside this foundation.
 
 **Authority:** #1494, #1731, `docs/architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE.md`, and `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`.

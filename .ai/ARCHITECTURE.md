@@ -99,7 +99,7 @@ Durable invariants:
 
 Wave 6 convergence does not introduce replacement customer, order, pricing, credit, collection, or payment ledgers. `CustomerDomainResolver` remains the channel-aware customer identity authority; `orders` and `Order` remain order truth; `CommerceQuoteService` plus the existing B2B price resolver remain pricing truth; `B2bAccountLedgerService` remains credit/account truth; and `CollectionCustodyService` remains collection/remittance custody truth. Enterprise convergence layers may adapt and version these contracts, but they do not fork commercial state.
 
-Commercial compatibility reads are resolved through server-authoritative store/channel scope. Event handoffs use an explicit versioned envelope and registry-owned event names so downstream CRM, Van, Collections, WhatsApp, Finance, and BI consumers can evolve without replacing the source records. Foundation code emits no new ledger and performs no background work by itself.
+Commercial compatibility reads are resolved through server-authoritative store/channel scope. Event handoffs use an explicit versioned envelope and registry-owned event names so downstream CRM, Van, Collections, WhatsApp, Finance, and BI consumers can evolve without replacing the source records. Foundation code emits no new ledger and performs no background work by itself. B2B account-credit eligibility is a compatibility decision over `B2bAccountLedgerService` through `CommercialCreditEligibilityPolicy`; the policy may expose eligibility and shortfall, but it never owns or mutates credit state.
 
 ## Release architecture
 
