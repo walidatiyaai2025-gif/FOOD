@@ -124,7 +124,7 @@ final class EnterpriseModuleAdministrationTest extends TestCase
 
         $modules = app(EnterpriseModuleAdministration::class)->modules();
 
-        $this->assertCount(2, $modules);
+        $this->assertCount(count((array) config('enterprise_modules.modules', [])), $modules);
         $this->assertSame(
             1,
             collect($queries)->filter(static fn (string $sql): bool => str_contains($sql, 'from "enterprise_modules"')
