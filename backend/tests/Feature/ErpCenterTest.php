@@ -36,6 +36,73 @@ final class ErpCenterTest extends TestCase
             ->assertSee('dir="ltr"', false);
     }
 
+    public function test_local_super_admin_bootstraps_missing_enabled_erp_entitlement(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-local-bootstrap@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+
+        $this->assertDatabaseMissing('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="available"', false);
+
+        $this->assertDatabaseHas('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+            'scope_key' => 'platform:0',
+            'is_enabled' => true,
+        ]);
+    }
+
+    public function test_local_super_admin_does_not_override_explicit_entitlement_deny(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-local-deny@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            false,
+            null,
+            $actor,
+        );
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="not_entitled"', false);
+
+        $this->assertDatabaseHas('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+            'scope_key' => 'platform:0',
+            'is_enabled' => false,
+        ]);
+    }
+
+    public function test_production_super_admin_remains_deny_by_default_without_entitlement(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-production-deny@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        $this->app['env'] = 'production';
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="not_entitled"', false);
+
+        $this->assertDatabaseMissing('enterprise_module_entitlements', [
+            'module_code' => 'procurement',
+        ]);
+    }
+
     public function test_enabled_and_entitled_module_exposes_only_its_canonical_destination(): void
     {
         $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-enabled@example.test');
