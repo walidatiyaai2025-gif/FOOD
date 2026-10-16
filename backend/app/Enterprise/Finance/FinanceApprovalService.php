@@ -105,11 +105,11 @@ final class FinanceApprovalService
         }
 
         $currency = $this->normalizeCurrency($data['currency_code'] ?? null);
-        $effectiveFrom = isset($data['effective_from'])
+        $effectiveFrom = (isset($data['effective_from'])
             ? CarbonImmutable::parse((string) $data['effective_from'])
-            : CarbonImmutable::now();
+            : CarbonImmutable::now())->setMicrosecond(0);
         $effectiveUntil = isset($data['effective_until'])
-            ? CarbonImmutable::parse((string) $data['effective_until'])
+            ? CarbonImmutable::parse((string) $data['effective_until'])->setMicrosecond(0)
             : null;
 
         if ($effectiveUntil !== null && $effectiveUntil->lessThanOrEqualTo($effectiveFrom)) {
@@ -218,8 +218,8 @@ final class FinanceApprovalService
             ]);
         }
 
-        $startsAt = CarbonImmutable::parse((string) $data['starts_at']);
-        $endsAt = CarbonImmutable::parse((string) $data['ends_at']);
+        $startsAt = CarbonImmutable::parse((string) $data['starts_at'])->setMicrosecond(0);
+        $endsAt = CarbonImmutable::parse((string) $data['ends_at'])->setMicrosecond(0);
         $delegationKey = trim((string) $data['delegation_key']);
         $requestHash = hash('sha256', json_encode([
             'approval_limit_id' => $limit->id,
