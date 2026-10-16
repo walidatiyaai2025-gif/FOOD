@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('subject_type', 24);
             $table->string('subject_reference', 128);
             $table->decimal('credit_limit', 18, 3)->nullable();
+            $table->string('currency_code', 3);
             $table->unsignedSmallInteger('payment_terms_days')->default(0);
             $table->date('valid_from');
             $table->date('valid_until')->nullable();
