@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EnterpriseAccountsPayableDocument extends Model
 {
+    protected $table = 'enterprise_ap_documents';
+
     protected $guarded = [];
 
     protected function casts(): array
