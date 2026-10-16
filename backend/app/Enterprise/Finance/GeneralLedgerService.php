@@ -324,6 +324,18 @@ final class GeneralLedgerService
                 ]);
             }
 
+            if (
+                $approvalContext !== null
+                && (
+                    $approvalContext->makerId !== (int) $journal->requested_by
+                    || $this->toMills($approvalContext->amount, 'approval.amount') !== $totalDebitMills
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'approval' => ['Posting approval provenance must match the journal maker and balanced amount.'],
+                ]);
+            }
+
             $postingApproval = $approvalContext ?? new FinancePostingApprovalContext(
                 action: FinanceApprovalService::ACTION_GL_POST,
                 entityType: 'enterprise_finance_journal',
