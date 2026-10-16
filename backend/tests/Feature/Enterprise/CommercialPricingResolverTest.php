@@ -5,8 +5,6 @@ namespace Tests\Feature\Enterprise;
 use App\Domain\Pricing\B2bPriceResolver;
 use App\Enterprise\Commercial\CommercialCreditEligibilityPolicy;
 use App\Enterprise\Commercial\CommercialPricingResolver;
-use App\Models\B2bCustomer;
-use App\Models\B2cCustomer;
 use App\Models\User;
 use App\Services\CommerceQuoteService;
 use App\Services\CustomerDomainResolver;
