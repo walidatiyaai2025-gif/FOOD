@@ -57,6 +57,9 @@ return [
                 'treasury.cash_closing.read',
                 'treasury.cash_closing.manage',
                 'treasury.cash_closing.approve',
+                'treasury.cheques.read',
+                'treasury.cheques.manage',
+                'treasury.cheques.approve',
             ],
             'permissions' => [
                 'finance.view',
