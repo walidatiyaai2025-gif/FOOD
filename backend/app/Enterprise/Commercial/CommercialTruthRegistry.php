@@ -68,7 +68,7 @@ final class CommercialTruthRegistry
                 'channels' => ['b2b'],
                 'read_authority' => CollectionCustodyService::class,
                 'write_authority' => CollectionCustodyService::class,
-                'supporting_authorities' => [],
+                'supporting_authorities' => [CommercialCollectionExposurePolicy::class],
                 'storage' => ['collection_transactions', 'collection_allocations', 'custody_ledger_entries', 'remittances'],
                 'compatibility' => 'Collection and custody provenance reuse the existing collection/remittance domain without a second payment ledger.',
                 'event' => 'foodex.commercial.collection.changed',
