@@ -8,6 +8,7 @@ use App\Models\EnterprisePurchaseReturnLine;
 use App\Models\Inventory;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Validation\ValidationException;
 
 final class PurchaseReturnInventoryHandoff
