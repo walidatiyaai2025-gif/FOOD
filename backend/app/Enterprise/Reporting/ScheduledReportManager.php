@@ -49,7 +49,7 @@ final class ScheduledReportManager
 
         $key = hash('sha256', $scheduleKey);
         $payload = json_encode(
-            $query->readModelHandoff(),
+            $query->executionPlan(),
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
         );
 
