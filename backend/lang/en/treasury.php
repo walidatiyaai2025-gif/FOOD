@@ -1,0 +1,66 @@
+<?php
+
+return [
+    'nav_title' => 'Treasury master data',
+    'title' => 'Treasury master data',
+    'eyebrow' => 'Finance & Treasury',
+    'description' => 'Manage scoped cashboxes and bank accounts without changing payment, receipt, or posting flows.',
+    'cashboxes' => 'Cashboxes',
+    'bank_accounts' => 'Bank accounts',
+    'new_cashbox' => 'New cashbox',
+    'new_bank_account' => 'New bank account',
+    'edit_cashbox' => 'Edit cashbox',
+    'edit_bank_account' => 'Edit bank account',
+    'filters' => [
+        'search' => 'Search',
+        'search_placeholder' => 'Code, name, bank, account or last 4 digits',
+        'store' => 'Location',
+        'all_stores' => 'All locations',
+        'status' => 'Status',
+        'all_statuses' => 'All statuses',
+        'per_page' => 'Rows',
+        'apply' => 'Apply filters',
+    ],
+    'fields' => [
+        'code' => 'Code',
+        'name' => 'Name',
+        'company' => 'Company',
+        'store' => 'Location',
+        'currency' => 'Currency',
+        'bank_name' => 'Bank',
+        'account_name' => 'Account name',
+        'account_reference' => 'Account reference',
+        'account_reference_help' => 'Stored encrypted. Only the last 4 characters are shown after save.',
+        'operator_visibility' => 'Operator visibility',
+        'approval_visibility' => 'Approval visibility',
+        'status' => 'Status',
+        'actions' => 'Actions',
+        'is_active' => 'Active',
+    ],
+    'visibility' => [
+        'store' => 'Location scope',
+        'company' => 'Company scope',
+    ],
+    'status' => [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+    ],
+    'actions' => [
+        'save' => 'Save',
+        'edit' => 'Edit',
+        'cancel' => 'Cancel',
+    ],
+    'empty' => [
+        'cashboxes' => 'No cashboxes match the current scope and filters.',
+        'bank_accounts' => 'No bank accounts match the current scope and filters.',
+    ],
+    'messages' => [
+        'cashbox_saved' => 'Cashbox saved.',
+        'bank_account_saved' => 'Bank account saved.',
+    ],
+    'errors' => [
+        'hierarchy_missing' => 'The selected location is not mapped to an enterprise company.',
+        'duplicate_code' => 'This code already exists in the selected company and location.',
+        'reference_too_short' => 'The account reference must contain at least four letters or digits.',
+    ],
+];
