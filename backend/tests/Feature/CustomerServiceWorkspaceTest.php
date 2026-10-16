@@ -49,10 +49,17 @@ class CustomerServiceWorkspaceTest extends TestCase
         $response = $this->actingAs($actor)
             ->get(route('admin.erp.customer-service'))
             ->assertOk()
-            ->assertSee(route('admin.customer-360.index'), false);
+            ->assertSee(route('admin.customer-360.index'), false)
+            ->assertViewHas('capabilities', function ($capabilities): bool {
+                $keys = $capabilities->pluck('key');
+
+                return $keys->contains('customer')
+                    && $keys->contains('activity')
+                    && ! $keys->contains('delivery')
+                    && ! $keys->contains('conversations');
+            });
 
         $response->assertDontSee(route('admin.whatsapp-inbox.index'), false);
-        $response->assertDontSee(route('admin.field-operations.overview'), false);
     }
 
     public function test_user_without_customer_service_permissions_is_denied(): void
