@@ -1077,7 +1077,7 @@ class SmartOrderingCoreTest extends TestCase
 
         $scheduled = CarbonImmutable::parse((string) $first->json('data.scheduled_for'));
         $promised = CarbonImmutable::parse((string) $first->json('data.promised_for'));
-        $this->assertSame(25, $scheduled->diffInMinutes($promised));
+        $this->assertSame(25.0, $scheduled->diffInMinutes($promised));
 
         [$blockedCart, $blockedToken] = $this->cart();
         $this->addItem($blockedCart, $blockedToken, 1);
