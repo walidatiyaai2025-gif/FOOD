@@ -694,12 +694,12 @@ final class FinanceApprovalService
             return false;
         }
 
-        if (CarbonImmutable::parse($limit->effective_from)->isAfter($at)) {
+        if (CarbonImmutable::parse((string) $limit->effective_from)->isAfter($at)) {
             return false;
         }
 
         return $limit->effective_until === null
-            || CarbonImmutable::parse($limit->effective_until)->greaterThanOrEqualTo($at);
+            || CarbonImmutable::parse((string) $limit->effective_until)->greaterThanOrEqualTo($at);
     }
 
     /** @return Collection<int, int> */
@@ -784,10 +784,10 @@ final class FinanceApprovalService
     ): ?CarbonImmutable {
         $limitEnd = $limit->effective_until === null
             ? null
-            : CarbonImmutable::parse($limit->effective_until);
+            : CarbonImmutable::parse((string) $limit->effective_until);
         $delegationEnd = $delegation?->ends_at === null
             ? null
-            : CarbonImmutable::parse($delegation->ends_at);
+            : CarbonImmutable::parse((string) $delegation->ends_at);
 
         if ($limitEnd === null) {
             return $delegationEnd;
@@ -845,11 +845,11 @@ final class FinanceApprovalService
     }
 
     private function assertRequestHash(
-        string $existingHash,
+        mixed $existingHash,
         string $requestHash,
         string $field,
     ): void {
-        if (! hash_equals($existingHash, $requestHash)) {
+        if (! is_string($existingHash) || ! hash_equals($existingHash, $requestHash)) {
             throw ValidationException::withMessages([
                 $field => ['The idempotency key is already bound to different Finance approval data.'],
             ]);
