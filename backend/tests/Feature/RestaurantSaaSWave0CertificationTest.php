@@ -102,6 +102,17 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
 
         $subscription = $billing->transition(
             $subscription,
+            RestaurantBillingService::PAST_DUE,
+            $admin,
+        );
+        $subscription = $billing->transition(
+            $subscription,
+            RestaurantBillingService::GRACE,
+            $admin,
+            now()->addDays(3),
+        );
+        $subscription = $billing->transition(
+            $subscription,
             RestaurantBillingService::SUSPENDED,
             $admin,
         );
