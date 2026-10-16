@@ -366,6 +366,8 @@ final class FinanceApprovalService
         $request = EnterpriseWorkflowRequest::query()
             ->with('steps')
             ->whereKey($workflowRequestId)
+            ->where('scope_type', 'store')
+            ->where('scope_id', $scope->storeId)
             ->firstOrFail();
 
         $workflowContext = $this->requestContext($request);
