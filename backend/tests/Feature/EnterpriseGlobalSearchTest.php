@@ -132,11 +132,22 @@ final class EnterpriseGlobalSearchTest extends TestCase
     {
         $admin = $this->globalUser('SUPER_ADMIN', 'global-search-ui@example.test');
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get(route('admin.index'))
             ->assertOk()
+            ->assertSee('data-foodex-dashboard-header-search', false)
             ->assertSee('data-foodex-global-search', false)
             ->assertSee('Search orders and organizations');
+
+        $html = (string) $response->getContent();
+        $sidebarStart = strpos($html, '<aside class="sidebar shell-sidebar">');
+        $mainStart = strpos($html, '<main class="main">');
+        $this->assertNotFalse($sidebarStart);
+        $this->assertNotFalse($mainStart);
+        $this->assertStringNotContainsString(
+            'data-foodex-global-search',
+            substr($html, (int) $sidebarStart, (int) $mainStart - (int) $sidebarStart),
+        );
 
         $admin->forceFill(['locale' => 'ar'])->save();
 
