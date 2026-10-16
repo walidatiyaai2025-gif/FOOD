@@ -121,3 +121,15 @@ match the newer platform version. CI must prove the frozen tree has zero diff.
 ## Architecture change rule
 
 If a task changes a boundary described here, update this file and add the reason to `DECISIONS.md` in the same PR.
+
+## Finance source-module posting consumers
+
+Finance consumes committed cross-module facts asynchronously through the existing versioned domain-event and transactional-outbox authority. Source modules never call Finance synchronously and never write Finance tables.
+
+- Only real published source contracts are wired; future Sales/Inventory contracts plug into the same mapping layer without inventing event names early.
+- A source event can post only while Finance is currently ENABLED and only when its event timestamp is on/after the current enable transition (state_changed_at). Events consumed while Finance is disabled or from before the current enable transition are not backfilled later.
+- Posting requires explicit deployment configuration for ledger currency, distinct authorized maker/poster users, and debit/credit account codes. Missing or invalid mapping fails closed into the existing bounded outbox retry/dead-letter path.
+- Every accounting mutation uses GeneralLedgerService::createDraft() and GeneralLedgerService::post() so fiscal-period, account, entitlement, RBAC and maker/checker/poster controls remain authoritative.
+- Successful posting persists immutable source-event/version -> canonical journal provenance in enterprise_finance_source_postings; event identity and GL idempotency prevent duplicate posting.
+- Source-scope mismatch, unsupported versions, Finance degradation, and mapping failures never roll back the already-committed source transaction.
+

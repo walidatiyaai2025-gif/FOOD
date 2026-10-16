@@ -121,6 +121,8 @@ return [
         'promotions.manage' => 'Manage promotions and storefront content',
         'finance.view' => 'View finance and invoice data',
         'finance.manage' => 'Manage finance and invoices',
+        'finance.post' => 'Post approved finance journals and controlled subledger transactions',
+        'finance.approve' => 'Approve Finance mutations within server-authoritative limits and delegation policy',
         'reports.view' => 'View operational and business reports',
         'reports.export' => 'Export authorized reports',
         'support.view' => 'View customer support operations',
@@ -205,7 +207,7 @@ return [
             'assistant.use',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
         ],
-        'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
@@ -220,7 +222,7 @@ return [
             'assistant.use',
             'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
         ],
-        'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
+        'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
             'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
