@@ -22,7 +22,7 @@ final class SmartOrderingMenuRevisionService
     public function draft(User $actor, SmartOrderingSite $site, ?Request $request = null): SmartOrderingRevision
     {
         $draft = $this->revisions->createOrReuseDraft($actor, $site, $request);
-        $this->clonePublishedMenuIfNeeded($site, $draft);
+        $this->cloneSourceMenuIfNeeded($site, $draft);
 
         return $draft->fresh();
     }
@@ -124,24 +124,24 @@ final class SmartOrderingMenuRevisionService
         }
     }
 
-    private function clonePublishedMenuIfNeeded(SmartOrderingSite $site, SmartOrderingRevision $draft): void
+    private function cloneSourceMenuIfNeeded(SmartOrderingSite $site, SmartOrderingRevision $draft): void
     {
         if (DB::table('smart_ordering_menus')->where('revision_id', $draft->id)->exists()) {
             return;
         }
 
-        $published = $this->revisions->published($site);
-        if (! $published instanceof SmartOrderingRevision || $published->id === $draft->id) {
+        $source = $this->revisions->scheduled($site) ?? $this->revisions->published($site);
+        if (! $source instanceof SmartOrderingRevision || $source->id === $draft->id) {
             return;
         }
 
-        if (! DB::table('smart_ordering_menus')->where('revision_id', $published->id)->exists()) {
+        if (! DB::table('smart_ordering_menus')->where('revision_id', $source->id)->exists()) {
             return;
         }
 
-        DB::transaction(function () use ($site, $draft, $published): void {
+        DB::transaction(function () use ($site, $draft, $source): void {
             $menuMap = [];
-            foreach (DB::table('smart_ordering_menus')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menus')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menus')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -168,7 +168,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $categoryMap = [];
-            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_categories')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -205,7 +205,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $itemMap = [];
-            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_items')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -255,7 +255,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $groupMap = [];
-            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_modifier_groups')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
