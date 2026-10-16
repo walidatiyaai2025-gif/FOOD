@@ -7,6 +7,8 @@
 @include('admin._brand-components')
 @if($tab==='branches')
 <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
+@elseif($tab==='tables')
+<link rel="stylesheet" href="{{ asset('assets/admin/smart-ordering-tables.css') }}">
 @endif
 <style>
 .so-toolbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-bottom:16px}
@@ -79,6 +81,7 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.index') }}">{{ __('smart_ordering.settings_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
 @if($user->hasPermission('finance.view') || $stores->contains(fn($store) => $user->hasPermission('finance.view',(int)$store->id)))
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
 @endif
@@ -135,6 +138,8 @@
 </table>
 </section>
 {{ $orders->links() }}
+@elseif($tab==='tables')
+@include('admin._smart-ordering-tables')
 @elseif($tab==='payments')
 <section class="foodex-card">
 <h2>{{ __('smart_ordering.payments.title') }}</h2>
