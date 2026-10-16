@@ -8,7 +8,15 @@ use Illuminate\Validation\ValidationException;
 
 final readonly class ReportQuery
 {
-    /** @param array<string, scalar|null> $filters */
+    public const MAX_SORT_FIELDS = 5;
+
+    /**
+     * @param  array<string, scalar|null>  $filters
+     * @param  list<string>  $dimensions
+     * @param  list<string>  $measures
+     * @param  list<string>  $groupBy
+     * @param  list<array{field: string, direction: string}>  $sort
+     */
     private function __construct(
         public ReportDefinition $report,
         public array $filters,
@@ -16,6 +24,10 @@ final readonly class ReportQuery
         public ?CarbonImmutable $to,
         public int $page,
         public int $perPage,
+        public array $dimensions,
+        public array $measures,
+        public array $groupBy,
+        public array $sort,
     ) {}
 
     /** @param array<string, mixed> $input */
@@ -36,7 +48,7 @@ final readonly class ReportQuery
                 throw ValidationException::withMessages(['filters' => ['Report filters must be scalar values.']]);
             }
 
-            $normalized[$key] = $value;
+            $normalized[$key] = is_string($value) ? trim($value) : $value;
         }
 
         $from = self::date($input['from'] ?? null, 'from');
@@ -62,7 +74,53 @@ final readonly class ReportQuery
             throw ValidationException::withMessages(['per_page' => ['Report page size exceeds the configured bound.']]);
         }
 
-        return new self($report, $normalized, $from, $to, $page, $perPage);
+        $dimensions = self::selection(
+            array_key_exists('dimensions', $input) ? $input['dimensions'] : $report->dimensions,
+            $report->dimensions,
+            'dimensions',
+        );
+        $measures = self::selection(
+            array_key_exists('measures', $input) ? $input['measures'] : $report->measures,
+            $report->measures,
+            'measures',
+        );
+
+        if ($dimensions === [] && $measures === []) {
+            throw ValidationException::withMessages([
+                'report_fields' => ['At least one report dimension or measure is required.'],
+            ]);
+        }
+
+        $groupBy = self::selection(
+            array_key_exists('group_by', $input) ? $input['group_by'] : $dimensions,
+            $report->dimensions,
+            'group_by',
+        );
+
+        if (array_values(array_diff($dimensions, $groupBy)) !== []
+            || array_values(array_diff($groupBy, $dimensions)) !== []) {
+            throw ValidationException::withMessages([
+                'group_by' => ['Grouped dimensions must exactly match the selected dimensions.'],
+            ]);
+        }
+
+        $sort = self::sort(
+            $input['sort'] ?? [],
+            array_values(array_unique([...$dimensions, ...$measures])),
+        );
+
+        return new self(
+            $report,
+            $normalized,
+            $from,
+            $to,
+            $page,
+            $perPage,
+            $dimensions,
+            $measures,
+            $groupBy,
+            $sort,
+        );
     }
 
     /** @return array<string, mixed> */
@@ -81,15 +139,114 @@ final readonly class ReportQuery
     }
 
     /** @return array<string, mixed> */
-    public function exportHandoff(EntitlementScope $scope): array
+    public function executionPlan(): array
     {
         return [
             ...$this->readModelHandoff(),
+            'dimensions' => $this->dimensions,
+            'measures' => $this->measures,
+            'group_by' => $this->groupBy,
+            'sort' => $this->sort,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function exportHandoff(EntitlementScope $scope): array
+    {
+        return [
+            ...$this->executionPlan(),
             'scope_type' => $scope->type,
             'scope_id' => $scope->id,
             'chunk_size' => $this->report->exportChunkSize,
             'queue' => 'enterprise-report-exports',
         ];
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     * @return list<string>
+     */
+    private static function selection(mixed $value, array $allowed, string $field): array
+    {
+        if (is_array($value) === false || array_is_list($value) === false) {
+            throw ValidationException::withMessages([
+                $field => ["{$field} must be a list."],
+            ]);
+        }
+
+        $selected = [];
+        foreach ($value as $item) {
+            if (is_string($item) === false || trim($item) === '') {
+                throw ValidationException::withMessages([
+                    $field => ["{$field} may only contain non-empty strings."],
+                ]);
+            }
+
+            $item = trim($item);
+            if (in_array($item, $allowed, true) === false) {
+                throw ValidationException::withMessages([
+                    $field => ["Unsupported report {$field} field [{$item}]."],
+                ]);
+            }
+
+            $selected[] = $item;
+        }
+
+        return array_values(array_unique($selected));
+    }
+
+    /**
+     * @param  list<string>  $allowedFields
+     * @return list<array{field: string, direction: string}>
+     */
+    private static function sort(mixed $value, array $allowedFields): array
+    {
+        if (is_array($value) === false || array_is_list($value) === false) {
+            throw ValidationException::withMessages(['sort' => ['sort must be a list.']]);
+        }
+
+        if (count($value) > self::MAX_SORT_FIELDS) {
+            throw ValidationException::withMessages([
+                'sort' => ['Too many report sort fields were requested.'],
+            ]);
+        }
+
+        $sort = [];
+        $seen = [];
+
+        foreach ($value as $item) {
+            if (is_array($item) === false) {
+                throw ValidationException::withMessages([
+                    'sort' => ['Each report sort must be an object.'],
+                ]);
+            }
+
+            $field = trim((string) ($item['field'] ?? ''));
+            $direction = strtolower(trim((string) ($item['direction'] ?? 'asc')));
+
+            if ($field === '' || in_array($field, $allowedFields, true) === false) {
+                throw ValidationException::withMessages([
+                    'sort' => ["Unsupported report sort field [{$field}]."],
+                ]);
+            }
+
+            if (in_array($direction, ['asc', 'desc'], true) === false) {
+                throw ValidationException::withMessages([
+                    'sort' => ['Report sort direction must be asc or desc.'],
+                ]);
+            }
+
+            if (isset($seen[$field])) {
+                throw ValidationException::withMessages([
+                    'sort' => ["Duplicate report sort field [{$field}]."],
+                ]);
+            }
+
+            $seen[$field] = true;
+            $sort[] = ['field' => $field, 'direction' => $direction];
+        }
+
+        return $sort;
     }
 
     private static function date(mixed $value, string $field): ?CarbonImmutable
