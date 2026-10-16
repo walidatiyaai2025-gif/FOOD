@@ -6,6 +6,13 @@ KINDS=("feat","fix","chore","docs","refactor","test","ci","worker")
 SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot"}
 PROMOTION_BRANCHES={
     "feature/enterprise-core-platform",
+    "feature/enterprise-admin-shell",
+    "feature/enterprise-procurement",
+    "feature/enterprise-wms",
+    "feature/enterprise-finance",
+    "feature/enterprise-treasury",
+    "feature/enterprise-commercial-convergence",
+    "feature/enterprise-bi",
     "feature/enterprise-performance-gates",
     "feature/smart-ordering-program",
     "feature/whatsapp-crm-dark-launch",
