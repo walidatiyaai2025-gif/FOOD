@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Commercial\CommercialPricingResolver;
+use App\Enterprise\Commercial\CommercialVanSalesBridge;
 use App\Models\B2bCustomer;
 use App\Models\Customer;
 use App\Models\Order;
@@ -9,6 +11,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
 use App\Services\InvoiceService;
+use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
 use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
@@ -335,6 +338,193 @@ class VanOrderControllerTest extends TestCase
             ->assertNotFound();
 
         $this->assertNotSame($actorA->id, $actorB->id);
+    }
+
+    public function test_van_b2b_quote_uses_canonical_commercial_pricing_and_inventory_authorities(): void
+    {
+        $actor = $this->vanActor();
+        $wholesaleStoreId = $this->store('B2B', 'VAN-COMMERCIAL-QUOTE');
+        $retailStoreId = $this->store('B2C', 'VAN-COMMERCIAL-RETAIL');
+        $productId = $this->product($wholesaleStoreId, 'VAN-COMMERCIAL-PRODUCT', 12.500);
+        $warehouseId = (int) DB::table('warehouses')
+            ->where('store_id', $wholesaleStoreId)
+            ->value('id');
+
+        config(['foodex.platform_wholesale_store_code' => 'VAN-COMMERCIAL-QUOTE']);
+
+        $buyer = app(PlatformCustomerService::class)->register([
+            'name' => 'Van Commercial Buyer',
+            'email' => 'van-commercial-quote@example.test',
+            'phone' => '+201000001816',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $retailStoreId,
+        ]);
+        $customer = B2bCustomer::query()
+            ->where('user_id', $buyer->id)
+            ->firstOrFail();
+
+        VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => $customer->id,
+            'store_id' => $wholesaleStoreId,
+            'status' => 'planned',
+        ]);
+
+        $this->postJson(
+            '/api/v1/van/customers/b2b/'.$customer->id.'/order-quote',
+            [
+                'store_id' => $wholesaleStoreId,
+                'warehouse_id' => $warehouseId,
+                'payment_method' => 'cash_on_delivery',
+                'items' => [
+                    ['product_id' => $productId, 'quantity' => 2],
+                ],
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.channel', 'b2b')
+            ->assertJsonPath('data.items.0.unit_price', 12.5)
+            ->assertJsonPath('data.items.0.available_quantity', 100)
+            ->assertJsonPath('data.pricing_contract.origin', 'van')
+            ->assertJsonPath('data.pricing_contract.channel', 'b2b')
+            ->assertJsonPath(
+                'data.van_commercial_contract.pricing_authority',
+                CommercialPricingResolver::class,
+            )
+            ->assertJsonPath(
+                'data.van_commercial_contract.inventory_authority',
+                OrderInventoryReservationService::class,
+            )
+            ->assertJsonPath(
+                'data.van_commercial_contract.command_identity',
+                'Idempotency-Key',
+            )
+            ->assertJsonPath(
+                'data.van_commercial_contract.version',
+                CommercialVanSalesBridge::CONTRACT_VERSION,
+            );
+    }
+
+    public function test_van_b2b_order_retry_reuses_canonical_order_and_preserves_field_provenance(): void
+    {
+        $actor = $this->vanActor();
+        $wholesaleStoreId = $this->store('B2B', 'VAN-COMMERCIAL-CREATE');
+        $retailStoreId = $this->store('B2C', 'VAN-COMMERCIAL-CREATE-RETAIL');
+        $productId = $this->product($wholesaleStoreId, 'VAN-COMMERCIAL-CREATE-PRODUCT', 8.000);
+        $warehouseId = (int) DB::table('warehouses')
+            ->where('store_id', $wholesaleStoreId)
+            ->value('id');
+
+        config(['foodex.platform_wholesale_store_code' => 'VAN-COMMERCIAL-CREATE']);
+
+        $buyer = app(PlatformCustomerService::class)->register([
+            'name' => 'Van Commercial Create Buyer',
+            'email' => 'van-commercial-create@example.test',
+            'phone' => '+201000002816',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $retailStoreId,
+        ]);
+        $customer = B2bCustomer::query()
+            ->where('user_id', $buyer->id)
+            ->firstOrFail();
+
+        VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => $customer->id,
+            'store_id' => $wholesaleStoreId,
+            'status' => 'planned',
+        ]);
+
+        $payload = [
+            'store_id' => $wholesaleStoreId,
+            'warehouse_id' => $warehouseId,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [
+                ['product_id' => $productId, 'quantity' => 2],
+            ],
+        ];
+        $idempotencyKey = 'van-commercial-order-1816-0001';
+
+        $first = $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson(
+                '/api/v1/van/customers/b2b/'.$customer->id.'/orders',
+                $payload,
+            )
+            ->assertCreated();
+
+        $orderId = (int) $first->json('data.id');
+
+        $retry = $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson(
+                '/api/v1/van/customers/b2b/'.$customer->id.'/orders',
+                $payload,
+            )
+            ->assertCreated();
+
+        $this->assertSame($orderId, (int) $retry->json('data.id'));
+        $this->assertSame(
+            1,
+            Order::query()
+                ->where('checkout_idempotency_key', $idempotencyKey)
+                ->count(),
+        );
+
+        $order = Order::query()->findOrFail($orderId);
+        $this->assertSame('b2b', (string) $order->channel);
+        $this->assertSame(
+            'van',
+            data_get($order->pricing_snapshot, 'commercial_origin'),
+        );
+        $this->assertSame(
+            'van',
+            data_get($order->pricing_snapshot, 'commercial_pricing_contract.origin'),
+        );
+        $this->assertSame(
+            $actor->id,
+            data_get($order->pricing_snapshot, 'field_sale_provenance.actor_user_id'),
+        );
+        $this->assertSame(
+            $warehouseId,
+            data_get($order->pricing_snapshot, 'field_sale_provenance.warehouse_id'),
+        );
+
+        $this->assertDatabaseHas('stock_movements', [
+            'store_id' => $wholesaleStoreId,
+            'product_id' => null,
+            'type' => 'reserve',
+            'reference_type' => 'order',
+            'reference_id' => $orderId,
+            'reason' => 'van_order_created',
+        ]);
+
+        $inventory = DB::table('inventories')
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
+            ->first(['quantity', 'reserved_quantity']);
+        $this->assertNotNull($inventory);
+        $this->assertSame(100.0, (float) $inventory->quantity);
+        $this->assertSame(2.0, (float) $inventory->reserved_quantity);
+
+        $differentPayload = $payload;
+        $differentPayload['items'][0]['quantity'] = 3;
+
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson(
+                '/api/v1/van/customers/b2b/'.$customer->id.'/orders',
+                $differentPayload,
+            )
+            ->assertConflict();
+
+        $this->assertSame(
+            1,
+            Order::query()
+                ->where('checkout_idempotency_key', $idempotencyKey)
+                ->count(),
+        );
     }
 
     /** @return array{0:Order,1:int,2:int,3:int,4:int} */
