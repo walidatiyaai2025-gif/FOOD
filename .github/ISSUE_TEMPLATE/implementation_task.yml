@@ -42,6 +42,16 @@ body:
   - type: input
     id: design
     attributes: { label: Design reference }
+  - type: textarea
+    id: ui_placement
+    attributes:
+      label: UI placement decision (required when business-facing UI changes)
+      description: "Use UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md. Include domain, entity, role, user_goal, workflow_type, frequency, data_density, existing_parent/canonical route, placement_type, pattern, Reuse/Extend/Compose/New Screen decision, navigation_impact, permissions and states. If New Screen, justify why the first three options are insufficient."
+  - type: textarea
+    id: ui_responsive_evidence
+    attributes:
+      label: UI responsive + locale evidence plan (required when business-facing UI changes)
+      description: "Desktop, Tablet, Mobile, Arabic/RTL and English/LTR evidence. The Issue title is intent, not route authority."
   - type: input
     id: branch
     attributes: { label: Branch name }
