@@ -31,5 +31,30 @@ return [
             'health_checks' => [],
             'navigation' => [],
         ],
+        'treasury' => [
+            'version' => 1,
+            'category' => 'finance',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => ['finance'],
+            'capabilities' => [
+                'treasury.receipts.read',
+                'treasury.receipts.manage',
+                'treasury.receipts.approve',
+            ],
+            'permissions' => [
+                'finance.view',
+                'finance.manage',
+            ],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
     ],
 ];
