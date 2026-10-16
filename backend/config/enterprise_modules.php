@@ -13,6 +13,35 @@ return [
     |
     */
     'modules' => [
+        'inventory_wms' => [
+            'version' => 1,
+            'category' => 'operations',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+                'catalog',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => [
+                'procurement',
+                'accounting',
+                'reporting_bi',
+            ],
+            'capabilities' => [
+                'wms.read',
+                'wms.manage',
+            ],
+            'permissions' => [
+                'inventory.view',
+                'inventory.manage',
+            ],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
         'sample_optional' => [
             'version' => 1,
             'category' => 'platform',
