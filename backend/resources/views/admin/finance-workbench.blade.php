@@ -85,7 +85,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 @if($errors->any())
 <div class="finance-errors" role="alert">
-<strong>{{ __('validation.invalid') }}</strong>
+<strong>{{ __('finance_workbench.errors_title') }}</strong>
 <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
 </div>
 @endif
