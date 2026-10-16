@@ -493,7 +493,7 @@ final class SmartOrderingMenuWriteService
     ): void {
         $this->assertEntity($actor, $site, $draft, $category);
         $this->assertBranch($site, $branch);
-        $data = $this->normalizeAvailabilitySchedule($data);
+        $data = $this->normalizeOverrideAvailabilitySchedule($data);
         $this->upsertOverride(
             'smart_ordering_category_branch_overrides',
             'category_id',
@@ -521,7 +521,7 @@ final class SmartOrderingMenuWriteService
     ): void {
         $this->assertEntity($actor, $site, $draft, $item);
         $this->assertBranch($site, $branch);
-        $data = $this->normalizeAvailabilitySchedule($data);
+        $data = $this->normalizeOverrideAvailabilitySchedule($data);
         $this->upsertOverride(
             'smart_ordering_item_branch_overrides',
             'item_id',
@@ -572,6 +572,24 @@ final class SmartOrderingMenuWriteService
     {
         if (array_key_exists('availability_schedule', $data)) {
             $data['availability_schedule'] = $this->availabilitySchedules->normalize($data['availability_schedule']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string,mixed>  $data
+     * @return array<string,mixed>
+     */
+    private function normalizeOverrideAvailabilitySchedule(array $data): array
+    {
+        $data = $this->normalizeAvailabilitySchedule($data);
+
+        if (array_key_exists('availability_schedule', $data) && $data['availability_schedule'] !== null) {
+            $data['availability_schedule'] = json_encode(
+                $data['availability_schedule'],
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
+            );
         }
 
         return $data;
