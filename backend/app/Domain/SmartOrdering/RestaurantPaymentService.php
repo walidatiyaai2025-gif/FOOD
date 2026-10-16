@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -345,8 +346,8 @@ final class RestaurantPaymentService
     }
 
     /**
-     * @param list<int> $storeIds
-     * @param array{payment_status?:string,payment_provider?:string,reconciliation?:string} $filters
+     * @param  list<int>  $storeIds
+     * @param  array{payment_status?:string,payment_provider?:string,reconciliation?:string}  $filters
      * @return array{0:LengthAwarePaginator,1:list<array<string,mixed>>}
      */
     public function reconciliationPage(array $storeIds, array $filters, int $perPage = 25): array
@@ -540,7 +541,7 @@ final class RestaurantPaymentService
             ->reduce(fn (int $carry, mixed $value): int => $carry + $this->toMills((string) $value), 0);
     }
 
-    /** @param \Illuminate\Support\Collection<int,object> $operations */
+    /** @param Collection<int,object> $operations */
     private function sumOperation($operations, string $operation): int
     {
         return $operations
@@ -602,7 +603,7 @@ final class RestaurantPaymentService
     }
 
     /** @param array<string,mixed> $existing
-     * @param array<string,mixed> $safeMetadata
+     * @param  array<string,mixed>  $safeMetadata
      * @return array<string,mixed>
      */
     private function mergeSafePaymentMetadata(
