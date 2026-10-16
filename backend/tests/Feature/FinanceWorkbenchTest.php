@@ -123,13 +123,11 @@ final class FinanceWorkbenchTest extends TestCase
     private function operator(array $permissions, string $storeCode, string $locale): array
     {
         $store = $this->retailStore($storeCode);
-        $role = Role::query()->create([
-            'code' => 'ROLE_'.str_replace('-', '_', $storeCode),
-            'name' => $storeCode,
-            'scope' => 'store',
-            'is_active' => true,
-            'is_system' => false,
-        ]);
+        $role = Role::query()
+            ->where('code', 'B2C_STORE_ADMIN')
+            ->where('scope', 'store')
+            ->where('is_active', true)
+            ->firstOrFail();
 
         foreach ($permissions as $permissionCode) {
             $permission = Permission::query()->firstOrCreate(
