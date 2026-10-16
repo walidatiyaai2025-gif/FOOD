@@ -64,7 +64,7 @@ final class GoodsReceiptManager
             )
             ->when(
                 $validated['purchase_order_id'] ?? null,
-                fn (Builder $query, int $orderId): Builder => $query->where('purchase_order_id', $orderId),
+                fn (Builder $query, mixed $orderId): Builder => $query->where('purchase_order_id', (int) $orderId),
             )
             ->when(
                 $term !== '',
@@ -276,9 +276,10 @@ final class GoodsReceiptManager
                 ->where('receipts.status', 'posted')
                 ->groupBy('receipt_lines.purchase_order_line_id')
                 ->selectRaw(
-                    'receipt_lines.purchase_order_line_id, SUM(receipt_lines.received_quantity) as received_total',
+                    'receipt_lines.purchase_order_line_id as purchase_order_line_id, '
+                    .'SUM(receipt_lines.received_quantity) as received_total',
                 )
-                ->pluck('received_total', 'receipt_lines.purchase_order_line_id');
+                ->pluck('received_total', 'purchase_order_line_id');
 
             foreach ($lines as $line) {
                 /** @var EnterprisePurchaseOrderLine|null $orderLine */
