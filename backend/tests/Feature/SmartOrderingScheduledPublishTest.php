@@ -48,9 +48,19 @@ class SmartOrderingScheduledPublishTest extends TestCase
         $scheduledAt = now()->addHour();
 
         $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('type="datetime-local"', false)
+            ->assertSee(__('smart_ordering_menu.schedule.action'))
+            ->assertSee(__('smart_ordering_menu.schedule.timezone', ['timezone' => 'UTC']));
+
+        $this->actingAs($fixture['admin'])
             ->post(route('admin.smart-ordering.menu.schedule', $draft), [
                 'store_id' => $fixture['store_id'],
-                'scheduled_at' => $scheduledAt->toISOString(),
+                'scheduled_at' => $scheduledAt->format('Y-m-d\\TH:i'),
             ])
             ->assertRedirect()
             ->assertSessionHas('status', __('smart_ordering_menu.scheduled'));
@@ -77,9 +87,36 @@ class SmartOrderingScheduledPublishTest extends TestCase
             $fixture['site']->fresh(),
         );
         $this->assertNotSame($scheduled->id, $nextDraft->id);
+        $this->assertSame($scheduled->id, $nextDraft->parent_revision_id);
         $this->assertSame('draft', $nextDraft->status);
         $this->assertNull($nextDraft->scheduled_at);
         $this->assertNull($nextDraft->scheduled_by);
+        $this->assertSame(
+            'Scheduled Menu',
+            DB::table('smart_ordering_menus')
+                ->where('revision_id', $nextDraft->id)
+                ->value('name_en'),
+        );
+
+        try {
+            app(SmartOrderingMenuRevisionService::class)->publish(
+                $fixture['admin'],
+                $fixture['site']->fresh(),
+                $nextDraft->fresh(),
+            );
+            $this->fail('Publish-now must not bypass a pending scheduled revision.');
+        } catch (HttpExceptionInterface $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('id="so-scheduled-publish-state"', false)
+            ->assertSee(__('smart_ordering_menu.schedule.publish_blocked'));
 
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'smart_ordering.revision.scheduled',
@@ -155,7 +192,7 @@ class SmartOrderingScheduledPublishTest extends TestCase
         $this->actingAs($foreign['admin'])
             ->post(route('admin.smart-ordering.menu.schedule', $draft), [
                 'store_id' => $foreign['store_id'],
-                'scheduled_at' => now()->addHour()->toISOString(),
+                'scheduled_at' => now()->addHour()->format('Y-m-d\\TH:i'),
             ])
             ->assertNotFound();
 
