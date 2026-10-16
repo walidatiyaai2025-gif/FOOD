@@ -36,17 +36,18 @@ final class SmartOrderingSitemapController extends Controller
             'x-default' => $canonical,
         ];
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'
-            .'\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
-            .'xmlns:xhtml="http://www.w3.org/1999/xhtml">'
-            .'\n  <url>'
-            .'\n    <loc>'.$this->xml($canonical).'</loc>'
-            .'\n    <xhtml:link rel="alternate" hreflang="en" href="'.$this->xml($alternates['en']).'" />'
-            .'\n    <xhtml:link rel="alternate" hreflang="ar" href="'.$this->xml($alternates['ar']).'" />'
-            .'\n    <xhtml:link rel="alternate" hreflang="x-default" href="'.$this->xml($alternates['x-default']).'" />'
-            .'\n  </url>'
-            .'\n</urlset>'
-            .'\n';
+        $xml = implode("\n", [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+            '  <url>',
+            '    <loc>'.$this->xml($canonical).'</loc>',
+            '    <xhtml:link rel="alternate" hreflang="en" href="'.$this->xml($alternates['en']).'" />',
+            '    <xhtml:link rel="alternate" hreflang="ar" href="'.$this->xml($alternates['ar']).'" />',
+            '    <xhtml:link rel="alternate" hreflang="x-default" href="'.$this->xml($alternates['x-default']).'" />',
+            '  </url>',
+            '</urlset>',
+            '',
+        ]);
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=UTF-8',
