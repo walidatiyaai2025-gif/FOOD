@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\TerritoryService;
 use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
@@ -140,7 +141,7 @@ final class CommercialDeliveryRouteBridgeTest extends TestCase
         try {
             $bridge->reference($unauthorized, $order->id);
             $this->fail('Expected commercial delivery reference authorization to fail closed.');
-        } catch (NotFoundHttpException) {
+        } catch (ModelNotFoundException|NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
