@@ -106,6 +106,7 @@ final class FinanceCreditTermsService
             'subject_type' => ['required', Rule::in(self::SUBJECT_TYPES)],
             'subject_reference' => ['required', 'string', 'max:128'],
             'credit_limit' => ['nullable', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'currency_code' => ['required', 'string', 'size:3'],
             'payment_terms_days' => ['required', 'integer', 'min:0', 'max:3650'],
             'valid_from' => ['required', 'date'],
             'valid_until' => ['nullable', 'date', 'after_or_equal:valid_from'],
