@@ -218,6 +218,11 @@
       "paths": [
         ".ai/skill-router.json",
         ".ai/skills/**",
+        "docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md",
+        ".github/ISSUE_TEMPLATE/ui_implementation_task.yml",
+        ".github/ISSUE_TEMPLATE/implementation.md",
+        ".github/ISSUE_TEMPLATE/implementation_task.yml",
+        ".github/pull_request_template.md",
         "scripts/foodex-skill-router.py",
         "scripts/tests/test_foodex_skill_router.py",
         "AGENTS.md"
