@@ -17,8 +17,16 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\EnterpriseActionCenterController;
+use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
+use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
+use App\Http\Controllers\Admin\EnterpriseSavedViewController;
+use App\Http\Controllers\Admin\EnterpriseSecurityController;
+use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
+use App\Http\Controllers\Admin\EnterpriseWorkspaceController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
+use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -39,6 +47,7 @@ use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\Admin\TreasuryMasterController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
@@ -132,7 +141,47 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
+        Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
+            ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
+            ->name('enterprise-workspaces.index');
+        Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
+            ->whereNumber('workflowRequest')
+            ->where('stepCode', '[A-Za-z0-9._-]+')
+            ->middleware('throttle:30,1')
+            ->name('action-center.decide');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'index'])->name('enterprise-organizations.index');
+        Route::post('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'storeOrganization'])->middleware('throttle:30,1')->name('enterprise-organizations.store');
+        Route::get('/administration/organizations/{organization}', [EnterpriseOrganizationAdministrationController::class, 'showOrganization'])->whereNumber('organization')->name('enterprise-organizations.show');
+        Route::patch('/administration/organizations/{organization}', [EnterpriseOrganizationAdministrationController::class, 'updateOrganization'])->whereNumber('organization')->middleware('throttle:30,1')->name('enterprise-organizations.update');
+        Route::post('/administration/organizations/{organization}/companies', [EnterpriseOrganizationAdministrationController::class, 'storeCompany'])->whereNumber('organization')->middleware('throttle:30,1')->name('enterprise-companies.store');
+        Route::get('/administration/companies/{company}', [EnterpriseOrganizationAdministrationController::class, 'showCompany'])->whereNumber('company')->name('enterprise-companies.show');
+        Route::patch('/administration/companies/{company}', [EnterpriseOrganizationAdministrationController::class, 'updateCompany'])->whereNumber('company')->middleware('throttle:30,1')->name('enterprise-companies.update');
+        Route::post('/administration/companies/{company}/legal-entities', [EnterpriseOrganizationAdministrationController::class, 'storeLegalEntity'])->whereNumber('company')->middleware('throttle:30,1')->name('enterprise-legal-entities.store');
+        Route::get('/administration/legal-entities/{legalEntity}', [EnterpriseOrganizationAdministrationController::class, 'showLegalEntity'])->whereNumber('legalEntity')->name('enterprise-legal-entities.show');
+        Route::patch('/administration/legal-entities/{legalEntity}', [EnterpriseOrganizationAdministrationController::class, 'updateLegalEntity'])->whereNumber('legalEntity')->middleware('throttle:30,1')->name('enterprise-legal-entities.update');
+        Route::post('/administration/legal-entities/{legalEntity}/business-units', [EnterpriseOrganizationAdministrationController::class, 'storeBusinessUnit'])->whereNumber('legalEntity')->middleware('throttle:30,1')->name('enterprise-business-units.store');
+        Route::get('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'showBusinessUnit'])->whereNumber('businessUnit')->name('enterprise-business-units.show');
+        Route::patch('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'updateBusinessUnit'])->whereNumber('businessUnit')->middleware('throttle:30,1')->name('enterprise-business-units.update');
+        Route::post('/administration/business-units/{businessUnit}/stores/{store}', [EnterpriseOrganizationAdministrationController::class, 'assignStore'])->whereNumber('businessUnit')->whereNumber('store')->middleware('throttle:30,1')->name('enterprise-business-units.stores.assign');
+        Route::get('/administration/system-health', EnterpriseSystemHealthController::class)->name('enterprise-system-health.index');
+        Route::get('/administration/modules', [EnterpriseModuleAdministrationController::class, 'index'])->name('enterprise-modules.index');
+        Route::get('/administration/modules/{module}', [EnterpriseModuleAdministrationController::class, 'show'])
+            ->where('module', '[a-z][a-z0-9_]*')
+            ->name('enterprise-modules.show');
+        Route::post('/administration/modules/{module}/lifecycle', [EnterpriseModuleAdministrationController::class, 'lifecycle'])
+            ->where('module', '[a-z][a-z0-9_]*')
+            ->middleware('throttle:30,1')
+            ->name('enterprise-modules.lifecycle');
+        Route::post('/saved-views', [EnterpriseSavedViewController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('enterprise-saved-views.store');
+        Route::delete('/saved-views/{savedView}', [EnterpriseSavedViewController::class, 'destroy'])
+            ->whereNumber('savedView')
+            ->middleware('throttle:30,1')
+            ->name('enterprise-saved-views.destroy');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
@@ -541,6 +590,11 @@ Route::prefix('admin')
         Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
         Route::delete('/operations/orders/{order}/driver', [OrderOperationsController::class, 'unassign'])->whereNumber('order')->name('operations.orders.unassign');
+        Route::get('/treasury/master-data', [TreasuryMasterController::class, 'index'])->name('treasury.master.index');
+        Route::post('/treasury/cashboxes', [TreasuryMasterController::class, 'storeCashbox'])->middleware('throttle:60,1')->name('treasury.cashboxes.store');
+        Route::patch('/treasury/cashboxes/{cashbox}', [TreasuryMasterController::class, 'updateCashbox'])->whereNumber('cashbox')->middleware('throttle:60,1')->name('treasury.cashboxes.update');
+        Route::post('/treasury/bank-accounts', [TreasuryMasterController::class, 'storeBankAccount'])->middleware('throttle:60,1')->name('treasury.bank-accounts.store');
+        Route::patch('/treasury/bank-accounts/{bankAccount}', [TreasuryMasterController::class, 'updateBankAccount'])->whereNumber('bankAccount')->middleware('throttle:60,1')->name('treasury.bank-accounts.update');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/lookups/{entity}', [ReportController::class, 'lookup'])->whereIn('entity', ['products', 'customers'])->name('reports.lookups');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
@@ -549,6 +603,14 @@ Route::prefix('admin')
         Route::get('/inspector/export', [SystemInspectorController::class, 'export'])->name('inspector.export');
         Route::post('/inspector/storage-link', [SystemInspectorController::class, 'repairStorageLink'])->name('inspector.storage-link');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::get('/security/enterprise', [EnterpriseSecurityController::class, 'index'])->name('enterprise-security.index');
+        Route::post('/security/enterprise/role-scopes', [EnterpriseSecurityController::class, 'requestRoleScopeGrant'])->name('enterprise-security.role-scopes.store');
+        Route::delete('/security/enterprise/role-scopes/{dataScope}', [EnterpriseSecurityController::class, 'requestRoleScopeRevoke'])->name('enterprise-security.role-scopes.destroy');
+        Route::post('/security/enterprise/approval-limits', [EnterpriseSecurityController::class, 'requestApprovalLimit'])->name('enterprise-security.approval-limits.store');
+        Route::delete('/security/enterprise/approval-limits/{approvalLimit}', [EnterpriseSecurityController::class, 'requestApprovalLimitDeactivate'])->name('enterprise-security.approval-limits.destroy');
+        Route::post('/security/enterprise/delegations', [EnterpriseSecurityController::class, 'requestDelegation'])->name('enterprise-security.delegations.store');
+        Route::delete('/security/enterprise/delegations/{delegation}', [EnterpriseSecurityController::class, 'requestDelegationRevoke'])->name('enterprise-security.delegations.destroy');
+        Route::post('/security/enterprise/changes/{workflowRequest}/decision', [EnterpriseSecurityController::class, 'decide'])->name('enterprise-security.changes.decide');
         Route::get('/security/demo-data', [SecurityController::class, 'demoData'])->name('security.demo-data.index');
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');
         Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');

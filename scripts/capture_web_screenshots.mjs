@@ -58,6 +58,11 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
+  ['15_مركز_الإجراءات', '/admin/action-center'],
+  ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
+  ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
+  ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
+  ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
@@ -560,10 +565,42 @@ async function captureSecurityPermissionEvidence(page, locale) {
   await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__mobile-390__${locale}.png`);
 }
 
+async function captureEnterpriseSecurityEvidence(page, locale) {
+  await page.setViewportSize({ width: 1280, height: 960 });
+  const response = await page.goto(`${baseUrl}/admin/security/enterprise`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Enterprise Security Center runtime failed: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
+  }
+  await assertSharedAdminRuntimeShell(page, `enterprise-security/${locale}/desktop`);
+  if (await page.locator('[data-enterprise-security-center]').count() !== 1) {
+    throw new Error('Enterprise Security Center marker is missing.');
+  }
+  for (const selector of [
+    '[data-enterprise-security-scope-form]',
+    '[data-enterprise-security-limit-form]',
+    '[data-enterprise-security-delegation-form]',
+    '[data-enterprise-security-change-queue]',
+  ]) {
+    if (await page.locator(selector).count() !== 1) {
+      throw new Error(`Enterprise Security Center evidence missing ${selector}`);
+    }
+  }
+  await assertNoPageOverflow(page, `enterprise-security/${locale}/desktop-1280`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_security__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await assertNoPageOverflow(page, `enterprise-security/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_security__mobile-390__${locale}.png`);
+}
+
 async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
+    ['enterprise-action-center', '/admin/action-center'],
+    ['enterprise-organizations', '/admin/administration/organizations'],
+    ['enterprise-modules', '/admin/administration/modules'],
     ['security', '/admin/security'],
+    ['enterprise-security', '/admin/security/enterprise'],
     ['live-tracking', '/admin/driver-live-tracking'],
     ['mobile-settings', '/admin/settings/mobile?app=van&environment=production'],
     ['notifications', '/admin/notifications'],
@@ -607,8 +644,31 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
   }
 
+  const moduleGridRoute = '/admin/administration/modules?state=NOT_INSTALLED&sort=name&direction=asc&columns%5B0%5D=state&columns%5B1%5D=capabilities&per_page=25';
+  const moduleGridResponse = await page.goto(`${baseUrl}${moduleGridRoute}`, { waitUntil: 'networkidle' });
+  if (!moduleGridResponse?.ok()
+      || await page.locator('[data-enterprise-saved-views="enterprise.modules"]').count() !== 1
+      || await page.locator('[data-enterprise-grid-filters]').count() !== 1) {
+    const body = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 1800);
+    throw new Error(
+      `Enterprise module saved-view/grid primitives were not rendered: HTTP ${moduleGridResponse?.status() ?? 'no-response'}`
+      + (body ? ` · ${body}` : ''),
+    );
+  }
+  await assertNoPageOverflow(page, `enterprise-modules/${locale}/desktop-1440`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_module_saved_views__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}${moduleGridRoute}`, { waitUntil: 'networkidle' });
+  await assertNoPageOverflow(page, `enterprise-modules/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/22_enterprise_module_saved_views__mobile-390__${locale}.png`);
+  await page.setViewportSize({ width: 1440, height: 1080 });
+
   await exerciseOrderWizardDraftSafety(page, locale);
   await captureSecurityPermissionEvidence(page, locale);
+  await captureEnterpriseSecurityEvidence(page, locale);
 
   await page.goto(`${baseUrl}/admin/settings/mobile?app=van&environment=production`, { waitUntil: 'networkidle' });
   const mobileSettingsProof = await page.evaluate(() => {
@@ -731,6 +791,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     'field_operations',
     'marketing',
     'advertising',
+    'finance',
     'analytics',
     'applications',
     'administration',
@@ -1161,6 +1222,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'administration-hub',
     '/admin/administration',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'treasury-master',
+    '/admin/treasury/master-data',
   );
   await captureResponsiveRoute(
     page,
