@@ -46,6 +46,7 @@ final class GeneralLedgerService
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
+        private readonly FinanceApprovalService $approvals,
     ) {}
 
     /**
@@ -250,10 +251,11 @@ final class GeneralLedgerService
         User $actor,
         ResolvedTenantContext $context,
         int $journalId,
+        ?FinancePostingApprovalContext $approvalContext = null,
     ): EnterpriseFinanceJournal {
         $scope = $this->authorizedScope($actor, $context, self::POST_PERMISSION, self::POST_CAPABILITY);
 
-        return DB::transaction(function () use ($actor, $context, $scope, $journalId): EnterpriseFinanceJournal {
+        return DB::transaction(function () use ($actor, $context, $scope, $journalId, $approvalContext): EnterpriseFinanceJournal {
             /** @var EnterpriseFinanceJournal $journal */
             $journal = $this->journalQuery($scope)
                 ->whereKey($journalId)
@@ -321,6 +323,27 @@ final class GeneralLedgerService
                     'lines' => ['Journal totals no longer satisfy the balanced posting contract.'],
                 ]);
             }
+
+            if (
+                $approvalContext !== null
+                && (
+                    $approvalContext->makerId !== (int) $journal->requested_by
+                    || $this->toMills($approvalContext->amount, 'approval.amount') !== $totalDebitMills
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'approval' => ['Posting approval provenance must match the journal maker and balanced amount.'],
+                ]);
+            }
+
+            $postingApproval = $approvalContext ?? new FinancePostingApprovalContext(
+                action: FinanceApprovalService::ACTION_GL_POST,
+                entityType: 'enterprise_finance_journal',
+                entityId: (string) $journal->id,
+                makerId: (int) $journal->requested_by,
+                amount: $this->formatMills($totalDebitMills),
+            );
+            $this->approvals->assertPostingAuthorized($actor, $context, $postingApproval);
 
             $postedAt = now();
             foreach ($journalLines as $line) {
