@@ -270,7 +270,8 @@ final class EnterpriseSecurityGovernanceTest extends TestCase
             ->assertOk()
             ->assertSee('Enterprise access governance')
             ->assertSee('Temporary delegations')
-            ->assertSee('data-enterprise-security-governance', false);
+            ->assertSee('data-enterprise-security-governance', false)
+            ->assertSee('name="request_token"', false);
 
         $admin->forceFill(['locale' => 'ar'])->save();
 
