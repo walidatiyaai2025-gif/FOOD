@@ -331,6 +331,143 @@ final class SmartOrderingAvailabilityService
         return $states;
     }
 
+    /**
+     * Resolve item availability for a public read collection without one source-product query per row.
+     *
+     * Branch-specific reads keep the existing per-item override path because branch overrides are
+     * comparatively narrow; the unscoped/default public-menu path is the high-growth read path.
+     *
+     * @param  iterable<SmartOrderingMenuItem>  $items
+     * @return array<int,array{available:bool,reason:?string,sold_out:bool}>
+     */
+    public function items(
+        SmartOrderingSite $site,
+        iterable $items,
+        ?SmartOrderingBranch $branch = null,
+        ?CarbonInterface $at = null,
+    ): array {
+        $items = collect($items)->values();
+        if ($items->isEmpty()) {
+            return [];
+        }
+
+        $this->assertBranch((int) $site->id, $branch);
+
+        foreach ($items as $item) {
+            abort_unless((int) $item->site_id === (int) $site->id, 404);
+        }
+
+        if ($branch !== null) {
+            return $items
+                ->mapWithKeys(fn (SmartOrderingMenuItem $item): array => [
+                    (int) $item->id => $this->item($site, $item, $branch, $at),
+                ])
+                ->all();
+        }
+
+        $sourceProductIds = $items
+            ->pluck('source_product_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $availableSourceProductIds = $sourceProductIds->isEmpty()
+            ? collect()
+            : DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->join('store_products', function ($join) use ($site): void {
+                    $join->on('store_products.product_id', '=', 'products.id')
+                        ->where('store_products.store_id', '=', $site->store_id);
+                })
+                ->whereIn('products.id', $sourceProductIds)
+                ->where('products.is_active', true)
+                ->where('catalogs.store_id', $site->store_id)
+                ->where('catalogs.channel', 'b2c')
+                ->where('catalogs.is_active', true)
+                ->where('catalogs.is_migration_quarantine', false)
+                ->where('store_products.is_active', true)
+                ->pluck('products.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->flip();
+
+        $categoryStates = [];
+        $states = [];
+
+        foreach ($items as $item) {
+            $category = $item->relationLoaded('category')
+                ? $item->getRelation('category')
+                : $item->category()->firstOrFail();
+            abort_unless($category instanceof SmartOrderingMenuCategory, 404);
+
+            $categoryId = (int) $category->id;
+            $categoryState = $categoryStates[$categoryId]
+                ??= $this->category($category, null, $at);
+
+            if (! $categoryState['available']) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'CATEGORY_'.$categoryState['reason'],
+                    'sold_out' => $categoryState['sold_out'],
+                ];
+
+                continue;
+            }
+
+            $visible = (bool) $item->is_visible;
+            $soldOut = (bool) $item->sold_out;
+
+            if (! $visible) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'HIDDEN',
+                    'sold_out' => $soldOut,
+                ];
+
+                continue;
+            }
+
+            if ($soldOut) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'SOLD_OUT',
+                    'sold_out' => true,
+                ];
+
+                continue;
+            }
+
+            if (! $this->scheduleAllows($item->availability_schedule, $this->clock(null, $at))) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'OUTSIDE_SCHEDULE',
+                    'sold_out' => false,
+                ];
+
+                continue;
+            }
+
+            if ($item->source_product_id !== null
+                && ! $availableSourceProductIds->has((int) $item->source_product_id)) {
+                $states[(int) $item->id] = [
+                    'available' => false,
+                    'reason' => 'SOURCE_PRODUCT_UNAVAILABLE',
+                    'sold_out' => true,
+                ];
+
+                continue;
+            }
+
+            $states[(int) $item->id] = [
+                'available' => true,
+                'reason' => null,
+                'sold_out' => false,
+            ];
+        }
+
+        return $states;
+    }
+
     /** @return array{available:bool,reason:?string,sold_out:bool} */
     public function option(
         SmartOrderingSite $site,
