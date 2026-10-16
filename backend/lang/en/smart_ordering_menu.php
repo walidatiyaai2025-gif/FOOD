@@ -38,6 +38,7 @@ return [
         'branch_scope' => 'Every selected branch must belong to this restaurant.',
         'json' => 'Enter a valid JSON value.',
         'non_negative_price' => 'Prices cannot be negative.',
+        'scheduled_future' => 'Scheduled publish time must be in the future.',
     ],
     'invalid_item' => [
         'badge' => 'Needs repair',
