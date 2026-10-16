@@ -398,6 +398,9 @@ final class RestaurantPaymentService
                 ...((array) $payment),
                 'captured_amount' => $this->formatMills($captured),
                 'refunded_amount' => $this->formatMills($refunded),
+                'remaining_refundable_amount' => $this->formatMills(max(0, $captured - $refunded)),
+                'created_display' => CarbonImmutable::parse((string) $payment->created_at)
+                    ->timezone('Asia/Kuwait')->format('Y-m-d H:i'),
                 'settlement_gross_amount' => $latestSettlement?->settlement_gross_amount,
                 'settlement_fee_amount' => $latestSettlement?->settlement_fee_amount,
                 'settlement_net_amount' => $latestSettlement?->settlement_net_amount,
