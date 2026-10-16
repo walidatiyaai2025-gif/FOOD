@@ -3,7 +3,9 @@
 namespace App\Enterprise\Reporting;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Reporting\ReadModels\FinanceExposureReadModel;
 use App\Enterprise\Reporting\ReadModels\OrdersSummaryReadModel;
+use App\Enterprise\Reporting\ReadModels\StockExposureReadModel;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +16,8 @@ final class ReportBuilderExecutor
         private readonly ReportRegistry $reports,
         private readonly ReportAccessResolver $access,
         private readonly OrdersSummaryReadModel $ordersSummary,
+        private readonly FinanceExposureReadModel $financeExposure,
+        private readonly StockExposureReadModel $stockExposure,
         private readonly ReportExportManager $exports,
     ) {}
 
@@ -103,6 +107,8 @@ final class ReportBuilderExecutor
     {
         return match ($query->report->readModel) {
             'orders_summary_daily' => $this->ordersSummary->read($query, $scope),
+            'finance_ar_exposure', 'finance_ap_exposure' => $this->financeExposure->read($query, $scope),
+            'wms_stock_exposure' => $this->stockExposure->read($query, $scope),
             default => throw ValidationException::withMessages([
                 'read_model' => ["Unsupported registered read model [{$query->report->readModel}]."],
             ]),
@@ -111,7 +117,7 @@ final class ReportBuilderExecutor
 
     /**
      * @param  array<string, mixed>  $row
-     * @return array<string, int|string>
+     * @return array<string, mixed>
      */
     private function projectRow(ReportQuery $query, array $row): array
     {
@@ -136,6 +142,10 @@ final class ReportBuilderExecutor
             }
 
             $projected[$measure] = $row[$source];
+        }
+
+        if (array_key_exists('drill_down', $row) && is_array($row['drill_down'])) {
+            $projected['drill_down'] = $row['drill_down'];
         }
 
         return $projected;
