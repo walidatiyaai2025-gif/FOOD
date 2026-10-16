@@ -47,6 +47,12 @@ class EnterpriseTreasuryPayment extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    /** @return BelongsTo<EnterpriseWorkflowRequest, $this> */
+    public function workflowRequest(): BelongsTo
+    {
+        return $this->belongsTo(EnterpriseWorkflowRequest::class, 'workflow_request_id');
+    }
+
     /** @return BelongsTo<EnterpriseCompany, $this> */
     public function company(): BelongsTo
     {

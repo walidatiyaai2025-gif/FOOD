@@ -26,6 +26,11 @@ return new class extends Migration
             $table->string('description', 255)->nullable();
             $table->string('status', 16)->default('draft');
             $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('workflow_request_id')->nullable();
+            $table->foreign('workflow_request_id', 'etp_workflow_request_fk')
+                ->references('id')
+                ->on('enterprise_workflow_requests')
+                ->restrictOnDelete();
             $table->timestamp('posted_at')->nullable();
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('cancelled_at')->nullable();

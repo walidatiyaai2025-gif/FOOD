@@ -11,6 +11,7 @@ use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Treasury\TreasuryPaymentService;
 use App\Models\EnterpriseCashbox;
 use App\Models\EnterpriseTreasuryPayment;
+use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -73,6 +74,23 @@ class EnterpriseTreasuryPaymentFoundationTest extends TestCase
 
         $this->assertSame(EnterpriseTreasuryPayment::STATUS_POSTED, $posted->status);
         $this->assertSame($posted->id, $postedRetry->id);
+        $this->assertNotNull($posted->workflow_request_id);
+        $this->assertDatabaseCount('enterprise_workflow_requests', 1);
+        $this->assertDatabaseHas('enterprise_workflow_steps', [
+            'workflow_request_id' => $posted->workflow_request_id,
+            'step_code' => 'approver',
+            'required_permission' => 'finance.manage',
+            'status' => 'APPROVED',
+            'actor_id' => $approver->id,
+        ]);
+
+        $workflow = EnterpriseWorkflowRequest::query()->findOrFail((int) $posted->workflow_request_id);
+        $this->assertSame('treasury_payment_posting', $workflow->workflow_key);
+        $this->assertSame('25.750', $workflow->context['amount']);
+        $this->assertSame('KWD', $workflow->context['currency']);
+        $this->assertSame('store', $workflow->scope_type);
+        $this->assertSame($store->id, (int) $workflow->scope_id);
+
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.treasury.payment_posted',
             'auditable_id' => $draft->id,

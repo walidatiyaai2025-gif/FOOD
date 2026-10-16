@@ -4,6 +4,9 @@ namespace App\Enterprise\Treasury;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Workflow\WorkflowDefinition;
+use App\Enterprise\Workflow\WorkflowEngine;
+use App\Enterprise\Workflow\WorkflowStepDefinition;
 use App\Models\EnterpriseBankAccount;
 use App\Models\EnterpriseCashbox;
 use App\Models\EnterpriseTreasuryPayment;
@@ -38,6 +41,10 @@ final class TreasuryPaymentService
 
     private const APPROVE_CAPABILITY = 'treasury.payments.approve';
 
+    private const WORKFLOW_KEY = 'treasury_payment_posting';
+
+    private const WORKFLOW_STEP = 'approver';
+
     private const STATUSES = [
         EnterpriseTreasuryPayment::STATUS_DRAFT,
         EnterpriseTreasuryPayment::STATUS_POSTED,
@@ -53,6 +60,7 @@ final class TreasuryPaymentService
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
+        private readonly WorkflowEngine $workflow,
     ) {}
 
     /**
@@ -241,9 +249,36 @@ final class TreasuryPaymentService
                 true,
             );
 
+            $requester = User::query()->findOrFail((int) $payment->requested_by);
+            $approval = $this->workflow->request(
+                new WorkflowDefinition(self::WORKFLOW_KEY, 1, [
+                    new WorkflowStepDefinition(self::WORKFLOW_STEP, self::APPROVE_PERMISSION),
+                ]),
+                'treasury_payment',
+                (string) $payment->getKey(),
+                $requester,
+                'store',
+                $scope->storeId,
+                'treasury-payment-'.$payment->getKey().'-posting-v1',
+                [
+                    'amount' => (string) $payment->amount,
+                    'currency' => (string) $payment->currency_code,
+                    'target_type' => (string) $payment->target_type,
+                    'target_id' => (int) $payment->target_id,
+                    'reference' => (string) $payment->reference,
+                ],
+            );
+            $this->workflow->decide(
+                (int) $approval->getKey(),
+                self::WORKFLOW_STEP,
+                $actor,
+                'APPROVED',
+            );
+
             $before = $payment->toArray();
             $payment->forceFill([
                 'status' => EnterpriseTreasuryPayment::STATUS_POSTED,
+                'workflow_request_id' => $approval->getKey(),
                 'posted_at' => now(),
                 'posted_by' => $actor->id,
             ])->save();
