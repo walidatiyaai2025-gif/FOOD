@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
+use App\Http\Controllers\Admin\EnterpriseBiController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseProcurementController;
@@ -441,6 +442,7 @@ Route::prefix('admin')
             ->whereNumber('assignment')
             ->whereNumber('proof')
             ->name('driver-live-tracking.proofs.show');
+        Route::get('/erp/bi', [EnterpriseBiController::class, 'index'])->name('erp.bi');
         Route::get('/erp/customer-service', [CustomerServiceWorkspaceController::class, 'index'])->name('erp.customer-service');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
