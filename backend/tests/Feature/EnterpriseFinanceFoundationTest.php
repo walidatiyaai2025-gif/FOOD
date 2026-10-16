@@ -162,7 +162,6 @@ final class EnterpriseFinanceFoundationTest extends TestCase
         ]);
     }
 
-
     public function test_cost_centers_are_server_scoped_hierarchical_audited_and_bounded(): void
     {
         [$actor, , $context] = $this->scopedUser(
@@ -444,7 +443,6 @@ final class EnterpriseFinanceFoundationTest extends TestCase
         $this->assertTrue(Schema::hasTable('enterprise_fiscal_years'));
         $this->assertTrue(Schema::hasTable('enterprise_fiscal_periods'));
     }
-
 
     public function test_cost_center_migration_is_additive_and_reversible(): void
     {
