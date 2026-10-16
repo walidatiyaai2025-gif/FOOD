@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
 use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
+use App\Http\Controllers\Admin\SmartOrderingTableController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SmartOrderingOperationsController::class, 'index'])->name('operations.index');
@@ -15,6 +16,29 @@ Route::put('/branches/{branch}/delivery-zones/{zone}', [SmartOrderingOperationsC
     ->whereUuid('branch')->whereUuid('zone')->name('zones.update');
 Route::delete('/branches/{branch}/delivery-zones/{zone}', [SmartOrderingOperationsController::class, 'destroyZone'])
     ->whereUuid('branch')->whereUuid('zone')->name('zones.destroy');
+
+Route::post('/branches/{branch}/floors', [SmartOrderingTableController::class, 'storeFloor'])
+    ->whereUuid('branch')->name('tables.floors.store');
+Route::put('/branches/{branch}/floors/{floor}', [SmartOrderingTableController::class, 'updateFloor'])
+    ->whereUuid('branch')->whereUuid('floor')->name('tables.floors.update');
+Route::delete('/branches/{branch}/floors/{floor}', [SmartOrderingTableController::class, 'destroyFloor'])
+    ->whereUuid('branch')->whereUuid('floor')->name('tables.floors.destroy');
+Route::post('/branches/{branch}/tables', [SmartOrderingTableController::class, 'storeTable'])
+    ->whereUuid('branch')->name('tables.store');
+Route::put('/branches/{branch}/tables/{table}', [SmartOrderingTableController::class, 'updateTable'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.update');
+Route::post('/branches/{branch}/tables/{table}/position', [SmartOrderingTableController::class, 'updatePosition'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.position');
+Route::delete('/branches/{branch}/tables/{table}', [SmartOrderingTableController::class, 'destroyTable'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.destroy');
+Route::post('/branches/{branch}/tables/{table}/qr-binding', [SmartOrderingTableController::class, 'bindQr'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.qr.bind');
+Route::delete('/branches/{branch}/tables/{table}/qr-binding', [SmartOrderingTableController::class, 'unbindQr'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.qr.unbind');
+Route::post('/branches/{branch}/tables/{table}/combine', [SmartOrderingTableController::class, 'combine'])
+    ->whereUuid('branch')->whereUuid('table')->name('tables.combine');
+Route::delete('/branches/{branch}/table-combinations/{combination}', [SmartOrderingTableController::class, 'split'])
+    ->whereUuid('branch')->whereUuid('combination')->name('tables.split');
 Route::post('/orders/{reference}/status', [SmartOrderingOperationsController::class, 'transition'])
     ->whereUuid('reference')->name('orders.transition');
 
