@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enterprise\Commercial\CommercialPricingResolver;
+use App\Enterprise\Commercial\CommercialProfitabilityEventPublisher;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
@@ -24,6 +25,7 @@ final class AdminOrderManagementService
     public function __construct(
         private readonly CommerceQuoteService $quotes,
         private readonly CommercialPricingResolver $commercialPricing,
+        private readonly CommercialProfitabilityEventPublisher $profitabilityEvents,
         private readonly CommercialPolicyService $commercialPolicy,
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
@@ -162,6 +164,7 @@ final class AdminOrderManagementService
                 );
 
                 $this->routing->routeCreatedOrder($existing, $actor, $source);
+                $this->profitabilityEvents->publishOrder($existing);
 
                 return $existing->fresh();
             }
@@ -370,6 +373,8 @@ final class AdminOrderManagementService
                 ],
                 $request,
             );
+
+            $this->profitabilityEvents->publishOrder($order);
 
             return $order;
         }, 3);
@@ -616,6 +621,8 @@ final class AdminOrderManagementService
                 ],
                 $request,
             );
+
+            $this->profitabilityEvents->publishOrder($locked);
 
             return $locked->fresh();
         }, 3);

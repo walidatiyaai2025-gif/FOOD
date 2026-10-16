@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Remittance;
 use App\Models\User;
 use App\Services\CollectionCustodyService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class CommercialCollectionRemittanceBridge
@@ -18,6 +19,7 @@ final class CommercialCollectionRemittanceBridge
         private readonly CommercialContextGuard $guard,
         private readonly CollectionCustodyService $custody,
         private readonly CommercialEventFactory $events,
+        private readonly CommercialProfitabilityEventPublisher $profitabilityEvents,
     ) {}
 
     /**
@@ -94,7 +96,7 @@ final class CommercialCollectionRemittanceBridge
             $businessReference,
         ]));
 
-        $remittance = $this->custody->submitRemittance(
+        $remittance = DB::transaction(function () use (
             $account,
             $actor,
             $idempotencyKey,
@@ -102,16 +104,33 @@ final class CommercialCollectionRemittanceBridge
             $currency,
             $method,
             $businessReference,
-            'Commercial convergence handoff; source remains CollectionCustodyService.',
-        );
-
-        $this->assertRetryContract(
-            $remittance,
             $collectionAccountId,
-            $amount,
-            $currency,
-            $businessReference,
-        );
+            $order,
+            $invoice,
+        ): Remittance {
+            $remittance = $this->custody->submitRemittance(
+                $account,
+                $actor,
+                $idempotencyKey,
+                $amount,
+                $currency,
+                $method,
+                $businessReference,
+                'Commercial convergence handoff; source remains CollectionCustodyService.',
+            );
+
+            $this->assertRetryContract(
+                $remittance,
+                $collectionAccountId,
+                $amount,
+                $currency,
+                $businessReference,
+            );
+
+            $this->profitabilityEvents->publishCollection($order, $invoice, $remittance);
+
+            return $remittance;
+        }, 3);
 
         $commercialReference = [
             'store_id' => $storeId,
