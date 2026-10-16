@@ -696,12 +696,6 @@ final class TreasuryReconciliationService
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
             ->where('store_id', $scope->storeId)
-            ->where('target_type', EnterpriseTreasuryReceipt::TARGET_BANK_ACCOUNT)
-            ->where('target_id', $reconciliation->bank_account_id)
-            ->whereBetween('value_date', [
-                CarbonImmutable::parse((string) $reconciliation->period_from)->toDateString(),
-                CarbonImmutable::parse((string) $reconciliation->period_to)->toDateString(),
-            ])
             ->first();
 
         if (
@@ -714,6 +708,23 @@ final class TreasuryReconciliationService
 
             throw (new ModelNotFoundException)->setModel($model, [$transactionId]);
         }
+
+        $periodFrom = CarbonImmutable::parse((string) $reconciliation->period_from)->startOfDay();
+        $periodTo = CarbonImmutable::parse((string) $reconciliation->period_to)->endOfDay();
+        $valueDate = CarbonImmutable::parse((string) $transaction->value_date);
+        if (
+            (string) $transaction->target_type !== EnterpriseTreasuryReceipt::TARGET_BANK_ACCOUNT
+            || (int) $transaction->target_id !== (int) $reconciliation->bank_account_id
+            || $valueDate->lt($periodFrom)
+            || $valueDate->gt($periodTo)
+        ) {
+            throw ValidationException::withMessages([
+                'transaction_id' => [
+                    'Treasury transaction must belong to this bank account and reconciliation period.',
+                ],
+            ]);
+        }
+
         if (strtoupper((string) $transaction->currency_code) !== strtoupper((string) $reconciliation->currency_code)) {
             throw ValidationException::withMessages([
                 'transaction_id' => ['Treasury transaction currency does not match the reconciliation currency.'],
