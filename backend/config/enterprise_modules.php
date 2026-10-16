@@ -157,7 +157,8 @@ return [
                 'database',
             ],
             'navigation' => [],
-        ],        'treasury' => [
+        ],
+        'treasury' => [
             'version' => 1,
             'category' => 'finance',
             'default_state' => 'DISABLED',
@@ -194,6 +195,5 @@ return [
             'health_checks' => [],
             'navigation' => [],
         ],
-
     ],
 ];
