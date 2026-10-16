@@ -42,6 +42,7 @@ class CommercialTruthCompatibilityFoundationTest extends TestCase
         $this->assertSame(CommerceQuoteService::class, $pricing['write_authority']);
         $this->assertContains(B2bPriceResolver::class, $pricing['supporting_authorities']);
         $this->assertSame(B2bAccountLedgerService::class, $credit['write_authority']);
+        $this->assertContains(CommercialCreditEligibilityPolicy::class, $credit['supporting_authorities']);
         $this->assertSame(CollectionCustodyService::class, $collection['write_authority']);
         $this->assertSame(['b2b_accounts', 'customer_account_ledger_entries'], $credit['storage']);
         $this->assertContains('collection_transactions', $collection['storage']);
