@@ -158,6 +158,7 @@ final class FinanceCreditTermsService
             'credit_limit' => isset($data['credit_limit'])
                 ? $this->formatMills($this->toMills($data['credit_limit']))
                 : null,
+            'currency_code' => strtoupper((string) $data['currency_code']),
             'payment_terms_days' => (int) $data['payment_terms_days'],
             'valid_from' => $validFrom,
             'valid_until' => $validUntil,
@@ -325,6 +326,7 @@ final class FinanceCreditTermsService
             ->where('document.company_id', $scope->companyId)
             ->where('document.legal_entity_id', $scope->legalEntityId)
             ->where('document.customer_id', $customerId)
+            ->where('document.currency_code', strtoupper((string) $policy->currency_code))
             ->where('document.status', 'posted')
             ->whereDate('document.entry_date', '<=', CarbonImmutable::parse($asOf)->toDateString())
             ->selectRaw(
@@ -337,7 +339,7 @@ final class FinanceCreditTermsService
 
         return [
             'customer_id' => $customerId,
-            'currency' => 'KWD',
+            'currency' => strtoupper((string) $policy->currency_code),
             'credit_limit' => $limit,
             'outstanding_receivable' => $outstanding,
             'available_credit' => round(max($limit - $outstanding, 0), 3),
