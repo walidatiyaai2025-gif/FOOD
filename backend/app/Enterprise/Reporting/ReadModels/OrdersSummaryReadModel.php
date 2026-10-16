@@ -156,6 +156,9 @@ final class OrdersSummaryReadModel
                 'status' => (string) $row->status,
                 'channel' => (string) $row->channel,
                 'currency' => (string) $row->currency,
+                default => throw ValidationException::withMessages([
+                    'dimensions' => ["Unsupported orders summary dimension [{$dimension}]."],
+                ]),
             };
         }
 
@@ -165,6 +168,9 @@ final class OrdersSummaryReadModel
                 'orders' => (int) $row->order_count,
                 'gross_total' => self::money((float) $row->gross_total),
                 'average_order_value' => self::money((float) $row->average_order_value),
+                default => throw ValidationException::withMessages([
+                    'measures' => ["Unsupported orders summary measure [{$measure}]."],
+                ]),
             };
         }
 
