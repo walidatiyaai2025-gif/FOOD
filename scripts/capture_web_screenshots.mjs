@@ -60,6 +60,7 @@ const b2c = [
   ['15_مركز_الإدارة', '/admin/administration'],
   ['15_مركز_الإجراءات', '/admin/action-center'],
   ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
+  ['15_مساحة_عمل_خدمة_العملاء', '/admin/erp/customer-service'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
   ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
