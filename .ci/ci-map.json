@@ -14,7 +14,7 @@
       "path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization|foodex_formatting)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint|mobile-ci-scope)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/(van-app-ci|mobile-build-validation|mobile-release-build|release-factory)\\.yml$)"
     },
     "dashboard_ui": {
-      "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/)"
+      "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/|scripts/capture_web_screenshots\\.mjs$|scripts/foodex-ui-pr-plan\\.py$|scripts/tests/test_foodex_ui_pr_plan\\.py$|\\.ai/uiux/visual-evidence-matrix\\.json$|\\.github/workflows/ui-visual-qa\\.yml$)"
     },
     "mobile_ui": {
       "path_regex": "^(apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$|packages/(design_tokens|foodex_visualization)/)"
