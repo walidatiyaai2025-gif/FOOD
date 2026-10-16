@@ -118,6 +118,115 @@ class SmartOrderingQrTest extends TestCase
         $attribution->serverContext($tamperedContext, $store);
     }
 
+    public function test_attribution_snapshot_survives_qr_type_and_promotion_edits(): void
+    {
+        [$store] = $this->stores();
+        $promotionA = (int) DB::table('promotions')->insertGetId([
+            'store_id' => $store,
+            'name' => 'First touch offer',
+            'type' => 'percentage',
+            'value' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $promotionB = (int) DB::table('promotions')->insertGetId([
+            'store_id' => $store,
+            'name' => 'Later QR offer',
+            'type' => 'percentage',
+            'value' => 15,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = app(SmartOrderingQrManager::class);
+        $attribution = app(SmartOrderingAttributionService::class);
+        $created = $manager->create($this->payload($store, [
+            'type' => 'campaign',
+            'campaign' => 'first-touch',
+            'promotion_id' => $promotionA,
+            'source' => 'printed-card',
+        ]));
+        $resolved = $manager->resolve($created['token']);
+        $visit = $attribution->startLanding(
+            $resolved['qr'],
+            $resolved['token'],
+            'visitor-snapshot-abcdefghijklmnopqrstuvwxyz',
+        );
+        $context = $attribution->signedContext($visit);
+
+        $this->assertSame('campaign', $visit->type_snapshot);
+        $this->assertSame($promotionA, $visit->promotion_id_snapshot);
+
+        $manager->update($created['qr'], $this->payload($store, [
+            'type' => 'generic',
+            'promotion_id' => $promotionB,
+            'source' => 'edited-source',
+            'campaign' => null,
+        ]));
+
+        $server = $attribution->serverContext($context, $store);
+        $this->assertSame('campaign', $server['type']);
+        $this->assertSame($promotionA, $server['promotion_id']);
+        $this->assertSame('printed-card', $server['source']);
+        $this->assertSame('first-touch', $server['campaign']);
+
+        $cart = Cart::query()->create([
+            'store_id' => $store,
+            'guest_token' => 'snapshot-cart',
+            'channel' => 'b2c',
+        ]);
+        $attribution->attachCart($context, $cart);
+        $this->assertSame($promotionA, $attribution->promotionIdForCart($cart));
+
+        $attribution->markStorefrontViewed($context, $store);
+        $this->assertDatabaseHas('smart_ordering_analytics_events', [
+            'store_id' => $store,
+            'event_name' => 'storefront_viewed',
+            'qr_public_id' => $created['qr']->public_id,
+            'source_snapshot' => 'printed-card',
+            'campaign_snapshot' => 'first-touch',
+            'offer_reference' => 'promotion:'.$promotionA,
+        ]);
+    }
+
+    public function test_legacy_null_snapshot_falls_back_to_current_qr_context(): void
+    {
+        [$store] = $this->stores();
+        $promotion = (int) DB::table('promotions')->insertGetId([
+            'store_id' => $store,
+            'name' => 'Legacy fallback offer',
+            'type' => 'percentage',
+            'value' => 5,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = app(SmartOrderingQrManager::class);
+        $attribution = app(SmartOrderingAttributionService::class);
+        $created = $manager->create($this->payload($store, [
+            'type' => 'campaign',
+            'campaign' => 'legacy',
+            'promotion_id' => $promotion,
+        ]));
+        $resolved = $manager->resolve($created['token']);
+        $visit = $attribution->startLanding(
+            $resolved['qr'],
+            $resolved['token'],
+            'visitor-legacy-abcdefghijklmnopqrstuvwxyz',
+        );
+        $visit->forceFill([
+            'type_snapshot' => null,
+            'promotion_id_snapshot' => null,
+        ])->save();
+
+        $server = $attribution->serverContext($attribution->signedContext($visit), $store);
+        $this->assertSame('campaign', $server['type']);
+        $this->assertSame($promotion, $server['promotion_id']);
+    }
+
     public function test_attribution_survives_cart_checkout_and_order_with_server_owned_revenue(): void
     {
         [$store] = $this->stores();
