@@ -137,9 +137,6 @@ final class FinanceExposureReadModel
         ];
     }
 
-    /**
-     * @param array{read_model:string,documents:string,allocations:string,allocation_fk:string,party_dimension:string} $definition
-     */
     private function applyFilters(
         Builder $builder,
         ReportQuery $query,
