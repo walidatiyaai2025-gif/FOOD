@@ -29,7 +29,7 @@
             <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" class="filters" data-submit-lock>
                 @csrf
                 <input type="hidden" name="operation" value="data_scope.upsert">
-                <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                 <label class="grow">{{ __('enterprise_security.fields.user') }}
                     <select name="target_user_id" required style="width:100%">
                         @foreach($enterprisePolicyCandidates as $candidate)
@@ -62,8 +62,8 @@
             <tbody>
             @foreach($dataScopes as $row)
                 @php
-                    $scopeStarts = $row->starts_at ? IlluminateSupportCarbon::parse($row->starts_at) : null;
-                    $scopeEnds = $row->ends_at ? IlluminateSupportCarbon::parse($row->ends_at) : null;
+                    $scopeStarts = $row->starts_at ? \Illuminate\Support\Carbon::parse($row->starts_at) : null;
+                    $scopeEnds = $row->ends_at ? \Illuminate\Support\Carbon::parse($row->ends_at) : null;
                     $scopeStatus = $scopeEnds && $scopeEnds->isPast() ? 'expired' : (($scopeStarts && $scopeStarts->isFuture()) ? 'scheduled' : 'active');
                 @endphp
                 <tr>
@@ -76,7 +76,7 @@
                         <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" data-submit-lock>
                             @csrf
                             <input type="hidden" name="operation" value="data_scope.remove">
-                            <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                            <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                             <input type="hidden" name="policy_id" value="{{ $row->id }}">
                             <button type="submit" class="btn danger">{{ __('enterprise_security.data_scopes.remove') }}</button>
                         </form>
@@ -100,7 +100,7 @@
             <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" class="filters" data-submit-lock>
                 @csrf
                 <input type="hidden" name="operation" value="approval_limit.upsert">
-                <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                 <label class="grow">{{ __('enterprise_security.fields.user') }}
                     <select name="target_user_id" required style="width:100%">
                         @foreach($enterprisePolicyCandidates as $candidate)
@@ -145,7 +145,7 @@
                         <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" data-submit-lock>
                             @csrf
                             <input type="hidden" name="operation" value="approval_limit.remove">
-                            <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                            <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                             <input type="hidden" name="policy_id" value="{{ $row->id }}">
                             <button type="submit" class="btn danger">{{ __('enterprise_security.approval_limits.remove') }}</button>
                         </form>
@@ -171,7 +171,7 @@
             <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" class="filters" data-submit-lock>
                 @csrf
                 <input type="hidden" name="operation" value="delegation.create">
-                <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                 <div class="note">{{ __('enterprise_security.delegations.delegator_you') }}</div>
                 <label class="grow">{{ __('enterprise_security.fields.delegate') }}
                     <select name="delegate_id" required style="width:100%">
@@ -210,8 +210,8 @@
             <tbody>
             @foreach($delegations as $row)
                 @php
-                    $delegationStarts = IlluminateSupportCarbon::parse($row->starts_at);
-                    $delegationEnds = IlluminateSupportCarbon::parse($row->ends_at);
+                    $delegationStarts = \Illuminate\Support\Carbon::parse($row->starts_at);
+                    $delegationEnds = \Illuminate\Support\Carbon::parse($row->ends_at);
                     $delegationStatus = $row->revoked_at ? 'revoked' : ($delegationEnds->isPast() ? 'expired' : ($delegationStarts->isFuture() ? 'scheduled' : 'active'));
                 @endphp
                 <tr>
@@ -225,7 +225,7 @@
                         <form method="post" action="{{ route('admin.security.enterprise.changes.store') }}" data-submit-lock>
                             @csrf
                             <input type="hidden" name="operation" value="delegation.revoke">
-                            <input type="hidden" name="request_token" value="{{ IlluminateSupportStr::uuid() }}">
+                            <input type="hidden" name="request_token" value="{{ \Illuminate\Support\Str::uuid() }}">
                             <input type="hidden" name="policy_id" value="{{ $row->id }}">
                             <button type="submit" class="btn danger">{{ __('enterprise_security.delegations.revoke') }}</button>
                         </form>
