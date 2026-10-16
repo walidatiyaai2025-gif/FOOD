@@ -62,8 +62,11 @@ final class SmartOrderingAvailabilityService
         abort_unless((int) $item->site_id === (int) $site->id, 404);
         $this->assertBranch((int) $site->id, $branch);
 
-        /** @var SmartOrderingMenuCategory $category */
-        $category = $item->category()->firstOrFail();
+        $category = $item->relationLoaded('category')
+            ? $item->getRelation('category')
+            : $item->category()->firstOrFail();
+        abort_unless($category instanceof SmartOrderingMenuCategory, 404);
+
         $categoryState = $this->category($category, $branch, $at);
         if (! $categoryState['available']) {
             return [
