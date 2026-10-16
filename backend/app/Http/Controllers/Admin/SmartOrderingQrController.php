@@ -197,16 +197,20 @@ final class SmartOrderingQrController extends Controller
         SmartOrderingQrAssetService $assets,
     ): Response {
         $this->authorizeView($request, $qr, $scope);
-        $url = $manager->publicUrlFor($qr);
-        abort_unless(is_string($url), 404);
-
+        $asset = $manager->printAssetContext($qr, $this->assetVersion($request));
         $disposition = $request->boolean('download') ? 'attachment' : 'inline';
 
-        return response($assets->svg($url), 200, [
+        return response($assets->svg($asset['url']), 200, [
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
             'Content-Disposition' => $disposition.'; filename="foodex-qr-'.$qr->public_id.'.svg"',
+            'Content-Location' => route('admin.smart-ordering.qr.svg', [
+                'qr' => $qr,
+                'version' => $asset['version'],
+            ], true),
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
+            'X-FOODEX-QR-Asset-Version' => $asset['version'],
+            'X-FOODEX-QR-Asset-State' => $asset['state'],
         ]);
     }
 
@@ -218,13 +222,19 @@ final class SmartOrderingQrController extends Controller
         SmartOrderingQrAssetService $assets,
     ): Response {
         $this->authorizeView($request, $qr, $scope);
-        $url = $manager->publicUrlFor($qr);
-        abort_unless(is_string($url), 404);
+        $asset = $manager->printAssetContext($qr, $this->assetVersion($request));
 
-        return response($assets->pdf($url, (string) $qr->label), 200, [
+        return response($assets->pdf($asset['url'], (string) $qr->label), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="foodex-qr-'.$qr->public_id.'.pdf"',
+            'Content-Location' => route('admin.smart-ordering.qr.pdf', [
+                'qr' => $qr,
+                'version' => $asset['version'],
+            ], true),
             'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-FOODEX-QR-Asset-Version' => $asset['version'],
+            'X-FOODEX-QR-Asset-State' => $asset['state'],
         ]);
     }
 
@@ -232,6 +242,13 @@ final class SmartOrderingQrController extends Controller
     {
         $actor = $this->actor($request);
         $scope->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.view', 'b2c');
+    }
+
+    private function assetVersion(Request $request): ?string
+    {
+        $version = $request->query('version');
+
+        return is_string($version) && $version !== '' ? strtolower($version) : null;
     }
 
     /** @return array<string, mixed> */
