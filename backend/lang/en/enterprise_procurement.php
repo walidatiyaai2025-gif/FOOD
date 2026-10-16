@@ -2,6 +2,10 @@
 
 return [
     'title' => 'Procurement Workbench',
+    'section' => 'ERP · Procurement',
+    'purchase_order_short' => 'PO',
+    'goods_receipt_short' => 'GRN',
+    'channels' => ['b2b' => 'Wholesale (B2B)', 'b2c' => 'Retail (B2C)'],
     'description' => 'Run the supplier-to-pay procurement flow from one operational workspace.',
     'store' => 'Operating store',
     'switch_store' => 'Switch',
