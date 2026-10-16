@@ -44,12 +44,12 @@ return new class extends Migration
             $table->foreignId('combined_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('split_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('combined_at');
-            $table->timestamp('split_at')->nullable()->index();
+            $table->timestamp('split_at')->nullable()->index('so_tbl_combo_split_idx');
             $table->string('note', 500)->nullable();
             $table->timestamps();
-            $table->index(['branch_id', 'split_at']);
-            $table->index(['primary_table_id', 'split_at']);
-            $table->index(['member_table_id', 'split_at']);
+            $table->index(['branch_id', 'split_at'], 'so_tbl_combo_branch_split_idx');
+            $table->index(['primary_table_id', 'split_at'], 'so_tbl_combo_primary_split_idx');
+            $table->index(['member_table_id', 'split_at'], 'so_tbl_combo_member_split_idx');
         });
     }
 
