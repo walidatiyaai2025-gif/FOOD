@@ -99,6 +99,54 @@ class SmartOrderingFoundationTest extends TestCase
         }
     }
 
+    public function test_retained_slug_alias_redirects_only_after_public_gates_pass(): void
+    {
+        $storeId = $this->retailStore('SO-REDIRECT');
+        $admin = $this->storeAdmin($storeId);
+        $service = app(SmartOrderingSiteService::class);
+        $site = $service->ensureForStore($storeId, $admin);
+        $oldSlug = (string) $site->slug;
+        $site = $service->renameSlug($admin, $site, 'canonical-menu');
+
+        $aliasUrl = 'https://'.$oldSlug.'.foodex.com/api/v1/smart-ordering/context?lang=ar';
+        $this->getJson($aliasUrl)->assertNotFound();
+
+        $service->setEntitlement($admin, $site, Module::PUBLIC_MENU, true);
+        $site = $service->updateRuntime($admin, $site->fresh(), RuntimeState::ENABLED, true);
+        $branch = $this->branch($site->id, 'REDIRECT-BRANCH');
+
+        $aliasUrl .= '&branch='.$branch->public_id;
+        $canonicalUrl = 'https://canonical-menu.foodex.com/api/v1/smart-ordering/context?lang=ar&branch='.$branch->public_id;
+
+        $this->getJson($aliasUrl)
+            ->assertStatus(308)
+            ->assertRedirect($canonicalUrl);
+
+        $this->head($aliasUrl)
+            ->assertStatus(308)
+            ->assertRedirect($canonicalUrl);
+
+        $this->getJson($canonicalUrl)->assertOk();
+
+        $custom = $service->updateCustomDomain($admin, $site->fresh(), 'menu.example.test');
+        $site = $custom['site'];
+        $token = $custom['verification_token'];
+        $this->assertIsString($token);
+        $site = $service->verifyCustomDomain($admin, $site, $token);
+        $service->setEntitlement($admin, $site, Module::CUSTOM_DOMAIN, true);
+
+        $this->getJson('https://menu.example.test/api/v1/smart-ordering/context')
+            ->assertOk()
+            ->assertHeaderMissing('Location');
+
+        DB::table('smart_ordering_site_aliases')
+            ->where('site_id', $site->id)
+            ->where('slug', $oldSlug)
+            ->update(['redirect_enabled' => false]);
+
+        $this->getJson($aliasUrl)->assertNotFound();
+    }
+
     public function test_all_runtime_states_follow_one_fail_closed_policy(): void
     {
         $storeId = $this->retailStore('SO-RUNTIME');
