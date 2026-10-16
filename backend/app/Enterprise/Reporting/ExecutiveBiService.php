@@ -67,7 +67,7 @@ final class ExecutiveBiService
         ?string $currency,
     ): array {
         $scope = $scopeMap[$kpi->scopeType] ?? null;
-        if (! $scope instanceof EntitlementScope) {
+        if ($scope === null) {
             return $this->unavailableCard($kpi, null, 'scope_unavailable', false, false);
         }
 
@@ -107,7 +107,7 @@ final class ExecutiveBiService
                 $currentTo,
                 $currency,
             );
-            $currentRow = $currentResult['rows'][0] ?? [];
+            $currentRow = $this->firstRow($currentResult);
             $current = $this->values($currentRow, $kpi->measures);
 
             $previous = null;
@@ -122,7 +122,7 @@ final class ExecutiveBiService
                     $currency,
                 );
                 $previous = $this->values(
-                    $previousResult['rows'][0] ?? [],
+                    $this->firstRow($previousResult),
                     $kpi->measures,
                 );
             }
@@ -209,6 +209,29 @@ final class ExecutiveBiService
         $days = (int) $from->diffInDays($to) + 1;
 
         return [$previousTo->subDays($days - 1), $previousTo];
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function firstRow(array $result): array
+    {
+        $rows = $result['rows'] ?? null;
+        if (is_array($rows) === false || array_is_list($rows) === false) {
+            throw ValidationException::withMessages([
+                'read_model' => ['Executive BI source result did not return a row list.'],
+            ]);
+        }
+
+        $row = $rows[0] ?? [];
+        if (is_array($row) === false) {
+            throw ValidationException::withMessages([
+                'read_model' => ['Executive BI source result returned an invalid row.'],
+            ]);
+        }
+
+        return $row;
     }
 
     /**
@@ -341,9 +364,7 @@ final class ExecutiveBiService
             'authorized' => $authorized,
             'available' => false,
             'reason' => $reason,
-            'scope' => $scope instanceof EntitlementScope
-                ? $this->scopeSnapshot($scope)
-                : null,
+            'scope' => $scope === null ? null : $this->scopeSnapshot($scope),
             'current' => null,
             'previous' => null,
             'trend' => null,
@@ -372,12 +393,6 @@ final class ExecutiveBiService
         $map = [];
 
         foreach ($scopes as $scope) {
-            if (! $scope instanceof EntitlementScope) {
-                throw ValidationException::withMessages([
-                    'scope' => ['Executive BI scopes must use EntitlementScope values.'],
-                ]);
-            }
-
             if (array_key_exists($scope->type, $map)) {
                 throw ValidationException::withMessages([
                     'scope' => ["Executive BI scope [{$scope->type}] was supplied more than once."],
