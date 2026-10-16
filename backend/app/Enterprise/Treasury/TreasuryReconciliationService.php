@@ -53,6 +53,10 @@ final class TreasuryReconciliationService
         EnterpriseTreasuryReconciliationLine::TYPE_PAYMENT,
     ];
 
+    private const DEFAULT_LIST_WINDOW_DAYS = 90;
+
+    private const MAX_LIST_WINDOW_DAYS = 366;
+
     public function __construct(
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
@@ -85,6 +89,7 @@ final class TreasuryReconciliationService
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ])->validate();
 
+        $window = $this->boundedDateWindow($validated);
         $perPage = max(10, min(100, $perPage));
 
         return $this->reconciliationQuery($scope)
@@ -96,14 +101,8 @@ final class TreasuryReconciliationService
                 $validated['bank_account_id'] ?? null,
                 fn (Builder $query, int $bankId): Builder => $query->where('bank_account_id', $bankId),
             )
-            ->when(
-                $validated['date_from'] ?? null,
-                fn (Builder $query, string $date): Builder => $query->whereDate('period_to', '>=', $date),
-            )
-            ->when(
-                $validated['date_to'] ?? null,
-                fn (Builder $query, string $date): Builder => $query->whereDate('period_from', '<=', $date),
-            )
+            ->whereDate('period_to', '>=', $window['from'])
+            ->whereDate('period_from', '<=', $window['to'])
             ->orderByDesc('period_to')
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -242,37 +241,27 @@ final class TreasuryReconciliationService
                 ]);
             }
 
-            $existing = EnterpriseTreasuryReconciliationLine::query()
-                ->where('reconciliation_id', $reconciliation->id)
-                ->where('transaction_type', $transactionType)
-                ->where('transaction_id', $transactionId)
-                ->first();
-            if ($existing instanceof EnterpriseTreasuryReconciliationLine) {
-                return $existing;
-            }
-
-            $alreadyClosed = EnterpriseTreasuryReconciliationLine::query()
-                ->where('transaction_type', $transactionType)
-                ->where('transaction_id', $transactionId)
-                ->whereHas(
-                    'reconciliation',
-                    fn (Builder $query): Builder => $query
-                        ->where('bank_account_id', $reconciliation->bank_account_id)
-                        ->where('status', EnterpriseTreasuryReconciliation::STATUS_CLOSED),
-                )
-                ->exists();
-            if ($alreadyClosed) {
-                throw ValidationException::withMessages([
-                    'transaction_id' => ['Treasury transaction is already part of a closed reconciliation.'],
-                ]);
-            }
-
             $transaction = $this->reconcilableTransaction(
                 $scope,
                 $reconciliation,
                 $transactionType,
                 $transactionId,
+                true,
             );
+
+            $existing = EnterpriseTreasuryReconciliationLine::query()
+                ->where('transaction_type', $transactionType)
+                ->where('transaction_id', $transactionId)
+                ->first();
+            if ($existing instanceof EnterpriseTreasuryReconciliationLine) {
+                if ((int) $existing->reconciliation_id === (int) $reconciliation->id) {
+                    return $existing;
+                }
+
+                throw ValidationException::withMessages([
+                    'transaction_id' => ['Treasury transaction is already assigned to another reconciliation.'],
+                ]);
+            }
             $line = EnterpriseTreasuryReconciliationLine::query()->create([
                 'reconciliation_id' => $reconciliation->id,
                 'transaction_type' => $transactionType,
@@ -387,6 +376,7 @@ final class TreasuryReconciliationService
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ])->validate();
+        $window = $this->boundedDateWindow($validated);
         $perPage = max(10, min(100, $perPage));
 
         return $this->cashClosingQuery($scope)
@@ -398,14 +388,8 @@ final class TreasuryReconciliationService
                 $validated['cashbox_id'] ?? null,
                 fn (Builder $query, int $cashboxId): Builder => $query->where('cashbox_id', $cashboxId),
             )
-            ->when(
-                $validated['date_from'] ?? null,
-                fn (Builder $query, string $date): Builder => $query->whereDate('business_date', '>=', $date),
-            )
-            ->when(
-                $validated['date_to'] ?? null,
-                fn (Builder $query, string $date): Builder => $query->whereDate('business_date', '<=', $date),
-            )
+            ->whereDate('business_date', '>=', $window['from'])
+            ->whereDate('business_date', '<=', $window['to'])
             ->orderByDesc('business_date')
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -433,75 +417,89 @@ final class TreasuryReconciliationService
             ],
             'cashbox_id' => ['required', 'integer', 'min:1'],
             'business_date' => ['required', 'date'],
-            'opening_amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
-            'declared_closing_amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'opening_amount' => ['required', 'regex:/^\\d{1,15}(?:\\.\\d{1,3})?$/'],
+            'declared_closing_amount' => ['required', 'regex:/^\\d{1,15}(?:\\.\\d{1,3})?$/'],
         ])->validate();
 
-        $cashbox = $this->cashboxForScope($scope, (int) $data['cashbox_id'], false);
-        $businessDate = CarbonImmutable::parse((string) $data['business_date'])->toDateString();
-        $activity = $this->cashboxActivity($scope, (int) $cashbox->id, $businessDate);
-        $openingMills = $this->toMills($data['opening_amount']);
-        $expectedMills = $openingMills + $activity['receipts_mills'] - $activity['payments_mills'];
-        if ($expectedMills < 0) {
-            throw ValidationException::withMessages([
-                'opening_amount' => ['Cashbox activity would produce a negative expected closing balance.'],
-            ]);
-        }
-
-        $normalized = [
-            'cashbox_id' => (int) $cashbox->id,
-            'business_date' => $businessDate,
-            'opening_amount' => $this->formatMills($openingMills),
-            'declared_closing_amount' => $this->formatMills($this->toMills($data['declared_closing_amount'])),
-            'currency_code' => strtoupper((string) $cashbox->currency_code),
-        ];
         $idempotencyKey = trim((string) $data['idempotency_key']);
-        $requestHash = hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
+        $cashboxId = (int) $data['cashbox_id'];
+        $businessDate = CarbonImmutable::parse((string) $data['business_date'])->toDateString();
+        $openingMills = $this->toMills($data['opening_amount']);
+        $declaredClosingMills = $this->toMills($data['declared_closing_amount']);
 
-        $existing = $this->cashClosingQuery($scope)
-            ->where(function (Builder $query) use ($idempotencyKey, $normalized): void {
-                $query->where('idempotency_key', $idempotencyKey)
-                    ->orWhere(function (Builder $sameDay) use ($normalized): void {
-                        $sameDay->where('cashbox_id', $normalized['cashbox_id'])
-                            ->whereDate('business_date', $normalized['business_date']);
-                    });
-            })
-            ->first();
-        if ($existing instanceof EnterpriseTreasuryCashClosing) {
-            $this->assertRequestHash($existing->request_hash, $requestHash);
-
-            return $existing;
-        }
-
-        $closing = EnterpriseTreasuryCashClosing::query()->create([
-            'organization_id' => $scope->organizationId,
-            'company_id' => $scope->companyId,
-            'legal_entity_id' => $scope->legalEntityId,
-            'store_id' => $scope->storeId,
-            'cashbox_id' => $normalized['cashbox_id'],
-            'closing_number' => 'CLOSE-'.Str::ulid(),
-            'idempotency_key' => $idempotencyKey,
-            'request_hash' => $requestHash,
-            'business_date' => $normalized['business_date'],
-            'opening_amount' => $normalized['opening_amount'],
-            'receipt_total' => $this->formatMills($activity['receipts_mills']),
-            'payment_total' => $this->formatMills($activity['payments_mills']),
-            'expected_closing_amount' => $this->formatMills($expectedMills),
-            'declared_closing_amount' => $normalized['declared_closing_amount'],
-            'currency_code' => $normalized['currency_code'],
-            'status' => EnterpriseTreasuryCashClosing::STATUS_DRAFT,
-            'requested_by' => $actor->id,
-        ]);
-
-        $this->audit->record(
-            'enterprise.treasury.cash_closing_created',
+        return DB::transaction(function () use (
             $actor,
-            $closing,
-            null,
-            $closing->fresh()->toArray(),
-        );
+            $scope,
+            $idempotencyKey,
+            $cashboxId,
+            $businessDate,
+            $openingMills,
+            $declaredClosingMills,
+        ): EnterpriseTreasuryCashClosing {
+            $cashbox = $this->cashboxForScope($scope, $cashboxId, true);
+            $normalized = [
+                'cashbox_id' => (int) $cashbox->id,
+                'business_date' => $businessDate,
+                'opening_amount' => $this->formatMills($openingMills),
+                'declared_closing_amount' => $this->formatMills($declaredClosingMills),
+                'currency_code' => strtoupper((string) $cashbox->currency_code),
+            ];
+            $requestHash = hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
 
-        return $closing->refresh();
+            $existing = $this->cashClosingQuery($scope)
+                ->where(function (Builder $query) use ($idempotencyKey, $normalized): void {
+                    $query->where('idempotency_key', $idempotencyKey)
+                        ->orWhere(function (Builder $sameDay) use ($normalized): void {
+                            $sameDay->where('cashbox_id', $normalized['cashbox_id'])
+                                ->whereDate('business_date', $normalized['business_date']);
+                        });
+                })
+                ->lockForUpdate()
+                ->first();
+            if ($existing instanceof EnterpriseTreasuryCashClosing) {
+                $this->assertRequestHash($existing->request_hash, $requestHash);
+
+                return $existing;
+            }
+
+            $activity = $this->cashboxActivity($scope, (int) $cashbox->id, $businessDate);
+            $expectedMills = $openingMills + $activity['receipts_mills'] - $activity['payments_mills'];
+            if ($expectedMills < 0) {
+                throw ValidationException::withMessages([
+                    'opening_amount' => ['Cashbox activity would produce a negative expected closing balance.'],
+                ]);
+            }
+
+            $closing = EnterpriseTreasuryCashClosing::query()->create([
+                'organization_id' => $scope->organizationId,
+                'company_id' => $scope->companyId,
+                'legal_entity_id' => $scope->legalEntityId,
+                'store_id' => $scope->storeId,
+                'cashbox_id' => $normalized['cashbox_id'],
+                'closing_number' => 'CLOSE-'.Str::ulid(),
+                'idempotency_key' => $idempotencyKey,
+                'request_hash' => $requestHash,
+                'business_date' => $normalized['business_date'],
+                'opening_amount' => $normalized['opening_amount'],
+                'receipt_total' => $this->formatMills($activity['receipts_mills']),
+                'payment_total' => $this->formatMills($activity['payments_mills']),
+                'expected_closing_amount' => $this->formatMills($expectedMills),
+                'declared_closing_amount' => $normalized['declared_closing_amount'],
+                'currency_code' => $normalized['currency_code'],
+                'status' => EnterpriseTreasuryCashClosing::STATUS_DRAFT,
+                'requested_by' => $actor->id,
+            ]);
+
+            $this->audit->record(
+                'enterprise.treasury.cash_closing_created',
+                $actor,
+                $closing,
+                null,
+                $closing->fresh()->toArray(),
+            );
+
+            return $closing->refresh();
+        }, 3);
     }
 
     public function closeCashClosing(
@@ -680,6 +678,7 @@ final class TreasuryReconciliationService
         EnterpriseTreasuryReconciliation $reconciliation,
         string $transactionType,
         int $transactionId,
+        bool $lock = false,
     ): EnterpriseTreasuryReceipt|EnterpriseTreasuryPayment {
         $query = match ($transactionType) {
             EnterpriseTreasuryReconciliationLine::TYPE_RECEIPT => EnterpriseTreasuryReceipt::query()
@@ -691,12 +690,15 @@ final class TreasuryReconciliationService
             ]),
         };
 
-        $transaction = $query
+        $query
             ->whereKey($transactionId)
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
-            ->where('store_id', $scope->storeId)
-            ->first();
+            ->where('store_id', $scope->storeId);
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+        $transaction = $query->first();
 
         if (
             ! $transaction instanceof EnterpriseTreasuryReceipt
@@ -763,6 +765,46 @@ final class TreasuryReconciliationService
         return [
             'receipts_mills' => $this->toMills($receiptTotal),
             'payments_mills' => $this->toMills($paymentTotal),
+        ];
+    }
+
+    /**
+     * @param  array{date_from?:string,date_to?:string}  $filters
+     * @return array{from:string,to:string}
+     */
+    private function boundedDateWindow(array $filters): array
+    {
+        $from = isset($filters['date_from'])
+            ? CarbonImmutable::parse((string) $filters['date_from'])->startOfDay()
+            : null;
+        $to = isset($filters['date_to'])
+            ? CarbonImmutable::parse((string) $filters['date_to'])->startOfDay()
+            : null;
+
+        if ($from === null && $to === null) {
+            $to = CarbonImmutable::today();
+            $from = $to->subDays(self::DEFAULT_LIST_WINDOW_DAYS - 1);
+        } elseif ($from === null && $to instanceof CarbonImmutable) {
+            $from = $to->subDays(self::MAX_LIST_WINDOW_DAYS - 1);
+        } elseif ($from instanceof CarbonImmutable && $to === null) {
+            $to = $from->addDays(self::MAX_LIST_WINDOW_DAYS - 1);
+        }
+
+        if (! $from instanceof CarbonImmutable || ! $to instanceof CarbonImmutable) {
+            throw ValidationException::withMessages([
+                'date_to' => ['A valid bounded date window is required.'],
+            ]);
+        }
+
+        if (($from->diffInDays($to) + 1) > self::MAX_LIST_WINDOW_DAYS) {
+            throw ValidationException::withMessages([
+                'date_to' => ['Date range may not exceed 366 days.'],
+            ]);
+        }
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
         ];
     }
 
