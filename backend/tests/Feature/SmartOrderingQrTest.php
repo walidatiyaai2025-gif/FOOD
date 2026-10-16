@@ -72,6 +72,42 @@ class SmartOrderingQrTest extends TestCase
         $this->get($manager->publicUrlFromRaw($newToken))->assertNotFound();
     }
 
+    public function test_undecryptable_token_keeps_public_qr_alive_and_admin_fails_safe(): void
+    {
+        [$store] = $this->stores();
+        $manager = app(SmartOrderingQrManager::class);
+        $created = $manager->create($this->payload($store));
+        $rawUrl = $manager->publicUrlFromRaw($created['token']);
+
+        DB::table('smart_ordering_qr_tokens')
+            ->where('qr_code_id', $created['qr']->id)
+            ->where('state', 'active')
+            ->update(['token_value' => 'invalid-encrypted-payload']);
+
+        $qr = $created['qr']->fresh(['activeToken']);
+        $this->assertNull($manager->publicUrlFor($qr));
+
+        $admin = $this->storeAdmin($store, 'en');
+        $this->actingAs($admin)
+            ->get('/admin/smart-ordering/qr')
+            ->assertOk();
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.qr.svg', ['qr' => $qr]))
+            ->assertStatus(409);
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.qr.pdf', ['qr' => $qr]))
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('smart_ordering_qr_tokens', [
+            'qr_code_id' => $created['qr']->id,
+            'token_hash' => hash('sha256', $created['token']),
+            'state' => 'active',
+            'revoked_at' => null,
+        ]);
+
+        $this->get($rawUrl)->assertRedirect();
+    }
+
     public function test_signed_table_and_campaign_context_cannot_be_forged(): void
     {
         [$store] = $this->stores();

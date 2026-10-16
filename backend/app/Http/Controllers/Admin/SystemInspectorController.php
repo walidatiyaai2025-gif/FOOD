@@ -279,7 +279,7 @@ final class SystemInspectorController extends Controller
     }
 
     /**
-     * @return array{available:bool,migration_pending:bool,data?:array<string,mixed>}
+     * @return array{available:bool,migration_pending:bool,missing_tables?:list<string>,data?:array<string,mixed>}
      */
     private function enterpriseDiagnostics(
         EnterpriseSystemInspector $inspector,
@@ -291,16 +291,24 @@ final class SystemInspectorController extends Controller
                 'enterprise_module_entitlements',
                 'enterprise_outbox_messages',
                 'enterprise_workflow_requests',
+                'enterprise_workflow_steps',
+                'enterprise_organizations',
+                'enterprise_cashboxes',
+                'restaurant_location_profiles',
             ];
+            $missingTables = [];
 
             foreach ($requiredTables as $table) {
-                if (Schema::hasTable($table)) {
-                    continue;
+                if (! Schema::hasTable($table)) {
+                    $missingTables[] = $table;
                 }
+            }
 
+            if ($missingTables !== []) {
                 return [
                     'available' => false,
                     'migration_pending' => true,
+                    'missing_tables' => $missingTables,
                 ];
             }
 
@@ -309,6 +317,7 @@ final class SystemInspectorController extends Controller
             return array_merge([
                 'available' => true,
                 'migration_pending' => false,
+                'missing_tables' => [],
             ], $data);
         } catch (Throwable) {
             return [
