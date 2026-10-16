@@ -18,7 +18,6 @@ use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -681,7 +680,7 @@ final class TreasuryReconciliationService
         EnterpriseTreasuryReconciliation $reconciliation,
         string $transactionType,
         int $transactionId,
-    ): Model {
+    ): EnterpriseTreasuryReceipt|EnterpriseTreasuryPayment {
         $query = match ($transactionType) {
             EnterpriseTreasuryReconciliationLine::TYPE_RECEIPT => EnterpriseTreasuryReceipt::query()
                 ->where('status', EnterpriseTreasuryReceipt::STATUS_POSTED),
@@ -705,7 +704,10 @@ final class TreasuryReconciliationService
             ])
             ->first();
 
-        if (! $transaction instanceof Model) {
+        if (
+            ! $transaction instanceof EnterpriseTreasuryReceipt
+            && ! $transaction instanceof EnterpriseTreasuryPayment
+        ) {
             $model = $transactionType === EnterpriseTreasuryReconciliationLine::TYPE_RECEIPT
                 ? EnterpriseTreasuryReceipt::class
                 : EnterpriseTreasuryPayment::class;
