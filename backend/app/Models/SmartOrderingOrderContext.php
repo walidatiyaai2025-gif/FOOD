@@ -14,6 +14,7 @@ class SmartOrderingOrderContext extends Model
     {
         return [
             'scheduled_for' => 'datetime',
+            'promised_for' => 'datetime',
             'delivery_address' => 'array',
             'cart_snapshot' => 'array',
             'delivery_latitude' => 'float',
