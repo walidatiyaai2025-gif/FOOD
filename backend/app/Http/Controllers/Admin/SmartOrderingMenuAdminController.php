@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\CommerceQuoteService;
 use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -566,6 +567,31 @@ final class SmartOrderingMenuAdminController extends Controller
 
         return back()->with('status', __('smart_ordering_menu.published'));
     }
+
+    public function schedulePublish(
+        Request $request,
+        SmartOrderingRevision $revision,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+        SmartOrderingMenuRevisionService $revisions,
+    ): RedirectResponse {
+        [$actor, $site] = $this->context($request, $tenants, $sites, 'smart_ordering.publish');
+        abort_unless((int) $revision->site_id === (int) $site->id, 404);
+
+        $data = $request->validate([
+            'scheduled_at' => ['required', 'date', 'after:now'],
+        ]);
+        $revisions->schedule(
+            $actor,
+            $site,
+            $revision,
+            CarbonImmutable::parse((string) $data['scheduled_at']),
+            $request,
+        );
+
+        return back()->with('status', __('smart_ordering_menu.scheduled'));
+    }
+
 
     /**
      * @return list<array{type:string,type_label:string,id:int,menu_id:int,label:string,anchor:string}>
