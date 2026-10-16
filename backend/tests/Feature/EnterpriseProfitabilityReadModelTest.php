@@ -89,16 +89,16 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
             ->get();
 
         $this->assertCount(2, $rows);
-        $this->assertSame('60.000', (string) $rows[0]->gross_revenue);
-        $this->assertSame('6.000', (string) $rows[0]->discount_amount);
-        $this->assertSame('54.000', (string) $rows[0]->net_revenue);
-        $this->assertSame('40.000', (string) $rows[0]->cost_total);
-        $this->assertSame('14.000', (string) $rows[0]->margin);
-        $this->assertSame('40.000', (string) $rows[1]->gross_revenue);
-        $this->assertSame('4.000', (string) $rows[1]->discount_amount);
-        $this->assertSame('36.000', (string) $rows[1]->net_revenue);
-        $this->assertSame('40.000', (string) $rows[1]->cost_total);
-        $this->assertSame('-4.000', (string) $rows[1]->margin);
+        $this->assertSame(60.0, (float) $rows[0]->gross_revenue);
+        $this->assertSame(6.0, (float) $rows[0]->discount_amount);
+        $this->assertSame(54.0, (float) $rows[0]->net_revenue);
+        $this->assertSame(40.0, (float) $rows[0]->cost_total);
+        $this->assertSame(14.0, (float) $rows[0]->margin);
+        $this->assertSame(40.0, (float) $rows[1]->gross_revenue);
+        $this->assertSame(4.0, (float) $rows[1]->discount_amount);
+        $this->assertSame(36.0, (float) $rows[1]->net_revenue);
+        $this->assertSame(40.0, (float) $rows[1]->cost_total);
+        $this->assertSame(-4.0, (float) $rows[1]->margin);
 
         $retry = app(CommercialProfitabilityProjectionRefresher::class)->refreshStore($store);
         $this->assertSame(0, $retry['projected']);
@@ -134,10 +134,10 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
 
         $this->assertCount(2, $rows);
         $this->assertSame($secondOutboxId, (int) $rows[0]->source_outbox_id);
-        $this->assertSame('70.000', (string) $rows[0]->gross_revenue);
-        $this->assertSame('7.000', (string) $rows[0]->discount_amount);
-        $this->assertSame('63.000', (string) $rows[0]->net_revenue);
-        $this->assertSame('23.000', (string) $rows[0]->margin);
+        $this->assertSame(70.0, (float) $rows[0]->gross_revenue);
+        $this->assertSame(7.0, (float) $rows[0]->discount_amount);
+        $this->assertSame(63.0, (float) $rows[0]->net_revenue);
+        $this->assertSame(23.0, (float) $rows[0]->margin);
 
         $staleReplay = app(CommercialProfitabilityProjectionRefresher::class)->refreshStore(
             $store,
