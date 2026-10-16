@@ -11,6 +11,7 @@ return [
     |
     */
     'probes' => [
+        'inventory_wms' => [],
         'sample_optional' => [],
     ],
 ];
