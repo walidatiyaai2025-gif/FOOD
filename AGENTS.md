@@ -1466,3 +1466,84 @@ Repository default:
 The machine-readable authority is `.ci/ci-map.json` plus `scripts/ci-plan.py` and `scripts/mobile-ci-scope.py`. Required CI exposes a `backend_dashboard_only` guard and must keep Customer/Driver/Van build jobs skipped when that guard is true.
 
 Any change to CI routing that causes a backend/Dashboard-only diff to schedule a mobile platform build is a regression and must fail repository tests before merge.
+
+---
+
+## 29. Owner-triggered FOOD closure mode — `CLOSE FOOD`
+
+The canonical fixed-scope closure authority is **#1888** plus:
+
+- `docs/execution/FOODEX_CLOSURE_MODE.md`
+- `docs/execution/FOODEX_CLOSURE_SCOPE.json`
+
+The owner command **`CLOSE FOOD`** is reserved and has one meaning only:
+
+> Freeze feature expansion and drive the current FOODEX Enterprise ERP release line to GA through the existing canonical Issues, branches, PRs, human/reference gates and final certification.
+
+### 29.1 Current mode
+
+While #1888 is open and the machine-readable closure contract says `"mode": "ACTIVE"`, **closure mode is the repository default even when the owner does not repeat the command in every worker chat**.
+
+A worker that receives `CLOSE FOOD` must first read live #1888 and the closure contract, reconstruct live Issue/PR/CI state, and continue the existing closure train. Chat history is not the authority.
+
+### 29.2 Fixed closure set
+
+The closure set is intentionally bounded:
+
+- #1883 — W3 module entitlement / disable-re-enable gate;
+- #1551 — representative-heavy + real cPanel/reference certification;
+- #1720 and #1489 — Wave 1 certification/promotion;
+- #1490 — Wave 2 Procurement;
+- #1491 — Wave 3 WMS;
+- #1492 — Wave 4 Finance;
+- #1493 — Wave 5 Treasury;
+- #1494 — Wave 6 Commercial/Distribution;
+- #1495 — Wave 7 BI/Reporting;
+- #1497 — final cross-module certification;
+- #1485 — Enterprise ERP umbrella closure.
+
+Everything else is outside this release boundary unless it becomes a necessary atomic blocker for one of the required gates above.
+
+In particular, #1572 Restaurant SaaS 2.0 and new roadmap/feature expansion are **deferred** during closure mode.
+
+### 29.3 Mandatory worker behavior
+
+When closure mode is active:
+
+1. do not create new feature/enhancement scope;
+2. do not create duplicate branches or PRs;
+3. finish exact-head red / waiting-CI work already inside the closure set first;
+4. finish #1883 into `feature/enterprise-wms`;
+5. resolve #1551 only with genuine supported reference/cPanel evidence; never synthesize or waive it;
+6. promote W1 -> W2 -> W3 -> W4 -> W5 -> W6 -> W7 sequentially, always using each wave's canonical integration branch/PR and current-main synchronization;
+7. keep `main` quiet during the promotion train except P0/P1 blockers and fixes strictly required to pass closure gates;
+8. run #1497 only after the required wave promotions are genuinely ready;
+9. close #1485 only after final certification passes;
+10. do not reopen product scope after a wave merges.
+
+A closure blocker may create one atomic child Issue only when the child is strictly necessary to make a required closure gate pass. Its scope must be limited to that blocker.
+
+### 29.4 Non-closure active work
+
+If a worker owns work outside the closure set when closure mode becomes active:
+
+- if the lane is already `WAITING_CI` or merge-ready and targets a non-main integration branch, the worker may finish that exact atomic lane only;
+- it must not open a successor Issue or new feature lane;
+- otherwise checkpoint, write a handoff, and park the work.
+
+### 29.5 Mobile build economy remains mandatory
+
+Backend/Dashboard-only closure work must not rebuild Customer/Driver/Van unless that app's source, shared dependency, or an API/auth/schema contract affecting it changed, or the explicit final release/certification lane requires the full mobile suite.
+
+### 29.6 Closure completion
+
+`CLOSE FOOD` is complete only when all of the following are true:
+
+- closure-set implementation is merged through canonical lineages;
+- #1551 required real reference evidence is accepted;
+- required W1-W7 promotions are merged to `main`;
+- #1497 is green with zero unresolved P0/P1 blockers;
+- #1485 is closed;
+- remaining roadmap work is explicitly deferred outside this release boundary.
+
+Until those conditions are true, workers must report the exact blocker and continue the next dependency-safe closure action rather than opening new scope.
