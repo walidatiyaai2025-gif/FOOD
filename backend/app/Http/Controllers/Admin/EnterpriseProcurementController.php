@@ -122,7 +122,9 @@ final class EnterpriseProcurementController extends Controller
                     'purchase_order_id' => $request->integer('purchase_order_id') ?: null,
                 ], 25);
                 if ($request->integer('receipt') > 0) {
-                    $data['detail'] = $this->receipts->detail($actor, $context, $request->integer('receipt'));
+                    $data['detail'] = $this->receipts
+                        ->detail($actor, $context, $request->integer('receipt'))
+                        ->load('lines.warehouse');
                 }
                 if (
                     $request->integer('purchase_order_id') > 0
