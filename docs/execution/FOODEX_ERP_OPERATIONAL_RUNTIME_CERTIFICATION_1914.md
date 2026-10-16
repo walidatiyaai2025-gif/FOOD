@@ -4,9 +4,11 @@ Authority: #1914 under #1905 and final Enterprise certification #1497.
 
 ## Frozen repository candidate
 
-- Certification base: `main@cb2c8f86d7e6262afb4a8935d4e08d26f6d44266`.
+- Certification base: `main@34f7febe914bf1ffcfd73250ebade7d4ee0e9bb5`.
 - ERP UI implementation Issues #1906 through #1913 are merged and closed.
 - Repository-local runtime entitlement blocker #1928 is merged and closed.
+- Runtime recovery blocker #1933 is merged and closed.
+- AdminNavigation performance blocker #1937 / PR #1938 is merged and closed on the certification base.
 - This record adds no product feature or alternate source of truth.
 
 ## Mandatory runtime role journeys
@@ -33,6 +35,7 @@ Branch `test/1914-operational-completion-e2e` intentionally matches the reposito
 - APP-PREVIEW/runtime distribution and applicable visual/runtime evidence.
 - Tenant/store/warehouse authorization and disabled/not-entitled behavior already encoded by repository acceptance tests.
 - Zero unresolved repository P0/P1 blockers.
+- Enterprise performance comparison after #1937 must pass without threshold/baseline waiver.
 
 ## Production boundary
 
