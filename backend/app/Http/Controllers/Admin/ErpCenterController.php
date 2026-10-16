@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Http\Controllers\Controller;
+use App\Models\EnterpriseModuleEntitlement;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -16,9 +18,18 @@ use Illuminate\Support\Facades\Route;
 
 final class ErpCenterController extends Controller
 {
+    private const LOCAL_SUPER_ADMIN_MODULES = [
+        'procurement',
+        'inventory_wms',
+        'finance',
+        'treasury',
+        'enterprise_bi',
+    ];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
+        private readonly ModuleEntitlementManager $entitlementManager,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly TenantContextResolver $tenants,
     ) {}
@@ -27,6 +38,8 @@ final class ErpCenterController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+
+        $this->bootstrapLocalSuperAdminEntitlements($actor);
 
         $cards = array_values(array_filter([
             $this->moduleCard(
@@ -95,6 +108,37 @@ final class ErpCenterController extends Controller
             'summary' => $summary,
             'selectedModule' => $request->string('module')->toString(),
         ]);
+    }
+
+    private function bootstrapLocalSuperAdminEntitlements(User $actor): void
+    {
+        if (! app()->environment(['local', 'testing']) || ! $actor->hasRole('SUPER_ADMIN')) {
+            return;
+        }
+
+        foreach (self::LOCAL_SUPER_ADMIN_MODULES as $moduleCode) {
+            if ($this->modules->state($moduleCode) !== ModuleState::ENABLED) {
+                continue;
+            }
+
+            $platformScope = EntitlementScope::platform();
+            $hasConfiguredEntitlement = EnterpriseModuleEntitlement::query()
+                ->where('module_code', $moduleCode)
+                ->where('scope_key', $platformScope->key())
+                ->exists();
+
+            if ($hasConfiguredEntitlement) {
+                continue;
+            }
+
+            $this->entitlementManager->set(
+                $moduleCode,
+                $platformScope,
+                true,
+                null,
+                $actor,
+            );
+        }
     }
 
     /**
