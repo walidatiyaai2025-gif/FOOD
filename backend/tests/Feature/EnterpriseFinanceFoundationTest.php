@@ -193,6 +193,13 @@ final class EnterpriseFinanceFoundationTest extends TestCase
         $this->assertSame($root->id, $child->parent_id);
 
         try {
+            $finance->setCostCenterStatus($actor, $context, $root->id, 'inactive');
+            $this->fail('A cost center with active children must not be made inactive.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+        }
+
+        try {
             $finance->createCostCenter($actor, $context, [
                 'code' => 'OPS',
                 'name' => 'Duplicate',
