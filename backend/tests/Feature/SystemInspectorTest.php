@@ -134,7 +134,7 @@ class SystemInspectorTest extends TestCase
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-schema-drift@example.test');
 
-        Schema::dropIfExists('enterprise_cashboxes');
+        Schema::dropIfExists('restaurant_location_profiles');
 
         $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
         $export->assertOk();
@@ -143,7 +143,7 @@ class SystemInspectorTest extends TestCase
 
         $this->assertFalse($payload['enterprise']['available']);
         $this->assertTrue($payload['enterprise']['migration_pending']);
-        $this->assertContains('enterprise_cashboxes', $payload['enterprise']['missing_tables']);
+        $this->assertContains('restaurant_location_profiles', $payload['enterprise']['missing_tables']);
     }
 
     public function test_premium_admin_runtime_contains_feedback_labels_previews_and_client_capture(): void
