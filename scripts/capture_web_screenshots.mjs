@@ -60,6 +60,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
   ['15_مركز_الإجراءات', '/admin/action-center'],
+  ['15_مركز_ERP', '/admin/erp'],
   ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
@@ -598,6 +599,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
     ['enterprise-action-center', '/admin/action-center'],
+    ['erp-center', '/admin/erp'],
     ['enterprise-organizations', '/admin/administration/organizations'],
     ['enterprise-modules', '/admin/administration/modules'],
     ['security', '/admin/security'],
@@ -785,6 +787,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
 
   const expectedGroups = [
     'overview',
+    'erp',
     'stores',
     'catalog',
     'accounts',
@@ -1223,6 +1226,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'administration-hub',
     '/admin/administration',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-center',
+    '/admin/erp',
   );
   await captureResponsiveRoute(
     page,
