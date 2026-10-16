@@ -35,6 +35,10 @@ final class ReportBuilderExecutor
 
         $query = ReportQuery::fromArray($report, $input);
         $result = $this->executeReadModel($query, $scope);
+        $result['rows'] = array_map(
+            fn (array $row): array => $this->projectRow($query, $row),
+            $result['rows'],
+        );
 
         if ($report->drillDownRoute !== null) {
             $result['rows'] = array_map(
@@ -103,6 +107,38 @@ final class ReportBuilderExecutor
                 'read_model' => ["Unsupported registered read model [{$query->report->readModel}]."],
             ]),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, int|string>
+     */
+    private function projectRow(ReportQuery $query, array $row): array
+    {
+        $projected = [];
+
+        foreach ($query->dimensions as $dimension) {
+            if (! array_key_exists($dimension, $row)) {
+                throw ValidationException::withMessages([
+                    'read_model' => ["Read model did not return dimension [{$dimension}]."],
+                ]);
+            }
+
+            $projected[$dimension] = $row[$dimension];
+        }
+
+        foreach ($query->measures as $measure) {
+            $source = $measure === 'orders' ? 'order_count' : $measure;
+            if (! array_key_exists($source, $row)) {
+                throw ValidationException::withMessages([
+                    'read_model' => ["Read model did not return measure [{$measure}]."],
+                ]);
+            }
+
+            $projected[$measure] = $row[$source];
+        }
+
+        return $projected;
     }
 
     /**
