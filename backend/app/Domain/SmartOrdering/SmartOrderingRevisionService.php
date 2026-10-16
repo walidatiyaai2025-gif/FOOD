@@ -107,6 +107,47 @@ final class SmartOrderingRevisionService
         });
     }
 
+    public function createRollbackDraft(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $source,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        $this->assertManage($actor, $site);
+        abort_unless((int) $source->site_id === (int) $site->id, 404);
+
+        return DB::transaction(function () use ($actor, $site, $source, $request): SmartOrderingRevision {
+            SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
+
+            $lockedSource = SmartOrderingRevision::query()
+                ->whereKey($source->id)
+                ->where('site_id', $site->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless($lockedSource->status === 'archived', 409);
+            abort_if($this->draft($site) instanceof SmartOrderingRevision, 409);
+
+            $draft = $this->createRevision(
+                $site,
+                'draft',
+                (array) $lockedSource->payload,
+                $actor,
+                (int) $lockedSource->id,
+                false,
+            );
+
+            $this->audit->record('smart_ordering.revision.rollback_draft_created', $actor, $draft, null, [
+                'store_id' => (int) $site->store_id,
+                'site_public_id' => (string) $site->public_id,
+                'revision_public_id' => (string) $draft->public_id,
+                'rollback_source_revision_public_id' => (string) $lockedSource->public_id,
+                'rollback_source_checksum' => (string) $lockedSource->checksum,
+            ], $request);
+
+            return $draft;
+        });
+    }
+
     /** @param array<string,mixed> $payload */
     public function updateDraft(
         User $actor,
