@@ -100,7 +100,8 @@ final class EnterpriseOrdersSummaryReadModelTest extends TestCase
         $this->assertFalse($result['has_more']);
         $this->assertSame(
             $report->maxRangeDays,
-            \Carbon\CarbonImmutable::parse($result['from'])->diffInDays(\Carbon\CarbonImmutable::parse($result['to'])) + 1,
+            (int) \Carbon\CarbonImmutable::parse($result['from'])
+                ->diffInDays(\Carbon\CarbonImmutable::parse($result['to'])) + 1,
         );
     }
 
