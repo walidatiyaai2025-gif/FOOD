@@ -64,12 +64,13 @@ final class CommercialCollectionRemittanceBridge
             ->where('status', 'active')
             ->firstOrFail();
 
-        $order = $this->guard->order($actor, $orderId, 'orders.view');
-        abort_unless(
-            (int) $order->store_id === $storeId
-                && strtolower((string) $order->channel) === 'b2b',
-            404,
-        );
+        $this->guard->assert($actor, $storeId, 'b2b', 'orders.view');
+
+        $order = Order::query()
+            ->whereKey($orderId)
+            ->where('store_id', $storeId)
+            ->whereRaw('LOWER(channel) = ?', ['b2b'])
+            ->firstOrFail();
 
         $invoice = Invoice::query()
             ->whereKey($invoiceId)
