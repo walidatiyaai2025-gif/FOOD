@@ -80,7 +80,7 @@ final class OrdersSummaryReadModel
         return [
             'rows' => $rows
                 ->take($query->perPage)
-                ->map(static function (object $row): array {
+                ->map(static function (\\stdClass $row): array {
                     $count = (int) $row->order_count;
                     $gross = (float) $row->gross_total;
 
