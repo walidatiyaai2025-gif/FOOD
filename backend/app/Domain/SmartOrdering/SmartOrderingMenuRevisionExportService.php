@@ -57,7 +57,7 @@ final class SmartOrderingMenuRevisionExportService
     /** @param array<mixed> $value */
     private function encode(array $value): string
     {
-        return json_encode(
+        return (string) json_encode(
             $value,
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
         );
