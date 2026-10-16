@@ -116,7 +116,7 @@ class SmartOrderingScheduledPublishTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('id="so-scheduled-publish-state"', false)
-            ->assertSee(__('smart_ordering_menu.schedule.publish_blocked'));
+            ->assertSee(__('smart_ordering_menu.schedule.pending_hint'));
 
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'smart_ordering.revision.scheduled',
