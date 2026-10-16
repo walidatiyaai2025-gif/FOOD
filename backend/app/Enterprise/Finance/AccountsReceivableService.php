@@ -270,7 +270,7 @@ final class AccountsReceivableService
                 $context,
                 [
                     'idempotency_key' => 'ar-document:'.$document->id.':'.$document->request_hash,
-                    'entry_date' => $document->entry_date?->toDateString() ?? (string) $document->entry_date,
+                    'entry_date' => CarbonImmutable::parse((string) $document->entry_date)->toDateString(),
                     'description' => Str::limit(
                         'AR '.$document->document_number.($document->description ? ': '.$document->description : ''),
                         255,
@@ -529,7 +529,7 @@ final class AccountsReceivableService
                 $context,
                 [
                     'idempotency_key' => 'ar-allocation:'.$allocation->id.':'.$allocation->request_hash,
-                    'entry_date' => $allocation->allocation_date?->toDateString() ?? (string) $allocation->allocation_date,
+                    'entry_date' => CarbonImmutable::parse((string) $allocation->allocation_date)->toDateString(),
                     'description' => 'AR settlement '.$document->document_number,
                     'lines' => [
                         [
