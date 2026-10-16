@@ -13,6 +13,41 @@ return [
     |
     */
     'modules' => [
+        'smart_ordering' => [
+            'version' => 1,
+            'category' => 'restaurant',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => [],
+            'capabilities' => [
+                'public_menu',
+                'ordering',
+                'dine_in',
+                'pickup',
+                'delivery',
+                'whatsapp',
+                'chatbot',
+                'offers',
+                'campaign_qr',
+                'analytics',
+                'loyalty',
+                'reviews',
+                'advanced_upsell',
+                'multi_branch',
+                'custom_domain',
+                'foodex_supply_intelligence',
+            ],
+            'permissions' => [],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
         'finance' => [
             'version' => 1,
             'category' => 'finance',
