@@ -85,7 +85,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </section>
 
 <section class="work-section">
-<div class="work-section-head"><div><h2>{{ __('enterprise_my_work.approvals_title') }}</h2><p>{{ __('enterprise_my_work.approvals_hint') }}</p></div></div>
+<div class="work-section-head"><div><h2>{{ __('enterprise_my_work.approvals_title') }} · {{ __('enterprise_action_center.title') }}</h2><p>{{ __('enterprise_my_work.approvals_hint') }}</p></div></div>
 </section>
 
 <section class="action-card foodex-card">
