@@ -270,7 +270,7 @@ final class GeneralLedgerService
                 ]);
             }
 
-            $entryDate = $journal->entry_date->toDateString();
+            $entryDate = CarbonImmutable::parse((string) $journal->entry_date)->toDateString();
             $period = $this->fiscalPeriodQuery($scope)
                 ->whereKey($journal->fiscal_period_id)
                 ->where('status', 'open')
