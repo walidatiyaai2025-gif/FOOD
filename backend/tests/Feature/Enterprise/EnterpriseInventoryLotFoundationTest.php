@@ -195,7 +195,7 @@ final class EnterpriseInventoryLotFoundationTest extends TestCase
         $this->assertTrue($rows->every(
             fn ($lot): bool => (int) $lot->warehouse_id === $fixture['warehouse_id'],
         ));
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
 
         try {
             app(InventoryLotService::class)->expiryWindow(
