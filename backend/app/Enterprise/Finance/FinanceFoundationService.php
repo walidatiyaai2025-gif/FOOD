@@ -197,7 +197,6 @@ final class FinanceFoundationService
         }, 3);
     }
 
-
     /**
      * @param  array{q?:string,status?:string,parent_id?:int}  $filters
      * @return LengthAwarePaginator<int, EnterpriseCostCenter>
@@ -708,7 +707,6 @@ final class FinanceFoundationService
             ->where('legal_entity_id', $scope->legalEntityId);
     }
 
-
     /** @return Builder<EnterpriseCostCenter> */
     private function costCenterQuery(EnterpriseDataScope $scope): Builder
     {
@@ -760,7 +758,6 @@ final class FinanceFoundationService
             'status' => ['nullable', Rule::in(self::ACCOUNT_STATUSES)],
         ])->validate();
     }
-
 
     /**
      * @param  array<string, mixed>  $attributes
@@ -818,7 +815,6 @@ final class FinanceFoundationService
             ]);
         }
     }
-
 
     private function assertCostCenterCodeAvailable(EnterpriseDataScope $scope, string $code): void
     {
