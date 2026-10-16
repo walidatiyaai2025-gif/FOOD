@@ -5,8 +5,6 @@ namespace Tests\Feature\Enterprise;
 use App\Enterprise\Commercial\CommercialCollectionExposurePolicy;
 use App\Enterprise\Commercial\CommercialTruthRegistry;
 use App\Models\CollectionAccount;
-use App\Models\CustodyLedgerEntry;
-use App\Models\Remittance;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
