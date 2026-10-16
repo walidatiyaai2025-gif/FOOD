@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\SmartOrderingQrCode;
 use App\Models\SmartOrderingQrToken;
 use App\Models\Store;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -199,24 +199,18 @@ final class SmartOrderingQrManager
 
     private function rawTokenValue(SmartOrderingQrToken $token): ?string
     {
-        try {
-            $rawToken = $this->decryptTokenValue($token);
-        } catch (DecryptException) {
+        $encryptedToken = $token->getRawOriginal('token_value');
+        if (! is_string($encryptedToken) || $encryptedToken === '') {
             return null;
         }
 
-        return $rawToken !== '' ? $rawToken : null;
-    }
+        $rawToken = rescue(
+            static fn (): string => Crypt::decryptString($encryptedToken),
+            null,
+            report: false,
+        );
 
-    /**
-     * The encrypted Eloquent cast can throw when persisted data was written with
-     * a different application key. PHPStan cannot infer that from magic access.
-     *
-     * @throws DecryptException
-     */
-    private function decryptTokenValue(SmartOrderingQrToken $token): string
-    {
-        return (string) $token->token_value;
+        return is_string($rawToken) && $rawToken !== '' ? $rawToken : null;
     }
 
     /** @param array<string, mixed> $data */
