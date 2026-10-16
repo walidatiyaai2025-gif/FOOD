@@ -217,15 +217,22 @@ final class SmartOrderingRuntimePolicy
     private function normalizeHost(string $host): ?string
     {
         $host = strtolower(trim($host));
-        if ($host === '') {
+        $host = rtrim($host, '.');
+
+        if ($host === '' || strlen($host) > 253 || ! str_contains($host, '.')) {
             return null;
         }
 
-        $parsed = parse_url(str_contains($host, '://') ? $host : 'http://'.$host, PHP_URL_HOST);
-        if (! is_string($parsed) || $parsed === '') {
+        if (preg_match('/[\\s\\/:?#@*]/', $host) === 1 || filter_var($host, FILTER_VALIDATE_IP) !== false) {
             return null;
         }
 
-        return rtrim(strtolower($parsed), '.');
+        foreach (explode('.', $host) as $label) {
+            if (! preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $label)) {
+                return null;
+            }
+        }
+
+        return $host;
     }
 }
