@@ -39,6 +39,24 @@ final class SmartOrderingMenuRevisionService
         return $this->revisions->publish($actor, $draft->fresh(), $request);
     }
 
+    public function rollback(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $source,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        abort_unless($actor->hasPermission('smart_ordering.publish', (int) $site->store_id), 403);
+
+        return DB::transaction(function () use ($actor, $site, $source, $request): SmartOrderingRevision {
+            $draft = $this->revisions->createRollbackDraft($actor, $site, $source, $request);
+            $this->cloneMenuRevision($site, $source->fresh(), $draft);
+            $this->validateDraft($site, $draft->fresh());
+            $this->refreshChecksum($actor, $draft->fresh(), $request);
+
+            return $this->revisions->publish($actor, $draft->fresh(), $request);
+        });
+    }
+
     public function refreshChecksum(
         User $actor,
         SmartOrderingRevision $draft,
@@ -114,13 +132,29 @@ final class SmartOrderingMenuRevisionService
             return;
         }
 
-        if (! DB::table('smart_ordering_menus')->where('revision_id', $published->id)->exists()) {
-            return;
-        }
+        $this->cloneMenuRevision($site, $published, $draft);
+    }
 
-        DB::transaction(function () use ($site, $draft, $published): void {
+    private function cloneMenuRevision(
+        SmartOrderingSite $site,
+        SmartOrderingRevision $source,
+        SmartOrderingRevision $draft,
+    ): void {
+        abort_unless(
+            (int) $source->site_id === (int) $site->id
+                && (int) $draft->site_id === (int) $site->id
+                && $draft->status === 'draft',
+            404,
+        );
+
+        abort_if(
+            DB::table('smart_ordering_menus')->where('revision_id', $draft->id)->exists(),
+            409,
+        );
+
+        DB::transaction(function () use ($site, $draft, $source): void {
             $menuMap = [];
-            foreach (DB::table('smart_ordering_menus')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menus')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menus')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -147,7 +181,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $categoryMap = [];
-            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_categories')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -184,7 +218,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $itemMap = [];
-            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_items')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -234,7 +268,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $groupMap = [];
-            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_modifier_groups')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -311,20 +345,63 @@ final class SmartOrderingMenuRevisionService
                                         $options = DB::table('smart_ordering_modifier_options')
                                             ->where('group_id', $group->id)
                                             ->orderBy('sort_order')->orderBy('public_id')
-                                            ->get()->map(fn (object $option): array => (array) $option)->all();
+                                            ->get()->map(fn (object $option): array => $this->snapshotRow($option, ['group_id']))->all();
 
-                                        return [...(array) $group, 'options' => $options];
+                                        return [
+                                            ...$this->snapshotRow($group, ['item_id']),
+                                            'options' => $options,
+                                        ];
                                     })->all();
 
-                                return [...(array) $item, 'groups' => $groups];
+                                return [
+                                    ...$this->snapshotRow($item, ['category_id']),
+                                    'groups' => $groups,
+                                ];
                             })->all();
 
-                        return [...(array) $category, 'items' => $items];
+                        return [
+                            ...$this->snapshotRow($category, ['menu_id']),
+                            'items' => $items,
+                        ];
                     })->all();
 
-                return [...(array) $menu, 'categories' => $categories];
+                return [
+                    ...$this->snapshotRow($menu),
+                    'categories' => $categories,
+                ];
             })->all();
 
         return ['menus' => $menus];
+    }
+
+    /**
+     * Strip revision-local database identity from the menu content checksum.
+     *
+     * A rollback creates new rows for the same historical menu tree. Row IDs,
+     * foreign keys and timestamps therefore change even when the public menu
+     * content is byte-for-byte equivalent. They must not invalidate the
+     * deterministic menu checksum used by revision payloads.
+     *
+     * @param  list<string>  $relationKeys
+     * @return array<string,mixed>
+     */
+    private function snapshotRow(object $row, array $relationKeys = []): array
+    {
+        $data = (array) $row;
+
+        foreach ([
+            'id',
+            'revision_id',
+            'site_id',
+            'created_at',
+            'updated_at',
+            ...$relationKeys,
+        ] as $key) {
+            unset($data[$key]);
+        }
+
+        ksort($data);
+
+        return $data;
     }
 }
