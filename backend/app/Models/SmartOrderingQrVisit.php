@@ -14,6 +14,7 @@ final class SmartOrderingQrVisit extends Model
     protected function casts(): array
     {
         return [
+            'promotion_id_snapshot' => 'integer',
             'landing_at' => 'datetime',
             'storefront_viewed_at' => 'datetime',
             'cart_started_at' => 'datetime',
