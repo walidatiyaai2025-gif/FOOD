@@ -309,9 +309,11 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
 
         Bus::assertDispatched(
             RefreshCommercialProfitabilityReadModel::class,
-            static fn (RefreshCommercialProfitabilityReadModel $job): bool => $job->storeId === $store
-                && $job->afterId === $firstOutbox
-                && $job->limit === 1,
+            static function (RefreshCommercialProfitabilityReadModel $job) use ($store, $firstOutbox): bool {
+                return $job->storeId === $store
+                    && $job->afterId === $firstOutbox
+                    && $job->limit === 1;
+            },
         );
     }
 
@@ -464,18 +466,22 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
                         'collection_count' => 0,
                     ],
                     'items' => array_map(
-                        static fn (array $item): array => [
-                            ...$item,
-                            'sku' => 'SKU-'.$item['product_id'],
-                            'unit_price' => $item['quantity'] === '0.000'
+                        static function (array $item): array {
+                            $unitPrice = $item['quantity'] === '0.000'
                                 ? '0.000'
                                 : number_format(
                                     (float) $item['line_total'] / (float) $item['quantity'],
                                     3,
                                     '.',
                                     '',
-                                ),
-                        ],
+                                );
+
+                            return [
+                                ...$item,
+                                'sku' => 'SKU-'.$item['product_id'],
+                                'unit_price' => $unitPrice,
+                            ];
+                        },
                         $items,
                     ),
                 ],
