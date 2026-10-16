@@ -73,7 +73,9 @@ final class TreasuryIntegrationEventPublisher
                 'reference' => (string) $receipt->reference,
                 'description' => $receipt->description,
                 'posted_by' => $receipt->posted_by === null ? null : (int) $receipt->posted_by,
-                'posted_at' => $receipt->posted_at?->utc()->toIso8601String(),
+                'posted_at' => CarbonImmutable::parse((string) $receipt->getRawOriginal('posted_at'))
+                    ->utc()
+                    ->toIso8601String(),
             ],
         );
     }
@@ -107,7 +109,9 @@ final class TreasuryIntegrationEventPublisher
                     ? null
                     : (int) $payment->workflow_request_id,
                 'posted_by' => $payment->posted_by === null ? null : (int) $payment->posted_by,
-                'posted_at' => $payment->posted_at?->utc()->toIso8601String(),
+                'posted_at' => CarbonImmutable::parse((string) $payment->getRawOriginal('posted_at'))
+                    ->utc()
+                    ->toIso8601String(),
             ],
         );
     }
@@ -136,7 +140,9 @@ final class TreasuryIntegrationEventPublisher
                 'statement_payments_total' => (string) $reconciliation->statement_payments_total,
                 'currency_code' => (string) $reconciliation->currency_code,
                 'closed_by' => $reconciliation->closed_by === null ? null : (int) $reconciliation->closed_by,
-                'closed_at' => $reconciliation->closed_at?->utc()->toIso8601String(),
+                'closed_at' => CarbonImmutable::parse((string) $reconciliation->getRawOriginal('closed_at'))
+                    ->utc()
+                    ->toIso8601String(),
             ],
         );
     }
@@ -167,7 +173,9 @@ final class TreasuryIntegrationEventPublisher
                 'declared_closing_amount' => (string) $closing->declared_closing_amount,
                 'currency_code' => (string) $closing->currency_code,
                 'closed_by' => $closing->closed_by === null ? null : (int) $closing->closed_by,
-                'closed_at' => $closing->closed_at?->utc()->toIso8601String(),
+                'closed_at' => CarbonImmutable::parse((string) $closing->getRawOriginal('closed_at'))
+                    ->utc()
+                    ->toIso8601String(),
             ],
         );
     }
@@ -197,15 +205,7 @@ final class TreasuryIntegrationEventPublisher
         $perPage = max(10, min(100, $perPage));
 
         return EnterpriseTreasuryIntegrationEvent::query()
-            ->with(['outboxMessage' => static fn (Builder $query): Builder => $query->select([
-                'id',
-                'event_id',
-                'status',
-                'attempt_count',
-                'available_at',
-                'dispatched_at',
-                'failed_at',
-            ])])
+            ->with('outboxMessage:id,event_id,status,attempt_count,available_at,dispatched_at,failed_at')
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
             ->where('legal_entity_id', $scope->legalEntityId)
