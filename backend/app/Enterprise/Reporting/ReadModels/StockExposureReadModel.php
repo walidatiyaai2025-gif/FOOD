@@ -44,7 +44,7 @@ final class StockExposureReadModel
         }
 
         $asOf = $this->asOf($query);
-        if (! $asOf->isSameDay(CarbonImmutable::today())) {
+        if ($asOf->isSameDay(CarbonImmutable::today()) === false) {
             throw ValidationException::withMessages([
                 'date_range' => ['Historical reserved-stock snapshots are not authoritative; stock exposure supports the current as-of date only.'],
             ]);
@@ -156,7 +156,7 @@ final class StockExposureReadModel
 
         if (array_key_exists('stock_status', $query->filters)) {
             $value = strtolower(trim((string) $query->filters['stock_status']));
-            if (! in_array($value, ['active', 'slow', 'dead'], true)) {
+            if (in_array($value, ['active', 'slow', 'dead'], true) === false) {
                 throw ValidationException::withMessages([
                     'stock_status' => ['Stock status must be active, slow or dead.'],
                 ]);
@@ -198,7 +198,7 @@ final class StockExposureReadModel
         }
 
         foreach ($query->dimensions as $dimension) {
-            if (! isset($sorted[$dimension])) {
+            if (isset($sorted[$dimension]) === false) {
                 $builder->orderBy($dimension);
             }
         }
@@ -286,7 +286,7 @@ final class StockExposureReadModel
 
     private function asOf(ReportQuery $query): CarbonImmutable
     {
-        if ($query->from !== null && $query->to !== null && ! $query->from->equalTo($query->to)) {
+        if ($query->from !== null && $query->to !== null && $query->from->equalTo($query->to) === false) {
             throw ValidationException::withMessages([
                 'date_range' => ['Stock exposure uses a single as-of date, not a multi-day range.'],
             ]);
@@ -299,7 +299,7 @@ final class StockExposureReadModel
     private function assertSources(array $tables): void
     {
         foreach ($tables as $table) {
-            if (! Schema::hasTable($table)) {
+            if (Schema::hasTable($table) === false) {
                 throw ValidationException::withMessages([
                     'source' => ["Canonical source [{$table}] is unavailable."],
                 ]);
@@ -310,7 +310,7 @@ final class StockExposureReadModel
     private function source(string $key): string
     {
         $source = config('enterprise_reporting.sources.'.$key);
-        if (! is_string($source) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $source) !== 1) {
+        if (is_string($source) === false || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $source) !== 1) {
             throw ValidationException::withMessages([
                 'source' => ["Invalid configured analytics source [{$key}]."],
             ]);
