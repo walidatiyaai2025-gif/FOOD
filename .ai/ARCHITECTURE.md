@@ -105,6 +105,8 @@ Lot/batch metadata is warehouse/product-scoped and normalized, with optional man
 
 Stock reservations also remain inside the canonical inventory authority. A reservation is represented by `inventories.reserved_quantity` plus reference-scoped `reserve` / `release` (and consuming `sale`) provenance in `stock_movements`; there is no parallel reservation-balance ledger. Reservation changes lock the authoritative inventory row, reconcile the desired quantity for one reference, preserve unrelated reserved stock, reject over-allocation, and are retry-safe for the same desired state.
 
+WMS reporting is a read-only composition over these same authorities. Inventory, lot/expiry, valuation/aging, and adjustment reports use warehouse-authorized bounded queries with cursor-style identifiers and canonical drill-down references. WMS does not own a reporting or export ledger: exports above the Enterprise threshold emit the shared queued/chunked export handoff contract so execution remains outside latency-sensitive inventory transactions and requester/store/warehouse scope can be revalidated by the Enterprise reporting consumer.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
