@@ -369,7 +369,7 @@ final class EnterpriseMyWork
                 (string) $row->status === 'WAITING_FOR_AGENT' ? 'attention' : 'pending',
                 (int) ($row->primary_agent_id ?? 0),
                 $this->date($row->updated_at),
-                '/admin/whatsapp/inbox?conversation='.(int) $row->id,
+                route('admin.whatsapp-inbox.index', ['conversation' => (int) $row->id], false),
                 $this->date($row->waiting_since),
             ));
     }
