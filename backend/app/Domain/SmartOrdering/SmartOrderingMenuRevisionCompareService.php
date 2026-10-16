@@ -106,7 +106,7 @@ final class SmartOrderingMenuRevisionCompareService
      *   attributes:array<string,mixed>
      * }>
      */
-    private function snapshot(SmartOrderingSite $site, SmartOrderingRevision $revision): array
+    public function snapshot(SmartOrderingSite $site, SmartOrderingRevision $revision): array
     {
         $records = [];
         $menus = DB::table('smart_ordering_menus')
