@@ -43,6 +43,9 @@ class SettingsCenterTest extends TestCase
             ->assertSee('data-setting="b2c_settings"', false)
             ->assertSee('data-setting="b2c_storefront"', false)
             ->assertSee('data-setting="system_update"', false)
+            ->assertSee('data-setting="enterprise_modules"', false)
+            ->assertSee('Module Control Plane')
+            ->assertSee(route('admin.enterprise-modules.index'), false)
             ->assertSee('Settings Center')
             ->assertSee('System reference values')
             ->assertSee('B2B wholesale settings')
@@ -58,6 +61,7 @@ class SettingsCenterTest extends TestCase
             ->assertOk()
             ->assertSee('data-setting="system_update"', false)
             ->assertSee('data-setting="system_lookups"', false)
+            ->assertSee('data-setting="enterprise_modules"', false)
             ->assertSee('Restricted')
             ->assertSee('Additional permission required');
     }

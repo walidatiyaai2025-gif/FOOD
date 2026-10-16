@@ -47,14 +47,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="enterprise-modules">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => $navGroups, 'navContext' => $navContext, 'user' => $user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page module-page" data-enterprise-module-control-plane="true">
-@include('admin._admin-center-switcher',['active'=>'administration'])
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="module-header foodex-page-header">
 <div>
 <div class="foodex-subtitle">FOODEX · {{ __('enterprise_modules.eyebrow') }}</div>
 <h1>{{ __('enterprise_modules.title') }}</h1>
 <p>{{ __('enterprise_modules.description') }}</p>
 </div>
-<a class="module-back" href="{{ route('admin.administration.index') }}">{{ __('enterprise_modules.back') }}</a>
+<a class="module-back" href="{{ route('admin.settings.index') }}">{{ __('enterprise_modules.back') }}</a>
 </header>
 
 @if (session('status')) <div class="module-state-message foodex-state" role="status">{{ session('status') }}</div> @endif
