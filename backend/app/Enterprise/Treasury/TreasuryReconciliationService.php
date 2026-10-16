@@ -777,18 +777,17 @@ final class TreasuryReconciliationService
         $hasFrom = isset($filters['date_from']);
         $hasTo = isset($filters['date_to']);
 
-        if (! $hasFrom && ! $hasTo) {
-            $to = CarbonImmutable::today();
-            $from = $to->subDays(self::DEFAULT_LIST_WINDOW_DAYS - 1);
-        } elseif ($hasFrom && ! $hasTo) {
+        if ($hasFrom) {
             $from = CarbonImmutable::parse((string) $filters['date_from'])->startOfDay();
-            $to = $from->addDays(self::MAX_LIST_WINDOW_DAYS - 1);
-        } elseif (! $hasFrom && $hasTo) {
+            $to = $hasTo
+                ? CarbonImmutable::parse((string) $filters['date_to'])->startOfDay()
+                : $from->addDays(self::MAX_LIST_WINDOW_DAYS - 1);
+        } elseif ($hasTo) {
             $to = CarbonImmutable::parse((string) $filters['date_to'])->startOfDay();
             $from = $to->subDays(self::MAX_LIST_WINDOW_DAYS - 1);
         } else {
-            $from = CarbonImmutable::parse((string) $filters['date_from'])->startOfDay();
-            $to = CarbonImmutable::parse((string) $filters['date_to'])->startOfDay();
+            $to = CarbonImmutable::today();
+            $from = $to->subDays(self::DEFAULT_LIST_WINDOW_DAYS - 1);
         }
 
         if (($from->diffInDays($to) + 1) > self::MAX_LIST_WINDOW_DAYS) {
