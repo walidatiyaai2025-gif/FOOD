@@ -151,7 +151,12 @@ final class EnterpriseInventoryValuationAgingTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        return compact('storeId', 'warehouseId', 'productId', 'inventoryId');
+        return [
+            'store_id' => $storeId,
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'inventory_id' => $inventoryId,
+        ];
     }
 
     private function inventoryUser(int $storeId): User
