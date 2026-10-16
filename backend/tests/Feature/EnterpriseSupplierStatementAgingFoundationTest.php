@@ -141,7 +141,26 @@ final class EnterpriseSupplierStatementAgingFoundationTest extends TestCase
         ]);
         $invoices->handoff($actorA, $contextA, $invoice->id);
 
+        $oldInvoice = $invoices->createFromPostedReceipt($actorA, $contextA, $receipt->id, [
+            'supplier_invoice_number' => 'SAGE-B-OLD',
+            'invoice_date' => '2024-01-01',
+            'due_date' => '2024-01-31',
+            'lines' => [[
+                'goods_receipt_line_id' => $lineId,
+                'quantity' => 1,
+            ]],
+        ]);
+        $invoices->handoff($actorA, $contextA, $oldInvoice->id);
+
         $manager = app(SupplierStatementAgingManager::class);
+        $derivedWindowPage = $manager->statement(
+            $actorA,
+            $contextA,
+            (int) $receipt->supplier_id,
+            ['to' => '2026-10-16'],
+        );
+        $this->assertSame(1, $derivedWindowPage->total());
+        $this->assertSame('SAGE-B-INV', $derivedWindowPage->items()[0]->supplier_invoice_number);
         $page = $manager->statement(
             $actorA,
             $contextA,
