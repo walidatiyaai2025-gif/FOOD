@@ -303,7 +303,19 @@ final class AccountsPayableService
                     ],
                 ],
             );
-            $journal = $this->generalLedger->post($actor, $context, $journal->id);
+            $journal = $this->generalLedger->post(
+                $actor,
+                $context,
+                $journal->id,
+                new FinancePostingApprovalContext(
+                    action: FinanceApprovalService::ACTION_AP_POST,
+                    entityType: 'enterprise_ap_document',
+                    entityId: (string) $document->id,
+                    makerId: (int) $document->created_by,
+                    amount: (string) $document->amount,
+                    currencyCode: (string) $document->currency_code,
+                ),
+            );
 
             $before = $document->toArray();
             $document->forceFill([
@@ -559,7 +571,19 @@ final class AccountsPayableService
                     ],
                 ],
             );
-            $journal = $this->generalLedger->post($actor, $context, $journal->id);
+            $journal = $this->generalLedger->post(
+                $actor,
+                $context,
+                $journal->id,
+                new FinancePostingApprovalContext(
+                    action: FinanceApprovalService::ACTION_AP_ALLOCATION_POST,
+                    entityType: 'enterprise_ap_allocation',
+                    entityId: (string) $allocation->id,
+                    makerId: (int) $allocation->created_by,
+                    amount: (string) $allocation->amount,
+                    currencyCode: (string) $document->currency_code,
+                ),
+            );
 
             $before = $allocation->toArray();
             $allocation->forceFill([
