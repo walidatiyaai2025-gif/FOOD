@@ -59,7 +59,7 @@ final class CommercialTruthRegistry
                 'channels' => ['b2b'],
                 'read_authority' => B2bAccountLedgerService::class,
                 'write_authority' => B2bAccountLedgerService::class,
-                'supporting_authorities' => [],
+                'supporting_authorities' => [CommercialCreditEligibilityPolicy::class],
                 'storage' => ['b2b_accounts', 'customer_account_ledger_entries'],
                 'compatibility' => 'Credit limit, signed balance and purchasing power reuse the existing B2B account ledger contract.',
                 'event' => 'foodex.commercial.credit.changed',
