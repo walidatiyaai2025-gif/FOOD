@@ -225,7 +225,7 @@ final class FinanceExposureReadModel
         }
 
         foreach ($query->dimensions as $dimension) {
-            if (! isset($sorted[$dimension])) {
+            if (isset($sorted[$dimension]) === false) {
                 $builder->orderBy($dimension);
             }
         }
@@ -297,7 +297,7 @@ final class FinanceExposureReadModel
 
     private function asOf(ReportQuery $query): CarbonImmutable
     {
-        if ($query->from !== null && $query->to !== null && ! $query->from->equalTo($query->to)) {
+        if ($query->from !== null && $query->to !== null && $query->from->equalTo($query->to) === false) {
             throw ValidationException::withMessages([
                 'date_range' => ['Exposure analytics use a single as-of date, not a multi-day range.'],
             ]);
@@ -310,7 +310,7 @@ final class FinanceExposureReadModel
     private function assertSources(array $tables): void
     {
         foreach ($tables as $table) {
-            if (! Schema::hasTable($table)) {
+            if (Schema::hasTable($table) === false) {
                 throw ValidationException::withMessages([
                     'source' => ["Canonical source [{$table}] is unavailable."],
                 ]);
@@ -321,7 +321,7 @@ final class FinanceExposureReadModel
     private function source(string $key): string
     {
         $source = config('enterprise_reporting.sources.'.$key);
-        if (! is_string($source) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $source) !== 1) {
+        if (is_string($source) === false || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $source) !== 1) {
             throw ValidationException::withMessages([
                 'source' => ["Invalid configured analytics source [{$key}]."],
             ]);
