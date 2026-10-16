@@ -39,8 +39,10 @@ return new class extends Migration
 
         Schema::create('enterprise_treasury_reconciliation_lines', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('reconciliation_id')
-                ->constrained('enterprise_treasury_reconciliations')
+            $table->unsignedBigInteger('reconciliation_id');
+            $table->foreign('reconciliation_id', 'etr_rec_line_rec_fk')
+                ->references('id')
+                ->on('enterprise_treasury_reconciliations')
                 ->cascadeOnDelete();
             $table->string('transaction_type', 16);
             $table->unsignedBigInteger('transaction_id');
