@@ -44,3 +44,30 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Reason:** the delivered Smart Ordering baseline already owns first-party menu/order/growth flows, while Enterprise Core is establishing generic modularity. A second set of restaurant engines would create drift, cross-tenant risk, duplicate pricing/order truth and a migration burden.
 **Consequences:** new Restaurant SaaS work must begin with a reuse/gap audit; net-new modules integrate through stable domain contracts; plan/subscription state resolves to entitlements instead of plan-name conditionals; public reads use revisioned/cache-friendly projections; module OFF states preserve data and cannot break unrelated modules.
 **Authority:** `docs/execution/FOODEX_RESTAURANT_SAAS_MASTER_PLAN.md`, `docs/execution/FOODEX_RESTAURANT_SAAS_GAP_MATRIX.json`, #1572 and #1573.
+
+## D-011 — Enterprise WMS extends the canonical inventory ledger
+**Decision (Wave 3 / #1728):** Enterprise WMS uses the existing `warehouses`, `inventories`, and `stock_movements` records as the authoritative stock ledger. Warehouse-user scope may narrow existing store RBAC but never bypass it. Transfers use a locked, idempotent draft -> dispatched -> received lifecycle whose outbound and inbound effects are written to `stock_movements`. Cycle counts snapshot authoritative inventory and refuse stale completion when stock changed after the snapshot.
+
+**Reason:** a parallel WMS balance ledger would split stock authority, create reconciliation races with Orders/Van/Smart Ordering, and make retry/concurrency behavior unsafe. Preserving the existing ledger allows Wave 3 workflows to add control without changing current inventory ownership.
+
+**Consequences:** transfer/count tables hold workflow state and provenance only; stock balances remain in `inventories`; all quantity effects require canonical `stock_movements`; list paths stay bounded/indexed; no daemon/provider/global request work is introduced by the foundation.
+
+**Authority:** #1491, #1728, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
+
+## D-012 — Stock reservations stay in inventories + stock_movements
+**Decision (Wave 3 / #1802):** WMS stock reservations use the existing `inventories.reserved_quantity` as the authoritative reserved balance and reference-scoped `reserve` / `release` / consuming `sale` provenance in `stock_movements`. No separate reservation-balance ledger is introduced.
+
+**Reason:** reservation availability already feeds Orders, Smart Ordering, reorder policy and valuation through `quantity - reserved_quantity`. A second reservation balance would create reconciliation races and conflicting availability truth.
+
+**Consequences:** reservation mutation must lock the inventory row, preserve reservations owned by other references, reject over-allocation, reconcile retries idempotently to the desired reference quantity, and keep reference lookups indexed on the high-growth stock-movement table. Adjustments, damage and loss remain separate WMS children.
+
+**Authority:** #1491, #1802, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
+
+## D-013 — WMS reporting composes canonical inventory truth and delegates large-export execution
+**Decision (Wave 3 / #1807):** WMS reporting is read-only over canonical `inventories`, `stock_movements`, lot/expiry metadata and valuation policy. Interactive reads are warehouse-authorized and bounded; deterministic drill-down references point back to canonical inventory, lot and movement records. WMS does not create a reporting/export ledger.
+
+**Reason:** duplicating stock/reporting truth or executing large result sets on inventory request paths would introduce reconciliation drift and cPanel latency risk. Wave 7 already defines the Enterprise queued/chunked export contract.
+
+**Consequences:** exports above 5,000 rows emit the shared Enterprise export handoff with requester/store/warehouse scope and resumable chunk metadata; the Enterprise reporting consumer owns durable export execution. Report/export failure cannot mutate or block inventory transactions, and unchanged Customer/Driver/Van applications remain outside this backend-only lane.
+
+**Authority:** #1491, #1807, #1732, #1800, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
