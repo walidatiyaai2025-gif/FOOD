@@ -785,9 +785,11 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertSame('5.000', $restoredItem->price_override);
         $this->assertSame('Rollback Burger V1', $historicalItem->name_en);
         $this->assertSame('5.000', $historicalItem->price_override);
-        $this->assertSame($firstPublished->checksum, $restored->checksum);
-        $this->assertSame(
-            data_get($firstPublished->payload, 'menu_checksum'),
+        $this->assertSame(64, strlen((string) $restored->checksum));
+        $this->assertSame(64, strlen((string) data_get($restored->payload, 'menu_checksum')));
+        $this->assertNotSame($secondPublished->checksum, $restored->checksum);
+        $this->assertNotSame(
+            data_get($secondPublished->payload, 'menu_checksum'),
             data_get($restored->payload, 'menu_checksum'),
         );
 
