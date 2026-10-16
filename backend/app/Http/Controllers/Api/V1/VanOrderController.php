@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Pricing\B2bPriceResolver;
+use App\Enterprise\Commercial\CommercialVanSalesBridge;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
@@ -24,6 +25,7 @@ final class VanOrderController extends Controller
 {
     public function __construct(
         private readonly AdminOrderManagementService $orders,
+        private readonly CommercialVanSalesBridge $commercialVanSales,
         private readonly ProductAvailabilityService $availability,
         private readonly B2bPriceResolver $b2bPrices,
         private readonly VanOrderReadService $read,
@@ -150,8 +152,16 @@ final class VanOrderController extends Controller
         $storeId = $this->sellerStoreId($request, $data['store_id'] ?? null);
         $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
 
-        $request->merge(['customer_id' => $customer]);
-        $quote = $this->orders->quote($request, $type, $storeId);
+        if ($type === 'b2b') {
+            $quote = $this->commercialVanSales->quote(
+                $request,
+                $customer,
+                $storeId,
+            );
+        } else {
+            $request->merge(['customer_id' => $customer]);
+            $quote = $this->orders->quote($request, $type, $storeId);
+        }
 
         return response()->json(['data' => $quote]);
     }
@@ -172,16 +182,26 @@ final class VanOrderController extends Controller
             ]);
         }
 
-        $request->merge(['customer_id' => $customer]);
-        $order = $this->orders->create(
-            $request,
-            $actor,
-            $type,
-            $storeId,
-            'van',
-            'van',
-            $idempotencyKey,
-        );
+        if ($type === 'b2b') {
+            $order = $this->commercialVanSales->create(
+                $request,
+                $actor,
+                $customer,
+                $storeId,
+                $idempotencyKey,
+            );
+        } else {
+            $request->merge(['customer_id' => $customer]);
+            $order = $this->orders->create(
+                $request,
+                $actor,
+                $type,
+                $storeId,
+                'van',
+                'van',
+                $idempotencyKey,
+            );
+        }
 
         return response()->json(['data' => $this->orderPayload($order)], 201);
     }
