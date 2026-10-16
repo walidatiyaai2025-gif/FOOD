@@ -28,7 +28,7 @@ return new class extends Migration {
             $table->foreignId('journal_id')->nullable()->constrained('enterprise_finance_journals')->restrictOnDelete();
             $table->string('description', 255)->nullable();
             $table->string('status', 24)->default('draft');
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('posted_at')->nullable();
             $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
@@ -57,7 +57,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('ap_document_id')
                 ->constrained('enterprise_ap_documents')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
             $table->string('idempotency_key', 128);
             $table->char('request_hash', 64);
             $table->date('allocation_date');
@@ -66,7 +66,7 @@ return new class extends Migration {
             $table->foreignId('journal_id')->nullable()->constrained('enterprise_finance_journals')->restrictOnDelete();
             $table->string('reference', 180)->nullable();
             $table->string('status', 24)->default('draft');
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('posted_at')->nullable();
             $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
