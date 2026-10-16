@@ -260,14 +260,7 @@ final class SmartOrderingSiteService
         ?Request $request = null,
     ): array {
         $this->assertManage($actor, $site);
-        $domain = $domain === null ? null : strtolower(trim($domain));
-        if ($domain === '') {
-            $domain = null;
-        }
-
-        if ($domain !== null && (! filter_var('https://'.$domain, FILTER_VALIDATE_URL) || str_contains($domain, '/'))) {
-            throw ValidationException::withMessages(['custom_domain' => __('smart_ordering.validation.domain')]);
-        }
+        $domain = $this->normalizeCustomDomain($domain);
 
         if ($domain !== null && SmartOrderingSite::query()
             ->where('custom_domain', $domain)
@@ -330,6 +323,62 @@ final class SmartOrderingSiteService
         ], $request);
 
         return $site->fresh();
+    }
+
+    private function normalizeCustomDomain(?string $domain): ?string
+    {
+        if ($domain === null) {
+            return null;
+        }
+
+        $domain = strtolower(trim($domain));
+        if ($domain === '') {
+            return null;
+        }
+
+        $domain = rtrim($domain, '.');
+        if (! $this->isSafeHost($domain)) {
+            throw ValidationException::withMessages([
+                'custom_domain' => [__('smart_ordering.validation.domain')],
+            ]);
+        }
+
+        $baseDomain = $this->canonicalConfiguredHost((string) config('smart_ordering.base_domain', 'foodex.com'));
+        if ($baseDomain !== null
+            && ($domain === $baseDomain || str_ends_with($domain, '.'.$baseDomain))) {
+            throw ValidationException::withMessages([
+                'custom_domain' => [__('smart_ordering.validation.domain')],
+            ]);
+        }
+
+        return $domain;
+    }
+
+    private function canonicalConfiguredHost(string $host): ?string
+    {
+        $host = strtolower(trim($host));
+        $host = rtrim($host, '.');
+
+        return $this->isSafeHost($host) ? $host : null;
+    }
+
+    private function isSafeHost(string $host): bool
+    {
+        if ($host === '' || strlen($host) > 253 || ! str_contains($host, '.')) {
+            return false;
+        }
+
+        if (preg_match('/[\\s\\/:?#@*]/', $host) === 1 || filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return false;
+        }
+
+        foreach (explode('.', $host) as $label) {
+            if (! preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $label)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function availableSlug(string $source): string
