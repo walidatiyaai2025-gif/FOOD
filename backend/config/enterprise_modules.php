@@ -53,6 +53,7 @@ return [
                 'procurement.purchase_requests',
                 'procurement.purchase_orders',
                 'procurement.goods_receipts',
+                'procurement.purchase_returns',
             ],
             'permissions' => [
                 'procurement.suppliers.view',
@@ -66,6 +67,9 @@ return [
                 'procurement.goods_receipts.view',
                 'procurement.goods_receipts.manage',
                 'procurement.goods_receipts.post',
+                'procurement.purchase_returns.view',
+                'procurement.purchase_returns.manage',
+                'procurement.purchase_returns.post',
             ],
             'health_checks' => [
                 'database',
