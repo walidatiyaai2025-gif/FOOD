@@ -39,17 +39,21 @@ final class SmartOrderingMenuRevisionCompareService
             $before = $left[$key] ?? null;
             $after = $right[$key] ?? null;
 
-            if ($before === null && $after !== null) {
+            if ($before === null) {
+                if ($after === null) {
+                    continue;
+                }
+
                 $change = 'added';
                 $fields = array_keys($after['attributes']);
                 sort($fields, SORT_STRING);
                 $identity = $after;
-            } elseif ($before !== null && $after === null) {
+            } elseif ($after === null) {
                 $change = 'removed';
                 $fields = array_keys($before['attributes']);
                 sort($fields, SORT_STRING);
                 $identity = $before;
-            } elseif ($before !== null && $after !== null && $before['attributes'] !== $after['attributes']) {
+            } elseif ($before['attributes'] !== $after['attributes']) {
                 $change = 'modified';
                 $fields = $this->changedFields($before['attributes'], $after['attributes']);
                 $identity = $after;
