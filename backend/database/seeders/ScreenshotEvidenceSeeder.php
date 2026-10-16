@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
+use App\Enterprise\Finance\FinanceFoundationService;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
@@ -169,6 +170,36 @@ class ScreenshotEvidenceSeeder extends Seeder
         );
         $procurementActor = User::query()->findOrFail($superAdminId);
         $procurementContext = app(TenantContextResolver::class)->wholesale($procurementActor, $storeId);
+        $financeScope = $procurementContext->enterpriseScope;
+        if ($financeScope === null) {
+            throw new RuntimeException('Finance screenshot fixture requires an Enterprise legal-entity scope.');
+        }
+
+        $financeRegistry = app(ModuleRegistry::class);
+        $financeRegistry->syncManifest(FinanceFoundationService::MODULE);
+        if ($financeRegistry->state(FinanceFoundationService::MODULE) !== ModuleState::ENABLED) {
+            if ($financeRegistry->state(FinanceFoundationService::MODULE) !== ModuleState::DISABLED) {
+                $lifecycle->transition(FinanceFoundationService::MODULE, ModuleState::DISABLED, $procurementActor);
+            }
+
+            $lifecycle->transition(FinanceFoundationService::MODULE, ModuleState::ENABLING, $procurementActor);
+            $lifecycle->transition(FinanceFoundationService::MODULE, ModuleState::ENABLED, $procurementActor);
+        }
+        app(ModuleEntitlementManager::class)->set(
+            FinanceFoundationService::MODULE,
+            new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $financeScope->legalEntityId),
+            true,
+            [
+                'finance.foundation.read',
+                'finance.gl.read',
+                'finance.opening_balances.read',
+                'finance.ar.read',
+                'finance.ap.read',
+                'finance.credit_terms.read',
+            ],
+            $procurementActor,
+        );
+
         app(SupplierDirectory::class)->create($procurementActor, $procurementContext, [
             'scope_type' => 'store',
             'code' => 'EVID-SUP-01',
