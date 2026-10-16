@@ -53,3 +53,7 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Consequences:** `CustomerDomainResolver`, `Order`/`orders`, `CommerceQuoteService`, `B2bAccountLedgerService`, and `CollectionCustodyService` remain canonical. `CommercialCreditEligibilityPolicy` is only a deterministic decision adapter over the existing B2B ledger summary and cannot become a credit ledger or mutate account state. Cross-module consumers use server-scoped compatibility contracts and event version 1; visible flow rewrites and new posting ledgers are outside this foundation.
 
 **Authority:** #1494, #1731, `docs/architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE.md`, and `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`.
+
+## Commercial Customer 360 read composition
+
+Compose existing channel-specific customer identities and source records through a read-only adapter. Keep store/channel and per-section permissions explicit, use bounded order/reference reads and the existing ledger aggregate contract, and expose missing/disabled/unavailable source states. Identity reads must never call materializing customer resolver methods. No registry or WhatsApp authority changes are required for this foundation while those files have active owners.

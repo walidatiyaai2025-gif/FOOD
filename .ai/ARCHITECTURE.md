@@ -115,3 +115,7 @@ match the newer platform version. CI must prove the frozen tree has zero diff.
 ## Architecture change rule
 
 If a task changes a boundary described here, update this file and add the reason to `DECISIONS.md` in the same PR.
+
+## Commercial Customer 360 composition
+
+`CommercialCustomer360Service` composes read-only channel/store-scoped customer identity from the existing resolver/repository, bounded canonical order references, existing B2B ledger aggregates and optional WhatsApp conversation references. Reads never materialize customer identities or mutate source records. Each section enforces its own permission; disabled or unauthorized optional sections do not query their domain data, and unavailable sources have explicit states instead of fabricated fallback data. Wholesale identity needs an existing order/invoice/retail-wholesale store relationship before composition. No second customer, CRM or financial ledger is introduced.
