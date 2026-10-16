@@ -23,7 +23,10 @@ final class SmartOrderingMenuController extends Controller
     ): JsonResponse {
         [$site, $branch, $locale] = $this->context($request, $slug, $runtime, $menus);
 
-        return response()->json(['data' => $menus->menu($site, $locale, $branch)]);
+        return response()->json([
+            'data' => $menus->menu($site, $locale, $branch),
+            'meta' => $menus->readMeta($site, $locale, $branch),
+        ]);
     }
 
     public function categories(
@@ -34,7 +37,10 @@ final class SmartOrderingMenuController extends Controller
     ): JsonResponse {
         [$site, $branch, $locale] = $this->context($request, $slug, $runtime, $menus);
 
-        return response()->json(['data' => $menus->categories($site, $locale, $branch)]);
+        return response()->json([
+            'data' => $menus->categories($site, $locale, $branch),
+            'meta' => $menus->readMeta($site, $locale, $branch),
+        ]);
     }
 
     public function items(
@@ -66,6 +72,11 @@ final class SmartOrderingMenuController extends Controller
             (int) ($data['per_page'] ?? 20),
         );
 
+        $result['meta'] = [
+            ...$result['meta'],
+            ...$menus->readMeta($site, $locale, $branch),
+        ];
+
         return response()->json($result);
     }
 
@@ -78,7 +89,10 @@ final class SmartOrderingMenuController extends Controller
     ): JsonResponse {
         [$site, $branch, $locale] = $this->context($request, $slug, $runtime, $menus);
 
-        return response()->json(['data' => $menus->itemDetail($site, $item, $locale, $branch)]);
+        return response()->json([
+            'data' => $menus->itemDetail($site, $item, $locale, $branch),
+            'meta' => $menus->readMeta($site, $locale, $branch),
+        ]);
     }
 
     public function quote(
