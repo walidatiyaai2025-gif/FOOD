@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
+use App\Http\Controllers\Admin\EnterpriseProcurementController;
 use App\Http\Controllers\Admin\EnterpriseSavedViewController;
 use App\Http\Controllers\Admin\EnterpriseSecurityController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
@@ -143,6 +144,27 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::prefix('erp/procurement')->name('erp.procurement.')->group(function (): void {
+            Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
+            Route::post('/suppliers', [EnterpriseProcurementController::class, 'storeSupplier'])->middleware('throttle:30,1')->name('suppliers.store');
+            Route::post('/suppliers/{supplier}/archive', [EnterpriseProcurementController::class, 'archiveSupplier'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.archive');
+            Route::post('/requests', [EnterpriseProcurementController::class, 'storeRequest'])->middleware('throttle:30,1')->name('requests.store');
+            Route::post('/requests/{purchaseRequest}/submit', [EnterpriseProcurementController::class, 'submitRequest'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('requests.submit');
+            Route::post('/requests/{purchaseRequest}/decision', [EnterpriseProcurementController::class, 'decideRequest'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('requests.decision');
+            Route::post('/requests/{purchaseRequest}/cancel', [EnterpriseProcurementController::class, 'cancelRequest'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('requests.cancel');
+            Route::post('/requests/{purchaseRequest}/purchase-order', [EnterpriseProcurementController::class, 'createOrder'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('orders.create');
+            Route::post('/orders/{purchaseOrder}/issue', [EnterpriseProcurementController::class, 'issueOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('orders.issue');
+            Route::post('/orders/{purchaseOrder}/cancel', [EnterpriseProcurementController::class, 'cancelOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('orders.cancel');
+            Route::post('/orders/{purchaseOrder}/receipts', [EnterpriseProcurementController::class, 'storeReceipt'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('receipts.store');
+            Route::post('/receipts/{goodsReceipt}/post', [EnterpriseProcurementController::class, 'postReceipt'])->whereNumber('goodsReceipt')->middleware('throttle:30,1')->name('receipts.post');
+            Route::post('/receipts/{goodsReceipt}/cancel', [EnterpriseProcurementController::class, 'cancelReceipt'])->whereNumber('goodsReceipt')->middleware('throttle:30,1')->name('receipts.cancel');
+            Route::post('/receipts/{goodsReceipt}/invoices', [EnterpriseProcurementController::class, 'storeInvoice'])->whereNumber('goodsReceipt')->middleware('throttle:30,1')->name('invoices.store');
+            Route::post('/invoices/{purchaseInvoice}/handoff', [EnterpriseProcurementController::class, 'handoffInvoice'])->whereNumber('purchaseInvoice')->middleware('throttle:30,1')->name('invoices.handoff');
+            Route::post('/invoices/{purchaseInvoice}/cancel', [EnterpriseProcurementController::class, 'cancelInvoice'])->whereNumber('purchaseInvoice')->middleware('throttle:30,1')->name('invoices.cancel');
+            Route::post('/receipts/{goodsReceipt}/returns', [EnterpriseProcurementController::class, 'storeReturn'])->whereNumber('goodsReceipt')->middleware('throttle:30,1')->name('returns.store');
+            Route::post('/returns/{purchaseReturn}/post', [EnterpriseProcurementController::class, 'postReturn'])->whereNumber('purchaseReturn')->middleware('throttle:30,1')->name('returns.post');
+            Route::post('/returns/{purchaseReturn}/cancel', [EnterpriseProcurementController::class, 'cancelReturn'])->whereNumber('purchaseReturn')->middleware('throttle:30,1')->name('returns.cancel');
+        });
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
             ->name('enterprise-workspaces.index');
