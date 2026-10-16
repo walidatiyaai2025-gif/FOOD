@@ -37,6 +37,8 @@ return [
                 'finance.gl.read',
                 'finance.gl.manage',
                 'finance.gl.post',
+                'finance.cost_centers.read',
+                'finance.cost_centers.manage',
             ],
             'permissions' => [
                 'finance.view',
