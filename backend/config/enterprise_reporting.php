@@ -111,4 +111,52 @@ return [
             'export_chunk_size' => 500,
         ],
     ],
+
+    'executive_bi' => [
+        'max_period_days' => 31,
+        'projection_stale_after_minutes' => 30,
+    ],
+
+    'executive_kpis' => [
+        'orders.overview' => [
+            'report' => 'orders.summary',
+            'scope_type' => 'store',
+            'measures' => ['orders', 'gross_total', 'average_order_value'],
+            'comparison' => 'period',
+            'currency_required' => true,
+            'freshness' => 'live',
+        ],
+        'commercial.margin' => [
+            'report' => 'commercial.profitability',
+            'scope_type' => 'store',
+            'measures' => ['net_revenue', 'cost', 'margin', 'unvalued_lines'],
+            'comparison' => 'period',
+            'currency_required' => true,
+            'freshness' => 'projection',
+        ],
+        'finance.receivables' => [
+            'report' => 'finance.ar_exposure',
+            'scope_type' => 'legal_entity',
+            'measures' => ['documents', 'outstanding_amount'],
+            'comparison' => 'as_of',
+            'currency_required' => true,
+            'freshness' => 'live',
+        ],
+        'finance.payables' => [
+            'report' => 'finance.ap_exposure',
+            'scope_type' => 'legal_entity',
+            'measures' => ['documents', 'outstanding_amount'],
+            'comparison' => 'as_of',
+            'currency_required' => true,
+            'freshness' => 'live',
+        ],
+        'inventory.stock' => [
+            'report' => 'wms.stock_exposure',
+            'scope_type' => 'store',
+            'measures' => ['on_hand', 'reserved', 'available', 'stock_value', 'unvalued_items'],
+            'comparison' => 'current_only',
+            'currency_required' => false,
+            'freshness' => 'live',
+        ],
+    ],
 ];
