@@ -100,6 +100,7 @@ return [
         'finance.view' => 'View finance and invoice data',
         'finance.manage' => 'Manage finance and invoices',
         'finance.post' => 'Post approved finance journals and controlled subledger transactions',
+        'finance.approve' => 'Approve Finance mutations within server-authoritative limits and delegation policy',
         'reports.view' => 'View operational and business reports',
         'reports.export' => 'Export authorized reports',
         'support.view' => 'View customer support operations',
