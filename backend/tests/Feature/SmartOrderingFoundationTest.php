@@ -316,6 +316,71 @@ class SmartOrderingFoundationTest extends TestCase
         ]);
     }
 
+    public function test_custom_domain_hosts_are_canonical_and_platform_or_unsafe_hosts_fail_closed(): void
+    {
+        $storeId = $this->retailStore('SO-DOMAIN-SAFETY');
+        $admin = $this->storeAdmin($storeId);
+        $service = app(SmartOrderingSiteService::class);
+        $runtime = app(SmartOrderingRuntimePolicy::class);
+        $site = $service->ensureForStore($storeId, $admin);
+
+        $result = $service->updateCustomDomain($admin, $site, ' Orders.Example.Test. ');
+        $site = $result['site'];
+        $token = $result['verification_token'];
+
+        $this->assertSame('orders.example.test', $site->custom_domain);
+        $this->assertIsString($token);
+
+        $site = $service->verifyCustomDomain($admin, $site, $token);
+        $service->setEntitlement($admin, $site, Module::CUSTOM_DOMAIN, true);
+        $this->assertSame($site->id, $runtime->resolveByHost('ORDERS.EXAMPLE.TEST.')?->id);
+        $this->assertNull($runtime->resolveByHost('https://orders.example.test'));
+        $this->assertNull($runtime->resolveByHost('orders.example.test:443'));
+
+        foreach ([
+            'foodex.com',
+            'victim.foodex.com',
+            'localhost',
+            '127.0.0.1',
+            '[::1]',
+            'https://orders.example.test',
+            'orders.example.test/path',
+            'orders.example.test?campaign=x',
+            'orders.example.test#fragment',
+            'orders.example.test:8443',
+            '*.example.test',
+            'orders@example.test',
+            'single-label',
+            'bad..example.test',
+            '-bad.example.test',
+        ] as $invalidHost) {
+            try {
+                $service->updateCustomDomain($admin, $site->fresh(), $invalidHost);
+                $this->fail('Unsafe custom-domain host must fail: '.$invalidHost);
+            } catch (ValidationException) {
+                $this->assertTrue(true);
+            }
+        }
+
+        $changed = $service->updateCustomDomain($admin, $site->fresh(), ' NEW.EXAMPLE.TEST. ');
+        $site = $changed['site'];
+        $this->assertSame('new.example.test', $site->custom_domain);
+        $this->assertNull($site->custom_domain_verified_at);
+        $this->assertNull($runtime->resolveByHost('orders.example.test'));
+        $this->assertNull($runtime->resolveByHost('new.example.test'));
+
+        $newToken = $changed['verification_token'];
+        $this->assertIsString($newToken);
+        $site = $service->verifyCustomDomain($admin, $site, $newToken);
+        $this->assertSame($site->id, $runtime->resolveByHost('new.example.test')?->id);
+
+        $removed = $service->updateCustomDomain($admin, $site, null)['site'];
+        $this->assertNull($removed->custom_domain);
+        $this->assertNull($removed->custom_domain_verification_token_hash);
+        $this->assertNull($removed->custom_domain_verified_at);
+        $this->assertNull($runtime->resolveByHost('new.example.test'));
+    }
+
     private function retailStore(string $code): int
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
