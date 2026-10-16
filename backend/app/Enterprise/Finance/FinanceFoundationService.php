@@ -301,6 +301,18 @@ final class FinanceFoundationService
                 return $costCenter;
             }
 
+            if (
+                $status === 'inactive'
+                && $this->costCenterQuery($scope)
+                    ->where('parent_id', $costCenter->id)
+                    ->where('status', 'active')
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'status' => ['A cost center with active children cannot be made inactive.'],
+                ]);
+            }
+
             $before = $costCenter->toArray();
             $costCenter->forceFill([
                 'status' => $status,
