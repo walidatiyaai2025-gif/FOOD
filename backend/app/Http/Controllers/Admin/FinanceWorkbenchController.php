@@ -27,6 +27,7 @@ use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -638,7 +639,7 @@ final class FinanceWorkbenchController extends Controller
         );
     }
 
-    /** @return \Illuminate\Support\Collection<int, mixed> */
+    /** @return Collection<int, mixed> */
     private function postingAccounts(User $actor, ResolvedTenantContext $context)
     {
         return $this->finance->paginateAccounts(
@@ -683,7 +684,7 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /**
-     * @param array<string, bool> $access
+     * @param  array<string, bool>  $access
      * @return list<array{key:string,label:string,available:bool}>
      */
     private function tabDefinitions(array $access): array
@@ -747,7 +748,7 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /**
-     * @param list<array{id:int,code:string,name:string,channel:string}> $contexts
+     * @param  list<array{id:int,code:string,name:string,channel:string}>  $contexts
      * @return array{id:int,code:string,name:string,channel:string}|null
      */
     private function selectedContextOption(Request $request, array $contexts): ?array
@@ -772,7 +773,7 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /**
-     * @param array{id:int,code:string,name:string,channel:string} $selected
+     * @param  array{id:int,code:string,name:string,channel:string}  $selected
      */
     private function resolveContext(Request $request, User $actor, array $selected): ResolvedTenantContext
     {
@@ -841,7 +842,7 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /**
-     * @param array<string, int|string> $extra
+     * @param  array<string, int|string>  $extra
      */
     private function redirectTo(
         Request $request,
