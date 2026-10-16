@@ -27,6 +27,11 @@ final class SmartOrderingMenuRevisionService
         return $draft->fresh();
     }
 
+    public function scheduled(SmartOrderingSite $site): ?SmartOrderingRevision
+    {
+        return $this->revisions->scheduled($site);
+    }
+
     public function publish(
         User $actor,
         SmartOrderingSite $site,
