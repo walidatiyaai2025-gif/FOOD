@@ -123,42 +123,47 @@ final class EnterpriseGoodsReceiptFoundationTest extends TestCase
         ]);
         $manager->post($actor, $context, $first->id);
 
-        $tooMuch = $manager->createFromIssuedOrder($actor, $context, $order->id, [
-            'lines' => [[
-                'purchase_order_line_id' => $poLineId,
-                'warehouse_id' => $warehouse->id,
-                'quantity' => 4,
-            ]],
-        ]);
-
         try {
-            $manager->post($actor, $context, $tooMuch->id);
-            $this->fail('Posting must reject quantities beyond the ordered remainder.');
+            $manager->createFromIssuedOrder($actor, $context, $order->id, [
+                'lines' => [[
+                    'purchase_order_line_id' => $poLineId,
+                    'warehouse_id' => $warehouse->id,
+                    'quantity' => 4,
+                ]],
+            ]);
+            $this->fail('Draft creation must reject quantities beyond the current ordered remainder.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('lines', $exception->errors());
         }
 
-        $this->assertDatabaseHas('enterprise_goods_receipts', [
-            'id' => $tooMuch->id,
-            'status' => 'draft',
-        ]);
-        $this->assertSame(
-            2.0,
-            (float) DB::table('inventories')
-                ->where('warehouse_id', $warehouse->id)
-                ->where('product_id', $product->id)
-                ->value('quantity'),
-        );
-
-        $remainder = $manager->createFromIssuedOrder($actor, $context, $order->id, [
+        $staleA = $manager->createFromIssuedOrder($actor, $context, $order->id, [
             'lines' => [[
                 'purchase_order_line_id' => $poLineId,
                 'warehouse_id' => $warehouse->id,
                 'quantity' => 3,
             ]],
         ]);
-        $manager->post($actor, $context, $remainder->id);
+        $staleB = $manager->createFromIssuedOrder($actor, $context, $order->id, [
+            'lines' => [[
+                'purchase_order_line_id' => $poLineId,
+                'warehouse_id' => $warehouse->id,
+                'quantity' => 3,
+            ]],
+        ]);
 
+        $manager->post($actor, $context, $staleA->id);
+
+        try {
+            $manager->post($actor, $context, $staleB->id);
+            $this->fail('Posting a stale draft must re-check the remaining quantity under the PO lock.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lines', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('enterprise_goods_receipts', [
+            'id' => $staleB->id,
+            'status' => 'draft',
+        ]);
         $this->assertSame(
             5.0,
             (float) DB::table('inventories')
