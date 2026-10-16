@@ -43,10 +43,16 @@ return new class extends Migration {
             $table->foreignId('organization_id')->constrained('enterprise_organizations')->restrictOnDelete();
             $table->foreignId('company_id')->constrained('enterprise_companies')->restrictOnDelete();
             $table->foreignId('legal_entity_id')->constrained('enterprise_legal_entities')->restrictOnDelete();
-            $table->foreignId('approval_limit_id')
-                ->constrained('enterprise_finance_approval_limits')
+            $table->foreignId('approval_limit_id');
+            $table->foreign('approval_limit_id', 'efa_delegation_limit_fk')
+                ->references('id')
+                ->on('enterprise_finance_approval_limits')
                 ->restrictOnDelete();
-            $table->foreignId('delegator_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('delegator_user_id');
+            $table->foreign('delegator_user_id', 'efa_delegation_delegator_fk')
+                ->references('id')
+                ->on('users')
+                ->restrictOnDelete();
             $table->foreignId('delegate_user_id')->constrained('users')->restrictOnDelete();
             $table->string('delegation_key', 128);
             $table->char('request_hash', 64);
