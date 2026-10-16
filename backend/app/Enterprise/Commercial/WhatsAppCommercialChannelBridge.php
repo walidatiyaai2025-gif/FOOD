@@ -148,9 +148,12 @@ final class WhatsAppCommercialChannelBridge
         );
 
         $aggregateType = $fact === 'order' ? 'order' : 'platform_customer';
-        $aggregateId = $fact === 'order'
-            ? (int) $reference['order']['id']
-            : (int) $reference['customer']['platform_customer_id'];
+        if ($fact === 'order') {
+            abort_unless(is_array($reference['order']), 404);
+            $aggregateId = (int) $reference['order']['id'];
+        } else {
+            $aggregateId = (int) $reference['customer']['platform_customer_id'];
+        }
 
         $idempotencyKey = hash('sha256', implode(':', [
             'foodex-whatsapp-commercial',
