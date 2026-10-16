@@ -42,6 +42,8 @@
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
+        @include('admin._restaurant-onboarding')
+
         <section class="panel">
             <form class="foodex-form" method="get" action="{{ route('admin.smart-ordering.index') }}">
                 <label for="store">{{ __('smart_ordering.store') }}</label>

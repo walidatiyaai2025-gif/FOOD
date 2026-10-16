@@ -17,6 +17,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $parent_revision_id
  * @property int|null $created_by
  * @property int|null $published_by
+ * @property int|null $scheduled_by
+ * @property Carbon|null $scheduled_at
  * @property Carbon|null $published_at
  */
 class SmartOrderingRevision extends Model
@@ -37,6 +39,11 @@ class SmartOrderingRevision extends Model
 
     protected function casts(): array
     {
-        return ['payload' => 'array', 'schema_version' => 'integer', 'published_at' => 'datetime'];
+        return [
+            'payload' => 'array',
+            'schema_version' => 'integer',
+            'scheduled_at' => 'datetime',
+            'published_at' => 'datetime',
+        ];
     }
 }

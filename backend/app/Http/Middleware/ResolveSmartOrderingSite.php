@@ -34,6 +34,13 @@ final class ResolveSmartOrderingSite
         $revision = $this->revisions->published($site);
         abort_unless($revision !== null, 404);
 
+        $canonicalHost = $this->runtime->canonicalPlatformRedirectHost($request->getHost(), $site);
+        if ($canonicalHost !== null && ($request->isMethod('GET') || $request->isMethod('HEAD'))) {
+            $location = $request->getScheme().'://'.$canonicalHost.$request->getRequestUri();
+
+            return redirect()->away($location, 308);
+        }
+
         $request->attributes->set('smart_ordering.site', $site);
         $request->attributes->set('smart_ordering.branch', $branch);
         $request->attributes->set('smart_ordering.revision', $revision);

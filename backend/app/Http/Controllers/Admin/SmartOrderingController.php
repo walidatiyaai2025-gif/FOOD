@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
 use App\Support\TenantContextResolver;
+use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,7 @@ final class SmartOrderingController extends Controller
         TenantContextResolver $tenants,
         SmartOrderingSiteService $sites,
         SmartOrderingRevisionService $revisions,
+        RestaurantOnboardingService $onboarding,
     ): View {
         $actor = $this->actor($request);
         $storeIds = $tenants->retailStoreIds($actor);
@@ -43,6 +46,10 @@ final class SmartOrderingController extends Controller
         $site = SmartOrderingSite::query()->where('store_id', $storeId)->firstOrFail();
         $published = $revisions->ensurePublished($site, $actor);
         $draft = $revisions->draft($site);
+        $selectedStore = $stores->firstWhere('id', $storeId);
+        abort_unless($selectedStore instanceof Store, 404);
+        $onboardingStatus = $onboarding->status($selectedStore, $actor);
+
         $entitlements = DB::table('smart_ordering_entitlements')
             ->where('site_id', $site->id)
             ->pluck('enabled', 'module')
@@ -58,6 +65,10 @@ final class SmartOrderingController extends Controller
             'modules' => (array) config('smart_ordering.entitlements', []),
             'states' => (array) config('smart_ordering.runtime_states', []),
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),
+            'onboardingStatus' => $onboardingStatus,
+            'canManageOnboarding' => $actor->hasPermission('smart_ordering.manage', $storeId),
+            'canLaunchOnboarding' => $actor->hasPermission('smart_ordering.publish', $storeId),
+            'onboardingTimezones' => DateTimeZone::listIdentifiers(),
         ]);
     }
 
@@ -165,7 +176,7 @@ final class SmartOrderingController extends Controller
             throw ValidationException::withMessages(['config_json' => __('smart_ordering.validation.json')]);
         }
 
-        if (! is_array($payload)) {
+        if (is_array($payload) === false) {
             throw ValidationException::withMessages(['config_json' => __('smart_ordering.validation.json')]);
         }
 

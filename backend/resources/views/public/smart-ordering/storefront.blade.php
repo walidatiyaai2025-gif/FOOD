@@ -6,11 +6,14 @@
     <title>{{ $site['seo']['title'] }}</title>
     @if($site['seo']['description'] !== '')<meta name="description" content="{{ $site['seo']['description'] }}">@endif
     @if($site['seo']['canonical'])<link rel="canonical" href="{{ $site['seo']['canonical'] }}">@endif
+    @foreach($site['seo']['alternates'] ?? [] as $hreflang => $alternate)<link rel="alternate" hreflang="{{ $hreflang }}" href="{{ $alternate }}">@endforeach
+    @if($site['seo']['canonical'])<link rel="alternate" hreflang="x-default" href="{{ $site['seo']['canonical'] }}">@endif
     <meta property="og:type" content="restaurant">
     <meta property="og:title" content="{{ $site['seo']['title'] }}">
     @if($site['seo']['description'] !== '')<meta property="og:description" content="{{ $site['seo']['description'] }}">@endif
     @if($site['seo']['image_url'])<meta property="og:image" content="{{ $site['seo']['image_url'] }}">@endif
     @if($site['seo']['canonical'])<meta property="og:url" content="{{ $site['seo']['canonical'] }}">@endif
+    @if(($site['seo']['structured_json'] ?? '') !== '')<script type="application/ld+json">{!! $site['seo']['structured_json'] !!}</script>@endif
     <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="/css/smart-ordering-storefront.css">
     <style>:root{ @foreach($appearance['css_variables'] as $name => $value) {{ $name }}: {{ $value }}; @endforeach }</style>

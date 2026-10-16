@@ -2,6 +2,7 @@
 
 use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\WhatsApp\SmartOrderingScheduledReminderService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
@@ -29,6 +30,20 @@ Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
 Schedule::command('foodex:dispatch-scheduled-notifications')
     ->everyMinute()
     ->withoutOverlapping();
+
+Artisan::command(
+    'foodex:publish-scheduled-smart-ordering {--limit=25 : Maximum due revisions published per scheduler tick}',
+    function (SmartOrderingRevisionService $revisions): int {
+        $count = $revisions->dispatchDueScheduled((int) $this->option('limit'));
+        $this->info("Published {$count} scheduled Smart Ordering revision(s).");
+
+        return 0;
+    },
+)->purpose('Publish one bounded slice of due Smart Ordering revisions through the existing Laravel scheduler.');
+
+Schedule::command('foodex:publish-scheduled-smart-ordering --limit=25')
+    ->everyMinute()
+    ->withoutOverlapping(2);
 
 Artisan::command(
     'foodex:dispatch-enterprise-outbox {--limit=50 : Maximum Enterprise outbox rows claimed per scheduler tick}',

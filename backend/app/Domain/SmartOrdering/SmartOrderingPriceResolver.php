@@ -69,21 +69,44 @@ final class SmartOrderingPriceResolver
     }
 
     /**
-     * Resolve editor prices for a bounded collection without issuing one product query per item.
+     * Resolve prices for a bounded collection without issuing one product query per item.
      *
      * @param  iterable<SmartOrderingMenuItem>  $items
      * @return array{prices:array<int,array{amount:float,source:string}>,errors:array<int,string>}
      */
-    public function displayPrices(SmartOrderingSite $site, iterable $items): array
-    {
+    public function displayPrices(
+        SmartOrderingSite $site,
+        iterable $items,
+        ?SmartOrderingBranch $branch = null,
+    ): array {
         $items = collect($items)->values();
+        $this->assertBranch($site, $branch);
 
         foreach ($items as $item) {
             abort_unless((int) $item->site_id === (int) $site->id, 404);
         }
 
+        $itemIds = $items
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values();
+
+        $branchOverrides = $branch === null || $itemIds->isEmpty()
+            ? collect()
+            : DB::table('smart_ordering_item_branch_overrides')
+                ->where('branch_id', $branch->id)
+                ->whereIn('item_id', $itemIds)
+                ->get(['item_id', 'price_override'])
+                ->keyBy('item_id');
+
         $sourceProductIds = $items
-            ->filter(fn (SmartOrderingMenuItem $item): bool => $item->price_override === null && $item->source_product_id !== null)
+            ->filter(function (SmartOrderingMenuItem $item) use ($branchOverrides): bool {
+                $override = $branchOverrides->get((int) $item->id);
+
+                return ($override === null || $override->price_override === null)
+                    && $item->price_override === null
+                    && $item->source_product_id !== null;
+            })
             ->pluck('source_product_id')
             ->map(static fn ($id): int => (int) $id)
             ->unique()
@@ -112,6 +135,16 @@ final class SmartOrderingPriceResolver
 
         foreach ($items as $item) {
             $itemId = (int) $item->id;
+            $branchOverride = $branchOverrides->get($itemId);
+
+            if ($branchOverride !== null && $branchOverride->price_override !== null) {
+                $prices[$itemId] = [
+                    'amount' => round((float) $branchOverride->price_override, 3),
+                    'source' => 'branch_override',
+                ];
+
+                continue;
+            }
 
             if ($item->price_override !== null) {
                 $prices[$itemId] = [
