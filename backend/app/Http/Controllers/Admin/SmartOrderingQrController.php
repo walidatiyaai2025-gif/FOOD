@@ -246,9 +246,14 @@ final class SmartOrderingQrController extends Controller
 
     private function assetVersion(Request $request): ?string
     {
-        $version = $request->query('version');
+        if (! $request->query->has('version')) {
+            return null;
+        }
 
-        return is_string($version) && $version !== '' ? strtolower($version) : null;
+        $version = $request->query('version');
+        abort_unless(is_string($version) && $version !== '', 404);
+
+        return strtolower($version);
     }
 
     /** @return array<string, mixed> */
