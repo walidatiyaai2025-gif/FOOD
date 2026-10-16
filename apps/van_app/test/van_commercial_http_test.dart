@@ -24,7 +24,12 @@ void main() {
         return http.Response(
           jsonEncode({
             'data': [
-              {'id': 1, 'name': 'Normal offer', 'type': 'percentage', 'value': 10},
+              {
+                'id': 1,
+                'name': 'Normal offer',
+                'type': 'percentage',
+                'value': 10
+              },
             ],
           }),
           200,
@@ -52,8 +57,10 @@ void main() {
                 {
                   'id': 51,
                   'product_id': 99,
+                  'product_name': 'Sparkling Water',
                   'selling_unit_id': 5,
                   'selling_unit_code': 'CARTON',
+                  'selling_unit_name': 'Carton',
                   'conversion_factor': 10,
                   'flash_price': 7,
                   'allocation_base': 1000,
@@ -81,7 +88,9 @@ void main() {
     expect(flashRequested.queryParameters.containsKey('channel'), isFalse);
     expect(feed.serverTime, DateTime.parse('2026-10-06T05:30:00Z'));
     expect(feed.offers, hasLength(1));
+    expect(feed.offers.single.products.single.productName, 'Sparkling Water');
     expect(feed.offers.single.products.single.sellingUnitCode, 'CARTON');
+    expect(feed.offers.single.products.single.sellingUnitName, 'Carton');
     expect(feed.offers.single.products.single.conversionFactor, 10);
     expect(feed.offers.single.products.single.flashPrice, 7);
     expect(feed.normalOffers.single.name, 'Normal offer');
@@ -150,7 +159,8 @@ void main() {
     expect(quote.sellingUnit.conversionFactor, 10);
   });
 
-  test('reserves Flash against selected customer scope, never Van operator', () async {
+  test('reserves Flash against selected customer scope, never Van operator',
+      () async {
     late http.Request captured;
     final repository = HttpVanCommercialRepository(
       VanApiClient(
@@ -182,24 +192,27 @@ void main() {
     expect(body['override_reason'], 'Supervisor approved');
   });
 
-  test('canonical commercial reason-code set stays aligned with #984 runtime', () {
-    expect(vanCommercialReasonCodes, containsAll(const [
-      'PRODUCT_INACTIVE',
-      'PRODUCT_CLOSED',
-      'PRODUCT_RESTRICTED',
-      'CHANNEL_BLOCKED',
-      'OUTSIDE_AVAILABILITY',
-      'MAX_PER_ORDER_EXCEEDED',
-      'MAX_PER_DAY_EXCEEDED',
-      'MAX_PER_WEEK_EXCEEDED',
-      'MAX_PER_MONTH_EXCEEDED',
-      'MAX_LIFETIME_EXCEEDED',
-      'FLASH_NOT_ACTIVE',
-      'FLASH_SOLD_OUT',
-      'FLASH_CUSTOMER_LIMIT_REACHED',
-      'FLASH_RESERVATION_EXPIRED',
-      'ONLINE_VALIDATION_REQUIRED',
-      'OVERRIDE_REQUIRED',
-    ]));
+  test('canonical commercial reason-code set stays aligned with #984 runtime',
+      () {
+    expect(
+        vanCommercialReasonCodes,
+        containsAll(const [
+          'PRODUCT_INACTIVE',
+          'PRODUCT_CLOSED',
+          'PRODUCT_RESTRICTED',
+          'CHANNEL_BLOCKED',
+          'OUTSIDE_AVAILABILITY',
+          'MAX_PER_ORDER_EXCEEDED',
+          'MAX_PER_DAY_EXCEEDED',
+          'MAX_PER_WEEK_EXCEEDED',
+          'MAX_PER_MONTH_EXCEEDED',
+          'MAX_LIFETIME_EXCEEDED',
+          'FLASH_NOT_ACTIVE',
+          'FLASH_SOLD_OUT',
+          'FLASH_CUSTOMER_LIMIT_REACHED',
+          'FLASH_RESERVATION_EXPIRED',
+          'ONLINE_VALIDATION_REQUIRED',
+          'OVERRIDE_REQUIRED',
+        ]));
   });
 }
