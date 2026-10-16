@@ -12,10 +12,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseStockReservationFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     public function test_reservation_is_retry_safe_and_preserves_unrelated_reserved_quantity(): void
@@ -374,6 +376,7 @@ final class EnterpriseStockReservationFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'WMS Reservation User',
             'email' => 'wms-reservation@example.test',

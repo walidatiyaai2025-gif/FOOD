@@ -11,10 +11,12 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseWmsReportingFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -78,7 +80,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
         $this->assertSame('91_plus', $row->aging_bucket);
         $this->assertSame('slow', $row->stock_status);
         $this->assertSame($fixture['inventory_id'], $row->drill_down['inventory_id']);
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
         $this->assertSame(
             $beforeQuantity,
             (float) DB::table('inventories')->where('id', $fixture['inventory_id'])->value('quantity'),
@@ -151,7 +153,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
         $this->assertTrue($page->every(
             fn (\stdClass $row): bool => (int) $row->warehouse_id === $fixture['warehouse_id'],
         ));
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
 
         $lastId = (int) $page->last()->inventory_lot_id;
         $next = app(WmsReportingService::class)->lotExpiry(
@@ -357,6 +359,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId, string $suffix): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'WMS Reporting '.$suffix,
             'email' => 'wms-reporting-'.$suffix.'@example.test',

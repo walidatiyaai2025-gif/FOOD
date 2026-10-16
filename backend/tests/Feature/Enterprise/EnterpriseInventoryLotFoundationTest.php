@@ -11,10 +11,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseInventoryLotFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     public function test_lot_identifier_is_normalized_idempotent_and_status_lifecycle_is_audited(): void
@@ -193,7 +195,7 @@ final class EnterpriseInventoryLotFoundationTest extends TestCase
         $this->assertTrue($rows->every(
             fn ($lot): bool => (int) $lot->warehouse_id === $fixture['warehouse_id'],
         ));
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
 
         try {
             app(InventoryLotService::class)->expiryWindow(
@@ -435,6 +437,7 @@ final class EnterpriseInventoryLotFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'Lot Inventory',
             'email' => 'lot-inventory@example.test',
