@@ -89,6 +89,7 @@ final class EnterpriseMyWorkTest extends TestCase
     public function test_action_center_accepts_follow_up_filters_without_replacing_approval_contract(): void
     {
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $actor->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($actor)
             ->get(route('admin.action-center.index', [
