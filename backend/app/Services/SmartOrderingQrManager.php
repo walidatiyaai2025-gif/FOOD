@@ -200,12 +200,23 @@ final class SmartOrderingQrManager
     private function rawTokenValue(SmartOrderingQrToken $token): ?string
     {
         try {
-            $rawToken = (string) $token->token_value;
+            $rawToken = $this->decryptTokenValue($token);
         } catch (DecryptException) {
             return null;
         }
 
         return $rawToken !== '' ? $rawToken : null;
+    }
+
+    /**
+     * The encrypted Eloquent cast can throw when persisted data was written with
+     * a different application key. PHPStan cannot infer that from magic access.
+     *
+     * @throws DecryptException
+     */
+    private function decryptTokenValue(SmartOrderingQrToken $token): string
+    {
+        return (string) $token->token_value;
     }
 
     /** @param array<string, mixed> $data */
