@@ -368,6 +368,13 @@ final class OpeningBalanceService
                 $actor,
                 $context,
                 $journal->id,
+                new FinancePostingApprovalContext(
+                    action: FinanceApprovalService::ACTION_OPENING_BALANCE_POST,
+                    entityType: 'enterprise_finance_opening_balance',
+                    entityId: (string) $batch->id,
+                    makerId: (int) $batch->created_by,
+                    amount: (string) $batch->total_debit,
+                ),
             );
 
             $before = $batch->toArray();
