@@ -309,8 +309,7 @@ final class EnterpriseProfitabilityReadModelTest extends TestCase
 
         Bus::assertDispatched(
             RefreshCommercialProfitabilityReadModel::class,
-            static fn (RefreshCommercialProfitabilityReadModel $job): bool =>
-                $job->storeId === $store
+            static fn (RefreshCommercialProfitabilityReadModel $job): bool => $job->storeId === $store
                 && $job->afterId === $firstOutbox
                 && $job->limit === 1,
         );
