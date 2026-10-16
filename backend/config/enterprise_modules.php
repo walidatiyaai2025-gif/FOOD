@@ -55,6 +55,7 @@ return [
                 'procurement.goods_receipts',
                 'procurement.purchase_returns',
                 'procurement.purchase_invoices',
+                'procurement.supplier_statements',
             ],
             'permissions' => [
                 'procurement.suppliers.view',
@@ -74,6 +75,7 @@ return [
                 'procurement.purchase_invoices.view',
                 'procurement.purchase_invoices.manage',
                 'procurement.purchase_invoices.handoff',
+                'procurement.supplier_statements.view',
             ],
             'health_checks' => [
                 'database',
