@@ -160,7 +160,8 @@ final class OrdersSummaryReadModel
         }
 
         foreach ($query->measures as $measure) {
-            $result[$measure] = match ($measure) {
+            $key = $measure === 'orders' ? 'order_count' : $measure;
+            $result[$key] = match ($measure) {
                 'orders' => (int) $row->order_count,
                 'gross_total' => self::money((float) $row->gross_total),
                 'average_order_value' => self::money((float) $row->average_order_value),
