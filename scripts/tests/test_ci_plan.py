@@ -22,7 +22,7 @@ class CiPlanTest(unittest.TestCase):
         for a in ("backend","customer","driver","van"): self.assertTrue(p["areas"][a])
     def test_branch_override_is_machine_readable(self):
         p=module.resolve(self.config,[],"test/1253-operational-completion-e2e")
-        self.assertTrue(p["areas"]["operational_completion_e2e"]); self.assertTrue(p["areas"]["app_preview_visual"]); self.assertTrue(p["areas"]["van"])
+        self.assertTrue(p["areas"]["operational_completion_e2e"]); self.assertTrue(p["areas"]["app_preview_visual"]); self.assertTrue(p["areas"]["van"]); self.assertTrue(p["areas"]["dashboard_ui"])
     def test_customer_order_change_resolves_high_signal_tests(self):
         p=module.resolve(self.config,["apps/customer_app/lib/features/orders/orders_screen.dart"],"feat/1253-test")
         self.assertIn("test/customer_orders_ui_v3_test.dart",p["focused_tests"]["customer"])
