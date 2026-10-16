@@ -321,6 +321,29 @@ final class RestaurantPaymentService
         }, 3);
     }
 
+    /** @param list<int> $storeIds
+     * @return list<string>
+     */
+    public function providerOptions(array $storeIds): array
+    {
+        if ($storeIds === []) {
+            return [];
+        }
+
+        return DB::table('payments as p')
+            ->join('orders as o', 'o.id', '=', 'p.order_id')
+            ->join('smart_ordering_order_contexts as soc', 'soc.order_id', '=', 'o.id')
+            ->whereIn('o.store_id', $storeIds)
+            ->whereNotNull('p.provider')
+            ->where('p.provider', '<>', '')
+            ->distinct()
+            ->orderBy('p.provider')
+            ->pluck('p.provider')
+            ->map(static fn ($provider): string => (string) $provider)
+            ->values()
+            ->all();
+    }
+
     /**
      * @param list<int> $storeIds
      * @param array{payment_status?:string,payment_provider?:string,reconciliation?:string} $filters
