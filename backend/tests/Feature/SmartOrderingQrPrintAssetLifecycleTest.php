@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
-use App\Models\SmartOrderingQrCode;
 use App\Models\User;
 use App\Services\SmartOrderingQrManager;
 use Database\Seeders\CoreReferenceSeeder;
