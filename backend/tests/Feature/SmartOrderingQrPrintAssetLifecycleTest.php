@@ -40,7 +40,7 @@ class SmartOrderingQrPrintAssetLifecycleTest extends TestCase
 
         $svg->assertOk()
             ->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8')
-            ->assertHeader('Cache-Control', 'private, no-store')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('X-FOODEX-QR-Asset-Version', $version)
             ->assertHeader('X-FOODEX-QR-Asset-State', 'active');
@@ -52,7 +52,7 @@ class SmartOrderingQrPrintAssetLifecycleTest extends TestCase
 
         $pdf->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('Cache-Control', 'private, no-store')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('X-FOODEX-QR-Asset-Version', $version)
             ->assertHeader('X-FOODEX-QR-Asset-State', 'active');
