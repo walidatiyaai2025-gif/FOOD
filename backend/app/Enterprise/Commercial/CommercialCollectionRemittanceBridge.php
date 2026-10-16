@@ -4,6 +4,7 @@ namespace App\Enterprise\Commercial;
 
 use App\Models\CollectionAccount;
 use App\Models\Invoice;
+use App\Models\Order;
 use App\Models\Remittance;
 use App\Models\User;
 use App\Services\CollectionCustodyService;
