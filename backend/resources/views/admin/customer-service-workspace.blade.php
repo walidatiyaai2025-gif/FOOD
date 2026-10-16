@@ -26,7 +26,7 @@
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header">
             <div>
-                <span class="foodex-subtitle">FOODEX · ERP</span>
+                <span class="foodex-subtitle">{{ __('customer_service_workspace.eyebrow') }}</span>
                 <h1>{{ __('customer_service_workspace.title') }}</h1>
                 <p>{{ __('customer_service_workspace.subtitle') }}</p>
             </div>
