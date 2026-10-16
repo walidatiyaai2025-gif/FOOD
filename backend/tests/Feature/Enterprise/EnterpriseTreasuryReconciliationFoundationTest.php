@@ -8,6 +8,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Treasury\TreasuryIntegrationEventPublisher;
 use App\Enterprise\Treasury\TreasuryPaymentService;
 use App\Enterprise\Treasury\TreasuryReceiptService;
 use App\Enterprise\Treasury\TreasuryReconciliationService;
@@ -136,6 +137,20 @@ class EnterpriseTreasuryReconciliationFoundationTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.treasury.reconciliation_closed',
             'auditable_id' => $closed->id,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('enterprise_outbox_messages')
+                ->where('event_type', TreasuryIntegrationEventPublisher::RECONCILIATION_CLOSED)
+                ->where('event_version', 1)
+                ->count(),
+        );
+        $this->assertDatabaseHas('enterprise_treasury_integration_events', [
+            'source_type' => 'reconciliation',
+            'source_id' => $closed->id,
+            'event_type' => TreasuryIntegrationEventPublisher::RECONCILIATION_CLOSED,
+            'event_version' => 1,
+            'currency_code' => 'KWD',
         ]);
 
         try {
@@ -269,10 +284,26 @@ class EnterpriseTreasuryReconciliationFoundationTest extends TestCase
         }
 
         $closed = $service->closeCashClosing($approver, $approverContext, $draft->id);
+        $closedRetry = $service->closeCashClosing($approver, $approverContext, $draft->id);
         $this->assertSame('closed', $closed->status);
+        $this->assertSame($closed->id, $closedRetry->id);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.treasury.cash_closing_closed',
             'auditable_id' => $closed->id,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('enterprise_outbox_messages')
+                ->where('event_type', TreasuryIntegrationEventPublisher::CASH_CLOSING_CLOSED)
+                ->where('event_version', 1)
+                ->count(),
+        );
+        $this->assertDatabaseHas('enterprise_treasury_integration_events', [
+            'source_type' => 'cash_closing',
+            'source_id' => $closed->id,
+            'event_type' => TreasuryIntegrationEventPublisher::CASH_CLOSING_CLOSED,
+            'event_version' => 1,
+            'currency_code' => 'KWD',
         ]);
 
         $otherCashbox = EnterpriseCashbox::query()->create([
