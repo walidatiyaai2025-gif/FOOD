@@ -60,10 +60,13 @@ def resolve(config:dict,paths:list[str],branch:str="")->dict:
             focused_rules.append(item["id"]); area=item["area"]
             for test in item.get("tests",[]):
                 if test not in focused[area]: focused[area].append(test)
-    return {"schema_version":1,"branch":branch,"changed_files":paths,"areas":areas,"expansions":expansions,"branch_rules":branch_rules,"focused_rules":focused_rules,"focused_tests":focused}
+    mobile_areas=("customer","driver","van","mobile_ui","mobile_prod_ux_acceptance")
+    backend_dashboard_only=bool(paths) and bool(areas.get("backend") or areas.get("dashboard_ui")) and not any(areas.get(name,False) for name in mobile_areas)
+    return {"schema_version":1,"branch":branch,"changed_files":paths,"areas":areas,"backend_dashboard_only":backend_dashboard_only,"expansions":expansions,"branch_rules":branch_rules,"focused_rules":focused_rules,"focused_tests":focused}
 
 def emit(plan:dict,fh)->None:
     for name,value in plan["areas"].items(): fh.write(f"{name}={'true' if value else 'false'}\n")
+    fh.write(f"backend_dashboard_only={'true' if plan.get('backend_dashboard_only',False) else 'false'}\n")
 
 def main()->int:
     p=argparse.ArgumentParser()
