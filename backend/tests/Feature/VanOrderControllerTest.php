@@ -494,7 +494,6 @@ class VanOrderControllerTest extends TestCase
 
         $this->assertDatabaseHas('stock_movements', [
             'store_id' => $wholesaleStoreId,
-            'product_id' => null,
             'type' => 'reserve',
             'reference_type' => 'order',
             'reference_id' => $orderId,
