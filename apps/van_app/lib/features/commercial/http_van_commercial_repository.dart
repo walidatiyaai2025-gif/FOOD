@@ -148,6 +148,8 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
       productId: _requiredInt(data['product_id']),
       sellingUnitId: _int(data['selling_unit_id']),
       sellingUnitCode: _nullableString(data['selling_unit_code']),
+      productName: _nullableString(data['product_name']),
+      sellingUnitName: _nullableString(data['selling_unit_name']),
       conversionFactor: _requiredDouble(data['conversion_factor']),
       flashPrice: _requiredDouble(data['flash_price']),
       allocationBase: _double(data['allocation_base']),
