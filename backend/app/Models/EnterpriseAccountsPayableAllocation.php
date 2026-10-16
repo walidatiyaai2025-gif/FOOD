@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EnterpriseAccountsPayableAllocation extends Model
 {
+    protected $table = 'enterprise_ap_allocations';
+
     protected $guarded = [];
 
     protected function casts(): array
