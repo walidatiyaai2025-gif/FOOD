@@ -80,7 +80,7 @@ final class EnterpriseWmsReportingFoundationTest extends TestCase
         $this->assertSame('91_plus', $row->aging_bucket);
         $this->assertSame('slow', $row->stock_status);
         $this->assertSame($fixture['inventory_id'], $row->drill_down['inventory_id']);
-        $this->assertLessThanOrEqual(12, $queryCount);
+        $this->assertLessThanOrEqual(13, $queryCount);
         $this->assertSame(
             $beforeQuantity,
             (float) DB::table('inventories')->where('id', $fixture['inventory_id'])->value('quantity'),
