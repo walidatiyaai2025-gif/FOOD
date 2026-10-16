@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Domain\Pricing\B2bPriceResolver;
+use App\Enterprise\Commercial\CommercialCreditEligibilityPolicy;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2bPriceTier;
