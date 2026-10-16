@@ -1,0 +1,62 @@
+{
+  "schema": "foodex-closure-mode:v1",
+  "mode": "ACTIVE",
+  "command": "CLOSE FOOD",
+  "authority_issue": 1888,
+  "release_boundary": {
+    "issue": 1485,
+    "name": "FOODEX Enterprise ERP GA"
+  },
+  "in_scope": [
+    1883,
+    1720,
+    1489,
+    1490,
+    1491,
+    1492,
+    1493,
+    1494,
+    1495,
+    1497,
+    1485
+  ],
+  "promotion_order": [
+    1489,
+    1490,
+    1491,
+    1492,
+    1493,
+    1494,
+    1495,
+    1497,
+    1485
+  ],
+  "deferred": [
+    1572
+  ],
+  "rules": {
+    "feature_freeze": true,
+    "allow_new_feature_issues": false,
+    "allow_gate_blocker_atomic_issue": true,
+    "duplicate_branch_pr": false,
+    "synthetic_evidence": false,
+    "bypass_human_gates": false,
+    "keep_main_quiet": true,
+    "mobile_builds_path_scoped": true,
+    "cpanel_reference_gate": "production_only_on_owner_command",
+    "cpanel_blocks_wave_promotion": false
+  },
+  "completion": [
+    "required_w1_w7_promotions_merged_to_main",
+    "final_certification_1497_green",
+    "zero_unresolved_p0_p1",
+    "enterprise_umbrella_1485_closed",
+    "remaining_roadmap_explicitly_deferred"
+  ],
+  "production_only": {
+    "issue": 1551,
+    "trigger": "explicit_owner_production_release_command",
+    "blocks_wave_promotion": false,
+    "requires_genuine_cpanel_reference_evidence": true
+  }
+}

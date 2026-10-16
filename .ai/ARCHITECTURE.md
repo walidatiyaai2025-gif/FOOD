@@ -94,6 +94,19 @@ Durable invariants:
 - SaaS commercial lifecycle (plans, subscriptions, trials, billing/dunning, onboarding and offboarding) is a first-class platform concern;
 - restaurant operations modules (tables/reservations/KDS/workforce/inventory/integrations) consume shared Enterprise Core registry/entitlements/events/workflow/health contracts.
 
+
+## Enterprise WMS boundary
+
+Wave 3 WMS extends the existing warehouses, inventories, and stock_movements authority; it does not introduce a second stock ledger. Warehouse access remains subordinate to existing store RBAC and can be narrowed through explicit warehouse-user scopes. Transfers use a draft -> dispatched -> received lifecycle: dispatch decrements source inventory and writes the authoritative outbound stock movement, while receipt increments target inventory and writes the authoritative inbound movement. Retries are idempotent and transitions lock the affected records.
+
+Inventory-count sessions snapshot authoritative inventory quantity, then lock and reconcile the same inventory rows on completion. A session is rejected as stale when inventory changed after the snapshot, preventing a physical count from overwriting legitimate concurrent movements. Transfer/count lists are bounded and indexed; WMS foundation services add no global request, scheduler, or provider work when unused.
+
+Lot/batch metadata is warehouse/product-scoped and normalized, with optional manufacture/receipt/expiry dates and an explicit active/quarantined/closed lifecycle. Lot records never own stock quantities: `inventories` remains the balance authority and `stock_movements` remains the movement authority. Movement-to-lot provenance is additive metadata in `enterprise_inventory_lot_movements` with no quantity column, and expiry exception reads are warehouse-authorized, date-window bounded and indexed.
+
+Stock reservations also remain inside the canonical inventory authority. A reservation is represented by `inventories.reserved_quantity` plus reference-scoped `reserve` / `release` (and consuming `sale`) provenance in `stock_movements`; there is no parallel reservation-balance ledger. Reservation changes lock the authoritative inventory row, reconcile the desired quantity for one reference, preserve unrelated reserved stock, reject over-allocation, and are retry-safe for the same desired state.
+
+WMS reporting is a read-only composition over these same authorities. Inventory, lot/expiry, valuation/aging, and adjustment reports use warehouse-authorized bounded queries with cursor-style identifiers and canonical drill-down references. WMS does not own a reporting or export ledger: exports above the Enterprise threshold emit the shared queued/chunked export handoff contract so execution remains outside latency-sensitive inventory transactions and requester/store/warehouse scope can be revalidated by the Enterprise reporting consumer.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
@@ -108,3 +121,15 @@ match the newer platform version. CI must prove the frozen tree has zero diff.
 ## Architecture change rule
 
 If a task changes a boundary described here, update this file and add the reason to `DECISIONS.md` in the same PR.
+
+## Finance source-module posting consumers
+
+Finance consumes committed cross-module facts asynchronously through the existing versioned domain-event and transactional-outbox authority. Source modules never call Finance synchronously and never write Finance tables.
+
+- Only real published source contracts are wired; future Sales/Inventory contracts plug into the same mapping layer without inventing event names early.
+- A source event can post only while Finance is currently ENABLED and only when its event timestamp is on/after the current enable transition (state_changed_at). Events consumed while Finance is disabled or from before the current enable transition are not backfilled later.
+- Posting requires explicit deployment configuration for ledger currency, distinct authorized maker/poster users, and debit/credit account codes. Missing or invalid mapping fails closed into the existing bounded outbox retry/dead-letter path.
+- Every accounting mutation uses GeneralLedgerService::createDraft() and GeneralLedgerService::post() so fiscal-period, account, entitlement, RBAC and maker/checker/poster controls remain authoritative.
+- Successful posting persists immutable source-event/version -> canonical journal provenance in enterprise_finance_source_postings; event identity and GL idempotency prevent duplicate posting.
+- Source-scope mismatch, unsupported versions, Finance degradation, and mapping failures never roll back the already-committed source transaction.
+
