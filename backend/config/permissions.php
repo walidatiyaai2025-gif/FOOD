@@ -98,6 +98,7 @@ return [
         'procurement.purchase_invoices.view' => 'View purchase invoices within authorized enterprise scope',
         'procurement.purchase_invoices.manage' => 'Create and cancel draft purchase invoices within authorized enterprise scope',
         'procurement.purchase_invoices.handoff' => 'Hand purchase invoices off through the enterprise event boundary within authorized enterprise scope',
+        'procurement.supplier_statements.view' => 'View supplier purchase-invoice statements and gross aging exposure within authorized enterprise scope',
         'inventory.view' => 'View inventory',
         'inventory.adjust' => 'Adjust inventory quantities',
         'inventory.manage' => 'Manage inventory',
