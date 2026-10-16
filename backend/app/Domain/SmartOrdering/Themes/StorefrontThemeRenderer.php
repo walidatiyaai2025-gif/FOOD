@@ -238,8 +238,9 @@ final class StorefrontThemeRenderer
         ];
     }
 
-    /** @param array<string,mixed> $site
-     * @param array<string,mixed> $menu
+    /**
+     * @param  array<string,mixed>  $site
+     * @param  array<string,mixed>  $menu
      */
     private function structuredDataJson(array $site, array $menu): string
     {
