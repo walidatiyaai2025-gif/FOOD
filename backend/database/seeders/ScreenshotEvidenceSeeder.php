@@ -2,6 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleState;
+use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Procurement\SupplierDirectory;
+use App\Models\Store;
+use App\Models\User;
+use App\Support\TenantContextResolver;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
@@ -132,6 +139,23 @@ class ScreenshotEvidenceSeeder extends Seeder
             'is_active' => true,
             'created_at' => $now,
             'updated_at' => $now,
+        ]);
+
+        $evidenceStore = Store::query()->findOrFail($storeId);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($evidenceStore);
+        $lifecycle = app(ModuleLifecycleManager::class);
+        $lifecycle->transition('procurement', ModuleState::ENABLING);
+        $lifecycle->transition('procurement', ModuleState::ENABLED);
+        $procurementActor = User::query()->findOrFail($superAdminId);
+        $procurementContext = app(TenantContextResolver::class)->wholesale($procurementActor, $storeId);
+        app(SupplierDirectory::class)->create($procurementActor, $procurementContext, [
+            'scope_type' => 'store',
+            'code' => 'EVID-SUP-01',
+            'name_en' => 'FOODEX Evidence Supplier',
+            'name_ar' => 'مورد فودكس التجريبي',
+            'contact_name' => 'Evidence Procurement',
+            'email' => 'supplier.evidence@foodex.test',
+            'payment_terms_days' => 30,
         ]);
 
         $retailStoreId = (int) DB::table('stores')
