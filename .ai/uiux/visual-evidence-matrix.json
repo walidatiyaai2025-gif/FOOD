@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "purpose": "Minimum runtime visual evidence expected when a FOODEX UI surface changes.",
   "surfaces": {
     "dashboard": {
@@ -14,7 +14,11 @@
         "desktop-1280",
         "compact-1024",
         "tablet-768",
-        "mobile-390"
+        "mobile-430",
+        "mobile-412",
+        "mobile-390",
+        "mobile-360",
+        "mobile-320"
       ],
       "baseline_states": [
         "loaded"
@@ -26,6 +30,27 @@
         "open-modal-or-drawer",
         "selected-tab",
         "map-or-chart"
+      ],
+      "representative_viewports": [
+        "desktop-1280",
+        "compact-1024",
+        "tablet-768",
+        "mobile-390",
+        "mobile-320"
+      ],
+      "shared_primitive_viewports": [
+        "desktop-1280",
+        "compact-1024",
+        "tablet-768",
+        "mobile-430",
+        "mobile-412",
+        "mobile-390",
+        "mobile-360",
+        "mobile-320"
+      ],
+      "directions": [
+        "ar-rtl",
+        "en-ltr"
       ]
     },
     "customer": {
@@ -93,6 +118,42 @@
         "stale-or-offline",
         "active-route-or-order",
         "finance-confirmation"
+      ]
+    }
+  },
+  "responsive_policy": {
+    "dashboard": {
+      "required_impact_declaration": [
+        "desktop",
+        "tablet",
+        "mobile"
+      ],
+      "directions": [
+        "ar-rtl",
+        "en-ltr"
+      ],
+      "representative_viewports": [
+        "desktop-1280",
+        "compact-1024",
+        "tablet-768",
+        "mobile-390",
+        "mobile-320"
+      ],
+      "shared_primitive_viewports": [
+        "desktop-1280",
+        "compact-1024",
+        "tablet-768",
+        "mobile-430",
+        "mobile-412",
+        "mobile-390",
+        "mobile-360",
+        "mobile-320"
+      ],
+      "critical_assertions": [
+        "no-page-horizontal-overflow",
+        "visible-actions-in-viewport",
+        "locale-direction",
+        "320-workflow-completion"
       ]
     }
   }
