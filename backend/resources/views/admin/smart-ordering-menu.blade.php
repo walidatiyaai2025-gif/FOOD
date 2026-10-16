@@ -559,21 +559,43 @@
         @endif
 
         <div class="so-sticky">
-            <form class="so-actions" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
-                @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+            <div class="so-actions">
                 <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
                 @if($reviewMode)
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'العودة للمحرر' : 'Back to editor' }}</a>
+                <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
+                    @csrf
+                    <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <button class="primary" type="submit" @disabled(!empty($itemPriceErrors) || $scheduledRevision !== null) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif @if($scheduledRevision !== null) so-scheduled-publish-state @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
+                </form>
+                @if($scheduledRevision !== null)
+                <div id="so-scheduled-publish-state" class="foodex-alert" role="status">
+                    <strong>{{ __('smart_ordering_menu.schedule.pending', [
+                        'time' => $scheduledRevision->scheduled_at?->copy()->setTimezone($publishTimezone)->format('Y-m-d H:i'),
+                        'timezone' => $publishTimezone,
+                    ]) }}</strong>
+                    <div class="so-muted">{{ __('smart_ordering_menu.schedule.pending_hint') }}</div>
+                </div>
                 @else
-                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
+                <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.schedule',$draft) }}">
+                    @csrf
+                    <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <label>
+                        {{ __('smart_ordering_menu.schedule.at') }}
+                        <input class="foodex-control" type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at', $scheduleMinimum) }}" min="{{ $scheduleMinimum }}" required>
+                        <span class="so-muted">{{ __('smart_ordering_menu.schedule.timezone', ['timezone' => $publishTimezone]) }}</span>
+                    </label>
+                    <button class="foodex-secondary" type="submit" @disabled(!empty($itemPriceErrors))>{{ __('smart_ordering_menu.schedule.action') }}</button>
+                </form>
                 @endif
-                @if($reviewMode)
-                <button class="primary" type="submit" @disabled(!empty($itemPriceErrors)) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
                 @if(!empty($itemPriceErrors))<a class="foodex-secondary" href="#so-invalid-items">{{ __('smart_ordering_menu.invalid_item.review_before_publish') }}</a>@endif
                 @else
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
                 <button class="primary" type="button" disabled aria-disabled="true">{{ $isAr ? 'راجع المسودة قبل النشر' : 'Review draft before publishing' }}</button>
                 @endif
-            </form>
+            </div>
         </div>
     </main>
 </div>
