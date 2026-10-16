@@ -40,6 +40,9 @@ return [
                 'finance.opening_balances.read',
                 'finance.opening_balances.manage',
                 'finance.opening_balances.post',
+                'finance.ar.read',
+                'finance.ar.manage',
+                'finance.ar.post',
             ],
             'permissions' => [
                 'finance.view',
