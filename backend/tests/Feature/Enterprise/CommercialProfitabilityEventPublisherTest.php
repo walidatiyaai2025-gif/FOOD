@@ -8,12 +8,14 @@ use App\Models\EnterpriseOutboxMessage;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\Remittance;
 use App\Models\Store;
 use App\Models\StoreType;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Tests\TestCase;
 
@@ -32,9 +34,11 @@ final class CommercialProfitabilityEventPublisherTest extends TestCase
     {
         $order = $this->order('B2B', 'SNAPSHOT');
 
+        $product = $this->product('501');
+
         OrderItem::query()->create([
             'order_id' => $order->id,
-            'product_id' => 501,
+            'product_id' => $product->id,
             'sku_snapshot' => 'SKU-501',
             'name_snapshot' => 'Product 501',
             'quantity' => 2,
@@ -58,7 +62,7 @@ final class CommercialProfitabilityEventPublisherTest extends TestCase
         $this->assertSame($order->id, $event['payload']['data']['source']['order_id']);
         $this->assertSame('KWD', $event['payload']['data']['money']['currency']);
         $this->assertSame('7.000', $event['payload']['data']['money']['subtotal']);
-        $this->assertSame(501, $event['payload']['data']['items'][0]['product_id']);
+        $this->assertSame($product->id, $event['payload']['data']['items'][0]['product_id']);
         $this->assertSame('2.000', $event['payload']['data']['items'][0]['quantity']);
         $this->assertSame(0, $event['payload']['data']['collection']['collection_count']);
     }
@@ -66,9 +70,10 @@ final class CommercialProfitabilityEventPublisherTest extends TestCase
     public function test_changed_canonical_snapshot_produces_a_new_deterministic_event_identity(): void
     {
         $order = $this->order('B2C', 'CHANGE');
+        $product = $this->product('601');
         OrderItem::query()->create([
             'order_id' => $order->id,
-            'product_id' => 601,
+            'product_id' => $product->id,
             'sku_snapshot' => 'SKU-601',
             'name_snapshot' => 'Product 601',
             'quantity' => 1,
@@ -128,9 +133,10 @@ final class CommercialProfitabilityEventPublisherTest extends TestCase
     public function test_unsupported_profitability_event_version_fails_closed_without_outbox_write(): void
     {
         $order = $this->order('B2B', 'VERSION');
+        $product = $this->product('1001');
         OrderItem::query()->create([
             'order_id' => $order->id,
-            'product_id' => 1001,
+            'product_id' => $product->id,
             'sku_snapshot' => 'SKU-1001',
             'name_snapshot' => 'Product 1001',
             'quantity' => 1,
@@ -151,6 +157,24 @@ final class CommercialProfitabilityEventPublisherTest extends TestCase
         }
 
         $this->assertSame(0, EnterpriseOutboxMessage::query()->count());
+    }
+
+    private function product(string $suffix): Product
+    {
+        $unitId = (int) DB::table('units')->insertGetId([
+            'code' => 'PROFIT-U-'.$suffix,
+            'name' => 'Each '.$suffix,
+            'decimal_places' => 3,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return Product::query()->create([
+            'unit_id' => $unitId,
+            'sku' => 'PROFIT-P-'.$suffix,
+            'name' => 'Profit Product '.$suffix,
+            'is_active' => true,
+        ]);
     }
 
     private function order(string $channel, string $suffix): Order
