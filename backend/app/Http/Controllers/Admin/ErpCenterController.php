@@ -121,8 +121,10 @@ final class ErpCenterController extends Controller
                 continue;
             }
 
+            $platformScope = EntitlementScope::platform();
             $hasConfiguredEntitlement = EnterpriseModuleEntitlement::query()
                 ->where('module_code', $moduleCode)
+                ->where('scope_key', $platformScope->key())
                 ->exists();
 
             if ($hasConfiguredEntitlement) {
@@ -131,7 +133,7 @@ final class ErpCenterController extends Controller
 
             $this->entitlementManager->set(
                 $moduleCode,
-                EntitlementScope::platform(),
+                $platformScope,
                 true,
                 null,
                 $actor,
