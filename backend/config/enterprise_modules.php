@@ -48,6 +48,9 @@ return [
                 'treasury.receipts.read',
                 'treasury.receipts.manage',
                 'treasury.receipts.approve',
+                'treasury.payments.read',
+                'treasury.payments.manage',
+                'treasury.payments.approve',
             ],
             'permissions' => [
                 'finance.view',
