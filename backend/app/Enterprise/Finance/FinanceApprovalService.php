@@ -683,6 +683,7 @@ final class FinanceApprovalService
         }
 
         $limitCurrency = $this->normalizeCurrency($limit->currency_code);
+
         return $limitCurrency === null || $limitCurrency === $currency;
     }
 
