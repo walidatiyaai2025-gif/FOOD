@@ -66,7 +66,78 @@ final class SmartOrderingStorefrontTest extends TestCase
             ->assertSee('data-template="elegant-dining"', false)
             ->assertSee('data-theme="light"', false)
             ->assertSee('<link rel="canonical" href="https://demo.foodex.test/menu">', false)
-            ->assertHeader('Cache-Control');
+            ->assertSee('<link rel="alternate" hreflang="en" href="https://demo.foodex.test/menu?lang=en">', false)
+            ->assertSee('<link rel="alternate" hreflang="ar" href="https://demo.foodex.test/menu?lang=ar">', false)
+            ->assertSee('<link rel="alternate" hreflang="x-default" href="https://demo.foodex.test/menu">', false)
+            ->assertHeader('Cache-Control')
+            ->assertHeader('X-Robots-Tag', 'index, follow, max-image-preview:large');
+    }
+
+    public function test_public_storefront_structured_metadata_is_safe_localized_and_query_stable(): void
+    {
+        foreach (['quick-bite', 'signature-brand'] as $theme) {
+            foreach (['en', 'ar'] as $locale) {
+                $snapshot = $this->snapshot($theme, 'light');
+                $snapshot['site']['seo']['canonical'] = 'javascript:alert(1)';
+                $snapshot['site']['internal_secret'] = 'site-private-secret';
+                $snapshot['menu']['categories'][0]['items'][0]['private_secret'] = 'item-private-secret';
+                $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+                $response = $this->get(
+                    '/smart-ordering/demo?lang='.$locale.'&utm_source=private&attribution=secret',
+                );
+
+                $response->assertOk()
+                    ->assertSee('<link rel="canonical" href="http://localhost/smart-ordering/demo">', false)
+                    ->assertSee(
+                        '<link rel="alternate" hreflang="en" href="http://localhost/smart-ordering/demo?lang=en">',
+                        false,
+                    )
+                    ->assertSee(
+                        '<link rel="alternate" hreflang="ar" href="http://localhost/smart-ordering/demo?lang=ar">',
+                        false,
+                    )
+                    ->assertHeader('X-Robots-Tag', 'index, follow, max-image-preview:large')
+                    ->assertDontSee('site-private-secret')
+                    ->assertDontSee('item-private-secret')
+                    ->assertDontSee('utm_source')
+                    ->assertDontSee('attribution=secret');
+
+                $html = $response->getContent();
+                $this->assertIsString($html);
+                $this->assertSame(
+                    1,
+                    preg_match('/<script type="application\\/ld\\+json">(.*?)<\\/script>/s', $html, $matches),
+                );
+
+                $structured = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
+                $this->assertSame('Restaurant', $structured['@type']);
+                $this->assertSame('http://localhost/smart-ordering/demo#restaurant', $structured['@id']);
+                $this->assertSame('Menu', $structured['hasMenu']['@type']);
+                $this->assertSame(
+                    $locale === 'ar' ? 'الأطباق الرئيسية' : 'Mains',
+                    $structured['hasMenu']['hasMenuSection'][0]['name'],
+                );
+                $this->assertSame(
+                    $locale === 'ar' ? 'برجر كلاسيك' : 'Classic Burger',
+                    $structured['hasMenu']['hasMenuSection'][0]['hasMenuItem'][0]['name'],
+                );
+                $this->assertSame(
+                    '2.500',
+                    $structured['hasMenu']['hasMenuSection'][0]['hasMenuItem'][0]['offers']['price'],
+                );
+                $this->assertSame(
+                    'KWD',
+                    $structured['hasMenu']['hasMenuSection'][0]['hasMenuItem'][0]['offers']['priceCurrency'],
+                );
+
+                $encoded = json_encode($structured, JSON_THROW_ON_ERROR);
+                $this->assertStringNotContainsString('internal_id', $encoded);
+                $this->assertStringNotContainsString('private_cost', $encoded);
+                $this->assertStringNotContainsString('secret-token', $encoded);
+                $this->assertStringNotContainsString('private-secret', $encoded);
+            }
+        }
     }
 
     public function test_closed_and_sold_out_states_are_non_orderable(): void
