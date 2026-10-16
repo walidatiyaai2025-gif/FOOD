@@ -14,6 +14,7 @@ use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -150,14 +151,20 @@ final class GoodsReceiptManager
                 ]);
             }
 
+            $postedTotals = $this->postedReceiptTotals($order->id);
+
             foreach ($data['lines'] as $line) {
                 /** @var EnterprisePurchaseOrderLine $orderLine */
                 $orderLine = $orderLines->get((int) $line['purchase_order_line_id']);
-                if ($this->quantityUnits($line['quantity']) > $this->quantityUnits($orderLine->quantity)) {
+                $alreadyReceived = $postedTotals->get($orderLine->id, 0);
+                $nextReceived = $this->quantityUnits($alreadyReceived)
+                    + $this->quantityUnits($line['quantity']);
+
+                if ($nextReceived > $this->quantityUnits($orderLine->quantity)) {
                     throw ValidationException::withMessages([
                         'lines' => [
                             sprintf(
-                                'Receipt quantity for PO line %d cannot exceed its ordered quantity.',
+                                'Receipt quantity for PO line %d exceeds the remaining ordered quantity.',
                                 $orderLine->line_no,
                             ),
                         ],
@@ -265,21 +272,7 @@ final class GoodsReceiptManager
             }
 
             $orderLines = $order->lines()->get()->keyBy('id');
-            $postedTotals = DB::table('enterprise_goods_receipt_lines as receipt_lines')
-                ->join(
-                    'enterprise_goods_receipts as receipts',
-                    'receipts.id',
-                    '=',
-                    'receipt_lines.goods_receipt_id',
-                )
-                ->where('receipts.purchase_order_id', $order->id)
-                ->where('receipts.status', 'posted')
-                ->groupBy('receipt_lines.purchase_order_line_id')
-                ->selectRaw(
-                    'receipt_lines.purchase_order_line_id as purchase_order_line_id, '
-                    .'SUM(receipt_lines.received_quantity) as received_total',
-                )
-                ->pluck('received_total', 'purchase_order_line_id');
+            $postedTotals = $this->postedReceiptTotals($order->id);
 
             foreach ($lines as $line) {
                 /** @var EnterprisePurchaseOrderLine|null $orderLine */
@@ -482,6 +475,26 @@ final class GoodsReceiptManager
             'lines.*.warehouse_id' => ['required', 'integer', 'min:1'],
             'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
         ])->validate();
+    }
+
+    /** @return Collection<int|string, mixed> */
+    private function postedReceiptTotals(int $orderId): Collection
+    {
+        return DB::table('enterprise_goods_receipt_lines as receipt_lines')
+            ->join(
+                'enterprise_goods_receipts as receipts',
+                'receipts.id',
+                '=',
+                'receipt_lines.goods_receipt_id',
+            )
+            ->where('receipts.purchase_order_id', $orderId)
+            ->where('receipts.status', 'posted')
+            ->groupBy('receipt_lines.purchase_order_line_id')
+            ->selectRaw(
+                'receipt_lines.purchase_order_line_id as purchase_order_line_id, '
+                .'SUM(receipt_lines.received_quantity) as received_total',
+            )
+            ->pluck('received_total', 'purchase_order_line_id');
     }
 
     private function quantityUnits(mixed $quantity): int
