@@ -61,6 +61,7 @@ final class TreasuryPaymentService
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
         private readonly WorkflowEngine $workflow,
+        private readonly TreasuryIntegrationEventPublisher $integrationEvents,
     ) {}
 
     /**
@@ -282,6 +283,8 @@ final class TreasuryPaymentService
                 'posted_at' => now(),
                 'posted_by' => $actor->id,
             ])->save();
+
+            $this->integrationEvents->publishPaymentPosted($actor, $scope, $payment);
 
             $this->audit->record(
                 'enterprise.treasury.payment_posted',
