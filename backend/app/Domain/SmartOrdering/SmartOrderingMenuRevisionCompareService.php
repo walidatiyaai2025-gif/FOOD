@@ -301,7 +301,7 @@ final class SmartOrderingMenuRevisionCompareService
      *   branch_public_id:?string,
      *   attributes:array<string,mixed>
      * }> $records
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     private function record(
         array &$records,
@@ -401,8 +401,8 @@ final class SmartOrderingMenuRevisionCompareService
     }
 
     /**
-     * @param array<string,mixed> $before
-     * @param array<string,mixed> $after
+     * @param  array<string,mixed>  $before
+     * @param  array<string,mixed>  $after
      * @return list<string>
      */
     private function changedFields(array $before, array $after): array
