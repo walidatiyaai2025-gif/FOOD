@@ -208,6 +208,8 @@ return [
         'table_saved' => 'Table saved.',
         'table_deleted' => 'Table deleted.',
         'position_saved' => 'Table position saved.',
+        'position_saving' => 'Saving table position…',
+        'position_error' => 'Could not save the table position. The page will refresh to authoritative state.',
         'qr_bound_message' => 'Dynamic QR is bound to this table.',
         'qr_unbound_message' => 'Dynamic QR binding removed.',
         'tables_combined' => 'Tables combined without changing historical order identity.',
