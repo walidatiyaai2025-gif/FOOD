@@ -26,6 +26,7 @@ final class CheckoutService
     public function __construct(
         private readonly CartService $carts,
         private readonly BranchPolicyService $branches,
+        private readonly BranchCapacityService $capacity,
         private readonly CommerceQuoteService $quotes,
         private readonly B2cCustomerService $customers,
         private readonly CommercialPolicyService $commercialPolicy,
@@ -158,6 +159,7 @@ final class CheckoutService
             $requestHash,
             $authenticatedUser,
         ): array {
+            $promisedFor = $this->capacity->admit($branch, $mode, $scheduled);
             $lockedCart = SmartOrderingCart::query()->whereKey($cart->getKey())->lockForUpdate()->firstOrFail();
             abort_unless((string) $lockedCart->status === 'active', 409, 'Cart is no longer active.');
 
@@ -369,6 +371,7 @@ final class CheckoutService
                 'table_id' => $table?->id,
                 'delivery_zone_id' => $zone?->id,
                 'scheduled_for' => $scheduled->utc(),
+                'promised_for' => $promisedFor,
                 'delivery_address' => $mode === 'delivery' ? ['line1' => (string) $payload['delivery_address']] : null,
                 'delivery_latitude' => $mode === 'delivery' ? (float) $payload['delivery_latitude'] : null,
                 'delivery_longitude' => $mode === 'delivery' ? (float) $payload['delivery_longitude'] : null,
