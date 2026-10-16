@@ -48,6 +48,12 @@ final class SmartOrderingMenuRevisionService
         ?Request $request = null,
     ): SmartOrderingRevision {
         abort_unless((int) $draft->site_id === (int) $site->id && $draft->status === 'draft', 404);
+        if (! $scheduledAt->isFuture()) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => [__('smart_ordering_menu.validation.scheduled_future')],
+            ]);
+        }
+
         $this->validateDraft($site, $draft);
         $this->refreshChecksum($actor, $draft, $request);
 
