@@ -1,0 +1,43 @@
+.so-table-workspace{display:grid;gap:16px}
+.so-table-branch-filter{display:grid;grid-template-columns:minmax(220px,420px) auto;gap:10px;align-items:end}
+.so-table-branch-filter label{display:grid;gap:6px;font-weight:700}
+.so-floor-stack{display:grid;gap:16px}
+.so-floor-card{padding:16px;display:grid;gap:12px}
+.so-floor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.so-floor-head h2{margin:0}
+.so-floor-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--foodex-muted);font-size:.875rem}
+.so-floor-canvas{position:relative;min-height:520px;overflow:hidden;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card,16px);background:var(--foodex-background);touch-action:none}
+.so-floor-canvas::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,var(--foodex-border) 1px,transparent 1px),linear-gradient(to bottom,var(--foodex-border) 1px,transparent 1px);background-size:32px 32px;opacity:.45}
+.so-table-tile{position:absolute;inset-inline-start:calc(var(--so-x)*.1%);top:calc(var(--so-y)*.1%);width:min(calc(var(--so-w)*1px),42%);min-width:112px;height:min(calc(var(--so-h)*1px),220px);min-height:88px;z-index:2;border:2px solid var(--foodex-border);border-radius:var(--foodex-radius-medium,12px);background:var(--foodex-surface);padding:10px;display:grid;align-content:space-between;gap:7px;box-shadow:var(--foodex-shadow);cursor:grab;user-select:none}
+.so-table-tile[data-shape="round"]{border-radius:999px;padding-inline:18px}
+.so-table-tile[data-occupancy="occupied"]{border-color:var(--foodex-orange);background:var(--foodex-orange-soft)}
+.so-table-tile[data-active="0"]{opacity:.62;border-style:dashed}
+.so-table-tile.is-dragging{cursor:grabbing;z-index:5}
+.so-table-name{font-weight:800;font-size:1rem}
+.so-table-details{display:flex;gap:6px;flex-wrap:wrap;font-size:.78rem;color:var(--foodex-muted)}
+.so-table-tile-actions{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.so-table-manage{min-height:44px;border:0;border-radius:10px;background:var(--foodex-action-green);color:#fff;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+.so-table-status{font-size:.78rem;font-weight:700}
+.so-table-grid-fallback{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px}
+.so-table-grid-card{padding:14px;display:grid;gap:10px}
+.so-table-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.so-table-form label{display:grid;gap:6px;font-weight:700;font-size:.82rem}
+.so-table-form .so-span-2{grid-column:1/-1}
+.so-table-form .so-check{display:flex;align-items:center;gap:8px;min-height:44px}
+.so-table-form-actions{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.so-table-danger{border:1px solid var(--foodex-red);background:var(--foodex-surface);color:var(--foodex-red);border-radius:10px;min-height:44px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+.so-table-secondary{border:1px solid var(--foodex-border);background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:10px;min-height:44px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.so-table-combine{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
+.so-table-combine label{display:grid;gap:6px}
+.so-table-qr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid var(--foodex-border);border-radius:12px}
+.so-table-empty-floor{min-height:180px;display:grid;place-items:center;text-align:center;color:var(--foodex-muted);padding:24px}
+.so-table-save-status{min-height:1.25em;color:var(--foodex-muted);font-size:.82rem}
+@media(max-width:1023px){.so-floor-canvas{min-height:460px}.so-table-tile{width:min(calc(var(--so-w)*1px),48%)}}
+@media(max-width:767px){
+  .so-table-branch-filter,.so-table-form,.so-table-combine{grid-template-columns:1fr}
+  .so-table-form .so-span-2,.so-table-form-actions{grid-column:auto}
+  .so-floor-canvas{min-height:520px}
+  .so-table-tile{width:min(calc(var(--so-w)*1px),58%);min-width:116px}
+  .so-floor-head{align-items:stretch;flex-direction:column}
+}
+@media(max-width:479px){.so-floor-canvas{min-height:560px}.so-table-tile{width:min(calc(var(--so-w)*1px),68%)}}
