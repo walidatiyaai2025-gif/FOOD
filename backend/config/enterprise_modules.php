@@ -46,6 +46,8 @@ return [
                 'finance.ap.read',
                 'finance.ap.manage',
                 'finance.ap.post',
+                'finance.credit_terms.read',
+                'finance.credit_terms.manage',
             ],
             'permissions' => [
                 'finance.view',
