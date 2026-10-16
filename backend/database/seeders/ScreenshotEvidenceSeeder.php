@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\SupplierDirectory;
@@ -150,6 +151,22 @@ class ScreenshotEvidenceSeeder extends Seeder
         $lifecycle = app(ModuleLifecycleManager::class);
         $lifecycle->transition('procurement', ModuleState::ENABLING);
         $lifecycle->transition('procurement', ModuleState::ENABLED);
+
+        $wmsRegistry = app(ModuleRegistry::class);
+        $wmsRegistry->syncManifest('inventory_wms');
+        if ($wmsRegistry->state('inventory_wms') !== ModuleState::ENABLED) {
+            if ($wmsRegistry->state('inventory_wms') !== ModuleState::DISABLED) {
+                $lifecycle->transition('inventory_wms', ModuleState::DISABLED);
+            }
+
+            $lifecycle->transition('inventory_wms', ModuleState::ENABLING);
+            $lifecycle->transition('inventory_wms', ModuleState::ENABLED);
+        }
+        app(ModuleEntitlementManager::class)->set(
+            'inventory_wms',
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+            true,
+        );
         $procurementActor = User::query()->findOrFail($superAdminId);
         $procurementContext = app(TenantContextResolver::class)->wholesale($procurementActor, $storeId);
         app(SupplierDirectory::class)->create($procurementActor, $procurementContext, [
