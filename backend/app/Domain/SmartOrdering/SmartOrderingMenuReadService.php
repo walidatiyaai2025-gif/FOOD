@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Storage;
 
 final class SmartOrderingMenuReadService
 {
+    /** @var array<int,list<int>> */
+    private array $menuBranchScopeCache = [];
+
     public function __construct(
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingPriceResolver $prices,
@@ -447,15 +450,22 @@ final class SmartOrderingMenuReadService
 
     private function menuAppliesToBranch(SmartOrderingMenu $menu, ?SmartOrderingBranch $branch): bool
     {
-        $scopedBranchIds = DB::table('smart_ordering_menu_branches')
-            ->where('menu_id', $menu->id)
-            ->pluck('branch_id');
+        $menuId = (int) $menu->id;
+        if (! array_key_exists($menuId, $this->menuBranchScopeCache)) {
+            $this->menuBranchScopeCache[$menuId] = DB::table('smart_ordering_menu_branches')
+                ->where('menu_id', $menuId)
+                ->pluck('branch_id')
+                ->map(static fn ($branchId): int => (int) $branchId)
+                ->values()
+                ->all();
+        }
 
-        if ($scopedBranchIds->isEmpty()) {
+        $scopedBranchIds = $this->menuBranchScopeCache[$menuId];
+        if ($scopedBranchIds === []) {
             return true;
         }
 
-        return $branch !== null && $scopedBranchIds->contains((int) $branch->id);
+        return $branch !== null && in_array((int) $branch->id, $scopedBranchIds, true);
     }
 
     private function effectivePrepTime(SmartOrderingMenuItem $item, ?SmartOrderingBranch $branch): ?int
