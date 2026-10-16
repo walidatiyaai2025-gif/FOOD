@@ -53,3 +53,12 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Consequences:** transfer/count tables hold workflow state and provenance only; stock balances remain in `inventories`; all quantity effects require canonical `stock_movements`; list paths stay bounded/indexed; no daemon/provider/global request work is introduced by the foundation.
 
 **Authority:** #1491, #1728, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
+
+## D-012 — Stock reservations stay in inventories + stock_movements
+**Decision (Wave 3 / #1802):** WMS stock reservations use the existing `inventories.reserved_quantity` as the authoritative reserved balance and reference-scoped `reserve` / `release` / consuming `sale` provenance in `stock_movements`. No separate reservation-balance ledger is introduced.
+
+**Reason:** reservation availability already feeds Orders, Smart Ordering, reorder policy and valuation through `quantity - reserved_quantity`. A second reservation balance would create reconciliation races and conflicting availability truth.
+
+**Consequences:** reservation mutation must lock the inventory row, preserve reservations owned by other references, reject over-allocation, reconcile retries idempotently to the desired reference quantity, and keep reference lookups indexed on the high-growth stock-movement table. Adjustments, damage and loss remain separate WMS children.
+
+**Authority:** #1491, #1802, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
