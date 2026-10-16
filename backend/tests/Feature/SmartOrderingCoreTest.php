@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
 use App\Domain\SmartOrdering\Contracts\RestaurantPaymentProvider;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\BranchPolicyService;
 use App\Domain\SmartOrdering\RestaurantPaymentProviderResult;
 use App\Domain\SmartOrdering\RestaurantPaymentWebhookResult;
 use App\Models\Order;
@@ -1357,6 +1358,301 @@ class SmartOrderingCoreTest extends TestCase
     }
 
     /** @param array<string,mixed> $overrides */
+    public function test_restaurant_table_workspace_uses_canonical_occupancy_and_rejects_cross_scope_mutations(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $floorPublicId = (string) Str::uuid();
+        $floorId = (int) DB::table('smart_ordering_floor_areas')->insertGetId([
+            'public_id' => $floorPublicId,
+            'branch_id' => $this->branch->id,
+            'name_en' => 'Main Dining Room',
+            'name_ar' => 'الصالة الرئيسية',
+            'sort_order' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $table = $this->restaurantTable('T-21', 'table-21-token', $floorId);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-ordering-floor-table-0001', [
+            'fulfillment_mode' => 'dine_in',
+            'table_public_id' => $table->public_id,
+            'table_token' => 'table-21-token',
+        ])->assertCreated();
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'tables',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Tables &amp; floor plan', false)
+            ->assertSee('Main Dining Room')
+            ->assertSee('T-21')
+            ->assertSee('Occupied')
+            ->assertSee('data-so-floor-canvas', false)
+            ->assertSee('/assets/admin/smart-ordering-tables.js', false)
+            ->assertDontSee('table_id', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.tables.update', [$this->branch->public_id, $table->public_id]), [
+                'floor_public_id' => $floorPublicId,
+                'label' => 'T-21',
+                'capacity' => 4,
+                'position_x' => 140,
+                'position_y' => 180,
+                'visual_width' => 180,
+                'visual_height' => 120,
+                'shape' => 'rectangle',
+                'is_active' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('smart_ordering_tables', [
+            'id' => $table->id,
+            'is_active' => false,
+            'capacity' => 4,
+        ]);
+
+        [$inactiveCart, $inactiveToken] = $this->cart();
+        $this->addItem($inactiveCart, $inactiveToken, 1);
+        $this->checkout($inactiveCart, $inactiveToken, 'smart-ordering-floor-table-inactive-0001', [
+            'fulfillment_mode' => 'dine_in',
+            'table_public_id' => $table->public_id,
+            'table_token' => 'table-21-token',
+        ])->assertNotFound();
+
+        $siblingBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $this->branch->site_id,
+            'code' => 'kw-city-sibling',
+            'name_ar' => 'فرع داخلي ثان',
+            'name_en' => 'Sibling Branch',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+            'accepting_orders' => true,
+            'supports_dine_in' => true,
+            'supports_pickup' => true,
+            'supports_delivery' => false,
+            'allow_scheduled' => false,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'service_charge' => 0,
+        ]);
+        $siblingTable = $this->restaurantTable('S-01', 'sibling-token', null, $siblingBranch);
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.tables.update', [$this->branch->public_id, $siblingTable->public_id]), [
+                'floor_public_id' => null,
+                'label' => 'S-01',
+                'capacity' => 2,
+                'position_x' => 60,
+                'position_y' => 60,
+                'visual_width' => 160,
+                'visual_height' => 120,
+                'shape' => 'rectangle',
+                'is_active' => 1,
+            ])
+            ->assertNotFound();
+
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'SMART-ORDERING-TABLE-FOREIGN',
+            'name' => 'Foreign Table Restaurant',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $foreignStoreId,
+            'slug' => 'foreign-table-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $foreignSiteId,
+            'code' => 'foreign-table-branch',
+            'name_ar' => 'فرع خارجي',
+            'name_en' => 'Foreign Table Branch',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.tables.store', $foreignBranch->public_id), [
+                'floor_public_id' => null,
+                'label' => 'F-01',
+                'capacity' => 2,
+                'position_x' => 60,
+                'position_y' => 60,
+                'visual_width' => 160,
+                'visual_height' => 120,
+                'shape' => 'rectangle',
+                'is_active' => 1,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_table_combine_split_is_auditable_without_rewriting_order_identity(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $primary = $this->restaurantTable('C-01', 'combine-primary-token');
+        $member = $this->restaurantTable('C-02', 'combine-member-token');
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $checkout = $this->checkout($cart, $token, 'smart-ordering-combine-0001', [
+            'fulfillment_mode' => 'dine_in',
+            'table_public_id' => $primary->public_id,
+            'table_token' => 'combine-primary-token',
+        ])->assertCreated();
+        $reference = (string) $checkout->json('data.reference');
+        $context = SmartOrderingOrderContext::query()->where('public_reference', $reference)->firstOrFail();
+        $this->assertSame((int) $primary->id, (int) $context->table_id);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.tables.combine', [$this->branch->public_id, $primary->public_id]), [
+                'other_table_public_id' => $member->public_id,
+                'note' => 'Family seating',
+            ])
+            ->assertRedirect();
+
+        $combination = DB::table('smart_ordering_table_combinations')
+            ->where('primary_table_id', $primary->id)
+            ->where('member_table_id', $member->id)
+            ->whereNull('split_at')
+            ->first();
+        $this->assertNotNull($combination);
+        $this->assertSame($admin->id, (int) $combination->combined_by);
+        $this->assertSame((int) $primary->id, (int) $context->fresh()->table_id);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.smart-ordering.tables.split', [$this->branch->public_id, $combination->public_id]))
+            ->assertRedirect();
+
+        $split = DB::table('smart_ordering_table_combinations')->where('id', $combination->id)->first();
+        $this->assertNotNull($split->split_at);
+        $this->assertSame($admin->id, (int) $split->split_by);
+        $this->assertSame((int) $primary->id, (int) $context->fresh()->table_id);
+    }
+
+    public function test_table_qr_binding_reuses_canonical_dynamic_qr_and_trusted_reference(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $table = $this->restaurantTable('QR-01', 'legacy-table-token');
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.tables.qr.bind', [$this->branch->public_id, $table->public_id]))
+            ->assertRedirect();
+
+        $bound = DB::table('smart_ordering_tables')->where('id', $table->id)->first();
+        $this->assertNotNull($bound->qr_code_id);
+        $this->assertNotNull($bound->qr_reference);
+
+        $qr = DB::table('smart_ordering_qr_codes')->where('id', $bound->qr_code_id)->first();
+        $this->assertNotNull($qr);
+        $this->assertSame('table', $qr->type);
+        $this->assertSame($this->branch->code, $qr->branch_reference);
+        $this->assertSame($bound->qr_reference, $qr->table_reference);
+        $this->assertTrue((bool) $qr->is_enabled);
+
+        $resolved = app(BranchPolicyService::class)
+            ->trustedTableReference($this->branch, (string) $bound->qr_reference);
+        $this->assertSame((int) $table->id, (int) $resolved->id);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-ordering-legacy-table-token-0001', [
+            'fulfillment_mode' => 'dine_in',
+            'table_public_id' => $table->public_id,
+            'table_token' => 'legacy-table-token',
+        ])->assertCreated();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.smart-ordering.tables.qr.unbind', [$this->branch->public_id, $table->public_id]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('smart_ordering_tables', [
+            'id' => $table->id,
+            'qr_code_id' => null,
+        ]);
+        $this->assertDatabaseHas('smart_ordering_qr_codes', [
+            'id' => $qr->id,
+            'is_enabled' => false,
+        ]);
+    }
+
+    public function test_table_workspace_is_localized_for_arabic_and_english(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $floorId = (int) DB::table('smart_ordering_floor_areas')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'branch_id' => $this->branch->id,
+            'name_en' => 'Family Room',
+            'name_ar' => 'صالة العائلات',
+            'sort_order' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->restaurantTable('L-01', 'localized-table-token', $floorId);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'tables']))
+            ->assertOk()
+            ->assertSee('Tables &amp; floor plan', false)
+            ->assertSee('Family Room')
+            ->assertSee('Available');
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'tables']))
+            ->assertOk()
+            ->assertSee('الطاولات ومخطط الصالة')
+            ->assertSee('صالة العائلات')
+            ->assertSee('متاحة');
+    }
+
+    private function restaurantTable(
+        string $label,
+        string $token,
+        ?int $floorId = null,
+        ?SmartOrderingBranch $branch = null,
+        bool $active = true,
+    ): object {
+        $branch ??= $this->branch;
+        $id = (int) DB::table('smart_ordering_tables')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'branch_id' => $branch->id,
+            'floor_area_id' => $floorId,
+            'label' => $label,
+            'capacity' => 2,
+            'position_x' => 60,
+            'position_y' => 60,
+            'visual_width' => 160,
+            'visual_height' => 120,
+            'shape' => 'rectangle',
+            'qr_reference' => (string) Str::uuid(),
+            'token_hash' => hash('sha256', $token),
+            'is_active' => $active,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return DB::table('smart_ordering_tables')->where('id', $id)->firstOrFail();
+    }
+
     private function checkout(string $cart, string $token, string $key, array $overrides)
     {
         return $this->withHeaders([
