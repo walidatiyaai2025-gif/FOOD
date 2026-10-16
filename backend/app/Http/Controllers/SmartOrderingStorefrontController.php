@@ -118,6 +118,7 @@ final class SmartOrderingStorefrontController extends Controller
 
         return response()->view($renderer->view($prepared), $prepared)
             ->header('Cache-Control', $cacheControl)
-            ->header('Vary', 'Accept-Language');
+            ->header('Vary', 'Accept-Language')
+            ->header('X-Robots-Tag', 'index, follow, max-image-preview:large');
     }
 }
