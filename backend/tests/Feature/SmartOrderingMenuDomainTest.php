@@ -556,6 +556,163 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_public_read_metadata_is_revision_branch_locale_deterministic_and_draft_safe(): void
+    {
+        $fixture = $this->fixture('READMETA', 4.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        $draft = $revisions->draft($fixture['admin'], $fixture['site']);
+        $branchA = $this->branch($fixture['site']->id, 'META-A', true);
+        $branchB = $this->branch($fixture['site']->id, 'META-B');
+
+        $menu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
+            'name_en' => 'Revision Menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'sort_order' => 0,
+        ]);
+        $category = $writer->createCategory($fixture['admin'], $fixture['site'], $draft, $menu, [
+            'name_en' => 'Revision Meals',
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+        ]);
+        $item = $writer->createItem($fixture['admin'], $fixture['site'], $draft, $category, [
+            'name_en' => 'Revision Burger V1',
+            'price_override' => 4.000,
+            'is_visible' => true,
+            'sold_out' => false,
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 0,
+        ]);
+
+        $published = $revisions->publish($fixture['admin'], $fixture['site'], $draft);
+        $this->enablePublicMenu($fixture);
+
+        $query = '?branch='.$branchA->public_id.'&locale=en';
+        $menuResponse = $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu'.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.revision.id', (string) $published->public_id)
+            ->assertJsonPath('meta.revision.checksum', (string) $published->checksum)
+            ->assertJsonPath('meta.locale', 'en')
+            ->assertJsonPath('meta.branch_id', (string) $branchA->public_id)
+            ->assertJsonPath('data.menus.0.categories.0.items.0.name', 'Revision Burger V1');
+
+        $readKey = (string) $menuResponse->json('meta.read_key');
+        $this->assertSame(64, strlen($readKey));
+
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/categories'.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.read_key', $readKey);
+
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items'.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.read_key', $readKey);
+
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items/'.$item->public_id.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.read_key', $readKey);
+
+        $arabicKey = (string) $this->getJson(
+            '/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu?branch='.$branchA->public_id.'&locale=ar',
+        )->assertOk()->json('meta.read_key');
+        $branchBKey = (string) $this->getJson(
+            '/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu?branch='.$branchB->public_id.'&locale=en',
+        )->assertOk()->json('meta.read_key');
+
+        $this->assertNotSame($readKey, $arabicKey);
+        $this->assertNotSame($readKey, $branchBKey);
+
+        $nextDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $draftItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $nextDraft->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+        $writer->updateItem($fixture['admin'], $fixture['site']->fresh(), $nextDraft, $draftItem, [
+            'name_en' => 'Revision Burger V2',
+        ]);
+
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu'.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.read_key', $readKey)
+            ->assertJsonPath('meta.revision.id', (string) $published->public_id)
+            ->assertJsonPath('data.menus.0.categories.0.items.0.name', 'Revision Burger V1');
+
+        $nextPublished = $revisions->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $nextDraft->fresh(),
+        );
+        $afterPublish = $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/menu'.$query)
+            ->assertOk()
+            ->assertJsonPath('meta.revision.id', (string) $nextPublished->public_id)
+            ->assertJsonPath('data.menus.0.categories.0.items.0.name', 'Revision Burger V2');
+
+        $this->assertNotSame($readKey, (string) $afterPublish->json('meta.read_key'));
+    }
+
+    public function test_public_item_search_query_count_is_bounded_for_large_menu_reads(): void
+    {
+        $fixture = $this->fixture('READSCALE', 2.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        $draft = $revisions->draft($fixture['admin'], $fixture['site']);
+        $menu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
+            'name_en' => 'Scale Menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'sort_order' => 0,
+        ]);
+        $category = $writer->createCategory($fixture['admin'], $fixture['site'], $draft, $menu, [
+            'name_en' => 'Scale Meals',
+            'is_visible' => true,
+            'sold_out' => false,
+            'sort_order' => 0,
+        ]);
+
+        for ($index = 1; $index <= 60; $index++) {
+            $writer->createItem($fixture['admin'], $fixture['site'], $draft, $category, [
+                'name_en' => sprintf('Scale Item %03d', $index),
+                'price_override' => 2.000 + ($index / 1000),
+                'is_visible' => true,
+                'sold_out' => false,
+                'spicy_level' => 0,
+                'allow_customer_notes' => true,
+                'sort_order' => $index,
+            ]);
+        }
+
+        $revisions->publish($fixture['admin'], $fixture['site'], $draft);
+        $this->enablePublicMenu($fixture);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items?per_page=10')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 10)
+            ->assertJsonCount(10, 'data');
+        $smallQueryCount = count(DB::getQueryLog());
+
+        DB::flushQueryLog();
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items?per_page=50')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 50)
+            ->assertJsonCount(50, 'data');
+        $largeQueryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(
+            $smallQueryCount + 5,
+            $largeQueryCount,
+            "Public menu search query count grew with page rows: 10={$smallQueryCount}, 50={$largeQueryCount}",
+        );
+
+        $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items?per_page=51')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('per_page');
+    }
+
     public function test_cross_tenant_products_and_admin_mutations_are_rejected(): void
     {
         $a = $this->fixture('TEN-A', 4.000);
