@@ -19,14 +19,19 @@ final class StorefrontThemeRenderer
         $mode = $this->themes->sanitizeAppearance($appearanceOverride ?? ($appearance['mode'] ?? 'light'));
         $customization = $this->themes->sanitizeCustomization((array) ($appearance['customization'] ?? []));
 
+        $preparedSite = $this->site($site, $locale, $canonicalFallback);
+        $preparedMenu = $this->menu($menu, $locale);
+        $preparedSite['seo']['alternates'] = $this->localeAlternates($preparedSite['seo']['canonical']);
+        $preparedSite['seo']['structured_json'] = $this->structuredDataJson($preparedSite, $preparedMenu);
+
         return [
             'theme' => $this->themes->definition($theme),
             'appearance' => ['mode' => $mode, 'customization' => $customization, 'css_variables' => $this->themes->cssVariables($customization)],
             'locale' => $locale,
             'direction' => $locale === 'ar' ? 'rtl' : 'ltr',
             'revision' => $this->plain($snapshot['revision'] ?? 'published', 64),
-            'site' => $this->site($site, $locale, $canonicalFallback),
-            'menu' => $this->menu($menu, $locale),
+            'site' => $preparedSite,
+            'menu' => $preparedMenu,
             'is_open' => (bool) ($snapshot['is_open'] ?? true),
             'closed_message' => $this->translated($snapshot['closed_message'] ?? [], $locale, $locale === 'ar' ? 'المطعم مغلق الآن' : 'We are currently closed'),
         ];
@@ -56,7 +61,7 @@ final class StorefrontThemeRenderer
             'seo' => [
                 'title' => $this->translated($seo['title'] ?? [], $locale, $this->translated($site['name'] ?? [], $locale, 'Restaurant')),
                 'description' => $this->translated($seo['description'] ?? [], $locale, $this->translated($site['description'] ?? [], $locale, '')),
-                'canonical' => $this->safeCanonical($seo['canonical'] ?? $canonicalFallback),
+                'canonical' => $this->safeCanonical($seo['canonical'] ?? null) ?? $this->safeCanonical($canonicalFallback),
                 'image_url' => $this->safeUrl($seo['image_url'] ?? ($site['cover_url'] ?? null)),
             ],
         ];
@@ -218,6 +223,147 @@ final class StorefrontThemeRenderer
         }
 
         return $value;
+    }
+
+    /** @return array{en:string,ar:string}|array{} */
+    private function localeAlternates(?string $canonical): array
+    {
+        if ($canonical === null) {
+            return [];
+        }
+
+        return [
+            'en' => $canonical.'?lang=en',
+            'ar' => $canonical.'?lang=ar',
+        ];
+    }
+
+    /** @param array<string,mixed> $site
+     * @param array<string,mixed> $menu
+     */
+    private function structuredDataJson(array $site, array $menu): string
+    {
+        $canonical = is_string($site['seo']['canonical'] ?? null)
+            ? $site['seo']['canonical']
+            : null;
+        $restaurant = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Restaurant',
+            'name' => (string) ($site['name'] ?? ''),
+        ];
+
+        if ($canonical !== null) {
+            $restaurant['@id'] = $canonical.'#restaurant';
+            $restaurant['url'] = $canonical;
+        }
+
+        if (($site['description'] ?? '') !== '') {
+            $restaurant['description'] = (string) $site['description'];
+        }
+        if (($site['phone'] ?? '') !== '') {
+            $restaurant['telephone'] = (string) $site['phone'];
+        }
+
+        $images = array_values(array_filter([
+            $site['logo_url'] ?? null,
+            $site['cover_url'] ?? null,
+            $site['seo']['image_url'] ?? null,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== ''));
+        if ($images !== []) {
+            $restaurant['image'] = array_values(array_unique($images));
+        }
+
+        $sections = [];
+        foreach ((array) ($menu['categories'] ?? []) as $category) {
+            if (! is_array($category)) {
+                continue;
+            }
+
+            $section = [
+                '@type' => 'MenuSection',
+                'name' => (string) ($category['name'] ?? ''),
+            ];
+            if ($canonical !== null && ($category['public_key'] ?? '') !== '') {
+                $section['@id'] = $canonical.'#category-'.rawurlencode((string) $category['public_key']);
+            }
+            if (($category['description'] ?? '') !== '') {
+                $section['description'] = (string) $category['description'];
+            }
+
+            $items = [];
+            foreach ((array) ($category['items'] ?? []) as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $menuItem = [
+                    '@type' => 'MenuItem',
+                    'name' => (string) ($item['name'] ?? ''),
+                ];
+                if ($canonical !== null && ($item['public_key'] ?? '') !== '') {
+                    $menuItem['@id'] = $canonical.'#item-'.rawurlencode((string) $item['public_key']);
+                }
+                if (($item['description'] ?? '') !== '') {
+                    $menuItem['description'] = (string) $item['description'];
+                }
+                if (($item['image_url'] ?? '') !== '') {
+                    $menuItem['image'] = (string) $item['image_url'];
+                }
+
+                $offer = $this->structuredOffer(
+                    (string) ($item['price_display'] ?? ''),
+                    (bool) ($item['sold_out'] ?? false),
+                );
+                if ($offer !== null) {
+                    $menuItem['offers'] = $offer;
+                }
+
+                $items[] = $menuItem;
+            }
+
+            if ($items !== []) {
+                $section['hasMenuItem'] = $items;
+            }
+            $sections[] = $section;
+        }
+
+        $menuSchema = [
+            '@type' => 'Menu',
+            'name' => (string) ($site['name'] ?? '').' Menu',
+            'hasMenuSection' => $sections,
+        ];
+        if ($canonical !== null) {
+            $menuSchema['@id'] = $canonical.'#menu';
+        }
+        $restaurant['hasMenu'] = $menuSchema;
+
+        return json_encode(
+            $restaurant,
+            JSON_THROW_ON_ERROR
+                | JSON_UNESCAPED_UNICODE
+                | JSON_UNESCAPED_SLASHES
+                | JSON_HEX_TAG
+                | JSON_HEX_AMP
+                | JSON_HEX_APOS
+                | JSON_HEX_QUOT,
+        );
+    }
+
+    /** @return array<string,string>|null */
+    private function structuredOffer(string $priceDisplay, bool $soldOut): ?array
+    {
+        if (preg_match('/([0-9]+(?:\\.[0-9]+)?)\\s*([A-Z]{3})\\b/', $priceDisplay, $matches) !== 1) {
+            return null;
+        }
+
+        return [
+            '@type' => 'Offer',
+            'price' => $matches[1],
+            'priceCurrency' => $matches[2],
+            'availability' => $soldOut
+                ? 'https://schema.org/OutOfStock'
+                : 'https://schema.org/InStock',
+        ];
     }
 
     private function safeCanonical(mixed $value): ?string
