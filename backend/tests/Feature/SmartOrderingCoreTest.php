@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\SmartOrdering\BranchPolicyService;
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
 use App\Domain\SmartOrdering\Contracts\RestaurantPaymentProvider;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
-use App\Domain\SmartOrdering\BranchPolicyService;
 use App\Domain\SmartOrdering\RestaurantPaymentProviderResult;
 use App\Domain\SmartOrdering\RestaurantPaymentWebhookResult;
 use App\Models\Order;
