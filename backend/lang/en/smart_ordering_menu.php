@@ -9,6 +9,15 @@ return [
     'draft_ready' => 'Editable menu draft is ready.',
     'published' => 'Menu draft published atomically.',
     'scheduled' => 'Menu draft scheduled for publishing.',
+    'schedule' => [
+        'label' => 'Scheduled publishing',
+        'at' => 'Publish at',
+        'timezone' => 'Restaurant timezone: :timezone',
+        'action' => 'Schedule publish',
+        'pending' => 'A revision is scheduled for :time (:timezone).',
+        'pending_hint' => 'The scheduled revision is frozen. You can continue editing this new draft; publish-now stays blocked until the scheduled revision goes live.',
+        'publish_blocked' => 'Publish now is unavailable while another revision is scheduled.',
+    ],
     'lookup' => [
         'label' => 'Linked FOODEX product',
         'placeholder' => 'Search name, SKU or barcode',
