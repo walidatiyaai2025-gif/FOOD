@@ -14,6 +14,15 @@ class AdminNavigation
     /** @var array<string, bool> */
     private array $enterpriseModuleAccessMemo = [];
 
+    /** @var array<int, array<string, array<string, mixed>>> */
+    private array $visibleChannelsMemo = [];
+
+    /** @var array<int, bool> */
+    private array $superAdminMemo = [];
+
+    /** @var array<string, bool> */
+    private array $permissionMemo = [];
+
     public function __construct(
         private readonly ModuleRegistry $enterpriseModules,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
@@ -23,6 +32,11 @@ class AdminNavigation
     /** @return array<string, array<string, mixed>> */
     public function for(User $user): array
     {
+        $memoKey = spl_object_id($user);
+        if (array_key_exists($memoKey, $this->visibleChannelsMemo)) {
+            return $this->visibleChannelsMemo[$memoKey];
+        }
+
         $visible = [];
 
         foreach ((array) config('admin.channels', []) as $channel => $definition) {
@@ -31,7 +45,7 @@ class AdminNavigation
             }
         }
 
-        return $visible;
+        return $this->visibleChannelsMemo[$memoKey] = $visible;
     }
 
     /**
@@ -45,7 +59,7 @@ class AdminNavigation
     public function groupsFor(User $user): array
     {
         $channels = $this->for($user);
-        $isSuperAdmin = $user->hasRole('SUPER_ADMIN');
+        $isSuperAdmin = $this->isSuperAdmin($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
@@ -192,7 +206,7 @@ class AdminNavigation
         }
 
         foreach ((array) config('admin.dashboard_permissions', []) as $permission) {
-            if (is_string($permission) && $user->hasPermission($permission)) {
+            if (is_string($permission) && $this->hasPermission($user, $permission)) {
                 return true;
             }
         }
@@ -235,7 +249,7 @@ class AdminNavigation
 
     private function hasChannelPermission(User $user, string $channel, ?string $permission): bool
     {
-        if ($permission === null || $user->hasPermission($permission)) {
+        if ($permission === null || $this->hasPermission($user, $permission)) {
             return true;
         }
 
@@ -307,7 +321,7 @@ class AdminNavigation
 
     public function hasPermissionInScope(User $user, string $permission): bool
     {
-        if ($user->hasPermission($permission)) {
+        if ($this->hasPermission($user, $permission)) {
             return true;
         }
 
@@ -407,6 +421,26 @@ class AdminNavigation
         return $this->enterpriseModuleAccessMemo[$memoKey] = false;
     }
 
+    private function isSuperAdmin(User $user): bool
+    {
+        $memoKey = spl_object_id($user);
+
+        return $this->superAdminMemo[$memoKey]
+            ??= $user->hasRole('SUPER_ADMIN');
+    }
+
+    private function hasPermission(User $user, string $permission): bool
+    {
+        if ($this->isSuperAdmin($user)) {
+            return true;
+        }
+
+        $memoKey = spl_object_id($user).'|'.$permission;
+
+        return $this->permissionMemo[$memoKey]
+            ??= $user->hasPermission($permission);
+    }
+
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
     private function routeItemAdvertising(
         User $user,
@@ -420,7 +454,7 @@ class AdminNavigation
             return null;
         }
 
-        if ($user->hasRole('SUPER_ADMIN') || $user->hasPermission($permission)) {
+        if ($this->isSuperAdmin($user) || $this->hasPermission($user, $permission)) {
             return [
                 'key' => $key,
                 'label' => $label,
@@ -468,7 +502,7 @@ class AdminNavigation
         }
 
         foreach ($permissions as $permission) {
-            if ($user->hasPermission($permission)) {
+            if ($this->hasPermission($user, $permission)) {
                 return ['key' => $key, 'label' => $label, 'route' => $route, 'params' => [], 'permission' => null];
             }
         }
@@ -484,7 +518,7 @@ class AdminNavigation
         }
 
         foreach ($permissions as $permission) {
-            if (! $user->hasPermission($permission)) {
+            if (! $this->hasPermission($user, $permission)) {
                 return null;
             }
         }
@@ -505,7 +539,7 @@ class AdminNavigation
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
     private function routeItem(User $user, string $key, string $label, string $route, string $permission): ?array
     {
-        if (Route::has($route) === false || $user->hasPermission($permission) === false) {
+        if (Route::has($route) === false || $this->hasPermission($user, $permission) === false) {
             return null;
         }
 
