@@ -1,0 +1,1647 @@
+{
+  "schema_version": 1,
+  "issue": 1941,
+  "parent": 1939,
+  "generated_from_main": "79dacf258cc9e7c71498cbdec4e9ae52699a10b0",
+  "generated_at": "2026-10-17T00:00:00+03:00",
+  "mission": "Current Dashboard route → domain/entity/pattern/placement inventory. Preserve good screens; remediate only confirmed gaps.",
+  "authorities": [
+    "AGENTS.md",
+    "docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md",
+    "docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md",
+    "docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md",
+    "docs/execution/UI_ROUTE_AUTHORITY.json",
+    "backend/routes/web.php",
+    "backend/routes/smart_ordering.php",
+    "backend/routes/smart_ordering_web.php",
+    "backend/resources/views/admin/_sidebar.blade.php",
+    "backend/tests/Feature/SidebarOnlyDashboardNavigationTest.php",
+    "backend/tests/Feature/AdminResponsiveLayoutTest.php",
+    ".ai/uiux/visual-evidence-matrix.json"
+  ],
+  "classification_values": [
+    "KEEP",
+    "SHARED-FIX",
+    "MOVE/COMPOSE",
+    "PAGE-LOCAL-FIX",
+    "MERGE/DUPLICATE-REMOVE",
+    "NEW-PATTERN-REQUIRED"
+  ],
+  "scope_note": "Inventory lists business-facing screen route families. Feed, lookup-AJAX, file/download/export, asset, attachment, sitemap, webhook, mutation-only and preview-data endpoints are supporting actions unless they render a durable operator surface.",
+  "route_families": [
+    {
+      "id": "platform.shell",
+      "routes": [
+        "/admin",
+        "/admin/search"
+      ],
+      "route_names": [
+        "admin.index",
+        "admin.global-search"
+      ],
+      "domain": "Platform",
+      "primary_entity": "Management Dashboard",
+      "primary_role": "authorized management user",
+      "primary_user_goal": "Enter FOODEX management and search canonical records",
+      "current_pattern": "Executive Dashboard",
+      "recommended_pattern": "Executive Dashboard",
+      "current_placement": "domain shell + header search",
+      "recommended_placement": "domain shell + header search",
+      "navigation_owner": "Dashboard shell",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "platform.action_center",
+      "routes": [
+        "/admin/action-center"
+      ],
+      "route_names": [
+        "admin.action-center.index"
+      ],
+      "domain": "Enterprise Operations",
+      "primary_entity": "Workflow work item",
+      "primary_role": "operator/manager",
+      "primary_user_goal": "See and decide pending work/follow-up",
+      "current_pattern": "Action Center / Queue",
+      "recommended_pattern": "Action Center / Queue",
+      "current_placement": "ERP Center + contextual entry",
+      "recommended_placement": "ERP Center + contextual entry",
+      "navigation_owner": "ERP / Action Center",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1912",
+      "notes": "Expanded by closed ERP child #1912; do not create a parallel workflow queue."
+    },
+    {
+      "id": "erp.center",
+      "routes": [
+        "/admin/erp"
+      ],
+      "route_names": [
+        "admin.erp.index"
+      ],
+      "domain": "ERP",
+      "primary_entity": "ERP module",
+      "primary_role": "ERP operator/manager",
+      "primary_user_goal": "Enter day-to-day ERP work by role",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "first-class ERP domain landing",
+      "recommended_placement": "first-class ERP domain landing",
+      "navigation_owner": "ERP Center",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1906",
+      "notes": "Canonical ERP entry delivered by #1906."
+    },
+    {
+      "id": "erp.procurement",
+      "routes": [
+        "/admin/erp/procurement"
+      ],
+      "route_names": [
+        "admin.erp.procurement.index"
+      ],
+      "domain": "ERP / Procurement",
+      "primary_entity": "Supplier / PR / PO / GRN / Purchase Invoice / Return",
+      "primary_role": "procurement user",
+      "primary_user_goal": "Execute purchase-to-receive-to-invoice flow",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "ERP Center module",
+      "recommended_placement": "ERP Center module",
+      "navigation_owner": "ERP / Procurement",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1907",
+      "notes": null
+    },
+    {
+      "id": "erp.wms",
+      "routes": [
+        "/admin/erp/wms"
+      ],
+      "route_names": [
+        "admin.erp.wms.index"
+      ],
+      "domain": "ERP / WMS",
+      "primary_entity": "Stock / transfer / count / lot / reservation / reorder",
+      "primary_role": "warehouse user",
+      "primary_user_goal": "Operate warehouse inventory with provenance",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "ERP Center module",
+      "recommended_placement": "ERP Center module",
+      "navigation_owner": "ERP / WMS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1908",
+      "notes": null
+    },
+    {
+      "id": "erp.finance",
+      "routes": [
+        "/admin/erp/finance"
+      ],
+      "route_names": [
+        "admin.erp.finance.index"
+      ],
+      "domain": "ERP / Finance",
+      "primary_entity": "Account / period / journal / AR / AP",
+      "primary_role": "accountant",
+      "primary_user_goal": "Operate accounting and ledger workflows",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "ERP Center module",
+      "recommended_placement": "ERP Center module",
+      "navigation_owner": "ERP / Finance",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1909",
+      "notes": null
+    },
+    {
+      "id": "erp.treasury",
+      "routes": [
+        "/admin/erp/treasury",
+        "/admin/treasury/master-data"
+      ],
+      "route_names": [
+        "admin.erp.treasury.index",
+        "admin.treasury.master.index"
+      ],
+      "domain": "ERP / Treasury",
+      "primary_entity": "Receipt / payment / cheque / reconciliation / cashbox / bank account",
+      "primary_role": "treasury user",
+      "primary_user_goal": "Operate cash/bank lifecycle and reconciliation",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "ERP Center module + owned master-data sub-surface",
+      "recommended_placement": "ERP Center module + owned master-data sub-surface",
+      "navigation_owner": "ERP / Treasury",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1910",
+      "notes": "Master data remains a treasury-owned sub-surface, not a new top-level domain."
+    },
+    {
+      "id": "erp.bi",
+      "routes": [
+        "/admin/erp/bi"
+      ],
+      "route_names": [
+        "admin.erp.bi"
+      ],
+      "domain": "ERP / BI",
+      "primary_entity": "Report / metric / export",
+      "primary_role": "manager/analyst",
+      "primary_user_goal": "Analyze ERP performance and drill into canonical records",
+      "current_pattern": "Analytics / BI",
+      "recommended_pattern": "Analytics / BI",
+      "current_placement": "ERP Center module",
+      "recommended_placement": "ERP Center module",
+      "navigation_owner": "ERP / BI",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1913",
+      "notes": null
+    },
+    {
+      "id": "erp.customer_service",
+      "routes": [
+        "/admin/erp/customer-service"
+      ],
+      "route_names": [
+        "admin.erp.customer-service"
+      ],
+      "domain": "ERP / Customer Service",
+      "primary_entity": "Customer / order / invoice / delivery / conversation",
+      "primary_role": "service agent",
+      "primary_user_goal": "Resolve customer operational issues from one workspace",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "ERP Center module composed from canonical authorities",
+      "recommended_placement": "ERP Center module composed from canonical authorities",
+      "navigation_owner": "ERP / Customer Service",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1911",
+      "notes": "Composition/deep-link is required; no parallel CRM/order/payment truth."
+    },
+    {
+      "id": "enterprise.workspaces",
+      "routes": [
+        "/admin/workspaces/executive",
+        "/admin/workspaces/finance",
+        "/admin/workspaces/sales",
+        "/admin/workspaces/warehouse"
+      ],
+      "route_names": [
+        "admin.enterprise-workspaces.index"
+      ],
+      "domain": "Enterprise",
+      "primary_entity": "Cross-module workspace",
+      "primary_role": "enterprise role",
+      "primary_user_goal": "Use existing contextual enterprise workspaces",
+      "current_pattern": "Executive Dashboard / Operational Workbench",
+      "recommended_pattern": "Executive Dashboard / Operational Workbench",
+      "current_placement": "contextual route; ERP Center is the ERP entry",
+      "recommended_placement": "contextual route; ERP Center is the ERP entry",
+      "navigation_owner": "Enterprise",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Preserved as existing canonical/contextual routes. Do not add duplicate sidebar entries merely because ERP Center exists."
+    },
+    {
+      "id": "administration.hub",
+      "routes": [
+        "/admin/administration",
+        "/admin/administration/organizations",
+        "/admin/administration/organizations/{organization}",
+        "/admin/administration/companies/{company}",
+        "/admin/administration/legal-entities/{legalEntity}",
+        "/admin/administration/business-units/{businessUnit}",
+        "/admin/administration/system-health",
+        "/admin/administration/modules",
+        "/admin/administration/modules/{module}"
+      ],
+      "route_names": [
+        "admin.administration.index",
+        "admin.enterprise-organizations.index/show",
+        "admin.enterprise-companies.show",
+        "admin.enterprise-legal-entities.show",
+        "admin.enterprise-business-units.show",
+        "admin.enterprise-system-health.index",
+        "admin.enterprise-modules.index/show"
+      ],
+      "domain": "Administration",
+      "primary_entity": "Organization / company / legal entity / business unit / module health",
+      "primary_role": "platform admin",
+      "primary_user_goal": "Administer enterprise structure and module health",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Administration Hub + exact-record routes",
+      "recommended_placement": "Administration Hub + exact-record routes",
+      "navigation_owner": "Administration Hub",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Exact organization/company/legal-entity/business-unit/module routes exist and must open the exact record.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "settings.center",
+      "routes": [
+        "/admin/settings",
+        "/admin/settings/assistant",
+        "/admin/settings/app-versions",
+        "/admin/settings/sms",
+        "/admin/settings/mobile",
+        "/admin/settings/foodex-reset",
+        "/admin/settings/production-dataset",
+        "/admin/settings/production-launch",
+        "/admin/settings/system-update",
+        "/admin/settings/translations"
+      ],
+      "route_names": [
+        "admin.settings.index",
+        "admin.assistant-settings.index",
+        "admin.app-versions.index",
+        "admin.sms-settings.index",
+        "admin.mobile-settings.index",
+        "admin.foodex-reset.index",
+        "admin.production-dataset-switch.index",
+        "admin.production-launch.index",
+        "admin.system-update.index",
+        "admin.translations.index"
+      ],
+      "domain": "Platform Settings",
+      "primary_entity": "Configuration",
+      "primary_role": "platform admin",
+      "primary_user_goal": "Configure platform-wide services and release/runtime settings",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Settings Center owned sub-pages",
+      "recommended_placement": "Settings Center owned sub-pages",
+      "navigation_owner": "Settings Center",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "whatsapp.settings",
+      "routes": [
+        "/admin/settings/whatsapp",
+        "/admin/settings/whatsapp/connections"
+      ],
+      "route_names": [
+        "admin.whatsapp.index",
+        "admin.whatsapp.connections.index"
+      ],
+      "domain": "Communications",
+      "primary_entity": "WhatsApp profile/connection",
+      "primary_role": "communications admin",
+      "primary_user_goal": "Configure WhatsApp channel safely",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Settings Center / Communications",
+      "recommended_placement": "Settings Center / Communications",
+      "navigation_owner": "WhatsApp",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "whatsapp.operations",
+      "routes": [
+        "/admin/whatsapp/inbox",
+        "/admin/whatsapp/supervisor",
+        "/admin/whatsapp/campaigns",
+        "/admin/whatsapp/campaigns/{campaign}/report",
+        "/admin/whatsapp/chatbot/{section?}"
+      ],
+      "route_names": [
+        "admin.whatsapp-inbox.index",
+        "admin.whatsapp-supervisor.index",
+        "admin.whatsapp-campaigns.index/report",
+        "admin.whatsapp-chatbot.index"
+      ],
+      "domain": "Communications",
+      "primary_entity": "Conversation / campaign / chatbot",
+      "primary_role": "agent/supervisor/marketer",
+      "primary_user_goal": "Handle conversations, follow-up and campaigns",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "communications-owned workbenches",
+      "recommended_placement": "communications-owned workbenches",
+      "navigation_owner": "WhatsApp",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Feed/attachment/export/preview endpoints are supporting actions, not independent navigation destinations."
+    },
+    {
+      "id": "restaurant.qr",
+      "routes": [
+        "/admin/smart-ordering/qr"
+      ],
+      "route_names": [
+        "admin.smart-ordering.qr.index"
+      ],
+      "domain": "Restaurant SaaS / Smart Ordering",
+      "primary_entity": "QR configuration",
+      "primary_role": "restaurant operator",
+      "primary_user_goal": "Create/manage dynamic ordering QR",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Smart Ordering context",
+      "recommended_placement": "Smart Ordering context",
+      "navigation_owner": "Restaurant SaaS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1572 / #1944",
+      "notes": "Reuse delivered Smart Ordering QR lineage; no Restaurant-v2 QR engine."
+    },
+    {
+      "id": "restaurant.control",
+      "routes": [
+        "/admin/smart-ordering/settings"
+      ],
+      "route_names": [
+        "admin.smart-ordering.index"
+      ],
+      "domain": "Restaurant SaaS / Smart Ordering",
+      "primary_entity": "Restaurant site/runtime/entitlement/publish revision",
+      "primary_role": "restaurant owner/admin",
+      "primary_user_goal": "Configure and launch restaurant ordering site",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Restaurant SaaS existing Smart Ordering control surface",
+      "recommended_placement": "Restaurant SaaS existing Smart Ordering control surface",
+      "navigation_owner": "Restaurant SaaS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1572 / #1944",
+      "notes": null
+    },
+    {
+      "id": "restaurant.menu",
+      "routes": [
+        "/admin/smart-ordering/menu"
+      ],
+      "route_names": [
+        "admin.smart-ordering.menu.index"
+      ],
+      "domain": "Restaurant SaaS / Menu",
+      "primary_entity": "Menu/category/item/modifier/revision",
+      "primary_role": "restaurant operator",
+      "primary_user_goal": "Build and publish menu",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Restaurant SaaS existing menu context",
+      "recommended_placement": "Restaurant SaaS existing menu context",
+      "navigation_owner": "Restaurant SaaS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1572 / #1944",
+      "notes": "Master plan explicitly requires reuse of delivered menu domain; future Menu Studio improvements extend this authority."
+    },
+    {
+      "id": "restaurant.supply",
+      "routes": [
+        "/admin/smart-ordering/supply",
+        "/admin/smart-ordering/sites/{site}/supply"
+      ],
+      "route_names": [
+        "admin.smart-ordering.supply.entry/index"
+      ],
+      "domain": "Restaurant SaaS / Supply",
+      "primary_entity": "Supply mapping / stock / recommendation",
+      "primary_role": "restaurant operator",
+      "primary_user_goal": "Review supply mapping and replenishment intelligence",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Restaurant SaaS / site context",
+      "recommended_placement": "Restaurant SaaS / site context",
+      "navigation_owner": "Restaurant SaaS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1572 / #1944",
+      "notes": null
+    },
+    {
+      "id": "restaurant.customer_growth",
+      "routes": [
+        "/admin/smart-ordering/sites/{site}/customers/{customer}",
+        "/admin/smart-ordering/sites/{site}/customers/{customer}/orders",
+        "/admin/smart-ordering/sites/{site}/customers/{customer}/loyalty",
+        "/admin/smart-ordering/sites/{site}/loyalty/rewards",
+        "/admin/smart-ordering/sites/{site}/service-recovery"
+      ],
+      "route_names": [
+        "admin.smart-ordering.customers.show/orders/loyalty",
+        "admin.smart-ordering.loyalty.rewards",
+        "admin.smart-ordering.service-recovery.index"
+      ],
+      "domain": "Restaurant SaaS / Growth",
+      "primary_entity": "Restaurant guest / loyalty / service recovery",
+      "primary_role": "restaurant operator",
+      "primary_user_goal": "Understand guest history and recover service issues",
+      "current_pattern": "Record 360 / Details",
+      "recommended_pattern": "Record 360 / Details",
+      "current_placement": "site-scoped exact customer context",
+      "recommended_placement": "site-scoped exact customer context",
+      "navigation_owner": "Restaurant SaaS",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Exact site + customer routes exist; future growth features must compose into this customer context.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": "#1572 / #1944",
+      "notes": null
+    },
+    {
+      "id": "admin.profile",
+      "routes": [
+        "/admin/profile"
+      ],
+      "route_names": [
+        "admin.profile.index"
+      ],
+      "domain": "Identity",
+      "primary_entity": "Admin profile",
+      "primary_role": "authenticated admin",
+      "primary_user_goal": "Manage own account/profile",
+      "current_pattern": "Record 360 / Details",
+      "recommended_pattern": "Record 360 / Details",
+      "current_placement": "header account control",
+      "recommended_placement": "header account control",
+      "navigation_owner": "Admin shell",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "app.preview",
+      "routes": [
+        "/admin/app-preview",
+        "/admin/app-preview/storefront-configuration",
+        "/admin/app-preview/events"
+      ],
+      "route_names": [
+        "admin.app-preview.index",
+        "admin.app-preview.storefront-configuration",
+        "admin.app-preview.events"
+      ],
+      "domain": "Platform / App Preview",
+      "primary_entity": "Preview session/configuration/event",
+      "primary_role": "platform admin",
+      "primary_user_goal": "Inspect mobile/storefront runtime without creating production truth",
+      "current_pattern": "Monitoring / Exceptions",
+      "recommended_pattern": "Monitoring / Exceptions",
+      "current_placement": "Administration/Settings contextual tool",
+      "recommended_placement": "Administration/Settings contextual tool",
+      "navigation_owner": "App Preview",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.overview",
+      "routes": [
+        "/admin/field-operations",
+        "/admin/field-operations/fleet-map"
+      ],
+      "route_names": [
+        "admin.field-operations.overview",
+        "admin.field-operations.fleet"
+      ],
+      "domain": "Field Operations",
+      "primary_entity": "Fleet / route / field status",
+      "primary_role": "field ops user",
+      "primary_user_goal": "Monitor current fleet and field work",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Field Operations domain",
+      "recommended_placement": "Field Operations domain",
+      "navigation_owner": "Field Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.vans",
+      "routes": [
+        "/admin/field-operations/vans",
+        "/admin/field-operations/vans/{van}",
+        "/admin/field-operations/assignments"
+      ],
+      "route_names": [
+        "admin.field-operations.vans/vans.show/assignments"
+      ],
+      "domain": "Field Operations",
+      "primary_entity": "Van / assignment",
+      "primary_role": "field ops user",
+      "primary_user_goal": "Manage vans and assignments",
+      "current_pattern": "Data Explorer / Grid",
+      "recommended_pattern": "Data Explorer / Grid",
+      "current_placement": "Field Operations domain + exact record",
+      "recommended_placement": "Field Operations domain + exact record",
+      "navigation_owner": "Field Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Exact van route exists; assignment mutations remain contextual.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.customers_visits",
+      "routes": [
+        "/admin/field-operations/customers",
+        "/admin/field-operations/visits"
+      ],
+      "route_names": [
+        "admin.field-operations.customers",
+        "admin.field-operations.visits"
+      ],
+      "domain": "Field Operations",
+      "primary_entity": "Customer / visit",
+      "primary_role": "field ops user",
+      "primary_user_goal": "Plan and review customer visits",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Field Operations domain",
+      "recommended_placement": "Field Operations domain",
+      "navigation_owner": "Field Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.territory",
+      "routes": [
+        "/admin/field-operations/territories",
+        "/admin/field-operations/address-quality",
+        "/admin/field-operations/routing-policies"
+      ],
+      "route_names": [
+        "admin.field-operations.territories",
+        "admin.field-operations.address-quality",
+        "admin.field-operations.routing"
+      ],
+      "domain": "Field Operations",
+      "primary_entity": "Territory / address review / routing policy",
+      "primary_role": "field ops planner",
+      "primary_user_goal": "Maintain map-first service geography and routing",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Field Operations domain",
+      "recommended_placement": "Field Operations domain",
+      "navigation_owner": "Field Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "Geography is contractually map-first; raw GeoJSON/keys must remain advanced/internal.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.finance_tracking",
+      "routes": [
+        "/admin/field-operations/finance",
+        "/admin/driver-live-tracking"
+      ],
+      "route_names": [
+        "admin.field-operations.finance",
+        "admin.driver-live-tracking.index"
+      ],
+      "domain": "Field Operations",
+      "primary_entity": "Remittance / live driver-van state",
+      "primary_role": "field ops/finance user",
+      "primary_user_goal": "Monitor collection/remittance and live delivery execution",
+      "current_pattern": "Monitoring / Exceptions",
+      "recommended_pattern": "Monitoring / Exceptions",
+      "current_placement": "Field Operations domain",
+      "recommended_placement": "Field Operations domain",
+      "navigation_owner": "Field Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Feed/lookups/proof/evidence endpoints are supporting data/actions, not sidebar destinations."
+    },
+    {
+      "id": "customer360",
+      "routes": [
+        "/admin/customer-360",
+        "/admin/customer-360/{platformCustomer}"
+      ],
+      "route_names": [
+        "admin.customer-360.index",
+        "admin.customer-360.show"
+      ],
+      "domain": "Customer Service / CRM",
+      "primary_entity": "Platform customer",
+      "primary_role": "service/finance user",
+      "primary_user_goal": "Open exact customer context with linked orders/finance/reports",
+      "current_pattern": "Record 360 / Details",
+      "recommended_pattern": "Record 360 / Details",
+      "current_placement": "Customer Service contextual authority",
+      "recommended_placement": "Customer Service contextual authority",
+      "navigation_owner": "Customer 360",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Exact record route is canonical. Finance/report/export endpoints are nested support actions.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "invoice.detail",
+      "routes": [
+        "/admin/invoices/{invoice}"
+      ],
+      "route_names": [
+        "admin.invoices.show"
+      ],
+      "domain": "Finance / Sales",
+      "primary_entity": "Invoice",
+      "primary_role": "authorized finance/service user",
+      "primary_user_goal": "Inspect exact invoice",
+      "current_pattern": "Record 360 / Details",
+      "recommended_pattern": "Record 360 / Details",
+      "current_placement": "deep link from canonical source records",
+      "recommended_placement": "deep link from canonical source records",
+      "navigation_owner": "Invoices",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Exact invoice record route exists.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "b2b.workspace",
+      "routes": [
+        "/admin/b2b/dashboard",
+        "/admin/b2b/orders",
+        "/admin/b2b/pricing-approvals",
+        "/admin/b2b/settings-permissions",
+        "/admin/b2b/{module}"
+      ],
+      "route_names": [
+        "admin.b2b.dashboard",
+        "admin.b2b.orders.canonical",
+        "admin.b2b.pricing-approvals",
+        "admin.b2b.settings-permissions",
+        "admin.b2b.module"
+      ],
+      "domain": "Wholesale / B2B",
+      "primary_entity": "Wholesale operations",
+      "primary_role": "B2B admin",
+      "primary_user_goal": "Operate B2B dashboard, orders, pricing and settings",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "B2B domain shell",
+      "recommended_placement": "B2B domain shell",
+      "navigation_owner": "B2B Workspace",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Orders already route to canonical OrderOperations surface; dynamic module route remains domain-owned."
+    },
+    {
+      "id": "commercial.sales_control",
+      "routes": [
+        "/admin/b2b/commercial/sales-control"
+      ],
+      "route_names": [
+        "admin.commercial.sales-control"
+      ],
+      "domain": "Commercial",
+      "primary_entity": "Product sales control",
+      "primary_role": "commercial user",
+      "primary_user_goal": "Control product/channel commercial policy",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Commercial domain; canonical B2B route",
+      "recommended_placement": "Commercial domain; canonical B2B route",
+      "navigation_owner": "Commercial",
+      "duplicate_or_overlap": [
+        "/admin/b2c/commercial/sales-control is an existing 302 compatibility redirect to this canonical route."
+      ],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Duplicate destination already consolidated; do not recreate a B2C copy."
+    },
+    {
+      "id": "b2c.workspace",
+      "routes": [
+        "/admin/b2c/dashboard",
+        "/admin/b2c/orders",
+        "/admin/b2c/{module}"
+      ],
+      "route_names": [
+        "admin.b2c.dashboard",
+        "admin.b2c.orders.canonical",
+        "admin.b2c.module"
+      ],
+      "domain": "Retail / B2C",
+      "primary_entity": "Retail operations",
+      "primary_role": "B2C admin",
+      "primary_user_goal": "Operate retail dashboard and canonical modules",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "B2C domain shell",
+      "recommended_placement": "B2C domain shell",
+      "navigation_owner": "B2C Workspace",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "b2c.commercial_storefront",
+      "routes": [
+        "/admin/b2c/commercial/flash-offers",
+        "/admin/b2c/storefront-preview"
+      ],
+      "route_names": [
+        "admin.commercial.flash-offers",
+        "admin.b2c.storefront-preview"
+      ],
+      "domain": "Retail / Commercial",
+      "primary_entity": "Flash offer / storefront",
+      "primary_role": "retail commercial user",
+      "primary_user_goal": "Manage time-bounded offers and storefront experience",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "B2C commercial/storefront context",
+      "recommended_placement": "B2C commercial/storefront context",
+      "navigation_owner": "B2C Workspace",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Offer preview/analytics are contextual subroutes, not independent navigation."
+    },
+    {
+      "id": "catalog",
+      "routes": [
+        "/admin/catalog",
+        "/admin/catalog/categories"
+      ],
+      "route_names": [
+        "admin.catalog.index",
+        "admin.catalog.categories.index"
+      ],
+      "domain": "Catalog",
+      "primary_entity": "Product / category",
+      "primary_role": "catalog admin",
+      "primary_user_goal": "Manage catalog and categories",
+      "current_pattern": "Data Explorer / Grid",
+      "recommended_pattern": "Data Explorer / Grid",
+      "current_placement": "Catalog domain",
+      "recommended_placement": "Catalog domain",
+      "navigation_owner": "Catalog",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "master_data.lookups",
+      "routes": [
+        "/admin/lookups",
+        "/admin/operations/lookups"
+      ],
+      "route_names": [
+        "admin.lookups.index",
+        "admin.operations.lookups.index"
+      ],
+      "domain": "Master Data",
+      "primary_entity": "Brand/unit/system lookup",
+      "primary_role": "authorized admin/operator",
+      "primary_user_goal": "Maintain authoritative managed values",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "domain-owned lookup surfaces",
+      "recommended_placement": "domain-owned lookup surfaces",
+      "navigation_owner": "Master Data",
+      "duplicate_or_overlap": [
+        "Two lookup surfaces exist by authority: catalog lookups (brands/units) and operational system lookups. They are not treated as duplicates without entity overlap evidence."
+      ],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "business.management",
+      "routes": [
+        "/admin/business"
+      ],
+      "route_names": [
+        "admin.business.index"
+      ],
+      "domain": "Business Management",
+      "primary_entity": "Warehouse / inventory / customer / promotion / driver",
+      "primary_role": "business admin",
+      "primary_user_goal": "Maintain bounded business master/operational data",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Business domain",
+      "recommended_placement": "Business domain",
+      "navigation_owner": "Business",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "retail_stores",
+      "routes": [
+        "/admin/retail-stores"
+      ],
+      "route_names": [
+        "admin.retail-stores.index"
+      ],
+      "domain": "Retail Administration",
+      "primary_entity": "Retail store / role assignment",
+      "primary_role": "platform/retail admin",
+      "primary_user_goal": "Provision and inspect retail stores",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Administration / Retail context",
+      "recommended_placement": "Administration / Retail context",
+      "navigation_owner": "Retail Stores",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "live_ads",
+      "routes": [
+        "/admin/live-ads"
+      ],
+      "route_names": [
+        "admin.live-ads.index"
+      ],
+      "domain": "Commercial / Content",
+      "primary_entity": "Live ad",
+      "primary_role": "marketing user",
+      "primary_user_goal": "Manage live advertising content",
+      "current_pattern": "Data Explorer / Grid",
+      "recommended_pattern": "Data Explorer / Grid",
+      "current_placement": "Commercial/content context",
+      "recommended_placement": "Commercial/content context",
+      "navigation_owner": "Live Ads",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "order_operations",
+      "routes": [
+        "/admin/operations/orders"
+      ],
+      "route_names": [
+        "admin.operations.orders.index"
+      ],
+      "domain": "Operations",
+      "primary_entity": "Order / dispatch",
+      "primary_role": "operations user",
+      "primary_user_goal": "Search, create and operate orders/dispatch",
+      "current_pattern": "Operational Workbench",
+      "recommended_pattern": "Operational Workbench",
+      "current_placement": "Operations domain; reused by B2B/B2C canonical order routes",
+      "recommended_placement": "Operations domain; reused by B2B/B2C canonical order routes",
+      "navigation_owner": "Order Operations",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Supporting feeds/lookups/proofs stay contextual; row actions must open/operate exact record context.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "reports",
+      "routes": [
+        "/admin/reports"
+      ],
+      "route_names": [
+        "admin.reports.index"
+      ],
+      "domain": "Reporting",
+      "primary_entity": "Report",
+      "primary_role": "manager/analyst",
+      "primary_user_goal": "Run supported reports and exports",
+      "current_pattern": "Analytics / BI",
+      "recommended_pattern": "Analytics / BI",
+      "current_placement": "Reporting domain; ERP users enter via ERP BI where applicable",
+      "recommended_placement": "Reporting domain; ERP users enter via ERP BI where applicable",
+      "navigation_owner": "Reports",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "ERP BI is the ERP-oriented discovery surface; generic Reports remains shared reporting authority."
+    },
+    {
+      "id": "system.inspector",
+      "routes": [
+        "/admin/inspector"
+      ],
+      "route_names": [
+        "admin.inspector.index"
+      ],
+      "domain": "Platform Operations",
+      "primary_entity": "System/runtime/tenant health",
+      "primary_role": "platform support/admin",
+      "primary_user_goal": "Inspect and repair supported runtime conditions",
+      "current_pattern": "Monitoring / Exceptions",
+      "recommended_pattern": "Monitoring / Exceptions",
+      "current_placement": "Administration/support context",
+      "recommended_placement": "Administration/support context",
+      "navigation_owner": "System Inspector",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Restaurant support/lifecycle actions are support controls, not Restaurant operator navigation."
+    },
+    {
+      "id": "security",
+      "routes": [
+        "/admin/security",
+        "/admin/security/enterprise",
+        "/admin/security/demo-data"
+      ],
+      "route_names": [
+        "admin.security.index",
+        "admin.enterprise-security.index",
+        "admin.security.demo-data.index"
+      ],
+      "domain": "Security",
+      "primary_entity": "User / role / scope / delegation / demo data",
+      "primary_role": "security admin",
+      "primary_user_goal": "Manage authorization and security controls",
+      "current_pattern": "Settings / Master Data",
+      "recommended_pattern": "Settings / Master Data",
+      "current_placement": "Administration/Security domain",
+      "recommended_placement": "Administration/Security domain",
+      "navigation_owner": "Security",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": null
+    },
+    {
+      "id": "mobile_release_ops",
+      "routes": [
+        "/admin/apps/downloads/status"
+      ],
+      "route_names": [
+        "admin.mobile-apps.status"
+      ],
+      "domain": "Platform Release",
+      "primary_entity": "Mobile release artifact",
+      "primary_role": "release/admin user",
+      "primary_user_goal": "Inspect Customer/Driver/Van artifact readiness",
+      "current_pattern": "Monitoring / Exceptions",
+      "recommended_pattern": "Monitoring / Exceptions",
+      "current_placement": "Settings/Admin release context",
+      "recommended_placement": "Settings/Admin release context",
+      "navigation_owner": "Mobile Release",
+      "duplicate_or_overlap": [],
+      "form_field_quality": "No route-level raw-ID/JSON defect confirmed by this inventory; touched forms remain subject to Lookup/Enum/Builder classification.",
+      "grid_search_filter_pagination": "No route-level defect confirmed; high-growth lists remain subject to bounded query/pagination contracts.",
+      "direct_record_behavior": "Contextual exact-record routes/actions preserved where present; no generic-list redirect defect confirmed.",
+      "shared_component_usage": "Canonical admin shell/sidebar/FOODEX shared components required.",
+      "responsive_status": {
+        "baseline": "Shared AdminResponsiveLayoutTest covers 1024/tablet/mobile CSS contracts; runtime visual matrix on main currently covers 1280/1024/768/390 AR+EN.",
+        "full_matrix": "PENDING #1943 for 320/360/390/412/430/768/1024/1280+ exact runtime enforcement.",
+        "status": "PARTIAL_UNTIL_1943"
+      },
+      "rtl_ltr": "AR/RTL + EN/LTR contract applies; exact runtime evidence is required when touched.",
+      "accessibility_state": "Repository accessibility contract applies; route-level legacy runtime certification is not inferred from unchanged code.",
+      "classification": "KEEP",
+      "severity": "NONE",
+      "remediation_owner": null,
+      "notes": "Per-app download routes are actions/downloads, not separate navigation destinations."
+    }
+  ],
+  "compatibility_and_supporting_routes": {
+    "resolved_duplicate_routes": [
+      {
+        "route": "/admin/b2c/commercial/sales-control",
+        "status": "compatibility redirect",
+        "canonical": "/admin/b2b/commercial/sales-control",
+        "classification": "MERGE/DUPLICATE-REMOVE",
+        "action": "already resolved; keep redirect while compatibility is required"
+      }
+    ],
+    "public_restaurant_routes": [
+      {
+        "route": "/smart-ordering/{siteKey}",
+        "purpose": "published guest storefront",
+        "placement": "public guest surface, not Dashboard sidebar"
+      },
+      {
+        "route": "/smart-ordering/{siteKey}/sitemap.xml",
+        "purpose": "SEO support endpoint",
+        "placement": "non-screen support"
+      }
+    ],
+    "excluded_support_examples": [
+      "*/feed",
+      "*/lookups/*",
+      "*/export",
+      "*/download",
+      "*/asset.svg",
+      "*/asset.pdf",
+      "*/attachment",
+      "/admin/search response endpoint",
+      "preview data endpoints"
+    ]
+  },
+  "program_mapping": {
+    "erp": {
+      "umbrella": "#1905",
+      "certification": "#1914",
+      "children": [
+        "#1906 ERP Center",
+        "#1907 Procurement",
+        "#1908 WMS",
+        "#1909 Finance",
+        "#1910 Treasury",
+        "#1911 Customer Service",
+        "#1912 Action Center/My Work",
+        "#1913 BI"
+      ],
+      "inventory_decision": "Reuse closed canonical ERP child lineages; no duplicate routes/issues."
+    },
+    "restaurant_saas": {
+      "umbrella": "#1572",
+      "blueprint": "#1573",
+      "current_authority": "Delivered Smart Ordering routes/domain are baseline; extend rather than create parallel Menu/Order/CRM/QR truth.",
+      "adoption": "#1944"
+    }
+  },
+  "remediation_ledger": [
+    {
+      "classification": "SHARED-FIX",
+      "severity": "P0",
+      "defect": "Dashboard runtime evidence on current main does not yet enforce the full 320/360/390/412/430/768/1024/1280+ matrix for shared UI changes.",
+      "affected": "All materially changed Dashboard UI",
+      "canonical_pattern": "All patterns",
+      "owner": "#1943",
+      "status": "ACTIVE_EXISTING_OWNER",
+      "action": "Do not create another responsive gate or branch."
+    },
+    {
+      "classification": "MOVE/COMPOSE",
+      "severity": "P1",
+      "defect": "Active ERP/Restaurant work must adopt placement metadata and responsive DoD without turning feature names into new screens.",
+      "affected": "#1905/#1914 and #1572 active/touched journeys",
+      "canonical_pattern": "Existing domain workbench/record/settings patterns",
+      "owner": "#1944",
+      "status": "ACTIVE_EXISTING_OWNER",
+      "action": "Reuse existing Issue/branch/PR lineages; only touched journeys migrate."
+    }
+  ],
+  "confirmed_unowned_gaps": [],
+  "no_new_issue_reason": "The only confirmed cross-cutting gaps found by this route/authority inventory already have canonical owners (#1943 and #1944). Creating another remediation Issue would violate one-task/one-owner and non-duplication policy.",
+  "completion_rules": {
+    "good_screens_explicitly_kept": true,
+    "erp_mapped_without_duplicate_implementation": true,
+    "restaurant_mapped_without_duplicate_implementation": true,
+    "speculative_rewrite_list": false
+  }
+}
