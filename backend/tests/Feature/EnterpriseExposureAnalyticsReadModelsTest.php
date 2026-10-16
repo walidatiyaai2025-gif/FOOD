@@ -260,6 +260,14 @@ final class EnterpriseExposureAnalyticsReadModelsTest extends TestCase
             'group_by' => ['warehouse_id', 'product_id', 'aging_bucket', 'stock_status'],
         ]);
 
+        $operationalQueries = [];
+        DB::listen(static function ($event) use (&$operationalQueries): void {
+            $sql = strtolower((string) $event->sql);
+            if (str_contains($sql, self::INVENTORIES)) {
+                $operationalQueries[] = $sql;
+            }
+        });
+
         $result = app(StockExposureReadModel::class)->read(
             $query,
             new EntitlementScope(EntitlementScope::STORE, 100),
@@ -278,6 +286,7 @@ final class EnterpriseExposureAnalyticsReadModelsTest extends TestCase
         $this->assertSame('25.000', $row['stock_value']);
         $this->assertSame(0, $row['unvalued_items']);
         $this->assertSame(100, $row['drill_down']['store_id']);
+        $this->assertSame(1, count($operationalQueries));
     }
 
     public function test_stock_value_never_fabricates_missing_cost_and_historical_reserved_snapshot_fails_closed(): void
