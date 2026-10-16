@@ -443,6 +443,150 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertSame('SOLD_OUT', $state['reason']);
     }
 
+    public function test_availability_schedule_writes_are_canonical_for_categories_items_and_branch_overrides(): void
+    {
+        $fixture = $this->fixture('DAYPART', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
+        $menu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
+            'name_en' => 'Daypart Menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'sort_order' => 0,
+        ]);
+
+        $category = $writer->createCategory($fixture['admin'], $fixture['site'], $draft, $menu, [
+            'name_en' => 'Timed',
+            'is_visible' => true,
+            'sold_out' => false,
+            'availability_schedule' => ['windows' => [
+                ['days' => ['7', 1, 7], 'start' => '22:00', 'end' => '02:00'],
+                ['days' => [2, 1, 2], 'start' => '06:00', 'end' => '11:00'],
+                ['days' => [1, 2], 'start' => '06:00', 'end' => '11:00'],
+                ['days' => [3], 'start' => '00:00', 'end' => '00:00'],
+            ]],
+            'sort_order' => 0,
+        ]);
+
+        $this->assertSame([
+            'windows' => [
+                ['days' => [3], 'start' => '00:00', 'end' => '00:00'],
+                ['days' => [1, 2], 'start' => '06:00', 'end' => '11:00'],
+                ['days' => [1, 7], 'start' => '22:00', 'end' => '02:00'],
+            ],
+        ], $category->fresh()->availability_schedule);
+
+        $item = $writer->createItem($fixture['admin'], $fixture['site'], $draft, $category, [
+            'source_product_id' => $fixture['product_id'],
+            'name_en' => 'Timed Item',
+            'is_visible' => true,
+            'sold_out' => false,
+            'availability_schedule' => [
+                ['days' => [6, 6], 'start' => '18:00', 'end' => '23:00'],
+            ],
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->assertSame([
+            'windows' => [
+                ['days' => [6], 'start' => '18:00', 'end' => '23:00'],
+            ],
+        ], $item->fresh()->availability_schedule);
+
+        $availability = app(SmartOrderingAvailabilityService::class);
+        $mondayOvernight = CarbonImmutable::parse('2026-10-12 01:00:00', 'Asia/Kuwait');
+        $wednesdayFullDay = CarbonImmutable::parse('2026-10-14 12:00:00', 'Asia/Kuwait');
+        $mondayClosed = CarbonImmutable::parse('2026-10-12 03:00:00', 'Asia/Kuwait');
+
+        $this->assertSame(1, $mondayOvernight->dayOfWeekIso);
+        $this->assertSame(3, $wednesdayFullDay->dayOfWeekIso);
+        $this->assertTrue($availability->category($category->fresh(), null, $mondayOvernight)['available']);
+        $this->assertTrue($availability->category($category->fresh(), null, $wednesdayFullDay)['available']);
+        $this->assertSame('OUTSIDE_SCHEDULE', $availability->category($category->fresh(), null, $mondayClosed)['reason']);
+
+        $branch = $this->branch($fixture['site']->id, 'DAYPART-BR', true);
+        $writer->setCategoryBranchOverride($fixture['admin'], $fixture['site'], $draft, $category, $branch, [
+            'availability_schedule' => [
+                ['days' => [5, 5], 'start' => '12:00', 'end' => '14:00'],
+                ['days' => [5], 'start' => '12:00', 'end' => '14:00'],
+            ],
+        ]);
+        $writer->setItemBranchOverride($fixture['admin'], $fixture['site'], $draft, $item, $branch, [
+            'availability_schedule' => ['windows' => [
+                ['days' => [4, 4], 'start' => '17:00', 'end' => '20:00'],
+            ]],
+        ]);
+
+        $categoryOverride = DB::table('smart_ordering_category_branch_overrides')
+            ->where('category_id', $category->id)
+            ->where('branch_id', $branch->id)
+            ->value('availability_schedule');
+        $itemOverride = DB::table('smart_ordering_item_branch_overrides')
+            ->where('item_id', $item->id)
+            ->where('branch_id', $branch->id)
+            ->value('availability_schedule');
+
+        $this->assertSame([
+            'windows' => [
+                ['days' => [5], 'start' => '12:00', 'end' => '14:00'],
+            ],
+        ], json_decode((string) $categoryOverride, true, flags: JSON_THROW_ON_ERROR));
+        $this->assertSame([
+            'windows' => [
+                ['days' => [4], 'start' => '17:00', 'end' => '20:00'],
+            ],
+        ], json_decode((string) $itemOverride, true, flags: JSON_THROW_ON_ERROR));
+    }
+
+    public function test_availability_schedule_domain_writes_reject_malformed_or_unbounded_windows_before_persistence(): void
+    {
+        $fixture = $this->fixture('DAYPART-INVALID', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
+        $menu = $writer->createMenu($fixture['admin'], $fixture['site'], $draft, [
+            'name_en' => 'Validation Menu',
+            'is_default' => true,
+            'is_visible' => true,
+            'sort_order' => 0,
+        ]);
+        $category = $writer->createCategory($fixture['admin'], $fixture['site'], $draft, $menu, [
+            'name_en' => 'Validation Category',
+            'is_visible' => true,
+            'sold_out' => false,
+            'availability_schedule' => ['windows' => [[
+                'days' => [1],
+                'start' => '08:00',
+                'end' => '10:00',
+            ]]],
+            'sort_order' => 0,
+        ]);
+        $original = $category->fresh()->availability_schedule;
+
+        $invalidSchedules = [
+            'not-an-array',
+            ['windows' => [['days' => [0], 'start' => '08:00', 'end' => '10:00']]],
+            ['windows' => [['days' => [], 'start' => '08:00', 'end' => '10:00']]],
+            ['windows' => [['days' => [1], 'start' => '24:00', 'end' => '10:00']]],
+            ['windows' => [['days' => [1], 'start' => '08:00', 'end' => '10:60']]],
+            ['windows' => array_fill(0, 29, ['days' => [1], 'start' => '08:00', 'end' => '10:00'])],
+        ];
+
+        foreach ($invalidSchedules as $schedule) {
+            try {
+                $writer->updateCategory($fixture['admin'], $fixture['site'], $draft, $category->fresh(), [
+                    'availability_schedule' => $schedule,
+                ]);
+                $this->fail('Malformed availability schedule must fail before persistence.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('availability_schedule', $exception->errors());
+            }
+
+            $this->assertSame($original, $category->fresh()->availability_schedule);
+        }
+    }
+
     public function test_bilingual_fallback_and_draft_publish_boundary_are_publicly_observable(): void
     {
         $fixture = $this->fixture('PUB', 3.750);
