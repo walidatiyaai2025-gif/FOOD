@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\CommerceQuoteService;
 use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ final class SmartOrderingMenuAdminController extends Controller
     ): View {
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
+        $scheduledRevision = $revisions->scheduled($site);
 
         $menuIndex = SmartOrderingMenu::query()
             ->where('site_id', $site->id)
@@ -106,6 +108,9 @@ final class SmartOrderingMenuAdminController extends Controller
             ->orderBy('name_en')
             ->get();
 
+        $publishTimezone = (string) ($branches->first()?->timezone ?: config('app.timezone', 'UTC'));
+        $scheduleMinimum = CarbonImmutable::now($publishTimezone)->addMinute()->format('Y-m-d\\TH:i');
+
         $categoryIds = SmartOrderingMenuCategory::query()
             ->whereIn('menu_id', $menuIds)
             ->pluck('id');
@@ -152,6 +157,9 @@ final class SmartOrderingMenuAdminController extends Controller
             'stores' => $stores,
             'site' => $site,
             'draft' => $draft,
+            'scheduledRevision' => $scheduledRevision,
+            'publishTimezone' => $publishTimezone,
+            'scheduleMinimum' => $scheduleMinimum,
             'menus' => $menus,
             'menuIndex' => $menuIndex,
             'focusedMenuId' => $focusedMenuId,
@@ -567,6 +575,31 @@ final class SmartOrderingMenuAdminController extends Controller
         return back()->with('status', __('smart_ordering_menu.published'));
     }
 
+    public function schedulePublish(
+        Request $request,
+        SmartOrderingRevision $revision,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+        SmartOrderingMenuRevisionService $revisions,
+    ): RedirectResponse {
+        [$actor, $site] = $this->context($request, $tenants, $sites, 'smart_ordering.publish');
+        abort_unless((int) $revision->site_id === (int) $site->id, 404);
+
+        $data = $request->validate([
+            'scheduled_at' => ['required', 'date_format:Y-m-d\\TH:i'],
+        ]);
+        $timezone = $this->publishTimezone($site);
+        $revisions->schedule(
+            $actor,
+            $site,
+            $revision,
+            CarbonImmutable::parse((string) $data['scheduled_at'], $timezone),
+            $request,
+        );
+
+        return back()->with('status', __('smart_ordering_menu.scheduled'));
+    }
+
     /**
      * @return list<array{type:string,type_label:string,id:int,menu_id:int,label:string,anchor:string}>
      */
@@ -880,6 +913,20 @@ final class SmartOrderingMenuAdminController extends Controller
         $stores = Store::query()->whereIn('id', $storeIds)->orderBy('name')->get();
 
         return [$actor, $site, $stores];
+    }
+
+    private function publishTimezone(SmartOrderingSite $site): string
+    {
+        $timezone = SmartOrderingBranch::query()
+            ->where('site_id', $site->id)
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->value('timezone');
+
+        return is_string($timezone) && trim($timezone) !== ''
+            ? $timezone
+            : (string) config('app.timezone', 'UTC');
     }
 
     private function branch(Request $request, SmartOrderingSite $site): SmartOrderingBranch
