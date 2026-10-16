@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained('enterprise_organizations')->restrictOnDelete();
             $table->foreignId('company_id')->constrained('enterprise_companies')->restrictOnDelete();
+            $table->foreignId('legal_entity_id')->constrained('enterprise_legal_entities')->restrictOnDelete();
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
             $table->foreignId('bank_account_id')->constrained('enterprise_bank_accounts')->restrictOnDelete();
             $table->string('reconciliation_number', 48);
@@ -31,7 +32,7 @@ return new class extends Migration
             $table->unique(['store_id', 'reconciliation_number'], 'etr_rec_store_number_uq');
             $table->unique(['store_id', 'idempotency_key'], 'etr_rec_store_idem_uq');
             $table->index(
-                ['organization_id', 'company_id', 'store_id', 'bank_account_id', 'status', 'period_to', 'id'],
+                ['organization_id', 'company_id', 'legal_entity_id', 'store_id', 'bank_account_id', 'status', 'period_to', 'id'],
                 'etr_rec_scope_status_period_idx',
             );
         });
@@ -62,6 +63,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained('enterprise_organizations')->restrictOnDelete();
             $table->foreignId('company_id')->constrained('enterprise_companies')->restrictOnDelete();
+            $table->foreignId('legal_entity_id')->constrained('enterprise_legal_entities')->restrictOnDelete();
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
             $table->foreignId('cashbox_id')->constrained('enterprise_cashboxes')->restrictOnDelete();
             $table->string('closing_number', 48);
@@ -84,7 +86,7 @@ return new class extends Migration
             $table->unique(['store_id', 'idempotency_key'], 'etc_close_store_idem_uq');
             $table->unique(['cashbox_id', 'business_date'], 'etc_close_cashbox_date_uq');
             $table->index(
-                ['organization_id', 'company_id', 'store_id', 'status', 'business_date', 'id'],
+                ['organization_id', 'company_id', 'legal_entity_id', 'store_id', 'status', 'business_date', 'id'],
                 'etc_close_scope_status_date_idx',
             );
         });
