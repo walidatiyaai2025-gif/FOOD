@@ -13,6 +13,10 @@
 .so-toolbar label,.so-grid label{display:grid;gap:6px;font-weight:700;font-size:.82rem}
 .so-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .so-table-wrap{width:100%;max-width:100%;overflow:visible}
+.so-payment-filter{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
+.so-payment-table-wrap{width:100%;max-width:100%;overflow-x:auto}
+.so-payment-table{min-width:1180px}
+.so-payment-meta{font-size:.78rem;color:var(--foodex-muted)}
 .so-order-number{white-space:nowrap}
 .so-row-actions{position:relative;display:inline-block}
 .so-row-actions summary{list-style:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;cursor:pointer;font-size:20px}
@@ -55,7 +59,7 @@
 .so-zone-advanced summary{cursor:pointer;font-weight:800}
 .so-zone-coordinate-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:1023px){.so-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.so-toolbar .so-actions{grid-column:1/-1}}
-@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}}
+@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-payment-filter{grid-template-columns:1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}.so-payment-table-wrap{overflow-x:auto}}
 @media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}.so-zone-location-search,.so-zone-coordinate-grid{grid-template-columns:1fr}.so-zone-location-search button{width:100%}.so-dialog-body{padding:14px}}
 </style>
 </head>
@@ -76,6 +80,9 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.index') }}">{{ __('smart_ordering.settings_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
+@if($user->hasPermission('finance.view') || $stores->contains(fn($store) => $user->hasPermission('finance.view',(int)$store->id)))
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
+@endif
 </nav>
 
 @if($tab==='orders')
@@ -129,6 +136,109 @@
 </table>
 </section>
 {{ $orders->links() }}
+@elseif($tab==='payments')
+<section class="foodex-card">
+<h2>{{ __('smart_ordering.payments.title') }}</h2>
+<p>{{ __('smart_ordering.payments.description') }}</p>
+</section>
+
+<form method="get" class="foodex-card so-toolbar so-payment-filter">
+<input type="hidden" name="tab" value="payments">
+<label>{{ __('smart_ordering.payments.filters.status') }}
+<select name="payment_status">
+<option value="">{{ __('smart_ordering.payments.filters.all') }}</option>
+@foreach(['pending','authorized','captured','partially_refunded','refunded','voided','failed'] as $status)
+<option value="{{ $status }}" @selected(request('payment_status')===$status)>{{ __('smart_ordering.payments.statuses.'.$status) }}</option>
+@endforeach
+</select>
+</label>
+<label>{{ __('smart_ordering.payments.filters.provider') }}
+<input type="search" name="payment_provider" maxlength="80" value="{{ request('payment_provider') }}">
+</label>
+<label>{{ __('smart_ordering.payments.filters.reconciliation') }}
+<select name="reconciliation">
+<option value="">{{ __('smart_ordering.payments.filters.all') }}</option>
+<option value="mismatch" @selected(request('reconciliation')==='mismatch')>{{ __('smart_ordering.payments.filters.mismatch') }}</option>
+</select>
+</label>
+<div class="so-actions">
+<button class="foodex-primary" type="submit">{{ __('smart_ordering.payments.filters.apply') }}</button>
+<a href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}">{{ __('smart_ordering.payments.filters.reset') }}</a>
+</div>
+</form>
+
+<section class="foodex-card so-payment-table-wrap">
+<table class="foodex-table so-payment-table" data-pagination-required>
+<thead><tr>
+@foreach(['order','branch','provider','reference','status','amount','captured','refunded','settlement','reconciliation','created','actions'] as $column)
+<th>{{ __('smart_ordering.payments.columns.'.$column) }}</th>
+@endforeach
+</tr></thead>
+<tbody>
+@forelse($paymentRows as $row)
+<tr>
+<td><strong class="so-order-number">{{ $row['order_number'] }}</strong></td>
+<td>{{ $row['branch_name'] }}</td>
+<td>{{ $row['provider'] }}</td>
+<td>{{ $row['provider_reference'] ?: __('smart_ordering.payments.no_reference') }}</td>
+<td><span class="badge">{{ __('smart_ordering.payments.statuses.'.$row['status']) }}</span></td>
+<td>{{ number_format((float)$row['amount'],3) }} {{ $row['currency'] }}</td>
+<td>{{ $row['captured_amount'] }} {{ $row['currency'] }}</td>
+<td>{{ $row['refunded_amount'] }} {{ $row['currency'] }}</td>
+<td>
+@if($row['settlement_net_amount'] !== null)
+{{ number_format((float)$row['settlement_net_amount'],3) }} {{ $row['currency'] }}
+@else
+{{ __('smart_ordering.payments.no_settlement') }}
+@endif
+</td>
+<td>
+@if($row['mismatch_code'])
+<span class="badge">{{ __('smart_ordering.payments.mismatch') }}</span>
+@else
+<span class="badge">{{ __('smart_ordering.payments.matched') }}</span>
+@endif
+</td>
+<td>{{ $row['created_display'] }}</td>
+<td>
+@if(! $row['provider_configured'])
+<span class="so-payment-meta">{{ __('smart_ordering.payments.provider_unconfigured') }}</span>
+@elseif($row['can_manage'] && count($row['actions']))
+<details class="so-row-actions">
+<summary aria-label="{{ __('smart_ordering.payments.columns.actions') }}">⋮</summary>
+<div class="so-menu">
+@foreach($row['actions'] as $action)
+<form method="post" action="{{ route('admin.smart-ordering.payments.operation',[$row['id'],$action]) }}">
+@csrf
+<input type="hidden" name="idempotency_key" value="{{ $row['idempotency_keys'][$action] }}">
+@if($action!=='void')
+@php($operationAmount = $action==='refund' ? $row['remaining_refundable_amount'] : $row['amount'])
+<label>{{ __('smart_ordering.payments.amount') }}
+<input name="amount" inputmode="decimal" required pattern="\d{1,11}(\.\d{1,3})?" value="{{ $operationAmount }}">
+</label>
+@if($action==='refund')
+<div class="so-payment-meta">{{ __('smart_ordering.payments.remaining_refundable',['amount'=>$row['remaining_refundable_amount'],'currency'=>$row['currency']]) }}</div>
+@endif
+@endif
+<button class="foodex-primary" type="submit">{{ __('smart_ordering.payments.operations.'.$action) }}</button>
+</form>
+@endforeach
+</div>
+</details>
+@else
+—
+@endif
+</td>
+</tr>
+@empty
+<tr><td colspan="12"><div class="foodex-empty-state">{{ __('smart_ordering.payments.no_rows') }}</div></td></tr>
+@endforelse
+</tbody>
+</table>
+</section>
+@if($paymentPaginator)
+{{ $paymentPaginator->links() }}
+@endif
 @else
 <div class="so-branch-grid">
 @foreach($branches as $branch)
