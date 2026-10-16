@@ -1343,7 +1343,7 @@ class SmartOrderingCoreTest extends TestCase
             ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
             ->assertOk()
             ->assertSee('Payments &amp; reconciliation', false)
-            ->assertSee('cash_on_delivery')
+            ->assertSee('Cash on delivery')
             ->assertSee('Provider not configured');
 
         $admin->forceFill(['locale' => 'ar'])->save();
@@ -1352,6 +1352,7 @@ class SmartOrderingCoreTest extends TestCase
             ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
             ->assertOk()
             ->assertSee('المدفوعات والتسوية')
+            ->assertSee('الدفع عند الاستلام')
             ->assertSee('مزود الدفع غير مهيأ');
     }
 
