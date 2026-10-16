@@ -33,7 +33,9 @@ final class EnterpriseModuleAdministrationTest extends TestCase
             ->assertSee('Module Control Plane')
             ->assertSee('Sample Optional')
             ->assertSee('Lifecycle state')
-            ->assertSee('Open details');
+            ->assertSee('Open details')
+            ->assertSee('Settings Center')
+            ->assertSee('href="'.route('admin.settings.index').'"', false);
 
         $admin->forceFill(['locale' => 'ar'])->save();
 
@@ -43,7 +45,8 @@ final class EnterpriseModuleAdministrationTest extends TestCase
             ->assertSee('dir="rtl"', false)
             ->assertSee('إدارة وحدات المنصة')
             ->assertSee('Sample Optional')
-            ->assertSee('حالة دورة الحياة');
+            ->assertSee('حالة دورة الحياة')
+            ->assertSee('مركز الإعدادات');
     }
 
     public function test_non_platform_admin_is_denied_module_administration(): void
