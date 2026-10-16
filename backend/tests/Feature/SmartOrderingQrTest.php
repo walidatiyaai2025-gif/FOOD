@@ -94,6 +94,16 @@ class SmartOrderingQrTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.smart-ordering.qr.svg', ['qr' => $qr]))
             ->assertStatus(409);
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.qr.pdf', ['qr' => $qr]))
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('smart_ordering_qr_tokens', [
+            'qr_code_id' => $created['qr']->id,
+            'token_hash' => hash('sha256', $created['token']),
+            'state' => 'active',
+            'revoked_at' => null,
+        ]);
 
         $this->get($rawUrl)->assertRedirect();
     }
