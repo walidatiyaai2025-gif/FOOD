@@ -105,6 +105,7 @@ jobs:
     with:
       base_sha: ${{ github.event.before }}
       head_sha: ${{ github.sha }}
+      run_mobile_runtime: true
 
   build:
     needs:
