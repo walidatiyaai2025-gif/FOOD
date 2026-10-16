@@ -593,7 +593,7 @@ final class SmartOrderingMenuAdminController extends Controller
             $actor,
             $site,
             $revision,
-            CarbonImmutable::createFromFormat('Y-m-d\\TH:i', (string) $data['scheduled_at'], $timezone),
+            CarbonImmutable::parse((string) $data['scheduled_at'], $timezone),
             $request,
         );
 
