@@ -30,6 +30,11 @@ $legacyTimezone=$selectedTimezone !== '' && !$timezoneValues->contains($selected
 </div>
 <label>{{ __('smart_ordering.branch_fields.pickup_lead') }}<input type="number" name="pickup_lead_minutes" min="0" max="1440" value="{{ old('pickup_lead_minutes',$model?->pickup_lead_minutes ?? 15) }}"></label>
 <label>{{ __('smart_ordering.branch_fields.max_schedule_days') }}<input type="number" name="max_schedule_days" min="1" max="90" value="{{ old('max_schedule_days',$model?->max_schedule_days ?? 7) }}"></label>
+<label>{{ __('smart_ordering.branch_fields.max_active_orders') }}<input type="number" name="max_active_orders" min="0" max="5000" value="{{ old('max_active_orders',$model?->max_active_orders ?? 0) }}"><small>{{ __('smart_ordering.branch_fields.max_active_orders_hint') }}</small></label>
+<label>{{ __('smart_ordering.branch_fields.capacity_window') }}<input type="number" name="capacity_window_minutes" min="1" max="1440" value="{{ old('capacity_window_minutes',$model?->capacity_window_minutes ?? 30) }}"></label>
+<label>{{ __('smart_ordering.branch_fields.dine_in_promise') }}<input type="number" name="dine_in_promise_minutes" min="0" max="1440" value="{{ old('dine_in_promise_minutes',$model?->dine_in_promise_minutes ?? 20) }}"></label>
+<label>{{ __('smart_ordering.branch_fields.pickup_promise') }}<input type="number" name="pickup_promise_minutes" min="0" max="1440" value="{{ old('pickup_promise_minutes',$model?->pickup_promise_minutes ?? 20) }}"></label>
+<label>{{ __('smart_ordering.branch_fields.delivery_promise') }}<input type="number" name="delivery_promise_minutes" min="0" max="1440" value="{{ old('delivery_promise_minutes',$model?->delivery_promise_minutes ?? 45) }}"></label>
 <label>{{ __('smart_ordering.branch_fields.service_charge') }}<input type="number" step="0.001" min="0" name="service_charge" value="{{ old('service_charge',$model?->service_charge ?? 0) }}"></label>
 <label>{{ __('smart_ordering.branch_fields.whatsapp_identity') }}<input name="whatsapp_routing_identity" maxlength="190" value="{{ old('whatsapp_routing_identity',$model?->whatsapp_routing_identity) }}"></label>
 <div class="so-checks" style="grid-column:1/-1">
