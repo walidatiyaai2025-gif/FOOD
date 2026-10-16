@@ -35,13 +35,28 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
 
   String _text(String en, String ar) => _arabic ? ar : en;
 
-  String _receiptStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _receiptStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'posted' || 'completed' => _text('Completed', 'مكتمل'),
         'pending' || 'processing' => _text('Processing', 'قيد المعالجة'),
         'reversed' || 'voided' => _text('Reversed', 'معكوس'),
         'failed' => _text('Failed', 'فشل'),
         _ => _text('Receipt status', 'حالة الإيصال'),
       };
+
+  String _receiptDateTimeLabel(_ReceiptRow row) {
+    final timestamp = row.createdAt;
+    if (timestamp == null) {
+      return _text('Date unavailable', 'التاريخ غير متاح');
+    }
+    final localizations = MaterialLocalizations.of(context);
+    final date = localizations.formatCompactDate(timestamp);
+    final time = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(timestamp),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return '$date · $time';
+  }
 
   @override
   void initState() {
@@ -107,9 +122,19 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
         rows.add(_ReceiptRow(receipt: receipt));
       }
     }
-    rows.sort(
-      (a, b) => b.receipt.createdAt.compareTo(a.receipt.createdAt),
-    );
+    rows.sort((a, b) {
+      final aTimestamp = a.createdAt;
+      final bTimestamp = b.createdAt;
+      if (aTimestamp != null && bTimestamp != null) {
+        final byTime = bTimestamp.compareTo(aTimestamp);
+        if (byTime != 0) return byTime;
+      } else if (aTimestamp != null) {
+        return -1;
+      } else if (bTimestamp != null) {
+        return 1;
+      }
+      return b.receipt.id.compareTo(a.receipt.id);
+    });
     return rows;
   }
 
@@ -246,7 +271,8 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
-                    '${row.receipt.createdAt} · ${_receiptStatusLabel(row.receipt.status)}',
+                    '${_receiptDateTimeLabel(row)} · '
+                    '${_receiptStatusLabel(row.receipt.status)}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -267,6 +293,8 @@ class _ReceiptRow {
   const _ReceiptRow({required this.receipt});
 
   final VanReceipt receipt;
+
+  DateTime? get createdAt => DateTime.tryParse(receipt.createdAt.trim());
 }
 
 class _StateCard extends StatelessWidget {

@@ -27,6 +27,8 @@ class VanCommercialOfferProduct {
     required this.flashPrice,
     this.sellingUnitId,
     this.sellingUnitCode,
+    this.productName,
+    this.sellingUnitName,
     this.allocationBase,
   });
 
@@ -34,6 +36,8 @@ class VanCommercialOfferProduct {
   final int productId;
   final int? sellingUnitId;
   final String? sellingUnitCode;
+  final String? productName;
+  final String? sellingUnitName;
   final double conversionFactor;
   final double flashPrice;
   final double? allocationBase;
@@ -76,7 +80,8 @@ class VanCommercialOffer {
   String? bodyFor(String languageCode) {
     final preferred = languageCode == 'ar' ? bodyAr : bodyEn;
     final fallback = languageCode == 'ar' ? bodyEn : bodyAr;
-    final resolved = preferred?.trim().isNotEmpty == true ? preferred : fallback;
+    final resolved =
+        preferred?.trim().isNotEmpty == true ? preferred : fallback;
     return resolved?.trim().isEmpty == true ? null : resolved;
   }
 }
