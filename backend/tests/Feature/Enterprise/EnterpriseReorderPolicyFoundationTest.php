@@ -11,10 +11,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 final class EnterpriseReorderPolicyFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     public function test_policy_upsert_is_idempotent_and_low_stock_uses_authoritative_available_quantity(): void
@@ -331,6 +333,7 @@ final class EnterpriseReorderPolicyFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'Reorder Inventory',
             'email' => 'reorder-inventory@example.test',
