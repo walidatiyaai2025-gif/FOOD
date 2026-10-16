@@ -62,3 +62,12 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 **Consequences:** reservation mutation must lock the inventory row, preserve reservations owned by other references, reject over-allocation, reconcile retries idempotently to the desired reference quantity, and keep reference lookups indexed on the high-growth stock-movement table. Adjustments, damage and loss remain separate WMS children.
 
 **Authority:** #1491, #1802, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
+
+## D-013 — WMS reporting composes canonical inventory truth and delegates large-export execution
+**Decision (Wave 3 / #1807):** WMS reporting is read-only over canonical `inventories`, `stock_movements`, lot/expiry metadata and valuation policy. Interactive reads are warehouse-authorized and bounded; deterministic drill-down references point back to canonical inventory, lot and movement records. WMS does not create a reporting/export ledger.
+
+**Reason:** duplicating stock/reporting truth or executing large result sets on inventory request paths would introduce reconciliation drift and cPanel latency risk. Wave 7 already defines the Enterprise queued/chunked export contract.
+
+**Consequences:** exports above 5,000 rows emit the shared Enterprise export handoff with requester/store/warehouse scope and resumable chunk metadata; the Enterprise reporting consumer owns durable export execution. Report/export failure cannot mutate or block inventory transactions, and unchanged Customer/Driver/Van applications remain outside this backend-only lane.
+
+**Authority:** #1491, #1807, #1732, #1800, `docs/execution/FOODEX_ENTERPRISE_ERP_PROGRAM.md`, and `docs/quality/CPANEL_PERFORMANCE_CONTRACT.md`.
