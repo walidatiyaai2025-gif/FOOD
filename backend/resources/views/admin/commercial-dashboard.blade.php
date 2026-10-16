@@ -98,7 +98,7 @@
         .flash-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
         .flash-product-context{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
         .flash-product-context label{display:grid;gap:6px;min-width:min(100%,280px);font-weight:700;font-size:.8rem}
-        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:calc(100vw - 32px);min-width:0;justify-self:start}}@media(max-width:359px){.flash-wizard-progress{grid-template-columns:minmax(0,1fr)}}
         .flash-lookup-field{display:grid;gap:6px;font-weight:700;font-size:.8rem;min-width:0}
         .flash-lookup{position:relative}
         .flash-lookup-toggle{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;cursor:pointer;text-align:start}
