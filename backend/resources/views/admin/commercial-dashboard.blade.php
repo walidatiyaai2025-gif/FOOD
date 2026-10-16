@@ -93,7 +93,7 @@
         .flash-form-section[hidden]{display:none}
         .flash-form-section h3{margin:0;font-size:.92rem}
         .flash-wizard-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 4px}
-        .flash-wizard-progress button{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer}
+        .flash-wizard-progress button{min-width:0;width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer;white-space:normal;line-height:1.35}
         .flash-wizard-progress button[aria-current="step"]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
         .flash-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
         .flash-product-context{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
