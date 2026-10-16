@@ -322,6 +322,7 @@ class OrderTerritoryRoutingServiceTest extends TestCase
         $checkout = file_get_contents(app_path('Http/Controllers/Api/V1/CheckoutController.php'));
         $adminOrders = file_get_contents(app_path('Services/AdminOrderManagementService.php'));
         $vanOrders = file_get_contents(app_path('Http/Controllers/Api/V1/VanOrderController.php'));
+        $vanCommercial = file_get_contents(app_path('Enterprise/Commercial/CommercialVanSalesBridge.php'));
 
         $this->assertIsString($checkout);
         $this->assertStringContainsString('B2BOrderRoutingCoordinator $routing', $checkout);
@@ -333,7 +334,12 @@ class OrderTerritoryRoutingServiceTest extends TestCase
         $this->assertStringContainsString('[\'dashboard\', \'van\', \'integration\']', $adminOrders);
 
         $this->assertIsString($vanOrders);
-        $this->assertStringContainsString("'van',\n            'van',", $vanOrders);
+        $this->assertStringContainsString('CommercialVanSalesBridge $commercialVanSales', $vanOrders);
+        $this->assertStringContainsString('$this->commercialVanSales->create(', $vanOrders);
+
+        $this->assertIsString($vanCommercial);
+        $this->assertStringContainsString('AdminOrderManagementService $orders', $vanCommercial);
+        $this->assertStringContainsString("'b2b',\n            $storeId,\n            'van',\n            'van',", $vanCommercial);
     }
 
     public function test_b2c_order_cannot_enter_van_routing_runtime(): void
