@@ -7,6 +7,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingModifierGroup;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +38,20 @@ final class SmartOrderingMenuRevisionService
         $this->refreshChecksum($actor, $draft, $request);
 
         return $this->revisions->publish($actor, $draft->fresh(), $request);
+    }
+
+    public function schedule(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $draft,
+        CarbonInterface $scheduledAt,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        abort_unless((int) $draft->site_id === (int) $site->id && $draft->status === 'draft', 404);
+        $this->validateDraft($site, $draft);
+        $this->refreshChecksum($actor, $draft, $request);
+
+        return $this->revisions->schedule($actor, $draft->fresh(), $scheduledAt, $request);
     }
 
     public function refreshChecksum(
