@@ -20,12 +20,19 @@ final class EnterpriseExposureAnalyticsReadModelsTest extends TestCase
     use RefreshDatabase;
 
     private const AR_DOCUMENTS = 'bi_test_ar_documents';
+
     private const AR_ALLOCATIONS = 'bi_test_ar_allocations';
+
     private const AP_DOCUMENTS = 'bi_test_ap_documents';
+
     private const AP_ALLOCATIONS = 'bi_test_ap_allocations';
+
     private const INVENTORIES = 'bi_test_inventories';
+
     private const WAREHOUSES = 'bi_test_warehouses';
+
     private const VALUATION = 'bi_test_valuation_policies';
+
     private const MOVEMENTS = 'bi_test_stock_movements';
 
     protected function setUp(): void
