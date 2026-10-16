@@ -14,8 +14,7 @@
 .so-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .so-table-wrap{width:100%;max-width:100%;overflow:visible}
 .so-payment-filter{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
-.so-payment-table-wrap{width:100%;max-width:100%;overflow-x:auto}
-.so-payment-table{min-width:1180px}
+.so-payment-table-wrap{width:100%;max-width:100%}
 .so-payment-meta{font-size:.78rem;color:var(--foodex-muted)}
 .so-order-number{white-space:nowrap}
 .so-row-actions{position:relative;display:inline-block}
@@ -59,7 +58,7 @@
 .so-zone-advanced summary{cursor:pointer;font-weight:800}
 .so-zone-coordinate-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:1023px){.so-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.so-toolbar .so-actions{grid-column:1/-1}}
-@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-payment-filter{grid-template-columns:1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}.so-payment-table-wrap{overflow-x:auto}}
+@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-payment-filter{grid-template-columns:1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}}
 @media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}.so-zone-location-search,.so-zone-coordinate-grid{grid-template-columns:1fr}.so-zone-location-search button{width:100%}.so-dialog-body{padding:14px}}
 </style>
 </head>
@@ -153,7 +152,12 @@
 </select>
 </label>
 <label>{{ __('smart_ordering.payments.filters.provider') }}
-<input type="search" name="payment_provider" maxlength="80" value="{{ request('payment_provider') }}">
+<select name="payment_provider">
+<option value="">{{ __('smart_ordering.payments.filters.all') }}</option>
+@foreach($paymentProviderOptions as $providerOption)
+<option value="{{ $providerOption['value'] }}" @selected(request('payment_provider')===$providerOption['value'])>{{ $providerOption['label'] }}</option>
+@endforeach
+</select>
 </label>
 <label>{{ __('smart_ordering.payments.filters.reconciliation') }}
 <select name="reconciliation">
@@ -179,7 +183,7 @@
 <tr>
 <td><strong class="so-order-number">{{ $row['order_number'] }}</strong></td>
 <td>{{ $row['branch_name'] }}</td>
-<td>{{ $row['provider'] }}</td>
+<td>{{ $row['provider_label'] }}</td>
 <td>{{ $row['provider_reference'] ?: __('smart_ordering.payments.no_reference') }}</td>
 <td><span class="badge">{{ __('smart_ordering.payments.statuses.'.$row['status']) }}</span></td>
 <td>{{ number_format((float)$row['amount'],3) }} {{ $row['currency'] }}</td>
