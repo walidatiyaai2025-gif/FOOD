@@ -103,6 +103,8 @@ Inventory-count sessions snapshot authoritative inventory quantity, then lock an
 
 Lot/batch metadata is warehouse/product-scoped and normalized, with optional manufacture/receipt/expiry dates and an explicit active/quarantined/closed lifecycle. Lot records never own stock quantities: `inventories` remains the balance authority and `stock_movements` remains the movement authority. Movement-to-lot provenance is additive metadata in `enterprise_inventory_lot_movements` with no quantity column, and expiry exception reads are warehouse-authorized, date-window bounded and indexed.
 
+Stock reservations also remain inside the canonical inventory authority. A reservation is represented by `inventories.reserved_quantity` plus reference-scoped `reserve` / `release` (and consuming `sale`) provenance in `stock_movements`; there is no parallel reservation-balance ledger. Reservation changes lock the authoritative inventory row, reconcile the desired quantity for one reference, preserve unrelated reserved stock, reject over-allocation, and are retry-safe for the same desired state.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
