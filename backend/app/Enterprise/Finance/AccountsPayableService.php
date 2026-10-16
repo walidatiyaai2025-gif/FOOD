@@ -201,8 +201,9 @@ final class AccountsPayableService
                 'company_id' => $scope->companyId,
                 'legal_entity_id' => $scope->legalEntityId,
                 'store_id' => (int) $data['store_id'],
-                'supplier_reference' => (int) $data['supplier_reference'],
-                'document_number' => 'AR-'.Str::ulid(),
+                'supplier_reference' => $supplierReference,
+                'supplier_name' => $supplierName,
+                'document_number' => 'AP-'.Str::ulid(),
                 'idempotency_key' => $idempotencyKey,
                 'request_hash' => $requestHash,
                 'document_type' => 'invoice',
@@ -486,7 +487,8 @@ final class AccountsPayableService
                     fn (Builder $query): Builder => $query
                         ->where('organization_id', $scope->organizationId)
                         ->where('company_id', $scope->companyId)
-                        ->where('legal_entity_id', $scope->legalEntityId),
+                        ->where('legal_entity_id', $scope->legalEntityId)
+                        ->where('store_id', $scope->storeId),
                 )
                 ->whereKey($allocationId)
                 ->lockForUpdate()
@@ -604,6 +606,7 @@ final class AccountsPayableService
             ->where('document.organization_id', $scope->organizationId)
             ->where('document.company_id', $scope->companyId)
             ->where('document.legal_entity_id', $scope->legalEntityId)
+            ->where('document.store_id', $scope->storeId)
             ->where('document.status', 'posted')
             ->when(
                 $supplierReference !== null,
