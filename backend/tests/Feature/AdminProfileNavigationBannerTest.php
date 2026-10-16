@@ -36,6 +36,32 @@ class AdminProfileNavigationBannerTest extends TestCase
         $this->assertFalse(collect($keys)->contains(fn (string $key): bool => str_starts_with($key, 'b2c_')));
     }
 
+    public function test_super_admin_navigation_memoizes_repeated_role_and_permission_checks(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'memoized-navigation@example.test');
+        $navigation = app(AdminNavigation::class);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $first = $navigation->groupsFor($admin);
+        $second = $navigation->groupsFor($admin);
+
+        $superAdminRoleQueries = collect(DB::getQueryLog())
+            ->filter(function (array $query): bool {
+                $sql = strtolower((string) ($query['query'] ?? ''));
+                $bindings = (array) ($query['bindings'] ?? []);
+
+                return str_contains($sql, 'roles')
+                    && str_contains($sql, 'role_user')
+                    && str_contains($sql, 'roles"."code" = ?')
+                    && in_array('SUPER_ADMIN', $bindings, true);
+            });
+
+        $this->assertSame($first, $second);
+        $this->assertCount(1, $superAdminRoleQueries);
+    }
+
     public function test_retail_store_admin_only_receives_authorized_retail_navigation(): void
     {
         $storeId = $this->retailStore('NAV-RETAIL');
