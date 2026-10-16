@@ -4,7 +4,7 @@ return [
     'title' => 'Module Control Plane',
     'eyebrow' => 'Enterprise administration',
     'description' => 'Review module lifecycle, dependencies and entitlement coverage without exposing internal records.',
-    'back' => 'Administration Hub',
+    'back' => 'Settings Center',
     'all_modules' => 'All modules',
     'details' => 'Module details',
     'open' => 'Open details',
