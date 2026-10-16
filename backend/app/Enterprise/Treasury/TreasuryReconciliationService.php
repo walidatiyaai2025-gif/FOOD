@@ -774,26 +774,21 @@ final class TreasuryReconciliationService
      */
     private function boundedDateWindow(array $filters): array
     {
-        $from = isset($filters['date_from'])
-            ? CarbonImmutable::parse((string) $filters['date_from'])->startOfDay()
-            : null;
-        $to = isset($filters['date_to'])
-            ? CarbonImmutable::parse((string) $filters['date_to'])->startOfDay()
-            : null;
+        $hasFrom = isset($filters['date_from']);
+        $hasTo = isset($filters['date_to']);
 
-        if ($from === null && $to === null) {
+        if (! $hasFrom && ! $hasTo) {
             $to = CarbonImmutable::today();
             $from = $to->subDays(self::DEFAULT_LIST_WINDOW_DAYS - 1);
-        } elseif ($from === null && $to instanceof CarbonImmutable) {
-            $from = $to->subDays(self::MAX_LIST_WINDOW_DAYS - 1);
-        } elseif ($from instanceof CarbonImmutable && $to === null) {
+        } elseif ($hasFrom && ! $hasTo) {
+            $from = CarbonImmutable::parse((string) $filters['date_from'])->startOfDay();
             $to = $from->addDays(self::MAX_LIST_WINDOW_DAYS - 1);
-        }
-
-        if (! $from instanceof CarbonImmutable || ! $to instanceof CarbonImmutable) {
-            throw ValidationException::withMessages([
-                'date_to' => ['A valid bounded date window is required.'],
-            ]);
+        } elseif (! $hasFrom && $hasTo) {
+            $to = CarbonImmutable::parse((string) $filters['date_to'])->startOfDay();
+            $from = $to->subDays(self::MAX_LIST_WINDOW_DAYS - 1);
+        } else {
+            $from = CarbonImmutable::parse((string) $filters['date_from'])->startOfDay();
+            $to = CarbonImmutable::parse((string) $filters['date_to'])->startOfDay();
         }
 
         if (($from->diffInDays($to) + 1) > self::MAX_LIST_WINDOW_DAYS) {
