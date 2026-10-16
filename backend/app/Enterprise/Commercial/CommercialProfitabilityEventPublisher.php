@@ -87,11 +87,11 @@ final class CommercialProfitabilityEventPublisher
                 ],
                 'money' => [
                     'currency' => strtoupper((string) $locked->currency),
-                    'subtotal' => (string) $locked->subtotal,
-                    'discount_total' => (string) $locked->discount_total,
-                    'delivery_total' => (string) $locked->delivery_total,
-                    'tax_total' => (string) ($locked->tax_total ?? 0),
-                    'grand_total' => (string) $locked->grand_total,
+                    'subtotal' => $this->decimal($locked->subtotal),
+                    'discount_total' => $this->decimal($locked->discount_total),
+                    'delivery_total' => $this->decimal($locked->delivery_total),
+                    'tax_total' => $this->decimal($locked->tax_total ?? 0),
+                    'grand_total' => $this->decimal($locked->grand_total),
                 ],
                 'pricing' => [
                     'quote_id' => $locked->quote_id === null ? null : (string) $locked->quote_id,
@@ -103,16 +103,16 @@ final class CommercialProfitabilityEventPublisher
                     'coupon_id' => data_get($pricing, 'coupon.id'),
                 ],
                 'collection' => [
-                    'collected_amount' => (string) $collection->collected_amount,
+                    'collected_amount' => $this->decimal($collection->collected_amount),
                     'collection_count' => (int) $collection->collection_count,
                 ],
-                'items' => $items->map(static fn (OrderItem $item): array => [
+                'items' => $items->map(fn (OrderItem $item): array => [
                     'order_item_id' => (int) $item->getKey(),
                     'product_id' => (int) $item->product_id,
                     'sku' => (string) $item->sku_snapshot,
-                    'quantity' => (string) $item->quantity,
-                    'unit_price' => (string) $item->unit_price,
-                    'line_total' => (string) $item->line_total,
+                    'quantity' => $this->decimal($item->quantity),
+                    'unit_price' => $this->decimal($item->unit_price),
+                    'line_total' => $this->decimal($item->line_total),
                 ])->all(),
             ];
 
@@ -154,7 +154,7 @@ final class CommercialProfitabilityEventPublisher
                 'b2c_customer_id' => $order->b2c_customer_id === null ? null : (int) $order->b2c_customer_id,
             ],
             'collection' => [
-                'amount' => (string) $remittance->amount,
+                'amount' => $this->decimal($remittance->amount),
                 'currency' => strtoupper((string) $remittance->currency),
                 'status' => (string) $remittance->status,
             ],
@@ -224,6 +224,11 @@ final class CommercialProfitabilityEventPublisher
         }
 
         return $channel;
+    }
+
+    private function decimal(mixed $value): string
+    {
+        return number_format((float) $value, 3, '.', '');
     }
 
     private function deterministicUuid(string $seed): string
