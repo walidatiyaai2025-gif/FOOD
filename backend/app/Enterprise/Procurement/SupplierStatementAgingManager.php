@@ -57,7 +57,11 @@ final class SupplierStatementAgingManager
             ->where('supplier_id', $supplierId)
             ->where('status', 'handed_off')
             ->where('invoice_date', '>=', $window['from'])
-            ->where('invoice_date', '<=', $window['to'])
+            ->where(
+                'invoice_date',
+                '<',
+                CarbonImmutable::parse($window['to'])->addDay()->toDateString(),
+            )
             ->when(
                 $currency,
                 fn (Builder $query, string $code): Builder => $query->where('currency_code', $code),
@@ -106,12 +110,11 @@ final class SupplierStatementAgingManager
             ->where('supplier_id', $supplierId)
             ->where('status', 'handed_off')
             ->where('currency_code', $currency)
-            ->where('invoice_date', '<=', $asOf->toDateString());
+            ->where('invoice_date', '<', $asOf->addDay()->toDateString());
 
+        $nextDay = $asOf->addDay()->toDateString();
         $due30 = $asOf->subDays(30)->toDateString();
-        $due31 = $asOf->subDays(31)->toDateString();
         $due60 = $asOf->subDays(60)->toDateString();
-        $due61 = $asOf->subDays(61)->toDateString();
         $due90 = $asOf->subDays(90)->toDateString();
 
         return [
@@ -124,28 +127,28 @@ final class SupplierStatementAgingManager
                 'not_due' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
-                        ->where('due_date', '>', $asOf->toDateString())
+                        ->where('due_date', '>=', $nextDay)
                         ->sum('total_amount'),
                 ),
                 'due_0_30' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
                         ->where('due_date', '>=', $due30)
-                        ->where('due_date', '<=', $asOf->toDateString())
+                        ->where('due_date', '<', $nextDay)
                         ->sum('total_amount'),
                 ),
                 'due_31_60' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
                         ->where('due_date', '>=', $due60)
-                        ->where('due_date', '<=', $due31)
+                        ->where('due_date', '<', $due30)
                         ->sum('total_amount'),
                 ),
                 'due_61_90' => $this->amount(
                     (clone $base)
                         ->whereNotNull('due_date')
                         ->where('due_date', '>=', $due90)
-                        ->where('due_date', '<=', $due61)
+                        ->where('due_date', '<', $due60)
                         ->sum('total_amount'),
                 ),
                 'due_over_90' => $this->amount(
