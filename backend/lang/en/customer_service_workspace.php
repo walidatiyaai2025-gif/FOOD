@@ -2,6 +2,7 @@
 
 return [
     'title' => 'Customer Service Workspace',
+    'eyebrow' => 'FOODEX · ERP',
     'subtitle' => 'Open one customer context and move through orders, invoices and payments, delivery, conversations and activity using the canonical FOODEX records.',
     'search_title' => 'Start with the customer',
     'search_help' => 'Search by business-readable identity. Customer 360 remains the authoritative customer, invoice, payment-reference and activity record.',
