@@ -98,7 +98,8 @@ void main() {
       await tester.pumpWidget(
         FoodexCustomerApp(
           session: b2b,
-          initialRoute: '/b2b/account-statement?store_id=7',
+          initialRoute:
+              '/b2b/account-statement?store_id=7&from=2026-10-01&to=2026-10-15',
           b2bApi: api,
         ),
       );
@@ -116,6 +117,34 @@ void main() {
           tester.getTopLeft(find.byKey(const ValueKey('b2b-statement-to'))).dy;
       expect((periodY - fromY).abs(), lessThan(20));
       expect((fromY - toY).abs(), lessThan(1));
+
+      String periodControlLabel(String key) => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(ValueKey(key)),
+              matching: find.byType(Text),
+            ),
+          )
+          .map((widget) => widget.data)
+          .whereType<String>()
+          .single;
+
+      expect(periodControlLabel('b2b-statement-from'), startsWith('من · '));
+      expect(periodControlLabel('b2b-statement-to'), startsWith('إلى · '));
+
+      await tester.tap(
+        find.byKey(const ValueKey('b2b-statement-preset-all')),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(periodControlLabel('b2b-statement-from'), 'من');
+      expect(periodControlLabel('b2b-statement-to'), 'إلى');
+
+      await tester.tap(
+        find.byKey(const ValueKey('b2b-statement-preset-month')),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(periodControlLabel('b2b-statement-from'), startsWith('من · '));
+      expect(periodControlLabel('b2b-statement-to'), startsWith('إلى · '));
 
       final presetKeys = <String>['month', 'previous', '30', 'all'];
       final presetYs = presetKeys

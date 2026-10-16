@@ -31,4 +31,14 @@ class CiPlanTest(unittest.TestCase):
         p=module.resolve(self.config,["backend/app/Services/VanDeliveryExecutionService.php"],"feat/1253-test")
         self.assertIn("tests/Feature/MobileSystemInspectorEventTest.php",p["focused_tests"]["backend"])
         self.assertIn("tests/Feature/VanDeliveryEvidenceDashboardTest.php",p["focused_tests"]["backend"])
+    def test_backend_dashboard_only_scope_never_enables_mobile_lanes(self):
+        p=module.resolve(self.config,["backend/app/Services/OrderService.php","backend/resources/views/admin/orders/index.blade.php"],"feat/1738-ci-scope")
+        self.assertTrue(p["backend_dashboard_only"])
+        for area in ("customer","driver","van","mobile_ui"):
+            self.assertFalse(p["areas"][area],area)
+    def test_final_convergence_branch_can_explicitly_restore_mobile_lanes(self):
+        p=module.resolve(self.config,["backend/app/Services/OrderService.php"],"test/1253-operational-completion-e2e")
+        self.assertFalse(p["backend_dashboard_only"])
+        for area in ("customer","driver","van"):
+            self.assertTrue(p["areas"][area],area)
 if __name__=="__main__": unittest.main()

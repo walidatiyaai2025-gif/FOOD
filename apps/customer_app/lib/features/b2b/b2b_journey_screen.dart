@@ -5642,7 +5642,10 @@ class _B2bAccountStatementRemoteStateState
                           ),
                         ),
                         label: Text(
-                          context.tr('b2b.statement.from'),
+                          _periodDateLabel(
+                            'b2b.statement.from',
+                            _from,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -5669,7 +5672,10 @@ class _B2bAccountStatementRemoteStateState
                           ),
                         ),
                         label: Text(
-                          context.tr('b2b.statement.to'),
+                          _periodDateLabel(
+                            'b2b.statement.to',
+                            _to,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -5954,6 +5960,14 @@ class _B2bAccountStatementRemoteStateState
         ],
       ],
     );
+  }
+
+  String _periodDateLabel(String labelKey, String? value) {
+    final label = context.tr(labelKey);
+    final parsed = DateTime.tryParse(value ?? '');
+    if (parsed == null) return label;
+    final date = MaterialLocalizations.of(context).formatCompactDate(parsed);
+    return '$label · $date';
   }
 
   Widget _presetChip(
