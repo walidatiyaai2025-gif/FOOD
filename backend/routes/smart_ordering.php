@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SmartOrderingThemePreviewController;
+use App\Http\Controllers\SmartOrderingSitemapController;
 use App\Http\Controllers\SmartOrderingStorefrontController;
 use Illuminate\Support\Facades\Route;
 
