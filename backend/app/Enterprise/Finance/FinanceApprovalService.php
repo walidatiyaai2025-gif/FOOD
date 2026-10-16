@@ -368,7 +368,7 @@ final class FinanceApprovalService
             ->whereKey($workflowRequestId)
             ->firstOrFail();
 
-        $workflowContext = is_array($request->context) ? $request->context : [];
+        $workflowContext = $this->requestContext($request);
         $action = (string) ($workflowContext['action'] ?? '');
         $this->assertAction($action);
         $amount = $this->normalizeAmount($workflowContext['amount'] ?? null);
@@ -416,7 +416,7 @@ final class FinanceApprovalService
             $comment,
         );
 
-        $approvalContext = is_array($approved->context) ? $approved->context : [];
+        $approvalContext = $this->requestContext($approved);
         $approvalContext['approval_limit_id'] = $authority['limit']->id;
         $approvalContext['approval_delegation_id'] = $authority['delegation']?->id;
         $approvalContext['approval_role_id'] = $authority['limit']->role_id;
@@ -682,7 +682,7 @@ final class FinanceApprovalService
             return false;
         }
 
-        $limitCurrency = $this->normalizeCurrency($limit->currency_code);
+        $limitCurrency = $this->normalizeCurrency($limit->getAttribute('currency_code'));
 
         return $limitCurrency === null || $limitCurrency === $currency;
     }
@@ -691,16 +691,19 @@ final class FinanceApprovalService
         EnterpriseFinanceApprovalLimit $limit,
         CarbonImmutable $at,
     ): bool {
-        if (! $limit->is_active || $limit->effective_from === null) {
+        if (! $limit->is_active) {
             return false;
         }
 
-        if (CarbonImmutable::parse((string) $limit->effective_from)->isAfter($at)) {
+        $effectiveFrom = $limit->getAttribute('effective_from');
+        if ($effectiveFrom === null || CarbonImmutable::parse((string) $effectiveFrom)->isAfter($at)) {
             return false;
         }
 
-        return $limit->effective_until === null
-            || CarbonImmutable::parse((string) $limit->effective_until)->greaterThanOrEqualTo($at);
+        $effectiveUntil = $limit->getAttribute('effective_until');
+
+        return $effectiveUntil === null
+            || CarbonImmutable::parse((string) $effectiveUntil)->greaterThanOrEqualTo($at);
     }
 
     /** @return Collection<int, int> */
@@ -734,7 +737,7 @@ final class FinanceApprovalService
         string $amount,
         ?string $currency,
     ): void {
-        $context = is_array($request->context) ? $request->context : [];
+        $context = $this->requestContext($request);
         $expected = $this->workflowContext($scope, $action, $amount, $currency);
 
         foreach ($expected as $key => $value) {
@@ -754,6 +757,14 @@ final class FinanceApprovalService
                 'approval' => ['Finance approval workflow scope is invalid.'],
             ]);
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function requestContext(EnterpriseWorkflowRequest $request): array
+    {
+        $context = $request->getAttribute('context');
+
+        return is_array($context) ? $context : [];
     }
 
     /** @return array<string, int|string|null> */
