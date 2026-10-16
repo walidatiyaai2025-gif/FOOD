@@ -113,19 +113,62 @@ async function assertNoPageOverflow(page, label) {
   }
 }
 
+async function assertLocaleDirection(page, locale, label) {
+  const direction = await page.evaluate(() => getComputedStyle(document.documentElement).direction);
+  const expected = locale === 'ar' ? 'rtl' : 'ltr';
+  if (direction !== expected) {
+    throw new Error(`Unexpected document direction for ${label}: ${direction} (expected ${expected})`);
+  }
+}
+
+async function assertVisibleActionsInViewport(page, label) {
+  const clipped = await page.evaluate(() => {
+    const root = document.querySelector('.foodex-admin-main, main') || document.body;
+    const selectors = 'button, a.btn, a.foodex-btn, input[type="submit"], [role="button"]';
+    return [...root.querySelectorAll(selectors)].filter((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const visible = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
+        && rect.width > 0 && rect.height > 0;
+      return visible && (rect.left < -2 || rect.right > window.innerWidth + 2);
+    }).slice(0, 8).map((element) => ({
+      text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 80),
+      rect: element.getBoundingClientRect().toJSON(),
+    }));
+  });
+  if (clipped.length) {
+    throw new Error(`Visible action clipped outside viewport for ${label}: ${JSON.stringify(clipped)}`);
+  }
+}
+
 async function captureResponsiveRoute(page, locale, channel, name, route) {
-  const viewports = [
+  const representativeViewports = [
     ['desktop-1280', 1280, 900],
     ['compact-1024', 1024, 900],
     ['tablet-768', 768, 900],
     ['mobile-390', 390, 844],
+    ['mobile-320', 320, 844],
   ];
-  if (['foodex-reset', 'production-launch'].includes(name)) viewports.push(['small-320', 320, 844]);
+  const fullViewports = [
+    ['desktop-1280', 1280, 900],
+    ['compact-1024', 1024, 900],
+    ['tablet-768', 768, 900],
+    ['mobile-430', 430, 932],
+    ['mobile-412', 412, 915],
+    ['mobile-390', 390, 844],
+    ['mobile-360', 360, 800],
+    ['mobile-320', 320, 844],
+  ];
+  const viewports = process.env.FOODEX_RESPONSIVE_PROFILE === 'full'
+    ? fullViewports
+    : representativeViewports;
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
     await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
     await assertNoPageOverflow(page, `${channel}/${route}/${locale}/${state}`);
+    await assertLocaleDirection(page, locale, `${channel}/${route}/${locale}/${state}`);
+    await assertVisibleActionsInViewport(page, `${channel}/${route}/${locale}/${state}`);
     if (['foodex-reset', 'production-launch'].includes(name) && width < 768) {
       const sidebar = page.locator('aside.sidebar');
       const closed = await sidebar.boundingBox();
