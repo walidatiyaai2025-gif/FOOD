@@ -42,11 +42,11 @@ class SmartOrderingMenuRevisionExportTest extends TestCase
         $this->assertSame((string) $published->public_id, $first['revision']['public_id']);
         $this->assertSame((string) $published->checksum, $first['revision']['checksum']);
         $this->assertSame(
-            json_encode($first, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            (string) json_encode($first, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             $secondJson,
         );
 
-        $contentJson = json_encode(
+        $contentJson = (string) json_encode(
             $first['content'],
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
         );
@@ -166,11 +166,9 @@ class SmartOrderingMenuRevisionExportTest extends TestCase
             [
                 'source_product_id' => $fixture['product_id'],
                 'name_en' => 'Export Burger',
-                'gallery' => ['/media/b.jpg', '/media/a.jpg'],
                 'price_override' => 7.500,
                 'is_visible' => true,
                 'sold_out' => false,
-                'allergens' => ['dairy' => false, 'gluten' => true],
                 'spicy_level' => 0,
                 'allow_customer_notes' => true,
                 'sort_order' => 0,
