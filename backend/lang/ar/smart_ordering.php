@@ -133,6 +133,9 @@ return [
             'voided' => 'ملغى ماليًا',
             'failed' => 'فشل',
         ],
+        'providers' => [
+            'cash_on_delivery' => 'الدفع عند الاستلام',
+        ],
         'operations' => [
             'authorize' => 'تفويض',
             'capture' => 'تحصيل',
