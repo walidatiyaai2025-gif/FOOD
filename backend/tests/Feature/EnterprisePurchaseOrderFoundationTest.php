@@ -6,6 +6,7 @@ use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\PurchaseOrderManager;
 use App\Enterprise\Procurement\PurchaseRequestManager;
 use App\Enterprise\Procurement\SupplierDirectory;
+use App\Models\EnterprisePurchaseRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -87,6 +88,22 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
                 ->where('auditable_id', $order->id)
                 ->count(),
         );
+
+        $cancelled = $manager->cancel($actor, $context, $order->id);
+        $cancelledAgain = $manager->cancel($actor, $context, $order->id);
+
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame(
+            $cancelled->cancelled_at?->toISOString(),
+            $cancelledAgain->cancelled_at?->toISOString(),
+        );
+        $this->assertSame(
+            1,
+            DB::table('audit_logs')
+                ->where('event', 'enterprise.purchase_order.cancelled')
+                ->where('auditable_id', $order->id)
+                ->count(),
+        );
     }
 
     public function test_non_approved_request_and_missing_supplier_are_rejected(): void
@@ -136,6 +153,13 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
         $requestManager->approve($actorA, $contextA, $request->id);
         $order = $orderManager->createFromApprovedRequest($actorA, $contextA, $request->id);
 
+        try {
+            $orderManager->createFromApprovedRequest($actorB, $contextB, $request->id);
+            $this->fail('Cross-store source request access must be denied.');
+        } catch (ModelNotFoundException) {
+            $this->assertTrue(true);
+        }
+
         $page = $orderManager->paginate($actorA, $contextA, ['status' => 'draft'], 500);
         $this->assertSame(100, $page->perPage());
         $this->assertSame(1, $page->total());
@@ -143,6 +167,39 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
 
         $this->expectException(ModelNotFoundException::class);
         $orderManager->detail($actorB, $contextB, $order->id);
+    }
+
+    public function test_supplier_is_revalidated_when_converting_an_approved_request(): void
+    {
+        [$actorA, , $contextA] = $this->scopedUser($this->allPermissions(), 'PO-S-A');
+        [$actorB, , $contextB] = $this->scopedUser($this->allPermissions(), 'PO-S-B');
+
+        $supplierA = app(SupplierDirectory::class)->create($actorA, $contextA, [
+            'scope_type' => 'store',
+            'code' => 'PO-SUP-S-A',
+            'name_en' => 'PO Supplier A',
+        ]);
+        $supplierB = app(SupplierDirectory::class)->create($actorB, $contextB, [
+            'scope_type' => 'store',
+            'code' => 'PO-SUP-S-B',
+            'name_en' => 'PO Supplier B',
+        ]);
+
+        $requestManager = app(PurchaseRequestManager::class);
+        $request = $requestManager->create($actorA, $contextA, [
+            'supplier_id' => $supplierA->id,
+            'currency_code' => 'KWD',
+            'lines' => [$this->linePayload()],
+        ]);
+        $requestManager->submit($actorA, $contextA, $request->id);
+        $requestManager->approve($actorA, $contextA, $request->id);
+
+        EnterprisePurchaseRequest::query()
+            ->whereKey($request->id)
+            ->update(['supplier_id' => $supplierB->id]);
+
+        $this->expectException(ModelNotFoundException::class);
+        app(PurchaseOrderManager::class)->createFromApprovedRequest($actorA, $contextA, $request->id);
     }
 
     public function test_create_requires_dedicated_purchase_order_manage_permission(): void
