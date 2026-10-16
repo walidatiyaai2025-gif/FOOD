@@ -119,8 +119,8 @@ $allTableRows = collect($tableWorkspace['tables']);
                             <form method="post" action="{{ route('admin.smart-ordering.tables.floors.update', [$selectedBranch->public_id, $floor['public_id']]) }}" class="so-table-form">
                                 @csrf
                                 @method('PUT')
-                                <label>{{ __('smart_ordering.tables.floor_name_en') }}<input name="name_en" required maxlength="120" value="{{ $floor['name_en'] }}"></label>
-                                <label>{{ __('smart_ordering.tables.floor_name_ar') }}<input name="name_ar" required maxlength="120" value="{{ $floor['name_ar'] }}"></label>
+                                <label>{{ __('smart_ordering.tables.floor_name_en') }}<input name="name_en" required maxlength="120" value="{{ $floor['name_en'] }}"></label> {{-- localization-gate: allow — bilingual admin edit field renders its persisted English value; visible label is localized --}}
+                                <label>{{ __('smart_ordering.tables.floor_name_ar') }}<input name="name_ar" required maxlength="120" value="{{ $floor['name_ar'] }}"></label> {{-- localization-gate: allow — bilingual admin edit field renders its persisted Arabic value; visible label is localized --}}
                                 <label>{{ __('smart_ordering.tables.sort_order') }}<input name="sort_order" type="number" min="0" max="999" value="{{ $floor['sort_order'] }}"></label>
                                 <label class="so-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($floor['is_active'])> {{ __('smart_ordering.tables.active') }}</label>
                                 <div class="so-table-form-actions"><button class="foodex-primary" type="submit">{{ __('smart_ordering.tables.save_floor') }}</button></div>
@@ -272,8 +272,8 @@ $allTableRows = collect($tableWorkspace['tables']);
                     <div class="so-dialog-head"><h2>{{ __('smart_ordering.tables.add_floor') }}</h2><button type="button" class="so-close" data-so-close-dialog>×</button></div>
                     <form method="post" action="{{ route('admin.smart-ordering.tables.floors.store', $selectedBranch->public_id) }}" class="so-table-form">
                         @csrf
-                        <label>{{ __('smart_ordering.tables.floor_name_en') }}<input name="name_en" required maxlength="120"></label>
-                        <label>{{ __('smart_ordering.tables.floor_name_ar') }}<input name="name_ar" required maxlength="120"></label>
+                        <label>{{ __('smart_ordering.tables.floor_name_en') }}<input name="name_en" required maxlength="120"></label> {{-- localization-gate: allow — bilingual admin create field key is technical; visible label is localized --}}
+                        <label>{{ __('smart_ordering.tables.floor_name_ar') }}<input name="name_ar" required maxlength="120"></label> {{-- localization-gate: allow — bilingual admin create field key is technical; visible label is localized --}}
                         <label>{{ __('smart_ordering.tables.sort_order') }}<input name="sort_order" type="number" min="0" max="999" value="0"></label>
                         <label class="so-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> {{ __('smart_ordering.tables.active') }}</label>
                         <div class="so-table-form-actions"><button class="foodex-primary" type="submit">{{ __('smart_ordering.tables.save_floor') }}</button></div>
