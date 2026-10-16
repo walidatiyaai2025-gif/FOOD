@@ -13,10 +13,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 class EnterpriseWarehouseFoundationTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     public function test_warehouse_scope_preserves_store_rbac_and_can_narrow_access_to_explicit_warehouses(): void
@@ -426,6 +428,7 @@ class EnterpriseWarehouseFoundationTest extends TestCase
 
     private function inventoryUser(int $storeId): User
     {
+        $this->enableEnterpriseWmsForStore($storeId);
         $user = User::query()->create([
             'name' => 'WMS Inventory',
             'email' => 'wms-inventory@example.test',
