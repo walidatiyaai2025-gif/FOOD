@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\User;
 use App\Services\AuditLogger;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,7 +18,7 @@ final class SmartOrderingRevisionService
 
     private const FORBIDDEN_PUBLIC_KEYS = [
         'id', 'store_id', 'site_id', 'tenant_id', 'branch_id', 'user_id',
-        'created_by', 'published_by',
+        'created_by', 'published_by', 'scheduled_by',
     ];
 
     public function __construct(private readonly AuditLogger $audit) {}
@@ -73,6 +74,16 @@ final class SmartOrderingRevisionService
             ->where('site_id', $site->id)
             ->where('status', 'draft')
             ->latest('id')
+            ->first();
+    }
+
+    public function scheduled(SmartOrderingSite $site): ?SmartOrderingRevision
+    {
+        return SmartOrderingRevision::query()
+            ->where('site_id', $site->id)
+            ->where('status', 'scheduled')
+            ->orderBy('scheduled_at')
+            ->orderBy('id')
             ->first();
     }
 
@@ -140,6 +151,58 @@ final class SmartOrderingRevisionService
         return $revision->fresh();
     }
 
+    public function schedule(
+        User $actor,
+        SmartOrderingRevision $revision,
+        CarbonInterface $scheduledAt,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        $site = $revision->site()->firstOrFail();
+        abort_unless($actor->hasPermission('smart_ordering.publish', (int) $site->store_id), 403);
+
+        if (! $scheduledAt->isFuture()) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Scheduled publish time must be in the future.'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($actor, $revision, $site, $scheduledAt, $request): SmartOrderingRevision {
+            SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
+
+            $draft = SmartOrderingRevision::query()
+                ->whereKey($revision->id)
+                ->where('site_id', $site->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless($draft->status === 'draft', 409);
+
+            $alreadyScheduled = SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'scheduled')
+                ->lockForUpdate()
+                ->exists();
+            abort_if($alreadyScheduled, 409);
+
+            $this->validatePublicPayload((array) $draft->payload);
+
+            $draft->forceFill([
+                'status' => 'scheduled',
+                'scheduled_at' => $scheduledAt,
+                'scheduled_by' => $actor->getKey(),
+            ])->save();
+
+            $this->audit->record('smart_ordering.revision.scheduled', $actor, $draft, null, [
+                'store_id' => (int) $site->store_id,
+                'site_public_id' => (string) $site->public_id,
+                'revision_public_id' => (string) $draft->public_id,
+                'checksum' => (string) $draft->checksum,
+                'scheduled_at' => $draft->scheduled_at?->toISOString(),
+            ], $request);
+
+            return $draft->fresh();
+        });
+    }
+
     public function publish(
         User $actor,
         SmartOrderingRevision $revision,
@@ -150,6 +213,7 @@ final class SmartOrderingRevisionService
 
         return DB::transaction(function () use ($actor, $revision, $site, $request): SmartOrderingRevision {
             SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
+
             $draft = SmartOrderingRevision::query()
                 ->whereKey($revision->id)
                 ->where('site_id', $site->id)
@@ -157,38 +221,109 @@ final class SmartOrderingRevisionService
                 ->firstOrFail();
             abort_unless($draft->status === 'draft', 409);
 
-            $this->validatePublicPayload((array) $draft->payload);
-
-            $previous = SmartOrderingRevision::query()
-                ->where('site_id', $site->id)
-                ->where('status', 'published')
-                ->lockForUpdate()
-                ->latest('id')
-                ->first();
-
-            SmartOrderingRevision::query()
-                ->where('site_id', $site->id)
-                ->where('status', 'published')
-                ->update(['status' => 'archived', 'updated_at' => now()]);
-
-            $draft->forceFill([
-                'status' => 'published',
-                'published_by' => $actor->getKey(),
-                'published_at' => now(),
-            ])->save();
-
-            $this->audit->record('smart_ordering.revision.published', $actor, $draft, [
-                'store_id' => (int) $site->store_id,
-                'revision_public_id' => $previous?->public_id,
-                'checksum' => $previous?->checksum,
-            ], [
-                'store_id' => (int) $site->store_id,
-                'revision_public_id' => (string) $draft->public_id,
-                'checksum' => (string) $draft->checksum,
-            ], $request);
-
-            return $draft->fresh();
+            return $this->publishLocked($actor, $site, $draft, $request);
         });
+    }
+
+    public function dispatchDueScheduled(int $limit = 25): int
+    {
+        $limit = max(1, min(100, $limit));
+        $revisionIds = SmartOrderingRevision::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_at')
+            ->where('scheduled_at', '<=', now())
+            ->orderBy('scheduled_at')
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id');
+
+        $published = 0;
+
+        foreach ($revisionIds as $revisionId) {
+            $didPublish = DB::transaction(function () use ($revisionId): bool {
+                $scheduled = SmartOrderingRevision::query()
+                    ->whereKey((int) $revisionId)
+                    ->where('status', 'scheduled')
+                    ->whereNotNull('scheduled_at')
+                    ->where('scheduled_at', '<=', now())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $scheduled instanceof SmartOrderingRevision) {
+                    return false;
+                }
+
+                $site = SmartOrderingSite::query()
+                    ->whereKey($scheduled->site_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $actor = $scheduled->scheduled_by === null
+                    ? null
+                    : User::query()->find((int) $scheduled->scheduled_by);
+
+                if (! $actor instanceof User
+                    || ! $actor->is_active
+                    || ! $actor->hasPermission('smart_ordering.publish', (int) $site->store_id)) {
+                    return false;
+                }
+
+                $this->publishLocked($actor, $site, $scheduled);
+
+                return true;
+            });
+
+            if ($didPublish) {
+                $published++;
+            }
+        }
+
+        return $published;
+    }
+
+    private function publishLocked(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $revision,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        abort_unless(in_array($revision->status, ['draft', 'scheduled'], true), 409);
+        if ($revision->status === 'scheduled') {
+            abort_unless($revision->scheduled_at !== null && $revision->scheduled_at->lte(now()), 409);
+        }
+
+        $this->validatePublicPayload((array) $revision->payload);
+
+        $previous = SmartOrderingRevision::query()
+            ->where('site_id', $site->id)
+            ->where('status', 'published')
+            ->lockForUpdate()
+            ->latest('id')
+            ->first();
+
+        SmartOrderingRevision::query()
+            ->where('site_id', $site->id)
+            ->where('status', 'published')
+            ->update(['status' => 'archived', 'updated_at' => now()]);
+
+        $revision->forceFill([
+            'status' => 'published',
+            'published_by' => $actor->getKey(),
+            'published_at' => now(),
+        ])->save();
+
+        $this->audit->record('smart_ordering.revision.published', $actor, $revision, [
+            'store_id' => (int) $site->store_id,
+            'revision_public_id' => $previous?->public_id,
+            'checksum' => $previous?->checksum,
+        ], [
+            'store_id' => (int) $site->store_id,
+            'revision_public_id' => (string) $revision->public_id,
+            'checksum' => (string) $revision->checksum,
+            'scheduled_at' => $revision->scheduled_at?->toISOString(),
+        ], $request);
+
+        return $revision->fresh();
     }
 
     /** @param array<string,mixed> $payload
