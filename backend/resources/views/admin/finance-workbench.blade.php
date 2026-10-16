@@ -205,7 +205,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.common.code') }}</th><th>{{ __('finance_workbench.common.name') }}</th><th>{{ __('finance_workbench.common.status') }}</th>@if($access['foundation_manage'])<th>{{ __('finance_workbench.actions.save') }}</th>@endif</tr></thead><tbody>
 @forelse($data['costCenters'] as $center)
-<tr><td><strong>{{ $center->code }}</strong></td><td>{{ $center->name }}</td><td><span class="finance-status">{{ $status($center->status) }}</span></td>
+<tr><td><strong>{{ $center->code }}</strong></td><td>{{ $center->name }}</td><td><span class="finance-status">{{ $status($center->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.cost-centers.status',['costCenter'=>$center->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="status" value="{{ $center->status==='active' ? 'inactive' : 'active' }}"><button class="finance-button" type="submit">{{ $center->status==='active' ? __('finance_workbench.actions.deactivate') : __('finance_workbench.actions.activate') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="4" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -244,7 +244,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <button class="finance-button primary" type="submit">{{ __('finance_workbench.actions.create') }}</button>
 </form></div></details>
 @endif
-</td><td>{{ optional($year->starts_on)->format('Y-m-d') }}</td><td>{{ optional($year->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($year->status) }}</span></td>
+</td><td>{{ optional($year->starts_on)->format('Y-m-d') }}</td><td>{{ optional($year->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($year->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.fiscal-years.state',['fiscalYear'=>$year->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="state" value="{{ $year->status==='open' ? 'closed' : 'open' }}"><button class="finance-button" type="submit">{{ $year->status==='open' ? __('finance_workbench.actions.close') : __('finance_workbench.actions.reopen') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="6" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -254,7 +254,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <h3>{{ __('finance_workbench.periods.period_list') }}</h3>
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.common.code') }}</th><th>{{ __('finance_workbench.common.name') }}</th><th>{{ __('finance_workbench.common.sequence') }}</th><th>{{ __('finance_workbench.common.from') }}</th><th>{{ __('finance_workbench.common.to') }}</th><th>{{ __('finance_workbench.common.status') }}</th>@if($access['foundation_manage'])<th>{{ __('finance_workbench.actions.save') }}</th>@endif</tr></thead><tbody>
 @forelse($data['fiscalPeriods'] as $period)
-<tr><td><strong>{{ $period->code }}</strong></td><td>{{ $period->name }}</td><td>{{ $period->sequence }}</td><td>{{ optional($period->starts_on)->format('Y-m-d') }}</td><td>{{ optional($period->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($period->status) }}</span></td>
+<tr><td><strong>{{ $period->code }}</strong></td><td>{{ $period->name }}</td><td>{{ $period->sequence }}</td><td>{{ optional($period->starts_on)->format('Y-m-d') }}</td><td>{{ optional($period->ends_on)->format('Y-m-d') }}</td><td><span class="finance-status">{{ $status($period->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}}</td>
 @if($access['foundation_manage'])<td><form method="post" action="{{ route('admin.erp.finance.fiscal-periods.state',['fiscalPeriod'=>$period->id]) }}">@csrf @method('PATCH')<input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="state" value="{{ $period->status==='open' ? 'closed' : 'open' }}"><button class="finance-button" type="submit">{{ $period->status==='open' ? __('finance_workbench.actions.close') : __('finance_workbench.actions.reopen') }}</button></form></td>@endif
 </tr>
 @empty<tr><td colspan="7" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
@@ -321,7 +321,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <h3>{{ __('finance_workbench.journals.approval') }}</h3>
 @if($data['approval'])
-<div class="finance-notice"><span class="finance-status">{{ $status($data['approval']->status) }}</span> · {{ optional($data['approval']->created_at)->format('Y-m-d H:i') }}</div>
+<div class="finance-notice"><span class="finance-status">{{ $status($data['approval']->status) }}</span> {{-- localization-gate: allow status rendered through localized $status helper --}} · {{ optional($data['approval']->created_at)->format('Y-m-d H:i') }}</div>
 @else<div class="finance-empty">{{ __('finance_workbench.journals.no_approval') }}</div>@endif
 
 <h3>{{ __('finance_workbench.journals.ledger_entries') }}</h3>
