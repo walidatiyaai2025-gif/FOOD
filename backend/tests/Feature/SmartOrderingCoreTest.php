@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Domain\SmartOrdering\Contracts\OrderNotificationBridge;
+use App\Domain\SmartOrdering\Contracts\RestaurantPaymentProvider;
+use App\Domain\SmartOrdering\RestaurantPaymentProviderResult;
+use App\Domain\SmartOrdering\RestaurantPaymentWebhookResult;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Role;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
@@ -12,6 +16,7 @@ use App\Services\B2cCustomerService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -1195,6 +1200,161 @@ class SmartOrderingCoreTest extends TestCase
             ->assertSee('زمن وعد الاستلام بالدقائق');
     }
 
+    public function test_restaurant_payment_operations_are_idempotent_and_refund_status_is_not_double_counted(): void
+    {
+        SmartOrderingTestPaymentProvider::reset();
+        config(['restaurant_payments.providers.testpay' => SmartOrderingTestPaymentProvider::class]);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-ordering-payment-lifecycle-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $payment = Payment::query()->latest('id')->firstOrFail();
+        $payment->forceFill([
+            'provider' => 'testpay',
+            'provider_reference' => 'provider-'.$payment->getKey(),
+        ])->save();
+
+        $admin = $this->storeAdmin($this->storeId);
+        $amount = number_format((float) $payment->amount, 3, '.', '');
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'authorize']),
+            ['idempotency_key' => 'authorize-restaurant-payment-0001', 'amount' => $amount],
+        )->assertRedirect();
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'authorize']),
+            ['idempotency_key' => 'authorize-restaurant-payment-0001', 'amount' => $amount],
+        )->assertRedirect();
+
+        $this->assertSame(1, collect(SmartOrderingTestPaymentProvider::$calls)
+            ->where('operation', 'authorize')
+            ->count());
+        $this->assertDatabaseCount('restaurant_payment_operations', 1);
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'authorize']),
+            ['idempotency_key' => 'authorize-restaurant-payment-0001', 'amount' => '0.500'],
+        )->assertSessionHasErrors('idempotency_key');
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'capture']),
+            ['idempotency_key' => 'capture-restaurant-payment-0001', 'amount' => $amount],
+        )->assertRedirect();
+
+        $this->assertSame('captured', (string) $payment->fresh()->status);
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'refund']),
+            ['idempotency_key' => 'refund-restaurant-payment-0001', 'amount' => '0.500'],
+        )->assertRedirect();
+
+        $this->assertSame('partially_refunded', (string) $payment->fresh()->status);
+
+        $remaining = number_format(max(0, (float) $payment->amount - 0.500), 3, '.', '');
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'refund']),
+            ['idempotency_key' => 'refund-restaurant-payment-0002', 'amount' => $remaining],
+        )->assertRedirect();
+
+        $this->assertSame('refunded', (string) $payment->fresh()->status);
+        $this->assertSame(2, DB::table('restaurant_payment_operations')
+            ->where('payment_id', $payment->getKey())
+            ->where('operation', 'refund')
+            ->where('status', 'succeeded')
+            ->count());
+    }
+
+    public function test_restaurant_payment_webhook_rejects_invalid_signature_and_deduplicates_events(): void
+    {
+        SmartOrderingTestPaymentProvider::reset();
+        config(['restaurant_payments.providers.testpay' => SmartOrderingTestPaymentProvider::class]);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-ordering-payment-webhook-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $payment = Payment::query()->latest('id')->firstOrFail();
+        $payment->forceFill([
+            'provider' => 'testpay',
+            'provider_reference' => 'webhook-provider-'.$payment->getKey(),
+            'status' => 'captured',
+        ])->save();
+
+        $payload = [
+            'event_id' => 'evt-restaurant-payment-0001',
+            'provider_reference' => (string) $payment->provider_reference,
+            'operation' => 'refund',
+            'payment_status' => 'partially_refunded',
+            'amount' => '0.250',
+        ];
+
+        $this->withHeader('X-Test-Payment-Signature', 'invalid')
+            ->postJson('/api/smart-ordering/payments/webhooks/testpay', $payload)
+            ->assertUnauthorized();
+
+        $this->assertDatabaseMissing('restaurant_payment_operations', [
+            'provider_event_id' => 'evt-restaurant-payment-0001',
+        ]);
+
+        $this->withHeader('X-Test-Payment-Signature', 'valid')
+            ->postJson('/api/smart-ordering/payments/webhooks/testpay', $payload)
+            ->assertOk()
+            ->assertJsonPath('received', true)
+            ->assertJsonPath('payment.status', 'partially_refunded');
+
+        $this->withHeader('X-Test-Payment-Signature', 'valid')
+            ->postJson('/api/smart-ordering/payments/webhooks/testpay', $payload)
+            ->assertOk();
+
+        $this->assertSame(1, DB::table('restaurant_payment_operations')
+            ->where('provider', 'testpay')
+            ->where('provider_event_id', 'evt-restaurant-payment-0001')
+            ->count());
+        $this->assertSame('partially_refunded', (string) $payment->fresh()->status);
+    }
+
+    public function test_restaurant_payments_workspace_is_localized_and_unconfigured_provider_fails_closed(): void
+    {
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-ordering-payment-workspace-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $payment = Payment::query()->latest('id')->firstOrFail();
+        $admin = $this->storeAdmin($this->storeId);
+        $amount = number_format((float) $payment->amount, 3, '.', '');
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.payments.operation', [$payment->getKey(), 'authorize']),
+            ['idempotency_key' => 'missing-provider-0001', 'amount' => $amount],
+        )->assertSessionHasErrors('provider');
+
+        $this->assertDatabaseCount('restaurant_payment_operations', 0);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
+            ->assertOk()
+            ->assertSee('Payments &amp; reconciliation', false)
+            ->assertSee('cash_on_delivery')
+            ->assertSee('Provider not configured');
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
+            ->assertOk()
+            ->assertSee('المدفوعات والتسوية')
+            ->assertSee('مزود الدفع غير مهيأ');
+    }
+
     /** @param array<string,mixed> $overrides */
     private function checkout(string $cart, string $token, string $key, array $overrides)
     {
@@ -1229,5 +1389,60 @@ class SmartOrderingCoreTest extends TestCase
         ]);
 
         return $user;
+    }
+}
+
+final class SmartOrderingTestPaymentProvider implements RestaurantPaymentProvider
+{
+    /** @var list<array{operation:string,amount:string,currency:string}> */
+    public static array $calls = [];
+
+    public static function reset(): void
+    {
+        self::$calls = [];
+    }
+
+    public function supports(string $operation): bool
+    {
+        return in_array($operation, ['authorize', 'capture', 'void', 'refund'], true);
+    }
+
+    public function execute(
+        string $operation,
+        Payment $payment,
+        string $amount,
+        string $currency,
+        array $context = [],
+    ): RestaurantPaymentProviderResult {
+        self::$calls[] = [
+            'operation' => $operation,
+            'amount' => $amount,
+            'currency' => $currency,
+        ];
+
+        return new RestaurantPaymentProviderResult(
+            succeeded: true,
+            providerReference: (string) ($payment->provider_reference ?: 'testpay-'.$payment->getKey()),
+            providerStatus: 'accepted',
+            safeMetadata: ['trace' => 'test-safe', 'token' => 'must-not-persist'],
+        );
+    }
+
+    public function verifyWebhook(Request $request): bool
+    {
+        return $request->header('X-Test-Payment-Signature') === 'valid';
+    }
+
+    public function webhook(Request $request): RestaurantPaymentWebhookResult
+    {
+        return new RestaurantPaymentWebhookResult(
+            eventId: (string) $request->input('event_id'),
+            providerReference: (string) $request->input('provider_reference'),
+            operation: (string) $request->input('operation'),
+            paymentStatus: (string) $request->input('payment_status'),
+            amount: $request->input('amount') === null ? null : (string) $request->input('amount'),
+            providerStatus: 'accepted',
+            safeMetadata: ['trace' => 'webhook-safe', 'token' => 'must-not-persist'],
+        );
     }
 }
