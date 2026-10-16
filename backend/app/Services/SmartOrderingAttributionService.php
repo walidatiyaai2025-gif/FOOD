@@ -48,6 +48,8 @@ final class SmartOrderingAttributionService
                 'qr_code_id' => $qr->getKey(),
                 'qr_token_id' => $token->getKey(),
                 'visitor_hash' => $visitorHash,
+                'type_snapshot' => (string) $qr->type,
+                'promotion_id_snapshot' => $qr->promotion_id === null ? null : (int) $qr->promotion_id,
                 'source_snapshot' => $qr->source,
                 'medium_snapshot' => $qr->medium,
                 'campaign_snapshot' => $qr->campaign,
@@ -222,7 +224,7 @@ final class SmartOrderingAttributionService
 
         $this->assertVisitStore($visit, (int) $cart->store_id);
 
-        return $qr->promotion_id === null ? null : (int) $qr->promotion_id;
+        return $this->promotionIdForVisit($visit, $qr);
     }
 
     public function attachOrderFromCart(Cart $cart, Order $order): ?SmartOrderingQrVisit
@@ -273,10 +275,10 @@ final class SmartOrderingAttributionService
         return [
             'store_id' => (int) $qr->store_id,
             'qr_public_id' => (string) $qr->public_id,
-            'type' => (string) $qr->type,
+            'type' => $this->typeForVisit($visit, $qr),
             'branch_reference' => $visit->branch_reference_snapshot,
             'table_reference' => $visit->table_reference_snapshot,
-            'promotion_id' => $qr->promotion_id === null ? null : (int) $qr->promotion_id,
+            'promotion_id' => $this->promotionIdForVisit($visit, $qr),
             'source' => $visit->source_snapshot,
             'campaign' => $visit->campaign_snapshot,
         ];
@@ -462,6 +464,7 @@ final class SmartOrderingAttributionService
         $analyticsIdentity = $eventName === self::EVENT_ORDER_CREATED && $visit->order_id !== null
             ? 'order:'.$visit->order_id.':order-created'
             : 'qr:'.$visit->public_id.':'.$eventName;
+        $promotionId = $this->promotionIdForVisit($visit, $qr);
 
         $this->analytics->record(
             (int) $qr->store_id,
@@ -474,10 +477,26 @@ final class SmartOrderingAttributionService
                 'order_id' => $visit->order_id === null ? null : (int) $visit->order_id,
                 'source' => $visit->source_snapshot,
                 'campaign' => $visit->campaign_snapshot,
-                'offer_reference' => $qr->promotion_id === null ? null : 'promotion:'.$qr->promotion_id,
+                'offer_reference' => $promotionId === null ? null : 'promotion:'.$promotionId,
                 'metadata' => $metadata,
             ],
         );
+    }
+
+    private function typeForVisit(SmartOrderingQrVisit $visit, SmartOrderingQrCode $qr): string
+    {
+        $snapshot = trim((string) ($visit->type_snapshot ?? ''));
+
+        return $snapshot === '' ? (string) $qr->type : $snapshot;
+    }
+
+    private function promotionIdForVisit(SmartOrderingQrVisit $visit, SmartOrderingQrCode $qr): ?int
+    {
+        if ($visit->type_snapshot !== null) {
+            return $visit->promotion_id_snapshot === null ? null : (int) $visit->promotion_id_snapshot;
+        }
+
+        return $qr->promotion_id === null ? null : (int) $qr->promotion_id;
     }
 
     private function branchIdForVisit(SmartOrderingQrVisit $visit, int $storeId): ?int
