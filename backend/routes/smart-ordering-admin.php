@@ -18,6 +18,11 @@ Route::delete('/branches/{branch}/delivery-zones/{zone}', [SmartOrderingOperatio
 Route::post('/orders/{reference}/status', [SmartOrderingOperationsController::class, 'transition'])
     ->whereUuid('reference')->name('orders.transition');
 
+Route::post('/payments/{payment}/{operation}', [SmartOrderingOperationsController::class, 'paymentOperation'])
+    ->whereNumber('payment')
+    ->where('operation', 'authorize|capture|void|refund')
+    ->name('payments.operation');
+
 Route::get('/sites/{site}/merchandising', [SmartOrderingMerchandisingAdminController::class, 'index'])
     ->name('merchandising.index');
 Route::post('/sites/{site}/merchandising/offers', [SmartOrderingMerchandisingAdminController::class, 'storeOffer'])
