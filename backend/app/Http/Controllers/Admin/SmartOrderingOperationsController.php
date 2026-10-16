@@ -139,7 +139,9 @@ final class SmartOrderingOperationsController extends Controller
                 if (($capabilities['void'] ?? false) && in_array($status, ['pending', 'authorized'], true)) {
                     $actions[] = 'void';
                 }
-                if (($capabilities['refund'] ?? false) && in_array($status, ['captured', 'partially_refunded'], true)) {
+                if (($capabilities['refund'] ?? false)
+                    && in_array($status, ['captured', 'partially_refunded'], true)
+                    && (float) ($row['remaining_refundable_amount'] ?? 0) > 0) {
                     $actions[] = 'refund';
                 }
 
