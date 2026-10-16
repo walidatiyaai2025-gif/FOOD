@@ -216,7 +216,7 @@ class SmartOrderingMenuRevisionCompareTest extends TestCase
     }
 
     /**
-     * @param array{store_id:int,product_id:int,admin:User,site:SmartOrderingSite} $fixture
+     * @param  array{store_id:int,product_id:int,admin:User,site:SmartOrderingSite}  $fixture
      * @return array{
      *   published:SmartOrderingRevision,
      *   menu:SmartOrderingMenu,
@@ -451,7 +451,7 @@ class SmartOrderingMenuRevisionCompareTest extends TestCase
     }
 
     /**
-     * @param list<array{entity:string,public_id:string,branch_public_id:?string,change:string,fields:list<string>}> $changes
+     * @param  list<array{entity:string,public_id:string,branch_public_id:?string,change:string,fields:list<string>}>  $changes
      * @return array{entity:string,public_id:string,branch_public_id:?string,change:string,fields:list<string>}
      */
     private function change(array $changes, string $entity, string $publicId, ?string $branchPublicId = null): array
