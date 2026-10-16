@@ -287,7 +287,7 @@ final class WmsReportingService
     /**
      * Produce the existing Enterprise queued-export contract without owning an export ledger.
      *
-     * @param  array<string, scalar|null>  $filters
+     * @param  array<array-key, mixed>  $filters
      * @return array<string, mixed>
      */
     public function largeExportHandoff(
@@ -366,7 +366,7 @@ final class WmsReportingService
 
     /**
      * @param  list<string>  $allowedFilters
-     * @param  array<string, scalar|null>  $filters
+     * @param  array<array-key, mixed>  $filters
      * @return array<string, scalar|null>
      */
     private function normalizedExportFilters(
