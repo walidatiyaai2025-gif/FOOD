@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 final class SmartOrderingRuntimePolicy
 {
+    public function __construct(
+        private readonly SmartOrderingEnterpriseEntitlementBridge $enterpriseEntitlements,
+    ) {}
+
     public function resolveBySlug(string $slug): ?SmartOrderingSite
     {
         $slug = strtolower(trim($slug));
@@ -67,6 +71,39 @@ final class SmartOrderingRuntimePolicy
         return $this->resolveBySlug($slug);
     }
 
+    public function canonicalPlatformRedirectHost(string $host, SmartOrderingSite $site): ?string
+    {
+        $host = $this->normalizeHost($host);
+        $baseDomain = $this->normalizeHost((string) config('smart_ordering.base_domain', 'foodex.com'));
+
+        if ($host === null || $baseDomain === null || $host === $baseDomain) {
+            return null;
+        }
+
+        $suffix = '.'.$baseDomain;
+        if (! str_ends_with($host, $suffix)) {
+            return null;
+        }
+
+        $requestedSlug = substr($host, 0, -strlen($suffix));
+        $canonicalSlug = strtolower(trim((string) $site->slug));
+
+        if ($requestedSlug === ''
+            || str_contains($requestedSlug, '.')
+            || $canonicalSlug === ''
+            || $requestedSlug === $canonicalSlug) {
+            return null;
+        }
+
+        $isRetainedAlias = DB::table('smart_ordering_site_aliases')
+            ->where('site_id', $site->id)
+            ->where('slug', $requestedSlug)
+            ->where('redirect_enabled', true)
+            ->exists();
+
+        return $isRetainedAlias ? $canonicalSlug.$suffix : null;
+    }
+
     public function entitled(
         SmartOrderingSite $site,
         string|Module $module,
@@ -76,6 +113,8 @@ final class SmartOrderingRuntimePolicy
         if (! in_array($moduleValue, Module::values(), true)) {
             return false;
         }
+
+        $legacyEnabled = null;
 
         if ($branch !== null) {
             if ((int) $branch->site_id !== (int) $site->id || ! $branch->is_active) {
@@ -89,15 +128,19 @@ final class SmartOrderingRuntimePolicy
                 ->value('enabled');
 
             if ($branchValue !== null) {
-                return (bool) $branchValue;
+                $legacyEnabled = (bool) $branchValue;
             }
         }
 
-        return (bool) (DB::table('smart_ordering_entitlements')
-            ->where('site_id', $site->id)
-            ->where('scope_key', 'site')
-            ->where('module', $moduleValue)
-            ->value('enabled') ?? false);
+        if ($legacyEnabled === null) {
+            $legacyEnabled = (bool) (DB::table('smart_ordering_entitlements')
+                ->where('site_id', $site->id)
+                ->where('scope_key', 'site')
+                ->where('module', $moduleValue)
+                ->value('enabled') ?? false);
+        }
+
+        return $this->enterpriseEntitlements->allows($site, $moduleValue, $legacyEnabled);
     }
 
     public function effectiveState(SmartOrderingSite $site): RuntimeState
@@ -207,15 +250,22 @@ final class SmartOrderingRuntimePolicy
     private function normalizeHost(string $host): ?string
     {
         $host = strtolower(trim($host));
-        if ($host === '') {
+        $host = rtrim($host, '.');
+
+        if ($host === '' || strlen($host) > 253 || ! str_contains($host, '.')) {
             return null;
         }
 
-        $parsed = parse_url(str_contains($host, '://') ? $host : 'http://'.$host, PHP_URL_HOST);
-        if (! is_string($parsed) || $parsed === '') {
+        if (preg_match('/[\\s\\/:?#@*]/', $host) === 1 || filter_var($host, FILTER_VALIDATE_IP) !== false) {
             return null;
         }
 
-        return rtrim(strtolower($parsed), '.');
+        foreach (explode('.', $host) as $label) {
+            if (! preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $label)) {
+                return null;
+            }
+        }
+
+        return $host;
     }
 }
