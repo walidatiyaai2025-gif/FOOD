@@ -262,8 +262,8 @@ final class FinancialStatementService
             ]);
         }
 
-        $windowStart = $year->starts_on->toDateString();
-        $asOf = $period->ends_on->toDateString();
+        $windowStart = $this->dateString($year->starts_on);
+        $asOf = $this->dateString($period->ends_on);
         $accounts = $this->statementAccounts($scope, ['asset', 'liability', 'equity']);
         $aggregates = $this->aggregateByAccount(
             $scope,
@@ -600,9 +600,25 @@ final class FinancialStatementService
             'code' => (string) $period->code,
             'name' => (string) $period->name,
             'status' => (string) $period->status,
-            'starts_on' => $period->starts_on->toDateString(),
-            'ends_on' => $period->ends_on->toDateString(),
+            'starts_on' => $this->dateString($period->starts_on),
+            'ends_on' => $this->dateString($period->ends_on),
         ];
+    }
+
+    private function dateString(mixed $value): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $date = substr(trim((string) $value), 0, 10);
+        if (! preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date)) {
+            throw ValidationException::withMessages([
+                'fiscal_period_id' => ['Fiscal period dates are invalid.'],
+            ]);
+        }
+
+        return $date;
     }
 
     private function toMills(mixed $value): int
