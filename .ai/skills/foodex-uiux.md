@@ -32,11 +32,12 @@ Before UI code, read current files from the branch you are editing. Current sour
 
 1. `AGENTS.md`
 2. live Issue / branch / PR / exact-head CI
-3. `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
-4. `docs/quality/LOCALIZATION_CONTRACT.md`
-5. current surface-specific design target / requirement matrix
-6. current production theme/tokens/components
-7. this skill
+3. `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`
+4. `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+5. `docs/quality/LOCALIZATION_CONTRACT.md`
+6. current surface-specific design target / requirement matrix
+7. current production theme/tokens/components
+8. this skill
 
 Never invent a new visual language because a prompt only says "make a page".
 
@@ -67,6 +68,10 @@ Read:
 If a feature spans surfaces, apply every relevant skill. Do not average their tokens together.
 
 ## 2. Mandatory page-definition pass before coding
+
+First complete the authoritative placement decision from `UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. Resolve: `domain, entity, role, user_goal, workflow_type, frequency, data_density, existing_parent, placement_type, pattern, navigation_impact, desktop, tablet, mobile, rtl_ltr, permissions, states`, plus the canonical existing route/renderer when one exists.
+
+Use **Reuse → Extend → Compose → New Screen**. A new screen needs explicit justification that the first three options are insufficient. A standalone Sidebar addition needs stable business-domain ownership. Never treat the Issue title as route or navigation authority.
 
 Write down internally, from the Issue and current product:
 - surface/app;
