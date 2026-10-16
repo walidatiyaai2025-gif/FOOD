@@ -71,6 +71,39 @@ final class SmartOrderingRuntimePolicy
         return $this->resolveBySlug($slug);
     }
 
+    public function canonicalPlatformRedirectHost(string $host, SmartOrderingSite $site): ?string
+    {
+        $host = $this->normalizeHost($host);
+        $baseDomain = $this->normalizeHost((string) config('smart_ordering.base_domain', 'foodex.com'));
+
+        if ($host === null || $baseDomain === null || $host === $baseDomain) {
+            return null;
+        }
+
+        $suffix = '.'.$baseDomain;
+        if (! str_ends_with($host, $suffix)) {
+            return null;
+        }
+
+        $requestedSlug = substr($host, 0, -strlen($suffix));
+        $canonicalSlug = strtolower(trim((string) $site->slug));
+
+        if ($requestedSlug === ''
+            || str_contains($requestedSlug, '.')
+            || $canonicalSlug === ''
+            || $requestedSlug === $canonicalSlug) {
+            return null;
+        }
+
+        $isRetainedAlias = DB::table('smart_ordering_site_aliases')
+            ->where('site_id', $site->id)
+            ->where('slug', $requestedSlug)
+            ->where('redirect_enabled', true)
+            ->exists();
+
+        return $isRetainedAlias ? $canonicalSlug.$suffix : null;
+    }
+
     public function entitled(
         SmartOrderingSite $site,
         string|Module $module,
