@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class EnterprisePurchaseRequest extends Model
 {
@@ -24,6 +25,12 @@ class EnterprisePurchaseRequest extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(EnterpriseSupplier::class, 'supplier_id');
+    }
+
+    /** @return HasOne<EnterprisePurchaseOrder, $this> */
+    public function purchaseOrder(): HasOne
+    {
+        return $this->hasOne(EnterprisePurchaseOrder::class, 'purchase_request_id');
     }
 
     /** @return HasMany<EnterprisePurchaseRequestLine, $this> */
