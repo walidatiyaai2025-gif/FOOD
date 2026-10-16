@@ -13,7 +13,5 @@ return [
     */
     'contracts' => [
         'EnterpriseModuleStateChanged' => [1],
-        'CommercialProfitabilityOrderSnapshot' => [1],
-        'CommercialProfitabilityCollectionAttribution' => [1],
     ],
 ];
