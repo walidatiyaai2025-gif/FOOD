@@ -6,6 +6,7 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Reporting\ReadModels\OrdersSummaryReadModel;
 use App\Enterprise\Reporting\ReportQuery;
 use App\Enterprise\Reporting\ReportRegistry;
+use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -100,8 +101,8 @@ final class EnterpriseOrdersSummaryReadModelTest extends TestCase
         $this->assertFalse($result['has_more']);
         $this->assertSame(
             $report->maxRangeDays,
-            (int) \Carbon\CarbonImmutable::parse($result['from'])
-                ->diffInDays(\Carbon\CarbonImmutable::parse($result['to'])) + 1,
+            (int) CarbonImmutable::parse($result['from'])
+                ->diffInDays(CarbonImmutable::parse($result['to'])) + 1,
         );
     }
 
