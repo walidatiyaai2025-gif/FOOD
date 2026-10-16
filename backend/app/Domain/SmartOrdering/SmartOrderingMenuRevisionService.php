@@ -345,20 +345,64 @@ final class SmartOrderingMenuRevisionService
                                         $options = DB::table('smart_ordering_modifier_options')
                                             ->where('group_id', $group->id)
                                             ->orderBy('sort_order')->orderBy('public_id')
-                                            ->get()->map(fn (object $option): array => (array) $option)->all();
+                                            ->get()->map(fn (object $option): array => $this->snapshotRow($option, ['group_id']))->all();
 
-                                        return [...(array) $group, 'options' => $options];
+                                        return [
+                                            ...$this->snapshotRow($group, ['item_id']),
+                                            'options' => $options,
+                                        ];
                                     })->all();
 
-                                return [...(array) $item, 'groups' => $groups];
+                                return [
+                                    ...$this->snapshotRow($item, ['category_id']),
+                                    'groups' => $groups,
+                                ];
                             })->all();
 
-                        return [...(array) $category, 'items' => $items];
+                        return [
+                            ...$this->snapshotRow($category, ['menu_id']),
+                            'items' => $items,
+                        ];
                     })->all();
 
-                return [...(array) $menu, 'categories' => $categories];
+                return [
+                    ...$this->snapshotRow($menu),
+                    'categories' => $categories,
+                ];
             })->all();
 
         return ['menus' => $menus];
     }
+
+    /**
+     * Strip revision-local database identity from the menu content checksum.
+     *
+     * A rollback creates new rows for the same historical menu tree. Row IDs,
+     * foreign keys and timestamps therefore change even when the public menu
+     * content is byte-for-byte equivalent. They must not invalidate the
+     * deterministic menu checksum used by revision payloads.
+     *
+     * @param  list<string>  $relationKeys
+     * @return array<string,mixed>
+     */
+    private function snapshotRow(object $row, array $relationKeys = []): array
+    {
+        $data = (array) $row;
+
+        foreach ([
+            'id',
+            'revision_id',
+            'site_id',
+            'created_at',
+            'updated_at',
+            ...$relationKeys,
+        ] as $key) {
+            unset($data[$key]);
+        }
+
+        ksort($data);
+
+        return $data;
+    }
+
 }
