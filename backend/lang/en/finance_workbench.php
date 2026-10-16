@@ -11,6 +11,7 @@ return [
     'current_context' => 'Current context',
     'channel_b2b' => 'Wholesale',
     'channel_b2c' => 'Retail',
+    'errors_title' => 'Please correct the highlighted Finance input.',
     'module_guard' => 'Finance access follows the module lifecycle, legal-entity entitlement and store-scoped RBAC. Hidden or unavailable capabilities cannot be invoked from this screen.',
     'source_truth' => 'AR/AP are source-managed. Sales and Procurement remain the canonical business-document owners; Finance consumes their posting events and shows the resulting accounting impact.',
     'maker_checker' => 'Maker/Checker is enforced by the Finance services. A maker cannot post the same transaction; configured approval limits require an approved checker workflow before posting.',
@@ -126,6 +127,7 @@ return [
         'source_trace' => 'Source → journal → ledger',
         'ledger_entries' => 'Ledger impact',
         'audit_timeline' => 'Audit timeline',
+        'accounting_change' => 'Canonical Finance state change',
         'approval' => 'Approval workflow',
         'no_source' => 'Manual or non-source journal; no canonical source posting is linked.',
         'no_ledger' => 'The journal has not produced ledger entries yet.',
@@ -169,6 +171,7 @@ return [
         'balance' => 'Balance',
         'comparative' => 'Comparative',
         'reconciled' => 'Reconciled',
+        'current_year_earnings' => 'Current fiscal-year earnings',
     ],
     'statuses' => [
         'active' => 'Active',
