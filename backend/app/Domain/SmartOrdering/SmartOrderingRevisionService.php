@@ -162,7 +162,7 @@ final class SmartOrderingRevisionService
 
         if (! $scheduledAt->isFuture()) {
             throw ValidationException::withMessages([
-                'scheduled_at' => ['Scheduled publish time must be in the future.'],
+                'scheduled_at' => [__('smart_ordering_menu.validation.scheduled_future')],
             ]);
         }
 
@@ -180,8 +180,8 @@ final class SmartOrderingRevisionService
                 ->where('site_id', $site->id)
                 ->where('status', 'scheduled')
                 ->lockForUpdate()
-                ->exists();
-            abort_if($alreadyScheduled, 409);
+                ->first();
+            abort_if($alreadyScheduled instanceof SmartOrderingRevision, 409);
 
             $this->validatePublicPayload((array) $draft->payload);
 
@@ -228,21 +228,27 @@ final class SmartOrderingRevisionService
     public function dispatchDueScheduled(int $limit = 25): int
     {
         $limit = max(1, min(100, $limit));
-        $revisionIds = SmartOrderingRevision::query()
+        $candidates = SmartOrderingRevision::query()
             ->where('status', 'scheduled')
             ->whereNotNull('scheduled_at')
             ->where('scheduled_at', '<=', now())
             ->orderBy('scheduled_at')
             ->orderBy('id')
             ->limit($limit)
-            ->pluck('id');
+            ->get(['id', 'site_id']);
 
         $published = 0;
 
-        foreach ($revisionIds as $revisionId) {
-            $didPublish = DB::transaction(function () use ($revisionId): bool {
+        foreach ($candidates as $candidate) {
+            $didPublish = DB::transaction(function () use ($candidate): bool {
+                $site = SmartOrderingSite::query()
+                    ->whereKey((int) $candidate->site_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
                 $scheduled = SmartOrderingRevision::query()
-                    ->whereKey((int) $revisionId)
+                    ->whereKey((int) $candidate->id)
+                    ->where('site_id', $site->id)
                     ->where('status', 'scheduled')
                     ->whereNotNull('scheduled_at')
                     ->where('scheduled_at', '<=', now())
@@ -252,11 +258,6 @@ final class SmartOrderingRevisionService
                 if (! $scheduled instanceof SmartOrderingRevision) {
                     return false;
                 }
-
-                $site = SmartOrderingSite::query()
-                    ->whereKey($scheduled->site_id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
 
                 $actor = $scheduled->scheduled_by === null
                     ? null
