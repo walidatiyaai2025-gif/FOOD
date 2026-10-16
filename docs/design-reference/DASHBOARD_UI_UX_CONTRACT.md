@@ -4,6 +4,8 @@ This document is a **mandatory project contract** for every worker that creates 
 
 It applies to the **entire FOODEX Dashboard**, not only Van features.
 
+Placement authority is `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. Before creating or materially changing a Dashboard route, Sidebar destination, tab, form, workbench or major screen surface, resolve the placement decision using **Reuse → Extend → Compose → New Screen**. The Issue title is not route authority. New screens and Sidebar additions require the justification and responsive/locale evidence defined by that contract.
+
 A worker must treat these rules as part of the Definition of Done. If a new feature conflicts with this contract, the implementation must be redesigned or the repository owner must explicitly approve an exception.
 
 ---
