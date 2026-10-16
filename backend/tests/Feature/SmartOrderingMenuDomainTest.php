@@ -13,6 +13,7 @@ use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
 use App\Domain\SmartOrdering\SmartOrderingModifierService;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Models\Role;
 use App\Models\User;
@@ -711,6 +712,171 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->getJson('/api/v1/smart-ordering/'.$fixture['site']->slug.'/items?per_page=51')
             ->assertUnprocessable()
             ->assertJsonValidationErrors('per_page');
+    }
+
+    public function test_archived_menu_revision_rolls_forward_as_new_published_history_node(): void
+    {
+        $fixture = $this->fixture('ROLLBACK', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        [$draft, , , $item] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Rollback Burger V1',
+            'price_override' => 5.000,
+        ]);
+
+        $firstPublished = $revisions->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $draft->fresh(),
+        );
+
+        $nextDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $nextItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $nextDraft->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+        $writer->updateItem(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $nextDraft,
+            $nextItem,
+            [
+                'name_en' => 'Rollback Burger V2',
+                'price_override' => 6.000,
+            ],
+        );
+
+        $secondPublished = $revisions->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $nextDraft->fresh(),
+        );
+
+        $this->assertSame('archived', $firstPublished->fresh()->status);
+        $this->assertSame('published', $secondPublished->fresh()->status);
+
+        $restored = $revisions->rollback(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $firstPublished->fresh(),
+        );
+
+        $this->assertSame('published', $restored->status);
+        $this->assertNotSame($firstPublished->id, $restored->id);
+        $this->assertNotSame($firstPublished->public_id, $restored->public_id);
+        $this->assertSame($firstPublished->id, $restored->parent_revision_id);
+        $this->assertSame('archived', $firstPublished->fresh()->status);
+        $this->assertSame('archived', $secondPublished->fresh()->status);
+        $this->assertSame(
+            $restored->id,
+            app(SmartOrderingRevisionService::class)->published($fixture['site']->fresh())?->id,
+        );
+
+        $restoredItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $restored->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+        $historicalItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $firstPublished->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+
+        $this->assertSame('Rollback Burger V1', $restoredItem->name_en);
+        $this->assertSame('5.000', $restoredItem->price_override);
+        $this->assertSame('Rollback Burger V1', $historicalItem->name_en);
+        $this->assertSame('5.000', $historicalItem->price_override);
+        $this->assertSame(64, strlen((string) $restored->checksum));
+        $this->assertSame(64, strlen((string) data_get($restored->payload, 'menu_checksum')));
+        $this->assertNotSame($secondPublished->checksum, $restored->checksum);
+        $this->assertNotSame(
+            data_get($secondPublished->payload, 'menu_checksum'),
+            data_get($restored->payload, 'menu_checksum'),
+        );
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'smart_ordering.revision.rollback_draft_created',
+            'store_id' => $fixture['store_id'],
+            'user_id' => $fixture['admin']->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'smart_ordering.revision.published',
+            'store_id' => $fixture['store_id'],
+            'user_id' => $fixture['admin']->id,
+        ]);
+    }
+
+    public function test_menu_revision_rollback_fails_closed_for_invalid_sources_and_active_draft(): void
+    {
+        $fixture = $this->fixture('ROLLBACK-GUARD', 4.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        [$draft, , , $item] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Guard V1',
+            'price_override' => 4.000,
+        ]);
+        $firstPublished = $revisions->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $draft->fresh(),
+        );
+
+        $nextDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $nextItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $nextDraft->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+        $writer->updateItem(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $nextDraft,
+            $nextItem,
+            ['name_en' => 'Guard V2'],
+        );
+        $currentPublished = $revisions->publish(
+            $fixture['admin'],
+            $fixture['site']->fresh(),
+            $nextDraft->fresh(),
+        );
+
+        try {
+            $revisions->rollback(
+                $fixture['admin'],
+                $fixture['site']->fresh(),
+                $currentPublished->fresh(),
+            );
+            $this->fail('The current published revision cannot be used as a rollback source.');
+        } catch (HttpExceptionInterface $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+
+        $activeDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $this->assertSame('draft', $activeDraft->status);
+
+        try {
+            $revisions->rollback(
+                $fixture['admin'],
+                $fixture['site']->fresh(),
+                $firstPublished->fresh(),
+            );
+            $this->fail('Rollback must not overwrite an active draft.');
+        } catch (HttpExceptionInterface $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+
+        $foreign = $this->fixture('ROLLBACK-FOREIGN', 9.000);
+        try {
+            $revisions->rollback(
+                $foreign['admin'],
+                $foreign['site']->fresh(),
+                $firstPublished->fresh(),
+            );
+            $this->fail('A historical revision from another restaurant must fail closed.');
+        } catch (HttpExceptionInterface $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        $this->assertSame('archived', $firstPublished->fresh()->status);
+        $this->assertSame('published', $currentPublished->fresh()->status);
     }
 
     public function test_cross_tenant_products_and_admin_mutations_are_rejected(): void

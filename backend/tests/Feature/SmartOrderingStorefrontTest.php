@@ -157,6 +157,27 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString('.so-search-clear{min-height:44px', $stylesheet);
     }
 
+    public function test_public_storefront_templates_render_safe_menu_media_placeholders(): void
+    {
+        $placeholder = '/images/smart-ordering/menu-media-placeholder.svg';
+
+        $this->assertFileExists(public_path('images/smart-ordering/menu-media-placeholder.svg'));
+
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+            foreach (['en', 'ar'] as $locale) {
+                $snapshot = $this->snapshot($theme, 'light');
+                $snapshot['menu']['categories'][0]['image_url'] = null;
+                $snapshot['menu']['categories'][0]['items'][0]['image_url'] = 'javascript:alert(1)';
+                $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+                $this->get('/smart-ordering/demo?lang='.$locale)
+                    ->assertOk()
+                    ->assertSee($placeholder, false)
+                    ->assertDontSee('javascript:alert(1)', false);
+            }
+        }
+    }
+
     public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
     {
         foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
