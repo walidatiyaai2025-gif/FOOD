@@ -3,11 +3,23 @@
 namespace App\Support;
 
 use App\Domain\WhatsApp\RuntimePolicy;
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
 {
+    /** @var array<string, bool> */
+    private array $enterpriseModuleAccessMemo = [];
+
+    public function __construct(
+        private readonly ModuleRegistry $enterpriseModules,
+        private readonly ModuleEntitlementResolver $enterpriseEntitlements,
+        private readonly TenantContextResolver $tenantContext,
+    ) {}
+
     /** @return array<string, array<string, mixed>> */
     public function for(User $user): array
     {
@@ -43,6 +55,17 @@ class AdminNavigation
                 $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
+            ]),
+            $this->group('erp', 'admin.nav_groups.erp', '▤', [
+                $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
+                $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.action-center.index', 'procurement', 'procurement.suppliers.view', ['module' => 'procurement']),
+                $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.enterprise-workspaces.index', 'inventory_wms', 'inventory.view', ['workspace' => 'warehouse']),
+                $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.enterprise-workspaces.index', 'finance', 'finance.view', ['workspace' => 'finance']),
+                $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.treasury.master.index', 'treasury', 'finance.view'),
+                $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.customer-360.index', 'customers.view')
+                    ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.customer-360.index', 'b2b.accounts.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.reports.index', 'enterprise_bi', 'reports.view'),
+                $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
@@ -282,36 +305,106 @@ class AdminNavigation
         );
     }
 
-    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
-    private function routeItemScoped(User $user, string $key, string $label, string $route, string $permission): ?array
+    public function hasPermissionInScope(User $user, string $permission): bool
     {
-        if (! Route::has($route)) {
-            return null;
+        if ($user->hasPermission($permission)) {
+            return true;
         }
 
-        if (! $user->hasPermission($permission)) {
-            $hasScopedPermission = $user->storeRoleAssignments()
-                ->whereIn('store_id', app(TenantContextResolver::class)->retailStoreIds($user))
-                ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
-                ->whereHas('role', fn ($query) => $query
-                    ->where('roles.is_active', true)
-                    ->where('roles.scope', 'store')
-                    ->whereHas('permissions', fn ($permissions) => $permissions
-                        ->where('permissions.code', $permission)))
-                ->exists();
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+        if ($retailStoreIds === []) {
+            return false;
+        }
 
-            if (! $hasScopedPermission) {
-                return null;
+        return $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->whereHas('permissions', fn ($permissions) => $permissions
+                    ->where('permissions.code', $permission)))
+            ->exists();
+    }
+
+    /** @param list<string> $permissions */
+    public function hasAnyPermissionInScope(User $user, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermissionInScope($user, $permission)) {
+                return true;
             }
+        }
+
+        return false;
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemScoped(
+        User $user,
+        string $key,
+        string $label,
+        string $route,
+        string $permission,
+        array $params = [],
+    ): ?array {
+        if (! Route::has($route) || ! $this->hasPermissionInScope($user, $permission)) {
+            return null;
         }
 
         return [
             'key' => $key,
             'label' => $label,
             'route' => $route,
-            'params' => [],
+            'params' => $params,
             'permission' => null,
         ];
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemEnterpriseModule(
+        User $user,
+        string $key,
+        string $label,
+        string $route,
+        string $moduleCode,
+        string $permission,
+        array $params = [],
+    ): ?array {
+        $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
+
+        if ($item === null || ! $this->enterpriseModuleAccessible($user, $moduleCode)) {
+            return null;
+        }
+
+        return $item;
+    }
+
+    private function enterpriseModuleAccessible(User $user, string $moduleCode): bool
+    {
+        $memoKey = $user->getKey().'|'.$moduleCode;
+        if (array_key_exists($memoKey, $this->enterpriseModuleAccessMemo)) {
+            return $this->enterpriseModuleAccessMemo[$memoKey];
+        }
+
+        if (! $this->enterpriseModules->isEnabled($moduleCode)) {
+            return $this->enterpriseModuleAccessMemo[$memoKey] = false;
+        }
+
+        if ($this->enterpriseEntitlements->allows($moduleCode, EntitlementScope::platform())) {
+            return $this->enterpriseModuleAccessMemo[$memoKey] = true;
+        }
+
+        foreach ($this->tenantContext->retailStoreIds($user) as $storeId) {
+            if ($this->enterpriseEntitlements->allows(
+                $moduleCode,
+                new EntitlementScope(EntitlementScope::STORE, $storeId),
+            )) {
+                return $this->enterpriseModuleAccessMemo[$memoKey] = true;
+            }
+        }
+
+        return $this->enterpriseModuleAccessMemo[$memoKey] = false;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

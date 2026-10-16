@@ -6,6 +6,7 @@ use App\Enterprise\Workflow\WorkflowEngine;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\EnterpriseActionCenter;
+use App\Services\EnterpriseMyWork;
 use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ final class EnterpriseActionCenterController extends Controller
 {
     public function __construct(
         private readonly EnterpriseActionCenter $actionCenter,
+        private readonly EnterpriseMyWork $myWork,
         private readonly WorkflowEngine $workflow,
         private readonly AdminNavigation $navigation,
     ) {}
@@ -29,17 +31,38 @@ final class EnterpriseActionCenterController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'state' => ['nullable', Rule::in(['all', 'pending', 'overdue'])],
             'actions_page' => ['nullable', 'integer', 'min:1'],
+            'module' => ['nullable', Rule::in(['all', 'procurement', 'wms', 'finance', 'treasury', 'customer_service'])],
+            'work_state' => ['nullable', Rule::in(['all', 'pending', 'overdue', 'attention'])],
+            'owner' => ['nullable', Rule::in(['all', 'me'])],
+            'age' => ['nullable', Rule::in([0, 7, 30, 90])],
+            'work_page' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $search = trim((string) ($validated['q'] ?? ''));
         $state = (string) ($validated['state'] ?? 'all');
         $page = (int) ($validated['actions_page'] ?? 1);
+        $module = (string) ($validated['module'] ?? 'all');
+        $workState = (string) ($validated['work_state'] ?? 'all');
+        $owner = (string) ($validated['owner'] ?? 'all');
+        $age = (int) ($validated['age'] ?? 0);
+        $workPage = (int) ($validated['work_page'] ?? 1);
 
         $result = $this->actionCenter->page(
             $actor,
             $search,
             $state,
             $page,
+            route('admin.action-center.index'),
+        );
+
+        $workResult = $this->myWork->page(
+            $actor,
+            $search,
+            $module,
+            $workState,
+            $owner,
+            $age,
+            $workPage,
             route('admin.action-center.index'),
         );
 
@@ -51,6 +74,13 @@ final class EnterpriseActionCenterController extends Controller
             'truncated' => $result['truncated'],
             'search' => $search,
             'state' => $state,
+            'workItems' => $workResult['items'],
+            'workSummary' => $workResult['summary'],
+            'activity' => $workResult['activity'],
+            'module' => $module,
+            'workState' => $workState,
+            'owner' => $owner,
+            'age' => $age,
         ]);
     }
 

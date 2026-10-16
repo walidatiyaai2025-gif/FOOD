@@ -38,6 +38,7 @@ return [
     ],
     'nav_groups' => [
         'overview' => 'Overview',
+        'erp' => 'ERP',
         'field_operations' => 'Van & Field Operations',
         'operations' => 'Operations',
         'catalog' => 'Catalog',
@@ -49,6 +50,61 @@ return [
         'analytics' => 'Analytics & Reports',
         'applications' => 'Applications',
         'administration' => 'Administration',
+    ],
+    'erp_center' => [
+        'nav_title' => 'ERP Center',
+        'eyebrow' => 'Enterprise operations',
+        'title' => 'ERP Center',
+        'description' => 'One role-aware entry point for procurement, warehouse, finance, treasury, customer service, reporting and personal follow-up using FOODEX authoritative modules.',
+        'modules_title' => 'ERP workspaces',
+        'modules_description' => 'Only authorized business functions are actionable. Disabled or unentitled modules remain explicit without exposing a dead or unsafe action.',
+        'open' => 'Open workspace',
+        'empty' => 'No ERP workspace is available for this role.',
+        'summary' => [
+            'label' => 'ERP availability summary',
+            'available' => 'Available',
+            'disabled' => 'Disabled modules',
+            'restricted' => 'Not entitled',
+        ],
+        'statuses' => [
+            'available' => 'Available',
+            'disabled' => 'Disabled',
+            'not_entitled' => 'Not entitled',
+        ],
+        'status_help' => [
+            'disabled' => 'This enterprise module is not enabled.',
+            'not_entitled' => 'The module is enabled but not entitled for the current business scope.',
+        ],
+        'modules' => [
+            'procurement' => [
+                'title' => 'Procurement',
+                'description' => 'Supplier and purchasing follow-up through the existing enterprise workflow authority.',
+            ],
+            'wms' => [
+                'title' => 'WMS',
+                'description' => 'Warehouse and inventory operations through the authorized warehouse workspace.',
+            ],
+            'finance' => [
+                'title' => 'Finance',
+                'description' => 'Accountant-facing finance workspace and finance approval follow-up.',
+            ],
+            'treasury' => [
+                'title' => 'Treasury',
+                'description' => 'Cashbox, bank and treasury master-data operations.',
+            ],
+            'customer_service' => [
+                'title' => 'Customer Service / CRM',
+                'description' => 'Customer 360 and account support through the existing customer authority.',
+            ],
+            'bi' => [
+                'title' => 'BI / Reports',
+                'description' => 'Enterprise reporting and analytics from the authoritative reporting center.',
+            ],
+            'my_work' => [
+                'title' => 'My Work / Action Center',
+                'description' => 'Approvals, exceptions and follow-up items authorized for the signed-in user.',
+            ],
+        ],
     ],
     'administration_hub' => [
         'title' => 'Administration Hub',

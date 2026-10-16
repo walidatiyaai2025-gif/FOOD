@@ -3,6 +3,17 @@
 namespace Database\Seeders;
 
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementManager;
+use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleState;
+use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Procurement\SupplierDirectory;
+use App\Models\EnterpriseBankAccount;
+use App\Models\EnterpriseCashbox;
+use App\Models\Store;
+use App\Models\User;
+use App\Support\TenantContextResolver;
 use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -132,6 +143,87 @@ class ScreenshotEvidenceSeeder extends Seeder
             'is_active' => true,
             'created_at' => $now,
             'updated_at' => $now,
+        ]);
+
+        $evidenceStore = Store::query()->findOrFail($storeId);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($evidenceStore);
+        $lifecycle = app(ModuleLifecycleManager::class);
+        $lifecycle->transition('procurement', ModuleState::ENABLING);
+        $lifecycle->transition('procurement', ModuleState::ENABLED);
+        $procurementActor = User::query()->findOrFail($superAdminId);
+        $procurementContext = app(TenantContextResolver::class)->wholesale($procurementActor, $storeId);
+        app(SupplierDirectory::class)->create($procurementActor, $procurementContext, [
+            'scope_type' => 'store',
+            'code' => 'EVID-SUP-01',
+            'name_en' => 'FOODEX Evidence Supplier',
+            'name_ar' => 'مورد فودكس التجريبي',
+            'contact_name' => 'Evidence Procurement',
+            'email' => 'supplier.evidence@foodex.test',
+            'payment_terms_days' => 30,
+        ]);
+
+        $treasuryActor = User::query()->findOrFail($superAdminId);
+        $treasuryContext = app(TenantContextResolver::class)->wholesale($treasuryActor, $storeId);
+        $treasuryScope = $treasuryContext->enterpriseScope;
+        if ($treasuryScope === null) {
+            throw new RuntimeException('Treasury screenshot fixture requires an Enterprise store scope.');
+        }
+
+        $treasuryLifecycle = app(ModuleLifecycleManager::class);
+        $treasuryLifecycle->transition('treasury', ModuleState::ENABLING, $treasuryActor);
+        $treasuryLifecycle->transition('treasury', ModuleState::ENABLED, $treasuryActor);
+        app(ModuleEntitlementManager::class)->set(
+            'treasury',
+            new EntitlementScope(EntitlementScope::STORE, $treasuryScope->storeId),
+            true,
+            [
+                'treasury.receipts.read',
+                'treasury.receipts.manage',
+                'treasury.receipts.approve',
+                'treasury.payments.read',
+                'treasury.payments.manage',
+                'treasury.payments.approve',
+                'treasury.reconciliation.read',
+                'treasury.reconciliation.manage',
+                'treasury.reconciliation.approve',
+                'treasury.cash_closing.read',
+                'treasury.cash_closing.manage',
+                'treasury.cash_closing.approve',
+                'treasury.cheques.read',
+                'treasury.cheques.manage',
+                'treasury.cheques.approve',
+            ],
+            $treasuryActor,
+        );
+
+        $hierarchy = app(OrganizationHierarchyService::class)->scopeForStore($storeId);
+        if ($hierarchy === null) {
+            throw new RuntimeException('Treasury screenshot fixture could not resolve company scope.');
+        }
+
+        EnterpriseCashbox::query()->create([
+            'company_id' => $hierarchy['company_id'],
+            'store_id' => $storeId,
+            'code' => 'EVID-CASH-01',
+            'name' => 'Main Evidence Cashbox',
+            'currency_code' => 'KWD',
+            'operator_visibility' => EnterpriseCashbox::VISIBILITY_STORE,
+            'approval_visibility' => EnterpriseCashbox::VISIBILITY_STORE,
+            'is_active' => true,
+        ]);
+        EnterpriseBankAccount::query()->create([
+            'company_id' => $hierarchy['company_id'],
+            'store_id' => $storeId,
+            'code' => 'EVID-BANK-01',
+            'name' => 'Evidence Operating Bank',
+            'bank_name' => 'FOODEX Evidence Bank',
+            'account_name' => 'FOODEX Treasury Evidence',
+            'account_reference' => 'KW00EVIDENCE1234',
+            'account_reference_last4' => '1234',
+            'currency_code' => 'KWD',
+            'operator_visibility' => EnterpriseBankAccount::VISIBILITY_STORE,
+            'approval_visibility' => EnterpriseBankAccount::VISIBILITY_STORE,
+            'is_active' => true,
         ]);
 
         $retailStoreId = (int) DB::table('stores')
