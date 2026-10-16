@@ -42,6 +42,7 @@ const b2b = [
   ['10_إعدادات_المنصة_والصلاحيات', '/admin/b2b/settings-permissions'],
   ['11_التتبع_الحي_للسائقين_والفانات', '/admin/driver-live-tracking'],
   ['23_مركز_عمل_المشتريات_ERP', '/admin/erp/procurement'],
+  ['24_مركز_عمل_الخزينة_ERP', '/admin/erp/treasury'],
 ];
 
 const b2c = [
