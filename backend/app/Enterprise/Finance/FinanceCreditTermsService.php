@@ -200,7 +200,9 @@ final class FinanceCreditTermsService
         }
 
         if ($status === 'active') {
-            $end = $policy->valid_until?->toDateString() ?? '9999-12-31';
+            $end = $policy->valid_until === null
+                ? '9999-12-31'
+                : CarbonImmutable::parse((string) $policy->valid_until)->toDateString();
             $overlap = $this->policyQuery($scope)
                 ->whereKeyNot($policy->id)
                 ->where('subject_type', $policy->subject_type)
@@ -209,7 +211,11 @@ final class FinanceCreditTermsService
                 ->whereDate('valid_from', '<=', $end)
                 ->where(function (Builder $query) use ($policy): void {
                     $query->whereNull('valid_until')
-                        ->orWhereDate('valid_until', '>=', $policy->valid_from->toDateString());
+                        ->orWhereDate(
+                            'valid_until',
+                            '>=',
+                            CarbonImmutable::parse((string) $policy->valid_from)->toDateString(),
+                        );
                 })
                 ->exists();
             if ($overlap) {
