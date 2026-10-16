@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\RestaurantPaymentWebhookController;
 use App\Http\Controllers\Api\SmartOrderingAnalyticsEventController;
 use App\Http\Controllers\Api\SmartOrderingController;
-use App\Http\Controllers\Api\RestaurantPaymentWebhookController;
 use App\Http\Controllers\Api\SmartOrderingMerchandisingController;
 use Illuminate\Support\Facades\Route;
 
