@@ -69,6 +69,39 @@ final class SmartOrderingThemeRegistryTest extends TestCase
         $this->assertStringNotContainsString('secret-token', $encoded);
     }
 
+    public function test_renderer_uses_application_owned_placeholder_for_missing_or_unsafe_menu_media(): void
+    {
+        $renderer = new StorefrontThemeRenderer(new ThemeRegistry);
+        $snapshot = $this->snapshot();
+        $snapshot['menu']['categories'][0]['image_url'] = 'javascript:alert(1)';
+        $snapshot['menu']['categories'][0]['items'][0]['image_url'] = 'data:image/svg+xml;base64,unsafe';
+
+        $prepared = $renderer->prepare($snapshot, null, null, 'en');
+
+        $this->assertSame(
+            '/images/smart-ordering/menu-media-placeholder.svg',
+            $prepared['menu']['categories'][0]['image_url'],
+        );
+        $this->assertSame(
+            '/images/smart-ordering/menu-media-placeholder.svg',
+            $prepared['menu']['categories'][0]['items'][0]['image_url'],
+        );
+
+        $snapshot['menu']['categories'][0]['image_url'] = 'https://cdn.example.test/category.webp';
+        $snapshot['menu']['categories'][0]['items'][0]['image_url'] = '/storage/smart-ordering/item.webp';
+
+        $prepared = $renderer->prepare($snapshot, null, null, 'en');
+
+        $this->assertSame(
+            'https://cdn.example.test/category.webp',
+            $prepared['menu']['categories'][0]['image_url'],
+        );
+        $this->assertSame(
+            '/storage/smart-ordering/item.webp',
+            $prepared['menu']['categories'][0]['items'][0]['image_url'],
+        );
+    }
+
     private function snapshot(): array
     {
         return [

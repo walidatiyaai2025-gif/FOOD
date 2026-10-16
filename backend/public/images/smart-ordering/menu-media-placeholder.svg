@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Menu image placeholder</title>
+  <desc id="desc">Neutral placeholder used when a restaurant menu image is unavailable.</desc>
+  <rect width="800" height="600" rx="40" fill="#F3F4F6"/>
+  <circle cx="400" cy="270" r="112" fill="#E5E7EB"/>
+  <path d="M330 250h140c18 0 32 14 32 32v60H298v-60c0-18 14-32 32-32Z" fill="#D1D5DB"/>
+  <circle cx="360" cy="276" r="15" fill="#9CA3AF"/>
+  <path d="M320 338l70-58 48 40 42-34 58 52H320Z" fill="#9CA3AF"/>
+  <rect x="248" y="414" width="304" height="24" rx="12" fill="#D1D5DB"/>
+  <rect x="308" y="458" width="184" height="18" rx="9" fill="#E5E7EB"/>
+</svg>

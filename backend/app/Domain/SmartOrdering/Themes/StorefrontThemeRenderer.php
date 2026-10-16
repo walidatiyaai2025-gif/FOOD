@@ -4,6 +4,8 @@ namespace App\Domain\SmartOrdering\Themes;
 
 final class StorefrontThemeRenderer
 {
+    private const MENU_MEDIA_PLACEHOLDER = '/images/smart-ordering/menu-media-placeholder.svg';
+
     public function __construct(private readonly ThemeRegistry $themes) {}
 
     public function prepare(array $snapshot, ?string $themeOverride = null, ?string $appearanceOverride = null, ?string $localeOverride = null, ?string $canonicalFallback = null): array
@@ -78,7 +80,7 @@ final class StorefrontThemeRenderer
                     'public_key' => $this->plain($item['public_key'] ?? '', 100),
                     'name' => $this->translated($item['name'] ?? [], $locale, 'Item'),
                     'description' => $this->translated($item['description'] ?? [], $locale, ''),
-                    'image_url' => $this->safeUrl($item['image_url'] ?? null),
+                    'image_url' => $this->safeMenuMediaUrl($item['image_url'] ?? null),
                     'price_display' => $this->plain($item['price_display'] ?? '', 50),
                     'sold_out' => (bool) ($item['sold_out'] ?? false),
                     'featured' => (bool) ($item['featured'] ?? false),
@@ -93,7 +95,7 @@ final class StorefrontThemeRenderer
                 'public_key' => $this->plain($category['public_key'] ?? '', 100),
                 'name' => $this->translated($category['name'] ?? [], $locale, 'Menu'),
                 'description' => $this->translated($category['description'] ?? [], $locale, ''),
-                'image_url' => $this->safeUrl($category['image_url'] ?? null),
+                'image_url' => $this->safeMenuMediaUrl($category['image_url'] ?? null),
                 'items' => $items,
             ];
         }
@@ -192,6 +194,11 @@ final class StorefrontThemeRenderer
     private function plain(mixed $value, int $max): string
     {
         return mb_substr(trim(strip_tags((string) $value)), 0, $max);
+    }
+
+    private function safeMenuMediaUrl(mixed $value): string
+    {
+        return $this->safeUrl($value) ?? self::MENU_MEDIA_PLACEHOLDER;
     }
 
     private function safeUrl(mixed $value): ?string
