@@ -40,6 +40,7 @@ final class SettingsCenterController extends Controller
                 || $user->hasPermission('push_settings.manage')
                 || $user->hasPermission('push_settings.test'),
             'app_versions' => $superAdmin || $user->hasPermission('platform.manage'),
+            'enterprise_modules' => $superAdmin || $user->hasPermission('platform.manage'),
             'sms' => $superAdmin
                 || $user->hasPermission('sms_settings.manage')
                 || $user->hasPermission('sms_settings.test'),
@@ -99,6 +100,7 @@ final class SettingsCenterController extends Controller
                 'title' => __('admin.settings_center.groups.platform'),
                 'description' => __('admin.settings_center.groups.platform_description'),
                 'items' => [
+                    ['key' => 'enterprise_modules', 'icon' => 'MOD', 'title' => __('enterprise_modules.title'), 'description' => __('enterprise_modules.description'), 'route' => 'admin.enterprise-modules.index', 'params' => [], 'fragment' => null, 'allowed' => $access['enterprise_modules']],
                     ['key' => 'foodex_reset', 'icon' => 'RST', 'title' => __('foodex_reset.title'), 'description' => __('foodex_reset.description'), 'route' => 'admin.foodex-reset.index', 'params' => [], 'fragment' => null, 'allowed' => $access['foodex_reset']],
                     ['key' => 'production_dataset', 'icon' => 'DATA', 'title' => __('production_dataset_switch.title'), 'description' => __('production_dataset_switch.description'), 'route' => 'admin.production-dataset-switch.index', 'params' => [], 'fragment' => null, 'allowed' => $access['production_dataset']],
                     ['key' => 'production_launch', 'icon' => 'GO', 'title' => __('production_launch.title'), 'description' => __('production_launch.description'), 'route' => 'admin.production-launch.index', 'params' => [], 'fragment' => null, 'allowed' => $access['production_launch']],
