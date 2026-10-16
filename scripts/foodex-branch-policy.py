@@ -29,7 +29,7 @@ def normalize_slug(value:str)->str:
 def build_name(issue:int, kind:str, slug:str)->str:
     if issue<=0: raise ValueError("issue must be a positive integer")
     if kind not in KINDS: raise ValueError("invalid branch kind")
-    return f"{kind}/{normalize_slug(str(issue))}-{normalize_slug(slug)}"
+    return f"{kind}/{issue}-{normalize_slug(slug)}"
 
 def is_valid(branch:str, base:str|None=None, allow_main:bool=False)->bool:
     if branch in SPECIAL: return True
