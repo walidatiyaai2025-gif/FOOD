@@ -309,7 +309,6 @@ final class EnterpriseFinanceFoundationTest extends TestCase
         ]);
     }
 
-
     public function test_cost_centers_are_scoped_hierarchical_audited_and_bounded(): void
     {
         [$actor, , $context] = $this->scopedUser(
