@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Canonical tenant-scoped floor-plan and table-service operations for Restaurant SaaS W3.
+ */
 final class RestaurantTableService
 {
     public function __construct(
