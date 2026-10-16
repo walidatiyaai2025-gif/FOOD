@@ -21,7 +21,6 @@ use App\Models\Store;
 use App\Models\User;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
-use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -519,7 +518,7 @@ final class EnterpriseFinanceApprovalFoundationTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $fixture
+     * @param  array<string, mixed>  $fixture
      */
     private function approveEntity(
         FinanceApprovalService $approvals,
@@ -754,7 +753,7 @@ final class EnterpriseFinanceApprovalFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      * @return array{user:User,role:Role}
      */
     private function userForStore(
