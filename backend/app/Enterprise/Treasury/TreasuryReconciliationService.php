@@ -61,6 +61,7 @@ final class TreasuryReconciliationService
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
+        private readonly TreasuryIntegrationEventPublisher $integrationEvents,
     ) {}
 
     /**
@@ -339,6 +340,8 @@ final class TreasuryReconciliationService
                 'closed_by' => $actor->id,
             ])->save();
 
+            $this->integrationEvents->publishReconciliationClosed($actor, $scope, $reconciliation);
+
             $this->audit->record(
                 'enterprise.treasury.reconciliation_closed',
                 $actor,
@@ -552,6 +555,8 @@ final class TreasuryReconciliationService
                 'closed_at' => now(),
                 'closed_by' => $actor->id,
             ])->save();
+
+            $this->integrationEvents->publishCashClosingClosed($actor, $scope, $closing);
 
             $this->audit->record(
                 'enterprise.treasury.cash_closing_closed',
