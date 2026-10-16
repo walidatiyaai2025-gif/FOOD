@@ -2,6 +2,8 @@
 
 namespace App\Enterprise\Wms;
 
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\OperationalTenantScope;
@@ -10,8 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 final class WarehouseScope
 {
+    private const MODULE_CODE = 'inventory_wms';
+
     public function __construct(
         private readonly OperationalTenantScope $tenantScope,
+        private readonly ModuleEntitlementResolver $entitlements,
     ) {}
 
     public function assertWarehouse(
@@ -28,6 +33,7 @@ final class WarehouseScope
         abort_if($storeId < 1, 404);
 
         $this->tenantScope->assertStore($user, $storeId, $permission);
+        $this->assertModuleEntitlement($storeId);
 
         if ($user->hasRole('SUPER_ADMIN')) {
             return $warehouse;
@@ -88,6 +94,7 @@ final class WarehouseScope
         string $permission = 'inventory.view',
     ): array {
         $this->tenantScope->assertStore($user, $storeId, $permission);
+        $this->assertModuleEntitlement($storeId);
 
         $warehouseIds = DB::table('warehouses')
             ->where('store_id', $storeId)
@@ -122,5 +129,16 @@ final class WarehouseScope
             ->pluck('scopes.warehouse_id')
             ->map(static fn ($id): int => (int) $id)
             ->all();
+    }
+
+    private function assertModuleEntitlement(int $storeId): void
+    {
+        abort_unless(
+            $this->entitlements->allows(
+                self::MODULE_CODE,
+                new EntitlementScope(EntitlementScope::STORE, $storeId),
+            ),
+            404,
+        );
     }
 }
