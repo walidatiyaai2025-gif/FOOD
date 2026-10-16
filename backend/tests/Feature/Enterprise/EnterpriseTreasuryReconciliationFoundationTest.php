@@ -301,6 +301,97 @@ class EnterpriseTreasuryReconciliationFoundationTest extends TestCase
         }
     }
 
+    public function test_reconciliation_bounds_double_assignment_and_same_day_cash_close_retry(): void
+    {
+        [$store, $maker, $makerContext] = $this->fixture('REC-BOUNDS', 'bounds-maker@example.test');
+        $approver = $this->financeActor('bounds-approver@example.test', $store);
+        $approverContext = $this->context($approver, $store);
+        $this->enableTreasury($maker, $makerContext);
+        $this->entitleTreasury($approver, $approverContext);
+
+        $bank = $this->bankAccount($store);
+        $receipt = $this->postedReceipt(
+            $maker,
+            $makerContext,
+            $approver,
+            $approverContext,
+            EnterpriseTreasuryReceipt::TARGET_BANK_ACCOUNT,
+            $bank->id,
+            '25.000',
+            '2026-10-16',
+            'BANK-R-DOUBLE',
+        );
+
+        $service = app(TreasuryReconciliationService::class);
+        $first = $service->createReconciliationDraft($maker, $makerContext, [
+            'idempotency_key' => 'reconciliation-double-1',
+            'bank_account_id' => $bank->id,
+            'period_from' => '2026-10-16',
+            'period_to' => '2026-10-16',
+            'statement_receipts_total' => '25.000',
+            'statement_payments_total' => '0.000',
+        ]);
+        $second = $service->createReconciliationDraft($maker, $makerContext, [
+            'idempotency_key' => 'reconciliation-double-2',
+            'bank_account_id' => $bank->id,
+            'period_from' => '2026-10-16',
+            'period_to' => '2026-10-16',
+            'statement_receipts_total' => '25.000',
+            'statement_payments_total' => '0.000',
+        ]);
+        $service->addMatch(
+            $maker,
+            $makerContext,
+            $first->id,
+            EnterpriseTreasuryReconciliationLine::TYPE_RECEIPT,
+            $receipt->id,
+        );
+
+        try {
+            $service->addMatch(
+                $maker,
+                $makerContext,
+                $second->id,
+                EnterpriseTreasuryReconciliationLine::TYPE_RECEIPT,
+                $receipt->id,
+            );
+            $this->fail('A Treasury transaction must not be assigned to two reconciliations.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('transaction_id', $exception->errors());
+        }
+
+        foreach (['paginateReconciliations', 'paginateCashClosings'] as $method) {
+            try {
+                $service->{$method}($maker, $makerContext, [
+                    'date_from' => '2024-01-01',
+                    'date_to' => '2026-10-16',
+                ]);
+                $this->fail('Treasury reconciliation reads must enforce a bounded date window.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('date_to', $exception->errors());
+            }
+        }
+
+        $cashbox = $this->cashbox($store);
+        $cashClose = $service->createCashClosingDraft($maker, $makerContext, [
+            'idempotency_key' => 'cash-close-same-day-1',
+            'cashbox_id' => $cashbox->id,
+            'business_date' => '2026-10-16',
+            'opening_amount' => '10.000',
+            'declared_closing_amount' => '10.000',
+        ]);
+        $sameDayRetry = $service->createCashClosingDraft($maker, $makerContext, [
+            'idempotency_key' => 'cash-close-same-day-2',
+            'cashbox_id' => $cashbox->id,
+            'business_date' => '2026-10-16',
+            'opening_amount' => '10.000',
+            'declared_closing_amount' => '10.000',
+        ]);
+
+        $this->assertSame($cashClose->id, $sameDayRetry->id);
+        $this->assertDatabaseCount('enterprise_treasury_cash_closings', 1);
+    }
+
     public function test_disabled_treasury_performs_no_reconciliation_table_query_work(): void
     {
         [$store, $actor, $context] = $this->fixture('REC-OFF', 'rec-off@example.test');
