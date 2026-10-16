@@ -34,6 +34,7 @@ final class CommercialPricingResolver
         ?User $customerUser = null,
         ?string $couponCode = null,
         ?string $paymentMethod = null,
+        bool $strict = true,
     ): array {
         $origin = strtolower(trim($origin));
         $channel = strtolower(trim($channel));
@@ -48,7 +49,7 @@ final class CommercialPricingResolver
             $customerUser,
             $couponCode,
             $paymentMethod,
-            true,
+            $strict,
         );
 
         $quote['pricing_contract'] = [
