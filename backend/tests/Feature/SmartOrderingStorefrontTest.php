@@ -140,6 +140,54 @@ final class SmartOrderingStorefrontTest extends TestCase
         }
     }
 
+    public function test_public_storefront_sitemap_is_sanitized_localized_and_cacheable(): void
+    {
+        $snapshot = $this->snapshot('quick-bite', 'light');
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+        $response = $this->get('/smart-ordering/demo/sitemap.xml?utm_source=private&attribution=secret');
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
+            ->assertHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+            ->assertSee('<loc>https://demo.foodex.test/menu</loc>', false)
+            ->assertSee('hreflang="en" href="https://demo.foodex.test/menu?lang=en"', false)
+            ->assertSee('hreflang="ar" href="https://demo.foodex.test/menu?lang=ar"', false)
+            ->assertSee('hreflang="x-default" href="https://demo.foodex.test/menu"', false)
+            ->assertDontSee('tracking=private')
+            ->assertDontSee('utm_source')
+            ->assertDontSee('attribution=secret')
+            ->assertDontSee('secret-token')
+            ->assertDontSee('internal_id');
+
+        $xml = $response->getContent();
+        $this->assertIsString($xml);
+        $this->assertNotFalse(simplexml_load_string($xml));
+    }
+
+    public function test_public_storefront_sitemap_uses_safe_storefront_fallback_and_unknown_is_404(): void
+    {
+        $snapshot = $this->snapshot('quick-bite', 'light');
+        $snapshot['site']['seo']['canonical'] = 'javascript:alert(1)';
+        $snapshot['site']['internal_secret'] = 'private-site-value';
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+        $this->get('https://public.example.test/smart-ordering/demo/sitemap.xml?utm_source=private')
+            ->assertOk()
+            ->assertSee('<loc>https://public.example.test/smart-ordering/demo</loc>', false)
+            ->assertSee(
+                'hreflang="en" href="https://public.example.test/smart-ordering/demo?lang=en"',
+                false,
+            )
+            ->assertDontSee('/sitemap.xml</loc>', false)
+            ->assertDontSee('javascript:alert(1)')
+            ->assertDontSee('private-site-value')
+            ->assertDontSee('utm_source');
+
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider(null));
+        $this->get('/smart-ordering/missing/sitemap.xml')->assertNotFound();
+    }
+
     public function test_closed_and_sold_out_states_are_non_orderable(): void
     {
         $snapshot = $this->snapshot('quick-bite', 'light');
