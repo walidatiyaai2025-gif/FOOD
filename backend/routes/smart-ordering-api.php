@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\SmartOrderingAnalyticsEventController;
 use App\Http\Controllers\Api\SmartOrderingController;
+use App\Http\Controllers\Api\RestaurantPaymentWebhookController;
 use App\Http\Controllers\Api\SmartOrderingMerchandisingController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,10 @@ Route::post('/carts/{cart}/checkout', [SmartOrderingController::class, 'checkout
     ->whereUuid('cart')->name('carts.checkout');
 Route::get('/orders/{reference}', [SmartOrderingController::class, 'tracking'])
     ->whereUuid('reference')->name('orders.tracking');
+
+Route::post('/payments/webhooks/{provider}', RestaurantPaymentWebhookController::class)
+    ->where('provider', '[a-z0-9][a-z0-9_-]{0,79}')
+    ->name('payments.webhooks.receive');
 
 Route::get('/carts/{cart}/merchandising', [SmartOrderingMerchandisingController::class, 'placement'])
     ->whereUuid('cart')->name('carts.merchandising.placement');
