@@ -450,6 +450,10 @@ final class EnterpriseProcurementController extends Controller
             ->whereIn('roles.code', (array) config('admin.channels.b2b.global_roles', []))
             ->exists();
 
+        if (! $actor->hasRole('SUPER_ADMIN') && $retailIds === [] && ! $globalWholesale) {
+            return [];
+        }
+
         return DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('stores.is_active', true)
