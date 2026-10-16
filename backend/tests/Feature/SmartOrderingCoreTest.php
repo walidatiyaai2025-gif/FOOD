@@ -1498,7 +1498,7 @@ class SmartOrderingCoreTest extends TestCase
                 'shape' => 'rectangle',
                 'is_active' => 1,
             ])
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_table_combine_split_is_auditable_without_rewriting_order_identity(): void
@@ -1567,6 +1567,8 @@ class SmartOrderingCoreTest extends TestCase
         $resolved = app(BranchPolicyService::class)
             ->trustedTableReference($this->branch, (string) $bound->qr_reference);
         $this->assertSame((int) $table->id, (int) $resolved->id);
+
+        $this->app['auth']->guard()->logout();
 
         [$cart, $token] = $this->cart();
         $this->addItem($cart, $token, 1);
