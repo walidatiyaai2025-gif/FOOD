@@ -388,7 +388,7 @@ final class EnterpriseGeneralLedgerFoundationTest extends TestCase
 
         $maker = $this->userForStore(
             $store,
-            ['finance.view', 'finance.manage'],
+            ['finance.view', 'finance.manage', 'finance.post'],
             $code.'-MAKER',
         );
         $poster = $this->userForStore(
