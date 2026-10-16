@@ -101,6 +101,8 @@ Wave 3 WMS extends the existing warehouses, inventories, and stock_movements aut
 
 Inventory-count sessions snapshot authoritative inventory quantity, then lock and reconcile the same inventory rows on completion. A session is rejected as stale when inventory changed after the snapshot, preventing a physical count from overwriting legitimate concurrent movements. Transfer/count lists are bounded and indexed; WMS foundation services add no global request, scheduler, or provider work when unused.
 
+Lot/batch metadata is warehouse/product-scoped and normalized, with optional manufacture/receipt/expiry dates and an explicit active/quarantined/closed lifecycle. Lot records never own stock quantities: `inventories` remains the balance authority and `stock_movements` remains the movement authority. Movement-to-lot provenance is additive metadata in `enterprise_inventory_lot_movements` with no quantity column, and expiry exception reads are warehouse-authorized, date-window bounded and indexed.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
