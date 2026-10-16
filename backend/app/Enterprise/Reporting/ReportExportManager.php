@@ -118,7 +118,7 @@ final class ReportExportManager
             'actor_id' => $actor->id,
             'report' => $query->report->code,
             'scope' => $scope->key(),
-            'query' => $query->readModelHandoff(),
+            'query' => $query->executionPlan(),
             'row_count' => $rowCount,
             'scheduled_report_id' => $scheduledReportId,
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
