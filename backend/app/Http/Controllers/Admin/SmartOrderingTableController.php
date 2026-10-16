@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\RestaurantTableService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ final class SmartOrderingTableController extends Controller
     public function __construct(
         private readonly OperationalTenantScope $scope,
         private readonly RestaurantTableService $tables,
+        private readonly AuditLogger $audit,
     ) {}
 
     public function storeFloor(string $branch, Request $request): RedirectResponse
@@ -120,6 +122,13 @@ final class SmartOrderingTableController extends Controller
             $actor,
             isset($data['note']) ? (string) $data['note'] : null,
         );
+        $this->audit->record('smart_ordering.tables.combined', $actor, null, null, [
+            'store_id' => (int) $branchModel->store_id,
+            'branch_public_id' => (string) $branchModel->public_id,
+            'primary_table_public_id' => $table,
+            'member_table_public_id' => (string) $data['other_table_public_id'],
+            'note' => $data['note'] ?? null,
+        ], $request);
 
         return $this->backToTables($branchModel, __('smart_ordering.tables.tables_combined'));
     }
@@ -128,6 +137,11 @@ final class SmartOrderingTableController extends Controller
     {
         [$actor, $branchModel] = $this->authorizedBranch($branch, $request);
         $this->tables->split($branchModel, $combination, $actor);
+        $this->audit->record('smart_ordering.tables.split', $actor, null, null, [
+            'store_id' => (int) $branchModel->store_id,
+            'branch_public_id' => (string) $branchModel->public_id,
+            'combination_public_id' => $combination,
+        ], $request);
 
         return $this->backToTables($branchModel, __('smart_ordering.tables.tables_split'));
     }
