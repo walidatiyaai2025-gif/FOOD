@@ -103,8 +103,8 @@ final class CommercialProfitabilityEventPublisher
                     'coupon_id' => data_get($pricing, 'coupon.id'),
                 ],
                 'collection' => [
-                    'collected_amount' => (string) ($collection?->collected_amount ?? '0'),
-                    'collection_count' => (int) ($collection?->collection_count ?? 0),
+                    'collected_amount' => (string) $collection->collected_amount,
+                    'collection_count' => (int) $collection->collection_count,
                 ],
                 'items' => $items->map(static fn (OrderItem $item): array => [
                     'order_item_id' => (int) $item->getKey(),
