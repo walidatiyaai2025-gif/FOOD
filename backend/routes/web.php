@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\EnterpriseTreasuryController;
 use App\Http\Controllers\Admin\EnterpriseWorkspaceController;
 use App\Http\Controllers\Admin\ErpCenterController;
 use App\Http\Controllers\Admin\FieldOperationsController;
+use App\Http\Controllers\Admin\FinanceWorkbenchController;
 use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -172,6 +173,24 @@ Route::prefix('admin')
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
             ->name('enterprise-workspaces.index');
+        Route::get('/erp/finance', [FinanceWorkbenchController::class, 'index'])->name('erp.finance.index');
+        Route::post('/erp/finance/accounts', [FinanceWorkbenchController::class, 'storeAccount'])->middleware('throttle:30,1')->name('erp.finance.accounts.store');
+        Route::patch('/erp/finance/accounts/{account}/status', [FinanceWorkbenchController::class, 'updateAccountStatus'])->whereNumber('account')->middleware('throttle:30,1')->name('erp.finance.accounts.status');
+        Route::post('/erp/finance/cost-centers', [FinanceWorkbenchController::class, 'storeCostCenter'])->middleware('throttle:30,1')->name('erp.finance.cost-centers.store');
+        Route::patch('/erp/finance/cost-centers/{costCenter}/status', [FinanceWorkbenchController::class, 'updateCostCenterStatus'])->whereNumber('costCenter')->middleware('throttle:30,1')->name('erp.finance.cost-centers.status');
+        Route::post('/erp/finance/fiscal-years', [FinanceWorkbenchController::class, 'storeFiscalYear'])->middleware('throttle:30,1')->name('erp.finance.fiscal-years.store');
+        Route::patch('/erp/finance/fiscal-years/{fiscalYear}/state', [FinanceWorkbenchController::class, 'updateFiscalYearState'])->whereNumber('fiscalYear')->middleware('throttle:30,1')->name('erp.finance.fiscal-years.state');
+        Route::post('/erp/finance/fiscal-years/{fiscalYear}/periods', [FinanceWorkbenchController::class, 'storeFiscalPeriod'])->whereNumber('fiscalYear')->middleware('throttle:30,1')->name('erp.finance.fiscal-periods.store');
+        Route::patch('/erp/finance/fiscal-periods/{fiscalPeriod}/state', [FinanceWorkbenchController::class, 'updateFiscalPeriodState'])->whereNumber('fiscalPeriod')->middleware('throttle:30,1')->name('erp.finance.fiscal-periods.state');
+        Route::post('/erp/finance/journals', [FinanceWorkbenchController::class, 'storeJournal'])->middleware('throttle:30,1')->name('erp.finance.journals.store');
+        Route::post('/erp/finance/journals/{journal}/approval', [FinanceWorkbenchController::class, 'requestJournalApproval'])->whereNumber('journal')->middleware('throttle:30,1')->name('erp.finance.journals.approval');
+        Route::post('/erp/finance/journals/{journal}/post', [FinanceWorkbenchController::class, 'postJournal'])->whereNumber('journal')->middleware('throttle:30,1')->name('erp.finance.journals.post');
+        Route::post('/erp/finance/opening-balances', [FinanceWorkbenchController::class, 'storeOpeningBalance'])->middleware('throttle:30,1')->name('erp.finance.opening-balances.store');
+        Route::post('/erp/finance/opening-balances/{batch}/approval', [FinanceWorkbenchController::class, 'requestOpeningBalanceApproval'])->whereNumber('batch')->middleware('throttle:30,1')->name('erp.finance.opening-balances.approval');
+        Route::post('/erp/finance/opening-balances/{batch}/post', [FinanceWorkbenchController::class, 'postOpeningBalance'])->whereNumber('batch')->middleware('throttle:30,1')->name('erp.finance.opening-balances.post');
+        Route::post('/erp/finance/opening-balances/{batch}/cancel', [FinanceWorkbenchController::class, 'cancelOpeningBalance'])->whereNumber('batch')->middleware('throttle:30,1')->name('erp.finance.opening-balances.cancel');
+        Route::post('/erp/finance/credit-terms', [FinanceWorkbenchController::class, 'storeCreditTerm'])->middleware('throttle:30,1')->name('erp.finance.credit-terms.store');
+        Route::patch('/erp/finance/credit-terms/{creditTerm}/status', [FinanceWorkbenchController::class, 'updateCreditTermStatus'])->whereNumber('creditTerm')->middleware('throttle:30,1')->name('erp.finance.credit-terms.status');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
             ->where('stepCode', '[A-Za-z0-9._-]+')
