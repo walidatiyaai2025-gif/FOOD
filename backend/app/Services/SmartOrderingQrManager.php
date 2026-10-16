@@ -6,6 +6,7 @@ use App\Models\SmartOrderingQrCode;
 use App\Models\SmartOrderingQrToken;
 use App\Models\Store;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -146,11 +147,16 @@ final class SmartOrderingQrManager
     {
         $token = $qr->relationLoaded('activeToken') ? $qr->activeToken : $qr->activeToken()->first();
 
-        if (! $token instanceof SmartOrderingQrToken || $token->token_value === '') {
+        if (! $token instanceof SmartOrderingQrToken) {
             return null;
         }
 
-        return route('smart-ordering.qr.resolve', ['token' => $token->token_value], true);
+        $rawToken = $this->rawTokenValue($token);
+        if ($rawToken === null) {
+            return null;
+        }
+
+        return route('smart-ordering.qr.resolve', ['token' => $rawToken], true);
     }
 
     /**
@@ -176,8 +182,8 @@ final class SmartOrderingQrManager
             404,
         );
 
-        $rawToken = (string) $token->token_value;
-        abort_if($rawToken === '', 404);
+        $rawToken = $this->rawTokenValue($token);
+        abort_if($rawToken === null, 409);
 
         return [
             'url' => $this->publicUrlFromRaw($rawToken),
@@ -189,6 +195,22 @@ final class SmartOrderingQrManager
     public function publicUrlFromRaw(string $rawToken): string
     {
         return route('smart-ordering.qr.resolve', ['token' => $rawToken], true);
+    }
+
+    private function rawTokenValue(SmartOrderingQrToken $token): ?string
+    {
+        $encryptedToken = $token->getRawOriginal('token_value');
+        if (! is_string($encryptedToken) || $encryptedToken === '') {
+            return null;
+        }
+
+        $rawToken = rescue(
+            static fn (): string => Crypt::decryptString($encryptedToken),
+            null,
+            report: false,
+        );
+
+        return is_string($rawToken) && $rawToken !== '' ? $rawToken : null;
     }
 
     /** @param array<string, mixed> $data */

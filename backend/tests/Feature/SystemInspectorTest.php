@@ -15,6 +15,7 @@ use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
@@ -127,6 +128,37 @@ class SystemInspectorTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.inspector.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('admin.inspector.export'))->assertForbidden();
+    }
+
+    public function test_enterprise_diagnostics_report_missing_runtime_schema_as_migration_pending(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'enterprise-schema-drift@example.test');
+
+        Schema::dropIfExists('restaurant_location_profiles');
+
+        $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
+        $export->assertOk();
+
+        $payload = json_decode($export->streamedContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertFalse($payload['enterprise']['available']);
+        $this->assertTrue($payload['enterprise']['migration_pending']);
+        $this->assertContains('restaurant_location_profiles', $payload['enterprise']['missing_tables']);
+    }
+
+    public function test_enterprise_schema_guard_covers_current_operational_runtime_tables(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/SystemInspectorController.php'));
+        $this->assertIsString($controller);
+
+        foreach ([
+            'enterprise_organizations',
+            'enterprise_workflow_steps',
+            'enterprise_cashboxes',
+            'restaurant_location_profiles',
+        ] as $table) {
+            $this->assertStringContainsString("'{$table}'", $controller);
+        }
     }
 
     public function test_premium_admin_runtime_contains_feedback_labels_previews_and_client_capture(): void
