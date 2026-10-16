@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\RestaurantPaymentService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
@@ -27,13 +29,12 @@ final class SmartOrderingOperationsController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly LifecycleService $lifecycle,
         private readonly SmartOrderingSiteService $sites,
+        private readonly RestaurantPaymentService $payments,
     ) {}
 
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
-        $storeIds = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c');
-        abort_if($storeIds === [], 403);
 
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'])],
@@ -41,8 +42,16 @@ final class SmartOrderingOperationsController extends Controller
             'branch' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'tab' => ['nullable', Rule::in(['orders', 'branches'])],
+            'tab' => ['nullable', Rule::in(['orders', 'branches', 'payments'])],
+            'payment_status' => ['nullable', Rule::in(['pending', 'authorized', 'captured', 'partially_refunded', 'refunded', 'voided', 'failed'])],
+            'payment_provider' => ['nullable', 'string', 'max:80'],
+            'reconciliation' => ['nullable', Rule::in(['mismatch'])],
         ]);
+
+        $tab = (string) ($validated['tab'] ?? 'orders');
+        $permission = $tab === 'payments' ? 'finance.view' : 'orders.view';
+        $storeIds = $this->scope->allowedStoreIds($actor, $permission, 'b2c');
+        abort_if($storeIds === [], 403);
 
         $query = DB::table('smart_ordering_order_contexts as soc')
             ->join('orders as o', 'o.id', '=', 'soc.order_id')
@@ -105,6 +114,57 @@ final class SmartOrderingOperationsController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $paymentPaginator = null;
+        $paymentRows = [];
+        $paymentProviderOptions = [];
+        if ($tab === 'payments') {
+            $paymentProviderOptions = collect($this->payments->providerOptions($storeIds))
+                ->map(fn (string $provider): array => [
+                    'value' => $provider,
+                    'label' => $this->paymentProviderLabel($provider),
+                ])
+                ->all();
+            [$paymentPaginator, $paymentRows] = $this->payments->reconciliationPage(
+                $storeIds,
+                [
+                    'payment_status' => $validated['payment_status'] ?? null,
+                    'payment_provider' => $validated['payment_provider'] ?? null,
+                    'reconciliation' => $validated['reconciliation'] ?? null,
+                ],
+                25,
+            );
+            $paymentRows = collect($paymentRows)->map(function (array $row) use ($actor): array {
+                $status = (string) $row['status'];
+                $capabilities = (array) ($row['capabilities'] ?? []);
+                $actions = [];
+                if (($capabilities['authorize'] ?? false) && in_array($status, ['pending', 'failed'], true)) {
+                    $actions[] = 'authorize';
+                }
+                if (($capabilities['capture'] ?? false) && $status === 'authorized') {
+                    $actions[] = 'capture';
+                }
+                if (($capabilities['void'] ?? false) && in_array($status, ['pending', 'authorized'], true)) {
+                    $actions[] = 'void';
+                }
+                if (($capabilities['refund'] ?? false)
+                    && in_array($status, ['captured', 'partially_refunded'], true)
+                    && (float) ($row['remaining_refundable_amount'] ?? 0) > 0) {
+                    $actions[] = 'refund';
+                }
+
+                return [
+                    ...$row,
+                    'provider_label' => $this->paymentProviderLabel((string) $row['provider']),
+                    'can_manage' => $actor->hasPermission('finance.manage', (int) $row['store_id'])
+                        || $actor->hasPermission('finance.manage'),
+                    'actions' => $actions,
+                    'idempotency_keys' => collect($actions)
+                        ->mapWithKeys(fn (string $action): array => [$action => (string) Str::uuid()])
+                        ->all(),
+                ];
+            })->all();
+        }
+
         return view('admin.smart-ordering-operations', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -113,7 +173,10 @@ final class SmartOrderingOperationsController extends Controller
             'rows' => $rows,
             'branches' => $branches,
             'stores' => $stores,
-            'tab' => $validated['tab'] ?? 'orders',
+            'tab' => $tab,
+            'paymentPaginator' => $paymentPaginator,
+            'paymentRows' => $paymentRows,
+            'paymentProviderOptions' => $paymentProviderOptions,
             'isAr' => app()->getLocale() === 'ar',
             'timezoneOptions' => $this->timezoneOptions(),
         ]);
@@ -235,6 +298,45 @@ final class SmartOrderingOperationsController extends Controller
         );
 
         return redirect()->back()->with('status', __('smart_ordering.status_updated'));
+    }
+
+    public function paymentOperation(int $payment, string $operation, Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $model = Payment::query()->whereKey($payment)->firstOrFail();
+        abort_if($model->order_id === null, 404);
+        $order = DB::table('orders')->where('id', $model->order_id)->first(['store_id']);
+        abort_unless($order !== null, 404);
+        abort_unless(
+            DB::table('smart_ordering_order_contexts')->where('order_id', $model->order_id)->exists(),
+            404,
+        );
+        $this->scope->assertStore($actor, (int) $order->store_id, 'finance.manage', 'b2c');
+
+        $data = $request->validate([
+            'idempotency_key' => ['required', 'string', 'max:160'],
+            'amount' => ['nullable', 'string', 'regex:/^\\d{1,11}(?:\\.\\d{1,3})?$/'],
+        ]);
+
+        $this->payments->execute(
+            $model,
+            $operation,
+            isset($data['amount']) ? (string) $data['amount'] : null,
+            (string) $data['idempotency_key'],
+            $actor,
+        );
+
+        return redirect()
+            ->route('admin.smart-ordering.operations.index', ['tab' => 'payments'])
+            ->with('status', __('smart_ordering.payments.operation_saved'));
+    }
+
+    private function paymentProviderLabel(string $provider): string
+    {
+        $key = 'smart_ordering.payments.providers.'.$provider;
+        $translated = __($key);
+
+        return $translated === $key ? Str::headline($provider) : $translated;
     }
 
     private function actor(Request $request): User
