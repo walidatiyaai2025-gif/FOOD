@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
   "purpose": "Minimum runtime visual evidence expected when a FOODEX UI surface changes.",
   "surfaces": {
     "dashboard": {
