@@ -66,15 +66,15 @@ class CustomerServiceWorkspaceTest extends TestCase
 
     public function test_workspace_has_arabic_and_english_translation_parity(): void
     {
-        $this->assertSame(
-            array_keys(require lang_path('en/customer_service_workspace.php')),
-            array_keys(require lang_path('ar/customer_service_workspace.php')),
-        );
+        $en = require lang_path('en/customer_service_workspace.php');
+        $ar = require lang_path('ar/customer_service_workspace.php');
 
-        $this->assertSame(
-            array_keys(require lang_path('en/customer_service_workspace.php'))['cards'] ?? [],
-            array_keys(require lang_path('ar/customer_service_workspace.php'))['cards'] ?? [],
-        );
+        $this->assertSame(array_keys($en), array_keys($ar));
+        $this->assertSame(array_keys($en['cards']), array_keys($ar['cards']));
+
+        foreach (array_keys($en['cards']) as $key) {
+            $this->assertSame(array_keys($en['cards'][$key]), array_keys($ar['cards'][$key]));
+        }
     }
 
     private function userWithPermissions(array $codes): User
