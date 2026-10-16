@@ -13,6 +13,53 @@ return [
     |
     */
     'modules' => [
+        'finance' => [
+            'version' => 1,
+            'category' => 'finance',
+            'default_state' => 'DISABLED',
+            'required_core' => [
+                'identity',
+                'tenant_context',
+                'rbac',
+                'audit',
+                'module_registry',
+            ],
+            'hard_dependencies' => [],
+            'optional_integrations' => [
+                'sales',
+                'procurement',
+                'inventory',
+                'treasury',
+            ],
+            'capabilities' => [
+                'finance.foundation.read',
+                'finance.foundation.manage',
+                'finance.gl.read',
+                'finance.gl.manage',
+                'finance.gl.post',
+                'finance.opening_balances.read',
+                'finance.opening_balances.manage',
+                'finance.opening_balances.post',
+                'finance.ar.read',
+                'finance.ar.manage',
+                'finance.ar.post',
+                'finance.ap.read',
+                'finance.ap.manage',
+                'finance.ap.post',
+                'finance.credit_terms.read',
+                'finance.credit_terms.manage',
+                'finance.approvals.manage',
+                'finance.approvals.approve',
+            ],
+            'permissions' => [
+                'finance.view',
+                'finance.manage',
+                'finance.post',
+                'finance.approve',
+            ],
+            'health_checks' => [],
+            'navigation' => [],
+        ],
         'inventory_wms' => [
             'version' => 1,
             'category' => 'operations',
