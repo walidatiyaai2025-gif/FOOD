@@ -116,7 +116,14 @@ final class SmartOrderingOperationsController extends Controller
 
         $paymentPaginator = null;
         $paymentRows = [];
+        $paymentProviderOptions = [];
         if ($tab === 'payments') {
+            $paymentProviderOptions = collect($this->payments->providerOptions($storeIds))
+                ->map(fn (string $provider): array => [
+                    'value' => $provider,
+                    'label' => $this->paymentProviderLabel($provider),
+                ])
+                ->all();
             [$paymentPaginator, $paymentRows] = $this->payments->reconciliationPage(
                 $storeIds,
                 [
@@ -147,6 +154,7 @@ final class SmartOrderingOperationsController extends Controller
 
                 return [
                     ...$row,
+                    'provider_label' => $this->paymentProviderLabel((string) $row['provider']),
                     'can_manage' => $actor->hasPermission('finance.manage', (int) $row['store_id'])
                         || $actor->hasPermission('finance.manage'),
                     'actions' => $actions,
@@ -168,6 +176,7 @@ final class SmartOrderingOperationsController extends Controller
             'tab' => $tab,
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
+            'paymentProviderOptions' => $paymentProviderOptions,
             'isAr' => app()->getLocale() === 'ar',
             'timezoneOptions' => $this->timezoneOptions(),
         ]);
@@ -320,6 +329,14 @@ final class SmartOrderingOperationsController extends Controller
         return redirect()
             ->route('admin.smart-ordering.operations.index', ['tab' => 'payments'])
             ->with('status', __('smart_ordering.payments.operation_saved'));
+    }
+
+    private function paymentProviderLabel(string $provider): string
+    {
+        $key = 'smart_ordering.payments.providers.'.$provider;
+        $translated = __($key);
+
+        return $translated === $key ? Str::headline($provider) : $translated;
     }
 
     private function actor(Request $request): User
