@@ -51,3 +51,5 @@ Issue #1914 may close only when this exact branch head is fully green for the re
 - Superseded candidate `2dc2f4a49ca6df627be419686e4ec37017aa3d5e` exposed a backend authorization regression: model-level global-role memoization retained stale role state after a role mutation, so a protected app-version write redirected instead of returning HTTP 403.
 - The repair removes model-level role memoization and retains the request-local AdminNavigation memoization already merged via #1938, preserving authorization semantics without changing performance thresholds or waiving any gate.
 - Final certification must pass again on the exact repaired head before merge.
+
+- Latest-main synchronization includes `main@79dacf258cc9e7c71498cbdec4e9ae52699a10b0` (#1940 UI placement-policy contract); no overlapping product/runtime files were changed by that mainline delta.
