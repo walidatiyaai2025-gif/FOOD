@@ -424,7 +424,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
      */
     private function validatedDraft(array $attributes): array
@@ -454,7 +454,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param array<int, array<string, mixed>> $lines
+     * @param  array<int, array<string, mixed>>  $lines
      * @return array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>
      */
     private function normalizeLines(array $lines): array
@@ -483,7 +483,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}> $lines
+     * @param  array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
      */
     private function assertPostingAccounts(EnterpriseDataScope $scope, array $lines): void
     {
@@ -527,7 +527,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}> $lines
+     * @param  array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
      */
     private function requestHash(
         string $entryDate,
@@ -603,7 +603,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
     private function auditSnapshot(array $values, ResolvedTenantContext $context): array
