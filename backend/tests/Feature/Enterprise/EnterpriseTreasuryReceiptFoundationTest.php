@@ -8,6 +8,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Treasury\TreasuryIntegrationEventPublisher;
 use App\Enterprise\Treasury\TreasuryReceiptService;
 use App\Models\EnterpriseBankAccount;
 use App\Models\EnterpriseBusinessUnit;
@@ -28,6 +29,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -90,6 +92,8 @@ class EnterpriseTreasuryReceiptFoundationTest extends TestCase
             $this->assertArrayHasKey('approver', $exception->errors());
         }
 
+        $this->assertFalse(app(ModuleRegistry::class)->isEnabled('finance'));
+
         $posted = $service->post($approver, $approverContext, $draft->id);
         $postedRetry = $service->post($approver, $approverContext, $draft->id);
 
@@ -102,6 +106,20 @@ class EnterpriseTreasuryReceiptFoundationTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.treasury.receipt_posted',
             'auditable_id' => $draft->id,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('enterprise_outbox_messages')
+                ->where('event_type', TreasuryIntegrationEventPublisher::RECEIPT_POSTED)
+                ->where('event_version', 1)
+                ->count(),
+        );
+        $this->assertDatabaseHas('enterprise_treasury_integration_events', [
+            'source_type' => 'receipt',
+            'source_id' => $draft->id,
+            'event_type' => TreasuryIntegrationEventPublisher::RECEIPT_POSTED,
+            'event_version' => 1,
+            'currency_code' => 'KWD',
         ]);
 
         $cashbox->forceFill(['is_active' => false])->save();
@@ -125,6 +143,129 @@ class EnterpriseTreasuryReceiptFoundationTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $service->cancel($maker, $makerContext, $draft->id);
+    }
+
+    public function test_unsupported_receipt_contract_version_rolls_back_source_and_outbox_atomically(): void
+    {
+        $store = $this->createRetailStore('TREASURY-EVENT-VERSION');
+        $this->mapDefaultScope($store);
+        $maker = $this->retailFinanceActor('receipt-version-maker@example.test', $store);
+        $approver = $this->retailFinanceActor('receipt-version-approver@example.test', $store);
+        $makerContext = $this->retailContext($maker, $store);
+        $approverContext = $this->retailContext($approver, $store);
+        $this->enableTreasury($maker, $makerContext);
+        $this->entitleTreasury($approver, $approverContext);
+
+        $cashbox = $this->cashbox(
+            $store,
+            EnterpriseCashbox::VISIBILITY_STORE,
+            EnterpriseCashbox::VISIBILITY_STORE,
+        );
+        $service = app(TreasuryReceiptService::class);
+        $draft = $service->createDraft($maker, $makerContext, [
+            'idempotency_key' => 'receipt-version-001',
+            'target_type' => EnterpriseTreasuryReceipt::TARGET_CASHBOX,
+            'target_id' => $cashbox->id,
+            'amount' => '9.250',
+            'value_date' => '2026-10-16',
+            'reference' => 'VERSION-001',
+        ]);
+
+        $original = config('enterprise_events.contracts.'.TreasuryIntegrationEventPublisher::RECEIPT_POSTED);
+        config()->set(
+            'enterprise_events.contracts.'.TreasuryIntegrationEventPublisher::RECEIPT_POSTED,
+            [2],
+        );
+
+        try {
+            $service->post($approver, $approverContext, $draft->id);
+            $this->fail('Unsupported Treasury event versions must fail closed.');
+        } catch (LogicException) {
+            $this->assertTrue(true);
+        } finally {
+            config()->set(
+                'enterprise_events.contracts.'.TreasuryIntegrationEventPublisher::RECEIPT_POSTED,
+                $original,
+            );
+        }
+
+        $this->assertSame(EnterpriseTreasuryReceipt::STATUS_DRAFT, $draft->refresh()->status);
+        $this->assertSame(
+            0,
+            DB::table('enterprise_outbox_messages')
+                ->where('event_type', TreasuryIntegrationEventPublisher::RECEIPT_POSTED)
+                ->count(),
+        );
+        $this->assertDatabaseMissing('enterprise_treasury_integration_events', [
+            'source_type' => 'receipt',
+            'source_id' => $draft->id,
+        ]);
+    }
+
+    public function test_integration_diagnostics_are_scope_bounded_and_schema_is_reversible(): void
+    {
+        $store = $this->createRetailStore('TREASURY-DIAGNOSTICS');
+        $this->mapDefaultScope($store);
+        $maker = $this->retailFinanceActor('receipt-diag-maker@example.test', $store);
+        $approver = $this->retailFinanceActor('receipt-diag-approver@example.test', $store);
+        $makerContext = $this->retailContext($maker, $store);
+        $approverContext = $this->retailContext($approver, $store);
+        $this->enableTreasury($maker, $makerContext);
+        $this->entitleTreasury($approver, $approverContext);
+
+        $cashbox = $this->cashbox(
+            $store,
+            EnterpriseCashbox::VISIBILITY_STORE,
+            EnterpriseCashbox::VISIBILITY_STORE,
+        );
+        $service = app(TreasuryReceiptService::class);
+        $draft = $service->createDraft($maker, $makerContext, [
+            'idempotency_key' => 'receipt-diag-001',
+            'target_type' => EnterpriseTreasuryReceipt::TARGET_CASHBOX,
+            'target_id' => $cashbox->id,
+            'amount' => '2.000',
+            'value_date' => '2026-10-16',
+            'reference' => 'DIAG-001',
+        ]);
+        $service->post($approver, $approverContext, $draft->id);
+
+        $scope = $makerContext->enterpriseScope;
+        $this->assertNotNull($scope);
+        $page = app(TreasuryIntegrationEventPublisher::class)->paginateDiagnostics($scope, [], 500);
+        $this->assertSame(100, $page->perPage());
+        $this->assertSame(1, $page->total());
+
+        try {
+            app(TreasuryIntegrationEventPublisher::class)->paginateDiagnostics($scope, [
+                'date_from' => '2025-01-01',
+                'date_to' => '2026-10-16',
+            ]);
+            $this->fail('Integration diagnostics must reject unbounded date windows.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('date_from', $exception->errors());
+        }
+
+        $otherStore = $this->createRetailStore('TREASURY-DIAGNOSTICS-OTHER');
+        $this->mapSeparateOrganization($otherStore);
+        $otherActor = $this->retailFinanceActor('receipt-diag-other@example.test', $otherStore);
+        $otherContext = $this->retailContext($otherActor, $otherStore);
+        $otherScope = $otherContext->enterpriseScope;
+        $this->assertNotNull($otherScope);
+        $this->assertSame(
+            0,
+            app(TreasuryIntegrationEventPublisher::class)->paginateDiagnostics($otherScope)->total(),
+        );
+
+        $migration = require database_path(
+            'migrations/2026_10_16_101000_create_enterprise_treasury_integration_events.php',
+        );
+        DB::table('enterprise_treasury_integration_events')->delete();
+        $migration->down();
+        $this->assertFalse(Schema::hasTable('enterprise_treasury_integration_events'));
+        $this->assertTrue(Schema::hasTable('enterprise_outbox_messages'));
+        $this->assertTrue(Schema::hasTable('enterprise_treasury_receipts'));
+        $migration->up();
+        $this->assertTrue(Schema::hasTable('enterprise_treasury_integration_events'));
     }
 
     public function test_targets_must_be_active_and_respect_operator_and_approval_visibility(): void

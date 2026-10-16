@@ -8,6 +8,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Treasury\TreasuryIntegrationEventPublisher;
 use App\Enterprise\Treasury\TreasuryPaymentService;
 use App\Models\EnterpriseCashbox;
 use App\Models\EnterpriseTreasuryPayment;
@@ -94,6 +95,20 @@ class EnterpriseTreasuryPaymentFoundationTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.treasury.payment_posted',
             'auditable_id' => $draft->id,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('enterprise_outbox_messages')
+                ->where('event_type', TreasuryIntegrationEventPublisher::PAYMENT_POSTED)
+                ->where('event_version', 1)
+                ->count(),
+        );
+        $this->assertDatabaseHas('enterprise_treasury_integration_events', [
+            'source_type' => 'payment',
+            'source_id' => $draft->id,
+            'event_type' => TreasuryIntegrationEventPublisher::PAYMENT_POSTED,
+            'event_version' => 1,
+            'currency_code' => 'KWD',
         ]);
 
         try {

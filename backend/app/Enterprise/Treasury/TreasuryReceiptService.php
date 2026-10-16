@@ -53,6 +53,7 @@ final class TreasuryReceiptService
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
+        private readonly TreasuryIntegrationEventPublisher $integrationEvents,
     ) {}
 
     /**
@@ -279,6 +280,8 @@ final class TreasuryReceiptService
                 'posted_at' => now(),
                 'posted_by' => $actor->id,
             ])->save();
+
+            $this->integrationEvents->publishReceiptPosted($actor, $scope, $receipt);
 
             $this->audit->record(
                 'enterprise.treasury.receipt_posted',
