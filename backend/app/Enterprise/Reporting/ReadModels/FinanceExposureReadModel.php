@@ -175,7 +175,7 @@ final class FinanceExposureReadModel
     }
 
     /**
-     * @param array{sql:string,bindings:list<string>} $aging
+     * @param  array{sql:string,bindings:list<string>}  $aging
      * @return array{0:string,1:list<string>}
      */
     private function dimensionExpression(
@@ -205,7 +205,7 @@ final class FinanceExposureReadModel
     }
 
     /**
-     * @param array{sql:string,bindings:list<string>} $aging
+     * @param  array{sql:string,bindings:list<string>}  $aging
      * @return array{0:string,1:list<string>}
      */
     private function dimensionGroupExpression(
@@ -306,7 +306,7 @@ final class FinanceExposureReadModel
         return $query->to ?? CarbonImmutable::today();
     }
 
-    /** @param list<string> $tables */
+    /** @param  list<string>  $tables */
     private function assertSources(array $tables): void
     {
         foreach ($tables as $table) {
