@@ -333,7 +333,7 @@ final class FinancialStatementService
     }
 
     /**
-     * @param list<string> $types
+     * @param  list<string>  $types
      * @return Collection<int, EnterpriseFinanceAccount>
      */
     private function statementAccounts(EnterpriseDataScope $scope, array $types): Collection
@@ -355,8 +355,8 @@ final class FinancialStatementService
     }
 
     /**
-     * @param list<string> $types
-     * @param callable(QueryBuilder):QueryBuilder $window
+     * @param  list<string>  $types
+     * @param  callable(QueryBuilder):QueryBuilder  $window
      * @return array<int, array{account_id:int,type:string,debit_mills:int,credit_mills:int}>
      */
     private function aggregateByAccount(
@@ -386,8 +386,8 @@ final class FinancialStatementService
     }
 
     /**
-     * @param Collection<int, EnterpriseFinanceAccount> $accounts
-     * @param array<int, array{account_id:int,type:string,debit_mills:int,credit_mills:int}> $aggregates
+     * @param  Collection<int, EnterpriseFinanceAccount>  $accounts
+     * @param  array<int, array{account_id:int,type:string,debit_mills:int,credit_mills:int}>  $aggregates
      * @return list<array<string,mixed>>
      */
     private function rollUp(Collection $accounts, array $aggregates, string $statement): array
@@ -451,8 +451,8 @@ final class FinancialStatementService
     }
 
     /**
-     * @param list<array<string,mixed>> $current
-     * @param list<array<string,mixed>> $comparative
+     * @param  list<array<string,mixed>>  $current
+     * @param  list<array<string,mixed>>  $comparative
      * @return list<array<string,mixed>>
      */
     private function attachComparison(array $current, array $comparative): array
