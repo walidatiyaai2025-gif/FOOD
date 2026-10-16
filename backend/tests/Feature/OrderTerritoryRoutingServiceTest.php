@@ -339,7 +339,7 @@ class OrderTerritoryRoutingServiceTest extends TestCase
 
         $this->assertIsString($vanCommercial);
         $this->assertStringContainsString('AdminOrderManagementService $orders', $vanCommercial);
-        $this->assertStringContainsString("'b2b',\n            $storeId,\n            'van',\n            'van',", $vanCommercial);
+        $this->assertStringContainsString("'b2b',\n            \$storeId,\n            'van',\n            'van',", $vanCommercial);
     }
 
     public function test_b2c_order_cannot_enter_van_routing_runtime(): void
