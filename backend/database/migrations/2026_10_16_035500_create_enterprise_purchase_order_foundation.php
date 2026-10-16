@@ -50,8 +50,13 @@ return new class extends Migration {
             $table->foreignId('purchase_order_id')
                 ->constrained('enterprise_purchase_orders')
                 ->cascadeOnDelete();
-            $table->foreignId('source_purchase_request_line_id')
-                ->constrained('enterprise_purchase_request_lines')
+            $table->foreignId('source_purchase_request_line_id');
+            $table->foreign(
+                'source_purchase_request_line_id',
+                'ent_po_lines_source_pr_line_fk',
+            )
+                ->references('id')
+                ->on('enterprise_purchase_request_lines')
                 ->restrictOnDelete();
             $table->unsignedSmallInteger('line_no');
             $table->string('item_code', 96)->nullable();
