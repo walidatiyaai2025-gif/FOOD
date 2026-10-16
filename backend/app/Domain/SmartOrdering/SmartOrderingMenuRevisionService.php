@@ -39,6 +39,24 @@ final class SmartOrderingMenuRevisionService
         return $this->revisions->publish($actor, $draft->fresh(), $request);
     }
 
+    public function rollback(
+        User $actor,
+        SmartOrderingSite $site,
+        SmartOrderingRevision $source,
+        ?Request $request = null,
+    ): SmartOrderingRevision {
+        abort_unless($actor->hasPermission('smart_ordering.publish', (int) $site->store_id), 403);
+
+        return DB::transaction(function () use ($actor, $site, $source, $request): SmartOrderingRevision {
+            $draft = $this->revisions->createRollbackDraft($actor, $site, $source, $request);
+            $this->cloneMenuRevision($site, $source->fresh(), $draft);
+            $this->validateDraft($site, $draft->fresh());
+            $this->refreshChecksum($actor, $draft->fresh(), $request);
+
+            return $this->revisions->publish($actor, $draft->fresh(), $request);
+        });
+    }
+
     public function refreshChecksum(
         User $actor,
         SmartOrderingRevision $draft,
@@ -114,13 +132,29 @@ final class SmartOrderingMenuRevisionService
             return;
         }
 
-        if (! DB::table('smart_ordering_menus')->where('revision_id', $published->id)->exists()) {
-            return;
-        }
+        $this->cloneMenuRevision($site, $published, $draft);
+    }
 
-        DB::transaction(function () use ($site, $draft, $published): void {
+    private function cloneMenuRevision(
+        SmartOrderingSite $site,
+        SmartOrderingRevision $source,
+        SmartOrderingRevision $draft,
+    ): void {
+        abort_unless(
+            (int) $source->site_id === (int) $site->id
+                && (int) $draft->site_id === (int) $site->id
+                && $draft->status === 'draft',
+            404,
+        );
+
+        abort_if(
+            DB::table('smart_ordering_menus')->where('revision_id', $draft->id)->exists(),
+            409,
+        );
+
+        DB::transaction(function () use ($site, $draft, $source): void {
             $menuMap = [];
-            foreach (DB::table('smart_ordering_menus')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menus')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menus')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -147,7 +181,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $categoryMap = [];
-            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_categories')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_categories')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -184,7 +218,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $itemMap = [];
-            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_menu_items')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_menu_items')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
@@ -234,7 +268,7 @@ final class SmartOrderingMenuRevisionService
             }
 
             $groupMap = [];
-            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $published->id)->orderBy('id')->get() as $row) {
+            foreach (DB::table('smart_ordering_modifier_groups')->where('revision_id', $source->id)->orderBy('id')->get() as $row) {
                 $newId = DB::table('smart_ordering_modifier_groups')->insertGetId([
                     'revision_id' => $draft->id,
                     'site_id' => $site->id,
