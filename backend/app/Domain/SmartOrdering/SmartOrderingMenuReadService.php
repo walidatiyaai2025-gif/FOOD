@@ -12,9 +12,13 @@ use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 final class SmartOrderingMenuReadService
 {
+    /** @var array<int,list<int>> */
+    private array $menuBranchScopeCache = [];
+
     public function __construct(
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingPriceResolver $prices,
@@ -45,6 +49,44 @@ final class SmartOrderingMenuReadService
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->first();
+    }
+
+    /**
+     * @return array{
+     *   revision:array{id:string,checksum:string,published_at:?string},
+     *   read_key:string,
+     *   locale:string,
+     *   branch_id:?string
+     * }
+     */
+    public function readMeta(
+        SmartOrderingSite $site,
+        string $locale = 'en',
+        ?SmartOrderingBranch $branch = null,
+    ): array {
+        $revision = $this->publishedRevision($site);
+        $locale = strtolower(trim($locale));
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+        $branchId = $branch === null ? null : (string) $branch->public_id;
+        $keyMaterial = implode('|', [
+            'restaurant-public-menu-v1',
+            (string) $site->public_id,
+            (string) $revision->public_id,
+            (string) $revision->checksum,
+            $branchId ?? 'default',
+            $locale,
+        ]);
+
+        return [
+            'revision' => [
+                'id' => (string) $revision->public_id,
+                'checksum' => (string) $revision->checksum,
+                'published_at' => $revision->published_at?->toISOString(),
+            ],
+            'read_key' => hash('sha256', $keyMaterial),
+            'locale' => $locale,
+            'branch_id' => $branchId,
+        ];
     }
 
     /**
@@ -143,6 +185,7 @@ final class SmartOrderingMenuReadService
             ->pluck('id');
 
         $items = SmartOrderingMenuItem::query()
+            ->with(['category.menu'])
             ->where('smart_ordering_menu_items.revision_id', $revision->id)
             ->where('smart_ordering_menu_items.site_id', $site->id)
             ->whereIn('smart_ordering_menu_items.category_id', $categoryIds)
@@ -168,8 +211,83 @@ final class SmartOrderingMenuReadService
             ->orderBy('id')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $data = collect($items->items())
-            ->map(fn (SmartOrderingMenuItem $item): ?array => $this->itemResource($site, $item, $locale, $branch, false))
+        $pageItems = collect($items->items())->values();
+        $availabilityStates = $this->availability->items($site, $pageItems, $branch);
+        $resolvedPrices = $this->prices->displayPrices($site, $pageItems, $branch);
+
+        $sourceProductIds = $pageItems
+            ->pluck('source_product_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $sourceImages = [];
+        foreach ($sourceProductIds as $sourceProductId) {
+            $sourceImages[(int) $sourceProductId] = null;
+        }
+
+        if ($sourceProductIds->isNotEmpty()) {
+            foreach (DB::table('product_images')
+                ->whereIn('product_id', $sourceProductIds)
+                ->orderBy('product_id')
+                ->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->get(['product_id', 'path']) as $row) {
+                $productId = (int) $row->product_id;
+                if ($sourceImages[$productId] === null && is_string($row->path) && $row->path !== '') {
+                    $sourceImages[$productId] = $row->path;
+                }
+            }
+        }
+
+        $prepTimes = [];
+        foreach ($pageItems as $item) {
+            $prepTimes[(int) $item->id] = $item->prep_time_minutes === null
+                ? null
+                : (int) $item->prep_time_minutes;
+        }
+
+        if ($branch !== null && $pageItems->isNotEmpty()) {
+            foreach (DB::table('smart_ordering_item_branch_overrides')
+                ->where('branch_id', $branch->id)
+                ->whereIn('item_id', $pageItems->pluck('id'))
+                ->whereNotNull('prep_time_minutes')
+                ->get(['item_id', 'prep_time_minutes']) as $row) {
+                $prepTimes[(int) $row->item_id] = (int) $row->prep_time_minutes;
+            }
+        }
+
+        $data = $pageItems
+            ->map(function (SmartOrderingMenuItem $item) use (
+                $site,
+                $locale,
+                $branch,
+                $availabilityStates,
+                $resolvedPrices,
+                $sourceImages,
+                $prepTimes,
+            ): ?array {
+                $itemId = (int) $item->id;
+                if (isset($resolvedPrices['errors'][$itemId])) {
+                    throw ValidationException::withMessages([
+                        'source_product_id' => [$resolvedPrices['errors'][$itemId]],
+                    ]);
+                }
+
+                return $this->itemResource(
+                    $site,
+                    $item,
+                    $locale,
+                    $branch,
+                    false,
+                    $availabilityStates[$itemId] ?? null,
+                    $resolvedPrices['prices'][$itemId] ?? null,
+                    $sourceImages,
+                    $prepTimes,
+                    true,
+                );
+            })
             ->filter()
             ->values()
             ->all();
@@ -269,6 +387,7 @@ final class SmartOrderingMenuReadService
 
         if ($site !== null) {
             $resource['items'] = SmartOrderingMenuItem::query()
+                ->with(['category.menu'])
                 ->where('category_id', $category->id)
                 ->orderBy('sort_order')
                 ->get()
@@ -281,38 +400,66 @@ final class SmartOrderingMenuReadService
         return $resource;
     }
 
-    /** @return array<string,mixed>|null */
+    /**
+     * @param  array{available:bool,reason:?string,sold_out:bool}|null  $stateOverride
+     * @param  array{amount:float,source:string}|null  $priceOverride
+     * @param  array<int,?string>|null  $sourceImages
+     * @param  array<int,?int>|null  $prepTimes
+     * @return array<string,mixed>|null
+     */
     private function itemResource(
         SmartOrderingSite $site,
         SmartOrderingMenuItem $item,
         string $locale,
         ?SmartOrderingBranch $branch,
         bool $detail,
+        ?array $stateOverride = null,
+        ?array $priceOverride = null,
+        ?array $sourceImages = null,
+        ?array $prepTimes = null,
+        bool $menuScopePrevalidated = false,
     ): ?array {
-        $category = SmartOrderingMenuCategory::query()->findOrFail($item->category_id);
-        $menu = SmartOrderingMenu::query()->findOrFail($category->menu_id);
-        if (! $this->menuAppliesToBranch($menu, $branch)) {
+        $category = $item->relationLoaded('category')
+            ? $item->getRelation('category')
+            : SmartOrderingMenuCategory::query()->findOrFail($item->category_id);
+        abort_unless($category instanceof SmartOrderingMenuCategory, 404);
+
+        $menu = $category->relationLoaded('menu')
+            ? $category->getRelation('menu')
+            : SmartOrderingMenu::query()->findOrFail($category->menu_id);
+        abort_unless($menu instanceof SmartOrderingMenu, 404);
+
+        if (! $menuScopePrevalidated && ! $this->menuAppliesToBranch($menu, $branch)) {
             return null;
         }
 
-        $state = $this->availability->item($site, $item, $branch);
+        $state = $stateOverride ?? $this->availability->item($site, $item, $branch);
         if (in_array($state['reason'], ['HIDDEN', 'CATEGORY_HIDDEN'], true)) {
             return null;
         }
 
-        $price = $this->prices->displayPrice($site, $item, $branch);
+        $price = $priceOverride ?? $this->prices->displayPrice($site, $item, $branch);
         $image = $item->image_path;
         if (($image === null || $image === '') && $item->source_product_id !== null) {
-            $image = DB::table('product_images')
-                ->where('product_id', $item->source_product_id)
-                ->orderByDesc('is_primary')
-                ->orderBy('sort_order')
-                ->value('path');
+            $sourceProductId = (int) $item->source_product_id;
+            if ($sourceImages !== null && array_key_exists($sourceProductId, $sourceImages)) {
+                $image = $sourceImages[$sourceProductId];
+            } else {
+                $image = DB::table('product_images')
+                    ->where('product_id', $sourceProductId)
+                    ->orderByDesc('is_primary')
+                    ->orderBy('sort_order')
+                    ->value('path');
+            }
         }
+
+        $prepTime = $prepTimes !== null && array_key_exists((int) $item->id, $prepTimes)
+            ? $prepTimes[(int) $item->id]
+            : $this->effectivePrepTime($item, $branch);
 
         $resource = [
             'id' => (string) $item->public_id,
-            'category_id' => (string) $item->category()->value('public_id'),
+            'category_id' => (string) $category->public_id,
             'name' => $this->localized($item->name_ar, $item->name_en, $locale),
             'description' => $this->localized($item->description_ar, $item->description_en, $locale),
             'image' => $this->publicMediaUrl(is_string($image) ? $image : null),
@@ -330,7 +477,7 @@ final class SmartOrderingMenuReadService
             'featured' => (bool) $item->featured,
             'best_seller' => (bool) $item->best_seller,
             'is_new' => (bool) $item->is_new,
-            'prep_time_minutes' => $this->effectivePrepTime($item, $branch),
+            'prep_time_minutes' => $prepTime,
             'calories' => $item->calories === null ? null : (int) $item->calories,
             'allergens' => (array) $item->allergens,
             'spicy_level' => (int) $item->spicy_level,
@@ -399,15 +546,22 @@ final class SmartOrderingMenuReadService
 
     private function menuAppliesToBranch(SmartOrderingMenu $menu, ?SmartOrderingBranch $branch): bool
     {
-        $scopedBranchIds = DB::table('smart_ordering_menu_branches')
-            ->where('menu_id', $menu->id)
-            ->pluck('branch_id');
+        $menuId = (int) $menu->id;
+        if (! array_key_exists($menuId, $this->menuBranchScopeCache)) {
+            $this->menuBranchScopeCache[$menuId] = DB::table('smart_ordering_menu_branches')
+                ->where('menu_id', $menuId)
+                ->pluck('branch_id')
+                ->map(static fn ($branchId): int => (int) $branchId)
+                ->values()
+                ->all();
+        }
 
-        if ($scopedBranchIds->isEmpty()) {
+        $scopedBranchIds = $this->menuBranchScopeCache[$menuId];
+        if ($scopedBranchIds === []) {
             return true;
         }
 
-        return $branch !== null && $scopedBranchIds->contains((int) $branch->id);
+        return $branch !== null && in_array((int) $branch->id, $scopedBranchIds, true);
     }
 
     private function effectivePrepTime(SmartOrderingMenuItem $item, ?SmartOrderingBranch $branch): ?int
