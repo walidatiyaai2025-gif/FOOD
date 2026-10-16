@@ -125,7 +125,11 @@ final class EnterpriseMyWork
             }
         }
 
-        return compact('items', 'summary', 'activity') + ['items' => $paginator];
+        return [
+            'items' => $paginator,
+            'summary' => $summary,
+            'activity' => $activity,
+        ];
     }
 
     /** @return Collection<int,array<string,mixed>> */
@@ -187,24 +191,28 @@ final class EnterpriseMyWork
 
         $transfers = DB::table('enterprise_warehouse_transfers as transfer')
             ->join('warehouses as source', 'source.id', '=', 'transfer.source_warehouse_id')
+            ->join('warehouses as target', 'target.id', '=', 'transfer.target_warehouse_id')
             ->whereIn('transfer.source_warehouse_id', $warehouseIds)
             ->whereIn('transfer.status', ['draft', 'dispatched'])
             ->orderByDesc('transfer.updated_at')
             ->limit(self::MODULE_LIMIT)
             ->get([
                 'transfer.id',
-                'transfer.transfer_number',
                 'transfer.status',
                 'transfer.created_by',
                 'transfer.updated_at',
                 'transfer.source_warehouse_id',
                 'source.store_id',
+                'source.code as source_code',
+                'source.name as source_name',
+                'target.code as target_code',
+                'target.name as target_name',
             ])
             ->map(fn (object $row): array => $this->item(
                 'wms',
                 'warehouse_transfer',
                 (int) $row->id,
-                (string) $row->transfer_number,
+                trim((string) ($row->source_code ?: $row->source_name)).' → '.trim((string) ($row->target_code ?: $row->target_name)),
                 (string) $row->status,
                 (string) $row->status === 'dispatched' ? 'attention' : 'pending',
                 (int) ($row->created_by ?? 0),
@@ -220,18 +228,20 @@ final class EnterpriseMyWork
             ->limit(self::MODULE_LIMIT)
             ->get([
                 'count.id',
-                'count.count_number',
                 'count.status',
                 'count.created_by',
                 'count.updated_at',
                 'count.warehouse_id',
                 'warehouse.store_id',
+                'warehouse.code as warehouse_code',
+                'warehouse.name as warehouse_name',
+                'count.started_at',
             ])
             ->map(fn (object $row): array => $this->item(
                 'wms',
                 'inventory_count',
                 (int) $row->id,
-                (string) $row->count_number,
+                trim((string) ($row->warehouse_code ?: $row->warehouse_name)).' · '.($this->date($row->started_at)?->format('Y-m-d H:i') ?? ''),
                 (string) $row->status,
                 'pending',
                 (int) ($row->created_by ?? 0),
