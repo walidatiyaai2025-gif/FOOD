@@ -211,8 +211,10 @@ final class CommercialDeliveryRouteBridge
             'status' => (string) $assignment->status,
             'execution_status' => $execution?->status,
             'decision_key' => (string) $assignment->decision_key,
-            'assigned_at' => $assignment->assigned_at?->toISOString(),
-            'ended_at' => $assignment->ended_at?->toISOString(),
+            'assigned_at' => (string) $assignment->assigned_at,
+            'ended_at' => $assignment->ended_at === null
+                ? null
+                : (string) $assignment->ended_at,
         ];
     }
 
