@@ -62,6 +62,7 @@ const b2c = [
   ['15_مركز_الإدارة', '/admin/administration'],
   ['15_مركز_الإجراءات', '/admin/action-center'],
   ['15_مركز_ERP', '/admin/erp'],
+  ['15_مركز_عمل_المخزون_WMS_ERP', '/admin/erp/wms'],
   ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
   ['15_مركز_ذكاء_الأعمال_ERP', '/admin/erp/bi'],
   ['15_مساحة_عمل_خدمة_العملاء', '/admin/erp/customer-service'],
@@ -603,6 +604,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['administration', '/admin/administration'],
     ['enterprise-action-center', '/admin/action-center'],
     ['erp-center', '/admin/erp'],
+    ['erp-wms', '/admin/erp/wms'],
     ['enterprise-organizations', '/admin/administration/organizations'],
     ['enterprise-modules', '/admin/administration/modules'],
     ['security', '/admin/security'],
@@ -1236,6 +1238,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'erp-center',
     '/admin/erp',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-wms-responsive',
+    '/admin/erp/wms',
   );
   await captureResponsiveRoute(
     page,
