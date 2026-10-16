@@ -90,6 +90,10 @@ final class ScheduledReportDispatcher
                     $report->maxPageSize,
                     max(1, (int) ($payload['per_page'] ?? min(25, $report->maxPageSize))),
                 ),
+                'dimensions' => $payload['dimensions'] ?? $report->dimensions,
+                'measures' => $payload['measures'] ?? $report->measures,
+                'group_by' => $payload['group_by'] ?? ($payload['dimensions'] ?? $report->dimensions),
+                'sort' => $payload['sort'] ?? [],
             ]);
 
             $dueToken = (string) $schedule->next_run_at;
