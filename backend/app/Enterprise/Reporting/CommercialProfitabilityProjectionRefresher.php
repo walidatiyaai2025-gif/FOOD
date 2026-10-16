@@ -309,7 +309,7 @@ final class CommercialProfitabilityProjectionRefresher
 
     /**
      * @param  list<array<string, mixed>>  $events
-     * @return Collection<int, object>
+     * @return Collection<int, \stdClass>
      */
     private function valuationPolicies(string $source, int $storeId, array $events): Collection
     {
