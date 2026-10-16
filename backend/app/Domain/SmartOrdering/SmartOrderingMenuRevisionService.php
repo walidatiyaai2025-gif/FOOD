@@ -404,5 +404,4 @@ final class SmartOrderingMenuRevisionService
 
         return $data;
     }
-
 }
