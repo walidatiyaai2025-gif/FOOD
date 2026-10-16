@@ -35,6 +35,22 @@ class BranchPolicyTest(unittest.TestCase):
             with self.subTest(branch=branch):
                 self.assertTrue(module.is_valid(branch,"main"))
 
+    def test_accepts_main_sync_only_to_canonical_integration_branch(self):
+        for branch in [
+            "feature/enterprise-core-platform",
+            "feature/enterprise-admin-shell",
+            "feature/enterprise-procurement",
+            "feature/enterprise-wms",
+            "feature/enterprise-finance",
+            "feature/enterprise-treasury",
+            "feature/enterprise-commercial-convergence",
+            "feature/enterprise-bi",
+            "feature/enterprise-performance-gates",
+        ]:
+            with self.subTest(branch=branch):
+                self.assertTrue(module.is_valid("main",branch))
+        self.assertFalse(module.is_valid("main","feature/random-unregistered-program"))
+
     def test_rejects_integration_branch_outside_main_promotion(self):
         self.assertFalse(module.is_valid("feature/enterprise-performance-gates"))
         self.assertFalse(module.is_valid("feature/enterprise-performance-gates","feature/enterprise-core-platform"))
