@@ -183,6 +183,7 @@ final class SmartOrderingController extends Controller
             'status' => (string) $context->lifecycle_status,
             'fulfillment_mode' => (string) $context->fulfillment_mode,
             'scheduled_for' => $context->scheduled_for?->toAtomString(),
+            'promised_for' => $context->promised_for?->toAtomString(),
             'currency' => (string) $order->currency,
             'subtotal' => (float) $context->subtotal,
             'discount_total' => (float) $context->discount_total,

@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
 use App\Services\B2cCustomerService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -1057,6 +1058,141 @@ class SmartOrderingCoreTest extends TestCase
                 'selection' => $selection,
             ])
             ->assertCreated();
+    }
+
+    public function test_checkout_capacity_throttles_overlapping_active_orders_and_persists_promise_time(): void
+    {
+        $this->branch->update([
+            'max_active_orders' => 1,
+            'capacity_window_minutes' => 60,
+            'pickup_promise_minutes' => 25,
+        ]);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+
+        $first = $this->checkout($cart, $token, 'smart-capacity-first-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $scheduled = CarbonImmutable::parse((string) $first->json('data.scheduled_for'));
+        $promised = CarbonImmutable::parse((string) $first->json('data.promised_for'));
+        $this->assertSame(25.0, $scheduled->diffInMinutes($promised));
+
+        [$blockedCart, $blockedToken] = $this->cart();
+        $this->addItem($blockedCart, $blockedToken, 1);
+        $this->checkout($blockedCart, $blockedToken, 'smart-capacity-blocked-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertStatus(409);
+
+        DB::table('smart_ordering_order_contexts')
+            ->where('public_reference', (string) $first->json('data.reference'))
+            ->update(['lifecycle_status' => 'COMPLETED', 'updated_at' => now()]);
+
+        [$releasedCart, $releasedToken] = $this->cart();
+        $this->addItem($releasedCart, $releasedToken, 1);
+        $this->checkout($releasedCart, $releasedToken, 'smart-capacity-released-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+    }
+
+    public function test_capacity_is_branch_scoped_and_zero_remains_unlimited(): void
+    {
+        $this->branch->update([
+            'max_active_orders' => 1,
+            'capacity_window_minutes' => 60,
+        ]);
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 1);
+        $this->checkout($cart, $token, 'smart-capacity-primary-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+
+        $other = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $this->branch->site_id,
+            'code' => 'kw-secondary',
+            'name_ar' => 'فرع ثانوي',
+            'name_en' => 'Secondary Branch',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+            'accepting_orders' => true,
+            'supports_dine_in' => true,
+            'supports_pickup' => true,
+            'supports_delivery' => true,
+            'allow_scheduled' => true,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'max_active_orders' => 0,
+            'capacity_window_minutes' => 60,
+            'pickup_promise_minutes' => 10,
+            'service_charge' => 0,
+        ]);
+
+        $cartResponse = $this->postJson('/api/smart-ordering/carts', [
+            'branch_public_id' => (string) $other->public_id,
+        ])->assertCreated();
+        $otherCart = (string) $cartResponse->json('cart.public_id');
+        $otherToken = (string) $cartResponse->json('cart.token');
+
+        $this->withHeader('X-Smart-Cart-Token', $otherToken)
+            ->postJson('/api/smart-ordering/carts/'.$otherCart.'/items', [
+                'product_id' => $this->productId,
+                'quantity' => 1,
+            ])
+            ->assertCreated();
+
+        $this->checkout($otherCart, $otherToken, 'smart-capacity-secondary-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+    }
+
+    public function test_branch_editor_exposes_localized_capacity_and_promise_policy(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('Active-order capacity')
+            ->assertSee('Capacity window (minutes)')
+            ->assertSee('Pickup promise (minutes)');
+
+        $payload = [
+            'name' => 'Kuwait City Branch',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => 1,
+            'accepting_orders' => 1,
+            'supports_dine_in' => 1,
+            'supports_pickup' => 1,
+            'supports_delivery' => 1,
+            'allow_scheduled' => 1,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'max_active_orders' => 12,
+            'capacity_window_minutes' => 20,
+            'dine_in_promise_minutes' => 15,
+            'pickup_promise_minutes' => 25,
+            'delivery_promise_minutes' => 50,
+            'service_charge' => 0,
+        ];
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.branches.update', $this->branch->public_id), $payload)
+            ->assertRedirect();
+
+        $this->assertSame(12, $this->branch->fresh()->max_active_orders);
+        $this->assertSame(25, $this->branch->fresh()->pickup_promise_minutes);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('سعة الطلبات النشطة')
+            ->assertSee('زمن وعد الاستلام بالدقائق');
     }
 
     /** @param array<string,mixed> $overrides */
