@@ -8,7 +8,6 @@ use App\Models\CollectionAccount;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
-use App\Models\UserStoreRole;
 use App\Services\CollectionCustodyService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
@@ -134,9 +133,10 @@ final class CommercialCollectionExposurePolicyTest extends TestCase
             $this->assertTrue(true);
         }
 
+        $unprivileged = User::factory()->create(['is_active' => true]);
         try {
-            $policy->summary($actor, $otherStore->id, $foreignAccount->id);
-            $this->fail('Actor must not read a store outside assigned scope.');
+            $policy->summary($unprivileged, $otherStore->id, $foreignAccount->id);
+            $this->fail('Unprivileged actor must not read commercial collection exposure.');
         } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
@@ -186,11 +186,7 @@ final class CommercialCollectionExposurePolicyTest extends TestCase
             'is_active' => true,
         ]);
         $role = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
-        UserStoreRole::query()->create([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => $role->id,
-        ]);
+        $actor->roles()->attach($role->id);
         $account = CollectionAccount::query()->create([
             'actor_type' => 'van',
             'actor_id' => $actor->id,
