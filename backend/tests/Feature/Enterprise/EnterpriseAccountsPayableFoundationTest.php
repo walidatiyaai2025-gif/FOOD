@@ -183,7 +183,7 @@ final class EnterpriseAccountsPayableFoundationTest extends TestCase
                 'idempotency_key' => 'ap-cancel-001',
                 'store_id' => $fixture['store']->id,
                 'supplier_reference' => $fixture['supplier_reference'],
-            'supplier_name' => $fixture['supplier_name'],
+                'supplier_name' => $fixture['supplier_name'],
                 'entry_date' => '2027-01-05',
                 'due_date' => '2027-02-05',
                 'amount' => '10.000',
@@ -308,7 +308,7 @@ final class EnterpriseAccountsPayableFoundationTest extends TestCase
     public function test_ap_schema_is_additive_and_reversible(): void
     {
         $migration = require database_path(
-            'migrations/2026_10_16_074300_create_enterprise_ap_foundation.php',
+            'migrations/2026_10_16_090500_create_enterprise_ap_foundation.php',
         );
 
         $migration->down();
@@ -401,7 +401,7 @@ final class EnterpriseAccountsPayableFoundationTest extends TestCase
         $period = $finance->createFiscalPeriod(
             $maker,
             $makerContext,
-            $yeap->id,
+            $year->id,
             [
                 'sequence' => 1,
                 'code' => 'P01',
