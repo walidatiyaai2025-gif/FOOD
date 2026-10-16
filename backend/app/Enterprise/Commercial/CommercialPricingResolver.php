@@ -94,12 +94,9 @@ final class CommercialPricingResolver
             ]);
         }
 
-        $originAllowsChannel = match ($origin) {
-            'b2b', 'van' => $channel === 'b2b',
-            'b2c' => $channel === 'b2c',
-            'sales' => true,
-            default => false,
-        };
+        $originAllowsChannel = $origin === 'sales'
+            || (in_array($origin, ['b2b', 'van'], true) && $channel === 'b2b')
+            || ($origin === 'b2c' && $channel === 'b2c');
         if (! $originAllowsChannel) {
             throw ValidationException::withMessages([
                 'channel' => ['Commercial pricing origin does not support this channel.'],
