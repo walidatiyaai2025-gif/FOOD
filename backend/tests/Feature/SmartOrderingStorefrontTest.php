@@ -149,7 +149,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
         $response->assertOk()
             ->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
-            ->assertHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+            ->assertHeader('Cache-Control', 'max-age=300, public, stale-while-revalidate=600')
             ->assertSee('<loc>https://demo.foodex.test/menu</loc>', false)
             ->assertSee('hreflang="en" href="https://demo.foodex.test/menu?lang=en"', false)
             ->assertSee('hreflang="ar" href="https://demo.foodex.test/menu?lang=ar"', false)
