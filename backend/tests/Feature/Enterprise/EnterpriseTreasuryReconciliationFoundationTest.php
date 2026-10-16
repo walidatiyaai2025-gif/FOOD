@@ -360,16 +360,24 @@ class EnterpriseTreasuryReconciliationFoundationTest extends TestCase
             $this->assertArrayHasKey('transaction_id', $exception->errors());
         }
 
-        foreach (['paginateReconciliations', 'paginateCashClosings'] as $method) {
-            try {
-                $service->{$method}($maker, $makerContext, [
-                    'date_from' => '2024-01-01',
-                    'date_to' => '2026-10-16',
-                ]);
-                $this->fail('Treasury reconciliation reads must enforce a bounded date window.');
-            } catch (ValidationException $exception) {
-                $this->assertArrayHasKey('date_to', $exception->errors());
-            }
+        try {
+            $service->paginateReconciliations($maker, $makerContext, [
+                'date_from' => '2024-01-01',
+                'date_to' => '2026-10-16',
+            ]);
+            $this->fail('Reconciliation reads must enforce a bounded date window.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('date_to', $exception->errors());
+        }
+
+        try {
+            $service->paginateCashClosings($maker, $makerContext, [
+                'date_from' => '2024-01-01',
+                'date_to' => '2026-10-16',
+            ]);
+            $this->fail('Cash-closing reads must enforce a bounded date window.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('date_to', $exception->errors());
         }
 
         $cashbox = $this->cashbox($store);
