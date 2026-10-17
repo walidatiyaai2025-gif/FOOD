@@ -100,7 +100,7 @@ final class ThemeRegistry
     {
         return array_filter(
             self::TEMPLATES,
-            static fn (array $definition): bool => ($definition['generation'] ?? null) === self::PRODUCTION_GENERATION,
+            static fn (array $definition): bool => $definition['generation'] === self::PRODUCTION_GENERATION,
         );
     }
 
@@ -148,7 +148,7 @@ final class ThemeRegistry
         $theme = strtolower(trim((string) $theme));
         $definition = self::TEMPLATES[$theme] ?? null;
 
-        if (! is_array($definition) || ($definition['generation'] ?? null) !== self::PRODUCTION_GENERATION) {
+        if (! is_array($definition) || $definition['generation'] !== self::PRODUCTION_GENERATION) {
             return self::PRODUCTION_DEFAULT;
         }
 
