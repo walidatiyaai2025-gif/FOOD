@@ -4,121 +4,126 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('admin.system_update_surface.title') }} · FOODEX</title>
-    <style>
-        :root { color: #17202a; background: #f5f7fa; }
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; }
-        main { max-width: 980px; margin: 0 auto; }
-        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        h1, h2 { margin-top: 0; }
-        .badge { border: 1px solid #cbd5e1; border-radius: 999px; padding: 6px 10px; }
-        .notice, .error { padding: 12px 14px; border-radius: 10px; margin: 12px 0; }
-        .notice { background: #f0fdf4; border: 1px solid #86efac; }
-        .error { background: #fff7ed; border: 1px solid #fdba74; }
-        form { display: grid; gap: 16px; }
-        label { display: grid; gap: 7px; font-weight: 700; }
-        input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
-        .checkbox { display: flex; align-items: center; gap: 8px; }
-        .checkbox input { width: auto; }
-        button { justify-self: start; border: 0; border-radius: 8px; padding: 11px 18px; background: #111827; color: #fff; font-weight: 700; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
-        code { direction: ltr; unicode-bidi: embed; }
-        @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
-    </style>
     @include('admin._brand-components')
-@include('admin._settings-page-polish')
+    @include('admin._settings-page-polish')
+    <style>
+        body{margin:0}.update-page{padding:clamp(14px,2.2vw,28px);min-width:0}.update-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.update-header h1{margin:4px 0 0}.update-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.update-current{border:1px solid var(--foodex-border);border-radius:999px;padding:7px 10px;background:#fff;font-weight:800}.update-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.update-card{padding:clamp(14px,2vw,22px)}.update-card h2{margin-top:0}.update-form{display:grid;gap:14px}.update-form label{display:grid;gap:6px;font-weight:700}.update-form input,.update-form textarea{width:100%;min-width:0}.update-notice{padding:12px 14px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-background)}.update-table-wrap{max-width:100%;overflow:auto}.update-table{width:100%;border-collapse:collapse;min-width:1120px}.update-table th,.update-table td{padding:9px 10px;text-align:start;border-bottom:1px solid var(--foodex-border);vertical-align:top}.update-table th{color:var(--foodex-muted);font-size:.78rem;background:var(--foodex-background)}.update-table code{direction:ltr;unicode-bidi:embed}.update-evidence{display:grid;gap:5px;min-width:150px}.update-evidence span{display:flex;justify-content:space-between;gap:8px}.update-evidence small{color:var(--foodex-muted)}.update-state{padding:12px 14px;border:1px solid var(--foodex-border);border-radius:10px;margin-bottom:12px}.update-state[role="alert"]{background:var(--foodex-danger-soft,#fff0f0)}.update-state[role="status"]{background:var(--foodex-green-soft,#eef8f2)}
+        @media(max-width:767px){.update-header{flex-direction:column}.update-header-actions{width:100%;display:grid;grid-template-columns:1fr}.update-header-actions>a{justify-content:center}.update-card{padding:12px}.update-form button{width:100%;min-height:44px}}
+    </style>
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="system-update">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface update-page" data-foodex-utility="system-update">
     @include('admin._admin-center-switcher',['active'=>'settings'])
-<div class="header foodex-page-header">
+    <header class="update-header foodex-page-header">
         <div>
-            <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
+            <div class="foodex-subtitle">FOODEX · {{ __('system_admin.eyebrow') }}</div>
             <h1>{{ __('admin.system_update_surface.title') }}</h1>
         </div>
-        <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
-    </div>
+        <div class="update-header-actions">
+            <span class="update-current">{{ __('admin.system_update_surface.current') }}: <code>{{ $currentVersion }}</code></span>
+            <a class="foodex-action-secondary" href="{{ route('admin.enterprise-system-health.index') }}">{{ __('system_admin.title') }}</a>
+            <a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('admin.system_update_surface.back_settings') }}</a>
+        </div>
+    </header>
 
     @if (session('status'))
-        <div class="notice foodex-state" role="status">{{ session('status') }}</div>
+        <div class="update-state foodex-state" role="status">{{ session('status') }}</div>
     @endif
-
     @if ($errors->any())
-        <div class="error foodex-state" role="alert">
+        <div class="update-state foodex-state" role="alert">
             <strong>{{ __('admin.system_update_surface.not_applied') }}</strong>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
         </div>
     @endif
 
-    <section class="card">
-        <h2>{{ __('admin.system_update_surface.package_title') }}</h2>
-        <p>{{ __('admin.system_update_surface.package_description') }}</p>
+    <div class="update-grid">
+        <section class="foodex-card update-card">
+            <h2>{{ __('admin.system_update_surface.package_title') }}</h2>
+            <p>{{ __('admin.system_update_surface.package_description') }}</p>
+            <form class="update-form" method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
+                @csrf
+                <label>{{ __('admin.system_update_surface.zip_package') }}<input type="file" name="package" accept=".zip,application/zip" required></label>
+                <label>{{ __('admin.system_update_surface.target_version') }}<input name="target_version" placeholder="1.2.0" required></label>
+                <label>{{ __('admin.system_update_surface.minimum_current_version') }}<input name="minimum_current_version" value="{{ $currentVersion }}" required></label>
+                <label>{{ __('admin.system_update_surface.sha256') }}<input name="sha256" maxlength="64" minlength="64" required></label>
+                <label>{{ __('admin.system_update_surface.release_notes') }}<textarea name="release_notes" rows="4"></textarea></label>
+                <div class="update-notice">{{ __('admin.system_update_surface.migration_notice') }}</div>
+                <button class="foodex-action-primary" type="submit">{{ __('admin.system_update_surface.install') }}</button>
+            </form>
+        </section>
 
-        <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
-            @csrf
-            <label>{{ __('admin.system_update_surface.zip_package') }}
-                <input type="file" name="package" accept=".zip,application/zip" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.target_version') }}
-                <input name="target_version" placeholder="1.2.0" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.minimum_current_version') }}
-                <input name="minimum_current_version" value="{{ $currentVersion }}" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.sha256') }}
-                <input name="sha256" maxlength="64" minlength="64" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.release_notes') }}
-                <textarea name="release_notes" rows="4"></textarea>
-            </label>
-            <div class="notice">
-                {{ __('admin.system_update_surface.migration_notice') }}
+        <section class="foodex-card update-card">
+            <h2>{{ __('system_admin.update_center.evidence_title') }}</h2>
+            <p>{{ __('system_admin.update_center.evidence_description') }}</p>
+            <div class="update-table-wrap">
+            <table class="update-table" data-pagination-required>
+                <thead><tr>
+                    <th>{{ __('admin.system_update_surface.from') }} → {{ __('admin.system_update_surface.to') }}</th>
+                    <th>{{ __('admin.system_update_surface.status') }}</th>
+                    <th>{{ __('system_admin.labels.package_integrity') }} / {{ __('system_admin.labels.preflight') }}</th>
+                    <th>{{ __('system_admin.labels.backup') }}</th>
+                    <th>{{ __('system_admin.labels.migrations') }} / {{ __('system_admin.labels.health_check') }}</th>
+                    <th>{{ __('system_admin.labels.rollback') }}</th>
+                    <th>{{ __('system_admin.update_center.environment') }}</th>
+                    <th>{{ __('system_admin.labels.origin') }}</th>
+                    <th>{{ __('admin.system_update_surface.failure') }}</th>
+                </tr></thead>
+                <tbody>
+                @forelse ($historyRows as $row)
+                    @php
+                        $evidence=is_array($row->execution_evidence)?$row->execution_evidence:[];
+                        $normalizeEvidence=static fn($value)=>in_array($value,['pending','passed','failed','not_required','available','partial','not_created','succeeded','incomplete','automatic','manual_recovery'],true)?$value:'unknown';
+                        $statusKey=match(strtolower((string)$row->status)) {
+                            'completed','success','succeeded'=>'succeeded',
+                            'failed','error'=>'failed',
+                            default=>'pending',
+                        };
+                        $fileBackup=is_array($evidence['file_backup']??null)?$evidence['file_backup']:null;
+                        $databaseBackup=is_array($evidence['database_backup']??null)?$evidence['database_backup']:null;
+                    @endphp
+                    <tr>
+                        <td><code>{{ $row->from_version ?: '—' }}</code> → <code>{{ $row->to_version }}</code><br><small dir="ltr">{{ optional($row->started_at)->toIso8601String() ?: '—' }}</small></td>
+                        <td>{{ __('system_admin.evidence.'.$statusKey) }}</td>
+                        <td>
+                            <div class="update-evidence">
+                                <span><small>{{ __('system_admin.labels.package_integrity') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($evidence['package_integrity']??'pending')) }}</strong></span>
+                                <span><small>{{ __('system_admin.labels.preflight') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($evidence['preflight']??'pending')) }}</strong></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="update-evidence">
+                                <span><small>{{ __('system_admin.labels.status') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($row->backup_status?:'unknown')) }}</strong></span>
+                                @if($fileBackup)<span><small>{{ __('system_admin.labels.file_backup') }}</small><code>{{ $fileBackup['reference']??'—' }}</code></span>@endif
+                                @if($databaseBackup)<span><small>{{ __('system_admin.labels.database_backup') }}</small><code>{{ $databaseBackup['reference']??'—' }}</code></span>@endif
+                            </div>
+                        </td>
+                        <td>
+                            <div class="update-evidence">
+                                <span><small>{{ __('system_admin.labels.migrations') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($evidence['migrations']??'not_required')) }}</strong></span>
+                                <span><small>{{ __('system_admin.labels.health_check') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($evidence['health_check']??'pending')) }}</strong></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="update-evidence">
+                                <span><small>{{ __('system_admin.labels.rollback') }}</small><strong>{{ __('system_admin.evidence.'.$normalizeEvidence($row->rollback_status?:'unknown')) }}</strong></span>
+                                @if($row->failed_stage)<span><small>{{ __('system_admin.labels.failed_stage') }}</small><code>{{ $row->failed_stage }}</code></span>@endif
+                            </div>
+                        </td>
+                        <td>{{ $row->environment ?: '—' }}</td>
+                        <td>{{ $row->actor?->name ?: '—' }}</td>
+                        <td>{{ $row->failure_reason ?: '—' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="9">{{ __('admin.system_update_surface.empty') }}</td></tr>
+                @endforelse
+                </tbody>
+            </table>
             </div>
-            <button class="foodex-primary" type="submit">{{ __('admin.system_update_surface.install') }}</button>
-        </form>
-    </section>
-
-    <section class="card">
-        <h2>{{ __('admin.system_update_surface.history') }}</h2>
-        <table data-pagination-required>
-            <thead>
-            <tr><th>{{ __('admin.system_update_surface.from') }}</th><th>{{ __('admin.system_update_surface.to') }}</th><th>{{ __('admin.system_update_surface.status') }}</th><th>{{ __('admin.system_update_surface.started') }}</th><th>{{ __('admin.system_update_surface.failure') }}</th></tr>
-            </thead>
-            <tbody>
-            @forelse ($historyRows as $row)
-                @php
-                    $updateStatusCode = strtolower((string)$row->status);
-                    $updateStatusLabel = match($updateStatusCode) {
-                        'pending', 'queued' => app()->getLocale()==='ar' ? 'قيد الانتظار' : 'Pending',
-                        'running', 'in_progress' => app()->getLocale()==='ar' ? 'قيد التنفيذ' : 'Running',
-                        'completed', 'success', 'succeeded' => app()->getLocale()==='ar' ? 'مكتمل' : 'Completed',
-                        'failed', 'error' => app()->getLocale()==='ar' ? 'فشل' : 'Failed',
-                        'rolled_back' => app()->getLocale()==='ar' ? 'تم التراجع' : 'Rolled back',
-                        default => app()->getLocale()==='ar' ? 'حالة التحديث' : 'Update status',
-                    };
-                @endphp
-                <tr>
-                    <td>{{ $row->from_version ?: '—' }}</td>
-                    <td>{{ $row->to_version }}</td>
-                    <td>{{ $updateStatusLabel }}</td>
-                    <td>{{ $row->started_at ?: '—' }}</td>
-                    <td>{{ $row->failure_reason ?: '—' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-        {{ $historyRows->links() }}
-    </section>
+            {{ $historyRows->links() }}
+        </section>
+    </div>
 </main>
 </div>
 <script>
