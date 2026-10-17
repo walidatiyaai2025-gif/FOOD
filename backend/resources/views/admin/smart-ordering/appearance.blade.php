@@ -83,6 +83,24 @@
 </div>
 </div>
 
+@if($siteKey !== '' && $canApply)
+<form method="post" action="{{ route('admin.smart-ordering.appearance.apply') }}" class="so-builder-group" data-apply-form data-current-theme="{{ $currentTheme }}">
+@csrf
+<input type="hidden" name="site" value="{{ $siteKey }}">
+<input type="hidden" name="theme" value="{{ $selectedTheme }}" data-apply-theme>
+<input type="hidden" name="lang" value="{{ $selectedLocale }}" data-apply-lang>
+<input type="hidden" name="device" value="{{ $selectedDevice }}" data-apply-device>
+<button class="foodex-action-primary button primary" type="submit" data-apply-button @disabled($currentTheme === $selectedTheme)>
+{{ __('smart_ordering.appearance.apply_to_draft') }}
+</button>
+<p class="so-preview-hint" data-apply-status>{{ $currentTheme === $selectedTheme ? __('smart_ordering.appearance.current_template_help') : __('smart_ordering.appearance.apply_help') }}</p>
+</form>
+@elseif($siteKey !== '')
+<p class="so-preview-hint">{{ __('smart_ordering.appearance.read_only_help') }}</p>
+@else
+<p class="so-preview-hint">{{ __('smart_ordering.appearance.preview_only_help') }}</p>
+@endif
+
 <div class="so-builder-group">
 <span class="so-builder-label">{{ __('smart_ordering.appearance.appearance_label') }}</span>
 <div class="so-segmented so-segmented-two">
@@ -135,6 +153,8 @@
     const site = document.getElementById('site');
     const frame = root.querySelector('[data-preview]');
     const deviceFrame = root.querySelector('[data-device-frame]');
+    const applyForm = root.querySelector('[data-apply-form]');
+    const applyButton = root.querySelector('[data-apply-button]');
     const state = {
         theme: @json($selectedTheme),
         appearance: @json($selectedAppearance),
@@ -177,6 +197,18 @@
         if (button.dataset.theme) {
             state.theme = button.dataset.theme;
             setPressed('[data-theme]', 'theme', state.theme);
+            if (applyForm) {
+                applyForm.querySelector('[data-apply-theme]').value = state.theme;
+                if (applyButton) {
+                    applyButton.disabled = state.theme === applyForm.dataset.currentTheme;
+                }
+                const status = applyForm.querySelector('[data-apply-status]');
+                if (status) {
+                    status.textContent = state.theme === applyForm.dataset.currentTheme
+                        ? @json(__('smart_ordering.appearance.current_template_help'))
+                        : @json(__('smart_ordering.appearance.apply_help'));
+                }
+            }
             refresh();
         }
         if (button.dataset.appearance) {
@@ -187,11 +219,13 @@
         if (button.dataset.lang) {
             state.lang = button.dataset.lang;
             setPressed('[data-lang]', 'lang', state.lang);
+            if (applyForm) applyForm.querySelector('[data-apply-lang]').value = state.lang;
             refresh();
         }
         if (button.dataset.device) {
             state.device = button.dataset.device;
             setPressed('[data-device]', 'device', state.device);
+            if (applyForm) applyForm.querySelector('[data-apply-device]').value = state.device;
             refresh();
         }
     });
