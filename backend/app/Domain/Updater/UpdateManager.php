@@ -77,11 +77,7 @@ final class UpdateManager
             $maintenanceMode = false;
 
             SystemVersion::query()->updateOrCreate(
-                [
-                    'version' => $manifest->targetVersion,
-                    'file_backup_reference' => $fileBackup === null ? null : basename($fileBackup),
-                    'database_backup_reference' => $databaseBackup === null ? null : basename($databaseBackup),
-                ],
+                ['version' => $manifest->targetVersion],
                 ['installed_at' => now(), 'package_hash' => strtolower($manifest->sha256)],
             );
 
@@ -96,7 +92,11 @@ final class UpdateManager
                 $actor,
                 $history,
                 ['version' => $currentVersion],
-                ['version' => $manifest->targetVersion],
+                [
+                    'version' => $manifest->targetVersion,
+                    'file_backup_reference' => $fileBackup === null ? null : basename($fileBackup),
+                    'database_backup_reference' => $databaseBackup === null ? null : basename($databaseBackup),
+                ],
             );
 
             return $history->refresh();
