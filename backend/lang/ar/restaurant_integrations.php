@@ -44,6 +44,18 @@ return [
     'no_webhooks' => 'لا توجد اشتراكات Webhook.',
     'active' => 'نشط',
     'inactive' => 'غير نشط',
+    'directions' => [
+        'inbound' => 'وارد',
+        'outbound' => 'صادر',
+    ],
+    'observability_statuses' => [
+        'received' => 'مستلم',
+        'processed' => 'تمت المعالجة',
+        'pending' => 'قيد الانتظار',
+        'retry' => 'إعادة محاولة',
+        'delivered' => 'تم التسليم',
+        'dead_letter' => 'متوقف بعد فشل المحاولات',
+    ],
     'status_options' => [
         'disabled' => 'غير مفعل',
         'enabled' => 'مفعل',
