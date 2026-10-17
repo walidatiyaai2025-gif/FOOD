@@ -1751,6 +1751,12 @@ class SmartOrderingCoreTest extends TestCase
             ])
             ->assertRedirect();
 
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.staff.store', $this->branch->public_id), [
+                'user_id' => $admin->id,
+            ])
+            ->assertRedirect();
+
         $this->actingAs($staff)
             ->get(route('admin.smart-ordering.operations.index', [
                 'tab' => 'workforce',
@@ -1758,7 +1764,8 @@ class SmartOrderingCoreTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('Clock Team Member')
-            ->assertDontSee('Smart Ordering Admin');
+            ->assertSee('data-workforce-user-id="'.$staff->id.'"', false)
+            ->assertDontSee('data-workforce-user-id="'.$admin->id.'"', false);
 
         $this->actingAs($staff)
             ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
