@@ -39,6 +39,7 @@ final class PurchaseInvoiceHandoffManager
         private readonly AuditLogger $audit,
         private readonly ModuleRegistry $modules,
         private readonly TransactionalOutbox $outbox,
+        private readonly ProcurementCompletionManager $completion,
     ) {}
 
     /**
@@ -255,6 +256,8 @@ final class PurchaseInvoiceHandoffManager
                 ],
             );
 
+            $this->completion->syncMatchForInvoice($invoice->id);
+
             return $invoice->load('lines');
         }, 3);
     }
@@ -273,6 +276,7 @@ final class PurchaseInvoiceHandoffManager
             }
 
             $this->requireStatus($invoice, ['draft'], 'handed off');
+            $this->completion->assertMatchAllowsHandoff($invoice->id);
 
             $receipt = $this->visibleReceiptQuery($scope)
                 ->whereKey($invoice->goods_receipt_id)
