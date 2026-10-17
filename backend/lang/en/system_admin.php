@@ -26,6 +26,7 @@ return [
         'queue_scheduler' => 'Queue & scheduler',
         'failed_jobs' => 'Failed jobs',
         'last_backup' => 'Last verified backup',
+        'backup_age' => 'Backup age',
         'current_version' => 'Current version',
         'pending_migrations' => 'Pending migrations',
         'storage' => 'Storage health',
