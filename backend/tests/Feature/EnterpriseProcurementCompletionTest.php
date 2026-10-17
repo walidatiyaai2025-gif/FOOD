@@ -23,7 +23,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\RecordNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -201,7 +201,7 @@ final class EnterpriseProcurementCompletionTest extends TestCase
         try {
             $completion->contractDocument($otherActor, $otherContext, $contract->id, $document->id);
             $this->fail('Contract documents must be invisible outside the authorized store scope.');
-        } catch (ModelNotFoundException) {
+        } catch (RecordNotFoundException) {
             $this->assertTrue(true);
         }
 
