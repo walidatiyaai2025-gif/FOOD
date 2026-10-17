@@ -67,6 +67,7 @@ return new class extends Migration
             $table->string('token', 64)->unique();
             $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
             $table->foreignId('catalog_id')->constrained('catalogs')->cascadeOnDelete();
+            $table->string('channel', 16);
             $table->char('package_hash', 64);
             $table->string('status', 24);
             $table->json('counts_json')->nullable();
