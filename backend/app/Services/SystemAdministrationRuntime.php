@@ -98,7 +98,7 @@ final class SystemAdministrationRuntime
             $state = 'error';
         } elseif (
             $failedJobs === null
-            || ($failedJobs ?? 0) > 0
+            || $failedJobs > 0
             || $scheduler['state'] === 'warning'
             || $configurationWarnings !== []
         ) {
@@ -197,25 +197,34 @@ final class SystemAdministrationRuntime
             return [];
         }
 
-        return DB::table('failed_jobs')
-            ->select(['id', 'uuid', 'connection', 'queue', 'exception', 'failed_at'])
-            ->orderByDesc('failed_at')
-            ->orderByDesc('id')
-            ->limit(max(1, min($limit, 100)))
-            ->get()
-            ->map(static function ($row): array {
-                $exception = is_string($row->exception ?? null) ? (string) $row->exception : '';
+        try {
+            $columns = ['id', 'connection', 'queue', 'exception', 'failed_at'];
+            if (Schema::hasColumn('failed_jobs', 'uuid')) {
+                $columns[] = 'uuid';
+            }
 
-                return [
-                    'id' => (int) $row->id,
-                    'uuid' => is_string($row->uuid ?? null) ? (string) $row->uuid : null,
-                    'connection' => (string) ($row->connection ?? ''),
-                    'queue' => (string) ($row->queue ?? ''),
-                    'failure_fingerprint' => $exception === '' ? null : substr(hash('sha256', $exception), 0, 16),
-                    'failed_at' => is_string($row->failed_at ?? null) ? (string) $row->failed_at : null,
-                ];
-            })
-            ->all();
+            return DB::table('failed_jobs')
+                ->select($columns)
+                ->orderByDesc('failed_at')
+                ->orderByDesc('id')
+                ->limit(max(1, min($limit, 100)))
+                ->get()
+                ->map(static function ($row): array {
+                    $exception = is_string($row->exception ?? null) ? (string) $row->exception : '';
+
+                    return [
+                        'id' => (int) $row->id,
+                        'uuid' => is_string($row->uuid ?? null) ? (string) $row->uuid : null,
+                        'connection' => (string) ($row->connection ?? ''),
+                        'queue' => (string) ($row->queue ?? ''),
+                        'failure_fingerprint' => $exception === '' ? null : substr(hash('sha256', $exception), 0, 16),
+                        'failed_at' => is_string($row->failed_at ?? null) ? (string) $row->failed_at : null,
+                    ];
+                })
+                ->all();
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**
@@ -247,13 +256,15 @@ final class SystemAdministrationRuntime
 
         return $rows->map(static function (AuditLog $row) use ($users): array {
             $actor = $row->user_id ? $users->get($row->user_id) : null;
+            $before = $row->getAttribute('before');
+            $after = $row->getAttribute('after');
 
             return [
                 'id' => (int) $row->id,
                 'event' => (string) $row->event,
                 'actor' => $actor?->name ?: $actor?->email,
-                'before' => is_array($row->before) ? $row->before : [],
-                'after' => is_array($row->after) ? $row->after : [],
+                'before' => is_array($before) ? $before : [],
+                'after' => is_array($after) ? $after : [],
                 'created_at' => $row->created_at?->toIso8601String(),
             ];
         })->all();
