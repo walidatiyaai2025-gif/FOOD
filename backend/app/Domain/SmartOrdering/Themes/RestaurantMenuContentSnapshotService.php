@@ -168,9 +168,22 @@ final class RestaurantMenuContentSnapshotService
                 ],
                 'description' => ['en' => $descriptionEn, 'ar' => $descriptionAr],
                 'about' => [
-                    'en' => $this->text($sections['about_en'] ?? $sections['chef_note_en'] ?? '', 1600),
-                    'ar' => $this->text($sections['about_ar'] ?? $sections['chef_note_ar'] ?? $sections['about_en'] ?? $sections['chef_note_en'] ?? '', 1600),
+                    'en' => $this->text($sections['about_en'] ?? '', 1600),
+                    'ar' => $this->text($sections['about_ar'] ?? $sections['about_en'] ?? '', 1600),
                 ],
+                'chef_note' => [
+                    'en' => $this->text($sections['chef_note_en'] ?? '', 1600),
+                    'ar' => $this->text($sections['chef_note_ar'] ?? $sections['chef_note_en'] ?? '', 1600),
+                ],
+                'allergen_note' => [
+                    'en' => $this->text($sections['allergen_note_en'] ?? '', 800),
+                    'ar' => $this->text($sections['allergen_note_ar'] ?? $sections['allergen_note_en'] ?? '', 800),
+                ],
+                'reservation_cta' => [
+                    'en' => $this->text($sections['reservation_cta_en'] ?? '', 160),
+                    'ar' => $this->text($sections['reservation_cta_ar'] ?? $sections['reservation_cta_en'] ?? '', 160),
+                ],
+                'reservation_url' => $this->text($sections['reservation_url'] ?? '', 500),
                 'logo_url' => $logoUrl,
                 'cover_url' => $coverUrl,
                 'phone' => $this->text($identity['phone'] ?? '', 40),
@@ -209,11 +222,11 @@ final class RestaurantMenuContentSnapshotService
                 'public_key' => (string) $branch->public_id,
                 'name' => ['en' => (string) $branch->name_en, 'ar' => (string) ($branch->name_ar ?: $branch->name_en)],
                 'address' => [
-                    'en' => $this->text($override['address_en'] ?? '', 500),
-                    'ar' => $this->text($override['address_ar'] ?? $override['address_en'] ?? '', 500),
+                    'en' => $this->text($override['address_en'] ?? $content['sections']['location_en'] ?? '', 500),
+                    'ar' => $this->text($override['address_ar'] ?? $content['sections']['location_ar'] ?? $override['address_en'] ?? $content['sections']['location_en'] ?? '', 500),
                 ],
                 'hours' => $this->hours($hours->get((int) $branch->id, collect())->all()),
-                'map_url' => $this->text($override['map_url'] ?? '', 500),
+                'map_url' => $this->text($override['map_url'] ?? $content['sections']['map_url'] ?? '', 500),
             ];
         })->values()->all();
     }
