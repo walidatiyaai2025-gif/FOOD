@@ -20,7 +20,13 @@ final class CustomerTimelineService
         $legacyId = (int) $customer->legacy_customer_id;
         $visible = ($customer->origin_store_id !== null && in_array((int) $customer->origin_store_id, $storeIds, true))
             || DB::table('whats_app_conversations')->where('platform_customer_id', $platformCustomerId)->whereIn('store_id', $storeIds)->exists()
-            || DB::table('orders')->where('customer_id', $legacyId)->whereIn('store_id', $storeIds)->exists();
+            || DB::table('orders')->where('customer_id', $legacyId)->whereIn('store_id', $storeIds)->exists()
+            || DB::table('b2b_customers')->where('user_id', $customer->user_id)->exists()
+            || DB::table('retail_wholesale_accounts')
+                ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+                ->where('retail_wholesale_accounts.owner_user_id', $customer->user_id)
+                ->where('b2b_accounts.status', 'active')
+                ->exists();
         abort_unless($actor->hasRole('SUPER_ADMIN') || $visible, 404);
 
         $whatsAppStoreIds = array_values(array_filter(
