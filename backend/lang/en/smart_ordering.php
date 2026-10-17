@@ -631,6 +631,17 @@ return [
         'accepting' => 'Accepting',
         'paused' => 'Paused',
     ],
+    'retail_feature' => [
+        'title' => 'Restaurant Management',
+        'description' => 'Client-only Restaurant SaaS service for this Retail Store. When disabled, the store team cannot discover or access restaurant operations; existing restaurant data is preserved.',
+        'enabled' => 'Enabled',
+        'disabled' => 'Disabled',
+        'enable_action' => 'Enable Restaurant Management',
+        'disable_action' => 'Disable Restaurant Management',
+        'saved_enabled' => 'Restaurant Management has been enabled for this Retail Store.',
+        'saved_disabled' => 'Restaurant Management has been disabled for this Retail Store. Existing data was preserved.',
+    ],
+
     'analytics' => [
         'nav_title' => 'Restaurant Analytics',
         'eyebrow' => 'Restaurant commercial growth',
