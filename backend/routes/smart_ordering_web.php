@@ -21,6 +21,7 @@ Route::prefix('admin/smart-ordering')
         Route::post('/sites/{site}/custom-domain/verify', [SmartOrderingController::class, 'verifyCustomDomain'])->whereNumber('site')->name('custom-domain.verify');
         Route::post('/sites/{site}/draft', [SmartOrderingController::class, 'draft'])->whereNumber('site')->name('draft');
         Route::put('/revisions/{revision}', [SmartOrderingController::class, 'updateDraft'])->whereNumber('revision')->name('revisions.update');
+        Route::put('/revisions/{revision}/content', [SmartOrderingController::class, 'updateContent'])->whereNumber('revision')->name('revisions.content');
         Route::post('/revisions/{revision}/publish', [SmartOrderingController::class, 'publish'])->whereNumber('revision')->name('revisions.publish');
         Route::put('/sites/{site}/onboarding/profile', [RestaurantOnboardingController::class, 'profile'])->whereNumber('site')->name('onboarding.profile');
         Route::post('/sites/{site}/onboarding/import', [RestaurantOnboardingController::class, 'import'])->whereNumber('site')->name('onboarding.import');
