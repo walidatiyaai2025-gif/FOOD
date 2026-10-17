@@ -409,7 +409,7 @@ class OrderOperationsIsolationTest extends TestCase
                     ->values()
                     ->all() === [$wholesaleOrder];
             })
-            ->assertSee('OPS-ALL-WHOLESALE-2001')
+            ->assertSee('#'.$wholesaleOrder)
             ->assertDontSee('OPS-ALL-RETAIL-1001')
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Dashboard');
