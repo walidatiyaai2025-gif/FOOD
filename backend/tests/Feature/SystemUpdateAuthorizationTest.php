@@ -29,6 +29,9 @@ class SystemUpdateAuthorizationTest extends TestCase
             ->get('/admin/settings/system-update')
             ->assertOk()
             ->assertSee('System Update')
+            ->assertSee('Runtime health & recovery')
+            ->assertSee('Backup Center')
+            ->assertSee('Recent failed jobs')
             ->assertSee('Validated update package');
 
         $this->actingAs($user)
@@ -90,6 +93,19 @@ class SystemUpdateAuthorizationTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin/settings/system-update')
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('admin.system-update.backups.store'), ['reason' => 'unauthorized backup'])
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('admin.system-update.backups.restore', [
+                'backupReference' => '20261017-120000-database-aaaaaaaaaa',
+            ]), [
+                'reason' => 'unauthorized restore',
+                'confirm_reference' => '20261017-120000-database-aaaaaaaaaa',
+            ])
             ->assertForbidden();
 
         $this->actingAs($user)

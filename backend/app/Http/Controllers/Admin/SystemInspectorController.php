@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
+use App\Services\SystemAdministrationRuntime;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         RestaurantOperatorService $restaurantOperator,
+        SystemAdministrationRuntime $systemRuntime,
     ): View {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -62,6 +64,91 @@ final class SystemInspectorController extends Controller
             ->orderByDesc('id');
 
         $since = now()->subDay();
+        $trendStart = now()->startOfDay()->subDays(6);
+        $incidentCounts = SystemInspectorEvent::query()
+            ->where('occurred_at', '>=', $trendStart)
+            ->selectRaw('DATE(occurred_at) as day, COUNT(*) as aggregate')
+            ->groupByRaw('DATE(occurred_at)')
+            ->pluck('aggregate', 'day')
+            ->map(static fn ($count): int => (int) $count);
+
+        $incidentTrend = collect(range(6, 0))
+            ->map(function (int $daysAgo) use ($incidentCounts): array {
+                $date = now()->startOfDay()->subDays($daysAgo);
+                $key = $date->toDateString();
+
+                return [
+                    'day' => $key,
+                    'label' => $date->format('m-d'),
+                    'count' => (int) ($incidentCounts[$key] ?? 0),
+                ];
+            })
+            ->all();
+
+        $runtime = $systemRuntime->healthSnapshot();
+        $runtimeCode = (string) ($runtime['state'] ?? 'unknown');
+        $runtimeStateLabel = match ($runtimeCode) {
+            'healthy' => __('admin.system_update_surface.healthy'),
+            'warning' => __('admin.system_update_surface.warning'),
+            'error' => __('admin.system_update_surface.error'),
+            default => __('admin.system_update_surface.unknown'),
+        };
+        $runtimeBadgeState = match ($runtimeCode) {
+            'healthy' => 'success',
+            'warning' => 'warning',
+            default => 'error',
+        };
+        $runtimeMetrics = [
+            [
+                'label' => __('admin.system_update_surface.application_health'),
+                'value' => $runtimeStateLabel,
+            ],
+            [
+                'label' => __('admin.system_update_surface.database_health'),
+                'value' => match ((string) ($runtime['database']['state'] ?? 'unknown')) {
+                    'healthy' => __('admin.system_update_surface.healthy'),
+                    'error' => __('admin.system_update_surface.error'),
+                    default => __('admin.system_update_surface.unknown'),
+                },
+            ],
+            [
+                'label' => __('admin.system_update_surface.cache_health'),
+                'value' => match ((string) ($runtime['cache']['state'] ?? 'unknown')) {
+                    'healthy' => __('admin.system_update_surface.healthy'),
+                    'error' => __('admin.system_update_surface.error'),
+                    default => __('admin.system_update_surface.unknown'),
+                },
+            ],
+            [
+                'label' => __('admin.system_update_surface.failed_jobs'),
+                'value' => $runtime['queue']['failed_jobs'] ?? '—',
+            ],
+            [
+                'label' => __('admin.system_update_surface.scheduler_health'),
+                'value' => match ((string) ($runtime['scheduler']['state'] ?? 'unknown')) {
+                    'healthy' => __('admin.system_update_surface.healthy'),
+                    'warning' => __('admin.system_update_surface.warning'),
+                    'disabled' => __('admin.system_update_surface.disabled'),
+                    default => __('admin.system_update_surface.unknown'),
+                },
+            ],
+            [
+                'label' => __('admin.system_update_surface.pending_migrations'),
+                'value' => $runtime['pending_migrations'] ?? '—',
+            ],
+            [
+                'label' => __('admin.system_update_surface.storage_health'),
+                'value' => match ((string) ($runtime['storage']['state'] ?? 'unknown')) {
+                    'healthy' => __('admin.system_update_surface.healthy'),
+                    'error' => __('admin.system_update_surface.error'),
+                    default => __('admin.system_update_surface.unknown'),
+                },
+            ],
+            [
+                'label' => __('admin.system_update_surface.config_warnings'),
+                'value' => count($runtime['configuration_warnings'] ?? []),
+            ],
+        ];
 
         return view('admin.system-inspector', [
             'user' => $actor,
@@ -89,6 +176,11 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $runtime,
+            'runtimeStateLabel' => $runtimeStateLabel,
+            'runtimeBadgeState' => $runtimeBadgeState,
+            'runtimeMetrics' => $runtimeMetrics,
+            'incidentTrend' => $incidentTrend,
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
@@ -203,8 +295,11 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
-    {
+    public function export(
+        Request $request,
+        EnterpriseSystemInspector $enterpriseInspector,
+        SystemAdministrationRuntime $systemRuntime,
+    ): StreamedResponse {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
@@ -216,6 +311,11 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $systemRuntime->healthSnapshot(),
+            'recovery' => [
+                'backups' => $systemRuntime->backups(100),
+                'operations' => $systemRuntime->recentOperations(100),
+            ],
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,

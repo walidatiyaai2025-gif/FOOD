@@ -15,6 +15,7 @@
 .inspector-table-wrap{overflow:auto}.inspector-table{min-width:1180px}.severity-error{color:var(--foodex-red);font-weight:700}.severity-warning{color:#9a4b0b;font-weight:700}
 .inspector-message{max-width:420px;white-space:normal;overflow-wrap:anywhere}.inspector-context{max-width:560px;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
 .inspector-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap}
+.inspector-trend{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}.inspector-trend-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:10px;align-items:center;margin-block:9px}
 .inspector-enterprise{padding:var(--foodex-space-5);margin-bottom:var(--foodex-space-5)}
 .inspector-enterprise-heading{display:flex;justify-content:space-between;gap:var(--foodex-space-3);align-items:flex-start;flex-wrap:wrap}
 .inspector-enterprise-section{margin-top:var(--foodex-space-5)}
@@ -72,6 +73,61 @@
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
         </section>
 
+        <section id="system-runtime" class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
+            <div class="inspector-enterprise-heading">
+                <div>
+                    <span class="foodex-subtitle">FOODEX · {{ __('admin.system_update_surface.dashboard_title') }}</span>
+                    <h2>{{ __('admin.system_update_surface.dashboard_title') }}</h2>
+                    <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
+                </div>
+                <div class="inspector-actions">
+                    <span class="foodex-status-badge" data-state="{{ $runtimeBadgeState }}">{{ $runtimeStateLabel }}</span>
+                    <a class="foodex-action-secondary button secondary" href="{{ route('admin.system-update.index') }}">{{ __('admin.system_update_surface.backup_center') }}</a>
+                </div>
+            </div>
+            <div class="foodex-module-kpis inspector-grid">
+                @foreach($runtimeMetrics as $metric)
+                    <article class="foodex-viz-card foodex-module-kpi" data-foodex-module-kpi data-interactive="false">
+                        <span class="foodex-module-kpi-label">{{ $metric['label'] }}</span>
+                        <strong class="foodex-module-kpi-value foodex-number">{{ $metric['value'] }}</strong>
+                    </article>
+                @endforeach
+            </div>
+            @if(($runtime['configuration_warnings'] ?? []) !== [])
+                <div class="foodex-alert warning" role="status">
+                    <strong>{{ __('admin.system_update_surface.config_warnings') }}</strong>
+                    <ul>
+                        @foreach($runtime['configuration_warnings'] as $warning)
+                            <li><code>{{ $warning }}</code></li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @php($incidentMax = max(1, ...array_map(static fn(array $row): int => (int)$row['count'], $incidentTrend)))
+            <article class="foodex-viz-card foodex-module-chart inspector-trend" data-foodex-module-chart>
+                <div class="foodex-viz-header">
+                    <div>
+                        <h3 class="foodex-viz-title">{{ __('admin.system_update_surface.incident_trend_title') }}</h3>
+                        <p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.incident_trend_description') }}</p>
+                    </div>
+                    <span class="badge">{{ __('admin.system_update_surface.failed_jobs_24h') }}: <span class="foodex-number">{{ $runtime['queue']['failed_jobs_24h'] ?? '—' }}</span></span>
+                </div>
+                @foreach($incidentTrend as $point)
+                    @php($incidentPercent = max(2, (int)round(((int)$point['count'] / $incidentMax) * 100)))
+                    <div class="inspector-trend-row">
+                        <time datetime="{{ $point['day'] }}">{{ $point['label'] }}</time>
+                        <div class="foodex-viz-progress" role="img" aria-label="{{ $point['day'] }} · {{ $point['count'] }}"><span style="width:{{ $incidentPercent }}%"></span></div>
+                        <strong class="foodex-number">{{ $point['count'] }}</strong>
+                    </div>
+                @endforeach
+                <div class="foodex-module-chart-table-wrap">
+                    <table class="foodex-module-chart-table" data-pagination-exempt="fixed-7-day-runtime-summary">
+                        <thead><tr><th>{{ __('admin.system_update_surface.day') }}</th><th>{{ __('admin.system_update_surface.incidents') }}</th></tr></thead>
+                        <tbody>@foreach($incidentTrend as $point)<tr><td>{{ $point['day'] }}</td><td class="foodex-number">{{ $point['count'] }}</td></tr>@endforeach</tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
 
         @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
         @php($enterpriseData = $enterprise['data'] ?? $enterprise)

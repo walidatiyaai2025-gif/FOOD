@@ -116,6 +116,9 @@ jobs:
             echo "::group::FOODEX runtime server log"
             cat /tmp/foodex-ui-qa-server.log || true
             echo "::endgroup::"
+            echo "::group::FOODEX Laravel application log"
+            cat storage/logs/laravel.log || true
+            echo "::endgroup::"
             exit 1
           fi
 
