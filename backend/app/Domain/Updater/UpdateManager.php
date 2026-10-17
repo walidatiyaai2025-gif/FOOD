@@ -69,8 +69,13 @@ final class UpdateManager
 
             $stage = 'backup_database';
             $databaseBackup = $this->runtime->backupDatabase($manifest->containsMigrations);
+            if ($databaseBackup !== null) {
+                $stage = 'verify_database_backup';
+                $this->runtime->verifyDatabaseBackup($databaseBackup);
+            }
             $this->checkpoint($history, [
                 'backup_database' => $databaseBackup !== null ? 'passed' : 'not_required',
+                'backup_verification' => $databaseBackup !== null ? 'passed' : 'not_required',
             ], [
                 'database_backup_reference' => $databaseBackup,
                 'backup_status' => 'available',
@@ -184,7 +189,7 @@ final class UpdateManager
                 'validate_package' => 'package_integrity',
                 'preflight' => 'preflight',
                 'backup_files' => 'backup_files',
-                'backup_database' => 'backup_database',
+                'backup_database', 'verify_database_backup' => 'backup_database',
                 'run_migrations' => 'migrations',
                 'health_check' => 'health_check',
                 default => 'execution',
