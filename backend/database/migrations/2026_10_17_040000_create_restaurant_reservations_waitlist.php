@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -61,10 +62,27 @@ return new class extends Migration
             $table->index(['branch_id', 'status', 'arrived_at'], 'so_waitlist_branch_status_idx');
             $table->index(['branch_id', 'guest_phone'], 'so_waitlist_phone_idx');
         });
+
+        $now = now();
+        foreach (DB::table('smart_ordering_sites')->pluck('id') as $siteId) {
+            DB::table('smart_ordering_entitlements')->insertOrIgnore([
+                'site_id' => (int) $siteId,
+                'branch_id' => null,
+                'scope_key' => 'site',
+                'module' => 'reservations',
+                'enabled' => false,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
     }
 
     public function down(): void
     {
+        DB::table('smart_ordering_entitlements')
+            ->where('module', 'reservations')
+            ->delete();
+
         Schema::dropIfExists('smart_ordering_waitlist_entries');
         Schema::dropIfExists('smart_ordering_reservations');
     }
