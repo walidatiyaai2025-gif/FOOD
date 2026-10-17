@@ -91,6 +91,7 @@
                 ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtimeHealth['pending_migrations'] ?? '—'],
                 ['label'=>__('admin.system_update_surface.storage_health'),'value'=>$statusLabel((string)($runtimeHealth['storage']['state'] ?? 'unknown'))],
                 ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtimeHealth['configuration_warnings'] ?? [])],
+                ['label'=>__('admin.system_update_surface.last_backup'),'value'=>is_array($lastBackup) ? ($lastBackup['reference'] ?? __('admin.system_update_surface.not_available')) : __('admin.system_update_surface.not_available')],
                 ['label'=>__('admin.system_update_surface.backup_age'),'value'=>$backupAgeDays === null ? __('admin.system_update_surface.not_available') : $backupAgeDays.' '.__('admin.system_update_surface.days')],
             ])
             @foreach($runtimeMetrics as $metric)
@@ -134,6 +135,37 @@
             @endforeach
             <div class="foodex-module-chart-summary">{{ __('admin.system_update_surface.backup_center') }}</div>
         </article>
+    </section>
+
+    <section class="foodex-card system-runtime-card" data-system-failed-jobs>
+        <div class="foodex-viz-header">
+            <div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.failed_jobs_title') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.failed_jobs_description') }}</p></div>
+            <span class="badge">{{ __('admin.system_update_surface.failed_jobs') }} · 24h: <span class="foodex-number">{{ $runtimeHealth['queue']['failed_jobs_24h'] ?? 0 }}</span></span>
+        </div>
+        <div class="system-runtime-table-wrap">
+            <table class="foodex-table system-runtime-table" data-pagination-exempt="bounded-50-failed-job-diagnostics">
+                <thead><tr>
+                    <th>ID</th>
+                    <th>{{ __('admin.system_update_surface.connection') }}</th>
+                    <th>{{ __('admin.system_update_surface.queue') }}</th>
+                    <th>{{ __('admin.system_update_surface.failure_fingerprint') }}</th>
+                    <th>{{ __('admin.system_update_surface.failed_at') }}</th>
+                </tr></thead>
+                <tbody>
+                @forelse(($runtimeHealth['queue']['recent_failures'] ?? []) as $job)
+                    <tr>
+                        <td class="foodex-number">{{ $job['id'] }}</td>
+                        <td><code>{{ $job['connection'] ?: '—' }}</code></td>
+                        <td><code>{{ $job['queue'] ?: '—' }}</code></td>
+                        <td><code>{{ $job['failure_fingerprint'] ?: '—' }}</code></td>
+                        <td>{{ $job['failed_at'] ?: '—' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5">{{ __('admin.system_update_surface.no_failed_jobs') }}</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="foodex-card system-runtime-card" data-system-backup-center>
@@ -247,7 +279,7 @@
         <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.recovery_log') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.recovery_log_description') }}</p></div></div>
         <div class="system-runtime-table-wrap">
             <table class="foodex-table system-runtime-table" data-pagination-exempt="bounded-50-runtime-audit">
-                <thead><tr><th>{{ __('admin.system_update_surface.operation') }}</th><th>{{ __('admin.system_update_surface.actor') }}</th><th>{{ __('admin.system_update_surface.environment') }}</th><th>{{ __('admin.system_update_surface.source_target') }}</th><th>{{ __('admin.system_update_surface.reason') }}</th><th>{{ __('admin.system_update_surface.stage') }}</th><th>{{ __('admin.system_update_surface.outcome') }}</th><th>{{ __('admin.system_update_surface.started') }}</th></tr></thead>
+                <thead><tr><th>{{ __('admin.system_update_surface.operation') }}</th><th>{{ __('admin.system_update_surface.actor') }}</th><th>{{ __('admin.system_update_surface.environment') }}</th><th>{{ __('admin.system_update_surface.source_target') }}</th><th>{{ __('admin.system_update_surface.reason') }}</th><th>{{ __('admin.system_update_surface.backup_references') }}</th><th>{{ __('admin.system_update_surface.stage') }}</th><th>{{ __('admin.system_update_surface.outcome') }}</th><th>{{ __('admin.system_update_surface.started') }}</th></tr></thead>
                 <tbody>
                 @forelse($recoveryOperations as $operation)
                     @php($evidence = array_merge($operation['before'] ?? [], $operation['after'] ?? []))
@@ -257,12 +289,20 @@
                         <td>{{ $evidence['environment'] ?? '—' }}</td>
                         <td><code>{{ $evidence['source_version'] ?? '—' }} → {{ $evidence['target_version'] ?? '—' }}</code></td>
                         <td>{{ $evidence['reason'] ?? '—' }}</td>
+                        <td>
+                            @php($backupEvidence = array_values(array_filter([
+                                $evidence['reference'] ?? null,
+                                $evidence['database_backup_reference'] ?? null,
+                                $evidence['file_backup_reference'] ?? null,
+                            ])))
+                            @forelse($backupEvidence as $backupReference)<code class="system-runtime-code">{{ $backupReference }}</code>@if(! $loop->last)<br>@endif @empty — @endforelse
+                        </td>
                         <td><code>{{ $evidence['stage'] ?? '—' }}</code></td>
                         <td>{{ $evidence['outcome'] ?? '—' }}</td>
                         <td>{{ $operation['created_at'] ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="8">{{ __('admin.system_update_surface.no_recovery_operations') }}</td></tr>
+                    <tr><td colspan="9">{{ __('admin.system_update_surface.no_recovery_operations') }}</td></tr>
                 @endforelse
                 </tbody>
             </table>
