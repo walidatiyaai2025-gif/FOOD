@@ -675,6 +675,7 @@ Route::prefix('admin')
         Route::get('/retail-stores', [RetailStoreProvisioningController::class, 'index'])->name('retail-stores.index');
         Route::post('/retail-stores', [RetailStoreProvisioningController::class, 'store'])->name('retail-stores.store');
         Route::patch('/retail-stores/{store}', [RetailStoreProvisioningController::class, 'update'])->name('retail-stores.update');
+        Route::patch('/retail-stores/{store}/features/restaurant-saas', [RetailStoreProvisioningController::class, 'restaurantSaas'])->name('retail-stores.restaurant-saas');
         Route::post('/retail-stores/{store}/roles', [RetailStoreProvisioningController::class, 'assignRole'])->name('retail-stores.roles.assign');
         Route::delete('/retail-stores/{store}/roles/{assignment}', [RetailStoreProvisioningController::class, 'removeRole'])->name('retail-stores.roles.remove');
         Route::post('/retail-stores/{store}/inspect', [RetailStoreProvisioningController::class, 'inspect'])->name('retail-stores.inspect');

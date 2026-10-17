@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\RestaurantGuestService;
@@ -14,7 +15,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
-use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Carbon\Carbon;
 use DateTimeImmutable;
@@ -29,7 +29,7 @@ use Illuminate\View\View;
 final class SmartOrderingOperationsController extends Controller
 {
     public function __construct(
-        private readonly OperationalTenantScope $scope,
+        private readonly RestaurantSaasStoreAccess $restaurantAccess,
         private readonly AdminNavigation $navigation,
         private readonly LifecycleService $lifecycle,
         private readonly SmartOrderingSiteService $sites,
@@ -58,8 +58,7 @@ final class SmartOrderingOperationsController extends Controller
 
         $tab = (string) ($validated['tab'] ?? 'orders');
         $permission = $tab === 'payments' ? 'finance.view' : 'orders.view';
-        $storeIds = $this->scope->allowedStoreIds($actor, $permission, 'b2c');
-        abort_if($storeIds === [], 403);
+        $storeIds = $this->restaurantAccess->allowedStoreIds($actor, $permission, $request);
 
         $query = DB::table('smart_ordering_order_contexts as soc')
             ->join('orders as o', 'o.id', '=', 'soc.order_id')
@@ -266,7 +265,7 @@ final class SmartOrderingOperationsController extends Controller
         $actor = $this->actor($request);
         $data = $this->branchData($request);
         $storeId = (int) $data['store_id'];
-        $this->scope->assertStore($actor, $storeId, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, $storeId, 'orders.manage', 'b2c');
 
         $site = $this->sites->ensureForStore($storeId, $actor, $request);
         $branch = SmartOrderingBranch::query()->create([
@@ -285,7 +284,7 @@ final class SmartOrderingOperationsController extends Controller
     {
         $actor = $this->actor($request);
         $model = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
-        $this->scope->assertStore($actor, (int) $model->store_id, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $model->store_id, 'orders.manage', 'b2c');
 
         $data = $this->branchData($request, false);
         $model->update($this->branchAttributes($data));
@@ -299,7 +298,7 @@ final class SmartOrderingOperationsController extends Controller
     {
         $actor = $this->actor($request);
         $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
-        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
         $data = $this->zoneData($request);
 
         DB::table('smart_ordering_delivery_zones')->insert([
@@ -318,7 +317,7 @@ final class SmartOrderingOperationsController extends Controller
     {
         $actor = $this->actor($request);
         $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
-        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
         $zoneModel = DB::table('smart_ordering_delivery_zones')
             ->where('public_id', $zone)
             ->where('branch_id', $branchModel->getKey())
@@ -340,7 +339,7 @@ final class SmartOrderingOperationsController extends Controller
     {
         $actor = $this->actor($request);
         $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
-        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
 
         $deleted = DB::table('smart_ordering_delivery_zones')
             ->where('public_id', $zone)
@@ -360,7 +359,7 @@ final class SmartOrderingOperationsController extends Controller
             ->firstOrFail();
         $order = DB::table('orders')->where('id', $context->order_id)->first(['store_id']);
         abort_unless($order !== null, 404);
-        $this->scope->assertStore($actor, (int) $order->store_id, 'orders.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $order->store_id, 'orders.manage', 'b2c');
 
         $data = $request->validate([
             'status' => ['required', Rule::in(['CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'])],
@@ -390,7 +389,7 @@ final class SmartOrderingOperationsController extends Controller
             DB::table('smart_ordering_order_contexts')->where('order_id', $model->order_id)->exists(),
             404,
         );
-        $this->scope->assertStore($actor, (int) $order->store_id, 'finance.manage', 'b2c');
+        $this->restaurantAccess->assertStore($actor, (int) $order->store_id, 'finance.manage', 'b2c');
 
         $data = $request->validate([
             'idempotency_key' => ['required', 'string', 'max:160'],

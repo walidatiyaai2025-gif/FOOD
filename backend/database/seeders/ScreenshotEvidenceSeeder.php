@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
@@ -453,6 +454,11 @@ class ScreenshotEvidenceSeeder extends Seeder
 
         $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
+        app(RestaurantSaasStoreFeatureService::class)->setEnabled(
+            $retailEvidenceStore,
+            true,
+            $procurementActor,
+        );
         $retailFinanceHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($retailStoreId);
         if ($retailFinanceHierarchy === null) {
             throw new RuntimeException('Finance screenshot fixture requires a retail legal-entity scope.');

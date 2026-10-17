@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\SmartOrdering\SupplyIntelligenceService;
@@ -24,10 +25,13 @@ final class SmartOrderingSupplyController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $storeIds = $tenants->retailStoreIds($actor);
-        abort_if($storeIds === [], 403);
+        $storeIds = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, 'smart_ordering.view', $request);
 
         $requested = $request->integer('store_id');
+        if ($requested > 0 && ! in_array($requested, $storeIds, true)) {
+            abort(404);
+        }
         $storeId = in_array($requested, $storeIds, true)
             ? $requested
             : (int) (DB::table('smart_ordering_sites as sites')
@@ -38,8 +42,6 @@ final class SmartOrderingSupplyController extends Controller
                 ->where('entitlements.enabled', true)
                 ->orderBy('sites.store_id')
                 ->value('sites.store_id') ?? $storeIds[0]);
-        abort_unless($actor->hasPermission('smart_ordering.view', $storeId), 403);
-
         $site = $sites->ensureForStore($storeId, $actor, $request);
         $this->assertEntitled($site);
 
@@ -271,13 +273,12 @@ final class SmartOrderingSupplyController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $tenants->retail(
+        app(RestaurantSaasStoreAccess::class)->assertStore(
             $actor,
             (int) $site->store_id,
-            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
-            $request,
+            $permission,
+            'b2c',
         );
-        abort_unless($actor->hasPermission($permission, (int) $site->store_id), 403);
 
         return $actor;
     }
