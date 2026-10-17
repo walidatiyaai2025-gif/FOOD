@@ -1447,16 +1447,35 @@ final class ProcurementCompletionManager
         int $limit = 500,
     ): array {
         $scope = $this->scope($actor, $context, 'procurement.supplier_statements.view');
+
+        return $this->reportForStore($report, $scope->storeId, $filters, $limit);
+    }
+
+    /**
+     * Internal reporting bridge used by Enterprise BI after its own entitlement
+     * and store-scope authorization succeeds.
+     *
+     * @param array{from?:string|null,to?:string|null} $filters
+     * @return array{columns:list<string>,rows:list<array<string,mixed>>}
+     */
+    public function reportForStore(
+        string $report,
+        int $storeId,
+        array $filters = [],
+        int $limit = 500,
+        int $offset = 0,
+    ): array {
         [$from, $to] = $this->dateWindow($filters['from'] ?? null, $filters['to'] ?? null);
         $limit = max(1, min(5000, $limit));
+        $offset = max(0, $offset);
 
         return match ($report) {
-            'open_orders' => $this->openOrdersReport($scope->storeId, $limit),
-            'spend' => $this->spendReport($scope->storeId, $from, $to, $limit),
-            'supplier_performance' => $this->supplierPerformanceReport($scope->storeId, $from, $to, $limit),
-            'savings' => $this->savingsReport($scope->storeId, $from, $to, $limit),
-            'contract_expiry' => $this->contractExpiryReport($scope->storeId, $limit),
-            'match_exceptions' => $this->matchExceptionReport($scope->storeId, $limit),
+            'open_orders' => $this->openOrdersReport($storeId, $limit, $offset),
+            'spend' => $this->spendReport($storeId, $from, $to, $limit, $offset),
+            'supplier_performance' => $this->supplierPerformanceReport($storeId, $from, $to, $limit, $offset),
+            'savings' => $this->savingsReport($storeId, $from, $to, $limit, $offset),
+            'contract_expiry' => $this->contractExpiryReport($storeId, $limit, $offset),
+            'match_exceptions' => $this->matchExceptionReport($storeId, $limit, $offset),
             default => throw ValidationException::withMessages(['report' => ['Unknown procurement report.']]),
         };
     }
@@ -1689,40 +1708,77 @@ final class ProcurementCompletionManager
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function openOrdersReport(int $storeId, int $limit): array
+    private function openOrdersReport(int $storeId, int $limit, int $offset = 0): array
     {
-        $rows = DB::table('enterprise_purchase_orders')
-            ->where('store_id', $storeId)
-            ->whereIn('status', ['draft', 'issued'])
-            ->orderBy('needed_by')
+        $rows = DB::table('enterprise_purchase_orders as orders')
+            ->leftJoin('enterprise_purchase_order_lines as lines', 'lines.purchase_order_id', '=', 'orders.id')
+            ->where('orders.store_id', $storeId)
+            ->whereIn('orders.status', ['draft', 'issued'])
+            ->groupBy(
+                'orders.id',
+                'orders.order_number',
+                'orders.supplier_code',
+                'orders.status',
+                'orders.needed_by',
+                'orders.currency_code',
+            )
+            ->selectRaw(
+                'orders.order_number, orders.supplier_code as supplier_reference, orders.status, '
+                .'orders.needed_by, orders.currency_code as currency, '
+                .'COALESCE(SUM(COALESCE(lines.unit_price, 0) * lines.quantity), 0) as order_value',
+            )
+            ->orderByRaw('CASE WHEN orders.needed_by IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('orders.needed_by')
+            ->offset($offset)
             ->limit($limit)
-            ->get(['order_number', 'supplier_code', 'status', 'needed_by', 'currency_code'])
-            ->map(fn ($row): array => (array) $row)
+            ->get()
+            ->map(function ($row): array {
+                $neededBy = $row->needed_by === null
+                    ? null
+                    : CarbonImmutable::parse((string) $row->needed_by);
+                $daysOverdue = $neededBy !== null && $neededBy->isPast()
+                    ? (int) $neededBy->diffInDays(CarbonImmutable::today())
+                    : 0;
+
+                return [
+                    'order_number' => (string) $row->order_number,
+                    'supplier_reference' => (string) $row->supplier_reference,
+                    'status' => (string) $row->status,
+                    'needed_by' => $row->needed_by === null ? null : (string) $row->needed_by,
+                    'currency' => (string) $row->currency,
+                    'order_value' => number_format((float) $row->order_value, 3, '.', ''),
+                    'days_overdue' => $daysOverdue,
+                ];
+            })
             ->all();
 
-        return ['columns' => ['order_number', 'supplier_code', 'status', 'needed_by', 'currency_code'], 'rows' => $rows];
+        return [
+            'columns' => ['order_number', 'supplier_reference', 'status', 'needed_by', 'currency', 'order_value', 'days_overdue'],
+            'rows' => $rows,
+        ];
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function spendReport(int $storeId, string $from, string $to, int $limit): array
+    private function spendReport(int $storeId, string $from, string $to, int $limit, int $offset = 0): array
     {
         $rows = DB::table('enterprise_purchase_invoices')
             ->where('store_id', $storeId)
             ->where('status', 'handed_off')
             ->whereBetween('invoice_date', [$from, $to])
             ->groupBy('supplier_id', 'supplier_code', 'currency_code')
-            ->selectRaw('supplier_code, currency_code, SUM(total_amount) as spend')
+            ->selectRaw('supplier_code as supplier_reference, currency_code as currency, COUNT(*) as invoice_count, SUM(total_amount) as spend')
             ->orderByDesc('spend')
+            ->offset($offset)
             ->limit($limit)
             ->get()
             ->map(fn ($row): array => (array) $row)
             ->all();
 
-        return ['columns' => ['supplier_code', 'currency_code', 'spend'], 'rows' => $rows];
+        return ['columns' => ['supplier_reference', 'currency', 'invoice_count', 'spend'], 'rows' => $rows];
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function supplierPerformanceReport(int $storeId, string $from, string $to, int $limit): array
+    private function supplierPerformanceReport(int $storeId, string $from, string $to, int $limit, int $offset = 0): array
     {
         $source = DB::table('enterprise_purchase_orders as orders')
             ->leftJoin('enterprise_goods_receipts as receipts', function ($join): void {
@@ -1750,86 +1806,115 @@ final class ProcurementCompletionManager
                     );
 
                 return [
-                    'supplier_code' => $supplierCode,
+                    'supplier_reference' => $supplierCode,
                     'order_count' => $supplierRows->pluck('order_id')->unique()->count(),
                     'receipt_count' => $supplierRows->pluck('receipt_id')->filter()->unique()->count(),
                     'avg_lead_days' => $leadDays->isEmpty() ? null : round((float) $leadDays->avg(), 1),
                 ];
             })
             ->sortByDesc('order_count')
-            ->take($limit)
+            ->slice($offset, $limit)
             ->values()
             ->all();
 
-        return ['columns' => ['supplier_code', 'order_count', 'receipt_count', 'avg_lead_days'], 'rows' => $rows];
+        return ['columns' => ['supplier_reference', 'order_count', 'receipt_count', 'avg_lead_days'], 'rows' => $rows];
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function savingsReport(int $storeId, string $from, string $to, int $limit): array
+    private function savingsReport(int $storeId, string $from, string $to, int $limit, int $offset = 0): array
     {
         $rows = DB::table('enterprise_procurement_quotes as quotes')
             ->join('enterprise_procurement_rfqs as rfqs', 'rfqs.id', '=', 'quotes.rfq_id')
+            ->join('enterprise_suppliers as suppliers', 'suppliers.id', '=', 'quotes.supplier_id')
             ->join('enterprise_procurement_quote_lines as quote_lines', 'quote_lines.quote_id', '=', 'quotes.id')
             ->join('enterprise_procurement_rfq_lines as rfq_lines', 'rfq_lines.id', '=', 'quote_lines.rfq_line_id')
             ->where('rfqs.store_id', $storeId)
             ->where('quotes.status', 'awarded')
             ->whereBetween('quotes.awarded_at', [$from.' 00:00:00', $to.' 23:59:59'])
-            ->groupBy('rfqs.id', 'rfqs.rfq_number')
+            ->groupBy('rfqs.id', 'rfqs.rfq_number', 'suppliers.code', 'quotes.currency_code', 'quotes.awarded_at')
             ->selectRaw(
-                'rfqs.rfq_number, '
+                'rfqs.rfq_number, suppliers.code as supplier_reference, quotes.currency_code as currency, '
                 .'SUM(COALESCE(rfq_lines.baseline_unit_cost, quote_lines.unit_price) * quote_lines.quantity) as baseline_value, '
                 .'SUM(quote_lines.unit_price * quote_lines.quantity) as awarded_value, '
                 .'SUM((COALESCE(rfq_lines.baseline_unit_cost, quote_lines.unit_price) - quote_lines.unit_price) * quote_lines.quantity) as savings',
             )
             ->orderByDesc('quotes.awarded_at')
+            ->offset($offset)
             ->limit($limit)
             ->get()
             ->map(fn ($row): array => (array) $row)
             ->all();
 
-        return ['columns' => ['rfq_number', 'baseline_value', 'awarded_value', 'savings'], 'rows' => $rows];
+        return ['columns' => ['rfq_number', 'supplier_reference', 'currency', 'baseline_value', 'awarded_value', 'savings'], 'rows' => $rows];
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function contractExpiryReport(int $storeId, int $limit): array
+    private function contractExpiryReport(int $storeId, int $limit, int $offset = 0): array
     {
         $rows = DB::table('enterprise_procurement_contracts as contracts')
             ->join('enterprise_suppliers as suppliers', 'suppliers.id', '=', 'contracts.supplier_id')
             ->where('contracts.store_id', $storeId)
             ->whereIn('contracts.status', ['active', 'draft'])
             ->orderBy('contracts.ends_on')
+            ->offset($offset)
             ->limit($limit)
             ->get([
                 'contracts.contract_number',
-                'suppliers.code as supplier_code',
+                'suppliers.code as supplier_reference',
                 'contracts.status',
+                'contracts.currency_code as currency',
                 'contracts.starts_on',
                 'contracts.ends_on',
                 'contracts.value_ceiling',
+                'contracts.committed_value',
                 'contracts.quantity_ceiling',
+                'contracts.committed_quantity',
             ])
-            ->map(fn ($row): array => (array) $row)
+            ->map(function ($row): array {
+                $status = $row->status === 'active'
+                    && (string) $row->ends_on < now()->toDateString()
+                        ? 'expired'
+                        : (string) $row->status;
+
+                return [
+                    'contract_number' => (string) $row->contract_number,
+                    'supplier_reference' => (string) $row->supplier_reference,
+                    'status' => $status,
+                    'currency' => (string) $row->currency,
+                    'starts_on' => (string) $row->starts_on,
+                    'ends_on' => (string) $row->ends_on,
+                    'value_ceiling' => $row->value_ceiling,
+                    'committed_value' => $row->committed_value,
+                    'quantity_ceiling' => $row->quantity_ceiling,
+                    'committed_quantity' => $row->committed_quantity,
+                ];
+            })
             ->all();
 
         return [
-            'columns' => ['contract_number', 'supplier_code', 'status', 'starts_on', 'ends_on', 'value_ceiling', 'quantity_ceiling'],
+            'columns' => [
+                'contract_number', 'supplier_reference', 'status', 'currency', 'starts_on', 'ends_on',
+                'value_ceiling', 'committed_value', 'quantity_ceiling', 'committed_quantity',
+            ],
             'rows' => $rows,
         ];
     }
 
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
-    private function matchExceptionReport(int $storeId, int $limit): array
+    private function matchExceptionReport(int $storeId, int $limit, int $offset = 0): array
     {
         $rows = DB::table('enterprise_purchase_invoices as invoices')
             ->join('enterprise_procurement_match_reviews as matches', 'matches.purchase_invoice_id', '=', 'invoices.id')
             ->where('invoices.store_id', $storeId)
             ->whereIn('matches.status', ['pending', 'rejected'])
             ->orderByDesc('invoices.id')
+            ->offset($offset)
             ->limit($limit)
             ->get([
                 'invoices.invoice_number',
                 'invoices.supplier_invoice_number',
-                'invoices.supplier_code',
+                'invoices.supplier_code as supplier_reference',
+                'invoices.currency_code as currency',
                 'matches.status',
                 'matches.quantity_variance',
                 'matches.value_variance',
@@ -1839,7 +1924,7 @@ final class ProcurementCompletionManager
             ->all();
 
         return [
-            'columns' => ['invoice_number', 'supplier_invoice_number', 'supplier_code', 'status', 'quantity_variance', 'value_variance', 'exception_reason'],
+            'columns' => ['invoice_number', 'supplier_invoice_number', 'supplier_reference', 'currency', 'status', 'quantity_variance', 'value_variance', 'exception_reason'],
             'rows' => $rows,
         ];
     }
