@@ -9,9 +9,12 @@ body{margin:0;background:#f5f7fa}.mfa-layout{display:block;min-height:100vh}.mfa
 </style>
 </head>
 <body>
-<main class="mfa-shell">
-<section class="mfa-card">
+<div class="foodex-admin-layout mfa-layout">
+<main class="foodex-admin-main foodex-admin-page mfa-shell">
+<header class="foodex-page-header mfa-header">
 <h1>{{ __('security_governance.mfa.title') }}</h1>
+</header>
+<section class="mfa-card">
 @if(session('status'))<div role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @if($mode === 'enroll')
@@ -39,4 +42,5 @@ body{margin:0;background:#f5f7fa}.mfa-layout{display:block;min-height:100vh}.mfa
 @endif
 </section>
 </main>
+</div>
 </body></html>
