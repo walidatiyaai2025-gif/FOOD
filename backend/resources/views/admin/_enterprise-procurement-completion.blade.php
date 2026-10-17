@@ -192,7 +192,7 @@ $exceptionLabels=[
 @forelse($rows as $row)
 <tr><td class="erp-ref">{{ $row->rfq_number }}</td><td>{{ $row->title }}<div class="foodex-subtitle">{{ $row->source_request_number }}</div></td><td>{{ __('enterprise_procurement.statuses.'.$row->status) }}</td><td>{{ $row->response_due_at ?: '—' }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'rfqs','store_id'=>$selectedStoreId,'rfq'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
 @empty<tr><td colspan="5"><div class="foodex-empty-state">{{ __('enterprise_procurement.empty') }}</div></td></tr>@endforelse
-</tbody></table></section>
+</tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
 
 @if(session('procurement_portal_links'))
 <section class="foodex-card erp-detail"><h2>{{ __('enterprise_procurement.portal_links') }}</h2><p>{{ __('enterprise_procurement.copy_securely') }}</p>
@@ -263,7 +263,7 @@ $exceptionLabels=[
 <section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.ends_on') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
 @forelse($rows as $row)@php($contractStatus=$row->status==='active' && (string)$row->ends_on < now()->toDateString() ? 'expired' : $row->status)<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$contractStatus) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
 @empty<tr><td colspan="5">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
-</tbody></table></section>
+</tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
 @if($contractDetail)
 @php($contract=$contractDetail['contract'])
 <section class="foodex-card erp-detail">
@@ -305,7 +305,7 @@ $exceptionLabels=[
 @endif
 </td></tr>
 @empty<tr><td colspan="6">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
-</tbody></table></section>
+</tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
 @endif
 
 @if($activeTab==='reports')
