@@ -84,6 +84,8 @@ return [
         'reason' => 'Reason',
         'transition' => 'Apply transition',
         'history' => 'Lifecycle history',
+        'legacy_active_toggle_reason' => 'Lifecycle synchronized from the existing product active-state control.',
+        'referenced_delete_reason' => 'Product is referenced by historical orders and was moved to end of life instead of deleted.',
         'states' => [
             'draft' => 'Draft',
             'active' => 'Active',
@@ -172,6 +174,7 @@ return [
         'yes' => 'Yes',
         'no' => 'No',
         'global' => 'Global',
+        'all_authorized_stores' => 'All authorized stores',
         'not_set' => 'Not set',
     ],
     'status' => [
