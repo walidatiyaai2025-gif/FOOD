@@ -44,6 +44,18 @@ return [
     'no_webhooks' => 'No webhook subscriptions.',
     'active' => 'Active',
     'inactive' => 'Inactive',
+    'directions' => [
+        'inbound' => 'Inbound',
+        'outbound' => 'Outbound',
+    ],
+    'observability_statuses' => [
+        'received' => 'Received',
+        'processed' => 'Processed',
+        'pending' => 'Pending',
+        'retry' => 'Retry',
+        'delivered' => 'Delivered',
+        'dead_letter' => 'Dead letter',
+    ],
     'status_options' => [
         'disabled' => 'Disabled',
         'enabled' => 'Enabled',
