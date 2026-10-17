@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\RestaurantIntegrationController;
 use App\Http\Controllers\Admin\RestaurantOnboardingController;
 use App\Http\Controllers\Admin\SmartOrderingController;
 use App\Http\Controllers\Admin\SmartOrderingCustomerGrowthController;
@@ -48,6 +49,17 @@ Route::prefix('admin/smart-ordering')
         Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
         Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
         Route::post('/menu/revisions/{revision}/schedule', [SmartOrderingMenuAdminController::class, 'schedulePublish'])->whereNumber('revision')->name('menu.schedule');
+
+        Route::get('/sites/{site}/integrations', [RestaurantIntegrationController::class, 'index'])
+            ->whereNumber('site')->name('integrations.index');
+        Route::post('/sites/{site}/integrations', [RestaurantIntegrationController::class, 'install'])
+            ->whereNumber('site')->name('integrations.install');
+        Route::patch('/sites/{site}/integrations/{integration}/status', [RestaurantIntegrationController::class, 'status'])
+            ->whereNumber('site')->whereUuid('integration')->name('integrations.status');
+        Route::post('/sites/{site}/integrations/api-clients', [RestaurantIntegrationController::class, 'apiClient'])
+            ->whereNumber('site')->name('integrations.api-clients.store');
+        Route::post('/sites/{site}/integrations/webhooks', [RestaurantIntegrationController::class, 'webhook'])
+            ->whereNumber('site')->name('integrations.webhooks.store');
 
         Route::get('/supply', [SmartOrderingSupplyController::class, 'entry'])->name('supply.entry');
         Route::get('/sites/{site}/supply', [SmartOrderingSupplyController::class, 'index'])
