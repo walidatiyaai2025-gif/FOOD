@@ -188,6 +188,7 @@
     <form method="post" action="{{ route('admin.erp.bi.schedules.store') }}" class="bi-schedule-form">
         @csrf
         <input type="hidden" name="report" value="{{ $selected['code'] }}">
+        {{-- localization-gate: allow technical authorized scope type in hidden schedule payload; it is not user-visible copy --}}
         <input type="hidden" name="scope_type" value="{{ $selection['scope']->type }}">
         <input type="hidden" name="scope_id" value="{{ $selection['scope']->id }}">
         <input type="hidden" name="from" value="{{ $selection['from'] }}">
