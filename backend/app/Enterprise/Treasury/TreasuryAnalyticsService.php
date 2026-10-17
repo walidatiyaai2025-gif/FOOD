@@ -440,8 +440,8 @@ final class TreasuryAnalyticsService
         return $rows;
     }
 
-    /** @param Collection<string,object> $receiptTotals
-     * @param  Collection<string,object>  $paymentTotals
+    /** @param Collection<string,\stdClass> $receiptTotals
+     * @param  Collection<string,\stdClass>  $paymentTotals
      * @return array<string,mixed>
      */
     private function positionRow(
@@ -452,8 +452,8 @@ final class TreasuryAnalyticsService
     ): array {
         $currency = strtoupper((string) $target->currency_code);
         $key = $type.':'.$target->id.':'.$currency;
-        $receipts = $this->toMills((string) ($receiptTotals->get($key)?->amount ?? '0'));
-        $payments = $this->toMills((string) ($paymentTotals->get($key)?->amount ?? '0'));
+        $receipts = $this->toMills((string) ($receiptTotals->get($key)->amount ?? '0'));
+        $payments = $this->toMills((string) ($paymentTotals->get($key)->amount ?? '0'));
         $label = (string) $target->code.' · '.($type === 'bank_account'
             ? (string) $target->bank_name
             : (string) $target->name);
@@ -550,7 +550,7 @@ final class TreasuryAnalyticsService
         }
         usort($rows, static fn (array $a, array $b): int => [$a['date'], $a['currency']] <=> [$b['date'], $b['currency']]);
 
-        return array_values($rows);
+        return $rows;
     }
 
     /** @return list<array<string,mixed>> */
