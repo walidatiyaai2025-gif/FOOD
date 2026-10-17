@@ -37,3 +37,19 @@ Human/external-environment evidence is governed by the later owner directive in 
 Do not mark #1497 PASS until the final full CI lane is green, P0/P1 remain zero, the integrated tree retains the Enterprise module boundaries/default states, and no repository-verifiable final blocker remains.
 
 After PASS, #1485 may be closed and #1888 may complete ordinary CLOSE FOOD. Production deployment remains separately blocked on all deferred genuine external/human evidence.
+
+## ERP UI recertification — 2026-10-17
+
+This recertification consumes the owner-added operational ERP UI closure after the earlier Enterprise certification.
+
+- Candidate main at recertification start: `314ffb2695cead2db84aff1c5914af12f21f223a`.
+- ERP UI umbrella #1905 is closed completed.
+- ERP runtime role-journey gate #1914 is closed completed.
+- #1914 exact-head certification PR #1936 merged to `main` as `01ac12a8e66cabb06101de14d1cf5fc0415b4faa`.
+- The #1914 certification head `2c596958c3153b170d392d88b3f1fb85f3819a47` passed Repository Policy and FOODEX Required CI.
+- Enterprise Waves #1487-#1495 remain closed completed.
+- Open priority P0 at recertification preflight: 0.
+- Open priority P1 at recertification preflight: 0.
+- Production-only cPanel/reference/real-pilot evidence remains deferred to an explicit Production request under #1888 and is not synthesized or waived here.
+
+This branch must again pass the repository's exact-head final-convergence lane before #1497 and parent #1485 may be re-closed.
