@@ -186,7 +186,11 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['drivers.b2b.view']);
 
-        $vans = Van::query()->with(['assignments' => fn ($q) => $q->orderByDesc('effective_from')])->orderBy('code')->paginate(25);
+        $vans = Van::query()
+            ->with(['assignments' => fn ($q) => $q->orderByDesc('effective_from')])
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'suspended' THEN 2 ELSE 1 END")
+            ->orderBy('code')
+            ->paginate(25);
         $locations = FleetCurrentLocation::query()
             ->where('actor_type', 'van')
             ->whereIn('actor_id', $vans->getCollection()->pluck('id'))
