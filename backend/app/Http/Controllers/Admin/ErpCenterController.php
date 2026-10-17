@@ -5,16 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Health\ModuleHealthService;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Http\Controllers\Controller;
 use App\Models\EnterpriseModuleEntitlement;
 use App\Models\User;
+use App\Services\EnterpriseActionCenter;
+use App\Services\EnterpriseMyWork;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 final class ErpCenterController extends Controller
 {
@@ -26,12 +31,31 @@ final class ErpCenterController extends Controller
         'enterprise_bi',
     ];
 
+    private const CARD_STATUSES = [
+        'available',
+        'degraded',
+        'setup_required',
+        'disabled',
+        'not_entitled',
+    ];
+
+    private const WORKLOAD_MODULES = [
+        'procurement' => ['card' => 'procurement', 'permission' => 'procurement.purchase_requests.view'],
+        'wms' => ['card' => 'wms', 'permission' => 'inventory.view'],
+        'finance' => ['card' => 'finance', 'permission' => 'finance.view'],
+        'treasury' => ['card' => 'treasury', 'permission' => 'finance.view'],
+        'customer_service' => ['card' => 'customer_service', 'permission' => 'whatsapp.conversations.view'],
+    ];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
         private readonly ModuleEntitlementManager $entitlementManager,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly TenantContextResolver $tenants,
+        private readonly ModuleHealthService $health,
+        private readonly EnterpriseActionCenter $actionCenter,
+        private readonly EnterpriseMyWork $myWork,
     ) {}
 
     public function __invoke(Request $request): View
@@ -91,10 +115,91 @@ final class ErpCenterController extends Controller
             ),
         ]));
 
-        $summary = [
-            'available' => count(array_filter($cards, static fn (array $card): bool => $card['status'] === 'available')),
-            'disabled' => count(array_filter($cards, static fn (array $card): bool => $card['status'] === 'disabled')),
-            'restricted' => count(array_filter($cards, static fn (array $card): bool => $card['status'] === 'not_entitled')),
+        $selectedStatus = $request->string('status')->toString();
+        if (! in_array($selectedStatus, self::CARD_STATUSES, true)) {
+            $selectedStatus = '';
+        }
+
+        $visibleCards = $selectedStatus === ''
+            ? $cards
+            : array_values(array_filter(
+                $cards,
+                static fn (array $card): bool => $card['status'] === $selectedStatus,
+            ));
+
+        $work = $this->myWork->page(
+            $actor,
+            '',
+            'all',
+            'all',
+            'all',
+            0,
+            1,
+            route('admin.action-center.index'),
+        );
+        $approvals = $this->actionCenter->page(
+            $actor,
+            '',
+            'all',
+            1,
+            route('admin.action-center.index'),
+        );
+        $failedReports = $this->failedReportJobs($actor, $cards);
+        $healthSummary = $this->healthSummary($cards);
+        $workload = $this->workloadByModule($actor, $cards);
+
+        $summary = collect(self::CARD_STATUSES)
+            ->mapWithKeys(fn (string $status): array => [
+                $status => count(array_filter(
+                    $cards,
+                    static fn (array $card): bool => $card['status'] === $status,
+                )),
+            ])
+            ->all();
+
+        $healthUrl = Route::has('admin.enterprise-system-health.index')
+            && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('platform.manage'))
+                ? route('admin.enterprise-system-health.index')
+                : route('admin.erp.index', ['status' => 'degraded']).'#erp-modules';
+
+        $kpis = [
+            [
+                'key' => 'pending_approvals',
+                'value' => $approvals['actions']->total(),
+                'available' => true,
+                'bounded' => $approvals['truncated'],
+                'url' => route('admin.action-center.index'),
+            ],
+            [
+                'key' => 'overdue_work',
+                'value' => $work['summary']['overdue'],
+                'available' => true,
+                'bounded' => false,
+                'url' => route('admin.action-center.index', ['work_state' => 'overdue']),
+            ],
+            [
+                'key' => 'open_exceptions',
+                'value' => $work['summary']['attention'],
+                'available' => true,
+                'bounded' => false,
+                'url' => route('admin.action-center.index', ['work_state' => 'attention']),
+            ],
+            [
+                'key' => 'failed_reports',
+                'value' => $failedReports['count'],
+                'available' => $failedReports['available'],
+                'bounded' => false,
+                'url' => $failedReports['url'],
+            ],
+            [
+                'key' => 'module_health',
+                'value' => $healthSummary['total'] > 0 ? $healthSummary['issues'] : null,
+                'available' => $healthSummary['total'] > 0,
+                'bounded' => false,
+                'url' => $healthSummary['total'] > 0 ? $healthUrl : null,
+                'healthy' => $healthSummary['healthy'],
+                'total' => $healthSummary['total'],
+            ],
         ];
 
         return view('admin.erp-center', [
@@ -102,8 +207,14 @@ final class ErpCenterController extends Controller
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'erp_center',
             'cards' => $cards,
+            'visibleCards' => $visibleCards,
             'summary' => $summary,
+            'kpis' => $kpis,
+            'workload' => $workload,
+            'myWorkItems' => collect($work['items']->items())->take(6)->values(),
+            'activity' => $work['activity']->take(8)->values(),
             'selectedModule' => $request->string('module')->toString(),
+            'selectedStatus' => $selectedStatus,
         ]);
     }
 
@@ -155,14 +266,32 @@ final class ErpCenterController extends Controller
             return null;
         }
 
-        $enabled = $this->modules->state($moduleCode) === ModuleState::ENABLED;
-        $entitled = $enabled && $this->isEntitled($actor, $moduleCode);
-        $status = ! $enabled ? 'disabled' : ($entitled ? 'available' : 'not_entitled');
+        $state = $this->modules->state($moduleCode);
+        $entitled = $state === ModuleState::ENABLED && $this->isEntitled($actor, $moduleCode);
+        $healthStatus = null;
+
+        if ($state === ModuleState::ENABLED && $entitled) {
+            $healthStatus = strtolower($this->health->report($moduleCode)->status->value);
+            $status = $healthStatus === 'healthy' ? 'available' : 'degraded';
+        } elseif ($state === ModuleState::ENABLED) {
+            $status = 'not_entitled';
+        } else {
+            $status = match ($state) {
+                ModuleState::NOT_INSTALLED, ModuleState::INSTALLED, ModuleState::ENABLING => 'setup_required',
+                ModuleState::DISABLED => 'disabled',
+                default => 'degraded',
+            };
+        }
+
+        $actionable = $state === ModuleState::ENABLED
+            && $entitled
+            && Route::has($route);
 
         return $this->card(
             $key,
             $status,
-            $status === 'available' && Route::has($route) ? route($route, $params) : null,
+            $actionable ? route($route, $params) : null,
+            $healthStatus,
         );
     }
 
@@ -190,14 +319,19 @@ final class ErpCenterController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function card(string $key, string $status, ?string $url): array
-    {
+    private function card(
+        string $key,
+        string $status,
+        ?string $url,
+        ?string $health = null,
+    ): array {
         return [
             'key' => $key,
             'title' => __('admin.erp_center.modules.'.$key.'.title'),
             'description' => __('admin.erp_center.modules.'.$key.'.description'),
             'status' => $status,
             'url' => $url,
+            'health' => $health,
         ];
     }
 
@@ -217,5 +351,106 @@ final class ErpCenterController extends Controller
         }
 
         return false;
+    }
+
+    /** @param list<array<string,mixed>> $cards
+     * @return array{healthy:int,issues:int,total:int}
+     */
+    private function healthSummary(array $cards): array
+    {
+        $health = collect($cards)
+            ->pluck('health')
+            ->filter(static fn (mixed $status): bool => is_string($status) && $status !== '');
+
+        $total = $health->count();
+        $healthy = $health->filter(static fn (string $status): bool => $status === 'healthy')->count();
+
+        return [
+            'healthy' => $healthy,
+            'issues' => $total - $healthy,
+            'total' => $total,
+        ];
+    }
+
+    /** @param list<array<string,mixed>> $cards
+     * @return list<array{key:string,label:string,total:int,exceptions:int,url:string}>
+     */
+    private function workloadByModule(User $actor, array $cards): array
+    {
+        $cardsByKey = collect($cards)->keyBy('key');
+        $rows = [];
+
+        foreach (self::WORKLOAD_MODULES as $module => $definition) {
+            $card = $cardsByKey->get($definition['card']);
+            if (! is_array($card)
+                || ! in_array($card['status'], ['available', 'degraded'], true)
+                || ! $this->navigation->hasAnyPermissionInScope($actor, [$definition['permission']])) {
+                continue;
+            }
+
+            $result = $this->myWork->page(
+                $actor,
+                '',
+                $module,
+                'all',
+                'all',
+                0,
+                1,
+                route('admin.action-center.index'),
+            );
+
+            $rows[] = [
+                'key' => $module,
+                'label' => __('enterprise_my_work.modules.'.$module),
+                'total' => $result['summary']['total'],
+                'exceptions' => $result['summary']['overdue'] + $result['summary']['attention'],
+                'url' => route('admin.action-center.index', ['module' => $module]),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** @param list<array<string,mixed>> $cards
+     * @return array{available:bool,count:?int,url:?string}
+     */
+    private function failedReportJobs(User $actor, array $cards): array
+    {
+        $biCard = collect($cards)->firstWhere('key', 'bi');
+        $biOperational = is_array($biCard)
+            && in_array($biCard['status'], ['available', 'degraded'], true)
+            && is_string($biCard['url'])
+            && $biCard['url'] !== '';
+
+        if (! $biOperational
+            || ! ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'))) {
+            return ['available' => false, 'count' => null, 'url' => null];
+        }
+
+        $hasExports = Schema::hasTable('enterprise_report_exports');
+        $hasSchedules = Schema::hasTable('enterprise_scheduled_reports');
+        if (! $hasExports && ! $hasSchedules) {
+            return ['available' => false, 'count' => null, 'url' => null];
+        }
+
+        $failedExports = $hasExports
+            ? (int) DB::table('enterprise_report_exports')
+                ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
+                ->where('status', 'failed')
+                ->count()
+            : 0;
+
+        $failedSchedules = $hasSchedules
+            ? (int) DB::table('enterprise_scheduled_reports')
+                ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
+                ->whereNotNull('last_error')
+                ->count()
+            : 0;
+
+        return [
+            'available' => true,
+            'count' => $failedExports + $failedSchedules,
+            'url' => $biCard['url'],
+        ];
     }
 }

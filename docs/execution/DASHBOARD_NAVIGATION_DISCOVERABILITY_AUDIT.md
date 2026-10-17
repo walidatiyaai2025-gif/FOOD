@@ -30,7 +30,7 @@ This is intentionally not “every route in the Sidebar.” Exact-record pages, 
 | `admin.b2b.orders.canonical` | `DUPLICATE_DESTINATION` | `admin.operations.orders.index` | #1991 |
 | `admin.b2c.orders.canonical` | `DUPLICATE_DESTINATION` | `admin.operations.orders.index` | #1991 |
 
-These are not reasons to add navigation. They are compatibility/redirect contracts that must either remain explicitly registered or be retired safely by the remediation issue.
+These are not reasons to add navigation. #1991 re-verified all four as compatibility-only convergence paths: the retired mixed-domain Business GET redirects away from the legacy screen, Catalog Categories redirects into the canonical Catalog tab, and B2B/B2C order aliases compose the shared Order Operations authority with a fixed channel. They remain explicitly registered for deep-link compatibility and are not independent UI authorities.
 
 ## Representative inbound evidence
 
@@ -55,4 +55,4 @@ The current repository localization gate validates Arabic/English contracts. Das
 
 ## Handoff
 
-#1991 should consume only the explicit duplicate/compatibility cleanup findings and any future route drift discovered after this lineage. #1992 should convert this ledger contract into the deterministic required-CI navigation coverage gate. Neither child should create a parallel screen merely to satisfy route enumeration.
+#1991 consumed the explicit duplicate/compatibility findings and closed them as compatibility-only aliases with regression coverage; there are zero unresolved `NAV_MISSING`, `NAV_WEAK`, permission-visibility, misleading-active-context, dead-route or duplicate-UI-authority findings. #1992 should convert this ledger contract into the deterministic required-CI navigation coverage gate. Neither child should create a parallel screen merely to satisfy route enumeration.
