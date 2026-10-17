@@ -6,6 +6,51 @@
         const summary = form.querySelector('[data-impact-summary]');
         if (!summary) return;
 
+        const parseJson = (value, fallback) => {
+            try {
+                return value ? JSON.parse(value) : fallback;
+            } catch (_) {
+                return fallback;
+            }
+        };
+
+        const updateRolePreview = () => {
+            const selected = [...form.querySelectorAll('input[type="checkbox"][data-role-code]:checked')];
+            const preview = form.querySelector('[data-role-effective-preview]');
+            if (preview) {
+                const rolesTarget = preview.querySelector('[data-role-effective-roles]');
+                const permissionsTarget = preview.querySelector('[data-role-effective-permissions]');
+                const roleNames = [...new Set(selected.map((input) => input.dataset.roleName).filter(Boolean))];
+                const summaries = [...new Set(selected.flatMap((input) =>
+                    parseJson(input.dataset.rolePermissionSummary, [])
+                ).filter(Boolean))];
+
+                if (rolesTarget) {
+                    rolesTarget.textContent = roleNames.length
+                        ? roleNames.join(', ')
+                        : @json(__('job_roles.effective_empty'));
+                }
+                if (permissionsTarget) permissionsTarget.textContent = summaries.join(', ');
+            }
+
+            const warning = form.querySelector('[data-role-risk-warning]');
+            if (warning) {
+                const selectedCodes = new Set(selected.map((input) => input.dataset.roleCode).filter(Boolean));
+                const pairs = parseJson(form.dataset.roleRiskPairs, {});
+                const messages = parseJson(form.dataset.roleRiskMessages, {});
+                const hits = Object.entries(pairs)
+                    .filter(([, definition]) => {
+                        const roles = Array.isArray(definition?.roles) ? definition.roles : [];
+                        return roles.length > 1 && roles.every((role) => selectedCodes.has(role));
+                    })
+                    .map(([key]) => messages[key] || key);
+
+                warning.hidden = hits.length === 0;
+                const target = warning.querySelector('span');
+                if (target) target.textContent = hits.join(' · ');
+            }
+        };
+
         const updateImpact = () => {
             const changed = [...form.querySelectorAll('input[type="checkbox"][data-original-checked]')]
                 .filter((input) => input.checked !== (input.dataset.originalChecked === '1'));
@@ -20,6 +65,7 @@
                 : `${addedLabel}: ${added.length ? added.join(', ') : empty} · ${removedLabel}: ${removed.length ? removed.join(', ') : empty}`;
             const target = summary.querySelector('span');
             if (target) target.textContent = detail;
+            updateRolePreview();
         };
 
         form.addEventListener('change', (event) => {
