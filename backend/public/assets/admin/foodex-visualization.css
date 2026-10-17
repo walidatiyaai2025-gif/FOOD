@@ -37,6 +37,40 @@
 .foodex-viz-legend-item{display:inline-flex;align-items:center;gap:6px}
 .foodex-viz-swatch{inline-size:10px;block-size:10px;border-radius:3px;background:var(--foodex-viz-primary)}
 .foodex-viz-empty{min-height:140px;display:grid;place-items:center;text-align:center;color:var(--foodex-viz-muted);border:1px dashed var(--foodex-viz-border);border-radius:12px}
+/* #1968 shared Module Overview / analytics contract. */
+.foodex-module-overview{display:grid;gap:var(--foodex-space-4,16px);min-width:0;width:100%}
+.foodex-module-toolbar{display:flex;align-items:end;gap:var(--foodex-space-3,12px);flex-wrap:wrap;min-width:0;padding:var(--foodex-space-3,12px);border:1px solid var(--foodex-viz-border);border-radius:var(--foodex-radius-card,16px);background:var(--foodex-viz-surface)}
+.foodex-module-filter-group{display:grid;gap:4px;min-width:0;color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem);font-weight:700}
+.foodex-module-filter-group>input,.foodex-module-filter-group>select{min-width:0;width:100%}
+.foodex-module-scope{min-width:min(240px,100%)}
+.foodex-module-date-range{display:grid;grid-template-columns:minmax(120px,1fr) minmax(120px,1fr) auto;align-items:end;gap:var(--foodex-space-2,8px);min-width:0}
+.foodex-module-toolbar-actions{display:flex;align-items:center;gap:var(--foodex-space-2,8px);flex-wrap:wrap;margin-inline-start:auto}
+.foodex-module-export{white-space:nowrap}
+.foodex-module-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3,12px);min-width:0}
+.foodex-module-kpi{display:grid;align-content:start;gap:6px;min-width:0;color:var(--foodex-ink,#172033);text-decoration:none}
+.foodex-module-kpi[data-interactive="true"]{cursor:pointer}
+.foodex-module-kpi[data-interactive="true"]:hover{border-color:color-mix(in srgb,var(--foodex-viz-primary) 30%,var(--foodex-viz-border));box-shadow:var(--foodex-shadow,0 12px 30px rgba(16,24,40,.06))}
+.foodex-module-kpi-label{color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem);font-weight:700}
+.foodex-module-kpi-value{font-size:clamp(1.35rem,2vw,1.8rem);line-height:1.15;color:var(--foodex-ink,#172033)}
+.foodex-module-kpi-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.foodex-module-kpi-comparison{display:inline-flex;align-items:center;gap:5px;color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem)}
+.foodex-module-kpi-comparison[data-trend="up"]>strong{color:var(--foodex-viz-primary-dark)}
+.foodex-module-kpi-comparison[data-trend="down"]>strong{color:var(--foodex-viz-danger)}
+.foodex-module-kpi-comparison[data-trend="neutral"]>strong{color:var(--foodex-viz-muted)}
+.foodex-module-updated{color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem)}
+.foodex-module-panels{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:var(--foodex-space-3,12px);min-width:0}
+.foodex-module-chart{min-width:0}
+.foodex-module-chart-summary{margin-top:var(--foodex-space-2,8px);color:var(--foodex-viz-muted);font-size:var(--foodex-text-sm,.875rem)}
+.foodex-module-chart-table-wrap{max-width:100%;overflow:auto;overscroll-behavior-inline:contain}
+.foodex-module-chart-table{width:100%;border-collapse:collapse;font-size:var(--foodex-text-xs,.75rem)}
+.foodex-module-chart-table th,.foodex-module-chart-table td{padding:8px 10px;border-bottom:1px solid var(--foodex-viz-border);text-align:start}
+.foodex-module-state{min-height:140px;display:grid;align-content:center;justify-items:center;gap:6px;padding:var(--foodex-space-5,20px);text-align:center;border:1px dashed var(--foodex-viz-border);border-radius:var(--foodex-radius-card,16px);background:var(--foodex-viz-surface);color:var(--foodex-viz-muted)}
+.foodex-module-state>strong{color:var(--foodex-ink,#172033)}
+.foodex-module-state>p{max-width:62ch;margin:0}
+.foodex-module-state[data-foodex-module-state="stale"]{background:var(--foodex-orange-soft,#FFF1E6);border-color:color-mix(in srgb,var(--foodex-viz-warning) 35%,var(--foodex-viz-border))}
+.foodex-module-state[data-foodex-module-state="error"],.foodex-module-state[data-foodex-module-state="permission"]{background:var(--foodex-danger-soft,#FFF0F0);border-color:color-mix(in srgb,var(--foodex-viz-danger) 35%,var(--foodex-viz-border))}
+.foodex-module-state[data-foodex-module-state="disabled"]{background:var(--foodex-background,#F7F9FC)}
+
 [dir="rtl"] .foodex-viz-bars{direction:rtl}
 [dir="rtl"] .foodex-viz-header,[dir="rtl"] .foodex-viz-legend{direction:rtl}
 @media(max-width:767px){.foodex-viz-card{padding:12px}.foodex-viz-canvas,.foodex-viz-bars{min-height:132px}.foodex-viz-donut{--foodex-viz-donut-size:124px}}
