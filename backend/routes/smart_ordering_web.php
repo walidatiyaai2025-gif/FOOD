@@ -84,12 +84,16 @@ Route::prefix('admin/smart-ordering')
             ->whereNumber('site')->name('growth.gift-cards.issue');
         Route::post('/sites/{site}/growth/gift-cards/redeem', [RestaurantGrowthController::class, 'redeemGiftCard'])
             ->whereNumber('site')->name('growth.gift-cards.redeem');
+        Route::patch('/sites/{site}/growth/gift-cards/{giftCard}/status', [RestaurantGrowthController::class, 'giftCardStatus'])
+            ->whereNumber('site')->whereUuid('giftCard')->name('growth.gift-cards.status');
         Route::post('/sites/{site}/growth/journeys', [RestaurantGrowthController::class, 'journey'])
             ->whereNumber('site')->name('growth.journeys.store');
         Route::post('/sites/{site}/growth/policies', [RestaurantGrowthController::class, 'policy'])
             ->whereNumber('site')->name('growth.policies.store');
         Route::post('/sites/{site}/growth/exports', [RestaurantGrowthController::class, 'export'])
             ->whereNumber('site')->name('growth.exports.store');
+        Route::get('/sites/{site}/growth/accounting.csv', [RestaurantGrowthController::class, 'accountingExport'])
+            ->whereNumber('site')->name('growth.accounting.download');
         Route::get('/sites/{site}/growth/exports/{export}', [RestaurantGrowthController::class, 'download'])
             ->whereNumber('site')->whereUuid('export')->name('growth.exports.download');
 
