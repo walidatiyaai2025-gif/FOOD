@@ -1,7 +1,14 @@
 @php
     $restaurantActor = $user ?? auth()->user();
     $restaurantNav = app(\App\Support\AdminNavigation::class);
+    $restaurantSiteKey = isset($site) ? (string) ($site->public_id ?: $site->slug) : trim((string) request()->query('site', ''));
     $restaurantStoreId = isset($site) ? (int) $site->store_id : (int) request()->integer('store_id');
+    if ($restaurantStoreId <= 0 && $restaurantSiteKey !== '') {
+        $restaurantStoreId = (int) (\Illuminate\Support\Facades\DB::table('smart_ordering_sites')
+            ->where('public_id', $restaurantSiteKey)
+            ->orWhere('slug', $restaurantSiteKey)
+            ->value('store_id') ?? 0);
+    }
     $restaurantSupport = isset($supportAccess)
         ? (bool) $supportAccess
         : (bool) ($restaurantActor?->hasRole('SUPER_ADMIN') && request()->boolean('support_access'));
@@ -18,7 +25,6 @@
     $restaurantCanOrders = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'orders.view');
     $restaurantCanQr = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view');
     $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
-    $restaurantSiteKey = isset($site) ? (string) ($site->public_id ?: $site->slug) : trim((string) request()->query('site', ''));
     $restaurantAppearanceParams = array_filter([
         'site' => $restaurantSiteKey !== '' ? $restaurantSiteKey : null,
     ], static fn ($value) => $value !== null);
