@@ -115,11 +115,11 @@
             @else
                 <div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_wms.overview.dashboard.movement_types') }}">
                     @foreach($movementRowsChart as $row)
-                        <span class="foodex-viz-bar" style="height:{{ max(3,round(((float)$row->quantity/$movementMax)*100,1)) }}%" title="{{ $movementLabel((string)$row->type) }} · {{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}"></span>
+                        <span class="foodex-viz-bar" style="height:{{ max(3,round(((float)$row->quantity/$movementMax)*100,1)) }}%" title="{{ $movementLabel((string)$row->type) }} · {{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}"></span> {{-- localization-gate: allow raw movement type only as input to the locale-aware $movementLabel helper. --}}
                     @endforeach
                 </div>
                 <div class="foodex-module-chart-summary">
-                    @foreach($movementRowsChart as $row)<span>{{ $movementLabel((string)$row->type) }}: <strong>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</strong></span>@endforeach
+                    @foreach($movementRowsChart as $row)<span>{{ $movementLabel((string)$row->type) }}: <strong>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</strong></span>@endforeach {{-- localization-gate: allow raw movement type only as input to the locale-aware $movementLabel helper. --}}
                 </div>
             @endif
         </article>
@@ -163,7 +163,7 @@
         <div class="wms-exception-list">
             @forelse(($dashboard['exceptions'] ?? []) as $exception)
                 <a href="{{ $exception['url'] }}">
-                    <span class="foodex-status-badge" data-tone="{{ $exception['type']==='low_stock' ? 'warning' : ($exception['type']==='expiry' ? 'warning' : 'info') }}">{{ $exception['label'] }}</span>
+                    <span class="foodex-status-badge" data-tone="{{ $exception['type']==='low_stock' ? 'warning' : ($exception['type']==='expiry' ? 'warning' : 'info') }}">{{ $exception['label'] }}</span> {{-- localization-gate: allow exception type only as a semantic tone selector; visible label/detail are localized or business data. --}}
                     <span>{{ $exception['type']==='transfer' ? __('enterprise_wms.transfers.statuses.'.$exception['detail']) : $exception['detail'] }}</span>
                     @if($exception['value'] !== null)<strong>{{ \App\Support\DisplayNumber::quantity((float)$exception['value']) }}</strong>@endif
                 </a>
