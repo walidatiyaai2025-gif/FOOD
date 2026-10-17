@@ -37,6 +37,16 @@ final class RestaurantGuestServiceTest extends TestCase
         $this->branchA = $this->branch($this->storeA, 'guest-a');
         $this->branchB = $this->branch($this->storeB, 'guest-b');
 
+        DB::table('smart_ordering_entitlements')->insert([
+            'site_id' => $this->branchA->site_id,
+            'branch_id' => null,
+            'scope_key' => 'site',
+            'module' => 'reservations',
+            'enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->admin = User::query()->create([
             'name' => 'Restaurant Operator',
             'email' => 'restaurant-guest@example.test',
