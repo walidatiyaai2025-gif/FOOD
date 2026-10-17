@@ -29,7 +29,7 @@ final class AdminExecutiveOverviewContractTest extends TestCase
         $this->assertStringContainsString("firstWhere('key', 'enterprise_action_center')", $view);
         $this->assertStringContainsString("firstWhere('key', 'administration_hub')", $view);
         $this->assertStringContainsString("firstWhere('key', 'smart_ordering')", $view);
-        $this->assertStringContainsString("Gate::forUser($user)->allows('platform.manage')", $view);
+        $this->assertStringContainsString("Gate::forUser(\$user)->allows('platform.manage')", $view);
         $this->assertStringContainsString("Route::has('admin.enterprise-system-health.index')", $view);
         $this->assertStringContainsString("__('admin_overview.restaurant_saas_help')", $view);
         $this->assertStringContainsString("__('admin_overview.no_synthetic_metrics')", $view);
