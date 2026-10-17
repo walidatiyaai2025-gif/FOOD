@@ -377,10 +377,36 @@ final class EnterpriseProcurementController extends Controller
     public function registerContractDocument(Request $request, int $contract): RedirectResponse
     {
         [$actor, $context, $storeId] = $this->mutationContext($request);
-        $this->completion->addContractDocument($actor, $context, $contract, $request->all());
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:190'],
+            'reference' => ['nullable', 'string', 'max:190'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,xlsx,xls,doc,docx', 'max:10240'],
+        ]);
+        $this->completion->addContractDocument(
+            $actor,
+            $context,
+            $contract,
+            $validated,
+            $request->file('attachment'),
+        );
 
         return $this->backTo('contracts', $storeId, ['contract' => $contract])
             ->with('status', __('enterprise_procurement.flash.contract_document_registered'));
+    }
+
+    public function downloadContractDocument(Request $request, int $contract, int $document)
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $contractDocument = $this->completion->contractDocument($actor, $context, $contract, $document);
+        abort_if($contractDocument->storage_path === null, 404);
+
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        abort_unless($disk->exists($contractDocument->storage_path), 404);
+
+        return $disk->download(
+            $contractDocument->storage_path,
+            $contractDocument->original_name ?: ('contract-document-'.$contractDocument->id),
+        );
     }
 
     public function assignContract(Request $request, int $purchaseOrder): RedirectResponse
