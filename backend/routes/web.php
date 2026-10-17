@@ -167,7 +167,7 @@ Route::prefix('admin')
             Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
             Route::post('/suppliers', [EnterpriseProcurementController::class, 'storeSupplier'])->middleware('throttle:30,1')->name('suppliers.store');
             Route::post('/suppliers/{supplier}/governance', [EnterpriseProcurementController::class, 'updateSupplierGovernance'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.governance');
-            Route::post('/requests/{purchaseRequest}/rfq', [EnterpriseProcurementController::class, 'createRfq'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('rfqs.create');
+            Route::post('/rfqs', [EnterpriseProcurementController::class, 'storeRfq'])->middleware('throttle:30,1')->name('rfqs.store');
             Route::post('/rfqs/{rfq}/publish', [EnterpriseProcurementController::class, 'publishRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.publish');
             Route::post('/rfqs/{rfq}/cancel', [EnterpriseProcurementController::class, 'cancelRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.cancel');
             Route::post('/rfqs/{rfq}/quotes/{quote}/award', [EnterpriseProcurementController::class, 'awardRfq'])->whereNumber('rfq')->whereNumber('quote')->middleware('throttle:30,1')->name('rfqs.award');
