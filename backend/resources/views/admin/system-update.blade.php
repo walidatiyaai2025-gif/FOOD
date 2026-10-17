@@ -17,7 +17,7 @@
         .system-runtime-form label{display:grid;gap:6px;font-weight:700;min-width:0}
         .system-runtime-form input,.system-runtime-form textarea{width:100%;min-width:0}
         .system-runtime-actions{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}
-        .system-runtime-code{font:var(--foodex-text-xs) ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+        .system-runtime-code{font:var(--foodex-text-xs) ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.system-runtime-grid .foodex-module-kpi-value{overflow-wrap:anywhere}
         .system-runtime-chart-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,3fr) auto;gap:10px;align-items:center;margin-block:10px}
         .system-runtime-warning{margin-block:var(--foodex-space-3)}
         details.system-runtime-restore{min-width:260px}
@@ -29,9 +29,14 @@
 <body>
 @php
     $statusLabel = static fn(string $state): string => match($state) {
-        'healthy', 'success', 'succeeded', 'completed' => __('admin.system_update_surface.healthy'),
-        'warning', 'pending', 'queued', 'running', 'in_progress' => __('admin.system_update_surface.warning'),
-        'error', 'failed' => __('admin.system_update_surface.error'),
+        'healthy' => __('admin.system_update_surface.healthy'),
+        'success', 'succeeded', 'completed' => __('admin.system_update_surface.completed'),
+        'warning' => __('admin.system_update_surface.warning'),
+        'pending', 'queued' => __('admin.system_update_surface.pending_state'),
+        'running', 'in_progress' => __('admin.system_update_surface.running_state'),
+        'error' => __('admin.system_update_surface.error'),
+        'failed' => __('admin.system_update_surface.failed_state'),
+        'rolled_back' => __('admin.system_update_surface.rolled_back_state'),
         'disabled' => __('admin.system_update_surface.disabled'),
         default => __('admin.system_update_surface.unknown'),
     };
