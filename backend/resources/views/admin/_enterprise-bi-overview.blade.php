@@ -63,12 +63,14 @@
                     $status = ($fresh['stale']??false) ? 'warning' : (($card['available']??false)?'success':'neutral');
                 @endphp
                 @include('admin._module-dashboard-kpi',[
-                    'label'=>__('enterprise_bi_ui.kpis.'.str_replace('.','_',$card['code'])),
-                    'value'=>$card['available'] ? $currentValue : '—',
-                    'comparison'=>$comparison,
-                    'status'=>$status,
-                    'lastRefresh'=>$fresh['refreshed_at']??null,
-                    'drillDownUrl'=>route('admin.erp.bi',['report'=>$card['report']]),
+                    'metric'=>[
+                        'label'=>__('enterprise_bi_ui.kpis.'.str_replace('.','_',$card['code'])),
+                        'value'=>$card['available'] ? $currentValue : '—',
+                        'comparison'=>$comparison===null?null:[...$comparison,'trend'=>(($trend['percent']??0)>0?'up':((($trend['percent']??0)<0)?'down':'neutral'))],
+                        'status'=>['state'=>$status,'label'=>($fresh['stale']??false)?__('enterprise_bi_ui.overview.stale'):__('enterprise_bi_ui.overview.current')],
+                        'last_refresh'=>$fresh['refreshed_at']??null,
+                        'drilldown_url'=>route('admin.erp.bi',['report'=>$card['report']]),
+                    ],
                 ])
             @endforeach
         </div>
@@ -126,9 +128,9 @@
     </div>
     @if($forecast['available']??false)
         <div class="foodex-module-kpis" style="margin-top:12px">
-            @include('admin._module-dashboard-kpi',['label'=>__('enterprise_bi_ui.forecast.next_7_days'),'value'=>$forecast['next_7_days_orders'],'status'=>'neutral'])
-            @include('admin._module-dashboard-kpi',['label'=>__('enterprise_bi_ui.forecast.daily_average'),'value'=>$forecast['recent_daily_average'],'comparison'=>$forecast['trend_percent']===null?null:['value'=>($forecast['trend_percent']>0?'+':'').$forecast['trend_percent'].'%','label'=>__('enterprise_bi_ui.overview.previous_period')],'status'=>'neutral'])
-            @include('admin._module-dashboard-kpi',['label'=>__('enterprise_bi_ui.forecast.observed_days'),'value'=>$forecast['observed_days'],'status'=>'neutral'])
+            @include('admin._module-dashboard-kpi',['metric'=>['label'=>__('enterprise_bi_ui.forecast.next_7_days'),'value'=>$forecast['next_7_days_orders'],'status'=>['state'=>'info','label'=>__('enterprise_bi_ui.forecast.forecast')]]])
+            @include('admin._module-dashboard-kpi',['metric'=>['label'=>__('enterprise_bi_ui.forecast.daily_average'),'value'=>$forecast['recent_daily_average'],'comparison'=>$forecast['trend_percent']===null?null:['value'=>($forecast['trend_percent']>0?'+':'').$forecast['trend_percent'].'%','label'=>__('enterprise_bi_ui.overview.previous_period'),'trend'=>$forecast['trend_percent']>0?'up':($forecast['trend_percent']<0?'down':'neutral')],'status'=>['state'=>'info','label'=>__('enterprise_bi_ui.forecast.forecast')]]])
+            @include('admin._module-dashboard-kpi',['metric'=>['label'=>__('enterprise_bi_ui.forecast.observed_days'),'value'=>$forecast['observed_days'],'status'=>['state'=>'current','label'=>__('enterprise_bi_ui.overview.current')]]])
         </div>
         <p class="bi-muted">{{ __('enterprise_bi_ui.forecast.disclaimer',['date'=>$forecast['as_of']]) }}</p>
     @else
