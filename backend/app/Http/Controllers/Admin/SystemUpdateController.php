@@ -10,6 +10,7 @@ use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
 use App\Models\User;
 use App\Services\MobileReleaseArtifactMirror;
+use App\Services\SystemAdministrationRuntime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ final class SystemUpdateController extends Controller
     public function __construct(
         private readonly UpdateManager $manager,
         private readonly MobileReleaseArtifactMirror $mobileArtifacts,
+        private readonly SystemAdministrationRuntime $systemRuntime,
     ) {}
 
     public function index(Request $request): View
@@ -43,9 +45,21 @@ final class SystemUpdateController extends Controller
             }
         }
 
+        $statusCounts = UpdateHistory::query()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(static fn ($count): int => (int) $count)
+            ->all();
+
         return view('admin.system-update', [
             'currentVersion' => $currentVersion,
             'historyRows' => UpdateHistory::query()->latest('id')->paginate(20)->withQueryString(),
+            'updateStatusCounts' => $statusCounts,
+            'runtimeHealth' => $this->systemRuntime->healthSnapshot(),
+            'backupRows' => $this->systemRuntime->backups(50),
+            'recoveryOperations' => $this->systemRuntime->recentOperations(50),
+            'isProduction' => app()->environment('production'),
         ]);
     }
 
@@ -108,6 +122,79 @@ final class SystemUpdateController extends Controller
                 ->withErrors(['update' => $exception->getMessage()]);
         } finally {
             @unlink($packagePath);
+        }
+    }
+
+    public function backup(Request $request): RedirectResponse
+    {
+        Gate::authorize('system.update');
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+
+        try {
+            $backup = $this->systemRuntime->createDatabaseBackup(
+                $actor,
+                $request,
+                (string) $validated['reason'],
+                $this->currentVersion(),
+            );
+
+            return redirect()
+                ->route('admin.system-update.index')
+                ->with('status', __('admin.system_update_surface.backup_created', [
+                    'reference' => (string) $backup['reference'],
+                ]));
+        } catch (RuntimeException $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['backup' => __('admin.system_update_surface.backup_failed')]);
+        }
+    }
+
+    public function restore(Request $request, string $backupReference): RedirectResponse
+    {
+        Gate::authorize('system.update');
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+            'confirm_reference' => ['required', 'string', 'max:80'],
+            'production_confirmation' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+
+        try {
+            $this->systemRuntime->restoreDatabaseBackup(
+                $actor,
+                $request,
+                $backupReference,
+                (string) $validated['reason'],
+                (string) $validated['confirm_reference'],
+                isset($validated['production_confirmation'])
+                    ? (string) $validated['production_confirmation']
+                    : null,
+                $this->currentVersion(),
+            );
+
+            return redirect()
+                ->route('admin.system-update.index')
+                ->with('status', __('admin.system_update_surface.restore_completed', [
+                    'reference' => $backupReference,
+                ]));
+        } catch (RuntimeException $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['restore' => __('admin.system_update_surface.restore_failed')]);
         }
     }
 
