@@ -19,7 +19,7 @@
 </head>
 <body>
 <section class="card">
-    <div class="brand">FOOD<span>EX</span></div>
+    <div class="brand">FOOD<span>EX</span></div> {{-- localization-gate: allow — FOODEX is the product wordmark. --}}
     <h1>{{ __('admin_login.otp_heading') }}</h1>
     <p class="help">{{ __('admin_login.otp_help') }}</p>
 
