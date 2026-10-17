@@ -22,6 +22,8 @@ return [
     'provider_key' => 'مفتاح المزود',
     'display_name' => 'الاسم الظاهر',
     'credential_reference' => 'مرجع بيانات الدخول',
+    'credential_reference_placeholder' => 'vault://restaurant/provider',
+    'target_url_placeholder' => 'https://example.com/webhooks/foodex',
     'credential_reference_help' => 'مرجع فقط؛ لا تضع أسرار المزود الخام هنا.',
     'capabilities' => 'الصلاحيات',
     'save_connector' => 'تثبيت الموصل بحالة غير مفعلة',
