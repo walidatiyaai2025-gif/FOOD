@@ -308,5 +308,4 @@ class RestaurantSaaSIntegrationHubTest extends TestCase
             $this->assertSame(404, $exception->getStatusCode());
         }
     }
-
 }
