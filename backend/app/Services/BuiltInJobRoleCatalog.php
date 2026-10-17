@@ -8,7 +8,6 @@ use App\Enterprise\Modules\ModuleManifestCatalog;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Models\Permission;
 use App\Models\Role;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
