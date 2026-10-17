@@ -35,4 +35,16 @@ class EnterpriseSupplier extends Model
     {
         return $this->hasMany(EnterpriseSupplierDocument::class, 'supplier_id');
     }
+
+    /** @return HasMany<EnterpriseSupplierContact, $this> */
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(EnterpriseSupplierContact::class, 'supplier_id');
+    }
+
+    /** @return HasMany<EnterpriseSupplierPortalToken, $this> */
+    public function portalTokens(): HasMany
+    {
+        return $this->hasMany(EnterpriseSupplierPortalToken::class, 'supplier_id');
+    }
 }
