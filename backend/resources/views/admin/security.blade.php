@@ -135,8 +135,40 @@ $roleLabel = static function ($role): string {
 <button class="btn primary">{{ __('admin.security.create_role') }}</button></form></details>
 @endcan
 
-<div class="role-grid">@foreach($roles as $role)@php $pids=$role->permissions->pluck('id')->map(fn($id)=>(int)$id)->all(); @endphp
-<details class="card" data-foodex-operational-modal><summary>{{ $role->name }} · {{ str_ireplace('B2C','RETAIL',$role->code) }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif</summary><p class="muted">{{ $role->description?:__('admin.security.no_description') }}</p><div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
+<div class="role-grid">@foreach($roles as $role)@php
+    $pids=$role->permissions->pluck('id')->map(fn($id)=>(int)$id)->all();
+    $roleMeta=$jobRoleMeta[$role->code] ?? null;
+    $roleAvailable=(bool)$roleAvailabilitySummary->get((int)$role->id, true);
+    $displayRoleName=is_array($roleMeta) ? $roleMeta['name'] : $role->name;
+    $displayRoleDescription=is_array($roleMeta) ? $roleMeta['description'] : ($role->description?:__('admin.security.no_description'));
+@endphp
+<details class="card {{ $roleAvailable ? '' : 'role-unavailable' }}" data-foodex-operational-modal>
+<summary>{{ $displayRoleName }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif @if(is_array($roleMeta))<span class="badge">{{ $roleAvailable?__('job_roles.availability.available'):__('job_roles.availability.unavailable') }}</span>@endif</summary>
+<div class="job-role-meta">
+<p class="muted">{{ $displayRoleDescription }}</p>
+@if(is_array($roleMeta))
+<div class="job-role-tags">
+    <span class="badge">{{ __('job_roles.domain') }}: {{ $roleMeta['domain_label'] }}</span>
+    <span class="badge">{{ __('job_roles.scope') }}: {{ $roleMeta['scope_label'] }}</span>
+    <span class="badge">{{ __('job_roles.level') }}: {{ $roleMeta['level_label'] }}</span>
+    <span class="badge system">{{ __('job_roles.built_in') }}</span>
+</div>
+@if(($roleMeta['required_modules'] ?? []) !== [])
+<p class="muted">{{ __('job_roles.module_required', ['modules'=>implode(', ', $roleMeta['required_modules'])]) }}</p>
+@endif
+@if(($roleMeta['responsibilities'] ?? []) !== [])
+<strong>{{ __('job_roles.responsibilities') }}</strong>
+<ul class="job-role-responsibilities">@foreach($roleMeta['responsibilities'] as $responsibility)<li>{{ $responsibility }}</li>@endforeach</ul>
+@endif
+@if(($roleMeta['permission_summary'] ?? []) !== [])
+<strong>{{ __('job_roles.permission_summary') }}</strong>
+<div class="job-role-tags">@foreach($roleMeta['permission_summary'] as $summary)<span class="badge">{{ $summary }}</span>@endforeach</div>
+@endif
+@else
+<div class="job-role-tags"><span class="badge">{{ __('job_roles.custom') }}</span></div>
+@endif
+<div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
+</div>
 @can('roles.manage')
 @if(in_array((int) $role->id, $editableRoleIds, true))
 <form method="post" action="{{ route('admin.security.roles.update',$role) }}">@csrf @method('patch')<div class="filters"><input class="grow" name="name" value="{{ $role->name }}" required>@if($role->is_system)<input type="hidden" name="scope" value="{{ $role->scope }}"><span class="note">{{ __('admin.security.scope') }}: {{ $role->scope === 'global' ? __('admin.security.scope_global') : __('admin.security.scope_store') }}</span>@else<select name="scope"><option value="global" @selected($role->scope==='global')>{{ __('admin.security.scope_global') }}</option><option value="store" @selected($role->scope==='store')>{{ __('admin.security.scope_store') }}</option></select>@endif @if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}<input type="hidden" name="is_active" value="1"><span class="note">{{ __('admin.security.super_admin_protected') }}</span>@else<label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($role->is_active)> {{ __('admin.security.active') }}</label>@endif</div><textarea name="description">{{ $role->description }}</textarea>
@@ -153,7 +185,7 @@ $roleLabel = static function ($role): string {
 @endif
 <button class="btn primary">{{ __('admin.security.save_role') }}</button></form>
 @else
-<div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
+<div class="note">{{ is_array($roleMeta) ? __('job_roles.errors.canonical_locked') : __('security_permissions.role_outside_authority') }}</div>
 @endif
 <div class="actions"><form method="post" action="{{ route('admin.security.roles.clone',$role) }}">@csrf <input name="code" required pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="{{ str_ireplace('B2C','RETAIL',$role->code) }}_COPY"><input name="name" required value="{{ $role->name }} Copy"><button class="btn secondary">{{ __('admin.security.clone') }}</button></form>@if(!$role->is_system)<form method="post" action="{{ route('admin.security.roles.destroy',$role) }}" onsubmit="return confirm('{{ __('admin.security.confirm_delete_role') }}')">@csrf @method('delete')<button class="btn danger">{{ __('admin.security.delete_role') }}</button></form>@endif</div>
 @endcan</details>@endforeach</div>
