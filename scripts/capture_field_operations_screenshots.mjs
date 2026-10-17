@@ -58,7 +58,7 @@ async function ensureDir(dir) {
 async function login(page, locale) {
   const email =
     locale === 'ar' ? 'screenshots@foodex.test' : 'screenshots.en@foodex.test';
-  await page.goto(`${baseUrl}/admin/b2c/login?locale=${locale}`, {
+  await page.goto(`${baseUrl}/admin/b2b/login?locale=${locale}`, {
     waitUntil: 'networkidle',
   });
   await page.fill('#email', email);
