@@ -8,6 +8,7 @@
     $inbox = is_array($ov['inbox'] ?? null) ? $ov['inbox'] : [];
     $consent = is_array($ov['consent'] ?? null) ? $ov['consent'] : [];
     $funnel = is_array($ov['delivery_funnel'] ?? null) ? $ov['delivery_funnel'] : [];
+    $rates = is_array($ov['rates'] ?? null) ? $ov['rates'] : [];
     $trend = is_array($ov['activity_trend'] ?? null) ? $ov['activity_trend'] : [];
     $suppressionReasons = is_array($ov['suppression_reasons'] ?? null) ? $ov['suppression_reasons'] : [];
     $failureReasons = is_array($ov['failure_reasons'] ?? null) ? $ov['failure_reasons'] : [];
@@ -88,6 +89,16 @@
             'status' => [
                 'label' => __('whatsapp.campaigns.operations.kpis.provider_confirmed'),
                 'state' => ((int)($metrics['failed'] ?? 0)) > 0 ? 'danger' : 'success',
+            ],
+            'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
+            'last_refresh' => $lastRefresh,
+        ],
+        [
+            'label' => __('whatsapp.campaigns.operations.kpis.opted_out'),
+            'value' => number_format((int)($metrics['opted_out'] ?? 0)),
+            'status' => [
+                'label' => __('whatsapp.campaigns.operations.kpis.consent_policy'),
+                'state' => ((int)($metrics['opted_out'] ?? 0)) > 0 ? 'warning' : 'success',
             ],
             'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
             'last_refresh' => $lastRefresh,
@@ -204,6 +215,18 @@
                 @endforeach
             </div>
             <div class="foodex-module-chart-summary">{{ __('whatsapp.campaigns.operations.charts.activity_hint') }}</div>
+        </article>
+
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
+            <div class="foodex-viz-header"><h3 class="foodex-viz-title">{{ __('whatsapp.campaigns.operations.charts.response_performance') }}</h3></div>
+            <div class="wa-operations-list">
+                @foreach(['delivery','read','reply','failure'] as $rate)
+                    <span>
+                        <span>{{ __('whatsapp.campaigns.operations.rates.'.$rate) }}</span>
+                        <strong class="foodex-number">{{ number_format((float)($rates[$rate] ?? 0), 2) }}%</strong>
+                    </span>
+                @endforeach
+            </div>
         </article>
 
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
