@@ -112,6 +112,22 @@ final class RestaurantGrowthController extends Controller
         return back()->with('status', __('restaurant_growth.gift_card_redeemed').' '.number_format($result['balance'], 3));
     }
 
+    public function giftCardStatus(
+        Request $request,
+        SmartOrderingSite $site,
+        string $giftCard,
+        RestaurantGrowthScaleService $growth,
+        TenantContextResolver $tenants,
+    ): RedirectResponse {
+        [, $store] = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $data = $request->validate([
+            'status' => ['required', 'in:active,suspended,closed'],
+        ]);
+        $growth->setGiftCardStatus($store, $giftCard, (string) $data['status']);
+
+        return back()->with('status', __('restaurant_growth.gift_card_status_updated'));
+    }
+
     public function journey(
         Request $request,
         SmartOrderingSite $site,
@@ -177,6 +193,47 @@ final class RestaurantGrowthController extends Controller
         $result = $growth->exportOrganization($store, $actor);
 
         return back()->with('status', __('restaurant_growth.export_ready').' '.$result['checksum']);
+    }
+
+    public function accountingExport(
+        Request $request,
+        SmartOrderingSite $site,
+        RestaurantGrowthScaleService $growth,
+        TenantContextResolver $tenants,
+    ): StreamedResponse {
+        [, $store] = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.view');
+        $data = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+        $from = isset($data['from'])
+            ? CarbonImmutable::parse((string) $data['from'], 'Asia/Kuwait')->startOfDay()
+            : CarbonImmutable::now('Asia/Kuwait')->subDays(30)->startOfDay();
+        $to = isset($data['to'])
+            ? CarbonImmutable::parse((string) $data['to'], 'Asia/Kuwait')->endOfDay()
+            : CarbonImmutable::now('Asia/Kuwait')->endOfDay();
+        $summary = $growth->accountingSummary($store, $from, $to);
+
+        return response()->streamDownload(function () use ($summary): void {
+            $output = fopen('php://output', 'wb');
+            abort_if($output === false, 500, 'Unable to open accounting export stream.');
+            fputcsv($output, ['sales_date', 'store_id', 'currency', 'subtotal', 'discounts', 'delivery', 'net_sales', 'refunded_value']);
+            foreach ($summary['rows'] as $row) {
+                fputcsv($output, [
+                    $row['sales_date'],
+                    $row['store_id'],
+                    $row['currency'],
+                    $row['subtotal'],
+                    $row['discounts'],
+                    $row['delivery'],
+                    $row['net_sales'],
+                    $row['refunded_value'],
+                ]);
+            }
+            fclose($output);
+        }, 'foodex-accounting-'.$from->format('Ymd').'-'.$to->format('Ymd').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function download(
