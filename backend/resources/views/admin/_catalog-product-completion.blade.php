@@ -71,36 +71,42 @@
                     @if($chartRows === [])
                         <div class="foodex-viz-empty">{{ __('catalog_completion.common.empty') }}</div>
                     @else
-                        @php($chartMax = max(1, (float) collect($chartRows)->max('value')))
+                        @php
+                            $chartMax = max(1, (float) collect($chartRows)->max('value'));
+                        @endphp
                         <div class="foodex-viz-bars" role="img" aria-label="{{ $chartTitles[$chartKey] ?? $chartKey }}">
-                            @foreach($chartRows as $point)
-                                @php
+                            @php
+                                foreach ($chartRows as $point) {
                                     $rawLabel = (string) ($point['label'] ?? '');
                                     $labelKey = $rawLabel !== '' ? $rawLabel : ($chartKey === 'brand_mix' ? 'unbranded' : 'uncategorized');
                                     $translated = __('catalog_completion.chart_labels.'.$labelKey);
                                     $pointLabel = $translated === 'catalog_completion.chart_labels.'.$labelKey ? ($rawLabel !== '' ? $rawLabel : '—') : $translated;
                                     $barPercent = max(2, min(100, ((float) $point['value'] / $chartMax) * 100));
-                                @endphp
+                            @endphp
                                 <div class="foodex-viz-bar-row">
                                     <span class="foodex-viz-bar-label">{{ $pointLabel }}</span>
                                     <div class="foodex-viz-bar-track"><span class="foodex-viz-bar" style="--foodex-viz-value:{{ $barPercent }}%"></span></div>
                                     <strong class="foodex-number">{{ $point['value'] }}</strong>
                                 </div>
-                            @endforeach
+                            @php
+                                }
+                            @endphp
                         </div>
                         <div class="foodex-module-chart-table-wrap" data-pagination-exempt="bounded-catalog-dashboard-series">
                             <table class="foodex-module-chart-table">
                                 <thead><tr><th>{{ __('catalog_completion.common.reference') }}</th><th>{{ __('catalog_completion.common.value') }}</th></tr></thead>
                                 <tbody>
-                                @foreach($chartRows as $point)
-                                    @php
+                                @php
+                                    foreach ($chartRows as $point) {
                                         $rawLabel = (string) ($point['label'] ?? '');
                                         $labelKey = $rawLabel !== '' ? $rawLabel : ($chartKey === 'brand_mix' ? 'unbranded' : 'uncategorized');
                                         $translated = __('catalog_completion.chart_labels.'.$labelKey);
                                         $pointLabel = $translated === 'catalog_completion.chart_labels.'.$labelKey ? ($rawLabel !== '' ? $rawLabel : '—') : $translated;
-                                    @endphp
+                                @endphp
                                     <tr><td>{{ $pointLabel }}</td><td class="foodex-number">{{ $point['value'] }}</td></tr>
-                                @endforeach
+                                @php
+                                    }
+                                @endphp
                                 </tbody>
                             </table>
                         </div>
