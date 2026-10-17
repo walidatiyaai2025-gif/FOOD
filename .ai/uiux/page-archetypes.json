@@ -72,7 +72,17 @@
         "responsive_visualization",
         "business_text_context"
       ],
-      "contract": "docs/design-reference/FOODEX_VISUALIZATION_CONTRACT.md"
+      "contract": "docs/design-reference/FOODEX_VISUALIZATION_CONTRACT.md",
+      "preferred_primitives": [
+        "foodex-module-overview",
+        "foodex-module-toolbar",
+        "foodex-module-date-range",
+        "foodex-module-kpis",
+        "foodex-module-kpi",
+        "foodex-module-chart",
+        "foodex-module-chart-summary",
+        "foodex-module-state"
+      ]
     },
     "customer-commerce": {
       "surfaces": [
