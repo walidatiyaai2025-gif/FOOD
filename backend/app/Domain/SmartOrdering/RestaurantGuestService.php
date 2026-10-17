@@ -605,7 +605,9 @@ final class RestaurantGuestService
             ->withQueryString();
 
         $timezone = (string) ($branch->timezone ?: 'Asia/Kuwait');
-        $paginator->setCollection($paginator->getCollection()->map(
+        /** @var Collection<int, object> $guestRows */
+        $guestRows = $paginator->getCollection();
+        $paginator->setCollection($guestRows->map(
             static fn (object $row): array => [
                 'guest_name' => (string) $row->guest_name,
                 'guest_phone' => $row->guest_phone,
