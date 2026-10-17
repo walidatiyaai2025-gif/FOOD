@@ -28,7 +28,7 @@
         <h4>{{ __('store_channels.sections.channels') }}</h4>
         <div class="store-ops-channel-grid">
             @foreach($ops['channels'] ?? [] as $channel => $state)
-                <div class="store-ops-channel"><strong>{{ __('store_channels.channels.'.$channel) }}</strong><span>{{ $state }}</span></div>
+                <div class="store-ops-channel"><strong>{{ __('store_channels.channels.'.$channel) }}</strong><span>{{ __('store_channels.channel_states.'.$state) }}</span></div>
             @endforeach
         </div>
     </div>
