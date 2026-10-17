@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\FeedbackService;
 use App\Domain\SmartOrdering\LoyaltyAdminService;
 use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\RepeatOrderService;
 use App\Domain\SmartOrdering\RestaurantCustomerService;
-use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\TenantContextResolver;
