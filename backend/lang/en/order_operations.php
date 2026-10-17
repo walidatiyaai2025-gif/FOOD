@@ -82,6 +82,7 @@ return [
         'sla_help' => 'Open orders not older than 24 hours.',
         'empty_chart' => 'No data is available for this view in the selected period.',
         'open_report' => 'Open detailed report',
+        'details' => 'View table summary',
     ],
     'statuses' => 'Order statuses',
     'all' => 'All',
