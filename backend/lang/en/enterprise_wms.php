@@ -55,6 +55,12 @@ return [
         'to' => 'To',
         'hours' => 'Hours',
         'approval' => 'Approval',
+        'view' => 'View',
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'days' => 'days',
+        'count' => 'Count',
+        'not_available' => 'Not available',
     ],
     'overview' => [
         'title' => 'Authoritative stock',
@@ -213,6 +219,12 @@ return [
         'approval_note' => 'Approval never creates a purchase order automatically; it only unlocks the canonical Procurement handoff.',
         'healthy' => 'No reorder needed',
         'reorder' => 'Reorder suggested',
+        'confidence_levels' => [
+            'high' => 'High',
+            'medium' => 'Medium',
+            'low' => 'Low',
+            'policy' => 'Policy-backed',
+        ],
         'lead_sources' => [
             'product_history' => 'Product history',
             'store_history' => 'Store history',
