@@ -62,7 +62,7 @@
     "unresolved_nav_missing": 0,
     "unresolved_nav_weak": 0,
     "duplicate_destinations": 1,
-    "internal_exceptions": 1,
+    "internal_exceptions": 6,
     "unresolved_duplicate_destinations": 0,
     "resolved_compatibility_aliases": 4
   },
@@ -395,7 +395,7 @@
     {
       "id": "administration.hub",
       "domain": "Administration",
-      "capability": "Organization / company / legal entity / business unit / module health",
+      "capability": "Organization / company / legal entity / business unit / module health / admin utilities",
       "route": [
         "admin.administration.index",
         "admin.enterprise-organizations.index/show",
@@ -403,7 +403,9 @@
         "admin.enterprise-legal-entities.show",
         "admin.enterprise-business-units.show",
         "admin.enterprise-system-health.index",
-        "admin.enterprise-modules.index/show"
+        "admin.enterprise-modules.index/show",
+        "admin.van-finance-support.index",
+        "admin.notifications.index"
       ],
       "route_path": [
         "/admin/administration",
@@ -414,14 +416,16 @@
         "/admin/administration/business-units/{businessUnit}",
         "/admin/administration/system-health",
         "/admin/administration/modules",
-        "/admin/administration/modules/{module}"
+        "/admin/administration/modules/{module}",
+        "/admin/van-finance-support",
+        "/admin/notifications"
       ],
       "controller_view": "Resolved by current named-route authority; canonical surface owner: Administration Hub",
       "role_persona": "platform admin",
       "permission_entitlement": "Canonical route middleware + role/store scope",
       "navigation_owner": "Administration Hub",
       "navigation_type": "DOMAIN_HUB",
-      "visible_entry_point": "Administration Hub + exact-record routes",
+      "visible_entry_point": "Administration Hub + header/admin contextual entries + exact-record routes",
       "parent_context": "Administration Hub",
       "ar_label": "مركز الإدارة",
       "en_label": "Administration Hub",
@@ -432,11 +436,13 @@
       "status": "ADMIN_HUB_OK",
       "evidence": [
         "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
-        "backend/resources/views/admin/administration-hub.blade.php"
+        "backend/resources/views/admin/administration-hub.blade.php",
+        "backend/resources/views/admin/_live-notifications.blade.php",
+        "backend/app/Http/Controllers/Admin/VanFinanceSupportController.php"
       ],
       "remediation_owner": null,
       "remediation_scope": null,
-      "notes": null
+      "notes": "Administration Hub owns platform administration; Notifications Center is reachable from the header utility and Van Finance Support from the Administration Hub. Neither requires a duplicate Sidebar item."
     },
     {
       "id": "settings.center",
@@ -530,21 +536,23 @@
         "admin.whatsapp-inbox.index",
         "admin.whatsapp-supervisor.index",
         "admin.whatsapp-campaigns.index/report",
-        "admin.whatsapp-chatbot.index"
+        "admin.whatsapp-chatbot.index",
+        "admin.whatsapp-chatbot.preview"
       ],
       "route_path": [
         "/admin/whatsapp/inbox",
         "/admin/whatsapp/supervisor",
         "/admin/whatsapp/campaigns",
         "/admin/whatsapp/campaigns/{campaign}/report",
-        "/admin/whatsapp/chatbot/{section?}"
+        "/admin/whatsapp/chatbot/{section?}",
+        "/admin/whatsapp/chatbot/preview/{screen?}"
       ],
       "controller_view": "Resolved by current named-route authority; canonical surface owner: WhatsApp",
       "role_persona": "agent/supervisor/marketer",
       "permission_entitlement": "Canonical route middleware + role/store scope",
       "navigation_owner": "WhatsApp",
       "navigation_type": "SIDEBAR",
-      "visible_entry_point": "communications-owned workbenches",
+      "visible_entry_point": "communications-owned workbenches; chatbot preview is a contextual action from the canonical chatbot workspace",
       "parent_context": "WhatsApp",
       "ar_label": "واتساب",
       "en_label": "WhatsApp Operations",
@@ -558,7 +566,7 @@
       ],
       "remediation_owner": null,
       "remediation_scope": null,
-      "notes": "Feed/attachment/export/preview endpoints are supporting actions, not independent navigation destinations."
+      "notes": "Chatbot preview is a contextual child of the canonical chatbot workspace, not a second Sidebar authority."
     },
     {
       "id": "restaurant.qr",
@@ -1777,6 +1785,30 @@
       "pattern": "admin.smart-ordering.customers.* / loyalty.* / service-recovery.* JSON endpoints",
       "status": "INTERNAL_EXCEPTION",
       "reason": "site-scoped service APIs; operator discovery is through Restaurant Operations Guest Book/customer context, not raw JSON navigation"
+    },
+    {
+      "pattern": "authenticated support/data GET endpoints owned by visible surfaces",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "JSON/data transport, auth bootstrap, validation guard, or file/report response owned by a visible parent surface; these are intentionally not independent navigation destinations.",
+      "routes": [
+        "admin.app-preview.targets",
+        "admin.assistant.bootstrap",
+        "admin.assistant.conversations.index",
+        "admin.assistant.conversations.messages.index",
+        "admin.b2b.login",
+        "admin.b2c.login",
+        "admin.csrf-token",
+        "admin.customer-360.finance-invoices",
+        "admin.customer-360.invalid-reference",
+        "admin.driver-live-tracking.evidence",
+        "admin.driver-live-tracking.lookups",
+        "admin.notifications.live",
+        "admin.production-launch.report",
+        "admin.reports.lookups",
+        "admin.smart-ordering.merchandising.index",
+        "admin.whatsapp-calls.permission",
+        "admin.whatsapp-campaigns.customers"
+      ]
     }
   ],
   "findings": {
@@ -1829,5 +1861,12 @@
     "mobile_desktop": "Shared responsive shell plus current visual evidence matrix; Restaurant Menu/Appearance use full 320/360/390/412/430/768/1024/1280+ matrix",
     "localization": "Localization gate + AR/EN runtime evidence; capability labels are recorded in both languages"
   },
-  "conclusion": "No current durable business capability is NAV_MISSING/NAV_WEAK. #1991 resolved the remaining duplicate findings as compatibility-only aliases that converge on canonical authorities; no duplicate UI authority remains. #1992 owns future CI enforcement."
+  "conclusion": "Current durable business capabilities are navigation-covered or explicitly classified. #1991 resolved all remaining duplicate findings as compatibility-only aliases that converge on canonical authorities; #1992 now enforces the navigation ledger in required CI so new business pages must declare an approved navigation strategy while reviewable technical/support endpoints remain explicit exceptions.",
+  "enforcement": {
+    "issue": 1992,
+    "test": "backend/tests/Feature/NavigationCapabilityInventoryTest.php",
+    "required_ci": true,
+    "direct_url_only_allowed": false,
+    "rule": "Every new business-facing admin page requires an approved navigation declaration or an explicit reviewable non-screen exception."
+  }
 }
