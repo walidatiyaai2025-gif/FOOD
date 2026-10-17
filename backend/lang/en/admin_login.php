@@ -34,5 +34,6 @@ return [
     'otp_expired' => 'This verification attempt has expired. Return to sign in to start again.',
     'otp_resend_limit' => 'No more verification codes can be sent for this attempt. Start again from sign in.',
     'otp_resend_wait' => 'Please wait before requesting another verification code.',
+    'otp_rate_limited' => 'Too many verification requests. Please try again later.',
     'not_authorized' => 'This account is not authorized to use the FOODEX Management Dashboard.',
 ];
