@@ -105,7 +105,16 @@
                             <strong>{{ __('whatsapp.inbox.heading') }}</strong>
                             <small>{{ __('whatsapp.inbox.conversation_helper') }}</small>
                         </div>
-                        <span class="wa-conversation-count" aria-label="{{ __('whatsapp.inbox.conversations') }}">{{ $conversations->total() }}</span>
+                        <div class="wa-conversation-head-actions">
+                            <a class="foodex-action-secondary button secondary wa-inbox-back"
+                               href="{{ route('admin.erp.customer-service') }}"
+                               aria-label="{{ __('whatsapp.inbox.back_to_customer_service') }}"
+                               title="{{ __('whatsapp.inbox.back_to_customer_service') }}">
+                                <span aria-hidden="true">{{ app()->getLocale()==='ar' ? '→' : '←' }}</span>
+                                <span>{{ __('whatsapp.inbox.back_to_customer_service') }}</span>
+                            </a>
+                            <span class="wa-conversation-count" aria-label="{{ __('whatsapp.inbox.conversations') }}">{{ $conversations->total() }}</span>
+                        </div>
                     </div>
                     <div class="wa-conversation-filters">
                         <form method="get">
