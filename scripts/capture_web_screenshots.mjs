@@ -1332,6 +1332,18 @@ async function captureLocale(browser, locale) {
   await snap(page, `02_Web/B2C_Admin/01_تسجيل_الدخول_B2C__default__${locale}.png`);
 
   await login(page, 'b2b', locale, email);
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2B_SuperAdmin',
+    'executive-command-center',
+    '/admin',
+    { fullMatrix: true },
+  );
+  if (await page.locator('[data-foodex-executive-overview]').count() !== 1) {
+    throw new Error(`Executive Command Center marker missing after /admin runtime evidence (${locale})`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1080 });
   await captureMixedTrackingEvidence(page, locale);
   await captureMobileSettingsParityEvidence(page, locale);
   await context.clearCookies();
