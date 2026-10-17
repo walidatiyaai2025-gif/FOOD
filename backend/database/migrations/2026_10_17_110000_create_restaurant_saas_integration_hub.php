@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('event_type', 120);
             $table->string('external_event_key', 190);
             $table->char('payload_hash', 64);
+            $table->text('payload_ciphertext');
             $table->string('status', 30)->default('received');
             $table->unsignedSmallInteger('attempts')->default(0);
             $table->string('last_error_code', 80)->nullable();
@@ -82,6 +83,7 @@ return new class extends Migration
             $table->string('event_key', 190);
             $table->string('event_type', 120);
             $table->char('payload_hash', 64);
+            $table->text('payload_ciphertext');
             $table->string('status', 30)->default('pending');
             $table->unsignedSmallInteger('attempts')->default(0);
             $table->unsignedSmallInteger('http_status')->nullable();
