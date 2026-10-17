@@ -34,7 +34,7 @@
 <label>{{ __('restaurant_growth.idempotency_key') }}<input class="foodex-control" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}" required></label>
 <label>{{ __('restaurant_growth.reference') }}<input class="foodex-control" name="reference"></label>
 <button class="primary" type="submit">{{ __('restaurant_growth.redeem') }}</button></form>
-<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-100-gift-cards"><thead><tr><th>{{ __('restaurant_growth.code') }}</th><th>{{ __('restaurant_growth.currency') }}</th><th>{{ __('restaurant_growth.status') }}</th></tr></thead><tbody>@foreach($giftCards as $card)<tr><td>{{ $card->display_code }}</td><td>{{ $card->currency }}</td><td>{{ $card->status }}</td></tr>@endforeach</tbody></table></div>
+<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-100-gift-cards"><thead><tr><th>{{ __('restaurant_growth.code') }}</th><th>{{ __('restaurant_growth.currency') }}</th><th>{{ __('restaurant_growth.status') }}</th></tr></thead><tbody>@foreach($giftCards as $card)<tr><td>{{ $card->display_code }}</td><td>{{ $card->currency }}</td><td><form method="post" action="{{ route('admin.smart-ordering.growth.gift-cards.status',[$site,$card->public_id]) }}">@csrf @method('patch')<select class="foodex-control" name="status">@foreach(['active','suspended','closed'] as $status)<option value="{{ $status }}" @selected($card->status===$status)>{{ __('restaurant_growth.status_options.'.$status) }}</option>@endforeach</select><button class="primary" type="submit">{{ __('restaurant_growth.update_status') }}</button></form></td></tr>@endforeach</tbody></table></div>
 </section>
 
 <section class="panel"><h2>{{ __('restaurant_growth.lifecycle') }}</h2>
@@ -66,8 +66,9 @@
 </tbody></table></div></section>
 
 <section class="panel"><h2>{{ __('restaurant_growth.accounting') }}</h2>
-<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-accounting-summary"><thead><tr><th>{{ __('restaurant_growth.store') }}</th><th>{{ __('restaurant_growth.currency') }}</th><th>{{ __('restaurant_growth.completed_sales') }}</th><th>{{ __('restaurant_growth.discounts') }}</th><th>{{ __('restaurant_growth.delivery') }}</th><th>{{ __('restaurant_growth.refunds') }}</th></tr></thead><tbody>
-@foreach($accounting['rows'] as $row)<tr><td>{{ $row['store_id'] }}</td><td>{{ $row['currency'] }}</td><td>{{ number_format($row['net_sales'],3) }}</td><td>{{ number_format($row['discounts'],3) }}</td><td>{{ number_format($row['delivery'],3) }}</td><td>{{ number_format($row['refunded_value'],3) }}</td></tr>@endforeach
+<p><a class="primary" href="{{ route('admin.smart-ordering.growth.accounting.download',$site) }}">{{ __('restaurant_growth.download_accounting') }}</a></p>
+<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-accounting-summary"><thead><tr><th>{{ __('restaurant_growth.sales_date') }}</th><th>{{ __('restaurant_growth.store') }}</th><th>{{ __('restaurant_growth.currency') }}</th><th>{{ __('restaurant_growth.completed_sales') }}</th><th>{{ __('restaurant_growth.discounts') }}</th><th>{{ __('restaurant_growth.delivery') }}</th><th>{{ __('restaurant_growth.refunds') }}</th></tr></thead><tbody>
+@foreach($accounting['rows'] as $row)<tr><td>{{ $row['sales_date'] }}</td><td>{{ $row['store_id'] }}</td><td>{{ $row['currency'] }}</td><td>{{ number_format($row['net_sales'],3) }}</td><td>{{ number_format($row['discounts'],3) }}</td><td>{{ number_format($row['delivery'],3) }}</td><td>{{ number_format($row['refunded_value'],3) }}</td></tr>@endforeach
 </tbody></table></div></section>
 
 <section class="panel"><h2>{{ __('restaurant_growth.portability') }}</h2><p>{{ __('restaurant_growth.export_help') }}</p>
