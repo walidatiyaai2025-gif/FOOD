@@ -357,14 +357,18 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->get(route('admin.whatsapp-inbox.index'))
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('صندوق خدمة العملاء');
+            ->assertSee('صندوق خدمة العملاء')
+            ->assertSee('الرجوع لخدمة العملاء')
+            ->assertSee(route('admin.erp.customer-service'), false);
 
         $admin->forceFill(['locale' => 'en'])->save();
         $this->actingAs($admin)
             ->get(route('admin.whatsapp-inbox.index'))
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('Shared Customer Service Inbox');
+            ->assertSee('Shared Customer Service Inbox')
+            ->assertSee('Back to Customer Service')
+            ->assertSee(route('admin.erp.customer-service'), false);
     }
 
     public function test_inbox_conversation_rail_preserves_filters_selection_and_latest_preview(): void
