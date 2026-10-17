@@ -13,7 +13,7 @@
 
 /* B2B dashboard reference: 841x564 source ratio translated to live responsive admin geometry. */
 .b2b-reference-dashboard{direction:ltr;display:grid;gap:12px;width:100%}.b2b-ref-header-tools{direction:ltr;display:grid;grid-template-columns:minmax(120px,1fr) minmax(280px,560px) minmax(120px,1fr);align-items:center;gap:12px}.b2b-ref-header-search{grid-column:2;min-width:0}.b2b-ref-header-actions{grid-column:3;justify-self:end;direction:rtl}
-.b2b-ref-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.b2b-ref-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:12px}
 .b2b-ref-card{direction:rtl;background:#fff;border:1px solid #e7edf3;border-radius:12px;box-shadow:0 2px 10px rgba(16,24,40,.035);min-width:0}
 .b2b-ref-kpi{min-height:96px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:12px;align-items:center}
 .b2b-ref-kpi-copy{min-width:0}.b2b-ref-kpi-label{font-size:12px;color:#667085;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
