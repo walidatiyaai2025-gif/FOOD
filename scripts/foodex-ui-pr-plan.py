@@ -54,6 +54,46 @@ def ui_surface(path: str) -> str | None:
     return None
 
 
+def dashboard_responsive_scope(rows: list[tuple[str, str]]) -> str:
+    shared_prefixes = (
+        "backend/public/assets/admin/",
+        "backend/resources/views/admin/layouts/",
+        "backend/resources/views/admin/components/",
+    )
+    return "shared-primitive-full-matrix" if any(
+        path.startswith(shared_prefixes) for _, path in rows
+    ) else "page-local-representative"
+
+
+def responsive_impact(surface: str, rows: list[tuple[str, str]], matrix: dict) -> dict:
+    data = matrix.get("surfaces", {}).get(surface, {})
+    if surface != "dashboard":
+        return {
+            "desktop": False,
+            "tablet": False,
+            "mobile": True,
+            "directions": data.get("directions", ["ar-rtl", "en-ltr"]),
+            "required_viewports": data.get("viewports", []),
+            "coverage_profile": "surface-default",
+        }
+    scope = dashboard_responsive_scope(rows)
+    key = "shared_primitive_viewports" if scope == "shared-primitive-full-matrix" else "representative_viewports"
+    return {
+        "desktop": True,
+        "tablet": True,
+        "mobile": True,
+        "directions": data.get("directions", ["ar-rtl", "en-ltr"]),
+        "required_viewports": data.get(key, data.get("viewports", [])),
+        "coverage_profile": scope,
+        "critical_assertions": [
+            "no-page-horizontal-overflow",
+            "visible-actions-in-viewport",
+            "locale-direction",
+            "320-workflow-completion",
+        ],
+    }
+
+
 def golden_candidates(surface: str, root: Path = ROOT) -> list[str]:
     groups = load(".ai/uiux/golden-pages.json", root).get("surfaces", {}).get(surface, {})
     result: list[str] = []
@@ -96,6 +136,18 @@ def validate_matrix(matrix: dict, root: Path = ROOT) -> list[str]:
             errors.append(f"{surface}: visual matrix viewports are empty")
         if not data.get("required_ci_job"):
             errors.append(f"{surface}: required_ci_job is missing")
+        if surface == "dashboard":
+            expected = {
+                "desktop-1280", "compact-1024", "tablet-768", "mobile-430",
+                "mobile-412", "mobile-390", "mobile-360", "mobile-320",
+            }
+            configured = set(data.get("shared_primitive_viewports", data.get("viewports", [])))
+            missing = sorted(expected - configured)
+            if missing:
+                errors.append(f"dashboard: responsive full matrix missing {', '.join(missing)}")
+            directions = set(data.get("directions", []))
+            if not {"ar-rtl", "en-ltr"}.issubset(directions):
+                errors.append("dashboard: AR/RTL and EN/LTR directions are required")
     return errors
 
 
@@ -133,6 +185,7 @@ def build_plan(rows: list[tuple[str, str]], root: Path = ROOT) -> dict:
             "golden_page_candidates": golden_candidates(surface, root),
             "quality_gates": quality.get("surfaces", {}).get(surface, {}),
             "visual_evidence": matrix.get("surfaces", {}).get(surface, {}),
+            "responsive_impact": responsive_impact(surface, rows, matrix),
         }
 
     return {
