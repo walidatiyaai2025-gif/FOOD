@@ -14,8 +14,12 @@
 .bi-table-wrap{overflow:auto;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card)}.bi-table{width:100%;border-collapse:collapse;min-width:760px}.bi-table th,.bi-table td{padding:11px 12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.bi-table th{font-size:12px;color:var(--foodex-muted);background:var(--foodex-background);white-space:nowrap}
 .bi-status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.bi-list{display:grid;gap:9px}.bi-list-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control)}.bi-list-row strong{display:block}.bi-metric{font-size:30px;font-weight:900}.bi-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.bi-error{border-inline-start:4px solid var(--foodex-danger-text)}.bi-empty{text-align:center;padding:28px;color:var(--foodex-muted)}
 .bi-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}
-@media(max-width:1100px){.bi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bi-form{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:767px){.bi-grid,.bi-status-grid{grid-template-columns:1fr}.bi-form{grid-template-columns:1fr}.bi-form .wide{grid-column:auto}.bi-form button{width:100%}.bi-list-row{grid-template-columns:1fr}.bi-table{min-width:620px}}
+.bi-overview-filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:14px;align-items:end}.bi-overview-filters label{display:grid;gap:5px;font-weight:700}
+.bi-analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.bi-viz-bars{display:grid;gap:8px;margin-top:12px}.bi-viz-row{display:grid;grid-template-columns:minmax(90px,1fr) 3fr auto;gap:10px;align-items:center}.bi-viz-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bi-viz-track{height:12px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.bi-viz-fill{display:block;height:100%;border-radius:inherit;background:var(--foodex-green)}
+.bi-builder-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.bi-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bi-check{display:flex!important;align-items:center;gap:8px;font-weight:600!important}.bi-check input{width:auto}
+.bi-schedule-form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end;margin-top:12px}.bi-schedule-form label{display:grid;gap:5px;font-weight:700}
+@media(max-width:1100px){.bi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bi-form{grid-template-columns:repeat(3,minmax(0,1fr))}.bi-overview-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:767px){.bi-grid,.bi-status-grid,.bi-analytics-grid,.bi-builder-options{grid-template-columns:1fr}.bi-form,.bi-overview-filters,.bi-schedule-form{grid-template-columns:1fr}.bi-form .wide{grid-column:auto}.bi-form button{width:100%}.bi-list-row{grid-template-columns:1fr}.bi-table{min-width:620px}.bi-viz-row{grid-template-columns:1fr}.bi-check-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -35,6 +39,7 @@
 </header>
 
 <div class="bi-shell">
+@include('admin._enterprise-bi-overview',['overview'=>$overview])
 <section class="foodex-card bi-panel">
     <div class="bi-head">
         <div><h2>{{ __('enterprise_bi_ui.catalog_title') }}</h2><p class="bi-muted">{{ __('enterprise_bi_ui.catalog_help') }}</p></div>
@@ -84,7 +89,25 @@
         </label>
         <label>{{ __('enterprise_bi_ui.from') }}<input type="date" name="from" value="{{ $selection['from']??'' }}" @if($selected['definition']->maxRangeDays===1) readonly @endif></label>
         <label>{{ __('enterprise_bi_ui.to') }}<input type="date" name="to" value="{{ $selection['to']??'' }}"></label>
+        <label>{{ __('enterprise_bi_ui.sort_field') }}
+            <select name="sort_field"><option value=""></option>
+                @foreach(array_values(array_unique([...$selected['definition']->dimensions,...$selected['definition']->measures])) as $field)
+                    <option value="{{ $field }}" @selected(data_get($selection,'sort.0.field')===$field)>{{ __('enterprise_bi_ui.fields.'.$field) }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label>{{ __('enterprise_bi_ui.sort_direction') }}
+            <select name="sort_direction"><option value="asc" @selected(data_get($selection,'sort.0.direction','asc')==='asc')>{{ __('enterprise_bi_ui.ascending') }}</option><option value="desc" @selected(data_get($selection,'sort.0.direction')==='desc')>{{ __('enterprise_bi_ui.descending') }}</option></select>
+        </label>
         <button class="foodex-action-primary foodex-filter-action" type="submit" data-bi-run-button data-loading-label="{{ __('enterprise_bi_ui.running') }}">{{ __('enterprise_bi_ui.run') }}</button>
+        <div class="bi-builder-options wide">
+            <fieldset><legend>{{ __('enterprise_bi_ui.dimensions') }}</legend><div class="bi-check-grid">
+                @foreach($selected['definition']->dimensions as $field)<label class="bi-check"><input type="checkbox" name="dimensions[]" value="{{ $field }}" @checked(in_array($field,$selection['dimensions']??[],true))><span>{{ __('enterprise_bi_ui.fields.'.$field) }}</span></label>@endforeach
+            </div></fieldset>
+            <fieldset><legend>{{ __('enterprise_bi_ui.measures') }}</legend><div class="bi-check-grid">
+                @foreach($selected['definition']->measures as $field)<label class="bi-check"><input type="checkbox" name="measures[]" value="{{ $field }}" @checked(in_array($field,$selection['measures']??[],true))><span>{{ __('enterprise_bi_ui.fields.'.$field) }}</span></label>@endforeach
+            </div></fieldset>
+        </div>
     </form>
     @else
         <div class="foodex-state bi-empty" role="status">{{ __('enterprise_bi_ui.unavailable') }}</div>
@@ -161,11 +184,40 @@
 
 <article class="foodex-card bi-panel">
     <div class="bi-head"><div><h2>{{ __('enterprise_bi_ui.schedules_title') }}</h2><p class="bi-muted">{{ __('enterprise_bi_ui.schedules_help') }}</p></div></div>
+    @if($canSchedule && $selected && $selected['available'] && $selection && $selection['scope'] instanceof \App\Enterprise\Entitlements\EntitlementScope)
+    <form method="post" action="{{ route('admin.erp.bi.schedules.store') }}" class="bi-schedule-form">
+        @csrf
+        <input type="hidden" name="report" value="{{ $selected['code'] }}">
+        <input type="hidden" name="scope_type" value="{{ $selection['scope']->type }}"> {{-- localization-gate: allow technical authorized scope type in hidden schedule payload; not user-visible --}}
+        <input type="hidden" name="scope_id" value="{{ $selection['scope']->id }}">
+        <input type="hidden" name="from" value="{{ $selection['from'] }}">
+        <input type="hidden" name="to" value="{{ $selection['to'] }}">
+        @foreach($selection['dimensions'] as $field)<input type="hidden" name="dimensions[]" value="{{ $field }}">@endforeach
+        @foreach($selection['measures'] as $field)<input type="hidden" name="measures[]" value="{{ $field }}">@endforeach
+        @foreach($selection['filters'] as $key=>$value)<input type="hidden" name="filters[{{ $key }}]" value="{{ $value }}">@endforeach
+        @if(data_get($selection,'sort.0.field'))<input type="hidden" name="sort_field" value="{{ data_get($selection,'sort.0.field') }}"><input type="hidden" name="sort_direction" value="{{ data_get($selection,'sort.0.direction','asc') }}">@endif
+        <label>{{ __('enterprise_bi_ui.schedule_next_run') }}<input type="datetime-local" name="next_run_at" required></label>
+        <label>{{ __('enterprise_bi_ui.schedule_interval') }}<input type="number" name="interval_minutes" min="15" max="525600" value="1440" required></label>
+        <button class="foodex-action-primary" type="submit">{{ __('enterprise_bi_ui.schedule_create') }}</button>
+    </form>
+    @endif
     <div class="bi-list" style="margin-top:12px">
     @forelse($schedules as $schedule)
         <div class="bi-list-row">
             <div><strong>{{ $schedule['report'] }}</strong><span class="bi-muted">{{ __('enterprise_bi_ui.interval') }} {{ $schedule['interval_minutes'] }} {{ __('enterprise_bi_ui.minutes') }} · {{ __('enterprise_bi_ui.next_run') }} {{ $schedule['next_run_at']??'—' }} · {{ __('enterprise_bi_ui.last_run') }} {{ $schedule['last_run_at']??'—' }}</span></div>
-            <span class="bi-pill {{ (!$schedule['enabled']||$schedule['failed'])?'off':'' }}">{{ $schedule['enabled']?__('enterprise_bi_ui.statuses.enabled'):__('enterprise_bi_ui.statuses.disabled') }}</span>
+            <div class="bi-actions">
+                <span class="bi-pill {{ (!$schedule['enabled']||$schedule['failed'])?'off':'' }}">{{ $schedule['enabled']?__('enterprise_bi_ui.statuses.enabled'):__('enterprise_bi_ui.statuses.disabled') }}</span>
+                @if($canSchedule)
+                <details><summary class="foodex-action-secondary button secondary">{{ __('enterprise_bi_ui.schedule_edit') }}</summary>
+                    <form method="post" action="{{ route('admin.erp.bi.schedules.update',['schedule'=>$schedule['id']]) }}" class="bi-list" style="margin-top:8px">@csrf @method('patch')
+                        <label>{{ __('enterprise_bi_ui.schedule_state') }}<select name="enabled"><option value="1" @selected($schedule['enabled'])>{{ __('enterprise_bi_ui.statuses.enabled') }}</option><option value="0" @selected(!$schedule['enabled'])>{{ __('enterprise_bi_ui.statuses.disabled') }}</option></select></label>
+                        <label>{{ __('enterprise_bi_ui.schedule_next_run') }}<input type="datetime-local" name="next_run_at" value="{{ \Carbon\CarbonImmutable::parse($schedule['next_run_at'])->format('Y-m-d\\TH:i') }}" required></label>
+                        <label>{{ __('enterprise_bi_ui.schedule_interval') }}<input type="number" name="interval_minutes" min="15" max="525600" value="{{ $schedule['interval_minutes'] }}" required></label>
+                        <button class="foodex-action-primary" type="submit">{{ __('enterprise_bi_ui.schedule_save') }}</button>
+                    </form>
+                </details>
+                @endif
+            </div>
         </div>
     @empty
         <div class="bi-empty">{{ __('enterprise_bi_ui.no_schedules') }}</div>

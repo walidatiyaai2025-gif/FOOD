@@ -26,6 +26,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
+use App\Services\SalesOrderOperationsDashboardService;
 use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
@@ -48,6 +49,7 @@ final class OrderOperationsController extends Controller
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
         private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
+        private readonly SalesOrderOperationsDashboardService $salesDashboard,
     ) {}
 
     public function b2bIndex(Request $request): View
@@ -82,6 +84,7 @@ final class OrderOperationsController extends Controller
             'status' => ['nullable', 'string', Rule::in($statusCodes)],
             'driver_id' => ['nullable', 'integer', 'min:1'],
             'dispatch_status' => ['nullable', 'string', Rule::in(['awaiting_dispatch', 'assigned'])],
+            'exception' => ['nullable', 'string', Rule::in(SalesOrderOperationsDashboardService::EXCEPTIONS)],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
@@ -152,6 +155,11 @@ final class OrderOperationsController extends Controller
                     ->whereColumn('order_dispatch_states.order_id', 'orders.id')
                     ->where('order_dispatch_states.status', $dispatchStatus);
             });
+        }
+
+        $selectedException = isset($data['exception']) ? (string) $data['exception'] : null;
+        if ($selectedException !== null) {
+            $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
         $statusCounts = (clone $orderQuery)
@@ -236,6 +244,23 @@ final class OrderOperationsController extends Controller
             ->distinct()
             ->get(['vans.id', 'vans.code', 'vans.plate_number']);
 
+        $dashboardVisible = ! (
+            isset($data['order_number'])
+            || isset($data['status'])
+            || isset($data['driver_id'])
+            || isset($data['dispatch_status'])
+            || isset($data['exception'])
+            || isset($data['order'])
+        );
+        $dashboard = $dashboardVisible
+            ? $this->salesDashboard->build(
+                $scopes,
+                $selectedStoreId,
+                isset($data['from']) ? (string) $data['from'] : null,
+                isset($data['to']) ? (string) $data['to'] : null,
+            )
+            : null;
+
         $detail = null;
         if (isset($data['order'])) {
             $detailOrder = Order::query()
@@ -281,6 +306,10 @@ final class OrderOperationsController extends Controller
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
             'selectedStatus' => $selectedStatus,
+            'selectedException' => $selectedException,
+            'exceptionOptions' => SalesOrderOperationsDashboardService::EXCEPTIONS,
+            'dashboard' => $dashboard,
+            'dashboardVisible' => $dashboardVisible,
             'selectedStoreId' => $selectedStoreId,
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,

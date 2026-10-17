@@ -128,6 +128,131 @@ final class EnterpriseBiWorkbenchTest extends TestCase
             ->assertSee('1440');
     }
 
+    public function test_executive_dashboard_uses_shared_primitives_and_only_forecasts_with_real_history(): void
+    {
+        [$actor, $store] = $this->authorizedStoreActor('ERP-BI-UI-C');
+        $customerId = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'BI Forecast Customer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (range(0, 15) as $offset) {
+            $day = now()->subDays($offset);
+            DB::table('orders')->insert([
+                'store_id' => $store->id,
+                'customer_id' => $customerId,
+                'order_number' => 'ERP-BI-FC-'.$offset,
+                'channel' => 'b2c',
+                'status' => 'completed',
+                'currency' => 'KWD',
+                'subtotal' => '10.000',
+                'discount_total' => '0.000',
+                'delivery_total' => '0.000',
+                'grand_total' => '10.000',
+                'created_at' => $day,
+                'updated_at' => $day,
+            ]);
+        }
+
+        $response = $this->actingAs($actor)
+            ->get(route('admin.erp.bi', [
+                'dashboard_store' => 'store:'.$store->id,
+                'dashboard_from' => now()->subDays(6)->toDateString(),
+                'dashboard_to' => now()->toDateString(),
+                'dashboard_currency' => 'KWD',
+            ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-enterprise-bi-overview', false)
+            ->assertSee('foodex-module-kpi', false)
+            ->assertSee('data-bi-chart="orders"', false)
+            ->assertSee(__('enterprise_bi_ui.forecast.title'))
+            ->assertSee(__('enterprise_bi_ui.forecast.method'))
+            ->assertSee(__('enterprise_bi_ui.saved_views.title'));
+    }
+
+    public function test_semantic_builder_accepts_only_registered_dimensions_measures_and_sort(): void
+    {
+        [$actor, $store] = $this->authorizedStoreActor('ERP-BI-UI-D');
+        $day = now()->toDateString();
+
+        $response = $this->actingAs($actor)
+            ->get(route('admin.erp.bi', [
+                'report' => 'orders.summary',
+                'scope' => 'store:'.$store->id,
+                'breakdown' => 'daily',
+                'dimensions' => ['date'],
+                'measures' => ['orders'],
+                'sort_field' => 'orders',
+                'sort_direction' => 'desc',
+                'from' => $day,
+                'to' => $day,
+                'run' => 1,
+            ]));
+
+        $response
+            ->assertOk()
+            ->assertViewHas('selection', function (array $selection): bool {
+                return $selection['dimensions'] === ['date']
+                    && $selection['measures'] === ['orders']
+                    && $selection['sort'] === [['field' => 'orders', 'direction' => 'desc']];
+            })
+            ->assertSee('name="dimensions[]"', false)
+            ->assertSee('name="measures[]"', false);
+    }
+
+    public function test_authorized_user_can_create_edit_and_disable_a_scheduled_report(): void
+    {
+        [$actor, $store] = $this->authorizedStoreActor('ERP-BI-UI-E');
+        $from = now()->subDay()->toDateString();
+        $to = now()->toDateString();
+        $nextRun = now()->addHour()->format('Y-m-d H:i:s');
+
+        $this->actingAs($actor)
+            ->post(route('admin.erp.bi.schedules.store'), [
+                'report' => 'orders.summary',
+                'scope_type' => 'store',
+                'scope_id' => $store->id,
+                'from' => $from,
+                'to' => $to,
+                'dimensions' => ['date'],
+                'measures' => ['orders'],
+                'sort_field' => 'orders',
+                'sort_direction' => 'desc',
+                'interval_minutes' => 1440,
+                'next_run_at' => $nextRun,
+            ])
+            ->assertRedirect();
+
+        $schedule = DB::table('enterprise_scheduled_reports')
+            ->where('requested_by', $actor->id)
+            ->where('report_code', 'orders.summary')
+            ->first();
+
+        $this->assertNotNull($schedule);
+        $plan = json_decode((string) $schedule->query_payload, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(['date'], $plan['dimensions']);
+        $this->assertSame(['orders'], $plan['measures']);
+        $this->assertSame([['field' => 'orders', 'direction' => 'desc']], $plan['sort']);
+
+        $this->actingAs($actor)
+            ->patch(route('admin.erp.bi.schedules.update', ['schedule' => $schedule->id]), [
+                'enabled' => false,
+                'interval_minutes' => 2880,
+                'next_run_at' => now()->addHours(2)->format('Y-m-d H:i:s'),
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('enterprise_scheduled_reports', [
+            'id' => $schedule->id,
+            'enabled' => false,
+            'interval_minutes' => 2880,
+        ]);
+    }
+
     public function test_user_without_reporting_permission_is_denied(): void
     {
         $actor = User::factory()->create(['is_active' => true]);
@@ -147,6 +272,11 @@ final class EnterpriseBiWorkbenchTest extends TestCase
         $this->assertSame(array_keys($en['breakdowns']), array_keys($ar['breakdowns']));
         $this->assertSame(array_keys($en['fields']), array_keys($ar['fields']));
         $this->assertSame(array_keys($en['statuses']), array_keys($ar['statuses']));
+        $this->assertSame(array_keys($en['overview']), array_keys($ar['overview']));
+        $this->assertSame(array_keys($en['kpis']), array_keys($ar['kpis']));
+        $this->assertSame(array_keys($en['charts']), array_keys($ar['charts']));
+        $this->assertSame(array_keys($en['forecast']), array_keys($ar['forecast']));
+        $this->assertSame(array_keys($en['saved_views']), array_keys($ar['saved_views']));
     }
 
     /** @return array{User,Store} */
