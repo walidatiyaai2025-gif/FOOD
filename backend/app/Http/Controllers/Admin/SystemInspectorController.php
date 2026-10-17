@@ -6,8 +6,10 @@ use App\Domain\RestaurantSaaS\RestaurantOperatorService;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\SystemInspectorEvent;
+use App\Models\UpdateHistory;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
+use App\Services\ProductionDatasetSnapshot;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -15,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -203,8 +206,12 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
-    {
+    public function export(
+        Request $request,
+        EnterpriseSystemInspector $enterpriseInspector,
+        ProductionDatasetSnapshot $productionSnapshot,
+    ): StreamedResponse {
+
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
@@ -217,6 +224,7 @@ final class SystemInspectorController extends Controller
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
+            'system_administration' => $this->systemAdministrationEvidence($productionSnapshot),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
                 'occurred_at' => $event->occurred_at->toIso8601String(),
@@ -328,6 +336,139 @@ final class SystemInspectorController extends Controller
     }
 
     /** @return array<string,mixed> */
+    private function systemAdministrationEvidence(ProductionDatasetSnapshot $productionSnapshot): array
+    {
+        $updates = UpdateHistory::query()
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(function (UpdateHistory $row): array {
+                $evidence = is_array($row->execution_evidence) ? $row->execution_evidence : [];
+
+                return [
+                    'id' => $row->id,
+                    'actor_id' => $row->actor_id,
+                    'from_version' => $row->from_version,
+                    'to_version' => $row->to_version,
+                    'status' => $row->status,
+                    'environment' => $row->environment,
+                    'backup_status' => $row->backup_status,
+                    'failed_stage' => $row->failed_stage,
+                    'rollback_status' => $row->rollback_status,
+                    'maintenance_mode_remained' => (bool) $row->maintenance_mode_remained,
+                    'health_verified_at' => $row->health_verified_at?->toIso8601String(),
+                    'started_at' => $row->started_at?->toIso8601String(),
+                    'finished_at' => $row->finished_at?->toIso8601String(),
+                    'failure_reason' => $row->failure_reason,
+                    'execution_evidence' => $this->safeUpdateEvidence($evidence),
+                ];
+            })
+            ->all();
+
+        try {
+            $snapshot = $productionSnapshot->status();
+        } catch (Throwable) {
+            $snapshot = ['state' => 'failed', 'verified' => false];
+        }
+
+        return [
+            'production_dataset_snapshot' => array_intersect_key($snapshot, array_flip([
+                'state',
+                'snapshot_id',
+                'verified',
+                'source_release',
+                'source_sha',
+                'size',
+                'checksum_sha256',
+                'created_at',
+                'verified_at',
+                'launch_activated_at',
+                'restore_started_at',
+                'restored_at',
+                'failed_at',
+            ])),
+            'update_history' => $updates,
+            'failed_jobs' => $this->safeFailedJobs(),
+        ];
+    }
+
+    /** @param array<string,mixed> $evidence
+     *  @return array<string,mixed>
+     */
+    private function safeUpdateEvidence(array $evidence): array
+    {
+        $allowed = [
+            'package_integrity',
+            'preflight',
+            'backup_files',
+            'backup_database',
+            'backup_verification',
+            'migrations',
+            'maintenance_mode',
+            'release_activation',
+            'cache_rebuild',
+            'health_check',
+            'rollback_files',
+            'rollback_database',
+            'rollback_health_check',
+            'result',
+        ];
+        $safe = array_intersect_key($evidence, array_flip($allowed));
+
+        foreach (['file_backup', 'database_backup'] as $key) {
+            $descriptor = $evidence[$key] ?? null;
+            if (! is_array($descriptor)) {
+                continue;
+            }
+            $safe[$key] = array_intersect_key($descriptor, array_flip([
+                'reference',
+                'size_bytes',
+                'sha256',
+            ]));
+        }
+
+        return $safe;
+    }
+
+    /** @return array{available:bool,count:int,rows:list<array<string,mixed>>} */
+    private function safeFailedJobs(): array
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            return ['available' => false, 'count' => 0, 'rows' => []];
+        }
+
+        try {
+            $idColumn = Schema::hasColumn('failed_jobs', 'uuid') ? 'uuid' : 'id';
+            $columns = [$idColumn];
+            foreach (['connection', 'queue', 'failed_at'] as $column) {
+                if (Schema::hasColumn('failed_jobs', $column)) {
+                    $columns[] = $column;
+                }
+            }
+
+            $rows = DB::table('failed_jobs')
+                ->orderByDesc(Schema::hasColumn('failed_jobs', 'failed_at') ? 'failed_at' : $idColumn)
+                ->limit(100)
+                ->get($columns)
+                ->map(static fn (object $row): array => [
+                    'reference' => (string) ($row->{$idColumn} ?? ''),
+                    'connection' => (string) ($row->connection ?? ''),
+                    'queue' => (string) ($row->queue ?? ''),
+                    'failed_at' => isset($row->failed_at) ? (string) $row->failed_at : null,
+                ])
+                ->all();
+
+            return [
+                'available' => true,
+                'count' => (int) DB::table('failed_jobs')->count(),
+                'rows' => $rows,
+            ];
+        } catch (Throwable) {
+            return ['available' => false, 'count' => 0, 'rows' => []];
+        }
+    }
+
+    /** @return array<string,mixed> */
     private function diagnostics(): array
     {
         $publicRoot = (string) config('filesystems.disks.public.root');
@@ -337,10 +478,33 @@ final class SystemInspectorController extends Controller
             ? trim((string) file_get_contents($versionPath))
             : '';
 
+        try {
+            DB::select('select 1');
+            $databaseHealthy = true;
+        } catch (Throwable) {
+            $databaseHealthy = false;
+        }
+
+        $heartbeatPath = storage_path('app/system/scheduler-heartbeat.lock');
+        $heartbeatTimestamp = is_file($heartbeatPath)
+            ? (int) trim((string) @file_get_contents($heartbeatPath))
+            : 0;
+        $heartbeatAge = $heartbeatTimestamp > 0 ? max(0, time() - $heartbeatTimestamp) : null;
+
         return [
             'version' => $version !== '' ? $version : 'unknown',
             'app_url' => (string) config('app.url'),
             'environment' => (string) app()->environment(),
+            'database_driver' => (string) config('database.default'),
+            'database_healthy' => $databaseHealthy,
+            'cache_driver' => (string) config('cache.default'),
+            'queue_driver' => (string) config('queue.default'),
+            'maintenance_mode' => app()->isDownForMaintenance(),
+            'scheduler_heartbeat_enabled' => (bool) config('foodex.scheduler_heartbeat', true),
+            'scheduler_last_run' => $heartbeatTimestamp > 0 ? date(DATE_ATOM, $heartbeatTimestamp) : null,
+            'scheduler_age_seconds' => $heartbeatAge,
+            'scheduler_healthy' => (bool) config('foodex.scheduler_heartbeat', true)
+                && ($heartbeatAge === null ? app()->environment('testing') : $heartbeatAge <= 180),
             'public_disk_root' => $publicRoot,
             'public_disk_writable' => is_dir($publicRoot) && is_writable($publicRoot),
             'public_link_path' => $publicLink,
