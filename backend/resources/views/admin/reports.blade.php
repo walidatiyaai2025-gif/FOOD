@@ -76,7 +76,7 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
 
         <div class="families">
             @foreach($catalog as $key => $label)
-                <a class="pill {{ $report === $key ? 'active' : '' }}" href="{{ route('admin.reports.index', array_merge(request()->except('report'), ['report'=>$key])) }}">{{ __($label) }}</a>
+                <a class="pill {{ $report === $key ? 'active' : '' }}" href="{{ route('admin.reports.index', array_merge(request()->except('report'), ['report'=>$key], $key === 'field_operations' ? ['channel'=>'b2b'] : [])) }}">{{ __($label) }}</a>
             @endforeach
         </div>
 
@@ -87,7 +87,7 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
                     <div><label>{{ __('reports.filters.from') }}</label><input type="date" name="from" value="{{ $data['filters']['from'] }}"></div>
                     <div><label>{{ __('reports.filters.to') }}</label><input type="date" name="to" value="{{ $data['filters']['to'] }}"></div>
                     <div><label for="report-store">{{ __('reports.filters.store') }}</label><select id="report-store" name="store_id" data-report-store><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['stores'] as $store)<option value="{{ $store->id }}" @selected((string)request('store_id') === (string)$store->id)>{{ $store->name }}</option>@endforeach</select></div>
-                    <div><label for="report-channel">{{ __('reports.filters.channel') }}</label><select id="report-channel" name="channel" data-report-channel><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
+                    <div><label for="report-channel">{{ __('reports.filters.channel') }}</label><select id="report-channel" name="channel" data-report-channel><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c') @disabled($report === 'field_operations')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
                     <div><label>{{ __('reports.filters.status') }}</label><select name="status"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['statuses'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $reportLabel($status) }}</option>@endforeach</select></div>
                     <div><label for="report-category">{{ __('reports.filters.category') }}</label><select id="report-category" name="category_id" data-report-category><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['categories'] as $category)<option value="{{ $category->id }}" data-store-id="{{ $category->store_id }}" data-channel="{{ $category->channel }}" @selected((string)request('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
                     @php
@@ -186,7 +186,7 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
         </section>
 
         <div class="breakdowns" data-report-breakdowns>
-            @foreach(['status_breakdown','payment_breakdown','category_performance','zero_sales','delivery_breakdown'] as $extra)
+            @foreach(['status_breakdown','payment_breakdown','category_performance','zero_sales','delivery_breakdown','van_workload','territory_productivity','failed_reasons','remittance_trend'] as $extra)
                 @if(!empty($data[$extra]))
                 @php($breakdownRows = collect($data[$extra])->filter(fn ($row) => is_array($row))->values())
                 @php($breakdownColumns = $breakdownRows->isNotEmpty() ? array_keys($breakdownRows->first()) : [])
