@@ -4,9 +4,9 @@ namespace App\Enterprise\Reporting;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Reporting\ReadModels\CatalogOperationsReadModel;
-use App\Enterprise\Reporting\ReadModels\FieldOperationsReadModel;
 use App\Enterprise\Reporting\ReadModels\CommercialProfitabilityReadModel;
 use App\Enterprise\Reporting\ReadModels\CustomerServiceOperationsReadModel;
+use App\Enterprise\Reporting\ReadModels\FieldOperationsReadModel;
 use App\Enterprise\Reporting\ReadModels\FinanceExposureReadModel;
 use App\Enterprise\Reporting\ReadModels\OrdersSummaryReadModel;
 use App\Enterprise\Reporting\ReadModels\ProcurementOperationsReadModel;
