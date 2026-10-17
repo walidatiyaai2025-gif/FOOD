@@ -199,7 +199,6 @@ final class ErpCenterTest extends TestCase
             ->assertDontSee('data-erp-key="wms"', false);
     }
 
-
     public function test_erp_center_renders_authoritative_snapshot_drilldowns_and_accessible_analytics(): void
     {
         $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-snapshot@example.test');
