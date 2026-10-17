@@ -4,7 +4,6 @@ namespace App\Enterprise\Wms;
 
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class WmsDashboardService
