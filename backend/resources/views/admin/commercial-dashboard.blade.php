@@ -92,13 +92,11 @@
         .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
         .flash-form-section[hidden]{display:none}
         .flash-form-section h3{margin:0;font-size:.92rem}
-        .flash-wizard-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 4px}
-        .flash-wizard-progress button{min-width:0;width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer;white-space:normal;line-height:1.35}
-        .flash-wizard-progress button[aria-current="step"]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
+        .flash-wizard-progress{--foodex-step-columns:5;margin:2px 0 4px}
         .flash-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
         .flash-product-context{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
         .flash-product-context label{display:grid;gap:6px;min-width:min(100%,280px);font-weight:700;font-size:.8rem}
-        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:calc(100vw - 32px);min-width:0;justify-self:start}}@media(max-width:359px){.flash-wizard-progress{grid-template-columns:minmax(0,1fr)}}
+        @media(max-width:767px){.flash-wizard-progress{--foodex-step-columns:2;width:100%;max-width:calc(100vw - 32px);min-width:0;justify-self:start}}@media(max-width:359px){.flash-wizard-progress{--foodex-step-columns:1}}
         .flash-lookup-field{display:grid;gap:6px;font-weight:700;font-size:.8rem;min-width:0}
         .flash-lookup{position:relative}
         .flash-lookup-toggle{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;cursor:pointer;text-align:start}
@@ -542,9 +540,9 @@
             <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
                 @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
-                <div class="flash-wizard-progress" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
+                <div class="flash-wizard-progress foodex-stepper" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
                     @foreach(['basics','channels','audience','products','rules'] as $wizardIndex=>$wizardKey)
-                        <button type="button" data-flash-wizard-go="{{ $wizardIndex }}" @if($wizardIndex===0) aria-current="step" @endif>{{ __('commercial.flash.'. $wizardKey) }}</button>
+                        <button type="button" class="foodex-step" data-flash-wizard-go="{{ $wizardIndex }}" @if($wizardIndex===0) aria-current="step" @endif>{{ __('commercial.flash.'. $wizardKey) }}</button>
                     @endforeach
                 </div>
 
