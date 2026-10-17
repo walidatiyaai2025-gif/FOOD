@@ -216,7 +216,9 @@ final class RestaurantGrowthController extends Controller
 
         return response()->streamDownload(function () use ($summary): void {
             $output = fopen('php://output', 'wb');
-            abort_if($output === false, 500, 'Unable to open accounting export stream.');
+            if ($output === false) {
+                throw new \RuntimeException('Unable to open accounting export stream.');
+            }
             fputcsv($output, ['sales_date', 'store_id', 'currency', 'subtotal', 'discounts', 'delivery', 'net_sales', 'refunded_value']);
             foreach ($summary['rows'] as $row) {
                 fputcsv($output, [
