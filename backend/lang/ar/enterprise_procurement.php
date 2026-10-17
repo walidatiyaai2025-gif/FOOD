@@ -136,6 +136,8 @@ return [
     'register_document' => 'تسجيل مستند',
     'document_title' => 'عنوان المستند',
     'document_reference' => 'مرجع المستند',
+    'attachment' => 'المرفق',
+    'download' => 'تنزيل',
     'qualification' => 'التأهيل',
     'qualification_note' => 'ملاحظة التأهيل',
     'blocked' => 'موقوف',
