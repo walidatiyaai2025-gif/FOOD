@@ -1477,7 +1477,7 @@ final class ProcurementCompletionManager
             ->groupBy('supplier_code')
             ->map(function ($rows, string $supplierCode): array {
                 $leadDays = $rows->map(
-                    fn ($row): int => CarbonImmutable::parse((string) $row->issued_at)
+                    fn ($row): int => (int) CarbonImmutable::parse((string) $row->issued_at)
                         ->diffInDays(CarbonImmutable::parse((string) $row->posted_at)),
                 );
 
@@ -1597,7 +1597,7 @@ final class ProcurementCompletionManager
                 $leadDays = $supplierRows
                     ->filter(fn ($row): bool => $row->issued_at !== null && $row->posted_at !== null)
                     ->map(
-                        fn ($row): int => CarbonImmutable::parse((string) $row->issued_at)
+                        fn ($row): int => (int) CarbonImmutable::parse((string) $row->issued_at)
                             ->diffInDays(CarbonImmutable::parse((string) $row->posted_at)),
                     );
 
