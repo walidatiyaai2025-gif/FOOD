@@ -97,7 +97,9 @@
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-<nav class="foodex-tabs" aria-label="{{ __('smart_ordering.title') }}">
+@include('admin._smart-ordering-workspace-nav')
+
+<nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.title') }}">
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.index') }}">{{ __('smart_ordering.settings_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
