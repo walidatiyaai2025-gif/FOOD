@@ -11,7 +11,7 @@ final class WhatsAppCallingUiContractTest extends TestCase
         $inbox = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
 
         $this->assertIsString($inbox);
-        $workspace = strpos($inbox, '<div class="wa-workspace">');
+        $workspace = strpos($inbox, 'data-wa-golden-workspace');
         $filters = strpos($inbox, '<div class="wa-conversation-filters">');
         $controls = strpos($inbox, '<div class="wa-controls-row">');
 
