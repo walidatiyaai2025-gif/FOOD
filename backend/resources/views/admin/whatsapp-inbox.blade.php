@@ -17,6 +17,9 @@
 .wa-call-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}.wa-call-status{font-size:12px;color:var(--foodex-muted);flex:1;min-width:160px}.wa-call-live{color:var(--foodex-green-dark);font-weight:800}.wa-call-danger{background:var(--foodex-red)!important;color:var(--foodex-surface)!important;border-color:var(--foodex-red)!important}
 .wa-call-overlay{position:fixed;inset:0;background:rgba(15,23,42,.46);display:none;align-items:center;justify-content:center;z-index:99999;padding:18px}.wa-call-overlay.show{display:flex}.wa-call-card{width:min(440px,100%);background:var(--foodex-surface);border-radius:18px;padding:24px;box-shadow:0 22px 70px rgba(15,23,42,.28);text-align:center}.wa-call-icon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:var(--foodex-green-soft);font-size:32px}.wa-call-card h2{margin:0 0 7px}.wa-call-card p{color:var(--foodex-muted);margin:0 0 18px}.wa-call-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.wa-inline label{display:grid;gap:4px;min-width:130px}
 .wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-so-order{display:grid;gap:8px}.wa-so-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.wa-so-items{display:grid;gap:4px;padding:8px 0;border-block:1px solid var(--foodex-border)}.wa-so-items span{font-size:12px}.wa-so-action{display:inline-flex;justify-content:center;text-decoration:none}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
+/* #2018 Customer 360 context pane — golden information architecture. */
+.wa-context{min-width:0;display:flex;flex-direction:column;min-height:68vh;background:var(--foodex-surface)}.wa-context>.wa-pane-head{flex:0 0 auto}.wa-context>.wa-pane-body{flex:1;min-height:0;overflow:auto;padding:0;overscroll-behavior:contain}.wa-context .wa-360{display:block}.wa-context-section{padding:15px 17px;border-bottom:1px solid var(--foodex-border);min-width:0}.wa-context-section:last-child{border-bottom:0}.wa-context-title{margin:0 0 11px;font-size:13px;font-weight:900;color:var(--foodex-ink)}.wa-context-identity{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center}.wa-context-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900}.wa-context-name{font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-context-contact{display:block;margin-top:2px;color:var(--foodex-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-context-kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px 10px;margin-top:10px}.wa-context-kv div{min-width:0}.wa-context-kv span{display:block;color:var(--foodex-muted);font-size:10px}.wa-context-kv strong{display:block;margin-top:2px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-context-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-context-tags .wa-tag{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-context-empty{margin:0;color:var(--foodex-muted);font-size:11px;line-height:1.55}.wa-context-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.wa-context-stat{min-width:0;padding:9px 8px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-background)}.wa-context-stat strong{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-context-stat span{display:block;margin-top:3px;color:var(--foodex-muted);font-size:9px;line-height:1.35}.wa-context-subhead{margin:11px 0 6px;color:var(--foodex-muted);font-size:10px;font-weight:900}.wa-context-table{table-layout:fixed}.wa-context-table td{padding:6px 3px;vertical-align:top;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wa-context-table td:first-child{padding-inline-start:0}.wa-context-table td:last-child{padding-inline-end:0;text-align:end}.wa-context-smart{display:grid;gap:7px;margin-top:8px}.wa-context-smart .wa-so-order{padding:9px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-background)}.wa-context-smart .wa-so-items{max-height:82px;overflow:auto}.wa-context-smart .wa-so-action{font-size:11px;padding:7px 9px}.wa-activity-list{display:grid}.wa-activity-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--foodex-border)}.wa-activity-row:last-child{border-bottom:0;padding-bottom:0}.wa-activity-actor{min-width:0;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-activity-time{font-size:9px;color:var(--foodex-muted);direction:ltr}.wa-activity-body{grid-column:1/-1;margin:0;color:var(--foodex-muted);font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+@media(max-width:1180px){.wa-context{min-height:0;max-height:none}.wa-context>.wa-pane-body{max-height:560px}}
 .wa-empty{padding:32px;text-align:center;color:var(--foodex-muted)}.wa-status{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto;gap:8px;align-items:end}
 
 /* #2017 center conversation pane — golden thread/composer contract. */
@@ -244,67 +247,153 @@
                 <?php endif; ?>
             </section>
 
-                <section class="foodex-card wa-pane wa-context">
+                <section class="foodex-card wa-pane wa-context" data-wa-pane="customer-context">
                     <div class="wa-pane-head"><strong>{{ __('whatsapp.inbox.customer_360') }}</strong></div>
-                    <div class="wa-pane-body wa-360">
-                    @if(!empty($smartOrderingContext['orders']))
-                        <div class="wa-card">
-                            <h3>{{ __('whatsapp.smart_ordering.orders_title') }}</h3>
-                            @foreach($smartOrderingContext['orders'] as $smartOrder)
-                                @php($so=$smartOrder['snapshot'] ?? [])
-                                <div class="wa-so-order">
-                                    <div class="wa-so-head">
-                                        <div>
-                                            <strong>{{ data_get($so,'order_number','#'.$smartOrder['order_id']) }}</strong>
-                                            <p>{{ __('whatsapp.smart_ordering.branch') }}: {{ app()->getLocale()==='ar' ? (data_get($so,'branch.name_ar') ?: data_get($so,'branch.name_en','-')) : (data_get($so,'branch.name_en') ?: data_get($so,'branch.name_ar','-')) }}</p>
-                                        </div>
-                                        <span class="wa-badge">{{ __('whatsapp.smart_ordering.statuses.'.strtolower((string)$smartOrder['status'])) }}</span>
+                    <div class="wa-pane-body wa-360" data-wa-context-stack>
+                        <div class="wa-context-section" data-wa-context-section="customer-details">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.customer_details') }}</h3>
+                            @if($customer360)
+                                @php($customer=$customer360['customer'])
+                                <div class="wa-context-identity">
+                                    <div class="wa-context-avatar">{{ mb_substr((string)$customer->name,0,2) }}</div>
+                                    <div>
+                                        <div class="wa-context-name" title="{{ $customer->name }}">{{ $customer->name }}</div>
+                                        <span class="wa-context-contact" title="{{ $customer->phone ?: '-' }}">{{ $customer->phone ?: '-' }}</span>
+                                        @if(filled($customer->email))<span class="wa-context-contact" title="{{ $customer->email }}">{{ $customer->email }}</span>@endif
                                     </div>
-                                    <p>{{ __('whatsapp.smart_ordering.fulfillment') }}: {{ __('whatsapp.smart_ordering.modes.'.strtolower((string)$smartOrder['fulfillment_mode'])) }}</p>
-                                    @if(data_get($so,'scheduled_for'))<p>{{ __('whatsapp.smart_ordering.scheduled') }}: {{ data_get($so,'scheduled_for') }}</p>@endif
-                                    @if(data_get($so,'table.label'))<p>{{ __('whatsapp.smart_ordering.table') }}: {{ data_get($so,'table.label') }}</p>@endif
-                                    @if(data_get($so,'delivery_address.line1'))<p>{{ __('whatsapp.smart_ordering.delivery_address') }}: {{ data_get($so,'delivery_address.line1') }}</p>@endif
-                                    @if(!empty($so['items']))
-                                        <div class="wa-so-items">
-                                            @foreach($so['items'] as $line)
-                                                <span>{{ $line['name'] ?? '-' }} × {{ rtrim(rtrim(number_format((float)($line['quantity'] ?? 0),3),'0'),'.') }} · {{ number_format((float)($line['unit_price'] ?? 0),3) }} {{ data_get($so,'currency','KWD') }}</span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                    <p><strong>{{ __('whatsapp.smart_ordering.total') }}:</strong> {{ number_format((float)data_get($so,'totals.grand_total',0),3) }} {{ data_get($so,'currency','KWD') }}</p>
-                                    @if(data_get($so,'note'))<p>{{ __('whatsapp.smart_ordering.note') }}: {{ data_get($so,'note') }}</p>@endif
-                                    <a class="foodex-action-primary wa-so-action" href="{{ $smartOrder['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
                                 </div>
-                                @unless($loop->last)
-                                    <hr style="border:0;border-top:1px solid var(--foodex-border);margin:12px 0">
-                                @endunless
-                            @endforeach
+                                <div class="wa-context-kv">
+                                    <div><span>{{ __('whatsapp.inbox.origin') }}</span><strong>{{ $customer->origin_channel ? __('whatsapp.inbox.channels.'.strtolower((string)$customer->origin_channel)) : '-' }}</strong></div>
+                                    <div><span>{{ __('whatsapp.inbox.store') }}</span><strong title="{{ $customer->originStore?->name ?: '-' }}">{{ $customer->originStore?->name ?: '-' }}</strong></div>
+                                    <div><span>{{ __('whatsapp.inbox.primary') }}</span><strong title="{{ data_get($customer360,'ownership.primary_agent_name',__('whatsapp.inbox.unassigned')) }}">{{ data_get($customer360,'ownership.primary_agent_name',__('whatsapp.inbox.unassigned')) }}</strong></div>
+                                    <div><span>{{ __('whatsapp.inbox.backup') }}</span><strong title="{{ data_get($customer360,'ownership.backup_agent_name','-') }}">{{ data_get($customer360,'ownership.backup_agent_name','-') }}</strong></div>
+                                </div>
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.no_customer_identity') }}</p>
+                            @endif
                         </div>
-                    @endif
-                    @if($customer360)
-                        @php($customer=$customer360['customer'])
-                        <div class="wa-card">
-                            <h3>{{ $customer->name }}</h3>
-                            <p>{{ $customer->phone ?: '-' }}</p><p>{{ $customer->email }}</p>
-                            <p>{{ __('whatsapp.inbox.origin') }}: {{ $customer->origin_channel ? __('whatsapp.inbox.channels.'.strtolower((string)$customer->origin_channel)) : '-' }}</p>
-                            <p>{{ __('whatsapp.inbox.store') }}: {{ $customer->originStore?->name ?: '-' }}</p>
+
+                        <div class="wa-context-section" data-wa-context-section="classifications-tags">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.classifications_tags') }}</h3>
+                            @if($selected)
+                                <div class="wa-context-tags">
+                                    <span class="wa-tag">{{ __('whatsapp.inbox.channels.'.strtolower((string)$selected->channel)) }}</span>
+                                    <span class="wa-tag">{{ __('whatsapp.inbox.conversation_statuses.'.$selected->status) }}</span>
+                                    @foreach($tags as $tag)
+                                        <span class="wa-tag" title="{{ $tag->name }}">{{ $tag->name }}</span>
+                                    @endforeach
+                                </div>
+                                @if($tags->isEmpty())
+                                    <p class="wa-context-empty" style="margin-top:7px">{{ __('whatsapp.inbox.no_tags') }}</p>
+                                @endif
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.none') }}</p>
+                            @endif
                         </div>
-                        <div class="wa-card"><h3>{{ __('whatsapp.inbox.ownership') }}</h3>
-                            <p>{{ __('whatsapp.inbox.primary') }}: {{ $customer360['ownership']->primary_agent_name??__('whatsapp.inbox.unassigned') }}</p>
-                            <p>{{ __('whatsapp.inbox.backup') }}: {{ $customer360['ownership']->backup_agent_name??'-' }}</p>
-                            <p>{{ __('whatsapp.inbox.source') }}: {{ isset($customer360['ownership']->source) ? __('whatsapp.inbox.ownership_sources.'.$customer360['ownership']->source) : '-' }}</p>
+
+                        <div class="wa-context-section" data-wa-context-section="purchase-summary">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.purchase_summary') }}</h3>
+                            @if($customer360)
+                                <div class="wa-context-stats">
+                                    <div class="wa-context-stat"><strong>{{ $customer360['orders_count'] }}</strong><span>{{ __('whatsapp.inbox.orders') }}</span></div>
+                                    <div class="wa-context-stat"><strong>{{ number_format((float)$customer360['orders_value'],3) }}</strong><span>{{ __('whatsapp.inbox.order_value') }}</span></div>
+                                    <div class="wa-context-stat"><strong>{{ $customer360['invoices_count'] }}</strong><span>{{ __('whatsapp.inbox.invoices') }}</span></div>
+                                </div>
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.none') }}</p>
+                            @endif
                         </div>
-                        <div class="wa-card"><h3>{{ __('whatsapp.inbox.commercial_activity') }}</h3>
-                            <p>{{ __('whatsapp.inbox.orders') }}: {{ $customer360['orders_count'] }}</p>
-                            <p>{{ __('whatsapp.inbox.order_value') }}: {{ number_format($customer360['orders_value'],3) }}</p>
-                            <p>{{ __('whatsapp.inbox.invoices') }}: {{ $customer360['invoices_count'] }}</p>
+
+                        <div class="wa-context-section" data-wa-context-section="recent-orders">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.recent_orders') }}</h3>
+                            @if($customer360)
+                                <table class="wa-mini wa-context-table">
+                                    @forelse($customer360['orders'] as $order)
+                                        <tr><td title="{{ $order->order_number }}">{{ $order->order_number }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$order->status)) }}</td><td>{{ number_format((float)$order->grand_total,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}</td></tr>
+                                    @empty
+                                        <tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>
+                                    @endforelse
+                                </table>
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.none') }}</p>
+                            @endif
+
+                            @if(!empty($smartOrderingContext['orders']))
+                                <div class="wa-context-subhead">{{ __('whatsapp.smart_ordering.orders_title') }}</div>
+                                <div class="wa-context-smart">
+                                    @foreach($smartOrderingContext['orders'] as $smartOrder)
+                                        @php($so=$smartOrder['snapshot'] ?? [])
+                                        <div class="wa-so-order">
+                                            <div class="wa-so-head">
+                                                <div>
+                                                    <strong>{{ data_get($so,'order_number','#'.$smartOrder['order_id']) }}</strong>
+                                                    <p>{{ __('whatsapp.smart_ordering.branch') }}: {{ app()->getLocale()==='ar' ? (data_get($so,'branch.name_ar') ?: data_get($so,'branch.name_en','-')) : (data_get($so,'branch.name_en') ?: data_get($so,'branch.name_ar','-')) }}</p>
+                                                </div>
+                                                <span class="wa-badge">{{ __('whatsapp.smart_ordering.statuses.'.strtolower((string)$smartOrder['status'])) }}</span>
+                                            </div>
+                                            <p>{{ __('whatsapp.smart_ordering.fulfillment') }}: {{ __('whatsapp.smart_ordering.modes.'.strtolower((string)$smartOrder['fulfillment_mode'])) }}</p>
+                                            @if(data_get($so,'scheduled_for'))<p>{{ __('whatsapp.smart_ordering.scheduled') }}: {{ data_get($so,'scheduled_for') }}</p>@endif
+                                            @if(!empty($so['items']))
+                                                <div class="wa-so-items">
+                                                    @foreach($so['items'] as $line)
+                                                        <span>{{ $line['name'] ?? '-' }} × {{ rtrim(rtrim(number_format((float)($line['quantity'] ?? 0),3),'0'),'.') }} · {{ number_format((float)($line['unit_price'] ?? 0),3) }} {{ data_get($so,'currency','KWD') }}</span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                            <p><strong>{{ __('whatsapp.smart_ordering.total') }}:</strong> {{ number_format((float)data_get($so,'totals.grand_total',0),3) }} {{ data_get($so,'currency','KWD') }}</p>
+                                            <a class="foodex-action-primary wa-so-action" href="{{ $smartOrder['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
-                        <div class="wa-card"><h3>{{ __('whatsapp.inbox.recent_orders') }}</h3><table class="wa-mini">@forelse($customer360['orders'] as $order)<tr><td>{{ $order->order_number }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$order->status)) }}</td><td>{{ number_format((float)$order->grand_total,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}</td></tr>@empty<tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>@endforelse</table></div>
-                        <div class="wa-card"><h3>{{ __('whatsapp.inbox.recent_invoices') }}</h3><table class="wa-mini">@forelse($customer360['invoices'] as $invoice)<tr><td>{{ $invoice->invoice_number }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$invoice->status)) }}</td><td>{{ number_format((float)$invoice->total,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$invoice->currency)) }}</td></tr>@empty<tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>@endforelse</table></div>
-                        <div class="wa-card"><h3>{{ __('whatsapp.inbox.recent_payments') }}</h3><table class="wa-mini">@forelse($customer360['payments'] as $payment)<tr><td>{{ __('whatsapp.inbox.payment_providers.'.strtolower((string)$payment->provider)) }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$payment->status)) }}</td><td>{{ number_format((float)$payment->amount,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$payment->currency)) }}</td></tr>@empty<tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>@endforelse</table></div>
-                    @else
-                        <div class="wa-empty">{{ __('whatsapp.inbox.no_customer_identity') }}</div>
-                    @endif
+
+                        <div class="wa-context-section" data-wa-context-section="invoices-payments">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.invoices_payments') }}</h3>
+                            <div class="wa-context-subhead">{{ __('whatsapp.inbox.recent_invoices') }}</div>
+                            @if($customer360)
+                                <table class="wa-mini wa-context-table">
+                                    @forelse($customer360['invoices'] as $invoice)
+                                        <tr><td title="{{ $invoice->invoice_number }}">{{ $invoice->invoice_number }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$invoice->status)) }}</td><td>{{ number_format((float)$invoice->total,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$invoice->currency)) }}</td></tr>
+                                    @empty
+                                        <tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>
+                                    @endforelse
+                                </table>
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.none') }}</p>
+                            @endif
+
+                            <div class="wa-context-subhead">{{ __('whatsapp.inbox.recent_payments') }}</div>
+                            @if($customer360)
+                                <table class="wa-mini wa-context-table">
+                                    @forelse($customer360['payments'] as $payment)
+                                        <tr><td>{{ __('whatsapp.inbox.payment_providers.'.strtolower((string)$payment->provider)) }}</td><td>{{ __('whatsapp.inbox.status_values.'.strtolower((string)$payment->status)) }}</td><td>{{ number_format((float)$payment->amount,3) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$payment->currency)) }}</td></tr>
+                                    @empty
+                                        <tr><td>{{ __('whatsapp.inbox.none') }}</td></tr>
+                                    @endforelse
+                                </table>
+                            @else
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.none') }}</p>
+                            @endif
+                        </div>
+
+                        <div class="wa-context-section" data-wa-context-section="activity-history">
+                            <h3 class="wa-context-title">{{ __('whatsapp.inbox.activity_history') }}</h3>
+                            @php($recentActivity=$timeline->take(-4)->reverse()->values())
+                            @if($recentActivity->isEmpty())
+                                <p class="wa-context-empty">{{ __('whatsapp.inbox.no_activity') }}</p>
+                            @else
+                                <div class="wa-activity-list">
+                                    @foreach($recentActivity as $activity)
+                                        <div class="wa-activity-row">
+                                            <span class="wa-activity-actor">{{ data_get($activity,'actor',__('whatsapp.inbox.system_actor')) }}</span>
+                                            <time class="wa-activity-time">{{ data_get($activity,'timestamp') ? \Illuminate\Support\Carbon::parse(data_get($activity,'timestamp'))->format('d M H:i') : '-' }}</time>
+                                            <p class="wa-activity-body">{{ \Illuminate\Support\Str::limit((string)(data_get($activity,'body') ?: data_get($activity,'attachment.filename',__('whatsapp.inbox.attachment'))),96) }}</p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </section>
             </div>
