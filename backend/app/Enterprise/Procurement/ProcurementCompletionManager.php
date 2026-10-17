@@ -298,7 +298,16 @@ final class ProcurementCompletionManager
             }
 
             if (($data['contract_id'] ?? null) !== null) {
-                $this->visibleContract($scope, (int) $data['contract_id']);
+                $contract = $this->visibleContract($scope, (int) $data['contract_id']);
+                if (
+                    $contract->status !== 'active'
+                    || now()->toDateString() < (string) $contract->starts_on
+                    || now()->toDateString() > (string) $contract->ends_on
+                ) {
+                    throw ValidationException::withMessages([
+                        'contract_id' => ['RFQ contract must be active and within its validity window.'],
+                    ]);
+                }
             }
 
             $requestLines = DB::table('enterprise_purchase_request_lines')
@@ -511,6 +520,21 @@ final class ProcurementCompletionManager
                 ->lockForUpdate()
                 ->first();
             abort_if($quote === null, 404);
+
+            if ($rfq->contract_id !== null) {
+                $contract = $this->visibleContract($scope, (int) $rfq->contract_id, true);
+                if (
+                    $contract->status !== 'active'
+                    || (int) $contract->supplier_id !== (int) $quote->supplier_id
+                    || $contract->currency_code !== $quote->currency_code
+                    || now()->toDateString() < (string) $contract->starts_on
+                    || now()->toDateString() > (string) $contract->ends_on
+                ) {
+                    throw ValidationException::withMessages([
+                        'contract_id' => ['Awarded supplier/quote is incompatible with the selected active contract.'],
+                    ]);
+                }
+            }
 
             $request = DB::table('enterprise_purchase_requests')
                 ->where('id', $rfq->purchase_request_id)
@@ -1189,7 +1213,7 @@ final class ProcurementCompletionManager
             $quantityVariance = 0.0;
             $valueVariance = 0.0;
             foreach ($rows as $row) {
-                $quantityVariance += abs((float) $row->invoice_quantity - (float) $row->received_quantity);
+                $quantityVariance += max(0.0, (float) $row->invoice_quantity - (float) $row->received_quantity);
                 $orderUnitPrice = (float) ($row->order_unit_price ?? 0);
                 $invoiceUnitPrice = (float) $row->invoice_unit_price;
                 $valueVariance += abs(($invoiceUnitPrice - $orderUnitPrice) * (float) $row->invoice_quantity);
