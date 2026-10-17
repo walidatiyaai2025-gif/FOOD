@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Procurement\GoodsReceiptManager;
+use App\Enterprise\Procurement\ProcurementCompletionManager;
 use App\Enterprise\Procurement\PurchaseInvoiceHandoffManager;
 use App\Enterprise\Procurement\PurchaseOrderManager;
 use App\Enterprise\Procurement\PurchaseRequestManager;
@@ -20,19 +21,25 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 final class EnterpriseProcurementController extends Controller
 {
     /** @var array<string,string> */
     private const TABS = [
+        'overview' => 'procurement.suppliers.view',
         'suppliers' => 'procurement.suppliers.view',
         'requests' => 'procurement.purchase_requests.view',
+        'rfqs' => 'procurement.purchase_requests.view',
         'orders' => 'procurement.purchase_orders.view',
+        'contracts' => 'procurement.purchase_orders.view',
         'receipts' => 'procurement.goods_receipts.view',
         'invoices' => 'procurement.purchase_invoices.view',
+        'matches' => 'procurement.purchase_invoices.view',
         'returns' => 'procurement.purchase_returns.view',
         'statements' => 'procurement.supplier_statements.view',
+        'reports' => 'procurement.supplier_statements.view',
     ];
 
     public function __construct(
@@ -43,6 +50,7 @@ final class EnterpriseProcurementController extends Controller
         private readonly PurchaseInvoiceHandoffManager $invoices,
         private readonly PurchaseReturnManager $returns,
         private readonly SupplierStatementAgingManager $statements,
+        private readonly ProcurementCompletionManager $completion,
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
@@ -75,6 +83,13 @@ final class EnterpriseProcurementController extends Controller
             'sourceReceipt' => null,
             'statement' => null,
             'aging' => null,
+            'dashboard' => null,
+            'rfqDetail' => null,
+            'contractDetail' => null,
+            'rfqRequestOptions' => [],
+            'activeContracts' => [],
+            'reportData' => null,
+            'reportName' => null,
         ];
 
         if ($this->allowed($actor, $storeId, 'procurement.suppliers.view')) {
@@ -84,6 +99,13 @@ final class EnterpriseProcurementController extends Controller
         }
 
         switch ($tab) {
+            case 'overview':
+                $data['dashboard'] = $this->completion->dashboard($actor, $context, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ]);
+                break;
+
             case 'suppliers':
                 $data['rows'] = $this->suppliers->paginate($actor, $context, [
                     'q' => $request->query('q'),
@@ -105,6 +127,17 @@ final class EnterpriseProcurementController extends Controller
                 }
                 break;
 
+            case 'rfqs':
+                $data['rows'] = $this->completion->paginateRfqs($actor, $context, [
+                    'q' => $request->query('q'),
+                    'status' => $request->query('status'),
+                ], 25);
+                $data['rfqRequestOptions'] = $this->completion->rfqRequestOptions($actor, $context);
+                if ($request->integer('rfq') > 0) {
+                    $data['rfqDetail'] = $this->completion->rfqDetail($actor, $context, $request->integer('rfq'));
+                }
+                break;
+
             case 'orders':
                 $data['rows'] = $this->orders->paginate($actor, $context, [
                     'q' => $request->query('q'),
@@ -112,6 +145,25 @@ final class EnterpriseProcurementController extends Controller
                 ], 25);
                 if ($request->integer('order') > 0) {
                     $data['detail'] = $this->orders->detail($actor, $context, $request->integer('order'));
+                    $data['activeContracts'] = $this->completion->activeContractOptions(
+                        $actor,
+                        $context,
+                        (int) $data['detail']->supplier_id,
+                    );
+                }
+                break;
+
+            case 'contracts':
+                $data['rows'] = $this->completion->paginateContracts($actor, $context, [
+                    'q' => $request->query('q'),
+                    'status' => $request->query('status'),
+                ], 25);
+                if ($request->integer('contract') > 0) {
+                    $data['contractDetail'] = $this->completion->contractDetail(
+                        $actor,
+                        $context,
+                        $request->integer('contract'),
+                    );
                 }
                 break;
 
@@ -158,6 +210,24 @@ final class EnterpriseProcurementController extends Controller
                 }
                 break;
 
+            case 'matches':
+                $data['rows'] = $this->completion->paginateMatches($actor, $context, [
+                    'q' => $request->query('q'),
+                    'status' => $request->query('status'),
+                ], 25);
+                foreach ($data['rows']->getCollection() as $matchRow) {
+                    if ($matchRow->match_review_id === null) {
+                        $this->completion->syncMatchForInvoice((int) $matchRow->purchase_invoice_id);
+                    }
+                }
+                if ($data['rows']->getCollection()->contains(fn ($matchRow): bool => $matchRow->match_review_id === null)) {
+                    $data['rows'] = $this->completion->paginateMatches($actor, $context, [
+                        'q' => $request->query('q'),
+                        'status' => $request->query('status'),
+                    ], 25);
+                }
+                break;
+
             case 'returns':
                 $data['rows'] = $this->returns->paginate($actor, $context, [
                     'q' => $request->query('q'),
@@ -189,9 +259,220 @@ final class EnterpriseProcurementController extends Controller
                     ]);
                 }
                 break;
+
+            case 'reports':
+                $report = trim((string) $request->query('report', ''));
+                if ($report !== '') {
+                    $data['reportName'] = $report;
+                    $data['reportData'] = $this->completion->report($actor, $context, $report, [
+                        'from' => $request->query('from'),
+                        'to' => $request->query('to'),
+                    ]);
+                }
+                break;
         }
 
         return view('admin.enterprise-procurement', $data);
+    }
+
+    public function updateSupplierGovernance(Request $request, int $supplier): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->completion->updateSupplierGovernance($actor, $context, $supplier, $request->all());
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.supplier_governance_updated'));
+    }
+
+    public function storeRfq(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $validated = $request->validate([
+            'purchase_request_id' => ['required', 'integer', 'min:1'],
+            'title' => ['required', 'string', 'max:190'],
+            'response_due_at' => ['nullable', 'date', 'after:now'],
+            'contract_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $rfq = $this->completion->createRfq(
+            $actor,
+            $context,
+            (int) $validated['purchase_request_id'],
+            $validated,
+        );
+
+        return $this->backTo('rfqs', $storeId, ['rfq' => $rfq->id])
+            ->with('status', __('enterprise_procurement.flash.rfq_created'));
+    }
+
+    public function publishRfq(Request $request, int $rfq): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $validated = $request->validate([
+            'supplier_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'supplier_ids.*' => ['integer', 'min:1', 'distinct'],
+        ]);
+        $tokens = $this->completion->publishRfq($actor, $context, $rfq, $validated['supplier_ids']);
+        $supplierMap = DB::table('enterprise_suppliers')
+            ->whereIn('id', collect($tokens)->pluck('supplier_id')->all())
+            ->get(['id', 'code', 'name_en', 'name_ar'])
+            ->keyBy('id');
+        $links = collect($tokens)->map(function (array $entry) use ($supplierMap): array {
+            $supplier = $supplierMap->get($entry['supplier_id']);
+
+            return [
+                'supplier_code' => $supplier->code ?? '—',
+                'supplier_name_en' => $supplier->name_en ?? '—',
+                'supplier_name_ar' => $supplier?->name_ar,
+                'url' => route('supplier.rfq.show', ['token' => $entry['token']]),
+            ];
+        })->all();
+
+        return $this->backTo('rfqs', $storeId, ['rfq' => $rfq])
+            ->with('status', __('enterprise_procurement.flash.rfq_published'))
+            ->with('procurement_portal_links', $links);
+    }
+
+    public function cancelRfq(Request $request, int $rfq): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->completion->cancelRfq($actor, $context, $rfq);
+
+        return $this->backTo('rfqs', $storeId)->with('status', __('enterprise_procurement.flash.rfq_cancelled'));
+    }
+
+    public function downloadQuoteDocument(Request $request, int $rfq, int $document)
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $quoteDocument = $this->completion->quoteDocument($actor, $context, $rfq, $document);
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($quoteDocument->storage_path), 404);
+
+        return $disk->download($quoteDocument->storage_path, $quoteDocument->original_name);
+    }
+
+    public function awardRfq(Request $request, int $rfq, int $quote): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $order = $this->completion->awardRfq($actor, $context, $rfq, $quote);
+
+        return $this->backTo('orders', $storeId, ['order' => $order->id])
+            ->with('status', __('enterprise_procurement.flash.rfq_awarded'));
+    }
+
+    public function createContract(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $contract = $this->completion->createContract($actor, $context, $request->all());
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract->id])
+            ->with('status', __('enterprise_procurement.flash.contract_created'));
+    }
+
+    public function activateContract(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->completion->activateContract($actor, $context, $contract);
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_activated'));
+    }
+
+    public function terminateContract(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->completion->terminateContract($actor, $context, $contract);
+
+        return $this->backTo('contracts', $storeId)->with('status', __('enterprise_procurement.flash.contract_terminated'));
+    }
+
+    public function registerContractDocument(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:190'],
+            'reference' => ['nullable', 'string', 'max:190'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,xlsx,xls,doc,docx', 'max:10240'],
+        ]);
+        $this->completion->addContractDocument(
+            $actor,
+            $context,
+            $contract,
+            $validated,
+            $request->file('attachment'),
+        );
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_document_registered'));
+    }
+
+    public function downloadContractDocument(Request $request, int $contract, int $document)
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $contractDocument = $this->completion->contractDocument($actor, $context, $contract, $document);
+        abort_if($contractDocument->storage_path === null, 404);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($contractDocument->storage_path), 404);
+
+        return $disk->download(
+            $contractDocument->storage_path,
+            $contractDocument->original_name ?: ('contract-document-'.$contractDocument->id),
+        );
+    }
+
+    public function assignContract(Request $request, int $purchaseOrder): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $validated = $request->validate(['contract_id' => ['required', 'integer', 'min:1']]);
+        $this->completion->assignContractToOrder(
+            $actor,
+            $context,
+            $purchaseOrder,
+            (int) $validated['contract_id'],
+        );
+
+        return $this->backTo('orders', $storeId, ['order' => $purchaseOrder])
+            ->with('status', __('enterprise_procurement.flash.contract_assigned'));
+    }
+
+    public function reviewMatch(Request $request, int $purchaseInvoice): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->completion->reviewMatch($actor, $context, $purchaseInvoice, $request->all());
+
+        return $this->backTo('matches', $storeId)
+            ->with('status', __('enterprise_procurement.flash.match_reviewed'));
+    }
+
+    public function exportReport(Request $request)
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        abort_unless($this->allowed($actor, $storeId, 'reports.export'), 403);
+        $validated = $request->validate([
+            'report' => ['required', 'string', 'max:64'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+        $report = $this->completion->report($actor, $context, $validated['report'], [
+            'from' => $validated['from'] ?? null,
+            'to' => $validated['to'] ?? null,
+        ], 5000);
+
+        return response()->streamDownload(function () use ($report): void {
+            $handle = fopen('php://output', 'wb');
+            if ($handle === false) {
+                return;
+            }
+            fputcsv($handle, $report['columns']);
+            foreach ($report['rows'] as $row) {
+                fputcsv($handle, collect($report['columns'])->map(
+                    fn (string $column) => $row[$column] ?? null,
+                )->all());
+            }
+            fclose($handle);
+        }, 'procurement-'.$validated['report'].'-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function storeSupplier(Request $request): RedirectResponse
@@ -357,6 +638,7 @@ final class EnterpriseProcurementController extends Controller
             'lines' => ['required', 'array', 'min:1', 'max:100'],
             'lines.*.goods_receipt_line_id' => ['required', 'integer', 'min:1', 'distinct'],
             'lines.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
         ]);
         $invoice = $this->invoices->createFromPostedReceipt($actor, $context, $goodsReceipt, $payload);
 
@@ -540,6 +822,7 @@ final class EnterpriseProcurementController extends Controller
             'invoice_handoff' => 'procurement.purchase_invoices.handoff',
             'return_manage' => 'procurement.purchase_returns.manage',
             'return_post' => 'procurement.purchase_returns.post',
+            'report_export' => 'reports.export',
         ];
 
         return collect($permissions)

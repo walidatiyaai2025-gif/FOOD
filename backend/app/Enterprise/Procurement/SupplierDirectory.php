@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Support\EnterpriseDataScope;
 use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -202,7 +203,9 @@ final class SupplierDirectory
      * @return array{
      *     supplier: EnterpriseSupplier,
      *     documents: list<EnterpriseSupplierDocument>,
-     *     activity: list<AuditLog>
+     *     activity: list<AuditLog>,
+     *     performance: array{order_count:int,posted_receipt_count:int,average_lead_days:float|null,invoice_count:int,spend:string},
+     *     contracts:list<object>
      * }
      */
     public function supplier360(
@@ -228,10 +231,60 @@ final class SupplierDirectory
             ->get()
             ->all();
 
+        $orders = DB::table('enterprise_purchase_orders')
+            ->where('organization_id', $scope->organizationId)
+            ->where('company_id', $scope->companyId)
+            ->where('store_id', $scope->storeId)
+            ->where('supplier_id', $supplier->id)
+            ->get(['id', 'issued_at']);
+        $orderIds = $orders->pluck('id')->all();
+        $receipts = $orderIds === []
+            ? collect()
+            : DB::table('enterprise_goods_receipts')
+                ->whereIn('purchase_order_id', $orderIds)
+                ->where('status', 'posted')
+                ->get(['purchase_order_id', 'posted_at']);
+        $issuedAt = $orders->keyBy('id');
+        $leadDays = $receipts
+            ->filter(fn ($receipt): bool => $receipt->posted_at !== null && $issuedAt->get($receipt->purchase_order_id)?->issued_at !== null)
+            ->map(function ($receipt) use ($issuedAt): int {
+                $order = $issuedAt->get($receipt->purchase_order_id);
+
+                return (int) CarbonImmutable::parse((string) $order->issued_at)
+                    ->diffInDays(CarbonImmutable::parse((string) $receipt->posted_at));
+            });
+
+        $invoiceSummary = DB::table('enterprise_purchase_invoices')
+            ->where('organization_id', $scope->organizationId)
+            ->where('company_id', $scope->companyId)
+            ->where('store_id', $scope->storeId)
+            ->where('supplier_id', $supplier->id)
+            ->where('status', 'handed_off')
+            ->selectRaw('COUNT(*) as invoice_count, COALESCE(SUM(total_amount), 0) as spend')
+            ->first();
+
+        $contracts = DB::table('enterprise_procurement_contracts')
+            ->where('organization_id', $scope->organizationId)
+            ->where('company_id', $scope->companyId)
+            ->where('store_id', $scope->storeId)
+            ->where('supplier_id', $supplier->id)
+            ->orderByDesc('id')
+            ->limit(25)
+            ->get()
+            ->all();
+
         return [
             'supplier' => $supplier,
             'documents' => $documents,
             'activity' => $activity,
+            'performance' => [
+                'order_count' => $orders->count(),
+                'posted_receipt_count' => $receipts->count(),
+                'average_lead_days' => $leadDays->isEmpty() ? null : round((float) $leadDays->avg(), 1),
+                'invoice_count' => (int) ($invoiceSummary->invoice_count ?? 0),
+                'spend' => number_format((float) ($invoiceSummary->spend ?? 0), 3, '.', ''),
+            ],
+            'contracts' => $contracts,
         ];
     }
 

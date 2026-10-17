@@ -69,6 +69,7 @@ use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use App\Http\Controllers\PublicInformationController;
 use App\Http\Controllers\SmartOrderingQrPublicController;
+use App\Http\Controllers\SupplierRfqPortalController;
 use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -119,6 +120,17 @@ Route::get('/q/{token}', SmartOrderingQrPublicController::class)
     ->middleware('throttle:120,1')
     ->name('smart-ordering.qr.resolve');
 
+Route::prefix('supplier/rfq')->name('supplier.rfq.')->group(function (): void {
+    Route::get('/{token}', [SupplierRfqPortalController::class, 'show'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:120,1')
+        ->name('show');
+    Route::post('/{token}', [SupplierRfqPortalController::class, 'submit'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:30,1')
+        ->name('submit');
+});
+
 Route::prefix('admin')
     ->name('admin.')
     ->group(function (): void {
@@ -156,6 +168,20 @@ Route::prefix('admin')
         Route::prefix('erp/procurement')->name('erp.procurement.')->group(function (): void {
             Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
             Route::post('/suppliers', [EnterpriseProcurementController::class, 'storeSupplier'])->middleware('throttle:30,1')->name('suppliers.store');
+            Route::post('/suppliers/{supplier}/governance', [EnterpriseProcurementController::class, 'updateSupplierGovernance'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.governance');
+            Route::post('/rfqs', [EnterpriseProcurementController::class, 'storeRfq'])->middleware('throttle:30,1')->name('rfqs.store');
+            Route::post('/rfqs/{rfq}/publish', [EnterpriseProcurementController::class, 'publishRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.publish');
+            Route::post('/rfqs/{rfq}/cancel', [EnterpriseProcurementController::class, 'cancelRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.cancel');
+            Route::post('/rfqs/{rfq}/quotes/{quote}/award', [EnterpriseProcurementController::class, 'awardRfq'])->whereNumber('rfq')->whereNumber('quote')->middleware('throttle:30,1')->name('rfqs.award');
+            Route::get('/rfqs/{rfq}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadQuoteDocument'])->whereNumber('rfq')->whereNumber('document')->middleware('throttle:60,1')->name('rfqs.documents.download');
+            Route::post('/contracts', [EnterpriseProcurementController::class, 'createContract'])->middleware('throttle:30,1')->name('contracts.store');
+            Route::post('/contracts/{contract}/activate', [EnterpriseProcurementController::class, 'activateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.activate');
+            Route::post('/contracts/{contract}/terminate', [EnterpriseProcurementController::class, 'terminateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.terminate');
+            Route::post('/contracts/{contract}/documents', [EnterpriseProcurementController::class, 'registerContractDocument'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.documents.store');
+            Route::get('/contracts/{contract}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadContractDocument'])->whereNumber('contract')->whereNumber('document')->middleware('throttle:60,1')->name('contracts.documents.download');
+            Route::post('/orders/{purchaseOrder}/contract', [EnterpriseProcurementController::class, 'assignContract'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('orders.contract');
+            Route::post('/invoices/{purchaseInvoice}/match-review', [EnterpriseProcurementController::class, 'reviewMatch'])->whereNumber('purchaseInvoice')->middleware('throttle:30,1')->name('matches.review');
+            Route::get('/reports/export', [EnterpriseProcurementController::class, 'exportReport'])->middleware('throttle:30,1')->name('reports.export');
             Route::post('/suppliers/{supplier}/archive', [EnterpriseProcurementController::class, 'archiveSupplier'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.archive');
             Route::post('/requests', [EnterpriseProcurementController::class, 'storeRequest'])->middleware('throttle:30,1')->name('requests.store');
             Route::post('/requests/{purchaseRequest}/submit', [EnterpriseProcurementController::class, 'submitRequest'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('requests.submit');

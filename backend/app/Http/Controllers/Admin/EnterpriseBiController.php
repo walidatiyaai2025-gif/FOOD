@@ -69,6 +69,48 @@ final class EnterpriseBiController extends Controller
                 'product' => ['product_id', 'stock_status'],
             ],
         ],
+        'procurement.open_orders' => [
+            'key' => 'procurement_open_orders',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'overview' => ['order_number', 'supplier_reference', 'status', 'needed_by', 'currency'],
+            ],
+        ],
+        'procurement.spend' => [
+            'key' => 'procurement_spend',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'supplier' => ['supplier_reference', 'currency'],
+            ],
+        ],
+        'procurement.supplier_performance' => [
+            'key' => 'procurement_supplier_performance',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'supplier' => ['supplier_reference'],
+            ],
+        ],
+        'procurement.savings' => [
+            'key' => 'procurement_savings',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'overview' => ['rfq_number', 'supplier_reference', 'currency'],
+            ],
+        ],
+        'procurement.contract_expiry' => [
+            'key' => 'procurement_contract_expiry',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'overview' => ['contract_number', 'supplier_reference', 'status', 'currency', 'starts_on', 'ends_on'],
+            ],
+        ],
+        'procurement.match_exceptions' => [
+            'key' => 'procurement_match_exceptions',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'overview' => ['invoice_number', 'supplier_invoice_number', 'supplier_reference', 'status', 'currency'],
+            ],
+        ],
     ];
 
     public function __construct(
