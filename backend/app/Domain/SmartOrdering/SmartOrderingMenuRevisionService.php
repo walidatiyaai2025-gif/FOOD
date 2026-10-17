@@ -37,6 +37,11 @@ final class SmartOrderingMenuRevisionService
         return $this->revisions->published($site);
     }
 
+    public function published(SmartOrderingSite $site): ?SmartOrderingRevision
+    {
+        return $this->revisions->published($site);
+    }
+
     public function publish(
         User $actor,
         SmartOrderingSite $site,
@@ -50,6 +55,14 @@ final class SmartOrderingMenuRevisionService
         $this->refreshChecksum($actor, $draft, $request);
 
         return $this->revisions->publish($actor, $draft->fresh(), $request);
+    }
+
+    public function unpublish(
+        User $actor,
+        SmartOrderingSite $site,
+        ?Request $request = null,
+    ): ?SmartOrderingRevision {
+        return $this->revisions->unpublish($actor, $site, $request);
     }
 
     public function unpublish(
