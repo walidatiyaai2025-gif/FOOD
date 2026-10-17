@@ -207,6 +207,76 @@ final class BuiltInJobRoleCatalogTest extends TestCase
         $this->assertFalse($fresh->hasPermission('b2b.accounts.view', $store->id));
     }
 
+    public function test_two_and_three_role_combinations_union_overlapping_permissions_without_duplicates(): void
+    {
+        $actor = $this->superAdmin();
+        $target = User::factory()->create(['is_active' => true]);
+        $sales = Role::query()->where('code', 'SALES_OFFICER')->firstOrFail();
+        $operations = Role::query()->where('code', 'OPERATIONS_SUPERVISOR')->firstOrFail();
+        $service = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
+
+        $manager = app(RbacManager::class);
+        $request = Request::create('/admin/security', 'PUT');
+
+        $manager->replaceUserRoles($actor, $target, [$sales->id, $operations->id], [], $request);
+        $twoRoleCodes = $target->fresh()->effectivePermissionCodes();
+
+        $this->assertCount(2, $target->fresh()->roles);
+        $this->assertContains('b2b.accounts.view', $twoRoleCodes);
+        $this->assertContains('orders.dispatch', $twoRoleCodes);
+        $this->assertSame(count($twoRoleCodes), count(array_unique($twoRoleCodes)));
+
+        $manager->replaceUserRoles($actor, $target, [$sales->id, $operations->id, $service->id], [], $request);
+        $threeRoleCodes = $target->fresh()->effectivePermissionCodes();
+
+        $this->assertCount(3, $target->fresh()->roles);
+        $this->assertContains('b2b.accounts.view', $threeRoleCodes);
+        $this->assertContains('orders.dispatch', $threeRoleCodes);
+        $this->assertContains('whatsapp.inbox.view', $threeRoleCodes);
+        $this->assertSame(count($threeRoleCodes), count(array_unique($threeRoleCodes)));
+    }
+
+    public function test_procurement_maker_checker_conflict_is_warned_without_replacing_runtime_sod_enforcement(): void
+    {
+        $this->enableModule('procurement');
+
+        $actor = $this->superAdmin();
+        $target = User::factory()->create(['is_active' => true]);
+        $buyer = Role::query()->where('code', 'PROCUREMENT_BUYER')->firstOrFail();
+        $approver = Role::query()->where('code', 'PROCUREMENT_APPROVER')->firstOrFail();
+
+        app(RbacManager::class)->replaceUserRoles(
+            $actor,
+            $target,
+            [$buyer->id, $approver->id],
+            [],
+            Request::create('/admin/security', 'PUT'),
+        );
+
+        $this->assertEqualsCanonicalizing(
+            ['PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER'],
+            $target->fresh()->roles()->pluck('code')->all(),
+        );
+        $this->assertSame(
+            ['PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER'],
+            config('job_roles.risk_pairs.procurement_maker_checker.roles'),
+        );
+
+        App::setLocale('en');
+        $englishWarning = __('job_roles.risk_warnings.procurement_maker_checker');
+        App::setLocale('ar');
+        $arabicWarning = __('job_roles.risk_warnings.procurement_maker_checker');
+
+        $this->assertNotSame('job_roles.risk_warnings.procurement_maker_checker', $englishWarning);
+        $this->assertNotSame('job_roles.risk_warnings.procurement_maker_checker', $arabicWarning);
+
+        $this->actingAs($actor)
+            ->get(route('admin.security.index'))
+            ->assertOk()
+            ->assertSee('data-role-risk-pairs', false)
+            ->assertSee($arabicWarning);
+    }
+
     public function test_enabling_module_exposes_roles_without_auto_assigning_existing_users(): void
     {
         $target = User::factory()->create(['is_active' => true]);
