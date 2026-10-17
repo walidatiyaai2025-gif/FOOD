@@ -13,7 +13,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_verified_at
  * @property Carbon|null $revoked_at
  */
-
 final class AdminMfaCredential extends Model
 {
     protected $fillable = [
