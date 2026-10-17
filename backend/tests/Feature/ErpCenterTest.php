@@ -198,6 +198,60 @@ final class ErpCenterTest extends TestCase
             ->assertDontSee('data-erp-key="wms"', false);
     }
 
+
+    public function test_erp_center_renders_authoritative_snapshot_drilldowns_and_accessible_analytics(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-snapshot@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            true,
+        );
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-kpis', false)
+            ->assertSee('data-erp-kpi="pending_approvals"', false)
+            ->assertSee('data-erp-kpi="overdue_work"', false)
+            ->assertSee('data-erp-kpi="open_exceptions"', false)
+            ->assertSee('data-erp-kpi="failed_reports"', false)
+            ->assertSee('data-erp-kpi="module_health"', false)
+            ->assertSee('data-erp-chart="workload"', false)
+            ->assertSee('data-erp-chart="states"', false)
+            ->assertSee('data-erp-my-work', false)
+            ->assertSee('data-erp-activity', false)
+            ->assertSee('data-erp-work-module="procurement"', false)
+            ->assertSee(route('admin.action-center.index'), false)
+            ->assertSee(route('admin.erp.procurement.index'), false);
+    }
+
+    public function test_erp_center_state_filter_hides_other_module_cards_without_changing_navigation_authority(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-state-filter@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            true,
+        );
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index', ['status' => 'available']));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="available"', false)
+            ->assertDontSee('data-erp-key="wms" data-erp-status="disabled"', false);
+
+        $erpGroup = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'erp');
+        $this->assertNotNull($erpGroup);
+        $this->assertNotNull(collect($erpGroup['children'])->firstWhere('key', 'erp_center'));
+    }
+
     private function userWithGlobalRole(string $roleCode, string $locale, string $email): User
     {
         $user = User::query()->create([
