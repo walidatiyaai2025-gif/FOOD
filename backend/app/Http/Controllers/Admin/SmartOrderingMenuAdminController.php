@@ -42,6 +42,7 @@ final class SmartOrderingMenuAdminController extends Controller
     ): View {
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
+        $publishedRevision = $revisions->published($site);
         $scheduledRevision = $revisions->scheduled($site);
 
         $menuIndex = SmartOrderingMenu::query()
@@ -158,6 +159,10 @@ final class SmartOrderingMenuAdminController extends Controller
             'stores' => $stores,
             'site' => $site,
             'draft' => $draft,
+            'publishedRevision' => $publishedRevision,
+            'publicMenuUrl' => $publishedRevision instanceof SmartOrderingRevision
+                ? route('public.smart-ordering.storefront', ['siteKey' => $site->slug])
+                : null,
             'scheduledRevision' => $scheduledRevision,
             'publishTimezone' => $publishTimezone,
             'scheduleMinimum' => $scheduleMinimum,
@@ -574,6 +579,18 @@ final class SmartOrderingMenuAdminController extends Controller
         $revisions->publish($actor, $site, $revision, $request);
 
         return back()->with('status', __('smart_ordering_menu.published'));
+    }
+
+    public function unpublish(
+        Request $request,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+        SmartOrderingMenuRevisionService $revisions,
+    ): RedirectResponse {
+        [$actor, $site] = $this->context($request, $tenants, $sites, 'smart_ordering.publish');
+        $revisions->unpublish($actor, $site, $request);
+
+        return back()->with('status', __('smart_ordering_menu.unpublish.done'));
     }
 
     public function schedulePublish(
