@@ -136,6 +136,7 @@ return [
         'retry_note' => 'Confirmed imports are idempotent. Retrying the same confirmation returns the stored result without reapplying mutations.',
         'statuses' => [
             'validated' => 'Validated',
+            'committing' => 'Importing',
             'validation_failed' => 'Validation failed',
             'committed' => 'Committed',
             'failed' => 'Failed',
