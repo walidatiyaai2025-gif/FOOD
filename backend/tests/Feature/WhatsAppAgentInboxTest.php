@@ -367,6 +367,61 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('Shared Customer Service Inbox');
     }
 
+    public function test_inbox_conversation_rail_preserves_filters_selection_and_latest_preview(): void
+    {
+        $this->enableInbox();
+        $store = $this->store('B2B', 'WA-LIST-GOLDEN');
+        $selectedCustomer = $this->customer($store, 'b2b', 'Golden Queue Customer');
+        $otherCustomer = $this->customer($store, 'b2b', 'Other Queue Customer');
+        $selectedConversation = $this->conversation($selectedCustomer->id, $store);
+        $otherConversation = $this->conversation($otherCustomer->id, $store);
+
+        $this->message($selectedConversation, 'inbound', 'Latest customer preview for the golden rail');
+        $this->message($otherConversation, 'inbound', 'Other conversation preview');
+        DB::table('whats_app_conversations')
+            ->where('id', $selectedConversation)
+            ->update(['unread_count' => 3]);
+
+        $admin = $this->globalUser('SUPER_ADMIN', 'Conversation Rail Admin');
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', [
+                'q' => 'Golden Queue',
+                'status' => 'WAITING_FOR_AGENT',
+                'assignment' => 'unassigned',
+                'store_id' => $store,
+                'channel' => 'whatsapp',
+                'conversation' => $selectedConversation,
+            ]))
+            ->assertOk()
+            ->assertSee('wa-conversation-pane', false)
+            ->assertSee('wa-conversation-filters', false)
+            ->assertSee('class="wa-row active"', false)
+            ->assertSee('Golden Queue Customer')
+            ->assertSee('Latest customer preview for the golden rail')
+            ->assertSee('بانتظار الرد')
+            ->assertSee('مزيد من الفلاتر')
+            ->assertSee('name="assignment"', false)
+            ->assertSee('name="store_id"', false)
+            ->assertSee('name="channel"', false)
+            ->assertDontSee('Other Queue Customer')
+            ->assertDontSee('Other conversation preview');
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', [
+                'q' => 'Other Queue',
+                'assignment' => 'unassigned',
+                'store_id' => $store,
+                'channel' => 'whatsapp',
+                'conversation' => $otherConversation,
+            ]))
+            ->assertOk()
+            ->assertSee('Other Queue Customer')
+            ->assertSee('Other conversation preview')
+            ->assertDontSee('Golden Queue Customer');
+    }
+
     public function test_inbox_auto_scrolls_selected_conversation_to_latest_message(): void
     {
         $this->enableInbox();
