@@ -315,14 +315,15 @@ $exceptionLabels=[
 <label>{{ __('enterprise_procurement.report') }}<select name="report" required><option value="">—</option>@foreach(['open_orders','spend','supplier_performance','savings','contract_expiry','match_exceptions'] as $reportCode)<option value="{{ $reportCode }}" @selected($reportName===$reportCode)>{{ __('enterprise_procurement.reports_catalog.'.$reportCode) }}</option>@endforeach</select></label>
 <label>{{ __('enterprise_procurement.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
 <label>{{ __('enterprise_procurement.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
-<div class="erp-actions"><button class="foodex-filter-action">{{ __('enterprise_procurement.run_report') }}</button><a class="erp-link" href="{{ route('admin.erp.bi') }}">{{ __('enterprise_procurement.open_enterprise_bi') }}</a></div>
+@php($biReportCode=$reportName ? 'procurement.'.$reportName : 'procurement.open_orders')
+<div class="erp-actions"><button class="foodex-filter-action">{{ __('enterprise_procurement.run_report') }}</button><a class="erp-link" href="{{ route('admin.erp.bi',['report'=>$biReportCode]) }}">{{ __('enterprise_procurement.open_enterprise_bi') }}</a></div>
 </form>
 </section>
 @if($reportData)
 <section class="foodex-card erp-table-wrap">
 <div class="erp-actions" style="padding:12px">
 @if($can['report_export'])<a class="erp-link foodex-module-export" href="{{ route('admin.erp.procurement.reports.export',['store_id'=>$selectedStoreId,'report'=>$reportName,'from'=>request('from'),'to'=>request('to')]) }}">{{ __('enterprise_procurement.export_csv') }}</a>@endif
-<a class="erp-link" href="{{ route('admin.erp.bi') }}">{{ __('enterprise_procurement.scheduled_reporting') }}</a>
+<a class="erp-link" href="{{ route('admin.erp.bi',['report'=>'procurement.'.$reportName]) }}">{{ __('enterprise_procurement.scheduled_reporting') }}</a>
 </div>
 <table class="foodex-table erp-table"><thead><tr>@foreach($reportData['columns'] as $column)<th>{{ __('enterprise_procurement.report_columns.'.$column) }}</th>@endforeach</tr></thead><tbody>
 @forelse($reportData['rows'] as $reportRow)<tr>@foreach($reportData['columns'] as $column)@php($reportValue=$reportRow[$column] ?? null)<td>{{ $column==='status' && $reportValue ? __('enterprise_procurement.statuses.'.$reportValue) : ($reportValue ?? '—') }}</td>@endforeach</tr>@empty<tr><td colspan="{{ max(1,count($reportData['columns'])) }}">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
