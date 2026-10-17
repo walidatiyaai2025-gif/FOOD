@@ -50,7 +50,7 @@ final class RetailStoreProvisioningController extends Controller
                 if ($rows !== []) {
                     fputcsv($stream, array_keys($rows[0]));
                     foreach ($rows as $row) {
-                        fputcsv($stream, array_map(static fn ($value): string => is_scalar($value) || $value === null ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $row));
+                        fputcsv($stream, array_map(static fn ($value): string => is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $row));
                     }
                 }
                 fclose($stream);
