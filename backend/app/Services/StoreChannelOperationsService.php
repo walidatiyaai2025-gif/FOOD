@@ -253,7 +253,7 @@ final class StoreChannelOperationsService
         return [$from, $to];
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int,\stdClass> */
     private function retailStores(): Collection
     {
         return DB::table('stores')
@@ -346,7 +346,7 @@ final class StoreChannelOperationsService
             ];
             $passed = collect($checks)->where('ready', true)->count();
             $score = (int) round(($passed / count($checks)) * 100);
-            $lifecycle = (string) ($profile?->lifecycle_state ?? ((bool) $store->is_active ? 'ACTIVE' : 'SUSPENDED'));
+            $lifecycle = (string) ($profile->lifecycle_state ?? ((bool) $store->is_active ? 'ACTIVE' : 'SUSPENDED'));
 
             $result[$id] = [
                 'store_id' => $id,
@@ -358,7 +358,7 @@ final class StoreChannelOperationsService
                 'readiness' => $checks,
                 'channels' => [
                     'b2c' => (bool) $store->is_active ? 'active' : 'inactive',
-                    'b2b' => (string) ($accounts->get($id)?->status ?? 'not_linked'),
+                    'b2b' => (string) ($accounts->get($id)->status ?? 'not_linked'),
                     'restaurant' => $site === null
                         ? 'not_configured'
                         : ((bool) $site->master_enabled ? strtolower((string) $site->runtime_state) : 'disabled'),
@@ -450,8 +450,8 @@ final class StoreChannelOperationsService
 
             return [
                 'store_id' => (int) $row->store_id,
-                'store' => (string) ($store?->name ?? ('#'.$row->store_id)),
-                'code' => (string) ($store?->code ?? ''),
+                'store' => (string) ($store->name ?? ('#'.$row->store_id)),
+                'code' => (string) ($store->code ?? ''),
                 'currency' => (string) $row->currency,
                 'orders' => (int) $row->orders,
                 'revenue' => (float) $row->revenue,
