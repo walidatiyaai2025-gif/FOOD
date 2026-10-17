@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class EnsureManagementDashboardAccess
 {
@@ -36,7 +37,7 @@ class EnsureManagementDashboardAccess
 
         try {
             $securitySession = $this->securitySessions->ensure($request, $user);
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             if ($exception->getStatusCode() !== 403) {
                 throw $exception;
             }
