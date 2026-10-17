@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Store;
@@ -26,6 +27,7 @@ final class RetailStoreProvisioningController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
         private readonly StoreLogoService $logos,
+        private readonly RestaurantSaasStoreFeatureService $restaurantSaas,
     ) {}
 
     public function index(Request $request): View
@@ -48,6 +50,7 @@ final class RetailStoreProvisioningController extends Controller
             ->withQueryString();
 
         $storeIds = $stores->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $restaurantSaasEnabledStoreIds = $this->restaurantSaas->enabledStoreIds($storeIds);
         $commerceByStore = DB::table('retail_wholesale_accounts')
             ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
             ->leftJoin('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_accounts.price_tier_id')
@@ -76,7 +79,7 @@ final class RetailStoreProvisioningController extends Controller
             ->get(['id', 'code', 'name']);
         $priceTierById = $priceTiers->keyBy('id');
 
-        $stores->getCollection()->transform(function (Store $store) use ($commerceByStore, $priceTierById): Store {
+        $stores->getCollection()->transform(function (Store $store) use ($commerceByStore, $priceTierById, $restaurantSaasEnabledStoreIds): Store {
             $commerce = $commerceByStore->get($store->id);
             $store->setAttribute(
                 'wholesale_price_tier_id',
@@ -105,6 +108,10 @@ final class RetailStoreProvisioningController extends Controller
                     && (bool) ($commerce->owner_platform_customer_active ?? false),
             );
             $store->setAttribute('wholesale_account_linked', $commerce?->wholesale_account_id !== null);
+            $store->setAttribute(
+                'restaurant_saas_enabled',
+                in_array((int) $store->id, $restaurantSaasEnabledStoreIds, true),
+            );
 
             $customerTierId = $store->default_customer_wholesale_price_tier_id;
             $customerTier = $customerTierId === null ? null : $priceTierById->get((int) $customerTierId);
@@ -293,6 +300,25 @@ final class RetailStoreProvisioningController extends Controller
         }
 
         return back()->with('status', $this->msg('تم تحديث المتجر.', 'Retail store updated.'));
+    }
+
+    public function restaurantSaas(Request $request, Store $store): RedirectResponse
+    {
+        $actor = $this->superAdmin($request);
+        $this->assertRetailStore($store);
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $enabled = (bool) $data['enabled'];
+        $this->restaurantSaas->setEnabled($store, $enabled, $actor, $request);
+
+        return back()->with(
+            'status',
+            __($enabled
+                ? 'smart_ordering.retail_feature.saved_enabled'
+                : 'smart_ordering.retail_feature.saved_disabled'),
+        );
     }
 
     public function assignRole(Request $request, Store $store): RedirectResponse
