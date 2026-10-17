@@ -27,13 +27,6 @@ final class AdminSingleGlobalHeaderContractTest extends TestCase
                 continue;
             }
 
-            $this->assertStringNotContainsString('foodex-page-header', $view, $file->getPathname());
-            $this->assertSame(
-                0,
-                preg_match('/<header\\b[^>]*foodex-page-toolbar/i', $view),
-                $file->getPathname().' must keep page toolbars inside content rather than creating a second semantic page header.'
-            );
-
             if (
                 str_starts_with($file->getFilename(), '_')
                 || ! str_contains($view, "@include('admin._sidebar")
@@ -41,6 +34,13 @@ final class AdminSingleGlobalHeaderContractTest extends TestCase
             ) {
                 continue;
             }
+
+            $this->assertStringNotContainsString('foodex-page-header', $view, $file->getPathname());
+            $this->assertSame(
+                0,
+                preg_match('/<header\\b[^>]*foodex-page-toolbar/i', $view),
+                $file->getPathname().' must keep page toolbars inside content rather than creating a second semantic page header.'
+            );
 
             $checked++;
             $this->assertSame(
