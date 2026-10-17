@@ -1333,6 +1333,20 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'smart-ordering-reservations',
+    '/admin/smart-ordering/operations?tab=reservations',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-waitlist',
+    '/admin/smart-ordering/operations?tab=waitlist',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'smart-ordering-analytics',
     '/admin/smart-ordering/analytics',
   );
