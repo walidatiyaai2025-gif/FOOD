@@ -15,11 +15,17 @@
 
     aside.sidebar,.sidebar{background:var(--foodex-surface)!important;color:var(--foodex-ink)!important;border-color:var(--foodex-border)!important}
     .foodex-card,.panel,.card,.filters,.back{background:var(--foodex-surface)!important;border:1px solid var(--foodex-border)!important;border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}
-    .foodex-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-6)}
-    .foodex-page-header h1{margin:0;font-size:clamp(1.55rem,2.2vw,var(--foodex-text-2xl));line-height:var(--foodex-leading-tight);font-weight:var(--foodex-font-weight-bold)}
-    .foodex-page-header p{margin:var(--foodex-space-1) 0 0;color:var(--foodex-muted)}
-    .foodex-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-space-2);flex-wrap:wrap}
-    .foodex-topbar{min-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border)}
+    /* #2043 Compact Header System: shared platform chrome, not page-local decoration. */
+    .foodex-page-header{display:flex;align-items:center!important;justify-content:space-between;gap:var(--foodex-header-gap);width:100%;max-width:100%;min-width:0;contain:inline-size;height:var(--foodex-header-height)!important;min-height:var(--foodex-header-height)!important;max-height:var(--foodex-header-height)!important;margin-bottom:8px!important;padding-block:0!important;overflow:visible}
+    .foodex-page-header>*{min-width:0}
+    .foodex-page-header>*:has(>h1){max-height:28px;overflow:hidden}
+    .foodex-page-header h1{margin:0!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--foodex-header-title-size)!important;line-height:16px!important;font-weight:var(--foodex-font-weight-bold)}
+    .foodex-page-header p{margin:0!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foodex-muted);font-size:var(--foodex-header-meta-size)!important;line-height:12px!important}
+    .foodex-page-header .foodex-subtitle{display:none!important}
+    .foodex-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--foodex-header-gap);flex-wrap:nowrap;min-width:0;max-width:58%;overflow-x:auto;scrollbar-width:none}
+    .foodex-header-actions::-webkit-scrollbar{display:none}
+    .foodex-page-header .foodex-header-actions :is(a,button,select){min-height:var(--foodex-header-control-height)!important;height:var(--foodex-header-control-height)!important;padding-block:0!important;padding-inline:8px!important;font-size:.6875rem!important;line-height:1!important;white-space:nowrap}
+    .foodex-topbar{height:var(--foodex-header-height);min-height:var(--foodex-header-height);max-height:var(--foodex-header-height);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border)}
     .foodex-search{min-height:var(--foodex-control-height);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
     .foodex-subtitle{display:block;margin-top:2px;color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-regular)}
     .foodex-icon{inline-size:var(--foodex-icon-md);block-size:var(--foodex-icon-md);display:inline-grid;place-items:center;flex:0 0 auto}
@@ -130,14 +136,14 @@
     }
     @media(max-width:1023px){
         .foodex-admin-page{padding:var(--foodex-space-6)}
-        .foodex-page-header{gap:var(--foodex-space-3)}
+        .foodex-page-header{height:var(--foodex-header-height-tablet)!important;min-height:var(--foodex-header-height-tablet)!important;max-height:var(--foodex-header-height-tablet)!important;gap:var(--foodex-header-gap)}
         .table-wrap,.module-table-wrap,.foodex-table-wrap{border-radius:var(--foodex-radius-md)}
     }
     @media(max-width:767px){
         .foodex-admin-page{padding:var(--foodex-space-4)}
-        .foodex-page-header{width:100%;align-items:stretch}
+        .foodex-page-header{width:100%;align-items:center!important}
         .foodex-page-header>*{min-width:0}
-        .foodex-header-actions{justify-content:flex-start}
+        .foodex-header-actions{justify-content:flex-end}
         .foodex-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
         .foodex-tabs a,.foodex-tab{flex:0 0 auto;white-space:nowrap}
         .foodex-premium-auto-form{grid-template-columns:minmax(0,1fr)}
@@ -156,7 +162,7 @@
     }
     @media(max-width:767px){
         .foodex-admin-page{padding:var(--foodex-space-4)}
-        .foodex-page-header{flex-direction:column}
+        .foodex-page-header{flex-direction:row!important}
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{padding:var(--foodex-space-4)}
     }
 
@@ -194,12 +200,14 @@
         body.foodex-mobile-web{min-width:0;padding:56px 0 0!important}
         .foodex-mobile-only{display:initial}
         .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr)!important}
-        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;min-width:0;padding:12px!important}
-        .foodex-admin-page{min-width:0;padding:12px!important}
-        .foodex-page-header{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:14px}
-        .foodex-page-header h1{font-size:clamp(1.25rem,6vw,1.55rem)}
-        .foodex-page-header p{font-size:.82rem;line-height:1.45}
-        .foodex-header-actions,.foodex-mobile-action-rail{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px;overscroll-behavior-inline:contain;scrollbar-width:none}
+        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:100%!important;min-width:0!important;padding:12px!important}
+        .foodex-admin-page{width:100%!important;max-width:100%!important;min-width:0!important;padding:12px!important}
+        .foodex-page-header{flex-direction:row!important;align-items:center!important;height:var(--foodex-header-height-mobile)!important;min-height:var(--foodex-header-height-mobile)!important;max-height:var(--foodex-header-height-mobile)!important;gap:var(--foodex-header-gap);margin-bottom:8px!important}
+        .foodex-page-header>*:has(>h1){max-height:38px}
+        .foodex-page-header h1{font-size:.8125rem!important;line-height:16px!important}
+        .foodex-page-header p{font-size:.625rem!important;line-height:12px!important}
+        .foodex-page-header .foodex-header-actions :is(a,button,select){min-height:var(--foodex-touch-target)!important;height:var(--foodex-touch-target)!important;font-size:.75rem!important}
+        .foodex-header-actions,.foodex-mobile-action-rail{justify-content:flex-end;flex-wrap:nowrap;overflow-x:auto;max-width:58%;padding-bottom:0;overscroll-behavior-inline:contain;scrollbar-width:none}
         .foodex-header-actions::-webkit-scrollbar,.foodex-mobile-action-rail::-webkit-scrollbar{display:none}
         .foodex-header-actions>*{flex:0 0 auto}
         .foodex-tabs{margin-inline:-12px;padding-inline:12px;scrollbar-width:none}
