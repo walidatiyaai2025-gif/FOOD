@@ -45,6 +45,26 @@
     $restaurantCanOrders = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'orders.view');
     $restaurantCanQr = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view');
     $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
+    $restaurantCanInventory = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('inventory.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'inventory.view'));
+    $restaurantCanCustomers = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('customers.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'customers.view'));
+    $restaurantCanPromotions = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('promotions.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'promotions.view'));
+    $restaurantCanFinance = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('finance.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'finance.view'));
+    $restaurantCanReports = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('reports.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'reports.view'));
     $restaurantAppearanceParams = array_filter([
         'site' => $restaurantSiteKey !== '' ? $restaurantSiteKey : null,
         'store_id' => $restaurantStoreId > 0 ? $restaurantStoreId : null,
@@ -110,4 +130,8 @@
             {{ __('restaurant_growth.title') }}
         </a>
     </nav>
+@endif
+
+@if($restaurantCanView)
+    @include('admin._restaurant-management-launcher')
 @endif
