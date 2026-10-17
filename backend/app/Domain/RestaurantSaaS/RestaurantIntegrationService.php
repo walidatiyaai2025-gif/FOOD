@@ -5,6 +5,7 @@ namespace App\Domain\RestaurantSaaS;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
