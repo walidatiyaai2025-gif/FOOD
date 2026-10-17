@@ -11,7 +11,24 @@ final class AdminSessionRegistry
     public function ensure(Request $request, User $user): AdminSecuritySession
     {
         $hash = hash('sha256', $request->session()->getId());
-        $session = AdminSecuritySession::query()->firstOrNew(['session_hash' => $hash]);
+        $boundPublicId = $request->session()->get('admin_security_session_public_id');
+        $session = null;
+
+        if (is_string($boundPublicId) && $boundPublicId !== '') {
+            $session = AdminSecuritySession::query()
+                ->where('public_id', $boundPublicId)
+                ->first();
+
+            if ($session !== null) {
+                abort_unless((int) $session->user_id === (int) $user->id, 403);
+
+                if ($session->revoked_at !== null) {
+                    abort(403, 'This management session has been revoked.');
+                }
+            }
+        }
+
+        $session ??= AdminSecuritySession::query()->firstOrNew(['session_hash' => $hash]);
 
         if ($session->exists && $session->revoked_at !== null) {
             abort(403, 'This management session has been revoked.');
@@ -30,6 +47,8 @@ final class AdminSessionRegistry
                 'last_seen_at' => now(),
             ])->save();
         }
+
+        $request->session()->put('admin_security_session_public_id', $session->public_id);
 
         return $session;
     }
