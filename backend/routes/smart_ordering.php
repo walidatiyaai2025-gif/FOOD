@@ -23,4 +23,7 @@ Route::prefix('admin/smart-ordering')
         Route::get('/appearance/preview', [SmartOrderingThemePreviewController::class, 'preview'])
             ->middleware('throttle:120,1')
             ->name('appearance.preview');
+        Route::get('/appearance/demo-preview', [SmartOrderingThemePreviewController::class, 'demo'])
+            ->middleware('throttle:120,1')
+            ->name('appearance.demo-preview');
     });
