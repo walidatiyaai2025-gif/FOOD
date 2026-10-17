@@ -11,7 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 final class RbacManager
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly BuiltInJobRoleCatalog $jobRoles,
+    ) {}
 
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
@@ -113,6 +116,28 @@ final class RbacManager
         foreach ($storeRoles as $assignment) {
             $this->assertActorCanGrantRole($actor, $storeModels[(int) $assignment['role_id']], (int) $assignment['store_id']);
         }
+
+        $currentGlobalRoleIds = $target->roles()
+            ->pluck('roles.id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $currentStorePairs = $target->storeRoleAssignments()
+            ->get(['store_id', 'role_id'])
+            ->map(static fn ($assignment): string => ((int) $assignment->role_id).':'.((int) $assignment->store_id))
+            ->all();
+
+        $this->jobRoles->assertAssignmentsAvailable(
+            $globalRoles->values(),
+            array_map(
+                fn (array $assignment): array => [
+                    'store_id' => (int) $assignment['store_id'],
+                    'role' => $storeModels[(int) $assignment['role_id']],
+                ],
+                $storeRoles,
+            ),
+            $currentGlobalRoleIds,
+            $currentStorePairs,
+        );
 
         $targetHasSuperAdmin = $target->roles()
             ->where('roles.code', 'SUPER_ADMIN')
