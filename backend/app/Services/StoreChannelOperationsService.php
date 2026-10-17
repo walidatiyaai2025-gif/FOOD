@@ -98,6 +98,7 @@ final class StoreChannelOperationsService
 
         return $stores->transform(function (Store $store) use ($snapshots): Store {
             $store->setAttribute('operations_360', $snapshots[(int) $store->id] ?? []);
+
             return $store;
         });
     }
@@ -248,6 +249,7 @@ final class StoreChannelOperationsService
         if ($from->gt($to) || $from->diffInDays($to) > 366) {
             throw ValidationException::withMessages(['from' => ['The report range must be chronological and no longer than 366 days.']]);
         }
+
         return [$from, $to];
     }
 
@@ -382,6 +384,7 @@ final class StoreChannelOperationsService
             'id' => (int) $store->id, 'name' => (string) $store->name, 'code' => (string) $store->code,
             'is_active' => (bool) $store->is_active, 'created_at' => $store->created_at,
         ];
+
         return $this->snapshotMap(collect([$row]))[(int) $store->id] ?? [];
     }
 
@@ -391,6 +394,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('warehouses') || ! Schema::hasTable('inventories') || ! Schema::hasTable('store_products')) {
             return [];
         }
+
         return DB::table('warehouses as w')
             ->join('inventories as i', 'i.warehouse_id', '=', 'w.id')
             ->join('store_products as sp', function ($join): void {
@@ -408,6 +412,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('restaurant_saas_integrations') || ! Schema::hasTable('smart_ordering_sites')) {
             return [];
         }
+
         return DB::table('restaurant_saas_integrations as i')
             ->join('smart_ordering_sites as s', 's.id', '=', 'i.site_id')
             ->whereIn('s.store_id', $ids)->whereIn('i.status', ['degraded', 'suspended'])
@@ -438,8 +443,10 @@ final class StoreChannelOperationsService
             : collect();
 
         $storeById = $stores->keyBy('id');
+
         return $rows->map(function (object $row) use ($storeById): array {
             $store = $storeById->get((int) $row->store_id);
+
             return [
                 'store_id' => (int) $row->store_id,
                 'store' => (string) ($store?->name ?? ('#'.$row->store_id)),
@@ -457,6 +464,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('orders')) {
             return [];
         }
+
         return DB::table('orders')->whereIn('store_id', $ids)
             ->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])
             ->selectRaw('channel, currency, COUNT(*) as orders, COALESCE(SUM(grand_total),0) as revenue')
@@ -471,6 +479,7 @@ final class StoreChannelOperationsService
     private function healthDistribution(array $snapshots): array
     {
         $groups = collect($snapshots)->groupBy(fn (array $row): string => $row['lifecycle_state'] === 'ACTIVE' ? $row['readiness_state'] : strtolower($row['lifecycle_state']));
+
         return $groups->map(fn (Collection $rows, string $label): array => ['label' => $label, 'value' => $rows->count()])->values()->all();
     }
 
@@ -489,6 +498,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('restaurant_saas_integration_events') || ! Schema::hasTable('restaurant_saas_integrations') || ! Schema::hasTable('smart_ordering_sites')) {
             return [];
         }
+
         return DB::table('restaurant_saas_integration_events as e')
             ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
             ->join('smart_ordering_sites as s', 's.id', '=', 'i.site_id')
