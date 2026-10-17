@@ -1347,6 +1347,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'smart-ordering-guest-book',
+    '/admin/smart-ordering/operations?tab=guest_book',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'smart-ordering-analytics',
     '/admin/smart-ordering/analytics',
   );
