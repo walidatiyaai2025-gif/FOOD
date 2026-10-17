@@ -10,8 +10,8 @@ use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 final class SmartOrderingThemePreviewController extends Controller
