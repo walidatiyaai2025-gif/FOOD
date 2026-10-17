@@ -126,7 +126,9 @@
                     ['pending_remittances', __('field_operations.dashboard.kpis.pending_remittances'), true],
                     ['stale_location_signals', __('field_operations.dashboard.kpis.stale_location_signals'), true],
                 ] as [$key,$label,$alert])
-                    @php($value = $dk[$key] ?? null)
+                    @php
+                        $value = $dk[$key] ?? null;
+                    @endphp
                     <article class="fieldops-card fieldops-kpi" data-foodex-module-kpi="{{ $key }}" data-alert="{{ $alert && (float)($value ?? 0) > 0 ? 'true' : 'false' }}">
                         <strong>{{ $value === null ? '—' : (str_ends_with($key, '_percent') ? number_format((float)$value, 1).'%' : number_format((int)$value)) }}</strong>
                         <small>{{ $label }}</small>
