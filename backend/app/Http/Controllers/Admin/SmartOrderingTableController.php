@@ -7,7 +7,7 @@ use App\Domain\SmartOrdering\RestaurantTableService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
-use App\Services\OperationalTenantScope;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 final class SmartOrderingTableController extends Controller
 {
     public function __construct(
-        private readonly OperationalTenantScope $scope,
+        private readonly RestaurantSaasStoreAccess $scope,
         private readonly RestaurantTableService $tables,
         private readonly AuditLogger $audit,
     ) {}
