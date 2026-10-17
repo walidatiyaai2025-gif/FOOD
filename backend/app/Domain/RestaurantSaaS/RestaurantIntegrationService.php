@@ -328,22 +328,24 @@ final class RestaurantIntegrationService
 
     public function recordDeliveryResult(int $deliveryId, ?int $httpStatus, ?string $errorCode): void
     {
-        $delivery = DB::table('restaurant_saas_webhook_deliveries')->where('id', $deliveryId)->lockForUpdate()->first();
-        abort_unless($delivery !== null, 404);
+        DB::transaction(function () use ($deliveryId, $httpStatus, $errorCode): void {
+            $delivery = DB::table('restaurant_saas_webhook_deliveries')->where('id', $deliveryId)->lockForUpdate()->first();
+            abort_unless($delivery !== null, 404);
 
-        $attempts = (int) $delivery->attempts + 1;
-        $success = $httpStatus !== null && $httpStatus >= 200 && $httpStatus < 300;
-        $status = $success ? 'delivered' : ($attempts >= 5 ? 'dead_letter' : 'retry');
+            $attempts = (int) $delivery->attempts + 1;
+            $success = $httpStatus !== null && $httpStatus >= 200 && $httpStatus < 300;
+            $status = $success ? 'delivered' : ($attempts >= 5 ? 'dead_letter' : 'retry');
 
-        DB::table('restaurant_saas_webhook_deliveries')->where('id', $deliveryId)->update([
-            'status' => $status,
-            'attempts' => $attempts,
-            'http_status' => $httpStatus,
-            'last_error_code' => $success ? null : mb_substr((string) $errorCode, 0, 80),
-            'scheduled_at' => $success ? $delivery->scheduled_at : now()->addMinutes(min(60, 2 ** $attempts)),
-            'delivered_at' => $success ? now() : null,
-            'updated_at' => now(),
-        ]);
+            DB::table('restaurant_saas_webhook_deliveries')->where('id', $deliveryId)->update([
+                'status' => $status,
+                'attempts' => $attempts,
+                'http_status' => $httpStatus,
+                'last_error_code' => $success ? null : mb_substr((string) $errorCode, 0, 80),
+                'scheduled_at' => $success ? $delivery->scheduled_at : now()->addMinutes(min(60, 2 ** $attempts)),
+                'delivered_at' => $success ? now() : null,
+                'updated_at' => now(),
+            ]);
+        }, 3);
     }
 
     /** @return array<string,mixed> */
