@@ -50,7 +50,7 @@
     .wa-inbox-layout{display:block!important;min-height:100vh}
     .wa-inbox-layout>.sidebar{display:none!important}
     .wa-inbox-main{padding:0!important;margin:0!important;max-width:none!important;width:100%!important;height:100vh!important;min-height:0!important}
-    header.foodex-page-header.wa-shell-marker{display:none!important;visibility:hidden!important;width:0!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
+    header.foodex-page-toolbar.wa-shell-marker{display:none!important;visibility:hidden!important;width:0!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
     .wa-shell.wa-golden-shell{height:100vh;min-height:0;gap:0}
     .wa-golden-workspace{display:grid;grid-template-areas:"context thread rail";grid-template-columns:448px minmax(0,1fr) 379px;width:100%;height:100vh;min-height:0;gap:0;background:var(--foodex-surface);color:var(--foodex-ink)}
     html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
@@ -72,13 +72,14 @@
 <div class="foodex-admin-layout wa-inbox-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page wa-inbox-main">
-        <header class="foodex-page-header wa-shell-marker">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar wa-shell-marker">
             <div>
                 <span class="foodex-subtitle">{{ __('whatsapp.inbox.subtitle') }}</span>
                 <h1>{{ __('whatsapp.inbox.heading') }}</h1>
                 <p>{{ __('whatsapp.inbox.intro') }}</p>
             </div>
-            @include('admin._live-notifications',['user'=>auth()->user()])
+            
         </header>
 
         @if(session('status'))<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px" role="status">{{ session('status') }}</div>@endif

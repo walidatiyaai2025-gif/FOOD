@@ -37,14 +37,15 @@
 <div class="foodex-admin-layout" data-builder>
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="so-builder-shell">
-<header class="foodex-page-header">
+<header class="foodex-page-toolbar">
 <div>
 <span class="foodex-subtitle">{{ __('smart_ordering.appearance.eyebrow') }}</span>
 <h1>{{ __('smart_ordering.appearance.heading') }}</h1>
 <p>{{ __('smart_ordering.appearance.description') }}</p>
 </div>
-@include('admin._live-notifications')
+
 </header>
 
 @include('admin._smart-ordering-workspace-nav')

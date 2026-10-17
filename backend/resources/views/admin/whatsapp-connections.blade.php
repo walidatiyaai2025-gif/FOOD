@@ -12,8 +12,9 @@
         @include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])
     </aside>
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
+@include('admin._global-header')
         @include('admin._admin-center-switcher', ['active'=>'administration'])
-        <header class="foodex-page-header">
+        <header class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('whatsapp.connections.title') }}</h1>
                 <p>{{ __('whatsapp.connections.description') }}</p>

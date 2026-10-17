@@ -57,14 +57,15 @@ html[dir=ltr] .main{grid-column:2}
 @include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])
 </aside>
 <main class="main foodex-admin-main">
+@include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="hub-intro foodex-page-header">
+<header class="hub-intro foodex-page-toolbar">
 <div>
 <p class="eyebrow">{{ __('admin.administration_hub.eyebrow') }}</p>
 <h1>{{ __('admin.administration_hub.title') }}</h1>
 <p class="muted">{{ __('admin.administration_hub.description') }}</p>
 </div>
-@include('admin._live-notifications',['user'=>$user])
+
 </header>
 
 <section class="section" data-admin-applications>

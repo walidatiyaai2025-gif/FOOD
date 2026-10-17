@@ -37,8 +37,9 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="whatsapp-chatbot-preview-{{ $screen }}">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
         <div class="cbp-shell">
-            <header class="foodex-page-header">
+            <header class="foodex-page-toolbar">
                 <div>
                     <span class="foodex-subtitle">{{ __('chatbot.preview_title') }}</span>
                     <h1>{{ __('chatbot.preview_screens.'.$screen) }}</h1>

@@ -7,7 +7,7 @@
 @include('admin._brand-components')
 <style>
 .so-qr-shell{display:grid;gap:var(--foodex-space-4);min-width:0}
-.so-qr-shell .foodex-page-header{margin-bottom:0}
+.so-qr-shell .foodex-page-toolbar{margin-bottom:0}
 .so-qr-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);flex-wrap:wrap}
 .so-qr-filter-grid,.so-qr-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--foodex-space-3)}
 .so-qr-filter-grid label,.so-qr-form-grid label{display:grid;gap:6px;font-size:var(--foodex-text-sm);font-weight:var(--foodex-font-weight-medium)}
@@ -55,14 +55,15 @@
 <div class="foodex-admin-layout" data-smart-ordering-qr-manager="true">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('smart_ordering_qr.nav_title') }}</span>
                 <h1>{{ __('smart_ordering_qr.heading') }}</h1>
                 <p>{{ __('smart_ordering_qr.description') }}</p>
             </div>
             <div class="foodex-header-actions">
-                @include('admin._live-notifications',['user'=>$user])
+                
                 @if($canCreate)
                     <button type="button" class="foodex-action-primary" data-open-dialog="so-qr-create">{{ __('smart_ordering_qr.create') }}</button>
                 @endif

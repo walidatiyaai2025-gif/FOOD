@@ -11,9 +11,10 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="app-versions">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="app-versions">
+@include('admin._global-header')
     @include('admin._admin-center-switcher',['active'=>'settings'])
 @php($ar = app()->getLocale() === 'ar')
-    <header class="foodex-page-header settings-page-heading">
+    <header class="foodex-page-toolbar settings-page-heading">
         <div>
             <span class="foodex-subtitle">FOODEX · {{ __('admin.settings_center.title') }}</span>
             <h1>{{ __('app_versions.title') }}</h1>

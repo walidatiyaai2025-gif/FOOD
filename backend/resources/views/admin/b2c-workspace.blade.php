@@ -285,11 +285,12 @@
                 @endif
             </form>
             <div class="top-actions">
-                @include('admin._live-notifications')
+                
             </div>
         </header>
 
         <main class="content">
+@include('admin._global-header')
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
@@ -463,7 +464,7 @@
 <div class="module-layout" data-b2c-premium="v1">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-page">
-        <div class="foodex-page-header">
+        <div class="foodex-page-toolbar">
             <div>
                 <div class="empty"><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
                 <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
@@ -486,7 +487,7 @@
                 </form>
                 @endif
             </div>
-            @include('admin._live-notifications')
+            
         </div>
         @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif

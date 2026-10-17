@@ -34,7 +34,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="enterprise-action-center">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page action-center" data-enterprise-action-center="true">
-<header class="action-head foodex-page-header">
+@include('admin._global-header')
+<header class="action-head foodex-page-toolbar">
 <div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_my_work.eyebrow') }}</div><h1>{{ __('enterprise_my_work.title') }}</h1><p>{{ __('enterprise_my_work.description') }}</p></div>
 <div class="action-head__actions">
 <a class="foodex-action-secondary" href="{{ route('admin.action-center.export', request()->query()) }}">{{ __('enterprise_my_work.export') }}</a>

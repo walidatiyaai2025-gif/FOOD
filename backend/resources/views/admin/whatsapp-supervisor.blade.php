@@ -7,7 +7,7 @@
 @include('admin._brand-components')
 <style id="whatsapp-supervisor-ui">
 .wa-supervisor-shell{display:grid;gap:var(--foodex-space-4);min-width:0}
-.wa-supervisor-shell .foodex-page-header{margin-bottom:0}
+.wa-supervisor-shell .foodex-page-toolbar{margin-bottom:0}
 .wa-supervisor-shell .row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
 .wa-supervisor-shell .g-2{gap:var(--foodex-space-2)}.wa-supervisor-shell .g-3{gap:var(--foodex-space-3)}
 .wa-supervisor-shell .col-12{grid-column:span 12}.wa-supervisor-shell .col-8{grid-column:span 8}.wa-supervisor-shell .col-6{grid-column:span 6}.wa-supervisor-shell .col-4{grid-column:span 4}.wa-supervisor-shell .col-3{grid-column:span 3}.wa-supervisor-shell .col-2{grid-column:span 2}
@@ -43,9 +43,10 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="wa-supervisor-shell">
 
-    <header class="foodex-page-header">
+    <header class="foodex-page-toolbar">
         <div>
             <span class="foodex-subtitle">{{ __('whatsapp_supervisor.subtitle') }}</span>
             <h1>{{ __('whatsapp_supervisor.heading') }}</h1>
@@ -53,7 +54,7 @@
         </div>
         <div class="foodex-header-actions">
             <span class="badge bg-warning">{{ __('whatsapp_supervisor.dark_launch') }}</span>
-            @include('admin._live-notifications',['user'=>auth()->user()])
+            
         </div>
     </header>
 

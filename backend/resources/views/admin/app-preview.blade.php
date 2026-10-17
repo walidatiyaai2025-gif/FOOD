@@ -33,13 +33,14 @@
 <div class="foodex-admin-layout" data-foodex-utility="app-preview">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · Shared Flutter Runtime</span>
                 <h1>{{ __('admin.preview_center.title') }}</h1>
                 <p>{{ __('admin.preview_center.description') }}</p>
             </div>
-            <div class="foodex-header-actions">@include('admin._live-notifications',['user'=>$user])</div>
+            
         </header>
 
         <div class="preview-layout" data-preview-entry="auto" data-preview-default-app="customer" data-preview-default-configuration="published">

@@ -41,15 +41,16 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout" data-settings-center="true">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="settings-wrap">
 @include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="settings-hero foodex-page-header">
+<header class="settings-hero foodex-page-toolbar">
 <div>
 <p class="settings-eyebrow">{{ __('admin.settings_center.eyebrow') }}</p>
 <h1>{{ __('admin.settings_center.title') }}</h1>
 <p class="settings-muted">{{ __('admin.settings_center.description') }}</p>
 </div>
-@include('admin._live-notifications',['user'=>$user])
+
 </header>
 
 <div class="settings-search">

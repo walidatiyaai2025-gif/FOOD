@@ -16,7 +16,8 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar">
             <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
         </header>
@@ -67,7 +68,7 @@
         @endphp
 
         <section class="foodex-module-overview" data-foodex-module-overview data-restaurant-operations-overview>
-            <div class="foodex-page-header">
+            <div class="foodex-page-toolbar">
                 <div>
                     <h2>{{ __('smart_ordering.overview.title') }}</h2>
                     <p>{{ __('smart_ordering.overview.description') }}</p>

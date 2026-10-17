@@ -27,7 +27,8 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('whatsapp.campaigns.nav_title') }}</span>
                 <h1>{{ __('whatsapp.campaigns.heading') }}</h1>
@@ -35,7 +36,7 @@
             </div>
             <div class="wa-actions">
                 @if($canManage)<button type="button" class="foodex-action-primary" id="wa-create-campaign">＋ {{ __('whatsapp.campaigns.create_campaign') }}</button>@endif
-                @include('admin._live-notifications',['user'=>auth()->user()])
+                
             </div>
         </header>
 

@@ -25,14 +25,15 @@
 <div class="foodex-admin-layout" data-smart-ordering-analytics="true">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<header class="foodex-page-toolbar">
 <div>
 <span class="foodex-subtitle">{{ __('smart_ordering.analytics.eyebrow') }}</span>
 <h1>{{ __('smart_ordering.analytics.title') }}</h1>
 <p>{{ __('smart_ordering.analytics.description') }}</p>
 </div>
 <div class="foodex-header-actions">
-@include('admin._live-notifications',['user'=>$user])
+
 <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.analytics.export',request()->query()) }}">{{ __('smart_ordering.analytics.export_csv') }}</a>
 </div>
 </header>

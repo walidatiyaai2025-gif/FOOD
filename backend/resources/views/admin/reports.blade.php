@@ -60,10 +60,11 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
 <div class="layout foodex-admin-layout" data-foodex-utility="reports">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'reports_center', 'user' => auth()->user()])</aside>
     <main class="main foodex-admin-main">
-        <div class="hero foodex-page-header">
+@include('admin._global-header')
+        <div class="hero foodex-page-toolbar">
             <div><h1>{{ __('reports.title') }}</h1><p class="muted">{{ __('reports.description') }}</p></div>
             <div class="foodex-header-actions">
-                @include('admin._live-notifications',['user'=>auth()->user()])
+                
                 @if(auth()->user()->hasPermission('reports.export') || request('store_id') && auth()->user()->hasPermission('reports.export', (int) request('store_id')))
                 <div class="export">
                     @foreach(['xlsx','docx','pdf'] as $format)

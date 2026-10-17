@@ -19,7 +19,8 @@ Prefer/reuse:
 - `.foodex-admin-main`
 - `.foodex-admin-page`
 - `.sidebar`
-- `.foodex-page-header`
+- `admin._global-header` (exactly once per canonical Dashboard page)
+- `.foodex-page-toolbar`
 - `.foodex-header-actions`
 - `.foodex-subtitle`
 

@@ -26,8 +26,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="replica-viewer">
-<header class="replica-toolbar foodex-page-header">
+<header class="replica-toolbar foodex-page-toolbar">
 <div class="replica-title"><h1>{{ $reportTitle }}</h1><small>{{ $customer->name }} · {{ __('customer_360.reports.rows') }}: {{ $rowCount }}</small></div>
 <form method="get" action="{{ route('admin.customer-360.reports.show',['platformCustomer'=>$customer->id,'report'=>$report]) }}">
 <label><small>{{ __('customer_360.reports.from') }}</small><input type="date" name="from" value="{{ $from }}" required></label>

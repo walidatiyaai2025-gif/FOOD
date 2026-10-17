@@ -26,7 +26,8 @@
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<header class="foodex-page-toolbar">
     <div>
         <span class="foodex-subtitle">{{ __('enterprise_bi_ui.eyebrow') }}</span>
         <h1>{{ __('enterprise_bi_ui.title') }}</h1>
@@ -34,7 +35,7 @@
     </div>
     <div class="bi-actions">
         @if($legacyReportsUrl)<a class="foodex-action-secondary button secondary" href="{{ $legacyReportsUrl }}">{{ __('enterprise_bi_ui.legacy_reports') }}</a>@endif
-        @include('admin._live-notifications',['user'=>auth()->user()])
+        
     </div>
 </header>
 

@@ -6,8 +6,9 @@
 @include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'administration_hub','user'=>auth()->user()])
 </aside>
 <main class="foodex-admin-main foodex-admin-page" data-production-dataset-switch="true" data-active-mode="{{ $activeMode }}">
+@include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="foodex-page-header"><div><h1>{{ __('production_dataset_switch.title') }}</h1><p>{{ __('production_dataset_switch.description') }}</p></div><div class="foodex-header-actions"><a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('production_dataset_switch.back') }}</a></div></header>
+<header class="foodex-page-toolbar"><div><h1>{{ __('production_dataset_switch.title') }}</h1><p>{{ __('production_dataset_switch.description') }}</p></div><div class="foodex-header-actions"><a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('production_dataset_switch.back') }}</a></div></header>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 <section><h2>{{ __('production_dataset_switch.status_title') }}</h2><div class="dataset-grid">

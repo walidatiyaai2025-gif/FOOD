@@ -94,7 +94,7 @@ A page is incomplete if it is only reachable by a hidden/deep route when normal 
 
 Before creating a new component, search the current surface for:
 - shared shell;
-- page header;
+- single shared global header + page toolbar;
 - tabs;
 - cards;
 - buttons;
@@ -260,7 +260,7 @@ A second renderer/route for an already-owned function is a regression unless the
 ### Stage B — Component Map
 Read `.ai/skills/ui-pattern-library.md` and list the exact existing primitives used for:
 - shell/navigation;
-- page header;
+- single shared global header + page toolbar;
 - primary/secondary action;
 - filter/search;
 - row/card/grid;

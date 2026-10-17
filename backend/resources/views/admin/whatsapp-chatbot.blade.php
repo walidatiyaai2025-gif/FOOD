@@ -37,8 +37,9 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="whatsapp-chatbot-{{ $section }}">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
         <div class="cb-shell">
-            <header class="foodex-page-header">
+            <header class="foodex-page-toolbar">
                 <div>
                     <span class="foodex-subtitle">{{ __('chatbot.subtitle') }}</span>
                     <h1>{{ __('chatbot.page_title') }}</h1>
@@ -46,7 +47,7 @@
                 </div>
                 <div class="foodex-header-actions">
                     <a class="foodex-action-primary" href="{{ route('admin.whatsapp-chatbot.preview', ['screen' => 'home']) }}">{{ __('chatbot.preview_title') }}</a>
-                    @include('admin._live-notifications', ['user' => auth()->user()])
+                    
                 </div>
             </header>
 

@@ -125,7 +125,7 @@ If the task does not provide design details, this reference lock is the design s
 For an ordinary page request, build in this order:
 
 1. existing application shell/navigation;
-2. compact page header/title;
+2. the shared global Admin header once, then compact page title/actions in the page toolbar;
 3. sibling tabs only when the domain already uses them;
 4. compact filters/search;
 5. main data surface;

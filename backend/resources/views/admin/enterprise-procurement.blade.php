@@ -28,7 +28,8 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page erp-procurement" data-erp-procurement-workbench="true">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<header class="foodex-page-toolbar">
 <div><div class="foodex-subtitle">{{ __('enterprise_procurement.section') }}</div><h1>{{ __('enterprise_procurement.title') }}</h1><p>{{ __('enterprise_procurement.description') }}</p></div>
 </header>
 

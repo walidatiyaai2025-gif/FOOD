@@ -40,7 +40,8 @@
         @include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])
     </aside>
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <header class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_supply.title') }}</h1>
                 <p>{{ __('smart_ordering_supply.subtitle') }}</p>

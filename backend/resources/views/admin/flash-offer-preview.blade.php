@@ -44,13 +44,14 @@
         @include('admin._sidebar', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])
     </aside>
     <main class="foodex-admin-main foodex-admin-page evidence-shell">
+@include('admin._global-header')
         <header class="evidence-header">
             <div>
                 <span class="foodex-subtitle">FOODEX · {{ __('commercial.flash.title') }}</span>
                 <h1>{{ __('commercial.preview.title') }} · {{ $offer->name }}</h1>
                 <p class="muted">{{ __('commercial.preview.description') }}</p>
             </div>
-            @include('admin._live-notifications', ['user' => $user])
+            
         </header>
 
         <nav class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">

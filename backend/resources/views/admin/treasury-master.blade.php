@@ -20,7 +20,8 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="treasury-master">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<header class="foodex-page-toolbar">
 <div>
 <div class="muted">{{ __('treasury.eyebrow') }}</div>
 <h1>{{ __('treasury.title') }}</h1>

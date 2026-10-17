@@ -2,7 +2,7 @@
     $approvalRows = collect($demandApprovalRows ?? []);
 @endphp
 <div class="foodex-module-overview" data-wms-demand-plan>
-    <div class="foodex-page-header">
+    <div class="foodex-page-toolbar">
         <div><h2>{{ __('enterprise_wms.planning.title') }}</h2><p>{{ __('enterprise_wms.planning.subtitle') }}</p></div>
     </div>
 

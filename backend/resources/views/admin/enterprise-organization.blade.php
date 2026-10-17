@@ -17,8 +17,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="enterprise-organization">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page org-page" data-enterprise-organization-admin="true">
+@include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="org-head foodex-page-header"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_organization.eyebrow') }}</div><h1>{{ __('enterprise_organization.title') }}</h1><p>{{ __('enterprise_organization.description') }}</p></div><a class="org-back" href="{{ route('admin.administration.index') }}">{{ __('enterprise_organization.back') }}</a></header>
+<header class="org-head foodex-page-toolbar"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_organization.eyebrow') }}</div><h1>{{ __('enterprise_organization.title') }}</h1><p>{{ __('enterprise_organization.description') }}</p></div><a class="org-back" href="{{ route('admin.administration.index') }}">{{ __('enterprise_organization.back') }}</a></header>
 @if(session('status'))<div class="org-status" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="org-status" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

@@ -51,7 +51,7 @@ The following are functional acceptance requirements:
 On mobile, a normal Dashboard page is composed in this order:
 
 1. mobile navigation launcher;
-2. compact page title and short subtitle;
+2. compact page title and short subtitle inside the page toolbar;
 3. primary action;
 4. horizontally scrollable sibling tabs when present;
 5. compact search/filter surface;
@@ -89,7 +89,7 @@ On mobile:
 - multiple header actions use a horizontal action rail or compact overflow instead of a tall wrapped button wall;
 - notification/account controls remain touch-safe.
 
-Use the shared `.foodex-page-header` and `.foodex-header-actions` patterns.
+The platform chrome is the single shared `admin._global-header`. It owns global search, notifications and account access. Page title/subtitle/actions render below it inside `.foodex-page-toolbar` with `.foodex-header-actions`; a page must not introduce a second platform header.
 
 ## 7. Tabs
 

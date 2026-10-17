@@ -34,16 +34,17 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
         @include('admin._admin-center-switcher',['active'=>'administration'])
 @php($ar=app()->getLocale()==='ar')
-        <header class="foodex-page-header">
+        <header class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · Runtime Diagnostics</span>
                 <h1>{{ __('admin.system_inspector') }}</h1>
                 <p>{{ $ar?'يجمع أخطاء الخادم والراوت وJavaScript وطلبات Fetch، ويصدر تقريرًا واحدًا قابلًا للتنزيل والمشاركة.':'Captures server, route, JavaScript and Fetch failures and exports one shareable diagnostic report.' }}</p>
             </div>
             <div class="inspector-actions">
-                @include('admin._live-notifications',['user'=>auth()->user()])
+                
                 <a class="foodex-action-primary" href="{{ route('admin.inspector.export') }}">⇩ {{ $ar?'تنزيل التقرير':'Download report' }}</a>
                 <form method="post" action="{{ route('admin.inspector.storage-link') }}">@csrf
                     <button class="foodex-action-secondary button secondary" type="submit">↻ {{ $ar?'فحص/إصلاح رابط الصور':'Check / repair image link' }}</button>
