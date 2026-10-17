@@ -219,17 +219,8 @@ final class SupplierCollaborationManager
     public function resolvePortalToken(string $plainToken, string $capability): EnterpriseSupplierPortalToken
     {
         abort_unless(in_array($capability, self::PORTAL_CAPABILITIES, true), 404);
-        $token = EnterpriseSupplierPortalToken::query()
-            ->with('supplier')
-            ->where('token_hash', hash('sha256', $plainToken))
-            ->whereNull('revoked_at')
-            ->where('expires_at', '>', now())
-            ->firstOrFail();
-
+        $token = $this->resolveAnyPortalToken($plainToken);
         abort_unless(in_array($capability, (array) $token->capabilities, true), 403);
-        abort_unless($token->supplier instanceof EnterpriseSupplier && $token->supplier->status === 'active', 403);
-
-        $token->forceFill(['last_used_at' => now()])->save();
 
         return $token;
     }
@@ -237,7 +228,7 @@ final class SupplierCollaborationManager
     /** @return array<string,mixed> */
     public function portalData(string $plainToken): array
     {
-        $token = $this->resolvePortalToken($plainToken, 'rfq');
+        $token = $this->resolveAnyPortalToken($plainToken);
         $supplier = $token->supplier;
 
         $rfqs = DB::table('enterprise_procurement_rfq_suppliers as invited')
@@ -364,6 +355,21 @@ final class SupplierCollaborationManager
                 'expires_at' => $document->getRawOriginal('expires_at'),
             ],
         );
+    }
+
+    private function resolveAnyPortalToken(string $plainToken): EnterpriseSupplierPortalToken
+    {
+        $token = EnterpriseSupplierPortalToken::query()
+            ->with('supplier')
+            ->where('token_hash', hash('sha256', $plainToken))
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->firstOrFail();
+
+        abort_unless($token->supplier instanceof EnterpriseSupplier && $token->supplier->status === 'active', 403);
+        $token->forceFill(['last_used_at' => now()])->save();
+
+        return $token;
     }
 
     private function scopeForStore(int $storeId): EnterpriseDataScope
