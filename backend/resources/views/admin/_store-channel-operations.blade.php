@@ -5,8 +5,8 @@
         if ($amounts === []) return '—';
         return collect($amounts)->map(fn ($amount, $currency) => number_format((float)$amount, 3).' '.$currency)->implode(' · ');
     };
-    $maxRevenue = max(1.0, (float) collect($charts['store_performance'] ?? [])->max('revenue'));
-    $maxChannelRevenue = max(1.0, (float) collect($charts['channel_performance'] ?? [])->max('revenue'));
+    $maxRevenue = collect($charts['store_performance'] ?? [])->groupBy('currency')->map(fn ($rows) => max(1.0,(float)$rows->max('revenue')));
+    $maxChannelRevenue = collect($charts['channel_performance'] ?? [])->groupBy('currency')->map(fn ($rows) => max(1.0,(float)$rows->max('revenue')));
     $maxHealth = max(1, (int) collect($charts['health_distribution'] ?? [])->max('value'));
     $maxAvailability = max(1, (int) collect($charts['availability'] ?? [])->max('value'));
 @endphp
@@ -87,8 +87,8 @@
             @forelse(array_slice($charts['store_performance'] ?? [],0,8) as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ $row['store'] }}</span>
-                    <span class="store-ops-track" aria-label="{{ $row['store'] }} {{ $row['revenue'] }}"><span style="width:{{ min(100,($row['revenue']/$maxRevenue)*100) }}%"></span></span>
-                    <strong>{{ number_format($row['revenue'],3) }}</strong>
+                    <span class="store-ops-track" aria-label="{{ $row['store'] }} {{ $row['revenue'] }} {{ $row['currency'] }}"><span style="width:{{ min(100,($row['revenue']/($maxRevenue[$row['currency']] ?? 1))*100) }}%"></span></span>
+                    <strong>{{ number_format($row['revenue'],3) }} {{ $row['currency'] }}</strong>
                 </div>
             @empty <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div> @endforelse
             <table class="foodex-table"><thead><tr><th>{{ __('store_channels.labels.store') }}</th><th>{{ __('store_channels.labels.orders') }}</th><th>{{ __('store_channels.labels.revenue') }}</th></tr></thead><tbody>
@@ -101,7 +101,7 @@
             @forelse($charts['channel_performance'] ?? [] as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ strtoupper($row['channel']) }}</span>
-                    <span class="store-ops-track" aria-label="{{ $row['channel'] }} {{ $row['revenue'] }}"><span style="width:{{ min(100,($row['revenue']/$maxChannelRevenue)*100) }}%"></span></span>
+                    <span class="store-ops-track" aria-label="{{ $row['channel'] }} {{ $row['revenue'] }} {{ $row['currency'] }}"><span style="width:{{ min(100,($row['revenue']/($maxChannelRevenue[$row['currency']] ?? 1))*100) }}%"></span></span>
                     <strong>{{ number_format($row['revenue'],3) }} {{ $row['currency'] ?? '' }}</strong>
                 </div>
             @empty <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div> @endforelse
