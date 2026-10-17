@@ -3,6 +3,22 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Separation-of-duties advisory pairs
+    |--------------------------------------------------------------------------
+    |
+    | These combinations are intentionally advisory at assignment time. Runtime
+    | maker/checker services remain authoritative and must still prevent the same
+    | actor from preparing and approving the same protected transaction.
+    |
+    */
+    'risk_pairs' => [
+        'procurement_maker_checker' => [
+            'roles' => ['PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Canonical FOODEX built-in business role catalog
     |--------------------------------------------------------------------------
     |
