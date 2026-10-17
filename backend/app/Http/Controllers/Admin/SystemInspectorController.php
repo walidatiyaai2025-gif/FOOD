@@ -9,6 +9,7 @@ use App\Models\SystemInspectorEvent;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
+use App\Services\SystemAdministrationRuntime;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         RestaurantOperatorService $restaurantOperator,
+        SystemAdministrationRuntime $systemRuntime,
     ): View {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -89,6 +91,7 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $systemRuntime->healthSnapshot(),
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
@@ -203,7 +206,11 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
+    public function export(
+        Request $request,
+        EnterpriseSystemInspector $enterpriseInspector,
+        SystemAdministrationRuntime $systemRuntime,
+    ): StreamedResponse
     {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
@@ -216,6 +223,7 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $systemRuntime->healthSnapshot(),
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
