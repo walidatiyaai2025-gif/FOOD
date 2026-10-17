@@ -71,7 +71,9 @@
                     @if($chartRows === [])
                         <div class="foodex-viz-empty">{{ __('catalog_completion.common.empty') }}</div>
                     @else
-                        @php($chartMax = max(1, (float) collect($chartRows)->max('value')))
+                        @php
+                            $chartMax = max(1, (float) collect($chartRows)->max('value'));
+                        @endphp
                         <div class="foodex-viz-bars" role="img" aria-label="{{ $chartTitles[$chartKey] ?? $chartKey }}">
                             @foreach($chartRows as $point)
                                 @php
@@ -113,7 +115,9 @@
             <h2>{{ __('catalog_completion.exceptions.title') }}</h2>
             <div class="catalog-completion-lines">
                 @foreach($catalogDashboard['exceptions'] as $exception)
-                    @php($exceptionParams = array_merge(['tab' => $exception['tab']], $scopeParams, $exception['filters'] ?? []))
+                    @php
+                        $exceptionParams = array_merge(['tab' => $exception['tab']], $scopeParams, $exception['filters'] ?? []);
+                    @endphp
                     <a class="catalog-completion-line" href="{{ route('admin.catalog.index', $exceptionParams) }}">
                         <strong>{{ __('catalog_completion.exceptions.'.$exception['key']) }}</strong>
                         <span class="foodex-number">{{ $exception['count'] }}</span>
@@ -198,7 +202,9 @@
             <thead><tr><th>{{ __('catalog_completion.attributes.code') }}</th><th>{{ __('catalog_completion.attributes.type') }}</th><th>{{ __('catalog_completion.attributes.category') }}</th><th>{{ __('catalog_completion.common.actions') }}</th></tr></thead>
             <tbody>
             @forelse($attributeDefinitions as $attribute)
-                @php($allowedValues = $attribute->allowed_values ? (json_decode((string) $attribute->allowed_values, true) ?: []) : [])
+                @php
+                    $allowedValues = $attribute->allowed_values ? (json_decode((string) $attribute->allowed_values, true) ?: []) : [];
+                @endphp
                 <tr>
                     <td><strong>{{ $attribute->code }}</strong><div class="muted">{{ app()->getLocale()==='ar' ? $attribute->label_ar : $attribute->label_en }}</div></td>
                     <td>{{ __('catalog_completion.attributes.types.'.$attribute->data_type) }}</td>
@@ -235,7 +241,9 @@
 @endif
 
 @if($tab === 'products' && $product360)
-@php($productDetail = $product360['product'])
+@php
+    $productDetail = $product360['product'];
+@endphp
 <section class="card catalog-360" data-catalog-product-360>
     <div class="catalog-completion-heading">
         <div>
@@ -301,7 +309,9 @@
                 @csrf @method('PUT')
                 @if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
                 @forelse($product360['attributes'] as $definition)
-                    @php($currentValue=$definition->decoded_value)
+                    @php
+                    $currentValue = $definition->decoded_value;
+                @endphp
                     <label>{{ app()->getLocale()==='ar' ? $definition->label_ar : $definition->label_en }} @if($definition->is_required)<span aria-hidden="true">*</span>@endif
                         @if($definition->data_type==='boolean')
                             <select name="attributes[{{ $definition->id }}]" @required($definition->is_required)><option value="">—</option><option value="1" @selected($currentValue===true)>{{ __('catalog_completion.common.yes') }}</option><option value="0" @selected($currentValue===false)>{{ __('catalog_completion.common.no') }}</option></select>
@@ -343,7 +353,9 @@
 @endif
 
 @if($tab === 'categories' && $category360)
-@php($categoryDetail=$category360['category'])
+@php
+    $categoryDetail = $category360['category'];
+@endphp
 <section class="card catalog-360" data-catalog-category-360>
     <div class="catalog-completion-heading">
         <div><h2>{{ __('catalog_completion.category_360.title') }} · {{ $categoryDetail->name }}</h2><p class="muted">{{ $categoryDetail->store_name }} · {{ $categoryDetail->parent_name ?: '—' }}</p></div>
@@ -377,8 +389,12 @@
             <thead><tr><th>{{ __('catalog_completion.import.created_at') }}</th><th>{{ __('catalog_completion.import.status') }}</th><th>{{ __('catalog_completion.import.counts') }}</th><th>{{ __('catalog_completion.import.errors') }}</th></tr></thead>
             <tbody>
             @forelse($importRuns as $run)
-                @php($runCounts=$run->counts_json ? (json_decode((string)$run->counts_json,true) ?: []) : [])
-                @php($runErrors=$run->errors_json ? (json_decode((string)$run->errors_json,true) ?: []) : [])
+                @php
+                $runCounts = $run->counts_json ? (json_decode((string) $run->counts_json, true) ?: []) : [];
+            @endphp
+                @php
+                $runErrors = $run->errors_json ? (json_decode((string) $run->errors_json, true) ?: []) : [];
+            @endphp
                 <tr><td>{{ $run->created_at }}</td><td>{{ __('catalog_completion.import.statuses.'.$run->status) }}</td><td>{{ array_sum(array_map('intval',$runCounts)) }}</td><td>{{ count($runErrors) }}</td></tr>
             @empty
                 <tr><td colspan="4">{{ __('catalog_completion.common.empty') }}</td></tr>
