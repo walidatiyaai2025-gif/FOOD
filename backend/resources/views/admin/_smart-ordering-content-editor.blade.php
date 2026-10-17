@@ -40,11 +40,11 @@
             <fieldset>
                 <legend>{{ __('smart_ordering.content_editor.identity') }}</legend>
                 <div class="so-grid">
-                    <label>{{ __('smart_ordering.content_editor.name_en') }}
-                        <input class="foodex-control" dir="ltr" name="name_en" maxlength="160" required value="{{ $contentNameEn }}">
+                    <label>{{ __('smart_ordering.content_editor.name_en') }} {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
+                        <input class="foodex-control" dir="ltr" name="name_en" maxlength="160" required value="{{ $contentNameEn }}"> {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
                     </label>
-                    <label>{{ __('smart_ordering.content_editor.name_ar') }}
-                        <input class="foodex-control" dir="rtl" name="name_ar" maxlength="160" value="{{ $contentNameAr }}">
+                    <label>{{ __('smart_ordering.content_editor.name_ar') }} {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
+                        <input class="foodex-control" dir="rtl" name="name_ar" maxlength="160" value="{{ $contentNameAr }}"> {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
                     </label>
                     <label>{{ __('smart_ordering.content_editor.tagline_en') }}
                         <input class="foodex-control" dir="ltr" name="tagline_en" maxlength="240" value="{{ old('tagline_en',$contentIdentity['tagline_en'] ?? '') }}">
@@ -52,11 +52,11 @@
                     <label>{{ __('smart_ordering.content_editor.tagline_ar') }}
                         <input class="foodex-control" dir="rtl" name="tagline_ar" maxlength="240" value="{{ old('tagline_ar',$contentIdentity['tagline_ar'] ?? '') }}">
                     </label>
-                    <label>{{ __('smart_ordering.content_editor.description_en') }}
-                        <textarea class="foodex-control" dir="ltr" name="description_en" maxlength="1000" rows="3">{{ old('description_en',$contentIdentity['description_en'] ?? '') }}</textarea>
+                    <label>{{ __('smart_ordering.content_editor.description_en') }} {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
+                        <textarea class="foodex-control" dir="ltr" name="description_en" maxlength="1000" rows="3">{{ old('description_en',$contentIdentity['description_en'] ?? '') }}</textarea> {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
                     </label>
-                    <label>{{ __('smart_ordering.content_editor.description_ar') }}
-                        <textarea class="foodex-control" dir="rtl" name="description_ar" maxlength="1000" rows="3">{{ old('description_ar',$contentIdentity['description_ar'] ?? '') }}</textarea>
+                    <label>{{ __('smart_ordering.content_editor.description_ar') }} {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
+                        <textarea class="foodex-control" dir="rtl" name="description_ar" maxlength="1000" rows="3">{{ old('description_ar',$contentIdentity['description_ar'] ?? '') }}</textarea> {{-- localization-gate: allow bilingual authoring intentionally exposes the explicit locale field --}}
                     </label>
                     <label>{{ __('smart_ordering.content_editor.phone') }}
                         <input class="foodex-control" dir="ltr" name="phone" maxlength="40" value="{{ old('phone',$contentIdentity['phone'] ?? '') }}">
