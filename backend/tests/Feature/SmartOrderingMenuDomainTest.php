@@ -608,6 +608,52 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertDontSee('config_json');
     }
 
+    public function test_public_menu_unpublish_fails_closed_and_preserves_private_editing(): void
+    {
+        $fixture = $this->fixture('UNPUBLISH', 6.750);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        [$draft] = $this->draftItem($fixture, $writer);
+        $published = $revisions->publish($fixture['admin'], $fixture['site']->fresh(), $draft->fresh());
+        $this->enablePublicMenu($fixture);
+
+        $publicUrl = route('public.smart-ordering.storefront', ['siteKey' => $fixture['site']->slug]);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee($publicUrl, false)
+            ->assertSee('Open public menu')
+            ->assertSee('Manage share &amp; QR', false)
+            ->assertSee('Unpublish public menu')
+            ->assertSee('data-public-menu-publishing-actions', false);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.unpublish'), [
+                'store_id' => $fixture['store_id'],
+            ])
+            ->assertRedirect();
+
+        $this->assertNull($revisions->published($fixture['site']->fresh()));
+        $this->assertSame('archived', $published->fresh()->status);
+
+        $this->get($publicUrl)->assertNotFound();
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('Public menu is unpublished')
+            ->assertDontSee('data-public-menu-publishing-actions', false);
+
+        $this->assertNull($revisions->published($fixture['site']->fresh()));
+        $privateDraft = SmartOrderingRevision::query()
+            ->where('site_id', $fixture['site']->id)
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame($published->id, (int) $privateDraft->parent_revision_id);
+    }
+
     /** @return array{draft:SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */
     private function draftItem(array $fixture, SmartOrderingMenuWriteService $writer, array $itemOverrides = []): array
     {
