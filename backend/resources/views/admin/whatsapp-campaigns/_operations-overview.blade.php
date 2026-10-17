@@ -12,6 +12,10 @@
     $suppressionReasons = is_array($ov['suppression_reasons'] ?? null) ? $ov['suppression_reasons'] : [];
     $failureReasons = is_array($ov['failure_reasons'] ?? null) ? $ov['failure_reasons'] : [];
     $notificationTotal = (bool)($notification['visible'] ?? false) ? (int)($notification['total'] ?? 0) : 0;
+    $notificationStatuses = is_array($notification['statuses'] ?? null) ? $notification['statuses'] : [];
+    $activeCampaigns = (int)($campaignStatuses['running'] ?? 0) + (int)($notificationStatuses['active'] ?? 0);
+    $scheduledCampaigns = (int)($campaignStatuses['scheduled'] ?? 0) + (int)($notificationStatuses['scheduled'] ?? 0);
+    $completedCampaigns = (int)($campaignStatuses['completed'] ?? 0) + (int)($notificationStatuses['completed'] ?? 0);
     $providerIssues = collect($providerHealth)->reject(fn ($count, $status) => strtoupper((string)$status) === 'READY')->sum();
     $metricCards = [
         [
@@ -22,6 +26,24 @@
                 'label' => __('whatsapp.campaigns.operations.kpis.whatsapp_campaigns'),
                 'trend' => 'neutral',
             ],
+            'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
+            'last_refresh' => $lastRefresh,
+        ],
+        [
+            'label' => __('whatsapp.campaigns.operations.kpis.active'),
+            'value' => number_format($activeCampaigns),
+            'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
+            'last_refresh' => $lastRefresh,
+        ],
+        [
+            'label' => __('whatsapp.campaigns.operations.kpis.scheduled'),
+            'value' => number_format($scheduledCampaigns),
+            'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
+            'last_refresh' => $lastRefresh,
+        ],
+        [
+            'label' => __('whatsapp.campaigns.operations.kpis.completed'),
+            'value' => number_format($completedCampaigns),
             'drilldown_url' => route('admin.whatsapp-campaigns.index').'#wa-campaign-list',
             'last_refresh' => $lastRefresh,
         ],
