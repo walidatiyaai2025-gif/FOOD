@@ -184,10 +184,10 @@ final class PurchaseInvoiceHandoffManager
                     $invoicedTotals,
                 );
 
-                $totalAmount += round(
-                    (float) $receiptLine->unit_price * (float) $line['quantity'],
-                    3,
-                );
+                $invoiceUnitPrice = array_key_exists('unit_price', $line) && $line['unit_price'] !== null
+                    ? (float) $line['unit_price']
+                    : (float) $receiptLine->unit_price;
+                $totalAmount += round($invoiceUnitPrice * (float) $line['quantity'], 3);
             }
 
             $publicId = (string) Str::uuid();
@@ -217,7 +217,9 @@ final class PurchaseInvoiceHandoffManager
             foreach ($data['lines'] as $index => $line) {
                 /** @var EnterpriseGoodsReceiptLine $receiptLine */
                 $receiptLine = $receiptLines->get((int) $line['goods_receipt_line_id']);
-                $unitPrice = (float) $receiptLine->unit_price;
+                $unitPrice = array_key_exists('unit_price', $line) && $line['unit_price'] !== null
+                    ? (float) $line['unit_price']
+                    : (float) $receiptLine->unit_price;
                 $quantity = (float) $line['quantity'];
 
                 $invoice->lines()->create([
@@ -229,7 +231,7 @@ final class PurchaseInvoiceHandoffManager
                     'received_quantity' => $receiptLine->received_quantity,
                     'invoice_quantity' => $line['quantity'],
                     'unit' => $receiptLine->unit,
-                    'unit_price' => $receiptLine->unit_price,
+                    'unit_price' => number_format($unitPrice, 3, '.', ''),
                     'line_total' => round($unitPrice * $quantity, 3),
                 ]);
             }
@@ -517,7 +519,7 @@ final class PurchaseInvoiceHandoffManager
      *     supplier_invoice_number:string,
      *     invoice_date:string,
      *     due_date?:string|null,
-     *     lines:list<array{goods_receipt_line_id:int,quantity:mixed}>
+     *     lines:list<array{goods_receipt_line_id:int,quantity:mixed,unit_price?:mixed}>
      * }
      */
     private function validatedInvoice(array $attributes): array
@@ -529,6 +531,7 @@ final class PurchaseInvoiceHandoffManager
             'lines' => ['required', 'array', 'min:1', 'max:100'],
             'lines.*.goods_receipt_line_id' => ['required', 'integer', 'min:1', 'distinct'],
             'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
         ])->validate();
     }
 
