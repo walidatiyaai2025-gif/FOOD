@@ -676,6 +676,13 @@ Route::prefix('admin')
             Route::post('/reconciliation/{reconciliation}/close', [EnterpriseTreasuryController::class, 'closeReconciliation'])->whereNumber('reconciliation')->middleware('throttle:30,1')->name('reconciliation.close');
             Route::post('/cash-closing', [EnterpriseTreasuryController::class, 'storeCashClosing'])->middleware('throttle:30,1')->name('cash-closing.store');
             Route::post('/cash-closing/{cashClosing}/close', [EnterpriseTreasuryController::class, 'closeCashClosing'])->whereNumber('cashClosing')->middleware('throttle:30,1')->name('cash-closing.close');
+            Route::post('/reports/schedule', [EnterpriseTreasuryController::class, 'scheduleReport'])->middleware('throttle:20,1')->name('reports.schedule');
+            Route::post('/reports/export', [EnterpriseTreasuryController::class, 'requestReportExport'])->middleware('throttle:20,1')->name('reports.export');
+            Route::post('/investments/{investment}/settle', [EnterpriseTreasuryController::class, 'settleInvestment'])->whereNumber('investment')->middleware('throttle:30,1')->name('investments.settle');
+            Route::post('/investments', [EnterpriseTreasuryController::class, 'storeInvestment'])->middleware('throttle:30,1')->name('investments.store');
+            Route::post('/repayments/{repayment}/paid', [EnterpriseTreasuryController::class, 'markRepaymentPaid'])->whereNumber('repayment')->middleware('throttle:30,1')->name('repayments.paid');
+            Route::post('/drawdowns', [EnterpriseTreasuryController::class, 'storeDrawdown'])->middleware('throttle:30,1')->name('drawdowns.store');
+            Route::post('/facilities', [EnterpriseTreasuryController::class, 'storeFacility'])->middleware('throttle:30,1')->name('facilities.store');
         });
         Route::get('/treasury/master-data', [TreasuryMasterController::class, 'index'])->name('treasury.master.index');
         Route::post('/treasury/cashboxes', [TreasuryMasterController::class, 'storeCashbox'])->middleware('throttle:60,1')->name('treasury.cashboxes.store');
