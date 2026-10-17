@@ -18,6 +18,7 @@ use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -172,6 +173,85 @@ final class SmartOrderingController extends Controller
         $revisions->createOrReuseDraft($actor, $site, $request);
 
         return back()->with('status', __('smart_ordering.draft_ready'));
+    }
+
+    public function updateContent(
+        Request $request,
+        SmartOrderingRevision $revision,
+        SmartOrderingRevisionService $revisions,
+        TenantContextResolver $tenants,
+    ): RedirectResponse {
+        $site = $revision->site()->firstOrFail();
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        abort_unless($revision->status === 'draft', 409);
+
+        $data = $request->validate([
+            'name_en' => ['required', 'string', 'max:160'],
+            'name_ar' => ['nullable', 'string', 'max:160'],
+            'tagline_en' => ['nullable', 'string', 'max:240'],
+            'tagline_ar' => ['nullable', 'string', 'max:240'],
+            'description_en' => ['nullable', 'string', 'max:1000'],
+            'description_ar' => ['nullable', 'string', 'max:1000'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'whatsapp_url' => ['nullable', 'url', 'max:500'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'about_en' => ['nullable', 'string', 'max:1600'],
+            'about_ar' => ['nullable', 'string', 'max:1600'],
+            'chef_note_en' => ['nullable', 'string', 'max:1600'],
+            'chef_note_ar' => ['nullable', 'string', 'max:1600'],
+            'location_en' => ['nullable', 'string', 'max:500'],
+            'location_ar' => ['nullable', 'string', 'max:500'],
+            'map_url' => ['nullable', 'url', 'max:500'],
+            'reservation_cta_en' => ['nullable', 'string', 'max:160'],
+            'reservation_cta_ar' => ['nullable', 'string', 'max:160'],
+            'reservation_url' => ['nullable', 'url', 'max:500'],
+            'allergen_note_en' => ['nullable', 'string', 'max:800'],
+            'allergen_note_ar' => ['nullable', 'string', 'max:800'],
+        ]);
+
+        $payload = (array) $revision->payload;
+        $content = is_array($payload['content'] ?? null) ? $payload['content'] : [];
+        $identity = is_array($content['identity'] ?? null) ? $content['identity'] : [];
+        $sections = is_array($content['sections'] ?? null) ? $content['sections'] : [];
+
+        foreach ([
+            'name_en', 'name_ar', 'tagline_en', 'tagline_ar',
+            'description_en', 'description_ar', 'phone', 'whatsapp_url',
+        ] as $field) {
+            $identity[$field] = trim((string) ($data[$field] ?? ''));
+        }
+
+        foreach ([
+            'about_en', 'about_ar', 'chef_note_en', 'chef_note_ar',
+            'location_en', 'location_ar', 'map_url',
+            'reservation_cta_en', 'reservation_cta_ar', 'reservation_url',
+            'allergen_note_en', 'allergen_note_ar',
+        ] as $field) {
+            $sections[$field] = trim((string) ($data[$field] ?? ''));
+        }
+
+        foreach (['logo', 'cover'] as $asset) {
+            $file = $request->file($asset);
+            if ($file === null) {
+                continue;
+            }
+
+            $key = $asset.'_url';
+            $previous = trim((string) ($identity[$key] ?? ''));
+            if ($previous !== '' && ! str_starts_with($previous, '/') && ! str_contains($previous, '://')) {
+                Storage::disk('public')->delete($previous);
+            }
+            $identity[$key] = $file->store('smart-ordering/branding/'.$site->public_id, 'public');
+        }
+
+        $content['identity'] = $identity;
+        $content['sections'] = $sections;
+        $payload['content'] = $content;
+
+        $revisions->updateDraft($actor, $revision, $payload, $request);
+
+        return back()->with('status', __('smart_ordering.content_editor.saved'));
     }
 
     public function updateDraft(
