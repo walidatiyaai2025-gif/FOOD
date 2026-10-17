@@ -177,6 +177,14 @@ return [
         'all_authorized_stores' => 'All authorized stores',
         'not_set' => 'Not set',
     ],
+    'report_values' => [
+        'missing_category' => 'Missing category',
+        'missing_brand' => 'Missing brand',
+        'unpriced' => 'Unpriced',
+        'missing_image' => 'Missing product image',
+        'missing_cost' => 'Missing cost',
+        'non_positive_margin' => 'Zero / negative margin',
+    ],
     'status' => [
         'attribute_created' => 'Product attribute created.',
         'attribute_updated' => 'Product attribute updated.',
@@ -197,5 +205,7 @@ return [
         'store_scope_required' => 'A catalog store scope is required.',
         'unsupported_report' => 'The requested catalog report is not supported.',
         'unsupported_attribute_type' => 'The attribute type is not supported.',
+        'import_preview_missing' => 'The catalog import preview is missing. Upload the package again.',
+        'import_already_processing' => 'This catalog import is already being processed. Refresh the import history before retrying.',
     ],
 ];
