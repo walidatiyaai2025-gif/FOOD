@@ -15,6 +15,7 @@
 .inspector-table-wrap{overflow:auto}.inspector-table{min-width:1180px}.severity-error{color:var(--foodex-red);font-weight:700}.severity-warning{color:#9a4b0b;font-weight:700}
 .inspector-message{max-width:420px;white-space:normal;overflow-wrap:anywhere}.inspector-context{max-width:560px;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
 .inspector-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap}
+.inspector-trend{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}.inspector-trend-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:10px;align-items:center;margin-block:9px}
 .inspector-enterprise{padding:var(--foodex-space-5);margin-bottom:var(--foodex-space-5)}
 .inspector-enterprise-heading{display:flex;justify-content:space-between;gap:var(--foodex-space-3);align-items:flex-start;flex-wrap:wrap}
 .inspector-enterprise-section{margin-top:var(--foodex-space-5)}
@@ -120,6 +121,30 @@
                     </ul>
                 </div>
             @endif
+            @php($incidentMax = max(1, ...array_map(static fn(array $row): int => (int)$row['count'], $incidentTrend)))
+            <article class="foodex-viz-card foodex-module-chart inspector-trend" data-foodex-module-chart>
+                <div class="foodex-viz-header">
+                    <div>
+                        <h3 class="foodex-viz-title">{{ $ar?'اتجاه حوادث التشغيل خلال 7 أيام':'7-day runtime incident trend' }}</h3>
+                        <p class="foodex-viz-subtitle">{{ $ar?'من سجل System Inspector المعتمد':'From authoritative System Inspector events' }}</p>
+                    </div>
+                    <span class="badge">{{ $ar?'فشل المهام 24 ساعة':'Failed jobs · 24h' }}: <span class="foodex-number">{{ $runtime['queue']['failed_jobs_24h'] ?? '—' }}</span></span>
+                </div>
+                @foreach($incidentTrend as $point)
+                    @php($incidentPercent = max(2, (int)round(((int)$point['count'] / $incidentMax) * 100)))
+                    <div class="inspector-trend-row">
+                        <time datetime="{{ $point['day'] }}">{{ $point['label'] }}</time>
+                        <div class="foodex-viz-progress" role="img" aria-label="{{ $point['day'] }} · {{ $point['count'] }}"><span style="width:{{ $incidentPercent }}%"></span></div>
+                        <strong class="foodex-number">{{ $point['count'] }}</strong>
+                    </div>
+                @endforeach
+                <div class="foodex-module-chart-table-wrap">
+                    <table class="foodex-module-chart-table" data-pagination-exempt="fixed-7-day-runtime-summary">
+                        <thead><tr><th>{{ $ar?'اليوم':'Day' }}</th><th>{{ $ar?'الحوادث':'Incidents' }}</th></tr></thead>
+                        <tbody>@foreach($incidentTrend as $point)<tr><td>{{ $point['day'] }}</td><td class="foodex-number">{{ $point['count'] }}</td></tr>@endforeach</tbody>
+                    </table>
+                </div>
+            </article>
         </section>
 
         @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
