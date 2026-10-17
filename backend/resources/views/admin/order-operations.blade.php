@@ -196,12 +196,14 @@ $businessLabel = static function ($value): string {
             @if($dashboard['status_breakdown'] === [])
                 <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
             @else
+                {{-- localization-gate: allow raw status only as a non-visible drill-down filter; visible status uses businessLabel --}}
                 <div class="sales-ops-ranked-bars">@foreach($dashboard['status_breakdown'] as $point)<a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['status'=>$point['status']])) }}"><span>{{ $businessLabel($point['status']) }}</span><i><b style="width:{{ round(((int)$point['orders'] / $statusMax) * 100) }}%"></b></i><strong>{{ number_format((int)$point['orders']) }}</strong></a>@endforeach</div>
             @endif
         </article>
 
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-channel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-channel-title">{{ __('order_operations.dashboard.charts.channels') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.channels_help') }}</p></div></div>
+            {{-- localization-gate: allow raw channel only as a non-visible drill-down filter; visible channel uses businessLabel --}}
             <div class="sales-ops-simple-list">@forelse($dashboard['channel_breakdown'] as $point)<a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['channel'=>$point['channel']])) }}"><span>{{ $businessLabel($point['channel']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
         </article>
 
@@ -222,6 +224,7 @@ $businessLabel = static function ($value): string {
 
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-customers-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-customers-title">{{ __('order_operations.dashboard.charts.customers') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.customers_help') }}</p></div></div>
+            {{-- localization-gate: allow raw channel only as a non-visible report filter; visible channel uses businessLabel --}}
             <div class="sales-ops-simple-list">@forelse($dashboard['top_customers'] as $point)<a href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report'=>'customers','channel'=>$point['channel']] + ($point['customer_id'] ? ['customer_id'=>$point['customer_id']] : []))) }}"><span>{{ $point['customer'] }} · {{ $businessLabel($point['channel']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
         </article>
 
