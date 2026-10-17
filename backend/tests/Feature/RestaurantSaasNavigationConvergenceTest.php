@@ -99,7 +99,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
 
-        $this->assertStringContainsString("admin._restaurant-management-launcher", $workspace);
+        $this->assertStringContainsString('admin._restaurant-management-launcher', $workspace);
         foreach (['inventory.view', 'customers.view', 'promotions.view', 'finance.view', 'reports.view'] as $permission) {
             $this->assertStringContainsString($permission, $workspace);
         }
