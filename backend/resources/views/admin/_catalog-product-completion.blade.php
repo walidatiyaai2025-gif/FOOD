@@ -240,7 +240,7 @@
     <div class="catalog-completion-heading">
         <div>
             <h2>{{ __('catalog_completion.product_360.title') }} · {{ $productDetail->name }}</h2>
-            <p class="muted">{{ $productDetail->sku }} · {{ $stores->firstWhere('id',$productDetail->store_id)?->name ?? '—' }} · {{ strtoupper((string)$productDetail->channel) }}</p>
+            <p class="muted">{{ $productDetail->sku }} · {{ $stores->firstWhere('id',$productDetail->store_id)?->name ?? '—' }} · {{ __('catalog_completion.channels.'.strtolower((string)$productDetail->channel)) }}</p>
         </div>
         <a class="btn" href="{{ route('admin.catalog.index', array_merge(['tab'=>'products'], $scopeParams)) }}">×</a>
     </div>
@@ -250,16 +250,16 @@
             <h3>{{ __('catalog_completion.product_360.identity') }}</h3>
             <dl class="catalog-360-facts">
                 <div><dt>{{ __('catalog_completion.product_360.store') }}</dt><dd>{{ $stores->firstWhere('id',$productDetail->store_id)?->name ?? '—' }}</dd></div>
-                <div><dt>{{ __('catalog_completion.product_360.channel') }}</dt><dd>{{ strtoupper((string)$productDetail->channel) }}</dd></div>
+                <div><dt>{{ __('catalog_completion.product_360.channel') }}</dt><dd>{{ __('catalog_completion.channels.'.strtolower((string)$productDetail->channel)) }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.category') }}</dt><dd>{{ $productDetail->category_name ?: '—' }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.brand') }}</dt><dd>{{ $productDetail->brand_name ?: '—' }}</dd></div>
-                <div><dt>{{ __('catalog_completion.product_360.unit') }}</dt><dd>{{ $productDetail->unit_name ?: '—' }} @if($productDetail->unit_code)({{ $productDetail->unit_code }})@endif</dd></div>
+                <div><dt>{{ __('catalog_completion.product_360.unit') }}</dt><dd>{{ $productDetail->unit_name ?: '—' }}</dd></div>
             </dl>
         </article>
         <article>
             <h3>{{ __('catalog_completion.product_360.availability') }}</h3>
             <dl class="catalog-360-facts">
-                <div><dt>{{ __('catalog_completion.product_360.available_quantity') }}</dt><dd>{{ AppSupportDisplayNumber::quantity((float)($productDetail->available_quantity ?? 0)) }}</dd></div>
+                <div><dt>{{ __('catalog_completion.product_360.available_quantity') }}</dt><dd>{{ \App\Support\DisplayNumber::quantity((float)($productDetail->available_quantity ?? 0)) }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.price') }}</dt><dd>{{ $productDetail->price ?? '—' }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.cost') }}</dt><dd>{{ $productDetail->cost_price ?? '—' }}</dd></div>
                 <div><dt>{{ __('catalog_completion.lifecycle.state') }}</dt><dd>{{ __('catalog_completion.lifecycle.states.'.$productDetail->lifecycle_state) }}</dd></div>
