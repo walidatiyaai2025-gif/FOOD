@@ -67,7 +67,6 @@ Route::prefix('v1')->group(function (): void {
     ]));
 
     Route::prefix('restaurant-app/sites/{site}')
-        ->whereUuid('site')
         ->middleware('throttle:120,1')
         ->group(function (): void {
             Route::get('/context', [RestaurantIntegrationApiController::class, 'context']);
