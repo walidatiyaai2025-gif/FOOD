@@ -226,7 +226,7 @@
                                         <small>{{ __('admin.system_update_surface.production_phrase_help') }}</small>
                                     </label>
                                     @endif
-                                    <button class="foodex-danger" type="submit">{{ __('admin.system_update_surface.restore') }}</button>
+                                    <button class="button danger" type="submit">{{ __('admin.system_update_surface.restore') }}</button>
                                 </form>
                             </details>
                             @else
