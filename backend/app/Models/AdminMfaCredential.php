@@ -4,6 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property string $secret
+ * @property list<string> $recovery_codes
+ * @property Carbon|null $enabled_at
+ * @property Carbon|null $last_verified_at
+ * @property Carbon|null $revoked_at
+ */
 
 final class AdminMfaCredential extends Model
 {
