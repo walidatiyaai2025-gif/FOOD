@@ -2162,12 +2162,9 @@ final class OrderOperationsController extends Controller
     {
         $codes = array_column($availableChannels, 'code');
 
-        if ($channel === 'all') {
-            abort_unless(count($codes) > 1, 403);
-
-            return;
-        }
-
+        // Order operations are deliberately single-channel. B2B and Retail must
+        // never share one operational order workspace, including for SUPER_ADMIN.
+        abort_if($channel === 'all', 403);
         abort_unless(in_array($channel, $codes, true), 403);
     }
 
