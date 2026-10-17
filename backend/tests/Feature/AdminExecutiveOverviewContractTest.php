@@ -66,7 +66,7 @@ final class AdminExecutiveOverviewContractTest extends TestCase
         $this->assertStringContainsString("'executive-command-center'", $script);
         $this->assertStringContainsString("'/admin'", $script);
         $this->assertStringContainsString('{ fullMatrix: true }', $script);
-        $this->assertStringContainsString("[data-foodex-executive-overview]", $script);
+        $this->assertStringContainsString('[data-foodex-executive-overview]', $script);
     }
 
     public function test_executive_overview_translation_catalogs_have_ar_en_key_parity(): void
