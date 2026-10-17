@@ -87,14 +87,9 @@ final class StoreChannelOperationsService
             return $stores;
         }
 
-        /** @var Collection<int, \stdClass> $plain */
-        $plain = collect($stores->map(fn (Store $store): object => (object) [
-            'id' => (int) $store->id,
-            'name' => (string) $store->name,
-            'code' => (string) $store->code,
-            'is_active' => (bool) $store->is_active,
-            'created_at' => $store->created_at,
-        ])->all());
+        $plain = $stores
+            ->map(fn (Store $store): \stdClass => $this->storeSnapshotRow($store))
+            ->values();
         $snapshots = $this->snapshotMap($plain);
 
         return $stores->transform(function (Store $store) use ($snapshots): Store {
@@ -284,7 +279,7 @@ final class StoreChannelOperationsService
         ];
     }
 
-    /** @param Collection<int,object> $stores @return array<int,array<string,mixed>> */
+    /** @param Collection<int, \stdClass> $stores @return array<int,array<string,mixed>> */
     private function snapshotMap(Collection $stores): array
     {
         if ($stores->isEmpty()) {
@@ -378,16 +373,22 @@ final class StoreChannelOperationsService
         return $result;
     }
 
+    private function storeSnapshotRow(Store $store): \stdClass
+    {
+        $row = new \stdClass();
+        $row->id = (int) $store->id;
+        $row->name = (string) $store->name;
+        $row->code = (string) $store->code;
+        $row->is_active = (bool) $store->is_active;
+        $row->created_at = $store->created_at;
+
+        return $row;
+    }
+
     /** @return array<string,mixed> */
     private function snapshotForStore(Store $store): array
     {
-        /** @var \stdClass $row */
-        $row = (object) [
-            'id' => (int) $store->id, 'name' => (string) $store->name, 'code' => (string) $store->code,
-            'is_active' => (bool) $store->is_active, 'created_at' => $store->created_at,
-        ];
-        /** @var Collection<int, \stdClass> $rows */
-        $rows = collect([$row]);
+        $rows = collect([$this->storeSnapshotRow($store)]);
 
         return $this->snapshotMap($rows)[(int) $store->id] ?? [];
     }
