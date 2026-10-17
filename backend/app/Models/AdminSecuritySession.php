@@ -4,8 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property Carbon|null $last_seen_at
+ * @property Carbon|null $mfa_verified_at
+ * @property Carbon|null $revoked_at
+ */
 final class AdminSecuritySession extends Model
 {
     protected $fillable = [
