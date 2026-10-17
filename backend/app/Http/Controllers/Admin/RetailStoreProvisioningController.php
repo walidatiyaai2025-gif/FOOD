@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\RetailWholesaleAccountService;
 use App\Services\StoreLogoService;
+use App\Services\StoreChannelOperationsService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
@@ -18,6 +19,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class RetailStoreProvisioningController extends Controller
 {
@@ -26,12 +28,39 @@ final class RetailStoreProvisioningController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
         private readonly StoreLogoService $logos,
+        private readonly StoreChannelOperationsService $storeChannels,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $actor = $this->superAdmin($request);
         $search = trim((string) $request->query('q', ''));
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($request->filled('export')) {
+            $report = (string) $request->query('export');
+            $rows = $this->storeChannels->reportRows($report, is_string($from) ? $from : null, is_string($to) ? $to : null);
+
+            return response()->streamDownload(function () use ($rows): void {
+                $stream = fopen('php://output', 'wb');
+                if ($stream === false) {
+                    return;
+                }
+                if ($rows !== []) {
+                    fputcsv($stream, array_keys($rows[0]));
+                    foreach ($rows as $row) {
+                        fputcsv($stream, array_map(static fn ($value): string => is_scalar($value) || $value === null ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $row));
+                    }
+                }
+                fclose($stream);
+            }, 'stores-channels-'.$report.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        $storeChannelDashboard = $this->storeChannels->dashboard(
+            is_string($from) ? $from : null,
+            is_string($to) ? $to : null,
+        );
 
         $stores = Store::query()
             ->select('stores.*')
@@ -112,6 +141,7 @@ final class RetailStoreProvisioningController extends Controller
 
             return $store;
         });
+        $stores->setCollection($this->storeChannels->enrichStores($stores->getCollection()));
 
         return view('admin.retail-stores', [
             'user' => $actor,
@@ -122,6 +152,7 @@ final class RetailStoreProvisioningController extends Controller
             'storeRoles' => Role::query()->where('is_active', true)->where('scope', 'store')->orderBy('name')->get(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
             'priceTiers' => $priceTiers,
+            'storeChannelDashboard' => $storeChannelDashboard,
         ]);
     }
 
@@ -199,6 +230,23 @@ final class RetailStoreProvisioningController extends Controller
     {
         $actor = $this->superAdmin($request);
         $this->assertRetailStore($store);
+
+        if ($request->filled('lifecycle_action')) {
+            $lifecycle = $request->validate([
+                'lifecycle_action' => ['required', Rule::in(['activate', 'suspend', 'close'])],
+                'lifecycle_reason' => ['required', 'string', 'min:5', 'max:500'],
+            ]);
+            $this->storeChannels->transition(
+                $actor,
+                $store,
+                (string) $lifecycle['lifecycle_action'],
+                (string) $lifecycle['lifecycle_reason'],
+                $request,
+            );
+
+            return back()->with('status', $this->msg('تم تحديث دورة حياة المتجر مع تسجيل السبب.', 'Store lifecycle updated with an audited reason.'));
+        }
+
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('stores', 'code')->ignore($store->id)],
             'name' => ['required', 'string', 'max:255'],
