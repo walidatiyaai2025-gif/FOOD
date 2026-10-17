@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Support\EnterpriseDataScope;
 use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
