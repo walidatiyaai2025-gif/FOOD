@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Themes\ConfigStorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\Themes\RestaurantMenuTemplateDemoFixture;
+use App\Domain\SmartOrdering\Themes\RestaurantTemplateSelectionService;
 use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
 use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +21,12 @@ use Illuminate\View\View;
 
 final class SmartOrderingThemePreviewController extends Controller
 {
-    public function index(Request $request, ThemeRegistry $themes): View
-    {
+    public function index(
+        Request $request,
+        ThemeRegistry $themes,
+        SmartOrderingRevisionService $revisions,
+        RestaurantTemplateSelectionService $selection,
+    ): View {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $storeIds = app(RestaurantSaasStoreAccess::class)
@@ -26,32 +34,30 @@ final class SmartOrderingThemePreviewController extends Controller
 
         $siteKey = trim((string) $request->query('site', ''));
         $currentTheme = null;
+        $canApply = false;
         if ($siteKey !== '') {
-            abort_unless(
-                DB::table('smart_ordering_sites')
-                    ->whereIn('store_id', $storeIds)
-                    ->where(function ($query) use ($siteKey): void {
-                        $query->where('public_id', $siteKey)->orWhere('slug', $siteKey);
-                    })
-                    ->exists(),
-                404,
-            );
+            $site = SmartOrderingSite::query()
+                ->whereIn('store_id', $storeIds)
+                ->where(function ($query) use ($siteKey): void {
+                    $query->where('public_id', $siteKey)->orWhere('slug', $siteKey);
+                })
+                ->first();
+            abort_unless($site instanceof SmartOrderingSite, 404);
 
-            $provider = $this->provider();
-            $snapshot = $provider->revision($siteKey, 'draft') ?? $provider->revision($siteKey, 'published');
-            $candidate = is_array($snapshot) ? data_get($snapshot, 'appearance.template') : null;
-            if (is_string($candidate) && in_array($candidate, $themes->productionIds(), true)) {
-                $currentTheme = $candidate;
-            }
+            $revision = $revisions->draft($site) ?? $revisions->published($site);
+            $selected = $revision === null ? null : $selection->selected($revision);
+            $currentTheme = $selected['id'] ?? null;
+            $canApply = $actor->hasPermission('smart_ordering.manage', (int) $site->store_id);
         }
 
-        $selectedTheme = $themes->resolveProduction($request->query('theme'));
+        $selectedTheme = $themes->resolveProduction($request->query('theme', $currentTheme));
 
         return view('admin.smart-ordering.appearance', [
             'themes' => $themes->production(),
             'siteKey' => $siteKey,
             'selectedTheme' => $selectedTheme,
             'currentTheme' => $currentTheme,
+            'canApply' => $canApply,
             'selectedAppearance' => $themes->sanitizeAppearance(
                 $request->query('appearance', ($themes->productionDefinition($selectedTheme)['dark'] ?? false) ? 'dark' : 'light'),
             ),
@@ -61,6 +67,52 @@ final class SmartOrderingThemePreviewController extends Controller
                 ? $request->query('device')
                 : 'mobile',
         ]);
+    }
+
+    public function apply(
+        Request $request,
+        ThemeRegistry $themes,
+        RestaurantTemplateSelectionService $selection,
+    ): RedirectResponse {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $storeIds = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, 'smart_ordering.view', $request);
+        $data = $request->validate([
+            'site' => ['required', 'string', 'max:100'],
+            'theme' => ['required', 'string', 'max:100'],
+            'lang' => ['nullable', 'string'],
+            'device' => ['nullable', 'string'],
+        ]);
+
+        $siteKey = trim((string) $data['site']);
+        $site = SmartOrderingSite::query()
+            ->whereIn('store_id', $storeIds)
+            ->where(function ($query) use ($siteKey): void {
+                $query->where('public_id', $siteKey)->orWhere('slug', $siteKey);
+            })
+            ->first();
+        abort_unless($site instanceof SmartOrderingSite, 404);
+
+        app(RestaurantSaasStoreAccess::class)->assertStore(
+            $actor,
+            (int) $site->store_id,
+            'smart_ordering.manage',
+            'b2c',
+        );
+        $theme = strtolower(trim((string) $data['theme']));
+        abort_unless(in_array($theme, $themes->productionIds(), true), 422);
+
+        $selection->selectDraft($actor, $site, $theme, $request);
+
+        return redirect()->route('admin.smart-ordering.appearance.index', array_filter([
+            'site' => $siteKey,
+            'theme' => $theme,
+            'lang' => $themes->sanitizeLocale($data['lang'] ?? null),
+            'device' => in_array(($data['device'] ?? null), ['mobile', 'tablet', 'desktop'], true)
+                ? $data['device']
+                : 'mobile',
+        ]))->with('status', __('smart_ordering.appearance.template_applied'));
     }
 
     public function preview(Request $request, ThemeRegistry $themes, StorefrontThemeRenderer $renderer): Response
