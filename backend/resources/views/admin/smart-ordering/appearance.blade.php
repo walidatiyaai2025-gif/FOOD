@@ -12,11 +12,17 @@
 .so-builder-group{display:grid;gap:var(--foodex-space-2)}
 .so-builder-group>label,.so-builder-label{font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);color:var(--foodex-muted)}
 .so-builder-group input,.so-builder-group select{width:100%;min-height:var(--foodex-touch-target);border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);font:inherit}
-.so-template-grid{display:grid;gap:var(--foodex-space-2)}
-.so-template-option{width:100%;min-height:var(--foodex-touch-target);border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-md);padding:var(--foodex-space-3);text-align:start;cursor:pointer}
-.so-template-option[aria-pressed=true]{border-color:var(--foodex-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-.so-template-option strong,.so-template-option span{display:block}
-.so-template-option span{margin-top:var(--foodex-space-1);font-size:var(--foodex-text-xs);color:var(--foodex-muted)}
+.so-template-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3)}
+.so-template-option{position:relative;display:grid;gap:var(--foodex-space-2);width:100%;min-height:156px;border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-md);padding:var(--foodex-space-3);text-align:start;cursor:pointer;overflow:hidden}
+.so-template-option::before{content:"";display:block;height:58px;border-radius:calc(var(--foodex-radius-md) - 3px);background:linear-gradient(135deg,var(--foodex-green-soft),var(--foodex-surface) 52%,var(--foodex-background));border:1px solid var(--foodex-border)}
+.so-template-option[data-dark="true"]::before{background:linear-gradient(135deg,#111827,#292524 55%,#7c5b2e);border-color:#44403c}
+.so-template-option[aria-pressed=true]{border-color:var(--foodex-green);box-shadow:0 0 0 2px var(--foodex-green-soft)}
+.so-template-option strong{display:block;font-size:var(--foodex-text-sm);line-height:var(--foodex-leading-tight)}
+.so-template-option span{display:block;font-size:var(--foodex-text-xs);color:var(--foodex-muted);line-height:var(--foodex-leading-normal)}
+.so-template-meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.so-template-chip{display:inline-flex!important;width:max-content;padding:3px 7px;border-radius:999px;background:var(--foodex-background);border:1px solid var(--foodex-border);font-size:10px!important;font-weight:700}
+.so-template-current{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:var(--foodex-green)}
+.so-demo-note{margin:0;padding:var(--foodex-space-3);border-radius:var(--foodex-radius-md);background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:var(--foodex-text-xs);line-height:var(--foodex-leading-normal)}
 .so-segmented{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--foodex-space-2)}
 .so-segmented.so-segmented-two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .so-segmented button{min-height:var(--foodex-touch-target);padding:0 var(--foodex-space-2);border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:var(--foodex-radius-control);font:inherit;font-weight:var(--foodex-font-weight-medium);cursor:pointer}
@@ -30,7 +36,7 @@
 .so-preview-empty{min-height:420px;display:grid;place-items:center;padding:var(--foodex-space-6);border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-surface);color:var(--foodex-muted);text-align:center}
 .so-preview-hint{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-xs);line-height:var(--foodex-leading-normal)}
 @media(max-width:1023px){.so-builder-grid{grid-template-columns:minmax(0,1fr)}.so-builder-panel{position:static}.so-preview-stage{padding:var(--foodex-space-3)}}
-@media(max-width:767px){.so-builder-panel,.so-preview-stage{padding:var(--foodex-space-4)}.so-preview-device iframe{height:70vh}.so-segmented{grid-template-columns:minmax(0,1fr)}.so-segmented.so-segmented-two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.so-builder-panel,.so-preview-stage{padding:var(--foodex-space-4)}.so-preview-device iframe{height:70vh}.so-segmented{grid-template-columns:minmax(0,1fr)}.so-segmented.so-segmented-two{grid-template-columns:repeat(2,minmax(0,1fr))}.so-template-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -57,12 +63,21 @@
 </div>
 
 <div class="so-builder-group">
-<span class="so-builder-label">{{ __('smart_ordering.appearance.template_label') }}</span>
-<div class="so-template-grid">
+<span class="so-builder-label">{{ __('smart_ordering.appearance.template_gallery_label') }}</span>
+<p class="so-demo-note">{{ $siteKey === '' ? __('smart_ordering.appearance.demo_preview_help') : __('smart_ordering.appearance.real_preview_help') }}</p>
+<div class="so-template-grid" role="list" aria-label="{{ __('smart_ordering.appearance.template_gallery_label') }}">
 @foreach($themes as $id => $definition)
-<button class="so-template-option" type="button" data-theme="{{ $id }}" aria-pressed="{{ $selectedTheme === $id ? 'true' : 'false' }}">
-<strong>{{ __('smart_ordering.appearance.themes.'.$id.'.label') }}</strong>
-<span>{{ __('smart_ordering.appearance.themes.'.$id.'.layout') }}</span>
+<button class="so-template-option" type="button" role="listitem" data-theme="{{ $id }}" data-dark="{{ ($definition['dark'] ?? false) ? 'true' : 'false' }}" aria-pressed="{{ $selectedTheme === $id ? 'true' : 'false' }}" @if($currentTheme === $id) aria-current="true" @endif>
+<div>
+<strong>{{ __('smart_ordering.appearance.production_themes.'.$id.'.label') }}</strong>
+<span>{{ __('smart_ordering.appearance.production_themes.'.$id.'.positioning') }}</span>
+</div>
+<div class="so-template-meta">
+<span class="so-template-chip">{{ __('smart_ordering.appearance.production_themes.'.$id.'.style') }}</span>
+<span class="so-template-chip">{{ ($definition['dark'] ?? false) ? __('smart_ordering.appearance.dark') : __('smart_ordering.appearance.light') }}</span>
+<span class="so-template-chip">v{{ $definition['version'] ?? 1 }}</span>
+@if($currentTheme === $id)<span class="so-template-chip so-template-current">{{ __('smart_ordering.appearance.current_template') }}</span>@endif
+</div>
 </button>
 @endforeach
 </div>
@@ -106,12 +121,7 @@
 
 <section class="foodex-card so-preview-stage" aria-label="{{ __('smart_ordering.appearance.preview_region_label') }}">
 <div class="so-preview-device" data-device-frame data-device="{{ $selectedDevice }}">
-@if($siteKey !== '')
-<iframe title="{{ __('smart_ordering.appearance.preview_title') }}" data-preview src="{{ route('admin.smart-ordering.appearance.preview', ['site' => $siteKey, 'theme' => $selectedTheme, 'appearance' => $selectedAppearance, 'lang' => $selectedLocale, 'revision' => $selectedRevision]) }}"></iframe>
-@else
-<div class="so-preview-empty" data-empty>{{ __('smart_ordering.appearance.empty') }}</div>
-<iframe title="{{ __('smart_ordering.appearance.preview_title') }}" data-preview hidden></iframe>
-@endif
+<iframe title="{{ __('smart_ordering.appearance.preview_title') }}" data-preview src="{{ $siteKey !== '' ? route('admin.smart-ordering.appearance.preview', ['site' => $siteKey, 'theme' => $selectedTheme, 'appearance' => $selectedAppearance, 'lang' => $selectedLocale, 'revision' => $selectedRevision]) : route('admin.smart-ordering.appearance.demo-preview', ['theme' => $selectedTheme, 'appearance' => $selectedAppearance, 'lang' => $selectedLocale]) }}"></iframe>
 </div>
 </section>
 </div>
@@ -124,7 +134,6 @@
     const root = document.querySelector('[data-builder]');
     const site = document.getElementById('site');
     const frame = root.querySelector('[data-preview]');
-    const empty = root.querySelector('[data-empty]');
     const deviceFrame = root.querySelector('[data-device-frame]');
     const state = {
         theme: @json($selectedTheme),
@@ -144,22 +153,21 @@
         const key = site.value.trim();
         deviceFrame.dataset.device = state.device;
 
-        if (!key) {
-            frame.hidden = true;
-            if (empty) empty.hidden = false;
-            return;
-        }
-
         const params = new URLSearchParams({
-            site: key,
             theme: state.theme,
             appearance: state.appearance,
             lang: state.lang,
-            revision: state.revision,
         });
-        frame.src = @json(route('admin.smart-ordering.appearance.preview')) + '?' + params.toString();
+        if (key) {
+            params.set('site', key);
+            params.set('revision', state.revision);
+        }
+
+        const endpoint = key
+            ? @json(route('admin.smart-ordering.appearance.preview'))
+            : @json(route('admin.smart-ordering.appearance.demo-preview'));
+        frame.src = endpoint + '?' + params.toString();
         frame.hidden = false;
-        if (empty) empty.hidden = true;
     };
 
     root.addEventListener('click', (event) => {
