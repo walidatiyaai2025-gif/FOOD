@@ -59,6 +59,7 @@ return [
         'retention' => 'Retention',
         'scope' => 'Scope',
         'reason' => 'Reason',
+        'actor' => 'Actor',
         'origin' => 'Originating operation',
         'from' => 'From',
         'to' => 'To',
