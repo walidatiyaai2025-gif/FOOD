@@ -46,7 +46,7 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
         $this->assertTrue(app(RestaurantSaasStoreFeatureService::class)->isEnabled($store));
         $this->assertDatabaseHas('enterprise_module_entitlements', [
             'module_code' => 'smart_ordering',
-            'scope_type' => 'STORE',
+            'scope_type' => 'store',
             'scope_id' => $store->id,
             'is_enabled' => true,
         ]);
