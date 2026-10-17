@@ -11,6 +11,7 @@ use App\Services\EnterpriseModuleAdministration;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class ErpCenterTest extends TestCase
@@ -227,6 +228,66 @@ final class ErpCenterTest extends TestCase
             ->assertSee('data-erp-work-module="procurement"', false)
             ->assertSee(route('admin.action-center.index'), false)
             ->assertSee(route('admin.erp.procurement.index'), false);
+    }
+
+    public function test_failed_report_kpi_is_unavailable_without_bi_and_scope_aware_when_bi_is_operational(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-bi-admin@example.test');
+
+        $unavailable = $this->actingAs($admin)->get(route('admin.erp.index'));
+        $unavailableKpi = collect($unavailable->viewData('kpis'))->firstWhere('key', 'failed_reports');
+
+        $this->assertIsArray($unavailableKpi);
+        $this->assertFalse($unavailableKpi['available']);
+        $this->assertNull($unavailableKpi['value']);
+        $this->assertNull($unavailableKpi['url']);
+
+        app(EnterpriseModuleAdministration::class)->perform('enterprise_bi', 'enable', $admin);
+        app(ModuleEntitlementManager::class)->set(
+            'enterprise_bi',
+            EntitlementScope::platform(),
+            true,
+            null,
+            $admin,
+        );
+
+        $actor = $this->userWithGlobalRole('FINANCE', 'en', 'erp-bi-finance@example.test');
+        $other = $this->userWithGlobalRole('FINANCE', 'en', 'erp-bi-other@example.test');
+
+        foreach ([
+            [$actor->id, 'erp-center-own-failure'],
+            [$other->id, 'erp-center-other-failure'],
+        ] as [$requestedBy, $key]) {
+            DB::table('enterprise_report_exports')->insert([
+                'report_code' => 'orders.summary',
+                'scope_type' => 'platform',
+                'scope_id' => null,
+                'requested_by' => $requestedBy,
+                'scheduled_report_id' => null,
+                'query_payload' => '{}',
+                'row_count' => 0,
+                'execution_mode' => 'queued_chunked',
+                'chunk_size' => 500,
+                'next_offset' => 0,
+                'processed_rows' => 0,
+                'chunks_completed' => 0,
+                'status' => 'failed',
+                'failure_code' => 'source_unavailable',
+                'artifact_metadata' => null,
+                'idempotency_key' => hash('sha256', $key),
+                'completed_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+        $kpi = collect($response->viewData('kpis'))->firstWhere('key', 'failed_reports');
+
+        $this->assertIsArray($kpi);
+        $this->assertTrue($kpi['available']);
+        $this->assertSame(1, $kpi['value']);
+        $this->assertSame(route('admin.erp.bi'), $kpi['url']);
     }
 
     public function test_erp_center_state_filter_hides_other_module_cards_without_changing_navigation_authority(): void
