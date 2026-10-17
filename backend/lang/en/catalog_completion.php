@@ -113,7 +113,7 @@ return [
         'store' => 'Store',
         'channel' => 'Channel',
         'unit' => 'Unit',
-        'unit_code_value' => ':code',
+        'unit_code_value' => 'Code: :code',
         'category' => 'Category',
         'brand' => 'Brand',
         'price' => 'Price',
