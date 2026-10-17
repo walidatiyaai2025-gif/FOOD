@@ -138,6 +138,10 @@ final class EnterpriseWmsController extends Controller
             'warehouses' => $warehouses,
             'warehouseId' => $warehouseId,
             'inventoryLookup' => $inventoryLookup,
+            'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
+                $actor,
+                'procurement.purchase_requests.view',
+            ),
         ]));
     }
 
