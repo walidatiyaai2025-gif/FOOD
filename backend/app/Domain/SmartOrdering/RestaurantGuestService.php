@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -605,23 +604,25 @@ final class RestaurantGuestService
             ->withQueryString();
 
         $timezone = (string) ($branch->timezone ?: 'Asia/Kuwait');
-        /** @var Collection<int, object> $guestRows */
-        $guestRows = $paginator->getCollection();
-        $paginator->setCollection($guestRows->map(
-            static fn (object $row): array => [
-                'guest_name' => (string) $row->guest_name,
-                'guest_phone' => $row->guest_phone,
-                'guest_email' => $row->guest_email,
-                'customer_linked' => $row->customer_id !== null,
-                'reservation_count' => (int) $row->reservation_count,
-                'waitlist_count' => (int) $row->waitlist_count,
-                'last_seen_display' => $row->last_seen_at === null
-                    ? '—'
-                    : CarbonImmutable::parse((string) $row->last_seen_at, 'UTC')
-                        ->setTimezone($timezone)
-                        ->format('Y-m-d H:i'),
-            ],
-        ));
+        $paginator->getCollection()->transform(
+            static function (mixed $row) use ($timezone): array {
+                $row = (object) $row;
+
+                return [
+                    'guest_name' => (string) $row->guest_name,
+                    'guest_phone' => $row->guest_phone,
+                    'guest_email' => $row->guest_email,
+                    'customer_linked' => $row->customer_id !== null,
+                    'reservation_count' => (int) $row->reservation_count,
+                    'waitlist_count' => (int) $row->waitlist_count,
+                    'last_seen_display' => $row->last_seen_at === null
+                        ? '—'
+                        : CarbonImmutable::parse((string) $row->last_seen_at, 'UTC')
+                            ->setTimezone($timezone)
+                            ->format('Y-m-d H:i'),
+                ];
+            },
+        );
 
         return $paginator;
     }
