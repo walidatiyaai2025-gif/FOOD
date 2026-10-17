@@ -320,6 +320,43 @@ final class SmartOrderingRevisionService
         });
     }
 
+    public function unpublish(
+        User $actor,
+        SmartOrderingSite $site,
+        ?Request $request = null,
+    ): ?SmartOrderingRevision {
+        abort_unless($actor->hasPermission('smart_ordering.publish', (int) $site->store_id), 403);
+
+        return DB::transaction(function () use ($actor, $site, $request): ?SmartOrderingRevision {
+            SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
+
+            $published = SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'published')
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            if (! $published instanceof SmartOrderingRevision) {
+                return null;
+            }
+
+            $published->forceFill(['status' => 'archived'])->save();
+
+            $this->audit->record('smart_ordering.revision.unpublished', $actor, $published, [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => (string) $published->public_id,
+                'checksum' => (string) $published->checksum,
+            ], [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => null,
+                'checksum' => null,
+            ], $request);
+
+            return $published->fresh();
+        });
+    }
+
     public function dispatchDueScheduled(int $limit = 25): int
     {
         $limit = max(1, min(100, $limit));
