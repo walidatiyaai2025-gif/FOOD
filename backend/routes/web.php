@@ -186,6 +186,10 @@ Route::prefix('admin')
             Route::post('/reorder', [EnterpriseWmsController::class, 'saveReorderPolicy'])->middleware('throttle:30,1')->name('reorder.store');
             Route::post('/reorder/{policy}/disable', [EnterpriseWmsController::class, 'disableReorderPolicy'])->whereNumber('policy')->middleware('throttle:30,1')->name('reorder.disable');
             Route::post('/valuation', [EnterpriseWmsController::class, 'saveValuationPolicy'])->middleware('throttle:30,1')->name('valuation.store');
+            Route::post('/locations/zones', [EnterpriseWmsController::class, 'saveZone'])->middleware('throttle:30,1')->name('locations.zones.store');
+            Route::post('/locations/bins', [EnterpriseWmsController::class, 'saveBin'])->middleware('throttle:30,1')->name('locations.bins.store');
+            Route::post('/locations/assignments', [EnterpriseWmsController::class, 'assignInventoryBin'])->middleware('throttle:30,1')->name('locations.assignments.store');
+            Route::post('/planning/approve', [EnterpriseWmsController::class, 'approveDemandPlan'])->middleware('throttle:30,1')->name('planning.approve');
         });
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
