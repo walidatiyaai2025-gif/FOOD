@@ -17,7 +17,7 @@
         .back{display:block;text-align:center;margin-top:18px;color:var(--foodex-orange);font-weight:800;text-decoration:none}.expired{padding:12px;border-radius:12px;background:var(--foodex-orange-soft);border:1px solid var(--foodex-orange);margin-bottom:16px}
     </style>
 </head>
-<body>
+<body data-foodex-mobile-web-exception="auth">
 <section class="card">
     <div class="brand">FOOD<span>EX</span></div> {{-- localization-gate: allow — FOODEX is the product wordmark. --}}
     <h1>{{ __('admin_login.otp_heading') }}</h1>
