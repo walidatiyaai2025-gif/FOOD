@@ -165,6 +165,11 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__en.png"
+          for locale in ar en; do
+            for viewport in desktop-1280 compact-1024 tablet-768 mobile-430 mobile-412 mobile-390 mobile-360 mobile-320; do
+              test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__${viewport}__${locale}.png"
+            done
+          done
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-reservations__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-reservations__compact-1024__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-reservations__tablet-768__ar.png"
