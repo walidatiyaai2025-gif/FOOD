@@ -7,6 +7,7 @@ use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -297,11 +298,15 @@ final class BuiltInJobRoleCatalogTest extends TestCase
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        return Store::query()->create([
+        $store = Store::query()->create([
             'store_type_id' => $typeId,
             'code' => $code,
             'name' => $code,
             'is_active' => true,
         ]);
+
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        return $store;
     }
 }
