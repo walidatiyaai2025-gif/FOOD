@@ -161,3 +161,7 @@ The migration is additive:
 - down migration removes only #1970 additions.
 
 The migration has a reversible contract test.
+
+## Integration validation
+
+After synchronization with current `main`, #1970 must pass the exact-head repository policy, backend lint/static/tests, localization, MySQL/Redis deployment acceptance, and Procurement dashboard runtime visual-evidence gates before merge.
