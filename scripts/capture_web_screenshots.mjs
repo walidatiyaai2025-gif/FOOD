@@ -91,6 +91,16 @@ async function snap(page, relativePath) {
   console.log(`captured ${relativePath} (${stat.size} bytes)`);
 }
 
+async function snapViewport(page, relativePath) {
+  const target = path.join(screenshotRoot, relativePath);
+  await ensureDir(path.dirname(target));
+  await page.screenshot({ path: target, fullPage: false, animations: 'disabled' });
+  const stat = await fs.stat(target);
+  if (stat.size < 5000) throw new Error('Screenshot unexpectedly small: ' + relativePath);
+  console.log('captured ' + relativePath + ' (' + stat.size + ' bytes)');
+  return target;
+}
+
 async function login(page, channel, locale, email) {
   await page.goto(`${baseUrl}/admin/${channel}/login?locale=${locale}`, { waitUntil: 'networkidle' });
   await page.fill('#email', email);
@@ -1286,6 +1296,79 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
   console.log(`verified Commercial structured builders/lookups interaction contract (${locale})`);
 }
 
+async function captureCustomerServiceGoldenEvidence(page, locale) {
+  await page.setViewportSize({ width: 1504, height: 851 });
+  const route = '/admin/whatsapp/inbox';
+  const response = await page.goto(baseUrl + route, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(
+      'Customer Service golden route failed (' + locale + '): HTTP '
+      + (response?.status() ?? 'no-response') + ' ' + page.url()
+    );
+  }
+
+  await assertNoPageOverflow(page, 'whatsapp-agent-inbox/golden/' + locale);
+  await assertLocaleDirection(page, locale, 'whatsapp-agent-inbox/golden/' + locale);
+  await assertVisibleActionsInViewport(page, 'whatsapp-agent-inbox/golden/' + locale);
+
+  const geometry = await page.evaluate(() => {
+    const rect = (selector) => {
+      const node = document.querySelector(selector);
+      if (!node) return null;
+      const box = node.getBoundingClientRect();
+      return { x: box.x, y: box.y, width: box.width, height: box.height };
+    };
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      workspace: rect('[data-wa-golden-workspace]'),
+      context: rect('[data-wa-pane="customer-context"]'),
+      thread: rect('[data-wa-pane="active-conversation"]'),
+      rail: rect('[data-wa-pane="conversation-list"]'),
+    };
+  });
+
+  for (const key of ['workspace', 'context', 'thread', 'rail']) {
+    if (!geometry[key]) throw new Error('Missing golden pane ' + key + ': ' + JSON.stringify(geometry));
+  }
+  if (Math.abs(geometry.workspace.width - 1504) > 2 || Math.abs(geometry.workspace.height - 851) > 2) {
+    throw new Error('Golden workspace does not fill 1504x851: ' + JSON.stringify(geometry));
+  }
+  if (locale === 'ar') {
+    const expected = { context: 448, thread: 677, rail: 379 };
+    for (const [key, width] of Object.entries(expected)) {
+      if (Math.abs(geometry[key].width - width) > 2) {
+        throw new Error(
+          'Golden ' + key + ' width drift: ' + geometry[key].width + 'px != '
+          + width + 'px; ' + JSON.stringify(geometry)
+        );
+      }
+    }
+  }
+
+  const relative = '02_Web/B2B_SuperAdmin/13_whatsapp_agent_inbox__golden-1504x851__' + locale + '.png';
+  const actualPath = await snapViewport(page, relative);
+
+  if (locale === 'ar') {
+    const goldenPath = path.join(root, 'docs/golden/customer-service-inbox/customer-service-inbox-golden.webp');
+    const [golden, actual] = await Promise.all([fs.readFile(goldenPath), fs.readFile(actualPath)]);
+    await page.setViewportSize({ width: 1504, height: 900 });
+    const comparisonHtml = [
+      '<!doctype html><html dir="ltr"><head><meta charset="utf-8"><style>',
+      '*{box-sizing:border-box}body{margin:0;background:#eef1f4;font-family:Arial,sans-serif}',
+      '.labels{height:48px;display:grid;grid-template-columns:1fr 1fr;align-items:center;text-align:center;font-weight:700}',
+      '.compare{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:#cfd5dc}',
+      '.frame{background:white;height:426px;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}',
+      'img{display:block;width:752px;height:425.5px;object-fit:contain;object-position:top center}',
+      '</style></head><body><div class="labels"><span>APPROVED GOLDEN · 1504×851</span>',
+      '<span>EXACT PR HEAD · 1504×851</span></div><div class="compare"><div class="frame">',
+      '<img src="data:image/webp;base64,' + golden.toString('base64') + '"></div><div class="frame">',
+      '<img src="data:image/png;base64,' + actual.toString('base64') + '"></div></div></body></html>',
+    ].join('');
+    await page.setContent(comparisonHtml, { waitUntil: 'load' });
+    await snapViewport(page, '02_Web/B2B_SuperAdmin/13_whatsapp_agent_inbox__golden-side-by-side__ar.png');
+  }
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -1674,6 +1757,14 @@ async function captureLocale(browser, locale) {
     'live-tracking',
     '/admin/driver-live-tracking',
   );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2B_SuperAdmin',
+    'whatsapp-agent-inbox',
+    '/admin/whatsapp/inbox',
+  );
+  await captureCustomerServiceGoldenEvidence(page, locale);
 
   await context.close();
 }
