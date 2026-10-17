@@ -147,7 +147,7 @@ body{margin:0}
 <details class="erp-table-details">
 <summary>{{ __('admin.erp_center.analytics.table_summary') }}</summary>
 <div class="foodex-module-chart-table-wrap">
-<table class="foodex-module-chart-table erp-table">
+<table class="foodex-module-chart-table erp-table" data-pagination-exempt="bounded-authorized-module-summary">
 <thead><tr><th>{{ __('enterprise_my_work.filters.module') }}</th><th>{{ __('enterprise_my_work.summary.total') }}</th><th>{{ __('enterprise_my_work.summary.attention') }}</th></tr></thead>
 <tbody>
 @foreach($workload as $row)
