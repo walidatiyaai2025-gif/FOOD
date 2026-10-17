@@ -67,9 +67,10 @@
     ])
 </aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface foodex-module-overview" data-foodex-utility="system-update" data-foodex-module-overview>
+@include('admin._global-header')
     @include('admin._admin-center-switcher',['active'=>'settings'])
 
-    <header class="foodex-page-header">
+    <div class="foodex-page-toolbar">
         <div>
             <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
             <span class="foodex-subtitle">FOODEX · {{ __('admin.system_update_surface.dashboard_title') }}</span>
@@ -80,7 +81,7 @@
             <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
             <a class="foodex-action-secondary button secondary" href="{{ route('admin.inspector.index') }}">{{ __('admin.system_update_surface.open_inspector') }}</a>
         </div>
-    </header>
+    </div>
 
     @if (session('status'))
         <div class="foodex-alert success foodex-state" role="status">{{ session('status') }}</div>

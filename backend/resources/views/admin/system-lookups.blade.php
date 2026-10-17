@@ -34,14 +34,13 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 @include('admin._sidebar', ['navContext' => 'system_lookups'])
 </aside>
 <main>
-<div class="header foodex-page-header">
+@include('admin._global-header')
+<div class="header foodex-page-toolbar">
 <div>
 <h1>{{ $ar ? 'إعدادات النظام / القيم المرجعية' : 'System Settings / Lookups' }}</h1>
 <div class="muted">{{ $ar ? 'إدارة القيم التشغيلية بأكواد ثابتة لا تعتمد على النص المترجم. تعطيل القيمة يمنع اختيارها مستقبلاً بدون حذف التاريخ.' : 'Manage operational values by stable codes that never depend on translated labels. Deactivation prevents new selection without deleting history.' }}</div>
 </div>
-<div class="foodex-header-actions">
-@include('admin._live-notifications', ['user' => auth()->user()])
-</div>
+
 </div>
 
 @if (session('status'))

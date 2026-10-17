@@ -64,14 +64,15 @@ body{margin:0}
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="erp-center" data-erp-center="true">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page erp-center">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<div class="foodex-page-toolbar">
 <div>
 <p class="erp-eyebrow">{{ __('admin.erp_center.eyebrow') }}</p>
 <h1>{{ __('admin.erp_center.title') }}</h1>
 <p class="erp-subtitle">{{ __('admin.erp_center.description') }}</p>
 </div>
-@include('admin._live-notifications',['user'=>$user])
-</header>
+
+</div>
 
 <div class="foodex-module-overview">
 <section class="erp-section" aria-labelledby="erp-snapshot-title">

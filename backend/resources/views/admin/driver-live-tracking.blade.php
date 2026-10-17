@@ -11,14 +11,15 @@
 <div class="foodex-admin-layout" data-foodex-utility="driver-live-tracking">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · Operations</span>
                 <h1>{{ __('admin.driver_live_tracking.title') }}</h1>
                 <p>{{ __('admin.driver_live_tracking.description') }}</p>
             </div>
-            <div class="foodex-header-actions">@include('admin._live-notifications',['user'=>$user])</div>
-        </header>
+            
+        </div>
 
         @include('admin._driver-live-map', [
             'feedUrl' => $feedUrl,

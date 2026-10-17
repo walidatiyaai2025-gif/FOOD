@@ -13,7 +13,8 @@ Canonical composition:
 ```text
 foodex-admin-layout
   -> foodex-admin-main / foodex-admin-page
-  -> foodex-page-header
+  -> admin._global-header (exactly once)
+  -> foodex-page-toolbar
        -> title + short business subtitle
        -> foodex-header-actions
   -> foodex-tabs (only sibling domain functions)

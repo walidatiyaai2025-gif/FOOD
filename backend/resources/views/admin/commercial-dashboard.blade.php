@@ -132,13 +132,14 @@
         @include('admin._sidebar', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])
     </aside>
     <main class="foodex-admin-main foodex-admin-page commercial-shell">
+@include('admin._global-header')
         <header class="commercial-page-header">
             <div>
                 <span class="commercial-eyebrow">FOODEX · {{ __('commercial.eyebrow') }}</span>
                 <h1>{{ $section === 'sales-control' ? __('commercial.sales.title') : __('commercial.flash.title') }}</h1>
                 <p>{{ $section === 'sales-control' ? __('commercial.sales.description') : __('commercial.flash.description') }}</p>
             </div>
-            @include('admin._live-notifications', ['user' => $user])
+            
         </header>
     <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
         <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>

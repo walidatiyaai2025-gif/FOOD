@@ -26,15 +26,14 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 <div class="layout foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="main foodex-admin-main foodex-admin-page">
-    <div class="header foodex-page-header">
+@include('admin._global-header')
+    <div class="header foodex-page-toolbar">
         <div>
             <h1>{{ __('notifications.campaigns') }}</h1>
             <div class="muted">{{ __('notifications.campaigns_description') }}</div>
             <div class="muted">{{ __('notifications.timezone_note') }}</div>
         </div>
-        <div class="foodex-header-actions">
-            @include('admin._live-notifications',['user'=>auth()->user()])
-        </div>
+        
     </div>
 
     @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif

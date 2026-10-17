@@ -26,8 +26,9 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notification_campaigns', 'user' => auth()->user()]) {{-- localization-gate: allow Blade include expression --}}</aside>
     <main class="notifications-main foodex-admin-main">
+@include('admin._global-header')
 <div class="wrap foodex-admin-page" data-foodex-utility="notifications">
-    <div class="top foodex-page-header">
+    <div class="top foodex-page-toolbar">
         <div><h1>{{ __('notifications.title') }}</h1><p>{{ __('notifications.description') }}</p></div>
         <div class="actions">
             @if(auth()->user()?->hasPermission('translations.manage'))

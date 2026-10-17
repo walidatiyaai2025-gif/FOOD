@@ -73,14 +73,15 @@
 <div class="layout b2b-premium-shell" data-b2b-premium="v1">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="main foodex-admin-page">
+@include('admin._global-header')
     @if($module !== 'dashboard')
-    <div class="headline foodex-page-header">
+    <div class="headline foodex-page-toolbar">
         <div>
             <a class="muted" href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a>
             <h1>{{ __('admin.b2b_workspace.modules.'.$module) }}</h1>
             <div class="muted">{{ app()->getLocale()==='ar' ? 'FOODEX · إدارة الجملة ببيانات مباشرة من النظام' : 'FOODEX · Wholesale management with live server data' }}</div>
         </div>
-        @include('admin._live-notifications')
+        
     </div>
     @php
         $metricIcons = [
@@ -173,7 +174,7 @@
                 @include('admin._global-search', ['globalSearchVariant' => 'header'])
             </div>
             <div class="b2b-ref-header-actions">
-                @include('admin._live-notifications')
+                
             </div>
         </div>
         <div class="b2b-ref-kpis foodex-module-kpis">

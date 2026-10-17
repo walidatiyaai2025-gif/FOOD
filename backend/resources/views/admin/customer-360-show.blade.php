@@ -72,9 +72,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="c360-shell">
 
-<div class="c360-topline foodex-page-header">
+<div class="c360-topline foodex-page-toolbar">
 <div>
 <h1 style="margin:0">{{ __('customer_360.title') }}</h1>
 <div class="c360-breadcrumbs">
@@ -85,7 +86,6 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <div class="c360-actions">
 <a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.index') }}">← {{ __('customer_360.back_to_list') }}</a>
-@include('admin._live-notifications',['user'=>auth()->user()])
 </div>
 </div>
 

@@ -22,3 +22,14 @@ These routes establish the navigation boundary only. Product screens remain issu
 ## Localization
 
 Arabic is the default shell locale and renders RTL. English renders LTR. The authenticated user's supported locale selects the shell language; unsupported values fall back to the application locale.
+
+
+## Single global header
+
+The Management Dashboard has one platform header across all Admin routes.
+
+- `admin._global-header` is rendered exactly once by every canonical Sidebar/Main page.
+- Global search, live notifications and account access belong to that header only.
+- Business-page identity and page-specific actions belong to `.foodex-page-toolbar` inside the content area.
+- A business page must not reintroduce `.foodex-page-header` or page-local notification/account chrome.
+- On mobile, the off-canvas navigation launcher shares the global top rail instead of creating a second branded header.

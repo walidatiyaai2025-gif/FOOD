@@ -384,7 +384,8 @@ async function assertSharedAdminRuntimeShell(page, label) {
   const proof = await page.evaluate(() => ({
     layout: Boolean(document.querySelector('.foodex-admin-layout')),
     main: Boolean(document.querySelector('.foodex-admin-main')),
-    header: Boolean(document.querySelector('.foodex-page-header')),
+    header: Boolean(document.querySelector('[data-foodex-global-header]')),
+    toolbar: Boolean(document.querySelector('.foodex-page-toolbar')),
     nav: Boolean(document.querySelector('[data-foodex-nav]')),
     routineJsonEditors: [...document.querySelectorAll('textarea[name$="_json"],input[name$="_json"]')]
       .map((field) => field.getAttribute('name'))
@@ -1137,7 +1138,8 @@ async function captureMobileSettingsParityEvidence(page, locale) {
       dir: document.documentElement.dir,
       shell: Boolean(document.querySelector('.foodex-admin-layout')),
       main: Boolean(document.querySelector('main.foodex-admin-main')),
-      header: Boolean(document.querySelector('header.foodex-page-header')),
+      header: Boolean(document.querySelector('[data-foodex-global-header]')),
+      toolbar: Boolean(document.querySelector('.foodex-page-toolbar')),
       runtimeApp: runtimeApp?.value ?? '',
       pushVan: Boolean(pushVan),
       submissionVanCount: submissionVan.length,

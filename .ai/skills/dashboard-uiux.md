@@ -75,7 +75,7 @@ Never hard-code a second palette when these variables already exist.
 A normal Dashboard page should compose the existing primitives in this order when relevant:
 
 1. canonical `foodex-admin-layout` / `foodex-admin-main`;
-2. `foodex-page-header`;
+2. `admin._global-header` once, then `foodex-page-toolbar`;
 3. page title + short business subtitle;
 4. `foodex-header-actions` for primary page actions;
 5. `foodex-tabs` for related functions inside the domain;
@@ -286,7 +286,7 @@ Before marking complete:
 - canonical shell used;
 - business-domain sidebar placement correct;
 - tabs used for sibling functions;
-- FOODEX page header/actions used;
+- one shared FOODEX global header is rendered by the page shell; page identity/actions use the FOODEX page toolbar;
 - primary actions green/white;
 - lookups replace IDs/JSON;
 - data grid is informative;
@@ -307,7 +307,7 @@ The following are the current shared implementation primitives in `_brand-compon
 - `.foodex-admin-layout`
 - `.foodex-admin-main`
 - `.foodex-admin-page`
-- `.foodex-page-header`
+- `.foodex-page-toolbar`
 - `.foodex-header-actions`
 - `.foodex-tabs`
 
@@ -361,3 +361,8 @@ When the owner only says “اعمل صفحة”:
 
 The nearest production domain page is the layout reference. Do not create a generic CRUD page first and “style it later”.
 
+
+
+## Single global Admin header invariant
+
+Every Laravel Dashboard page with the canonical Sidebar/Main shell renders exactly one `admin._global-header`. Platform search, notifications and account access belong only to that shared header. Page-specific title, subtitle and actions belong to `.foodex-page-toolbar` inside the content area; never add another page-level `<header>` that duplicates platform chrome.
