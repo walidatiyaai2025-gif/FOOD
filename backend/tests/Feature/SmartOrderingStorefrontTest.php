@@ -15,9 +15,9 @@ final class SmartOrderingStorefrontTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_storefront_renders_all_five_templates_in_both_languages_and_modes(): void
+    public function test_public_storefront_renders_all_supported_templates_in_both_languages_and_modes(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
             foreach (['en', 'ar'] as $locale) {
                 $snapshot = $this->snapshot($theme, $locale === 'ar' ? 'dark' : 'light');
                 $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
@@ -155,23 +155,32 @@ final class SmartOrderingStorefrontTest extends TestCase
     public function test_public_asset_budget_and_responsive_contract(): void
     {
         $css = public_path('css/smart-ordering-storefront.css');
+        $templateCss = public_path('css/restaurant-menu-templates-v2.css');
         $js = public_path('js/smart-ordering-storefront.js');
 
         $this->assertFileExists($css);
+        $this->assertFileExists($templateCss);
         $this->assertFileExists($js);
         $this->assertLessThanOrEqual((int) config('smart_ordering_storefront.performance_budget.public_css_bytes'), filesize($css));
         $this->assertLessThanOrEqual((int) config('smart_ordering_storefront.performance_budget.public_js_bytes'), filesize($js));
 
         $stylesheet = file_get_contents($css);
+        $templateStylesheet = file_get_contents($templateCss);
         $this->assertIsString($stylesheet);
+        $this->assertIsString($templateStylesheet);
         $this->assertStringContainsString('@media(max-width:720px)', $stylesheet);
         $this->assertStringContainsString('@media(min-width:760px)', $stylesheet);
         $this->assertStringContainsString('[data-theme=dark]', $stylesheet);
+        $this->assertStringContainsString('html[data-template="fine-dining-dark-luxury"]', $templateStylesheet);
+        $this->assertStringContainsString('html[data-template="premium-arabic-dining"]', $templateStylesheet);
+        $this->assertStringContainsString('@media(max-width:460px)', $templateStylesheet);
+        $this->assertStringContainsString('[dir="rtl"] .rm-template', $templateStylesheet);
+        $this->assertStringContainsString(':focus-visible', $templateStylesheet);
     }
 
     public function test_public_search_exposes_localized_accessible_feedback_across_templates(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
             foreach (['en', 'ar'] as $locale) {
                 $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
 
@@ -204,7 +213,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
             $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
 
             $this->get('/smart-ordering/demo')
