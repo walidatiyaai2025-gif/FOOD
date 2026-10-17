@@ -310,6 +310,20 @@ class ScreenshotEvidenceSeeder extends Seeder
                 'updated_at' => $now,
             ]);
 
+        DB::table('smart_ordering_entitlements')->updateOrInsert(
+            [
+                'site_id' => $smartOrderingSite->getKey(),
+                'scope_key' => 'site',
+                'module' => 'reservations',
+            ],
+            [
+                'branch_id' => null,
+                'enabled' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
         DB::table('smart_ordering_branches')->updateOrInsert(
             ['site_id' => $smartOrderingSite->getKey(), 'code' => 'EVID-DINING'],
             [
