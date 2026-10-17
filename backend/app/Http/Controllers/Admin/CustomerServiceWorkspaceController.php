@@ -183,6 +183,7 @@ final class CustomerServiceWorkspaceController extends Controller
         )->values();
 
         $selectedCaseId ??= $request->integer('case_id') ?: null;
+        $relatedRecordOptions = $this->cases->relatedRecordOptions($actor);
 
         return view('admin.customer-service-workspace', [
             'user' => $actor,
@@ -198,6 +199,9 @@ final class CustomerServiceWorkspaceController extends Controller
             'manageStoreOptions' => $this->cases->storeOptions($actor, true),
             'customerOptions' => $this->cases->customerOptions($actor, $filters['customer_q'] ?? $filters['q'] ?? null),
             'agentOptions' => $this->cases->agentOptions($actor),
+            'orderOptions' => $relatedRecordOptions['orders'],
+            'invoiceOptions' => $relatedRecordOptions['invoices'],
+            'conversationOptions' => $relatedRecordOptions['conversations'],
             'canManageCases' => $this->cases->manageStoreIds($actor) !== [],
             'caseStatuses' => (array) config('customer_service.statuses', []),
             'casePriorities' => (array) config('customer_service.priorities', []),
