@@ -68,7 +68,7 @@ final class RestaurantSaasStoreAccess
     }
 
     /** @param list<int> $storeIds
-     *  @return list<int>
+     * @return list<int>
      */
     public function filterEnabled(array $storeIds): array
     {
