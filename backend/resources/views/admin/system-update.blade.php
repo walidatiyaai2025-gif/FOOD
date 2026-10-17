@@ -50,9 +50,22 @@
     $fileBackups = count(array_filter($backupRows, static fn(array $row): bool => $row['kind'] === 'files'));
     $availableBackups = count(array_filter($backupRows, static fn(array $row): bool => $row['status'] === 'available'));
     $backupTotal = max(1, count($backupRows));
+    $runtimeCode = (string)($runtimeHealth['state'] ?? 'unknown');
+    $runtimeHealthLabel = $statusLabel($runtimeCode);
+    $runtimeBadgeState = match($runtimeCode) {
+        'healthy' => 'success',
+        'warning' => 'warning',
+        default => 'error',
+    };
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<aside class="sidebar">
+    @include('admin._sidebar', [
+        'navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),
+        'navContext' => 'administration_hub',
+        'user' => auth()->user(),
+    ])
+</aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface foodex-module-overview" data-foodex-utility="system-update" data-foodex-module-overview>
     @include('admin._admin-center-switcher',['active'=>'settings'])
 
@@ -85,7 +98,7 @@
                 <h2 id="runtime-health-title" class="foodex-viz-title">{{ __('admin.system_update_surface.dashboard_title') }}</h2>
                 <p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.observed_at') }}: {{ $runtimeHealth['observed_at'] ?? '—' }}</p>
             </div>
-            <span class="foodex-status-badge" data-state="{{ $runtimeHealth['state'] === 'healthy' ? 'success' : ($runtimeHealth['state'] === 'warning' ? 'warning' : 'error') }}">{{ $statusLabel((string)($runtimeHealth['state'] ?? 'unknown')) }}</span>
+            <span class="foodex-status-badge" data-state="{{ $runtimeBadgeState }}">{{ $runtimeHealthLabel }}</span>
         </div>
         <div class="system-runtime-grid foodex-module-kpis">
             @php($runtimeMetrics = [
@@ -235,7 +248,14 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="10">@include('admin._module-dashboard-state',['state'=>'empty','message'=>__('admin.system_update_surface.no_backups')])</td></tr>
+                    <tr>
+                        <td colspan="10">
+                            @include('admin._module-dashboard-state',[
+                                'state'=>'empty',
+                                'message'=>__('admin.system_update_surface.no_backups'),
+                            ])
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
@@ -267,7 +287,8 @@
                     <tr>
                         <td>{{ $row->from_version ?: '—' }}</td>
                         <td>{{ $row->to_version }}</td>
-                        <td>{{ $statusLabel(strtolower((string)$row->status)) }}</td>
+                        @php($localizedUpdateState = $statusLabel(strtolower((string)$row->status)))
+                        <td>{{ $localizedUpdateState }}</td>
                         <td>{{ $row->started_at ?: '—' }}</td>
                         <td>{{ $row->failure_reason ?: '—' }}</td>
                     </tr>
@@ -300,7 +321,14 @@
                                 $evidence['database_backup_reference'] ?? null,
                                 $evidence['file_backup_reference'] ?? null,
                             ])))
-                            @forelse($backupEvidence as $backupReference)<code class="system-runtime-code">{{ $backupReference }}</code>@if(! $loop->last)<br>@endif @empty — @endforelse
+                            @forelse($backupEvidence as $backupReference)
+                                <code class="system-runtime-code">{{ $backupReference }}</code>
+                                @if(! $loop->last)
+                                    <br>
+                                @endif
+                            @empty
+                                —
+                            @endforelse
                         </td>
                         <td><code>{{ $evidence['stage'] ?? '—' }}</code></td>
                         <td>{{ $evidence['outcome'] ?? '—' }}</td>
