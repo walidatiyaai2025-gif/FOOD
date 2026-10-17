@@ -56,6 +56,10 @@ final class StorefrontThemeRenderer
             'phone' => $this->plain($site['phone'] ?? '', 40),
             'whatsapp_url' => $this->safeUrl($site['whatsapp_url'] ?? null),
             'about' => $this->translated($site['about'] ?? [], $locale, ''),
+            'chef_note' => $this->translated($site['chef_note'] ?? [], $locale, ''),
+            'allergen_note' => $this->translated($site['allergen_note'] ?? [], $locale, ''),
+            'reservation_cta' => $this->translated($site['reservation_cta'] ?? [], $locale, ''),
+            'reservation_url' => $this->safeUrl($site['reservation_url'] ?? null),
             'branches' => $this->branches((array) ($site['branches'] ?? []), $locale),
             'offers' => $this->offers((array) ($site['offers'] ?? []), $locale),
             'seo' => [
@@ -91,7 +95,12 @@ final class StorefrontThemeRenderer
                     'featured' => (bool) ($item['featured'] ?? false),
                     'best_seller' => (bool) ($item['best_seller'] ?? false),
                     'new' => (bool) ($item['new'] ?? false),
-                    'tags' => array_slice(array_values(array_filter(array_map(fn ($tag) => $this->plain($tag, 30), (array) ($item['tags'] ?? [])))), 0, 8),
+                    'tags' => array_slice(array_values(array_filter(array_map(
+                        fn ($tag) => is_array($tag)
+                            ? $this->translated($tag, $locale, '')
+                            : $this->plain($tag, 30),
+                        (array) ($item['tags'] ?? [])
+                    ))), 0, 8),
                     'modifiers' => $this->modifiers((array) ($item['modifiers'] ?? []), $locale),
                 ];
             }
