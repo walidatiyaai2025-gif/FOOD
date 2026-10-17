@@ -73,30 +73,6 @@
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
         </section>
 
-        @php
-            $runtimeCode = (string)($runtime['state'] ?? 'unknown');
-            $runtimeStateLabel = match($runtimeCode) {
-                'healthy' => __('admin.system_update_surface.healthy'),
-                'warning' => __('admin.system_update_surface.warning'),
-                'error' => __('admin.system_update_surface.error'),
-                default => __('admin.system_update_surface.unknown'),
-            };
-            $runtimeBadgeState = match($runtimeCode) {
-                'healthy' => 'success',
-                'warning' => 'warning',
-                default => 'error',
-            };
-            $runtimeMetrics = [
-                ['label'=>__('admin.system_update_surface.application_health'),'value'=>$runtimeStateLabel],
-                ['label'=>__('admin.system_update_surface.database_health'),'value'=>match((string)($runtime['database']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
-                ['label'=>__('admin.system_update_surface.cache_health'),'value'=>match((string)($runtime['cache']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
-                ['label'=>__('admin.system_update_surface.failed_jobs'),'value'=>$runtime['queue']['failed_jobs'] ?? '—'],
-                ['label'=>__('admin.system_update_surface.scheduler_health'),'value'=>match((string)($runtime['scheduler']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'warning'=>__('admin.system_update_surface.warning'),'disabled'=>__('admin.system_update_surface.disabled'),default=>__('admin.system_update_surface.unknown')}],
-                ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtime['pending_migrations'] ?? '—'],
-                ['label'=>__('admin.system_update_surface.storage_health'),'value'=>match((string)($runtime['storage']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
-                ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtime['configuration_warnings'] ?? [])],
-            ];
-        @endphp
         <section id="system-runtime" class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
             <div class="inspector-enterprise-heading">
                 <div>
