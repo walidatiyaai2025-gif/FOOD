@@ -140,7 +140,7 @@ final class SmartOrderingThemePreviewController extends Controller
 
         $prepared = $renderer->prepare(
             $snapshot,
-            $themes->resolveProduction($request->query('theme')),
+            $themes->resolve($request->query('theme')),
             $themes->sanitizeAppearance($request->query('appearance')),
             $themes->sanitizeLocale($request->query('lang')),
             null,
