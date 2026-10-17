@@ -62,6 +62,7 @@ class AdminNavigation
     {
         $channels = $this->for($user);
         $isSuperAdmin = $this->isSuperAdmin($user);
+        $canAccessPlatformErp = $this->canAccessPlatformErp($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
@@ -72,7 +73,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
-            $this->group('erp', 'admin.nav_groups.erp', '▤', [
+            $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp ? [
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
                 $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
@@ -82,7 +83,7 @@ class AdminNavigation
                     ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view'),
                 $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
-            ]),
+            ] : []),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
                 $this->restaurantSaasItem($user),
@@ -192,6 +193,18 @@ class AdminNavigation
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'store')
                 ->whereIn('roles.code', $storeRoles))
+            ->exists();
+    }
+
+    public function canAccessPlatformErp(User $user): bool
+    {
+        if (! $user->is_active) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
             ->exists();
     }
 

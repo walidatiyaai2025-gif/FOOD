@@ -6,6 +6,8 @@ use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 
@@ -36,5 +38,22 @@ abstract class TestCase extends BaseTestCase
                 'updated_at' => now(),
             ],
         );
+    }
+
+    protected function grantPlatformErpAccess(User $user): User
+    {
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'ERP_PLATFORM_OPERATOR_TEST'],
+            [
+                'name' => 'ERP Platform Operator Test',
+                'scope' => 'global',
+                'is_active' => true,
+                'is_system' => false,
+            ],
+        );
+
+        $user->roles()->syncWithoutDetaching([$role->id]);
+
+        return $user;
     }
 }
