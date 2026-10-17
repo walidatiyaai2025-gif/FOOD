@@ -154,7 +154,7 @@
 .wa-operations .foodex-module-chart{min-width:0}
 .wa-operations-funnel{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:end;min-height:180px}
 .wa-operations-funnel span,.wa-operations-trend span{display:grid;gap:6px;align-content:end;text-align:center;min-width:0}
-.wa-operations-funnel i,.wa-operations-trend i{display:block;min-height:4px;border-radius:8px 8px 3px 3px;background:var(--foodex-accent)}
+.wa-operations-funnel i,.wa-operations-trend i{display:block;min-height:4px;border-radius:8px 8px 3px 3px;background:var(--foodex-viz-primary)}
 .wa-operations-funnel small,.wa-operations-trend small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foodex-muted)}
 .wa-operations-trend{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:5px;align-items:end;min-height:180px}
 .wa-operations-list{display:grid;gap:8px}.wa-operations-list>a,.wa-operations-list>span{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--foodex-border);color:inherit;text-decoration:none}
