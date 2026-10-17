@@ -60,6 +60,19 @@ final class RestaurantSaaSGrowthScaleTest extends TestCase
             $this->assertSame(409, $exception->getStatusCode());
         }
 
+        $service->setGiftCardStatus($store, $issued['public_id'], 'suspended');
+        $this->assertDatabaseHas('restaurant_saas_gift_cards', [
+            'public_id' => $issued['public_id'],
+            'status' => 'suspended',
+        ]);
+        try {
+            $service->redeemGiftCard($store, $actor, $issued['code'], 1.000, 'redeem-suspended');
+            $this->fail('Suspended gift cards must fail closed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+        $service->setGiftCardStatus($store, $issued['public_id'], 'active');
+
         $redeemed = $service->redeemGiftCard($store, $actor, $issued['code'], 2.500, 'redeem-1001');
         $duplicateRedeem = $service->redeemGiftCard($store, $actor, $issued['code'], 2.500, 'redeem-1001');
 
@@ -113,6 +126,13 @@ final class RestaurantSaaSGrowthScaleTest extends TestCase
         $this->assertCount(1, $analytics['locations']);
         $this->assertArrayHasKey('average_ticket', $analytics['formulas']);
 
+        try {
+            $service->analytics($store, now()->subDays(367), now());
+            $this->fail('Reporting windows must remain bounded.');
+        } catch (HttpException $exception) {
+            $this->assertSame(422, $exception->getStatusCode());
+        }
+
         $customerId = (int) DB::table('customers')->insertGetId([
             'type' => 'b2c',
             'name' => 'Portable Guest',
@@ -158,9 +178,11 @@ final class RestaurantSaaSGrowthScaleTest extends TestCase
             'admin.smart-ordering.growth.index',
             'admin.smart-ordering.growth.gift-cards.issue',
             'admin.smart-ordering.growth.gift-cards.redeem',
+            'admin.smart-ordering.growth.gift-cards.status',
             'admin.smart-ordering.growth.journeys.store',
             'admin.smart-ordering.growth.policies.store',
             'admin.smart-ordering.growth.exports.store',
+            'admin.smart-ordering.growth.accounting.download',
             'admin.smart-ordering.growth.exports.download',
         ] as $routeName) {
             $this->assertTrue(Route::has($routeName), 'Missing route: '.$routeName);
