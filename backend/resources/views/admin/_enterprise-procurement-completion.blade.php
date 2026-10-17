@@ -261,7 +261,11 @@ $exceptionLabels=[
 </form></details>
 @endif
 <section class="foodex-card erp-table-wrap" data-pagination-required><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.ends_on') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
-@forelse($rows as $row)@php($contractStatus=$row->status==='active' && (string)$row->ends_on < now()->toDateString() ? 'expired' : $row->status)<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$contractStatus) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
+@forelse($rows as $row)
+@php
+    $contractStatus = $row->status === 'active' && (string) $row->ends_on < now()->toDateString() ? 'expired' : $row->status;
+@endphp
+<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$contractStatus) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
 @empty<tr><td colspan="5">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
 @if($contractDetail)
@@ -269,7 +273,9 @@ $exceptionLabels=[
 <section class="foodex-card erp-detail">
 <h2>{{ $contract->contract_number }} · {{ $contract->title }}</h2>
 <div class="erp-detail-grid">
-@php($contractEffectiveStatus=$contract->status==='active' && (string)$contract->ends_on < now()->toDateString() ? 'expired' : $contract->status)
+@php
+    $contractEffectiveStatus = $contract->status === 'active' && (string) $contract->ends_on < now()->toDateString() ? 'expired' : $contract->status;
+@endphp
 <div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ __('enterprise_procurement.statuses.'.$contractEffectiveStatus) }}</strong></div>
 <div><small>{{ __('enterprise_procurement.starts_on') }}</small><strong>{{ $contract->starts_on }}</strong></div>
 <div><small>{{ __('enterprise_procurement.ends_on') }}</small><strong>{{ $contract->ends_on }}</strong></div>
@@ -280,8 +286,10 @@ $exceptionLabels=[
 </div>
 @if($can['order_manage'])
 <div class="erp-actions">
-@if($contract->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.contracts.activate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_procurement.activate') }}</button></form>@endif
-@if(in_array($contract->status,['draft','active'],true))<form method="post" action="{{ route('admin.erp.procurement.contracts.terminate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.terminate') }}</button></form>@endif
+@if($contract->status==='draft')
+<form method="post" action="{{ route('admin.erp.procurement.contracts.activate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_procurement.activate') }}</button></form>@endif
+@if(in_array($contract->status, ['draft', 'active'], true))
+<form method="post" action="{{ route('admin.erp.procurement.contracts.terminate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.terminate') }}</button></form>@endif
 </div>
 <form method="post" action="{{ route('admin.erp.procurement.contracts.documents.store',$contract->id) }}" class="erp-form" enctype="multipart/form-data">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
 <label>{{ __('enterprise_procurement.document_title') }}<input name="title" maxlength="190" required></label>
