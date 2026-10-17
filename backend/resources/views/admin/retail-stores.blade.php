@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ app()->getLocale()==='ar'?'إدارة متاجر التجزئة':'Retail Store Provisioning' }} · FOODEX</title>
+<title>{{ __('store_channels.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
 .store-shell{display:grid;gap:var(--foodex-space-5)}.store-panel{padding:var(--foodex-space-5)}
@@ -60,14 +60,15 @@ $roleLabel = static function ($role): string {
 @include('admin._global-header')
         <div class="foodex-page-toolbar">
             <div>
-                <span class="foodex-subtitle">FOODEX · SUPER_ADMIN</span>
-                <h1>{{ $ar?'إدارة متاجر التجزئة':'Retail Store Provisioning' }}</h1>
-                <p>{{ $ar?'إنشاء متاجر التجزئة وتعيين المدراء والأدوار والدخول للدعم من شاشة واحدة منظمة.':'Provision retail stores, assign managers and roles, and enter support context from one organized control plane.' }}</p>
+                <span class="foodex-subtitle">{{ __('store_channels.provisioning_label') }} · FOODEX · SUPER_ADMIN</span>
+                <h1>{{ __('store_channels.title') }}</h1>
+                <p>{{ __('store_channels.subtitle') }}</p>
             </div>
             
         </div>
 
         <div class="store-shell">
+            @include('admin._store-channel-operations',['storeChannelDashboard'=>$storeChannelDashboard])
             <section class="foodex-card store-panel store-create-launch">
                 <div>
                     <h2>{{ $ar?'إضافة متجر جديد':'Add a new store' }}</h2>
@@ -296,24 +297,26 @@ $roleLabel = static function ($role): string {
                                 </div>
                             </div>
 
-                            <section class="store-service" data-restaurant-saas-feature="{{ $store->id }}">
-                                <div class="store-service-copy">
-                                    <div class="store-meta">
-                                        <h4>{{ __('smart_ordering.retail_feature.title') }}</h4>
-                                        <span class="badge {{ $store->restaurant_saas_enabled ? 'active' : '' }}">
-                                            {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.enabled') : __('smart_ordering.retail_feature.disabled') }}
-                                        </span>
-                                    </div>
-                                    <p>{{ __('smart_ordering.retail_feature.description') }}</p>
+                        @include('admin._store-channel-360',['store'=>$store])
+
+                        <section class="store-service" data-restaurant-saas-feature="{{ $store->id }}">
+                            <div class="store-service-copy">
+                                <div class="store-meta">
+                                    <h4>{{ __('smart_ordering.retail_feature.title') }}</h4>
+                                    <span class="badge {{ $store->restaurant_saas_enabled ? 'active' : '' }}">
+                                        {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.enabled') : __('smart_ordering.retail_feature.disabled') }}
+                                    </span>
                                 </div>
-                                <form method="post" action="{{ route('admin.retail-stores.restaurant-saas',$store) }}" class="store-service-action" data-restaurant-saas-toggle>
-                                    @csrf @method('patch')
-                                    <input type="hidden" name="enabled" value="{{ $store->restaurant_saas_enabled ? '0' : '1' }}">
-                                    <button class="{{ $store->restaurant_saas_enabled ? 'foodex-action-secondary button secondary' : 'foodex-action-primary' }}" type="submit">
-                                        {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.disable_action') : __('smart_ordering.retail_feature.enable_action') }}
-                                    </button>
-                                </form>
-                            </section>
+                                <p>{{ __('smart_ordering.retail_feature.description') }}</p>
+                            </div>
+                            <form method="post" action="{{ route('admin.retail-stores.restaurant-saas',$store) }}" class="store-service-action" data-restaurant-saas-toggle>
+                                @csrf @method('patch')
+                                <input type="hidden" name="enabled" value="{{ $store->restaurant_saas_enabled ? '0' : '1' }}">
+                                <button class="{{ $store->restaurant_saas_enabled ? 'foodex-action-secondary button secondary' : 'foodex-action-primary' }}" type="submit">
+                                    {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.disable_action') : __('smart_ordering.retail_feature.enable_action') }}
+                                </button>
+                            </form>
+                        </section>
 
                         <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" enctype="multipart/form-data" class="store-form-grid">
                             @csrf @method('patch')
@@ -538,6 +541,21 @@ $roleLabel = static function ($role): string {
     } else {
         activate('identity');
     }
+
+    document.querySelectorAll('[data-store-lifecycle-form]').forEach(formNode => {
+        formNode.addEventListener('submit', event => {
+            const action = formNode.querySelector('[name="lifecycle_action"]')?.value;
+            if (action === 'close' && !window.confirm(@json($ar?'إغلاق المتجر نهائي بعد التحقق من الطلبات المفتوحة؟':'Close this store permanently after open-order validation?'))) {
+                event.preventDefault();
+                return;
+            }
+            const submit = formNode.querySelector('button[type="submit"]');
+            if (submit) {
+                submit.disabled = true;
+                submit.setAttribute('aria-busy', 'true');
+            }
+        }, {once:true});
+    });
 
     const accordions = [...document.querySelectorAll('[data-store-accordion]')];
     accordions.forEach((accordion) => {

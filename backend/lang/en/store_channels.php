@@ -1,0 +1,58 @@
+<?php
+
+return [
+    'title' => 'Stores & Channels Control Center',
+    'subtitle' => 'Cross-store health, performance, readiness and lifecycle control over canonical FOODEX store and channel authorities.',
+    'provisioning_label' => 'Retail Store Provisioning',
+    'period' => 'Performance period',
+    'apply' => 'Apply',
+    'kpis' => [
+        'active' => 'Active stores',
+        'inactive' => 'Inactive stores',
+        'sales_today' => 'Sales today',
+        'sales_period' => 'Sales in period',
+        'orders' => 'Orders in period',
+        'availability' => 'Availability issues',
+        'integrations' => 'Degraded integrations',
+        'ready' => 'Ready stores',
+    ],
+    'sections' => [
+        'channels' => 'Channel state',
+        'performance' => 'Store performance',
+        'health' => 'Health distribution',
+        'growth' => 'Store growth',
+        'availability' => 'Availability / out of stock',
+        'integrations' => 'Integration incident trend',
+        'reports' => 'Operational reports',
+        'store360' => 'Store / Branch 360',
+        'readiness' => 'Activation readiness',
+        'lifecycle' => 'Lifecycle control',
+    ],
+    'labels' => [
+        'channel' => 'Channel', 'active' => 'Active', 'total' => 'Total', 'store' => 'Store',
+        'orders' => 'Orders', 'revenue' => 'Revenue', 'status' => 'Status', 'score' => 'Readiness',
+        'catalog' => 'Catalog products', 'inventory' => 'Stock positions', 'delivery' => 'Delivery zones',
+        'integrations' => 'Integrations', 'degraded' => 'Degraded', 'audit' => 'Audit events',
+        'reason' => 'Reason', 'export' => 'Export CSV', 'scheduled' => 'Scheduled reporting',
+        'open_reports' => 'Open reports center', 'no_data' => 'No data for this period.',
+    ],
+    'checks' => [
+        'identity' => 'Store identity', 'owner' => 'Owner / manager', 'catalog' => 'Catalog',
+        'inventory' => 'Inventory', 'payment' => 'Payment methods', 'delivery' => 'Delivery coverage',
+        'integrations' => 'Integration health',
+    ],
+    'states' => [
+        'ready' => 'Ready', 'attention' => 'Needs attention', 'ACTIVE' => 'Active',
+        'SUSPENDED' => 'Suspended', 'CLOSED' => 'Closed', 'suspended' => 'Suspended', 'closed' => 'Closed',
+    ],
+    'channels' => ['b2c' => 'Retail / B2C', 'b2b' => 'Wholesale / B2B', 'restaurant' => 'Restaurant'],
+    'channel_states' => ['active'=>'Active','inactive'=>'Inactive','not_linked'=>'Not linked','not_configured'=>'Not configured','disabled'=>'Disabled','enabled'=>'Enabled','internal_test'=>'Internal test','pilot'=>'Pilot','emergency_stop'=>'Emergency stop','degraded'=>'Degraded','suspended'=>'Suspended'],
+    'order_channels' => ['b2c'=>'Retail / B2C','b2b'=>'Wholesale / B2B','restaurant'=>'Restaurant','smart_ordering'=>'Smart Ordering','customer_app'=>'Customer App','web'=>'Web','mobile'=>'Mobile','van'=>'Van','marketplace'=>'Marketplace'],
+    'reports' => [
+        'performance' => 'Store performance', 'readiness' => 'Store readiness / health',
+        'availability' => 'Availability exceptions', 'integrations' => 'Integration / channel exceptions',
+    ],
+    'actions' => ['activate' => 'Activate', 'suspend' => 'Suspend', 'close' => 'Close store'],
+    'lifecycle_reason' => 'Reason / operational note',
+    'lifecycle_help' => 'Activation is blocked until every readiness check passes. Closing is blocked while operational orders remain open and is final.',
+];

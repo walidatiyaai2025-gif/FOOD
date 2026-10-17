@@ -1,0 +1,58 @@
+<?php
+
+return [
+    'title' => 'مركز التحكم في المتاجر والقنوات',
+    'subtitle' => 'صحة وأداء وجاهزية ودورة حياة المتاجر عبر مصادر FOODEX الأصلية للمتجر والقنوات.',
+    'provisioning_label' => 'تهيئة متجر التجزئة',
+    'period' => 'فترة الأداء',
+    'apply' => 'تطبيق',
+    'kpis' => [
+        'active' => 'المتاجر النشطة',
+        'inactive' => 'المتاجر غير النشطة',
+        'sales_today' => 'مبيعات اليوم',
+        'sales_period' => 'مبيعات الفترة',
+        'orders' => 'طلبات الفترة',
+        'availability' => 'مشكلات التوفر',
+        'integrations' => 'التكاملات المتدهورة',
+        'ready' => 'المتاجر الجاهزة',
+    ],
+    'sections' => [
+        'channels' => 'حالة القنوات',
+        'performance' => 'أداء المتاجر',
+        'health' => 'توزيع الصحة',
+        'growth' => 'نمو المتاجر',
+        'availability' => 'التوفر / نفاد المخزون',
+        'integrations' => 'اتجاه أعطال التكامل',
+        'reports' => 'التقارير التشغيلية',
+        'store360' => 'عرض المتجر / الفرع 360',
+        'readiness' => 'جاهزية التفعيل',
+        'lifecycle' => 'التحكم في دورة الحياة',
+    ],
+    'labels' => [
+        'channel' => 'القناة', 'active' => 'نشط', 'total' => 'الإجمالي', 'store' => 'المتجر',
+        'orders' => 'الطلبات', 'revenue' => 'الإيراد', 'status' => 'الحالة', 'score' => 'الجاهزية',
+        'catalog' => 'منتجات الكتالوج', 'inventory' => 'مراكز المخزون', 'delivery' => 'مناطق التوصيل',
+        'integrations' => 'التكاملات', 'degraded' => 'متدهور', 'audit' => 'أحداث التدقيق',
+        'reason' => 'السبب', 'export' => 'تصدير CSV', 'scheduled' => 'التقارير المجدولة',
+        'open_reports' => 'فتح مركز التقارير', 'no_data' => 'لا توجد بيانات لهذه الفترة.',
+    ],
+    'checks' => [
+        'identity' => 'هوية المتجر', 'owner' => 'المالك / المدير', 'catalog' => 'الكتالوج',
+        'inventory' => 'المخزون', 'payment' => 'طرق الدفع', 'delivery' => 'تغطية التوصيل',
+        'integrations' => 'صحة التكاملات',
+    ],
+    'states' => [
+        'ready' => 'جاهز', 'attention' => 'يحتاج انتباه', 'ACTIVE' => 'نشط',
+        'SUSPENDED' => 'موقوف', 'CLOSED' => 'مغلق', 'suspended' => 'موقوف', 'closed' => 'مغلق',
+    ],
+    'channels' => ['b2c' => 'التجزئة / B2C', 'b2b' => 'الجملة / B2B', 'restaurant' => 'المطاعم'],
+    'channel_states' => ['active'=>'نشط','inactive'=>'غير نشط','not_linked'=>'غير مرتبط','not_configured'=>'غير مهيأ','disabled'=>'معطل','enabled'=>'مفعل','internal_test'=>'اختبار داخلي','pilot'=>'تجريبي','emergency_stop'=>'إيقاف طارئ','degraded'=>'متدهور','suspended'=>'موقوف'],
+    'order_channels' => ['b2c'=>'التجزئة / B2C','b2b'=>'الجملة / B2B','restaurant'=>'المطاعم','smart_ordering'=>'الطلب الذكي','customer_app'=>'تطبيق العميل','web'=>'الويب','mobile'=>'الهاتف','van'=>'المندوب المتنقل','marketplace'=>'السوق الخارجي'],
+    'reports' => [
+        'performance' => 'أداء المتاجر', 'readiness' => 'جاهزية / صحة المتاجر',
+        'availability' => 'استثناءات التوفر', 'integrations' => 'استثناءات التكامل / القنوات',
+    ],
+    'actions' => ['activate' => 'تفعيل', 'suspend' => 'إيقاف', 'close' => 'إغلاق المتجر'],
+    'lifecycle_reason' => 'السبب / الملاحظة التشغيلية',
+    'lifecycle_help' => 'يُمنع التفعيل حتى تنجح كل اختبارات الجاهزية. ويُمنع الإغلاق مع وجود طلبات تشغيلية مفتوحة، والإغلاق نهائي.',
+];
