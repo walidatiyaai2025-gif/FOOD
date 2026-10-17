@@ -14,6 +14,7 @@ use App\Support\AdminNavigation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -76,6 +77,8 @@ final class AdminWhatsAppOtpService
         if (! $this->isAvailable($locale)) {
             throw ValidationException::withMessages(['email' => [__('admin_login.whatsapp_unavailable')]]);
         }
+
+        $this->assertRequestRateLimit($phone, $request);
 
         $user = User::query()
             ->where('phone_e164', $phone)
@@ -229,6 +232,46 @@ final class AdminWhatsAppOtpService
         );
 
         return $user;
+    }
+
+    private function assertRequestRateLimit(string $phone, Request $request): void
+    {
+        $window = (int) config('whatsapp_auth.request_window_seconds', 3600);
+        $dimensions = [
+            ['name' => 'phone', 'value' => $phone, 'max' => (int) config('whatsapp_auth.max_requests_per_phone', 5)],
+            ['name' => 'ip', 'value' => (string) $request->ip(), 'max' => (int) config('whatsapp_auth.max_requests_per_ip', 20)],
+            ['name' => 'device', 'value' => (string) $request->userAgent(), 'max' => (int) config('whatsapp_auth.max_requests_per_device', 10)],
+        ];
+
+        $keys = [];
+        foreach ($dimensions as $dimension) {
+            $value = trim((string) $dimension['value']);
+            if ($value === '') {
+                continue;
+            }
+
+            $key = 'admin-whatsapp-otp:'.$dimension['name'].':'.hash('sha256', $value);
+            if (RateLimiter::tooManyAttempts($key, (int) $dimension['max'])) {
+                $this->audit->record(
+                    'management.whatsapp_otp.rate_limited',
+                    null,
+                    null,
+                    null,
+                    ['dimension' => $dimension['name']],
+                    $request,
+                );
+
+                throw ValidationException::withMessages([
+                    'email' => [__('admin_login.otp_rate_limited')],
+                ]);
+            }
+
+            $keys[] = $key;
+        }
+
+        foreach ($keys as $key) {
+            RateLimiter::hit($key, $window);
+        }
     }
 
     private function send(
