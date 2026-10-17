@@ -92,6 +92,7 @@ final class RestaurantGuestServiceTest extends TestCase
             ->assertSee('Add reservation')
             ->assertSee('/assets/admin/smart-ordering-guest-service.css', false);
 
+        $this->admin->forceFill(['locale' => 'ar'])->save();
         app()->setLocale('ar');
         $this->actingAs($this->admin->fresh())
             ->get(route('admin.smart-ordering.operations.index', [
@@ -247,7 +248,7 @@ final class RestaurantGuestServiceTest extends TestCase
                 $this->branchB->public_id,
                 $reservationPublicId,
             ]), ['status' => 'CONFIRMED'])
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('smart_ordering_reservations', [
             'public_id' => $reservationPublicId,
