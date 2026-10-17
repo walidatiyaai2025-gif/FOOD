@@ -99,8 +99,7 @@
 
 @include('admin._smart-ordering-workspace-nav')
 
-<nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.title') }}">
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.index') }}">{{ __('smart_ordering.settings_tab') }}</a>
+<nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.operations_tab') }}">
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
