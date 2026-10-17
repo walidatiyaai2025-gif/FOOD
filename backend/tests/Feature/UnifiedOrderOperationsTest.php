@@ -85,19 +85,28 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_multi_channel_admin_gets_channel_switcher_and_scoped_all_view(): void
+    public function test_multi_channel_admin_switches_between_isolated_channels_and_cannot_aggregate_orders(): void
     {
         $super = $this->superAdmin('unified-super@example.test');
         app(WholesalePrincipal::class)->storeId();
         $this->retailStore('UNIFIED-SUPER-RETAIL');
 
         $this->actingAs($super)
-            ->get('/admin/operations/orders?channel=all')
+            ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
             ->assertSee('data-order-channel-tabs', false)
             ->assertSee('data-order-channel-tab="b2b"', false)
             ->assertSee('data-order-channel-tab="b2c"', false)
-            ->assertSee('data-order-channel-tab="all"', false);
+            ->assertDontSee('data-order-channel-tab="all"', false);
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertSee('data-order-channel-selected="b2c"', false);
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=all')
+            ->assertForbidden();
     }
 
     public function test_order_filters_preserve_authorized_channel_and_store_workspace_context(): void
@@ -128,11 +137,7 @@ class UnifiedOrderOperationsTest extends TestCase
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all&store_id='.$selectedStore.'&status=pending')
-            ->assertOk()
-            ->assertViewHas('selectedChannel', 'all')
-            ->assertViewHas('selectedStoreId', $selectedStore)
-            ->assertSee('name="channel" value="all"', false)
-            ->assertSee('data-store-id="'.$selectedStore.'"', false);
+            ->assertForbidden();
     }
 
     public function test_pending_order_actions_are_compact_and_edit_is_inside_ellipsis_menu(): void
