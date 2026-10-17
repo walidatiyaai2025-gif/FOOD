@@ -360,6 +360,8 @@
                     <th>{{ __('order_operations.dispatch.current_assignment') }}</th>
                     <th>{{ __('order_operations.detail.van_execution_timeline') }}</th>
                     <th>{{ __('order_operations.columns.total') }}</th>
+                    <th>{{ __('field_operations.dashboard.delivery_evidence') }}</th>
+                    <th>{{ __('field_operations.dashboard.finance_links') }}</th>
                     <th>{{ __('order_operations.columns.actions') }}</th>
                 </tr></thead><tbody>
                 @forelse($b2bOrders as $order)
@@ -377,10 +379,24 @@
                             @endif
                         </td>
                         <td>{{ \App\Support\DisplayNumber::money((float)$order->grand_total, $order->currency) }} {{ $order->currency }}</td>
+                        <td>
+                            @if($order->latest_proof_id)
+                                <a href="{{ route('admin.operations.orders.van-proofs.show',['assignment'=>$order->van_assignment_id,'proof'=>$order->latest_proof_id]) }}">{{ __('field_operations.dashboard.open_delivery_proof') }}</a>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td>
+                            <div class="fieldops-actions">
+                                @if($canViewFinanceLinks && $order->invoice_id)<a href="{{ route('admin.invoices.show',['invoice'=>$order->invoice_id]) }}">{{ __('field_operations.dashboard.open_invoice') }}</a>@endif
+                                @if($canViewFinanceLinks)<a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.dashboard.collections_remittances') }}</a>@endif
+                                @if((!$canViewFinanceLinks || !$order->invoice_id) && !$canViewFinanceLinks) — @endif
+                            </div>
+                        </td>
                         <td><a href="{{ route('admin.operations.orders.index',['channel'=>'b2b','order'=>$order->id]) }}">{{ __('order_operations.view_order') }}</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6"><div class="foodex-ops-state">{{ __('order_operations.empty') }}</div></td></tr>
+                    <tr><td colspan="8"><div class="foodex-ops-state">{{ __('order_operations.empty') }}</div></td></tr>
                 @endforelse
                 </tbody></table></div>
             </section>
