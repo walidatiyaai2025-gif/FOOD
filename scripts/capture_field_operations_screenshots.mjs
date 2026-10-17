@@ -114,6 +114,8 @@ async function captureCase(page, locale, entry, state, width, height) {
         tableRows: document.querySelectorAll('.foodex-ops-grid tbody tr').length,
         actionMenus: document.querySelectorAll('details.foodex-ops-actions').length,
         selects: document.querySelectorAll('select').length,
+        mainText: (document.querySelector('main')?.innerText ?? '').replace(/\\s+/g, ' ').slice(0, 900),
+        mainHtmlLength: document.querySelector('main')?.innerHTML.length ?? 0,
       }));
       throw new Error(
         `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state}) · ${JSON.stringify(diagnostic)}`,
