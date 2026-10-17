@@ -41,7 +41,7 @@ class AdminResponsiveLayoutTest extends TestCase
         $this->assertStringNotContainsString('@media(max-width:860px)', $view);
     }
 
-    public function test_b2b_and_b2c_metric_cards_support_up_to_eight_in_one_wide_row_with_icons(): void
+    public function test_b2b_and_b2c_metric_cards_use_six_in_one_wide_row_with_icons(): void
     {
         $b2b = file_get_contents(resource_path('views/admin/b2b-workspace.blade.php'));
         $b2c = file_get_contents(resource_path('views/admin/b2c-workspace.blade.php'));
@@ -50,11 +50,11 @@ class AdminResponsiveLayoutTest extends TestCase
         $this->assertIsString($b2c);
 
         $this->assertStringContainsString(
-            'grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr))',
+            'grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr))',
             $b2b,
         );
         $this->assertStringContainsString(
-            'style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}"',
+            'style="--foodex-card-columns:{{ min(6,max(1,count($counts))) }}"',
             $b2b,
         );
         $this->assertStringContainsString('metric-card-icon', $b2b);
@@ -63,11 +63,11 @@ class AdminResponsiveLayoutTest extends TestCase
         $this->assertStringContainsString("'finance'=>'revenue'", $b2b);
 
         $this->assertStringContainsString(
-            'grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr))',
+            'grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr))',
             $b2c,
         );
         $this->assertStringContainsString(
-            'style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}"',
+            'style="--foodex-card-columns:{{ min(6,max(1,count($counts))) }}"',
             $b2c,
         );
         $this->assertStringContainsString('module-card-icon', $b2c);
