@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
-use App\Http\Controllers\Admin\SmartOrderingKitchenController;
 use App\Http\Controllers\Admin\SmartOrderingGuestServiceController;
+use App\Http\Controllers\Admin\SmartOrderingKitchenController;
 use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use App\Http\Controllers\Admin\SmartOrderingTableController;
