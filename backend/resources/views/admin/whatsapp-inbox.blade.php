@@ -259,7 +259,7 @@
                                     <div>
                                         <div class="wa-context-name" title="{{ $customer->name }}">{{ $customer->name }}</div>
                                         <span class="wa-context-contact" title="{{ $customer->phone ?: '-' }}">{{ $customer->phone ?: '-' }}</span>
-                                        @if(filled($customer->email))<span class="wa-context-contact" title="{{ $customer->email }}">{{ $customer->email }}</span>@endif
+                                        <span class="wa-context-contact" title="{{ $customer->email ?: '-' }}">{{ $customer->email ?: '-' }}</span>
                                     </div>
                                 </div>
                                 <div class="wa-context-kv">
