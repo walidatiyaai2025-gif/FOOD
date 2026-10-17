@@ -16,8 +16,11 @@ $statusOptions=match($activeTab){
     'suppliers'=>['active','inactive','on_hold'],
     'requests'=>['draft','submitted','approved','rejected','cancelled'],
     'orders'=>['draft','issued','cancelled'],
+    'rfqs'=>['draft','published','awarded','cancelled'],
+    'contracts'=>['draft','active','terminated','expired'],
     'receipts','returns'=>['draft','posted','cancelled'],
     'invoices'=>['draft','handed_off','cancelled'],
+    'matches'=>['auto_approved','pending','approved','rejected'],
     default=>[],
 };
 $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
@@ -50,7 +53,9 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 @endforeach
 </nav>
 
-@if($activeTab!=='statements')
+@include('admin._enterprise-procurement-completion')
+
+@if(!in_array($activeTab,['overview','statements','reports'],true))
 <form method="get" class="foodex-card erp-filters">
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="{{ $activeTab }}">
 <label>{{ __('enterprise_procurement.search') }}<input type="search" name="q" value="{{ request('q') }}" maxlength="120"></label>
