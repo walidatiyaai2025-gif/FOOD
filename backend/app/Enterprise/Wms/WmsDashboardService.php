@@ -179,7 +179,8 @@ final class WmsDashboardService
                     ->orWhereIn('target_warehouse_id', $warehouseIds);
             })
             ->groupBy('status')
-            ->get(['status', DB::raw('COUNT(*) as total')])
+            ->select('status')
+            ->selectRaw('COUNT(*) as total')
             ->pluck('total', 'status')
             ->map(fn ($value): int => (int) $value)
             ->all();
