@@ -14,6 +14,21 @@
         $pageTitle = __('field_operations.pages.overview.title');
         $pageDescription = __('field_operations.pages.overview.description');
     }
+    $fleetMapOptions = $fieldOperationsSection === 'fleet' ? [
+        'feedUrl' => $feedUrl,
+        'liveMapMode' => 'full',
+        'showFilters' => true,
+        'showList' => true,
+        'showSummary' => true,
+        'trackingActor' => 'van',
+        'trackingI18n' => [
+            'noDrivers' => __('field_operations.fleet_i18n.no_vans'),
+            'entitySingular' => __('field_operations.fleet_i18n.entity_singular'),
+            'entities' => __('field_operations.fleet_i18n.entities'),
+            'entityId' => __('field_operations.fleet_i18n.entity_id'),
+            'route' => __('field_operations.fleet_i18n.route'),
+        ],
+    ] : [];
 @endphp
 <!doctype html>
 <html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
@@ -252,22 +267,7 @@
         @endif
 
         @if($fieldOperationsSection === 'fleet')
-            @include('admin._driver-live-map', [
-                'feedUrl' => $feedUrl,
-                'liveMapMode' => 'full',
-                'showFilters' => true,
-                'showList' => true,
-                'showSummary' => true,
-                'trackingActor' => 'van',
-                'trackingI18n' => [
-                    'noDrivers' => __('field_operations.fleet_i18n.no_vans'),
-                    'entitySingular' => __('field_operations.fleet_i18n.entity_singular'),
-                    'entities' => __('field_operations.fleet_i18n.entities'),
-                    'entityId' => __('field_operations.fleet_i18n.entity_id'),
-                    'route' => __('field_operations.fleet_i18n.route'),
-                ],
-            ])
-
+            @include('admin._driver-live-map', $fleetMapOptions)
         @endif
 
         @if($fieldOperationsSection === 'vans')
