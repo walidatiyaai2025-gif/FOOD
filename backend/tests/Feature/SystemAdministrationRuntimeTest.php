@@ -10,7 +10,9 @@ use App\Services\SystemAdministrationRuntime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SystemAdministrationRuntimeTest extends TestCase
@@ -95,6 +97,18 @@ class SystemAdministrationRuntimeTest extends TestCase
 
     public function test_failed_job_diagnostics_never_render_raw_exception_or_payload(): void
     {
+        if (! Schema::hasTable('failed_jobs')) {
+            Schema::create('failed_jobs', static function (Blueprint $table): void {
+                $table->id();
+                $table->string('uuid')->unique();
+                $table->text('connection');
+                $table->text('queue');
+                $table->longText('payload');
+                $table->longText('exception');
+                $table->timestamp('failed_at')->nullable();
+            });
+        }
+
         DB::table('failed_jobs')->insert([
             'uuid' => '00000000-0000-4000-8000-000000000001',
             'connection' => 'redis',
