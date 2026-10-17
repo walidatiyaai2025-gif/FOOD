@@ -73,8 +73,12 @@ Existing #96 roles (for example SUPER_ADMIN, B2B_ADMIN, B2C_STORE_ADMIN, OPERATI
 
 ## User onboarding / role-management UX
 
-The canonical Security & Users workspace remains `admin.security.index`. Normal onboarding/editing selects one or more localized business roles first. The role picker hides unavailable unassigned module roles, preserves and labels retained unavailable assignments, and shows localized domain/level/description context. The Role Management cards provide localized business detail, responsibility and permission-summary previews. Raw permission editing remains an advanced custom-role workflow; canonical built-in matrices are protected from manual drift.
+The canonical Security & Users workspace remains `admin.security.index`. Normal onboarding/editing selects one or more localized business roles first. The role picker hides unavailable unassigned module roles, preserves and labels retained unavailable assignments, and shows localized domain/level/description context. Before save, it renders the selected role set and a deduplicated, business-readable combined effective-access preview. Raw permission editing remains an advanced custom-role workflow; canonical built-in matrices are protected from manual drift.
+
+### Separation-of-duties advisories
+
+Role assignment does not create a parallel authorization engine. High-risk combinations can be declared in `job_roles.risk_pairs` and are shown as localized, non-blocking warnings in the assignment UI. The initial canonical advisory is `PROCUREMENT_BUYER + PROCUREMENT_APPROVER`, reflecting procurement maker/checker separation. This warning does not weaken or replace server-side maker/checker controls: protected procurement/finance/treasury services remain authoritative for preventing the same actor from preparing and approving a protected transaction where policy applies.
 
 ## Verification
 
-Feature coverage lives in `backend/tests/Feature/BuiltInJobRoleCatalogTest.php` and protects deterministic reconciliation, module enable/disable, assignment blocking, stale-permission denial, store entitlements, mixed scopes, localization, and no-auto-grant behavior. Existing RBAC/navigation tests remain authoritative for channel/store privilege boundaries.
+Feature coverage lives in `backend/tests/Feature/BuiltInJobRoleCatalogTest.php` and protects deterministic reconciliation, module enable/disable, assignment blocking, stale-permission denial, store entitlements, two-role and three-role permission union/deduplication, mixed scopes, localized SoD conflict warnings, localization, and no-auto-grant behavior. Existing RBAC/navigation tests remain authoritative for channel/store privilege boundaries.
