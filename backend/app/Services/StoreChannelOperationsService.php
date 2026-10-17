@@ -116,6 +116,7 @@ final class StoreChannelOperationsService
 
         $snapshot = $this->snapshotForStore($store);
         $beforeState = (string) ($snapshot['lifecycle_state'] ?? ($store->is_active ? 'ACTIVE' : 'SUSPENDED'));
+        $beforeActive = (bool) $store->is_active;
 
         if ($beforeState === 'CLOSED') {
             throw ValidationException::withMessages(['lifecycle_action' => ['A closed store cannot be reactivated or suspended.']]);
@@ -189,7 +190,7 @@ final class StoreChannelOperationsService
             'retail_store.lifecycle_changed',
             $actor,
             $store->fresh(),
-            ['store_id' => (int) $store->id, 'state' => $beforeState, 'is_active' => (bool) $store->getOriginal('is_active')],
+            ['store_id' => (int) $store->id, 'state' => $beforeState, 'is_active' => $beforeActive],
             $after,
             $request,
         );
@@ -508,7 +509,7 @@ final class StoreChannelOperationsService
                 ->whereIn('links.retail_store_id', $ids)->where('accounts.status', 'active')->count()
             : 0;
         $restaurant = Schema::hasTable('smart_ordering_sites')
-            ? DB::table('smart_ordering_sites')->whereIn('store_id', $ids)->where('master_enabled', true)->count()
+            ? DB::table('smart_ordering_sites')->whereIn('store_id', $ids)->where('master_enabled', true)->where('runtime_state', 'ENABLED')->count()
             : 0;
 
         return [
