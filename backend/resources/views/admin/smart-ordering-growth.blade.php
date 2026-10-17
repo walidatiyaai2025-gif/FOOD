@@ -6,7 +6,7 @@
 @include('admin._brand-components')
 @include('admin._settings-page-polish')
 <style>
-.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}.rg-form{display:grid;gap:10px}.rg-form label{display:grid;gap:5px}.rg-table{width:100%;border-collapse:collapse}.rg-table th,.rg-table td{padding:9px;border-bottom:1px solid var(--foodex-border);text-align:start}.rg-wrap{overflow:auto}.rg-code{font-family:ui-monospace,monospace;word-break:break-all}.rg-kpis{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px}.rg-kpi{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.rg-kpi strong{display:block;font-size:1.25rem}@media(max-width:767px){.rg-kpis{grid-template-columns:1fr 1fr}.rg-table{min-width:680px}}
+.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}.rg-form{display:grid;gap:10px}.rg-form label{display:grid;gap:5px}.rg-table{width:100%;border-collapse:collapse}.rg-table th,.rg-table td{padding:9px;border-bottom:1px solid var(--foodex-border);text-align:start}.rg-wrap{overflow:auto}.rg-code{font-family:ui-monospace,monospace;word-break:break-all}.rg-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(120px,1fr));gap:10px}.rg-kpi{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.rg-kpi strong{display:block;font-size:1.25rem}@media(max-width:767px){.rg-kpis{grid-template-columns:1fr 1fr}.rg-table{min-width:680px}}
 </style>
 </head>
 <body>
