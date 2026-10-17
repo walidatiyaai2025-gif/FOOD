@@ -80,6 +80,41 @@ final class EnterpriseBiController extends Controller
                 'failure' => ['failure_reason'],
             ],
         ],
+        'catalog.availability' => [
+            'key' => 'catalog_availability',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'category', 'brand', 'lifecycle_state', 'availability_state'],
+            ],
+        ],
+        'catalog.category_brand_performance' => [
+            'key' => 'catalog_category_brand_performance',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'category_brand' => ['category', 'brand'],
+            ],
+        ],
+        'catalog.margin_exceptions' => [
+            'key' => 'catalog_margin_exceptions',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'issue'],
+            ],
+        ],
+        'catalog.lifecycle' => [
+            'key' => 'catalog_lifecycle',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'lifecycle_state', 'lifecycle_effective_at', 'end_of_life_at'],
+            ],
+        ],
+        'catalog.data_quality' => [
+            'key' => 'catalog_data_quality',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'issues'],
+            ],
+        ],
         'procurement.open_orders' => [
             'key' => 'procurement_open_orders',
             'scope' => EntitlementScope::STORE,
@@ -429,6 +464,31 @@ final class EnterpriseBiController extends Controller
             if (array_key_exists('supplier_reference', $row)) {
                 $row['supplier'] = (string) $row['supplier_reference'];
                 unset($row['supplier_reference']);
+            }
+
+            foreach (['lifecycle_state' => 'catalog_completion.lifecycle.states.', 'availability_state' => 'catalog_completion.chart_labels.'] as $catalogField => $translationPrefix) {
+                if (isset($row[$catalogField]) && is_string($row[$catalogField])) {
+                    $translated = __($translationPrefix.$row[$catalogField]);
+                    if ($translated !== $translationPrefix.$row[$catalogField]) {
+                        $row[$catalogField] = $translated;
+                    }
+                }
+            }
+            if (isset($row['issue']) && is_string($row['issue'])) {
+                $translatedIssue = __('catalog_completion.report_values.'.$row['issue']);
+                if ($translatedIssue !== 'catalog_completion.report_values.'.$row['issue']) {
+                    $row['issue'] = $translatedIssue;
+                }
+            }
+            if (isset($row['issues']) && is_string($row['issues'])) {
+                $row['issues'] = collect(explode(',', $row['issues']))
+                    ->filter()
+                    ->map(function (string $issue): string {
+                        $translatedIssue = __('catalog_completion.report_values.'.$issue);
+
+                        return $translatedIssue === 'catalog_completion.report_values.'.$issue ? $issue : $translatedIssue;
+                    })
+                    ->implode(' · ');
             }
 
             $drillUrl = null;
