@@ -10,6 +10,10 @@ return [
         'attributes' => 'Attributes',
         'import' => 'Import / Export',
     ],
+    'channels' => [
+        'b2b' => 'Wholesale',
+        'b2c' => 'Retail',
+    ],
     'kpis' => [
         'active_skus' => 'Active SKUs',
         'inactive_skus' => 'Inactive SKUs',
