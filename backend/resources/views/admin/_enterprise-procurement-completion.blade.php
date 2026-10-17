@@ -79,7 +79,9 @@ $exceptionLabels=[
                     @if($chartRows===[])
                         <div class="foodex-viz-empty">{{ __('enterprise_procurement.empty') }}</div>
                     @else
-                        @php($chartMax=max(1,(float) collect($chartRows)->max('value')))
+                        @php
+    $chartMax = max(1, (float) collect($chartRows)->max('value'));
+@endphp
                         <div class="foodex-viz-bars" role="img" aria-label="{{ $dashboardChartLabels[$chartKey] ?? $chartKey }}">
                             @foreach($chartRows as $point)
                                 @php
@@ -269,7 +271,9 @@ $exceptionLabels=[
 @empty<tr><td colspan="5">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
 @if($contractDetail)
-@php($contract=$contractDetail['contract'])
+@php
+    $contract = $contractDetail['contract'];
+@endphp
 <section class="foodex-card erp-detail">
 <h2>{{ $contract->contract_number }} · {{ $contract->title }}</h2>
 <div class="erp-detail-grid">
@@ -323,7 +327,9 @@ $exceptionLabels=[
 <label>{{ __('enterprise_procurement.report') }}<select name="report" required><option value="">—</option>@foreach(['open_orders','spend','supplier_performance','savings','contract_expiry','match_exceptions'] as $reportCode)<option value="{{ $reportCode }}" @selected($reportName===$reportCode)>{{ __('enterprise_procurement.reports_catalog.'.$reportCode) }}</option>@endforeach</select></label>
 <label>{{ __('enterprise_procurement.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
 <label>{{ __('enterprise_procurement.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
-@php($biReportCode=$reportName ? 'procurement.'.$reportName : 'procurement.open_orders')
+@php
+    $biReportCode = $reportName ? 'procurement.'.$reportName : 'procurement.open_orders';
+@endphp
 <div class="erp-actions"><button class="foodex-filter-action">{{ __('enterprise_procurement.run_report') }}</button><a class="erp-link" href="{{ route('admin.erp.bi',['report'=>$biReportCode]) }}">{{ __('enterprise_procurement.open_enterprise_bi') }}</a></div>
 </form>
 </section>
@@ -334,7 +340,13 @@ $exceptionLabels=[
 <a class="erp-link" href="{{ route('admin.erp.bi',['report'=>'procurement.'.$reportName]) }}">{{ __('enterprise_procurement.scheduled_reporting') }}</a>
 </div>
 <table class="foodex-table erp-table"><thead><tr>@foreach($reportData['columns'] as $column)<th>{{ __('enterprise_procurement.report_columns.'.$column) }}</th>@endforeach</tr></thead><tbody>
-@forelse($reportData['rows'] as $reportRow)<tr>@foreach($reportData['columns'] as $column)@php($reportValue=$reportRow[$column] ?? null)<td>{{ $column==='status' && $reportValue ? __('enterprise_procurement.statuses.'.$reportValue) : ($reportValue ?? '—') }}</td>@endforeach</tr>@empty<tr><td colspan="{{ max(1,count($reportData['columns'])) }}">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
+@forelse($reportData['rows'] as $reportRow)
+<tr>
+@foreach($reportData['columns'] as $column)
+@php
+    $reportValue = $reportRow[$column] ?? null;
+@endphp
+<td>{{ $column==='status' && $reportValue ? __('enterprise_procurement.statuses.'.$reportValue) : ($reportValue ?? '—') }}</td>@endforeach</tr>@empty<tr><td colspan="{{ max(1,count($reportData['columns'])) }}">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table>
 </section>
 @endif
