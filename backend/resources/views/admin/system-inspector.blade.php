@@ -70,6 +70,11 @@
             <div class="inspector-health-row"><strong>{{ $ar?'الرابط العام للصور':'Public media URL' }}</strong><code>{{ $diagnostics['public_disk_url'] }}</code></div>
             <div class="inspector-health-row"><strong>{{ $ar?'المسارات المسماة':'Named routes' }}</strong><code>{{ $diagnostics['named_routes'] }}</code></div>
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
+            <div class="inspector-health-row"><strong>{{ $ar?'قاعدة البيانات':'Database' }}</strong><span class="badge {{ $diagnostics['database_healthy']?'active':'' }}">{{ $diagnostics['database_healthy']?($ar?'سليمة':'Healthy'):($ar?'خطأ':'Error') }}</span><code>{{ $diagnostics['database_driver'] }}</code></div>
+            <div class="inspector-health-row"><strong>{{ $ar?'مشغل الكاش':'Cache driver' }}</strong><code>{{ $diagnostics['cache_driver'] }}</code></div>
+            <div class="inspector-health-row"><strong>{{ $ar?'مشغل الطابور':'Queue driver' }}</strong><code>{{ $diagnostics['queue_driver'] }}</code></div>
+            <div class="inspector-health-row"><strong>{{ $ar?'نبض المجدول':'Scheduler heartbeat' }}</strong><span class="badge {{ $diagnostics['scheduler_healthy']?'active':'' }}">{{ $diagnostics['scheduler_healthy']?($ar?'سليم':'Healthy'):($ar?'متدهور':'Degraded') }}</span><code dir="ltr">{{ $diagnostics['scheduler_last_run']??'—' }}</code></div>
+            <div class="inspector-health-row"><strong>{{ $ar?'وضع الصيانة':'Maintenance mode' }}</strong><span class="badge {{ !$diagnostics['maintenance_mode']?'active':'' }}">{{ $diagnostics['maintenance_mode']?($ar?'مفعل':'Enabled'):($ar?'غير مفعل':'Disabled') }}</span></div>
         </section>
 
 
