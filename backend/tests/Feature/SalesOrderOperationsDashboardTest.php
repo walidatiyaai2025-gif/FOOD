@@ -47,8 +47,7 @@ class SalesOrderOperationsDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$store)
             ->assertOk()
-            ->assertViewHas('dashboard', fn (array $dashboard): bool =>
-                $dashboard['kpis']['orders'] === 4
+            ->assertViewHas('dashboard', fn (array $dashboard): bool => $dashboard['kpis']['orders'] === 4
                 && $dashboard['kpis']['delayed_orders'] === 1
                 && $dashboard['kpis']['awaiting_dispatch'] === 1
                 && $dashboard['kpis']['payment_exceptions'] === 1
@@ -82,8 +81,7 @@ class SalesOrderOperationsDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/reports?report=sales_exceptions&channel=b2c&store_id='.$store)
             ->assertOk()
-            ->assertViewHas('data', fn (array $data): bool =>
-                $data['report'] === 'sales_exceptions'
+            ->assertViewHas('data', fn (array $data): bool => $data['report'] === 'sales_exceptions'
                 && $data['kpis']['exception_orders'] === 1
                 && $data['kpis']['delayed_orders'] === 1
                 && count($data['rows']) === 1
