@@ -220,6 +220,8 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
             'is_active' => true,
         ]);
 
+        $this->enableRestaurantSaasForTestStore((int) $store->id);
+
         $admin = User::query()->create([
             'name' => 'Restaurant Wave 0 Certification Admin',
             'email' => strtolower($code).'-'.uniqid().'@example.test',
