@@ -42,9 +42,7 @@ $businessLabel = static function ($value): string {
     $visibleStore = $selectedStore
         ?? (count($availableStores ?? []) === 1 ? ($availableStores[0] ?? null) : null);
     $selectedChannelOption = collect($availableChannels ?? [])->firstWhere('code', $selectedChannel);
-    $selectedChannelLabel = $selectedChannel === 'all'
-        ? __('order_operations.filters.all_authorized')
-        : ($selectedChannelOption['label'] ?? $businessLabel($selectedChannel));
+    $selectedChannelLabel = $selectedChannelOption['label'] ?? $businessLabel($selectedChannel);
     $workspaceContextQuery = ['channel' => $selectedChannel];
     if ($selectedStoreId !== null) {
         $workspaceContextQuery['store_id'] = $selectedStoreId;
@@ -292,7 +290,6 @@ $businessLabel = static function ($value): string {
 @foreach($availableChannels as $channelOption)
 <a class="status-tab" data-order-channel-tab="{{ $channelOption['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>$channelOption['code']])) }}" @if($selectedChannel===$channelOption['code']) aria-current="page" @endif><span>{{ $channelOption['label'] }}</span></a>
 @endforeach
-<a class="status-tab" data-order-channel-tab="all" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>'all'])) }}" @if($selectedChannel==='all') aria-current="page" @endif><span>{{ $isAr ? 'كل القنوات' : 'All channels' }}</span></a>
 </nav>
 @endif
 
