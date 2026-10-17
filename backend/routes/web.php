@@ -213,6 +213,22 @@ Route::prefix('admin')
         Route::post('/erp/finance/opening-balances/{batch}/cancel', [FinanceWorkbenchController::class, 'cancelOpeningBalance'])->whereNumber('batch')->middleware('throttle:30,1')->name('erp.finance.opening-balances.cancel');
         Route::post('/erp/finance/credit-terms', [FinanceWorkbenchController::class, 'storeCreditTerm'])->middleware('throttle:30,1')->name('erp.finance.credit-terms.store');
         Route::patch('/erp/finance/credit-terms/{creditTerm}/status', [FinanceWorkbenchController::class, 'updateCreditTermStatus'])->whereNumber('creditTerm')->middleware('throttle:30,1')->name('erp.finance.credit-terms.status');
+        Route::post('/erp/finance/profit-centers', [FinanceWorkbenchController::class, 'storeProfitCenter'])->middleware('throttle:30,1')->name('erp.finance.profit-centers.store');
+        Route::patch('/erp/finance/profit-centers/{profitCenter}/status', [FinanceWorkbenchController::class, 'updateProfitCenterStatus'])->whereNumber('profitCenter')->middleware('throttle:30,1')->name('erp.finance.profit-centers.status');
+        Route::patch('/erp/finance/accounts/{account}/cash-flow', [FinanceWorkbenchController::class, 'updateCashFlowClassification'])->whereNumber('account')->middleware('throttle:30,1')->name('erp.finance.accounts.cash-flow');
+        Route::post('/erp/finance/budgets', [FinanceWorkbenchController::class, 'storeBudget'])->middleware('throttle:30,1')->name('erp.finance.budgets.store');
+        Route::post('/erp/finance/budgets/{budget}/lines', [FinanceWorkbenchController::class, 'storeBudgetLine'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.lines.store');
+        Route::post('/erp/finance/budgets/{budget}/transition', [FinanceWorkbenchController::class, 'transitionBudget'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.transition');
+        Route::post('/erp/finance/budgets/{budget}/revise', [FinanceWorkbenchController::class, 'reviseBudget'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.revise');
+        Route::post('/erp/finance/tax-codes', [FinanceWorkbenchController::class, 'storeTaxCode'])->middleware('throttle:30,1')->name('erp.finance.tax-codes.store');
+        Route::post('/erp/finance/allocation-rules', [FinanceWorkbenchController::class, 'storeAllocationRule'])->middleware('throttle:30,1')->name('erp.finance.allocation-rules.store');
+        Route::post('/erp/finance/allocation-rules/{allocationRule}/apply', [FinanceWorkbenchController::class, 'applyAllocationRule'])->whereNumber('allocationRule')->middleware('throttle:30,1')->name('erp.finance.allocation-rules.apply');
+        Route::post('/erp/finance/consolidation-eliminations', [FinanceWorkbenchController::class, 'storeConsolidationElimination'])->middleware('throttle:30,1')->name('erp.finance.consolidation-eliminations.store');
+        Route::post('/erp/finance/asset-categories', [FinanceWorkbenchController::class, 'storeAssetCategory'])->middleware('throttle:30,1')->name('erp.finance.asset-categories.store');
+        Route::post('/erp/finance/assets', [FinanceWorkbenchController::class, 'storeAsset'])->middleware('throttle:30,1')->name('erp.finance.assets.store');
+        Route::post('/erp/finance/assets/{asset}/depreciation', [FinanceWorkbenchController::class, 'createAssetDepreciation'])->whereNumber('asset')->middleware('throttle:30,1')->name('erp.finance.assets.depreciation');
+        Route::post('/erp/finance/assets/{asset}/disposal', [FinanceWorkbenchController::class, 'prepareAssetDisposal'])->whereNumber('asset')->middleware('throttle:30,1')->name('erp.finance.assets.disposal');
+        Route::post('/erp/finance/fiscal-periods/{fiscalPeriod}/close-evaluation', [FinanceWorkbenchController::class, 'evaluatePeriodClose'])->whereNumber('fiscalPeriod')->middleware('throttle:30,1')->name('erp.finance.fiscal-periods.close-evaluation');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
             ->where('stepCode', '[A-Za-z0-9._-]+')
