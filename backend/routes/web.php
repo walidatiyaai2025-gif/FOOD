@@ -644,6 +644,7 @@ Route::prefix('admin')
         Route::get('/catalog/import/sample', [CatalogManagementController::class, 'downloadImportSample'])->name('catalog.import.sample');
         Route::post('/catalog/import/preview', [CatalogManagementController::class, 'previewImport'])->name('catalog.import.preview');
         Route::post('/catalog/import/commit', [CatalogManagementController::class, 'commitImport'])->name('catalog.import.commit');
+        Route::get('/catalog/export', [CatalogManagementController::class, 'exportCatalog'])->name('catalog.export');
         Route::get('/lookups', [LookupManagementController::class, 'index'])->name('lookups.index');
         Route::post('/lookups/{type}', [LookupManagementController::class, 'store'])->whereIn('type', ['brands', 'units'])->name('lookups.store');
         Route::patch('/lookups/{type}/{lookup}', [LookupManagementController::class, 'update'])->whereIn('type', ['brands', 'units'])->name('lookups.update');
@@ -672,6 +673,10 @@ Route::prefix('admin')
         Route::delete('/catalog/products/{product}/images/{image}', [CatalogManagementController::class, 'destroyProductImage'])->name('catalog.products.images.destroy');
         Route::delete('/catalog/products/{product}', [CatalogManagementController::class, 'destroyProduct'])->name('catalog.products.destroy');
         Route::post('/catalog/products/{product}/store', [CatalogManagementController::class, 'assignProduct'])->name('catalog.products.assign');
+        Route::put('/catalog/products/{product}/attributes', [CatalogManagementController::class, 'saveProductAttributes'])->whereNumber('product')->name('catalog.products.attributes.save');
+        Route::post('/catalog/products/{product}/lifecycle', [CatalogManagementController::class, 'transitionProductLifecycle'])->whereNumber('product')->name('catalog.products.lifecycle');
+        Route::post('/catalog/attributes', [CatalogManagementController::class, 'storeAttribute'])->name('catalog.attributes.store');
+        Route::patch('/catalog/attributes/{attribute}', [CatalogManagementController::class, 'updateAttribute'])->whereNumber('attribute')->name('catalog.attributes.update');
         Route::post('/catalog/categories', [CatalogManagementController::class, 'storeCategory'])->name('catalog.categories.store');
         Route::patch('/catalog/categories/{category}', [CatalogManagementController::class, 'updateCategory'])->name('catalog.categories.update');
         Route::delete('/catalog/categories/{category}', [CatalogManagementController::class, 'destroyCategory'])->name('catalog.categories.destroy');
