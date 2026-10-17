@@ -339,6 +339,16 @@ final class EnterpriseProcurementController extends Controller
         return $this->backTo('rfqs', $storeId)->with('status', __('enterprise_procurement.flash.rfq_cancelled'));
     }
 
+    public function downloadQuoteDocument(Request $request, int $rfq, int $document)
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $quoteDocument = $this->completion->quoteDocument($actor, $context, $rfq, $document);
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        abort_unless($disk->exists($quoteDocument->storage_path), 404);
+
+        return $disk->download($quoteDocument->storage_path, $quoteDocument->original_name);
+    }
+
     public function awardRfq(Request $request, int $rfq, int $quote): RedirectResponse
     {
         [$actor, $context, $storeId] = $this->mutationContext($request);
