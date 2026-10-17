@@ -122,8 +122,10 @@ return new class extends Migration {
         Schema::create('enterprise_procurement_rfq_lines', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('rfq_id')->constrained('enterprise_procurement_rfqs')->cascadeOnDelete();
-            $table->foreignId('purchase_request_line_id')
-                ->constrained('enterprise_purchase_request_lines')
+            $table->foreignId('purchase_request_line_id');
+            $table->foreign('purchase_request_line_id', 'eprfql_request_line_fk')
+                ->references('id')
+                ->on('enterprise_purchase_request_lines')
                 ->restrictOnDelete();
             $table->unsignedSmallInteger('line_no');
             $table->string('item_code', 96)->nullable();
