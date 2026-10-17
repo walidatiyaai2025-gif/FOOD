@@ -26,6 +26,12 @@ class EnsureManagementDashboardAccess
         abort_unless($user->is_active, 403);
         abort_unless($this->navigation->canUseDashboard($user), 403);
 
+        $routeName = $request->route()?->getName();
+        if (is_string($routeName)
+            && ($routeName === 'admin.erp.index' || str_starts_with($routeName, 'admin.erp.'))) {
+            abort_unless($this->navigation->canAccessPlatformErp($user), 403);
+        }
+
         if ($user->last_seen_at === null || $user->last_seen_at->lt(now()->subMinute())) {
             $user->forceFill(['last_seen_at' => now()])->saveQuietly();
         }
