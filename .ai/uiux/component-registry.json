@@ -78,6 +78,19 @@
           "foodex-record-drawer-close",
           "foodex-record-grid",
           "foodex-record-section"
+        ],
+        "module_dashboard": [
+          "foodex-module-overview",
+          "foodex-module-toolbar",
+          "foodex-module-scope",
+          "foodex-module-date-range",
+          "foodex-module-kpis",
+          "foodex-module-kpi",
+          "foodex-module-chart",
+          "foodex-module-chart-summary",
+          "foodex-module-chart-table",
+          "foodex-module-state",
+          "foodex-module-export"
         ]
       },
       "semantic_icon_actions": {
