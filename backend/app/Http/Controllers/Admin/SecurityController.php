@@ -203,7 +203,11 @@ final class SecurityController extends Controller
         });
 
         $editableRoleIds = $roles
-            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes): bool {
+            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes, $jobRoles): bool {
+                if ($jobRoles->isBuiltIn((string) $role->code)) {
+                    return false;
+                }
+
                 if ($isSuperAdmin) {
                     return true;
                 }
