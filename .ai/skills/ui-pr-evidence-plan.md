@@ -23,6 +23,17 @@ The plan derives from the real PR diff and publishes:
 
 Before merge, cross-check the PR against `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. The PR must record the final canonical parent/route, placement type, primary pattern and **Reuse / Extend / Compose / New Screen** decision. If it adds a new screen, the PR must state why the first three options are insufficient. If navigation changes, record the navigation impact and business-domain owner.
 
+For every business-facing capability, record discoverability evidence even when the route itself is unchanged:
+- domain, role, capability and canonical route;
+- navigation owner/type and visible entry point;
+- parent surface, permission and active context;
+- user path: where the user starts → what they click → where they land;
+- fallback/back path;
+- mobile + desktop discoverability;
+- Arabic/RTL + English/LTR behavior.
+
+`DIRECT_URL_ONLY` is not accepted for a normal business capability. Do not compensate by adding an unnecessary Sidebar item; the correct navigation type may be a hub, tab, contextual action, Admin Settings entry or workflow step.
+
 Responsive/locale evidence is explicit, not implied:
 - **Desktop** — compact desktop and normal desktop composition as applicable;
 - **Tablet** — 768px-class composition;
