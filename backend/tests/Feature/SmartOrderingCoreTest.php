@@ -211,7 +211,7 @@ class SmartOrderingCoreTest extends TestCase
             ->assertSee('Europe/London');
     }
 
-    public function test_operations_workspace_uses_authenticated_admin_locale_for_document_direction(): void
+    public function test_operations_workspace_restores_authenticated_admin_locale_at_render_boundary(): void
     {
         $admin = $this->storeAdmin($this->storeId);
 
@@ -219,7 +219,7 @@ class SmartOrderingCoreTest extends TestCase
         app()->setLocale('en');
 
         $this->actingAs($admin->fresh())
-            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
             ->assertOk()
             ->assertSee('<html lang="ar" dir="rtl">', false);
 
@@ -227,7 +227,7 @@ class SmartOrderingCoreTest extends TestCase
         app()->setLocale('ar');
 
         $this->actingAs($admin->fresh())
-            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'payments']))
             ->assertOk()
             ->assertSee('<html lang="en" dir="ltr">', false);
     }
