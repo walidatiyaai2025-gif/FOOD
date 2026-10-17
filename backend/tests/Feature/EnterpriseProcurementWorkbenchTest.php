@@ -98,6 +98,109 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             ->assertSee('مُصدر');
     }
 
+    public function test_sourcing_award_creates_canonical_purchase_order_and_overview_dashboard(): void
+    {
+        $this->enableProcurement();
+        [$user, $store] = $this->operator('ERP-UI-SOURCING');
+
+        foreach ([
+            ['code' => 'SRC-SUP-A', 'name_en' => 'Supplier A'],
+            ['code' => 'SRC-SUP-B', 'name_en' => 'Supplier B'],
+        ] as $supplier) {
+            $this->actingAs($user)->post(route('admin.erp.procurement.suppliers.store'), [
+                'store_id' => $store->id,
+                'scope_type' => 'store',
+                ...$supplier,
+            ])->assertRedirect();
+        }
+
+        $supplierA = (int) DB::table('enterprise_suppliers')->where('code', 'SRC-SUP-A')->value('id');
+        $supplierB = (int) DB::table('enterprise_suppliers')->where('code', 'SRC-SUP-B')->value('id');
+
+        $this->actingAs($user)->post(route('admin.erp.procurement.requests.store'), [
+            'store_id' => $store->id,
+            'currency_code' => 'KWD',
+            'reason' => 'RFQ award proof',
+            'item_code' => 'RFQ-SKU',
+            'description' => 'RFQ line',
+            'quantity' => 3,
+            'unit' => 'case',
+            'estimated_unit_cost' => 5.000,
+        ])->assertRedirect();
+
+        $requestId = (int) DB::table('enterprise_purchase_requests')
+            ->where('reason', 'RFQ award proof')
+            ->value('id');
+        $this->actingAs($user)->post(route('admin.erp.procurement.requests.submit', $requestId), [
+            'store_id' => $store->id,
+        ])->assertRedirect();
+        $this->actingAs($user)->post(route('admin.erp.procurement.requests.decision', $requestId), [
+            'store_id' => $store->id,
+            'decision' => 'approve',
+        ])->assertRedirect();
+
+        $this->actingAs($user)->post(route('admin.erp.procurement.rfqs.store'), [
+            'store_id' => $store->id,
+            'purchase_request_id' => $requestId,
+            'title' => 'RFQ award proof',
+            'supplier_ids' => [$supplierA, $supplierB],
+        ])->assertRedirect();
+
+        $rfqId = (int) DB::table('enterprise_procurement_rfqs')
+            ->where('purchase_request_id', $requestId)
+            ->value('id');
+        $rfqLineId = (int) DB::table('enterprise_procurement_rfq_lines')
+            ->where('rfq_id', $rfqId)
+            ->value('id');
+
+        $this->actingAs($user)->post(route('admin.erp.procurement.rfqs.publish', $rfqId), [
+            'store_id' => $store->id,
+        ])->assertRedirect();
+
+        foreach ([[$supplierA, 4.500], [$supplierB, 4.000]] as [$supplierId, $unitPrice]) {
+            $this->actingAs($user)->post(route('admin.erp.procurement.rfqs.quotes.store', $rfqId), [
+                'store_id' => $store->id,
+                'supplier_id' => $supplierId,
+                'lines' => [[
+                    'rfq_line_id' => $rfqLineId,
+                    'unit_price' => $unitPrice,
+                ]],
+            ])->assertRedirect();
+        }
+
+        $quoteId = (int) DB::table('enterprise_procurement_quotes')
+            ->where('rfq_id', $rfqId)
+            ->where('supplier_id', $supplierB)
+            ->value('id');
+        $this->actingAs($user)->post(route('admin.erp.procurement.rfqs.award', [
+            'rfq' => $rfqId,
+            'quote' => $quoteId,
+        ]), ['store_id' => $store->id])->assertRedirect();
+
+        $order = DB::table('enterprise_purchase_orders')
+            ->where('purchase_request_id', $requestId)
+            ->first();
+        $this->assertNotNull($order);
+        $this->assertSame($rfqId, (int) $order->sourcing_rfq_id);
+        $this->assertSame($quoteId, (int) $order->sourcing_quote_id);
+        $this->assertSame($supplierB, (int) $order->supplier_id);
+        $this->assertSame(
+            '4.000',
+            number_format((float) DB::table('enterprise_purchase_order_lines')
+                ->where('purchase_order_id', $order->id)
+                ->value('unit_price'), 3, '.', ''),
+        );
+
+        $this->actingAs($user)
+            ->get(route('admin.erp.procurement.index', [
+                'store_id' => $store->id,
+                'tab' => 'overview',
+            ]))
+            ->assertOk()
+            ->assertSee('data-procurement-overview="true"', false)
+            ->assertSee('نظرة المشتريات');
+    }
+
     public function test_store_selector_rejects_cross_store_scope(): void
     {
         $this->enableProcurement();
@@ -135,6 +238,16 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             'admin.erp.procurement.invoices.handoff',
             'admin.erp.procurement.returns.store',
             'admin.erp.procurement.returns.post',
+            'admin.erp.procurement.rfqs.store',
+            'admin.erp.procurement.rfqs.publish',
+            'admin.erp.procurement.rfqs.quotes.store',
+            'admin.erp.procurement.rfqs.award',
+            'admin.erp.procurement.contracts.store',
+            'admin.erp.procurement.matching.refresh',
+            'admin.erp.procurement.matching.decision',
+            'admin.erp.procurement.reports.export',
+            'supplier.procurement.index',
+            'supplier.procurement.quote',
         ] as $name) {
             $this->assertTrue(Route::has($name), 'Missing procurement UI route: '.$name);
         }
@@ -220,6 +333,8 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             'procurement.purchase_returns.manage',
             'procurement.purchase_returns.post',
             'procurement.supplier_statements.view',
+            'reports.view',
+            'reports.export',
         ];
     }
 }
