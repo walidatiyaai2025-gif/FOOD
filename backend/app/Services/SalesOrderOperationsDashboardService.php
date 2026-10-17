@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -332,7 +333,7 @@ final class SalesOrderOperationsDashboardService
         ];
     }
 
-    public function applyExceptionFilter(Builder $query, string $exception): void
+    public function applyExceptionFilter(Builder|EloquentBuilder $query, string $exception): void
     {
         if (! in_array($exception, self::EXCEPTIONS, true)) {
             return;
@@ -413,7 +414,7 @@ final class SalesOrderOperationsDashboardService
             ->where(function (Builder $scope) use ($scopes): void {
                 $hasScope = false;
                 foreach (['b2b', 'b2c'] as $channel) {
-                    $ids = array_values(array_unique(array_map('intval', $scopes[$channel] ?? [])));
+                    $ids = array_values(array_unique(array_map('intval', $scopes[$channel])));
                     if ($ids === []) {
                         continue;
                     }
