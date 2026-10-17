@@ -32,6 +32,7 @@ final class RestaurantOperatorService
         private readonly RestaurantControlPlaneService $controlPlane,
         private readonly ModuleHealthService $health,
         private readonly AuditLogger $audit,
+        private readonly RestaurantGrowthScaleService $growthScale,
     ) {}
 
     /** @return Collection<int, Store> */
@@ -286,6 +287,7 @@ final class RestaurantOperatorService
         $profile->forceFill($values)->save();
 
         $revokedSupportSessions = 0;
+        $revokedExternalAccess = ['api_clients' => 0, 'integrations' => 0, 'webhooks' => 0];
         if ($targetState === 'OFFBOARDED') {
             RestaurantSupportAccessGrant::query()
                 ->where('store_id', $store->getKey())
@@ -305,6 +307,7 @@ final class RestaurantOperatorService
                     'revoked_reason' => 'restaurant_offboarded',
                     'updated_at' => now(),
                 ]);
+            $revokedExternalAccess = $this->growthScale->revokeStoreExternalAccess($store);
         }
 
         $profile = $profile->fresh();
@@ -320,6 +323,7 @@ final class RestaurantOperatorService
                 'canceled_at' => $this->isoTimestamp($profile->canceled_at),
                 'offboarded_at' => $this->isoTimestamp($profile->offboarded_at),
                 'revoked_support_session_count' => $revokedSupportSessions,
+                'revoked_external_access' => $revokedExternalAccess,
                 'business_data_deleted' => false,
             ],
             $request,
