@@ -24,11 +24,46 @@
 <div class="head"><div><h2>{{ __('admin.security.users_title') }}</h2><div class="muted">{{ __('admin.security.users_description') }}</div></div><span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span></div>
 <form method="get" class="filters"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
 
+@php
+$roleLabel = static function ($role): string {
+    if (! $role) {
+        return '—';
+    }
+
+    $key = 'admin.role_names.'.$role->code;
+
+    return \Illuminate\Support\Facades\Lang::has($key) ? __($key) : $role->name;
+};
+@endphp
 @forelse($users as $managedUser)
 <article class="card">
-<div class="head"><div><h3 style="margin:0">{{ $managedUser->name }}</h3><div class="muted">{{ $managedUser->email }} · <strong>{{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}:</strong> {{ $managedUser->username ?: '—' }}</div><div><span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@foreach($managedUser->roles as $role)<span class="badge">{{ $role->name }} <small>({{ $role->code }})</small></span>@endforeach @foreach($managedUser->storeRoleAssignments as $a)<span class="badge">{{ $a->store?->name }} · {{ $a->role?->name }} <small>({{ $a->role?->code }})</small></span>@endforeach <span class="badge {{ $mfaByUser->has($managedUser->id)?'active':'inactive' }}">{{ $mfaByUser->has($managedUser->id)?__('security_governance.mfa_admin.enabled'):__('security_governance.mfa_admin.missing') }}</span></div>
-@if($ssoByUser->has($managedUser->id))<div class="muted">{{ __('security_governance.sso.identity') }}: @foreach($ssoByUser->get($managedUser->id) as $identity)<span dir="ltr">{{ $identity->provider }} · {{ $identity->subject }}</span>@if(!$loop->last) · @endif @endforeach</div>@endif
-@if(!$managedUser->is_active&&$managedUser->deactivation_reason)<div class="muted">{{ __('admin.security.reason') }}: {{ $managedUser->deactivation_reason }}</div>@endif</div>
+<div class="head">
+<div>
+<h3 style="margin:0">{{ $managedUser->name }}</h3>
+<div class="muted">
+    {{ $managedUser->email }} · <strong>{{ __('admin.security.username') }}:</strong> {{ $managedUser->username ?: '—' }}
+</div>
+<div>
+    <span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>
+    @foreach($managedUser->roles as $role)
+        <span class="badge">{{ $roleLabel($role) }} <small>({{ $role->code }})</small></span> {{-- localization-gate: allow technical RBAC role identifier --}}
+    @endforeach
+    @foreach($managedUser->storeRoleAssignments as $a)
+        <span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }} <small>({{ $a->role?->code }})</small></span> {{-- localization-gate: allow technical RBAC role identifier --}}
+    @endforeach
+    <span class="badge {{ $mfaByUser->has($managedUser->id)?'active':'inactive' }}">{{ $mfaByUser->has($managedUser->id)?__('security_governance.mfa_admin.enabled'):__('security_governance.mfa_admin.missing') }}</span>
+</div>
+@if($ssoByUser->has($managedUser->id))
+    <div class="muted">
+        {{ __('security_governance.sso.identity') }}:
+        @foreach($ssoByUser->get($managedUser->id) as $identity)
+            <span dir="ltr">{{ $identity->provider }} · {{ $identity->subject }}</span> {{-- localization-gate: allow external SSO provider and subject identifiers --}}
+            @if(!$loop->last) · @endif
+        @endforeach
+    </div>
+@endif
+@if(!$managedUser->is_active&&$managedUser->deactivation_reason)<div class="muted">{{ __('admin.security.reason') }}: {{ $managedUser->deactivation_reason }}</div>@endif
+</div>
 @can('users.status.manage')<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" onsubmit="return confirm('{{ $managedUser->is_active?__('admin.security.confirm_deactivate'):__('admin.security.confirm_activate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="{{ $managedUser->is_active?0:1 }}">@if($managedUser->is_active)<input type="text" name="reason" maxlength="500" placeholder="{{ __('admin.security.optional_reason') }}"><button class="btn danger">{{ __('admin.security.deactivate') }}</button>@else<button class="btn success">{{ __('admin.security.activate') }}</button>@endif</form>@endcan
 </div>
 @can('users.roles.manage')
