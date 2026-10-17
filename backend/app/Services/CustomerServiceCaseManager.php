@@ -139,7 +139,7 @@ final class CustomerServiceCaseManager
                 $this->metric('open_cases', $openCases, route('admin.erp.customer-service', ['status' => 'open']), $lastRefresh),
                 $this->metric('overdue_sla', $overdueCases, route('admin.erp.customer-service', ['sla' => 'overdue']), $lastRefresh),
                 $this->metric('high_risk_customers', $highRiskCustomers, route('admin.erp.customer-service', ['risk' => 'high']), $lastRefresh),
-                $this->metric('unresolved_conversations', $unresolvedConversations, route('admin.whatsapp-inbox.index'), $lastRefresh),
+                $this->metric('unresolved_conversations', $unresolvedConversations, $conversationStoreIds === [] ? route('admin.erp.customer-service') : route('admin.whatsapp-inbox.index'), $lastRefresh),
                 $this->metric('recent_complaints', $recentComplaints, route('admin.erp.customer-service', ['type' => 'complaint']), $lastRefresh),
             ],
             'charts' => [
