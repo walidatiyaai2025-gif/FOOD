@@ -176,6 +176,19 @@ return new class extends Migration {
             $table->index(['rfq_id', 'status', 'total_amount', 'id'], 'epquote_rfq_status_idx');
         });
 
+        Schema::create('enterprise_procurement_quote_documents', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('quote_id')->constrained('enterprise_procurement_quotes')->cascadeOnDelete();
+            $table->string('title', 190);
+            $table->string('storage_path', 500);
+            $table->string('original_name', 255);
+            $table->string('mime_type', 120)->nullable();
+            $table->unsignedBigInteger('size_bytes');
+            $table->timestamps();
+
+            $table->index(['quote_id', 'id'], 'epqd_quote_idx');
+        });
+
         Schema::create('enterprise_procurement_quote_lines', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('quote_id')->constrained('enterprise_procurement_quotes')->cascadeOnDelete();
@@ -250,6 +263,7 @@ return new class extends Migration {
         });
 
         Schema::dropIfExists('enterprise_procurement_quote_lines');
+        Schema::dropIfExists('enterprise_procurement_quote_documents');
         Schema::dropIfExists('enterprise_procurement_quotes');
         Schema::dropIfExists('enterprise_procurement_rfq_invitations');
         Schema::dropIfExists('enterprise_procurement_rfq_lines');
