@@ -46,6 +46,7 @@ final class RestaurantSaasStoreFeatureService
         User $actor,
         ?Request $request = null,
     ): void {
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
         $this->assertRetailStore($store);
         $before = $this->isEnabled($store);
         $this->modules->syncManifest(SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE);
