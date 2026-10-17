@@ -48,7 +48,8 @@
         .fieldops-chart{display:grid;gap:9px}.fieldops-bar-row{display:grid;grid-template-columns:minmax(92px,1.2fr) 3fr auto;gap:10px;align-items:center}
         .fieldops-bar-track{height:10px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.fieldops-bar-fill{height:100%;background:var(--foodex-primary);border-radius:inherit}
         .fieldops-exception-type{font-weight:800}.fieldops-kpi[data-alert="true"]{border-color:var(--foodex-red)}
-        @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}\n        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}\n    </style>
+        @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}\n    </style>
 </head>
 <body>
 <div class="foodex-admin-layout" data-field-operations-page="{{ $section }}">
