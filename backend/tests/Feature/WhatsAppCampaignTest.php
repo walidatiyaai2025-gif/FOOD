@@ -301,7 +301,15 @@ final class WhatsAppCampaignTest extends TestCase
             ->assertOk()
             ->assertSee('Messaging operations overview')
             ->assertSee('provider-confirmed only')
+            ->assertSee('dir="ltr"', false)
             ->assertSee('foodex-module-overview', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-campaigns.index'))
+            ->assertOk()
+            ->assertSee('نظرة تشغيلية موحّدة للرسائل')
+            ->assertSee('dir="rtl"', false);
     }
 
     public function test_campaign_lifecycle_mutations_write_audit_events(): void
