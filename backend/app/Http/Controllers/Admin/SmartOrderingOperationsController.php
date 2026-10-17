@@ -15,7 +15,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\SmartOrderingOrderContext;
 use App\Models\User;
-use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Carbon\Carbon;
 use DateTimeImmutable;
@@ -30,7 +29,6 @@ use Illuminate\View\View;
 final class SmartOrderingOperationsController extends Controller
 {
     public function __construct(
-        private readonly OperationalTenantScope $scope,
         private readonly RestaurantSaasStoreAccess $restaurantAccess,
         private readonly AdminNavigation $navigation,
         private readonly LifecycleService $lifecycle,
