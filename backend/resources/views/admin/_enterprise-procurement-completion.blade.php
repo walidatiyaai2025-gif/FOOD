@@ -280,14 +280,15 @@ $exceptionLabels=[
 @if($contract->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.contracts.activate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_procurement.activate') }}</button></form>@endif
 @if(in_array($contract->status,['draft','active'],true))<form method="post" action="{{ route('admin.erp.procurement.contracts.terminate',$contract->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.terminate') }}</button></form>@endif
 </div>
-<form method="post" action="{{ route('admin.erp.procurement.contracts.documents.store',$contract->id) }}" class="erp-form">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
+<form method="post" action="{{ route('admin.erp.procurement.contracts.documents.store',$contract->id) }}" class="erp-form" enctype="multipart/form-data">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
 <label>{{ __('enterprise_procurement.document_title') }}<input name="title" maxlength="190" required></label>
 <label class="span-2">{{ __('enterprise_procurement.document_reference') }}<input name="reference" maxlength="190"></label>
+<label class="span-2">{{ __('enterprise_procurement.attachment') }}<input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.doc,.docx"></label>
 <div><button class="foodex-primary">{{ __('enterprise_procurement.register_document') }}</button></div>
 </form>
 @endif
 <h3>{{ __('enterprise_procurement.documents') }}</h3>
-<div class="erp-lines">@forelse($contractDetail['documents'] as $document)<div class="erp-line"><strong>{{ $document->title }}</strong><span>{{ $document->reference ?: '—' }}</span><span>{{ $document->created_at }}</span><span></span></div>@empty<p>{{ __('enterprise_procurement.empty') }}</p>@endforelse</div>
+<div class="erp-lines">@forelse($contractDetail['documents'] as $document)<div class="erp-line"><strong>{{ $document->title }}</strong><span>{{ $document->reference ?: '—' }}</span><span>{{ $document->original_name ?: '—' }}</span><span>@if($document->storage_path)<a class="erp-link" href="{{ route('admin.erp.procurement.contracts.documents.download',['contract'=>$contract->id,'document'=>$document->id,'store_id'=>$selectedStoreId]) }}">{{ __('enterprise_procurement.download') }}</a>@endif</span></div>@empty<p>{{ __('enterprise_procurement.empty') }}</p>@endforelse</div>
 </section>
 @endif
 @endif
