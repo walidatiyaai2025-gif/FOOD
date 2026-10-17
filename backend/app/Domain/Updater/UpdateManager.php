@@ -94,7 +94,7 @@ final class UpdateManager
                 ['version' => $currentVersion],
                 [
                     'version' => $manifest->targetVersion,
-                    'file_backup_reference' => $fileBackup === null ? null : basename($fileBackup),
+                    'file_backup_reference' => basename($fileBackup),
                     'database_backup_reference' => $databaseBackup === null ? null : basename($databaseBackup),
                 ],
             );
