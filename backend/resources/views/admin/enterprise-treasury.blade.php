@@ -119,7 +119,7 @@ $moduleDashboardFilters=[
 </div>
 <div class="foodex-module-kpis">
 @foreach(($dashboard['kpis'] ?? []) as $kpi)
-@include('admin._module-dashboard-kpi',['kpi'=>$kpi])
+@include('admin._module-dashboard-kpi',['metric'=>$kpi])
 @endforeach
 </div>
 
@@ -166,7 +166,7 @@ $maxTrend=max(1,$trendRows->map(fn($row)=>max((float)$row['inflow'],(float)$row[
 <h2 id="treasury-cheque-title">{{ __('enterprise_treasury.dashboard.cheque_maturity') }}</h2>
 @php $chequeRows=collect($dashboard['cheque_maturity'] ?? []); $maxCheque=max(1,(int)($chequeRows->max('count') ?? 1)); @endphp
 <div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.cheque_maturity') }}">@foreach($chequeRows as $row)<span class="foodex-viz-bar" data-series="{{ $row['bucket']==='overdue'?4:($row['bucket']==='next_7_days'?3:1) }}" style="height:{{ max(8,(int)round(((int)$row['count'])/$maxCheque*100)) }}%" title="{{ $row['bucket'] }} · {{ $row['count'] }}"></span>@endforeach</div>
-<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><tbody>@foreach($chequeRows as $row)<tr><th>{{ str_replace('_',' ',$row['bucket']) }}</th><td>{{ $row['count'] }}</td></tr>@endforeach</tbody></table></div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><tbody>@foreach($chequeRows as $row)<tr><th>{{ __('enterprise_treasury.dashboard.maturity_buckets.'.$row['bucket']) }}</th><td>{{ $row['count'] }}</td></tr>@endforeach</tbody></table></div>
 </section>
 
 <section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-forecast-title">
@@ -305,8 +305,15 @@ $maxTrend=max(1,$trendRows->map(fn($row)=>max((float)$row['inflow'],(float)$row[
 ] as $reportKey=>$columns)
 <section class="foodex-card erp-chart-card">
 <h3>{{ __('enterprise_treasury.reports.'.$reportKey) }}</h3>
-<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr>@foreach($columns as $column)<th>{{ str_replace('_',' ',$column) }}</th>@endforeach</tr></thead><tbody>
-@forelse(collect($reports[$reportKey] ?? [])->take(20) as $row)<tr>@foreach($columns as $column)<td>{{ is_scalar($row[$column] ?? null)?$row[$column]:'—' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($columns) }}">{{ __('enterprise_treasury.empty') }}</td></tr>@endforelse
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr>@foreach($columns as $column)<th>{{ __('enterprise_treasury.reports.columns.'.$column) }}</th>@endforeach</tr></thead><tbody>
+@forelse(collect($reports[$reportKey] ?? [])->take(20) as $row)<tr>@foreach($columns as $column)@php
+$cell=$row[$column] ?? null;
+if($column==='status' && is_string($cell)){$cell=$statusLabel($cell);}
+elseif($column==='source' && is_string($cell)){$cell=__('enterprise_treasury.forecast.sources.'.$cell);}
+elseif($column==='direction' && is_string($cell)){$cell=__('enterprise_treasury.cheques.'.$cell);}
+elseif($column==='severity' && is_string($cell)){$cell=__('enterprise_treasury.reports.severity.'.$cell);}
+elseif($column==='basis' && $cell==='posted_treasury_ledger'){$cell=__('enterprise_treasury.reports.posted_ledger');}
+@endphp<td>{{ is_scalar($cell)?$cell:'—' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($columns) }}">{{ __('enterprise_treasury.empty') }}</td></tr>@endforelse
 </tbody></table></div>
 </section>
 @endforeach
