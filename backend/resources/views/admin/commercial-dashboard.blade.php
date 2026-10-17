@@ -20,7 +20,7 @@
         html[dir=ltr] .commercial-admin-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .commercial-admin-layout>.sidebar{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
         html[dir=ltr] .commercial-admin-layout>.commercial-shell{grid-column:2;direction:ltr}
-        .commercial-shell{width:100%;max-width:none!important;margin:0;padding:var(--foodex-space-6) clamp(var(--foodex-space-4),2vw,var(--foodex-space-8)) var(--foodex-space-8);display:grid;gap:var(--foodex-space-4)}
+        .commercial-shell{width:100%;max-width:none!important;min-width:0;margin:0;padding:var(--foodex-space-6) clamp(var(--foodex-space-4),2vw,var(--foodex-space-8)) var(--foodex-space-8);display:grid;grid-template-columns:minmax(0,1fr);gap:var(--foodex-space-4)}
         .commercial-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);flex-wrap:wrap}
         .commercial-page-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem);font-weight:800;line-height:1.2}
         .commercial-page-header p{margin:0;color:var(--foodex-muted);max-width:760px}
@@ -37,7 +37,7 @@
         .control-list{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:10px;margin-top:12px}\n        .control-list>*{min-width:0;max-width:100%}
         .control-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--foodex-border);flex-wrap:wrap}
         .disabled-action{opacity:.55;cursor:not-allowed}
-        .commercial-card{padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
+        .commercial-card{min-width:0;max-width:100%;padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
         .commercial-card h2,.commercial-card h3{margin-top:0}
         .feature-flags-card{display:grid;gap:14px}
         .feature-flags-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
