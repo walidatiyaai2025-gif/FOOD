@@ -39,6 +39,7 @@ return [
                 'analytics',
                 'loyalty',
                 'reviews',
+                'reservations',
                 'advanced_upsell',
                 'multi_branch',
                 'custom_domain',
