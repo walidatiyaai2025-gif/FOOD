@@ -475,6 +475,73 @@ final class CustomerServiceCaseManager
         return in_array($storeId, $this->manageStoreIds($actor), true);
     }
 
+    /** @return Collection<int,object> */
+    public function storeOptions(User $actor, bool $manage = false): Collection
+    {
+        $ids = $manage ? $this->manageStoreIds($actor) : $this->viewStoreIds($actor);
+
+        return $ids === []
+            ? collect()
+            : DB::table('stores')->whereIn('id', $ids)->orderBy('name')->get(['id', 'name', 'code']);
+    }
+
+    /** @return Collection<int,object> */
+    public function customerOptions(User $actor, ?string $search = null, int $limit = 50): Collection
+    {
+        $storeIds = $this->viewStoreIds($actor);
+        if ($storeIds === []) {
+            return collect();
+        }
+
+        $query = $this->visibleCustomersQuery($storeIds);
+        $term = trim((string) $search);
+        if ($term !== '') {
+            $needle = '%'.addcslashes($term, '%_\\').'%';
+            $query->where(function ($searchQuery) use ($needle): void {
+                $searchQuery->where('pc.name', 'like', $needle)
+                    ->orWhere('pc.email', 'like', $needle)
+                    ->orWhere('pc.phone', 'like', $needle);
+            });
+        }
+
+        return $query
+            ->distinct()
+            ->orderBy('pc.name')
+            ->limit(max(1, min(100, $limit)))
+            ->get(['pc.id', 'pc.name', 'pc.email', 'pc.phone', 'pc.origin_store_id']);
+    }
+
+    /** @return Collection<int,object> */
+    public function agentOptions(User $actor): Collection
+    {
+        $storeIds = $this->manageStoreIds($actor);
+        if ($storeIds === []) {
+            return collect();
+        }
+
+        return User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->filter(function (User $agent) use ($storeIds): bool {
+                if ($agent->hasRole('SUPER_ADMIN')) {
+                    return true;
+                }
+
+                foreach ($storeIds as $storeId) {
+                    if (
+                        $agent->hasPermission('customers.view', $storeId)
+                        || $agent->hasPermission('whatsapp.inbox.view', $storeId)
+                    ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->values();
+    }
+
     /**
      * @param array<string,mixed> $filters
      * @return array{rows:list<array<string,mixed>>,total:int}
