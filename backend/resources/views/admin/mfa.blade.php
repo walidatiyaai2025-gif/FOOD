@@ -12,9 +12,10 @@ body{margin:0;background:var(--foodex-background)}.mfa-layout{min-height:100vh}.
 <div class="foodex-admin-layout mfa-layout" data-foodex-mobile-web-page="mfa">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page mfa-shell">
-<header class="foodex-page-header mfa-header">
+@include('admin._global-header')
+<div class="foodex-page-toolbar mfa-header">
 <h1>{{ __('security_governance.mfa.title') }}</h1>
-</header>
+</div>
 <section class="mfa-card">
 @if(session('status'))<div role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
