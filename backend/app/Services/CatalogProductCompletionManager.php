@@ -626,7 +626,7 @@ final class CatalogProductCompletionManager
             'margin_exceptions' => $this->marginExceptionReport($storeId, $limit, $offset),
             'lifecycle' => $this->lifecycleReport($storeId, $limit, $offset),
             'data_quality' => $this->dataQualityReport($storeId, $limit, $offset),
-            default => throw ValidationException::withMessages(['report' => ['Unsupported catalog report.']]),
+            default => throw ValidationException::withMessages(['report' => [__('catalog_completion.validation.unsupported_report')]]),
         };
 
         return ['rows' => $rows];
@@ -668,14 +668,14 @@ final class CatalogProductCompletionManager
                 ->groupBy('categories.id', 'categories.name')
                 ->orderByDesc(DB::raw('COUNT(products.id)'))
                 ->limit(10)
-                ->get([DB::raw("COALESCE(categories.name, 'Uncategorized') as label"), DB::raw('COUNT(products.id) as value')]);
+                ->get([DB::raw("COALESCE(categories.name, '') as label"), DB::raw('COUNT(products.id) as value')]);
         } else {
             $rows = $query
                 ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
                 ->groupBy('brands.id', 'brands.name')
                 ->orderByDesc(DB::raw('COUNT(products.id)'))
                 ->limit(10)
-                ->get([DB::raw("COALESCE(brands.name, 'Unbranded') as label"), DB::raw('COUNT(products.id) as value')]);
+                ->get([DB::raw("COALESCE(brands.name, '') as label"), DB::raw('COUNT(products.id) as value')]);
         }
 
         return $rows->map(static fn (object $row): array => [
@@ -735,7 +735,7 @@ final class CatalogProductCompletionManager
                 ->groupBy('categories.id', 'categories.name')
                 ->orderByDesc(DB::raw('SUM(items.line_total)'))
                 ->limit(10)
-                ->get([DB::raw("COALESCE(categories.name, 'Uncategorized') as label"), DB::raw('SUM(items.line_total) as value')]);
+                ->get([DB::raw("COALESCE(categories.name, '') as label"), DB::raw('SUM(items.line_total) as value')]);
         } else {
             $rows = $query
                 ->groupBy('products.id', 'products.name')
@@ -841,9 +841,9 @@ final class CatalogProductCompletionManager
             ->limit($limit)
             ->get([
                 'categories.id as category_id',
-                DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                DB::raw("COALESCE(categories.name, '') as category"),
                 'brands.id as brand_id',
-                DB::raw("COALESCE(brands.name, 'Unbranded') as brand"),
+                DB::raw("COALESCE(brands.name, '') as brand"),
                 DB::raw('SUM(items.quantity) as quantity'),
                 DB::raw('SUM(items.line_total) as revenue'),
                 DB::raw('SUM(CASE WHEN assignment.cost_price IS NULL THEN 0 ELSE (items.unit_price - assignment.cost_price) * items.quantity END) as margin'),
@@ -978,7 +978,7 @@ final class CatalogProductCompletionManager
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $storeIds), static fn (int $id): bool => $id > 0)));
         if ($ids === []) {
-            throw ValidationException::withMessages(['store_id' => ['A catalog store scope is required.']]);
+            throw ValidationException::withMessages(['store_id' => [__('catalog_completion.validation.store_scope_required')]]);
         }
 
         return $ids;
@@ -1053,7 +1053,7 @@ final class CatalogProductCompletionManager
             'date' => $this->dateValue($raw, (int) $definition->id),
             'select' => $this->selectValue($raw, $allowed, (int) $definition->id),
             'multi_select' => $this->multiSelectValue($raw, $allowed, (int) $definition->id),
-            default => throw ValidationException::withMessages(['attributes.'.$definition->id => ['Unsupported attribute type.']]),
+            default => throw ValidationException::withMessages(['attributes.'.$definition->id => [__('catalog_completion.validation.unsupported_attribute_type')]]),
         };
     }
 
