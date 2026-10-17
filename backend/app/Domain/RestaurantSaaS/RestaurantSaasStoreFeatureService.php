@@ -96,8 +96,8 @@ final class RestaurantSaasStoreFeatureService
                 ModuleState::INSTALLED => ModuleState::DISABLED,
                 ModuleState::DISABLED, ModuleState::ERROR => ModuleState::ENABLING,
                 ModuleState::ENABLING => ModuleState::ENABLED,
-                ModuleState::SUSPENDED, ModuleState::MAINTENANCE => ModuleState::ENABLED,
-                ModuleState::ENABLED => ModuleState::ENABLED,
+                ModuleState::SUSPENDED => ModuleState::ENABLED,
+                default => ModuleState::ENABLED,
             };
 
             $this->lifecycle->transition(
