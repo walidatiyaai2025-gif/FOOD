@@ -143,6 +143,7 @@ final class ProcurementCompletionManager
         $spendBySupplier = $canInvoices ? $this->spendBySupplier($storeId, $from, $to) : [];
         $spendByCategory = $canInvoices ? $this->spendByCategory($storeId, $from, $to) : [];
         $poStatuses = $canOrders ? $this->purchaseOrderStatusChart($storeId) : [];
+        $poAging = $canOrders ? $this->purchaseOrderAgingChart($storeId) : [];
         $supplierPerformance = $canOrders ? $this->supplierPerformance($storeId, $from, $to) : [];
         $savings = $canRequests ? $this->savingsChart($storeId, $from, $to) : [];
         $contractHorizon = $canOrders ? $this->contractExpiryHorizon($storeId) : [];
@@ -157,6 +158,7 @@ final class ProcurementCompletionManager
                 'spend_by_supplier' => $spendBySupplier,
                 'spend_by_category' => $spendByCategory,
                 'po_status' => $poStatuses,
+                'po_aging' => $poAging,
                 'supplier_performance' => $supplierPerformance,
                 'savings' => $savings,
                 'contract_expiry' => $contractHorizon,
@@ -1622,6 +1624,45 @@ final class ProcurementCompletionManager
             ->orderBy('status')
             ->get()
             ->map(fn ($row): array => ['label' => $row->label, 'value' => (int) $row->value])
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function purchaseOrderAgingChart(int $storeId): array
+    {
+        $today = CarbonImmutable::today();
+        $buckets = ['current' => 0, '1_7' => 0, '8_30' => 0, '31_60' => 0, '61_plus' => 0];
+
+        DB::table('enterprise_purchase_orders')
+            ->where('store_id', $storeId)
+            ->where('status', 'issued')
+            ->orderBy('id')
+            ->select(['id', 'needed_by', 'created_at'])
+            ->chunkById(250, function ($orders) use (&$buckets, $today): void {
+                foreach ($orders as $order) {
+                    $anchor = $order->needed_by !== null
+                        ? CarbonImmutable::parse((string) $order->needed_by)->startOfDay()
+                        : CarbonImmutable::parse((string) $order->created_at)->startOfDay();
+
+                    if ($anchor->greaterThanOrEqualTo($today)) {
+                        $buckets['current']++;
+                        continue;
+                    }
+
+                    $days = (int) $anchor->diffInDays($today);
+                    $bucket = match (true) {
+                        $days <= 7 => '1_7',
+                        $days <= 30 => '8_30',
+                        $days <= 60 => '31_60',
+                        default => '61_plus',
+                    };
+                    $buckets[$bucket]++;
+                }
+            }, 'id');
+
+        return collect($buckets)
+            ->map(fn (int $value, string $label): array => ['label' => $label, 'value' => $value])
+            ->values()
             ->all();
     }
 
