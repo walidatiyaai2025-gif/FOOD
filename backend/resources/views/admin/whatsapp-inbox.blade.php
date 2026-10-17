@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}
 :root{--wa-green:var(--foodex-green);--wa-green-dark:var(--foodex-action-green);--wa-green-soft:var(--foodex-green-soft);--wa-ink:var(--foodex-ink);--wa-muted:var(--foodex-muted);--wa-border:var(--foodex-border);--wa-bg:var(--foodex-background);--wa-panel:var(--foodex-surface);--wa-shadow:0 8px 24px rgba(15,23,42,.08)}
-.wa-inbox-main{min-width:0}.wa-shell-marker{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.wa-inbox-main{min-width:0}.wa-shell-marker{display:none!important}
 .wa-flash{position:fixed;z-index:10020;top:12px;left:50%;transform:translateX(-50%);max-width:min(680px,calc(100vw - 32px));padding:10px 16px;border:1px solid var(--wa-border);border-radius:10px;background:var(--foodex-surface);box-shadow:var(--wa-shadow);font-size:13px}.wa-flash.error{color:var(--foodex-red)}
 .wa-golden-workspace{display:grid;grid-template-areas:"context thread rail";grid-template-columns:448px minmax(0,1fr) 379px;width:100%;min-width:0;background:var(--foodex-surface);color:var(--wa-ink)}
 html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
