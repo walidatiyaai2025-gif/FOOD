@@ -106,8 +106,17 @@ async function captureCase(page, locale, entry, state, width, height) {
   for (const selector of entry.required) {
     const locator = page.locator(selector);
     if ((await locator.count()) < 1) {
+      const diagnostic = await page.evaluate(() => ({
+        path: window.location.pathname,
+        section: document.querySelector('[data-field-operations-page]')?.getAttribute('data-field-operations-page') ?? null,
+        isSuper: document.body.getAttribute('data-fieldops-super'),
+        canManageVan: document.body.getAttribute('data-fieldops-can-manage-van'),
+        tableRows: document.querySelectorAll('.foodex-ops-grid tbody tr').length,
+        actionMenus: document.querySelectorAll('details.foodex-ops-actions').length,
+        selects: document.querySelectorAll('select').length,
+      }));
       throw new Error(
-        `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state})`,
+        `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state}) · ${JSON.stringify(diagnostic)}`,
       );
     }
   }
