@@ -6,6 +6,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\GoodsReceiptManager;
+use App\Enterprise\Procurement\ProcurementCompletionManager;
 use App\Enterprise\Procurement\PurchaseInvoiceHandoffManager;
 use App\Enterprise\Procurement\PurchaseOrderManager;
 use App\Enterprise\Procurement\PurchaseRequestManager;
@@ -282,6 +283,57 @@ final class EnterprisePurchaseInvoiceHandoffFoundationTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $manager->cancel($actor, $context, $handed->id);
+    }
+
+    public function test_value_variance_requires_explicit_three_way_match_review_before_finance_handoff(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'PINV-MATCH');
+        [, $warehouse] = $this->stockTarget($store, 'PINV-MATCH-SKU');
+        $receipt = $this->postedReceipt($actor, $context, $warehouse, 'PINV-MATCH-SUP', 'PINV-MATCH-SKU', 2);
+        $receiptLine = $receipt->lines()->firstOrFail();
+
+        $manager = app(PurchaseInvoiceHandoffManager::class);
+        $invoice = $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+            'supplier_invoice_number' => 'SUP-INV-MATCH',
+            'invoice_date' => '2026-10-16',
+            'lines' => [[
+                'goods_receipt_line_id' => $receiptLine->id,
+                'quantity' => 2,
+                'unit_price' => 1.500,
+            ]],
+        ]);
+
+        $this->assertDatabaseHas('enterprise_procurement_match_reviews', [
+            'purchase_invoice_id' => $invoice->id,
+            'status' => 'pending',
+            'quantity_variance' => 0,
+            'value_variance' => 0.5,
+        ]);
+
+        try {
+            $manager->handoff($actor, $context, $invoice->id);
+            $this->fail('A value mismatch must block Finance handoff until explicitly reviewed.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('three_way_match', $exception->errors());
+        }
+
+        app(ProcurementCompletionManager::class)->reviewMatch(
+            $actor,
+            $context,
+            $invoice->id,
+            ['decision' => 'approve', 'note' => 'Supplier invoice price accepted.'],
+        );
+
+        $handedOff = $manager->handoff($actor, $context, $invoice->id);
+        $this->assertSame('handed_off', $handedOff->status);
+        $this->assertDatabaseHas('enterprise_procurement_match_reviews', [
+            'purchase_invoice_id' => $invoice->id,
+            'status' => 'approved',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'enterprise.procurement.three_way_match.reviewed',
+        ]);
     }
 
     public function test_purchase_invoice_migration_is_reversible(): void
