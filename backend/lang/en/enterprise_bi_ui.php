@@ -130,6 +130,10 @@ return [
             'title' => 'Stock exposure',
             'description' => 'Warehouse/product stock, aging, availability and valuation using the current authoritative inventory state.',
         ],
+        'field_operations' => [
+            'title' => 'Field Operations delivery performance',
+            'description' => 'Store-scoped Van delivery SLA, workload, failures and territory performance from the canonical Field Operations authority.',
+        ],
         'procurement_open_orders' => [
             'title' => 'Procurement open & overdue POs',
             'description' => 'Open purchase orders, expected dates, values and overdue age from canonical Procurement.',
@@ -166,6 +170,9 @@ return [
         'branch' => 'Branch',
         'supplier' => 'Supplier',
         'warehouse' => 'Warehouse',
+        'van' => 'Van',
+        'territory' => 'Territory',
+        'failure' => 'Failure reason',
     ],
     'fields' => [
         'date' => 'Date',
@@ -221,6 +228,14 @@ return [
         'supplier_invoice_number' => 'Supplier invoice',
         'quantity_variance' => 'Quantity variance',
         'value_variance' => 'Value variance',
+        'van_id' => 'Van',
+        'territory' => 'Territory',
+        'failure_reason' => 'Failure reason',
+        'deliveries' => 'Deliveries',
+        'completed' => 'Completed',
+        'failed' => 'Failed',
+        'on_time' => 'On time',
+        'late' => 'Late',
     ],
     'statuses' => [
         'queued' => 'Queued',
