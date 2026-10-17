@@ -34,6 +34,32 @@
     .back{color:var(--foodex-green-dark)!important;box-shadow:none}
     .badge.active,.active.badge{background:var(--foodex-green-soft)!important;color:var(--foodex-green-dark)!important}
 
+    /* Shared semantic status / priority vocabulary. Text remains authoritative; color only reinforces meaning. */
+    .foodex-status-badge,.foodex-priority-badge{--foodex-badge-bg:#f6f8fa;--foodex-badge-fg:var(--foodex-ink);--foodex-badge-border:var(--foodex-border);display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:28px;max-width:100%;padding:4px 9px;border:1px solid var(--foodex-badge-border);border-radius:999px;background:var(--foodex-badge-bg)!important;color:var(--foodex-badge-fg)!important;font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);line-height:1.2;white-space:normal;text-align:center}
+    .foodex-status-badge[data-tone="success"],.foodex-status-badge[data-state="active"],.foodex-status-badge[data-state="approved"],.foodex-status-badge[data-state="completed"],.foodex-status-badge[data-state="delivered"],.foodex-status-badge[data-state="paid"],.foodex-status-badge[data-state="posted"],.foodex-status-badge[data-state="confirmed"],.foodex-status-badge[data-state="ready"],.foodex-status-badge[data-state="success"]{--foodex-badge-bg:var(--foodex-green-soft);--foodex-badge-fg:var(--foodex-green-dark);--foodex-badge-border:#b7dfc4}
+    .foodex-status-badge[data-tone="warning"],.foodex-status-badge[data-state="pending"],.foodex-status-badge[data-state="draft"],.foodex-status-badge[data-state="processing"],.foodex-status-badge[data-state="assigned"],.foodex-status-badge[data-state="awaiting_dispatch"],.foodex-status-badge[data-state="scheduled"],.foodex-status-badge[data-state="warning"]{--foodex-badge-bg:var(--foodex-orange-soft);--foodex-badge-fg:#8a4308;--foodex-badge-border:#ffd0a6}
+    .foodex-status-badge[data-tone="danger"],.foodex-status-badge[data-state="failed"],.foodex-status-badge[data-state="cancelled"],.foodex-status-badge[data-state="canceled"],.foodex-status-badge[data-state="inactive"],.foodex-status-badge[data-state="blocked"],.foodex-status-badge[data-state="rejected"],.foodex-status-badge[data-state="error"]{--foodex-badge-bg:var(--foodex-danger-soft);--foodex-badge-fg:var(--foodex-danger-text);--foodex-badge-border:#f2b8b5}
+    .foodex-status-badge[data-tone="info"],.foodex-status-badge[data-state="open"],.foodex-status-badge[data-state="in_progress"],.foodex-status-badge[data-state="picked_up"],.foodex-status-badge[data-state="out_for_delivery"]{--foodex-badge-bg:#eef6ff;--foodex-badge-fg:#245a8d;--foodex-badge-border:#c6ddf4}
+    .foodex-priority-badge[data-priority="critical"],.foodex-priority-badge[data-priority="high"]{--foodex-badge-bg:var(--foodex-danger-soft);--foodex-badge-fg:var(--foodex-danger-text);--foodex-badge-border:#f2b8b5}
+    .foodex-priority-badge[data-priority="medium"]{--foodex-badge-bg:var(--foodex-orange-soft);--foodex-badge-fg:#8a4308;--foodex-badge-border:#ffd0a6}
+    .foodex-priority-badge[data-priority="low"]{--foodex-badge-bg:var(--foodex-green-soft);--foodex-badge-fg:var(--foodex-green-dark);--foodex-badge-border:#b7dfc4}
+
+    /* Shared sequential workflow pattern. Native buttons preserve keyboard/focus semantics. */
+    .foodex-stepper{display:grid;grid-template-columns:repeat(var(--foodex-step-columns,4),minmax(0,1fr));gap:var(--foodex-space-2);min-width:0;max-width:100%;margin-block:2px 4px}
+    .foodex-step{min-width:0;width:100%;min-height:var(--foodex-touch-target);padding:7px 10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-weight:var(--foodex-font-weight-bold);line-height:1.35;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+    .foodex-step[aria-current="step"]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
+    .foodex-step[data-complete="true"]{border-color:#b7dfc4;color:var(--foodex-green-dark)}
+
+    /* Shared exact-record / Record 360 drawer. */
+    .foodex-record-drawer{position:fixed;inset-block:0;inset-inline-end:0;width:min(860px,94vw);height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;margin:0;border:0;border-inline-start:1px solid var(--foodex-border);padding:0;background:var(--foodex-surface);box-shadow:0 0 50px rgba(15,23,42,.18);z-index:100}
+    .foodex-record-drawer::backdrop{background:rgba(15,23,42,.35)}
+    .foodex-record-drawer-shell{height:100%;overflow:auto;padding:var(--foodex-space-5);overscroll-behavior:contain}
+    .foodex-record-drawer-header{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-4);padding-bottom:var(--foodex-space-3);background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border)}
+    .foodex-record-drawer-close{min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);display:inline-grid;place-items:center;border-radius:var(--foodex-radius-control);text-decoration:none;font-size:1.35rem;font-weight:900;color:var(--foodex-ink)}
+    .foodex-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-4);min-width:0}
+    .foodex-record-section{min-width:0}
+    @media(max-width:767px){.foodex-stepper{grid-template-columns:repeat(2,minmax(0,1fr))}.foodex-record-drawer{width:100vw;max-width:100vw;border-inline-start:0}.foodex-record-drawer-shell{padding:var(--foodex-space-4)}.foodex-record-grid{grid-template-columns:minmax(0,1fr)}}
+
     .foodex-admin-page{width:100%;max-width:none!important;min-width:0;margin:0!important;padding:clamp(var(--foodex-space-4),1.8vw,var(--foodex-space-8))}
     .foodex-form{display:grid;gap:var(--foodex-space-3);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-5);box-shadow:var(--foodex-shadow-sm);margin-bottom:var(--foodex-space-5)}
     .foodex-form label{display:grid;gap:var(--foodex-space-2);font-weight:var(--foodex-font-weight-medium);color:var(--foodex-ink)}
