@@ -206,6 +206,12 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
+        if ($this->jobRoles->isBuiltIn((string) $role->code)) {
+            throw ValidationException::withMessages([
+                'role' => [__('job_roles.errors.canonical_locked')],
+            ]);
+        }
+
         if ($role->code === 'SUPER_ADMIN') {
             $values['is_active'] = true;
             $values['scope'] = 'global';
