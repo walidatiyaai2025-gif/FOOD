@@ -244,12 +244,22 @@ final class OrderOperationsController extends Controller
             ->distinct()
             ->get(['vans.id', 'vans.code', 'vans.plate_number']);
 
-        $dashboard = $this->salesDashboard->build(
-            $scopes,
-            $selectedStoreId,
-            isset($data['from']) ? (string) $data['from'] : null,
-            isset($data['to']) ? (string) $data['to'] : null,
+        $dashboardVisible = ! (
+            isset($data['order_number'])
+            || isset($data['status'])
+            || isset($data['driver_id'])
+            || isset($data['dispatch_status'])
+            || isset($data['exception'])
+            || isset($data['order'])
         );
+        $dashboard = $dashboardVisible
+            ? $this->salesDashboard->build(
+                $scopes,
+                $selectedStoreId,
+                isset($data['from']) ? (string) $data['from'] : null,
+                isset($data['to']) ? (string) $data['to'] : null,
+            )
+            : null;
 
         $detail = null;
         if (isset($data['order'])) {
@@ -299,6 +309,7 @@ final class OrderOperationsController extends Controller
             'selectedException' => $selectedException,
             'exceptionOptions' => SalesOrderOperationsDashboardService::EXCEPTIONS,
             'dashboard' => $dashboard,
+            'dashboardVisible' => $dashboardVisible,
             'selectedStoreId' => $selectedStoreId,
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,

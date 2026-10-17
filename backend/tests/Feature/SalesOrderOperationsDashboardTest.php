@@ -61,10 +61,9 @@ class SalesOrderOperationsDashboardTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$store.'&exception=payment')
             ->assertOk()
-            ->assertSee('#'.$paymentFailure)
-            ->assertDontSee('#'.$delayed)
-            ->assertDontSee('#'.$deliveredNoInvoice)
-            ->assertDontSee('#'.$cancelled);
+            ->assertViewHas('rows', fn (array $rows): bool => count($rows) === 1
+                && (int) $rows[0]['id'] === $paymentFailure
+            );
     }
 
     public function test_sales_exception_report_is_scoped_and_exportable(): void
@@ -88,8 +87,6 @@ class SalesOrderOperationsDashboardTest extends TestCase
                 && $data['rows'][0]['order_number'] === '#'.$local
                 && $data['rows'][0]['exception'] === 'delayed'
             )
-            ->assertSee('#'.$local)
-            ->assertDontSee('#'.$foreignOrder)
             ->assertSee(__('reports.families.sales_exceptions'));
 
         $this->actingAs($admin)

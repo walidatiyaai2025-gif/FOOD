@@ -55,6 +55,7 @@ $businessLabel = static function ($value): string {
     <span><strong>{{ __('order_operations.filters.store') }}</strong>{{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
 </div>
 
+@if($dashboardVisible)
 @php
     $dashboardBaseQuery = [
         'channel' => $selectedChannel,
@@ -282,6 +283,7 @@ $businessLabel = static function ($value): string {
         @endif
     </div>
 </section>
+@endif
 
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
 @php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
