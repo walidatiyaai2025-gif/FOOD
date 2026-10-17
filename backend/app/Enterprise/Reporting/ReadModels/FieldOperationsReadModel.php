@@ -95,8 +95,11 @@ final class FieldOperationsReadModel
             );
         }
 
+        /** @var list<string> $dimensions */
         $dimensions = $query->dimensions;
+        /** @var list<string> $measures */
         $measures = $query->measures;
+        /** @var array<string, array<string, int|string>> $groups */
         $groups = [];
 
         foreach ($raw as $row) {
@@ -105,36 +108,50 @@ final class FieldOperationsReadModel
             if (! isset($groups[$key])) {
                 $groups[$key] = [];
                 foreach ($dimensions as $dimension) {
-                    $groups[$key][$dimension] = $row[$dimension];
+                    $dimensionValue = $row[$dimension] ?? '';
+                    $groups[$key][$dimension] = is_int($dimensionValue)
+                        ? $dimensionValue
+                        : (string) $dimensionValue;
                 }
                 foreach ($measures as $measure) {
                     $groups[$key][$measure] = 0;
                 }
             }
             foreach ($measures as $measure) {
-                $groups[$key][$measure] += (int) ($row[$measure] ?? 0);
+                $groups[$key][$measure] = (int) $groups[$key][$measure] + (int) ($row[$measure] ?? 0);
             }
         }
 
-        $rows = collect(array_values($groups));
+        /** @var list<array<string, int|string>> $rows */
+        $rows = array_values($groups);
 
         foreach (array_reverse($query->sort) as $sort) {
-            $field = $sort['field'];
-            $rows = $sort['direction'] === 'desc'
-                ? $rows->sortByDesc(static fn (array $row) => $row[$field] ?? null, SORT_NATURAL)
-                : $rows->sortBy(static fn (array $row) => $row[$field] ?? null, SORT_NATURAL);
+            $field = (string) $sort['field'];
+            $direction = (string) $sort['direction'];
+            usort($rows, static function (array $left, array $right) use ($field, $direction): int {
+                $comparison = strnatcmp(
+                    (string) ($left[$field] ?? ''),
+                    (string) ($right[$field] ?? ''),
+                );
+
+                return $direction === 'desc' ? -$comparison : $comparison;
+            });
         }
 
         if ($query->sort === []) {
-            $rows = $rows->sortBy(static fn (array $row): string => implode('|', array_map('strval', $row)));
+            usort($rows, static fn (array $left, array $right): int => strnatcmp(
+                implode('|', array_map('strval', $left)),
+                implode('|', array_map('strval', $right)),
+            ));
         }
 
         $offset = ($query->page - 1) * $query->perPage;
-        $pageRows = $rows->slice($offset, $query->perPage + 1)->values();
-        $hasMore = $pageRows->count() > $query->perPage;
+        $pageRows = array_slice($rows, $offset, $query->perPage + 1);
+        $hasMore = count($pageRows) > $query->perPage;
+        $pageRows = array_slice($pageRows, 0, $query->perPage);
 
         return [
-            'rows' => $pageRows->take($query->perPage)->values()->all(),
+            'rows' => $pageRows,
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'page' => $query->page,
