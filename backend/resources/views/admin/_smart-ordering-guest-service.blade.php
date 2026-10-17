@@ -37,6 +37,11 @@ $isWaitlist = $tab === 'waitlist';
 
     @if(! $selectedBranch)
         <div class="foodex-empty-state">{{ __('smart_ordering.guest_service.choose_branch') }}</div>
+    @elseif(! ($guestWorkspace['module_enabled'] ?? false))
+        <div class="foodex-state" role="status" data-guest-service-disabled>
+            <strong>{{ __('smart_ordering.guest_service.module_disabled_title') }}</strong>
+            <div>{{ __('smart_ordering.guest_service.module_disabled_description') }}</div>
+        </div>
     @else
         <section class="foodex-card so-guest-table-wrap">
             <table class="foodex-table" data-pagination-required>
