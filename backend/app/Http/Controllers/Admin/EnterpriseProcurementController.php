@@ -609,8 +609,8 @@ final class EnterpriseProcurementController extends Controller
     private function visibleTabs(User $actor, int $storeId): array
     {
         return collect(self::TABS)
-            ->filter(fn (string $permission): bool => $this->allowed($actor, $storeId, $permission))
-            ->map(fn (string $permission, string $key): array => [
+            ->filter(fn (?string $permission, string $key): bool => $this->tabAllowed($actor, $storeId, $key, $permission))
+            ->map(fn (?string $permission, string $key): array => [
                 'key' => $key,
                 'label' => __('enterprise_procurement.tabs.'.$key),
             ])
@@ -621,7 +621,7 @@ final class EnterpriseProcurementController extends Controller
     private function firstVisibleTab(User $actor, int $storeId): string
     {
         foreach (self::TABS as $tab => $permission) {
-            if ($this->allowed($actor, $storeId, $permission)) {
+            if ($this->tabAllowed($actor, $storeId, $tab, $permission)) {
                 return $tab;
             }
         }
@@ -631,7 +631,32 @@ final class EnterpriseProcurementController extends Controller
 
     private function authorizeTab(User $actor, int $storeId, string $tab): void
     {
-        abort_unless($this->allowed($actor, $storeId, self::TABS[$tab]), 403);
+        abort_unless($this->tabAllowed($actor, $storeId, $tab, self::TABS[$tab]), 403);
+    }
+
+    private function tabAllowed(User $actor, int $storeId, string $tab, ?string $permission): bool
+    {
+        if ($permission !== null) {
+            return $this->allowed($actor, $storeId, $permission);
+        }
+
+        if ($tab === 'reports') {
+            return $this->canViewOverview($actor, $storeId)
+                && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view', $storeId));
+        }
+
+        return $this->canViewOverview($actor, $storeId);
+    }
+
+    private function canViewOverview(User $actor, int $storeId): bool
+    {
+        foreach (array_filter(self::TABS) as $permission) {
+            if ($this->allowed($actor, $storeId, $permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function allowed(User $actor, int $storeId, string $permission): bool
