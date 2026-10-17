@@ -250,8 +250,8 @@ final class SupplierDirectory
             ->map(function ($receipt) use ($issuedAt): int {
                 $order = $issuedAt->get($receipt->purchase_order_id);
 
-                return (int) \Carbon\CarbonImmutable::parse((string) $order->issued_at)
-                    ->diffInDays(\Carbon\CarbonImmutable::parse((string) $receipt->posted_at));
+                return (int) CarbonImmutable::parse((string) $order->issued_at)
+                    ->diffInDays(CarbonImmutable::parse((string) $receipt->posted_at));
             });
 
         $invoiceSummary = DB::table('enterprise_purchase_invoices')
