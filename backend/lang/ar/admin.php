@@ -299,6 +299,11 @@ return [
         'failed_at' => 'وقت الفشل',
         'no_failed_jobs' => 'لا توجد مهام فاشلة مسجلة حاليًا.',
         'backup_references' => 'مراجع النسخ الاحتياطية',
+        'incident_trend_title' => 'اتجاه حوادث التشغيل خلال 7 أيام',
+        'incident_trend_description' => 'من أحداث فاحص النظام المعتمدة.',
+        'failed_jobs_24h' => 'المهام الفاشلة · 24 ساعة',
+        'day' => 'اليوم',
+        'incidents' => 'الحوادث',
     ],
     'field_operations' => [
         'overview' => 'نظرة عامة على العمليات',
