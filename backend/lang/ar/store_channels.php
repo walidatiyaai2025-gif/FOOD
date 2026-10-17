@@ -46,6 +46,7 @@ return [
     ],
     'channels' => ['b2c' => 'التجزئة / B2C', 'b2b' => 'الجملة / B2B', 'restaurant' => 'المطاعم'],
     'channel_states' => ['active'=>'نشط','inactive'=>'غير نشط','not_linked'=>'غير مرتبط','not_configured'=>'غير مهيأ','disabled'=>'معطل','enabled'=>'مفعل','internal_test'=>'اختبار داخلي','pilot'=>'تجريبي','emergency_stop'=>'إيقاف طارئ','degraded'=>'متدهور','suspended'=>'موقوف'],
+    'order_channels' => ['b2c'=>'التجزئة / B2C','b2b'=>'الجملة / B2B','restaurant'=>'المطاعم','smart_ordering'=>'الطلب الذكي','customer_app'=>'تطبيق العميل','web'=>'الويب','mobile'=>'الهاتف','van'=>'المندوب المتنقل','marketplace'=>'السوق الخارجي'],
     'reports' => [
         'performance' => 'أداء المتاجر', 'readiness' => 'جاهزية / صحة المتاجر',
         'availability' => 'استثناءات التوفر', 'integrations' => 'استثناءات التكامل / القنوات',
