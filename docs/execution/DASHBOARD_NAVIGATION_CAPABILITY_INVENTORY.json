@@ -62,7 +62,9 @@
     "unresolved_nav_missing": 0,
     "unresolved_nav_weak": 0,
     "duplicate_destinations": 1,
-    "internal_exceptions": 1
+    "internal_exceptions": 1,
+    "unresolved_duplicate_destinations": 0,
+    "resolved_compatibility_aliases": 4
   },
   "capabilities": [
     {
@@ -1722,32 +1724,32 @@
       "status": "DUPLICATE_DESTINATION",
       "canonical": "admin.catalog.index?tab=categories",
       "evidence": "CatalogManagementController::categories returns RedirectResponse",
-      "remediation_owner": "#1991",
-      "scope": "Keep as compatibility alias or retire when safe; never expose as a second Catalog authority."
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
     },
     {
       "route": "admin.business.index",
       "status": "DUPLICATE_DESTINATION",
       "canonical": "authoritative B2B/B2C workspaces",
       "evidence": "BusinessManagementController::index is a retired compatibility redirect; business-management.blade.php is a retired stub",
-      "remediation_owner": "#1991",
-      "scope": "Keep explicit compatibility registration or remove safely; never revive the mixed-domain screen."
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
     },
     {
       "route": "admin.b2b.orders.canonical",
       "status": "DUPLICATE_DESTINATION",
       "canonical": "admin.operations.orders.index",
       "evidence": "B2B canonical order handoff uses shared Order Operations authority",
-      "remediation_owner": "#1991",
-      "scope": "Preserve redirect/deep-link semantics only."
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
     },
     {
       "route": "admin.b2c.orders.canonical",
       "status": "DUPLICATE_DESTINATION",
       "canonical": "admin.operations.orders.index",
       "evidence": "B2C canonical order handoff uses shared Order Operations authority",
-      "remediation_owner": "#1991",
-      "scope": "Preserve redirect/deep-link semantics only."
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
     }
   ],
   "explicit_exceptions": [
@@ -1781,26 +1783,7 @@
     "nav_missing": [],
     "nav_weak": [],
     "prioritized_orphans": [],
-    "duplicates": [
-      {
-        "route": "admin.business.index",
-        "priority": "P2",
-        "owner": "#1991",
-        "finding": "Retired compatibility redirect; must stay explicitly registered, not treated as a screen."
-      },
-      {
-        "route": "admin.catalog.categories.index",
-        "priority": "P2",
-        "owner": "#1991",
-        "finding": "Compatibility alias into Catalog categories tab; not a second navigation authority."
-      },
-      {
-        "route": "admin.b2b.orders.canonical / admin.b2c.orders.canonical",
-        "priority": "P2",
-        "owner": "#1991",
-        "finding": "Channel aliases converge on shared Order Operations; do not add duplicate sidebar items."
-      }
-    ],
+    "duplicates": [],
     "permission_visibility_mismatches": [],
     "misleading_active_context": [],
     "dead_routes": [],
@@ -1811,6 +1794,32 @@
         "status": "RESOLVED",
         "evidence": "Shared Restaurant SaaS workspace now provides inbound links to Menu, Appearance, QR, Analytics, Supply, Integrations and Growth while preserving permissions/site context."
       }
+    ],
+    "resolved_compatibility_aliases": [
+      {
+        "route": "admin.business.index",
+        "canonical": "authoritative B2B/B2C workspaces",
+        "resolution": "#1991 verified the legacy mixed-domain GET is redirect-only and is not a navigation authority.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.catalog.categories.index",
+        "canonical": "admin.catalog.index?tab=categories",
+        "resolution": "#1991 verified the route is redirect-only and preserves store/support context.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.b2b.orders.canonical",
+        "canonical": "admin.operations.orders.index?channel=b2b",
+        "resolution": "#1991 verified the route composes the shared Order Operations controller with a fixed B2B channel.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.b2c.orders.canonical",
+        "canonical": "admin.operations.orders.index?channel=b2c",
+        "resolution": "#1991 verified the route composes the shared Order Operations controller with a fixed B2C channel.",
+        "status": "RESOLVED_COMPATIBILITY"
+      }
     ]
   },
   "persona_evidence": {
@@ -1820,5 +1829,5 @@
     "mobile_desktop": "Shared responsive shell plus current visual evidence matrix; Restaurant Menu/Appearance use full 320/360/390/412/430/768/1024/1280+ matrix",
     "localization": "Localization gate + AR/EN runtime evidence; capability labels are recorded in both languages"
   },
-  "conclusion": "No current durable business capability is proven NAV_MISSING/NAV_WEAK after #1990. Remaining findings are explicit compatibility/duplicate destinations and non-screen exceptions for #1991 cleanup; #1992 should turn this ledger model into a future required-CI gate."
+  "conclusion": "No current durable business capability is NAV_MISSING/NAV_WEAK. #1991 resolved the remaining duplicate findings as compatibility-only aliases that converge on canonical authorities; no duplicate UI authority remains. #1992 owns future CI enforcement."
 }
