@@ -463,7 +463,7 @@ final class ProcurementSourcingManager
             $quote->forceFill(['status' => 'awarded', 'awarded_at' => now(), 'updated_by' => $actor->id])->save();
             EnterpriseProcurementQuote::query()
                 ->where('rfq_id', $rfq->id)
-                ->whereKeyNot($quote->id)
+                ->where('id', '!=', $quote->id)
                 ->where('status', 'submitted')
                 ->update(['status' => 'rejected', 'updated_at' => now()]);
 
