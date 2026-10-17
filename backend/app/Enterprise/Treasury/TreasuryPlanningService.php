@@ -22,9 +22,13 @@ final class TreasuryPlanningService
     public const MODULE = 'treasury';
 
     private const VIEW_PERMISSION = 'finance.view';
+
     private const MANAGE_PERMISSION = 'finance.manage';
+
     private const READ_CAPABILITY = 'treasury.payments.read';
+
     private const MANAGE_CAPABILITY = 'treasury.payments.manage';
+
     private const APPROVE_CAPABILITY = 'treasury.payments.approve';
 
     public function __construct(
