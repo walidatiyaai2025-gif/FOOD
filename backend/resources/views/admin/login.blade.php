@@ -17,7 +17,7 @@
         .form-pane{display:grid;place-items:center;padding:32px}
         .card{width:min(100%,520px);background:#fff;border:1px solid var(--foodex-border,#E6EAF0);border-radius:24px;padding:clamp(28px,5vw,48px);box-shadow:0 28px 70px rgba(16,24,40,.10)}
         .top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:30px}.eyebrow{color:var(--foodex-green,#158A3A);font-weight:var(--foodex-font-weight-bold);font-size:13px;margin:0 0 7px}.card h2{font-size:30px;margin:0}.lang{display:flex;gap:6px}.lang a{border:1px solid var(--foodex-border,#E6EAF0);border-radius:999px;padding:7px 10px;text-decoration:none;color:inherit;font-size:12px}.lang a.active{background:var(--foodex-green-soft,#EAF7EF);border-color:var(--foodex-green,#158A3A);color:var(--foodex-green,#158A3A)}
-        label{display:block;font-size:13px;font-weight:var(--foodex-font-weight-bold);margin:0 0 7px}.field{margin-bottom:18px}.field input{width:100%;border:1px solid var(--foodex-border);border-radius:12px;padding:13px 14px;font:inherit;outline:none;background:#fff}.field input:focus{border-color:var(--foodex-green,#158A3A);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
+        label{display:block;font-size:13px;font-weight:var(--foodex-font-weight-bold);margin:0 0 7px}.field{margin-bottom:18px}.field input{width:100%;border:1px solid var(--foodex-border);border-radius:12px;padding:13px 14px;font:inherit;outline:none;background:#fff}.field input:focus{border-color:var(--foodex-green,#158A3A);box-shadow:0 0 0 3px rgba(21,138,58,.12)}.field-hint{display:block;margin-top:7px;color:var(--foodex-muted,#667085);font-size:12px;line-height:1.5}
         .error{background:#fff2f1;border:1px solid #ffd5d1;color:#a92920;border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:16px}
         .error ul{margin:0;padding-inline-start:20px}.error a{color:inherit;font-weight:700;text-underline-offset:2px}
         button{width:100%;border:0;border-radius:12px;padding:14px 16px;background:var(--foodex-green,#158A3A);color:#fff;font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}button:hover{filter:brightness(.96)}
@@ -74,15 +74,18 @@
                 @csrf
                 <input type="hidden" name="locale" value="{{ $locale }}">
                 <div class="field">
-                    <label for="email">{{ __('admin_login.email') }}</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="{{ app()->getLocale()==='ar'?'example@company.com':'example@company.com' }}" autocomplete="username" required autofocus @if($emailError) aria-invalid="true" aria-describedby="foodex-server-error-email" aria-errormessage="foodex-server-error-email" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-email" data-foodex-server-error-key="email" @endif>
+                    <label for="email">{{ __('admin_login.identifier') }}</label>
+                    <input id="email" name="email" type="text" value="{{ old('email') }}" placeholder="{{ app()->getLocale()==='ar'?'name@company.com أو +9655XXXXXXX':'name@company.com or +9655XXXXXXX' }}" autocomplete="username" required autofocus @if($emailError) aria-invalid="true" aria-describedby="foodex-server-error-email" aria-errormessage="foodex-server-error-email" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-email" data-foodex-server-error-key="email" @endif>
+                    @if($whatsAppOtpAvailable)
+                        <small class="field-hint">{{ __('admin_login.identifier_hint') }}</small>
+                    @endif
                     @if($emailError)
                         <div id="foodex-server-error-email" class="foodex-field-error" data-foodex-server-error="1" data-foodex-server-error-key="email">{{ $emailError }}</div>
                     @endif
                 </div>
-                <div class="field">
+                <div class="field" data-password-field>
                     <label for="password">{{ __('admin_login.password') }}</label>
-                    <input id="password" name="password" type="password" placeholder="{{ app()->getLocale()==='ar'?'أدخل كلمة المرور':'Enter your password' }}" autocomplete="current-password" required @if($passwordError) aria-invalid="true" aria-describedby="foodex-server-error-password" aria-errormessage="foodex-server-error-password" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-password" data-foodex-server-error-key="password" @endif>
+                    <input id="password" name="password" type="password" placeholder="{{ app()->getLocale()==='ar'?'أدخل كلمة المرور':'Enter your password' }}" autocomplete="current-password" @if($passwordError) aria-invalid="true" aria-describedby="foodex-server-error-password" aria-errormessage="foodex-server-error-password" data-foodex-server-invalid="1" data-foodex-server-error-id="foodex-server-error-password" data-foodex-server-error-key="password" @endif>
                     @if($passwordError)
                         <div id="foodex-server-error-password" class="foodex-field-error" data-foodex-server-error="1" data-foodex-server-error-key="password">{{ $passwordError }}</div>
                     @endif
@@ -109,6 +112,25 @@
 (() => {
     const form = document.querySelector('form[data-csrf-refresh-url]');
     if (!form) return;
+
+    const identifier = form.querySelector('#email');
+    const passwordField = form.querySelector('[data-password-field]');
+    const password = form.querySelector('#password');
+    const whatsappEnabled = {{ ($whatsAppOtpAvailable ?? false) ? "true" : "false" }};
+    const looksLikePhone = (value) => /^\s*(?:\+|00)?[0-9\s().-]{8,24}\s*$/.test(value || '');
+    const syncAuthMode = () => {
+        const phoneMode = whatsappEnabled && identifier && looksLikePhone(identifier.value);
+        if (passwordField) passwordField.hidden = phoneMode;
+        if (password) {
+            password.required = !phoneMode;
+            if (phoneMode) password.value = '';
+        }
+        if (identifier) identifier.inputMode = phoneMode ? 'tel' : 'email';
+    };
+    if (identifier) {
+        identifier.addEventListener('input', syncAuthMode);
+        syncAuthMode();
+    }
 
     let refreshing = false;
     const refreshToken = async () => {
