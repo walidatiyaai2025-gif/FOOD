@@ -307,7 +307,11 @@
 
         <section class="panel">
             <h2>{{ __('smart_ordering.publishing') }}</h2>
+            @if($published)
             <p>{{ __('smart_ordering.published_checksum') }} <span class="so-code">{{ $published->checksum }}</span></p>
+            @else
+            <p class="foodex-status-badge" data-state="inactive">{{ __('smart_ordering_menu.public_menu.unpublished') }}</p>
+            @endif
             @if(!$draft)
             <form method="post" action="{{ route('admin.smart-ordering.draft', $site) }}">
                 @csrf
