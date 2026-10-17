@@ -6,11 +6,12 @@
 <title>{{ __('whatsapp.inbox.page_title') }}</title>
 @include('admin._brand-components')
 <style>
-.wa-shell{display:grid;gap:14px}.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}.wa-toolbar,.wa-profile{padding:16px}.wa-toolbar form{display:grid;grid-template-columns:2fr repeat(2,minmax(130px,1fr));gap:10px;align-items:end}
-.wa-workspace{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(360px,1.6fr) minmax(280px,1fr);gap:14px;min-height:68vh}
+.wa-shell{display:grid;gap:14px}.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}.wa-toolbar,.wa-profile{padding:16px}
+.wa-workspace{display:grid;grid-template-columns:minmax(300px,.95fr) minmax(360px,1.6fr) minmax(280px,1fr);gap:14px;min-height:68vh}
 .wa-pane{padding:0;overflow:hidden}.wa-pane-head{padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;gap:10px;align-items:center}.wa-pane-body{padding:14px 16px}
-.wa-list{display:grid}.wa-row{display:block;padding:14px 16px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:inherit}.wa-row:hover,.wa-row.active{background:var(--foodex-green-soft)}.wa-row-top{display:flex;justify-content:space-between;gap:10px}.wa-row p{margin:4px 0;color:var(--foodex-muted);font-size:12px}
-.wa-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:var(--foodex-background)}.wa-badge.wait{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.wa-badge.open{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-badge.resolved{background:var(--foodex-background);color:var(--foodex-muted)}.wa-unread{min-width:22px;height:22px;border-radius:99px;background:var(--foodex-green-dark);color:var(--foodex-surface);text-align:center;line-height:22px;font-size:11px}
+.wa-conversation-pane{min-width:0;display:flex;flex-direction:column}.wa-conversation-head{padding:17px 16px 12px;align-items:flex-start}.wa-conversation-title{display:grid;gap:3px;min-width:0}.wa-conversation-title strong{font-size:16px;line-height:1.35}.wa-conversation-title small{color:var(--foodex-muted);font-size:11px;line-height:1.55}.wa-conversation-count{display:grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:11px;font-weight:800}
+.wa-conversation-filters{padding:11px 12px 10px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-surface)}.wa-conversation-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}.wa-search-field{position:relative;display:block;min-width:0}.wa-search-field input{width:100%;height:42px;padding-inline-start:36px}.wa-search-icon{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:var(--foodex-muted);pointer-events:none}.wa-status-tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 1px 1px;scrollbar-width:thin}.wa-status-tab{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:5px 10px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:var(--foodex-muted);font-size:11px;font-weight:800;white-space:nowrap}.wa-status-tab:hover,.wa-status-tab.active{border-color:var(--foodex-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-filter-more{margin-top:8px}.wa-filter-more summary{cursor:pointer;color:var(--foodex-green-dark);font-size:11px;font-weight:800;list-style-position:inside}.wa-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.wa-filter-grid label{display:grid;gap:4px;min-width:0;color:var(--foodex-muted);font-size:11px}.wa-filter-grid select,.wa-filter-grid input{width:100%;min-width:0}.wa-filter-actions{display:flex;align-items:flex-end;justify-content:flex-end}
+.wa-list{display:grid;min-height:0}.wa-row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;padding:12px 14px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:inherit;min-width:0}.wa-row:hover,.wa-row.active{background:var(--foodex-green-soft)}.wa-row.active{box-shadow:inset 3px 0 0 var(--foodex-green-dark)}[dir="rtl"] .wa-row.active{box-shadow:inset -3px 0 0 var(--foodex-green-dark)}.wa-avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-background);color:var(--foodex-green-dark);font-weight:900;border:1px solid var(--foodex-border)}.wa-row.active .wa-avatar{background:var(--foodex-green-dark);color:var(--foodex-surface);border-color:var(--foodex-green-dark)}.wa-row-main{display:grid;gap:5px;min-width:0}.wa-row-top,.wa-row-preview,.wa-row-bottom{display:flex;justify-content:space-between;gap:8px;align-items:center;min-width:0}.wa-row-name,.wa-preview-text,.wa-row-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wa-row-name{font-size:13px}.wa-preview-text{color:var(--foodex-muted);font-size:11px}.wa-row-time{color:var(--foodex-muted);font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums}.wa-row-meta{color:var(--foodex-muted);font-size:10px}.wa-channel{display:inline-flex;align-items:center;gap:4px;color:var(--foodex-muted);font-size:10px;white-space:nowrap}.wa-channel-mark{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:9px;font-weight:900}.wa-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:var(--foodex-background)}.wa-badge.wait{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.wa-badge.open{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-badge.resolved{background:var(--foodex-background);color:var(--foodex-muted)}.wa-unread{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:var(--foodex-green-dark);color:var(--foodex-surface);font-size:10px;font-weight:900}.wa-list-pagination{margin-top:auto}
 .wa-timeline{display:grid;gap:10px;max-height:46vh;overflow:auto;padding:16px}.wa-message{max-width:82%;padding:11px 13px;border-radius:14px;background:var(--foodex-background)}.wa-message.outbound{margin-inline-start:auto;background:var(--foodex-green-soft)}.wa-message.note{max-width:100%;background:var(--foodex-orange-soft);border:1px dashed var(--foodex-orange)}.wa-message.smart-ordering{max-width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.06)}.wa-message small{display:block;color:var(--foodex-muted);margin-top:5px}
 .wa-attachment{display:grid;gap:7px;margin-bottom:8px}.wa-attachment img,.wa-attachment video{display:block;max-width:min(360px,100%);max-height:320px;border-radius:12px;border:1px solid var(--foodex-border);background:var(--foodex-surface)}.wa-attachment audio{width:min(360px,100%)}.wa-attachment-link{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;font-weight:700}.wa-attachment-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
 .wa-compose{border-top:1px solid var(--foodex-border);padding:14px 16px;display:grid;gap:10px}.wa-compose textarea{width:100%;min-height:82px}.wa-compose-file{display:grid;gap:5px;margin:9px 0}.wa-compose-file input{width:100%;padding:9px;border:1px dashed var(--foodex-border);border-radius:10px;background:var(--foodex-surface)}.wa-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
@@ -34,9 +35,9 @@
 .wa-compose-wrap{border-top:1px solid var(--wa-border);background:var(--foodex-surface);padding:0 18px 14px}.wa-compose-tabs{display:flex;align-items:center;border-bottom:1px solid var(--wa-border);min-height:48px}.wa-compose-tab{min-height:44px;border:0;background:transparent;padding:0 16px;color:var(--foodex-muted);font-size:12px;display:inline-flex;align-items:center;gap:7px;cursor:pointer}.wa-compose-tab+.wa-compose-tab,.wa-compose-tabs details{border-inline-start:1px solid var(--wa-border)}.wa-compose-tabs details{position:relative}.wa-compose-tabs summary{list-style:none;cursor:pointer}.wa-compose-tabs summary::-webkit-details-marker{display:none}.wa-order-menu{position:absolute;z-index:30;bottom:44px;inset-inline-start:0;width:300px;max-width:75vw;background:var(--foodex-surface);border:1px solid var(--wa-border);border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:10px}.wa-order-ref{width:100%;border:0;background:var(--foodex-surface);text-align:start;padding:9px;border-radius:7px;cursor:pointer}.wa-order-ref:hover{background:var(--foodex-background)}.wa-quick-hint{display:none;padding:8px 12px;color:var(--foodex-muted);font-size:11px}.wa-quick-hint.show{display:block}.wa-reply-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end;padding-top:11px}.wa-reply-input{border:0;resize:none;min-height:64px;max-height:140px;padding:8px 4px;outline:none;background:var(--foodex-surface);width:100%;font-size:13px}.wa-compose-bottom{display:flex;align-items:center;gap:10px;margin-top:4px}.wa-attach-label{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--foodex-muted)}.wa-attach-label input{display:none}.wa-send{height:40px;min-width:104px;border:0;border-radius:8px;background:var(--wa-green);color:var(--foodex-surface);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}.wa-send:disabled{opacity:.6;cursor:wait}.wa-note-form{display:none;grid-template-columns:minmax(0,1fr) auto;gap:9px;padding:10px 0 0}.wa-note-form.show{display:grid}.wa-note-form textarea{min-height:54px;border:1px solid var(--wa-border);border-radius:9px;padding:9px;resize:vertical}.wa-thread-pane .wa-secondary{min-height:40px;border:1px solid color-mix(in srgb,var(--foodex-green) 24%,var(--foodex-surface));background:var(--foodex-green-soft);color:var(--wa-green-dark);border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer}
 @media(max-width:760px){.wa-thread-meta{grid-template-columns:repeat(2,minmax(0,1fr));padding:9px}.wa-thread-pane .wa-timeline{min-height:390px;padding:18px 12px}.wa-thread-pane .wa-message{max-width:90%}.wa-compose-wrap{padding-inline:10px}.wa-compose-tabs{overflow-x:auto}.wa-compose-tab{white-space:nowrap;padding-inline:11px}.wa-meta-popover{position:fixed;top:88px;inset-inline:16px;width:auto;max-width:none}.wa-reply-form,.wa-note-form{grid-template-columns:1fr}.wa-send{width:100%}}
 
-@media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}}
 @media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}
-@media(max-width:760px){.wa-toolbar form,.wa-status{grid-template-columns:1fr}.wa-workspace{grid-template-columns:1fr}.wa-context{grid-column:auto}.wa-message{max-width:94%}}
+@media(max-width:760px){.wa-status{grid-template-columns:1fr}.wa-workspace{grid-template-columns:1fr}.wa-context{grid-column:auto}.wa-message{max-width:94%}.wa-filter-grid{grid-template-columns:1fr}.wa-conversation-search{grid-template-columns:minmax(0,1fr) auto}}
 </style>
 </head>
 <body>
@@ -57,21 +58,125 @@
 
         <div class="wa-shell">
             <div class="wa-workspace">
-                <section class="foodex-card wa-pane">
-                    <div class="wa-pane-head"><strong>{{ __('whatsapp.inbox.conversations') }}</strong><span>{{ $conversations->total() }}</span></div>
+                <section class="foodex-card wa-pane wa-conversation-pane">
+                    @php
+                        $activeStatus = (string) ($filters['status'] ?? '');
+                        $statusTabs = [
+                            '' => __('whatsapp.inbox.all'),
+                            'OPEN' => __('whatsapp.inbox.conversation_statuses.OPEN'),
+                            'WAITING_FOR_AGENT' => __('whatsapp.inbox.waiting_for_reply'),
+                            'CLOSED' => __('whatsapp.inbox.conversation_statuses.CLOSED'),
+                        ];
+                        $hasAdvancedFilters = ($filters['assignment'] ?? 'all') !== 'all'
+                            || filled($filters['store_id'] ?? null)
+                            || filled($filters['channel'] ?? null)
+                            || in_array($activeStatus, ['WAITING_FOR_CUSTOMER', 'RESOLVED'], true);
+                    @endphp
+                    <div class="wa-pane-head wa-conversation-head">
+                        <div class="wa-conversation-title">
+                            <strong>{{ __('whatsapp.inbox.heading') }}</strong>
+                            <small>{{ __('whatsapp.inbox.conversation_helper') }}</small>
+                        </div>
+                        <span class="wa-conversation-count" aria-label="{{ __('whatsapp.inbox.conversations') }}">{{ $conversations->total() }}</span>
+                    </div>
+                    <div class="wa-conversation-filters">
+                        <form method="get">
+                            <div class="wa-conversation-search">
+                                <label class="wa-search-field">
+                                    <span class="wa-search-icon" aria-hidden="true">⌕</span>
+                                    <input name="q" value="{{ $filters['q']??'' }}" placeholder="{{ __('whatsapp.inbox.search_placeholder') }}" aria-label="{{ __('whatsapp.inbox.search') }}">
+                                </label>
+                                <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.search') }}</button>
+                            </div>
+                            <nav class="wa-status-tabs" aria-label="{{ __('whatsapp.inbox.status') }}">
+                                @foreach($statusTabs as $statusValue => $statusLabel)
+                                    @php
+                                        $statusQuery = request()->except('page', 'conversation', 'status');
+                                        if ($statusValue !== '') {
+                                            $statusQuery['status'] = $statusValue;
+                                        }
+                                    @endphp
+                                    <a class="wa-status-tab {{ $activeStatus === $statusValue ? 'active' : '' }}"
+                                       href="{{ route('admin.whatsapp-inbox.index', $statusQuery) }}"
+                                       @if($activeStatus === $statusValue) aria-current="page" @endif>{{ $statusLabel }}</a>
+                                @endforeach
+                            </nav>
+                            <details class="wa-filter-more" @if($hasAdvancedFilters) open @endif>
+                                <summary>{{ __('whatsapp.inbox.more_filters') }}</summary>
+                                <div class="wa-filter-grid">
+                                    <label>{{ __('whatsapp.inbox.status') }}
+                                        <select name="status">
+                                            <option value="">{{ __('whatsapp.inbox.all') }}</option>
+                                            @foreach(['OPEN','WAITING_FOR_AGENT','WAITING_FOR_CUSTOMER','RESOLVED','CLOSED'] as $status)
+                                                <option value="{{ $status }}" @selected($activeStatus===$status)>{{ __('whatsapp.inbox.conversation_statuses.'.$status) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label>{{ __('whatsapp.inbox.assignment') }}
+                                        <select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select>
+                                    </label>
+                                    <label>{{ __('whatsapp.inbox.store') }}
+                                        <select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
+                                    </label>
+                                    <label>{{ __('whatsapp.inbox.channel') }}
+                                        <select name="channel">
+                                            <option value="">{{ __('whatsapp.inbox.all_channels') }}</option>
+                                            @foreach(['whatsapp','b2b','b2c','unknown'] as $channel)
+                                                <option value="{{ $channel }}" @selected(($filters['channel']??'')===$channel)>{{ __('whatsapp.inbox.channels.'.$channel) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <div class="wa-filter-actions">
+                                        <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
+                                    </div>
+                                </div>
+                            </details>
+                        </form>
+                    </div>
                     <div class="wa-list">
                     @forelse($conversations as $row)
-                        @php($active=$selected && (int)$selected->id===(int)$row->id)
-                        <a class="wa-row {{ $active?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index', array_merge(request()->except('page','conversation'),['conversation'=>$row->id])) }}">
-                            <div class="wa-row-top"><strong>{{ $row->customer_name ?: __('whatsapp.inbox.unknown_customer') }}</strong>@if($row->unread_count>0)<span class="wa-unread">{{ $row->unread_count }}</span>@endif</div>
-                            <p>{{ $row->store_name ?: '-' }} · {{ __('whatsapp.inbox.channels.'.strtolower((string)$row->channel)) }} · {{ $row->agent_name ?: __('whatsapp.inbox.unassigned') }}</p>
-                            <span class="wa-badge {{ str_contains($row->status,'WAITING')?'wait':($row->status==='OPEN'?'open':'resolved') }}">{{ __('whatsapp.inbox.conversation_statuses.'.$row->status) }}</span>
+                        @php
+                            $active = $selected && (int) $selected->id === (int) $row->id;
+                            $customerName = $row->customer_name ?: __('whatsapp.inbox.unknown_customer');
+                            $preview = trim((string) ($row->last_message_body ?? ''));
+                            if ($preview === '') {
+                                $preview = filled($row->last_message_type ?? null)
+                                    ? __('whatsapp.inbox.attachment')
+                                    : __('whatsapp.inbox.no_messages');
+                            }
+                            $lastMoment = \Illuminate\Support\Carbon::parse($row->last_message_at ?? $row->updated_at);
+                            $lastLabel = $lastMoment->isToday() ? $lastMoment->format('H:i') : $lastMoment->format('d/m');
+                            $channelKey = strtolower((string) $row->channel);
+                            $channelTranslationKey = 'whatsapp.inbox.channels.'.$channelKey;
+                            $channelLabel = \Illuminate\Support\Facades\Lang::has($channelTranslationKey)
+                                ? __($channelTranslationKey)
+                                : \Illuminate\Support\Str::upper($channelKey);
+                            $initial = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($customerName, 0, 1));
+                        @endphp
+                        <a class="wa-row {{ $active?'active':'' }}"
+                           href="{{ route('admin.whatsapp-inbox.index', array_merge(request()->except('page','conversation'),['conversation'=>$row->id])) }}"
+                           @if($active) aria-current="page" @endif>
+                            <span class="wa-avatar" aria-hidden="true">{{ $initial }}</span>
+                            <span class="wa-row-main">
+                                <span class="wa-row-top">
+                                    <strong class="wa-row-name">{{ $customerName }}</strong>
+                                    <time class="wa-row-time" datetime="{{ $lastMoment->toIso8601String() }}">{{ $lastLabel }}</time>
+                                </span>
+                                <span class="wa-row-preview">
+                                    <span class="wa-preview-text">{{ \Illuminate\Support\Str::limit($preview, 76) }}</span>
+                                    @if($row->unread_count>0)<span class="wa-unread">{{ $row->unread_count }}</span>@endif
+                                </span>
+                                <span class="wa-row-bottom">
+                                    <span class="wa-row-meta">{{ $row->store_name ?: '-' }} · {{ $row->agent_name ?: __('whatsapp.inbox.unassigned') }}</span>
+                                    <span class="wa-channel"><span class="wa-channel-mark" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($channelLabel, 0, 1)) }}</span>{{ $channelLabel }}</span>
+                                </span>
+                            </span>
                         </a>
                     @empty
                         <div class="wa-empty">{{ __('whatsapp.inbox.no_conversations') }}</div>
                     @endforelse
                     </div>
-                    <div class="wa-pane-body">{{ $conversations->links() }}</div>
+                    <div class="wa-pane-body wa-list-pagination">{{ $conversations->links() }}</div>
                 </section>
 
                 <section class="foodex-card wa-pane wa-thread-pane" data-wa-pane="active-conversation">
@@ -328,22 +433,6 @@
                     </form>
                 </section>
                 
-                <section class="foodex-card wa-toolbar">
-                    <form method="get">
-                        <label>{{ __('whatsapp.inbox.search') }}<input name="q" value="{{ $filters['q']??'' }}" placeholder="{{ __('whatsapp.inbox.search_placeholder') }}"></label>
-                        <label>{{ __('whatsapp.inbox.status') }}
-                            <select name="status"><option value="">{{ __('whatsapp.inbox.all') }}</option>@foreach(['OPEN','WAITING_FOR_AGENT','WAITING_FOR_CUSTOMER','RESOLVED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($filters['status']??'')===$status)>{{ __('whatsapp.inbox.conversation_statuses.'.$status) }}</option>@endforeach</select>
-                        </label>
-                        <label>{{ __('whatsapp.inbox.assignment') }}
-                            <select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select>
-                        </label>
-                        <label>{{ __('whatsapp.inbox.store') }}
-                            <select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
-                        </label>
-                        <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $filters['channel']??'' }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
-                        <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
-                    </form>
-                </section>
             </div>
         </div>
     </main>
