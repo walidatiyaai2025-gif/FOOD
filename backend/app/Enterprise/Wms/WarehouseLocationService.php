@@ -229,7 +229,7 @@ final class WarehouseLocationService
             ->first();
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function zones(User $actor, int $warehouseId): Collection
     {
         $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.view');
@@ -241,7 +241,7 @@ final class WarehouseLocationService
             ->get();
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function bins(User $actor, int $warehouseId): Collection
     {
         $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.view');
@@ -259,7 +259,7 @@ final class WarehouseLocationService
             ]);
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function assignments(User $actor, int $warehouseId, int $limit = 250): Collection
     {
         $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.view');
