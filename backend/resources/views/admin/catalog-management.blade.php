@@ -90,11 +90,10 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="header foodex-page-header"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div><div class="foodex-header-actions">@include('admin._live-notifications',['user'=>auth()->user()])</div></div>
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-<nav class="tabs">
-@foreach(['products'=>'المنتجات','categories'=>'التصنيفات'] as $key=>$ar)
-<a class="{{ $tab===$key?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$key], $scopeParams)) }}">{{ app()->getLocale()==='ar'?$ar:ucfirst($key) }}</a>
+<nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">
+@foreach(['overview','products','categories','attributes','import'] as $catalogTab)
+<a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ __('catalog_completion.tabs.'.$catalogTab) }}</a>
 @endforeach
-<a class="{{ $tab==='import'?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>'import'], $scopeParams)) }}">{{ app()->getLocale()==='ar'?'استيراد ZIP':'ZIP Import' }}</a>
 @if($canManageStores)
 <a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
 @endif
@@ -114,7 +113,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </div>
 </div>
 
-@php($hasProductFilters=$productFilters['q']!=='' || $productFilters['category_id']>0 || $productFilters['brand_id']>0 || $productFilters['status']!=='' || $productFilters['availability']!=='')
+@php($hasProductFilters=$productFilters['q']!=='' || $productFilters['category_id']>0 || $productFilters['brand_id']>0 || $productFilters['status']!=='' || $productFilters['availability']!=='' || $productFilters['health']!=='')
 <form method="get" class="catalog-filterbar" data-catalog-product-filters>
 <input type="hidden" name="tab" value="products">
 @foreach($scopeParams as $scopeKey=>$scopeValue)<input type="hidden" name="{{ $scopeKey }}" value="{{ $scopeValue }}">@endforeach
@@ -123,6 +122,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}<select name="product_brand_id"><option value="">{{ app()->getLocale()==='ar'?'كل العلامات':'All brands' }}</option>@foreach($filterBrands as $filterBrand)<option value="{{ $filterBrand->id }}" @selected($productFilters['brand_id']===(int)$filterBrand->id)>{{ $filterBrand->name }}</option>@endforeach</select></label>
 <label>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}<select name="product_status"><option value="">{{ app()->getLocale()==='ar'?'كل الحالات':'All statuses' }}</option><option value="active" @selected($productFilters['status']==='active')>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</option><option value="inactive" @selected($productFilters['status']==='inactive')>{{ app()->getLocale()==='ar'?'غير نشط':'Inactive' }}</option></select></label>
 <label>{{ app()->getLocale()==='ar'?'التوفر':'Availability' }}<select name="product_availability"><option value="">{{ app()->getLocale()==='ar'?'كل حالات التوفر':'All availability' }}</option><option value="available" @selected($productFilters['availability']==='available')>{{ app()->getLocale()==='ar'?'متاح':'Available' }}</option><option value="out_of_stock" @selected($productFilters['availability']==='out_of_stock')>{{ app()->getLocale()==='ar'?'نفد المخزون':'Out of stock' }}</option></select></label>
+<label>{{ app()->getLocale()==='ar'?'صحة المنتج':'Product health' }}<select name="product_health"><option value="">{{ app()->getLocale()==='ar'?'كل الحالات':'All health states' }}</option><option value="low_stock" @selected($productFilters['health']==='low_stock')>{{ __('catalog_completion.kpis.low_stock') }}</option><option value="unpriced" @selected($productFilters['health']==='unpriced')>{{ __('catalog_completion.kpis.unpriced') }}</option><option value="unavailable" @selected($productFilters['health']==='unavailable')>{{ __('catalog_completion.kpis.unavailable') }}</option><option value="missing_category" @selected($productFilters['health']==='missing_category')>{{ app()->getLocale()==='ar'?'بدون تصنيف':'Missing category' }}</option><option value="missing_brand" @selected($productFilters['health']==='missing_brand')>{{ app()->getLocale()==='ar'?'بدون علامة':'Missing brand' }}</option><option value="margin_exception" @selected($productFilters['health']==='margin_exception')>{{ __('catalog_completion.kpis.margin_exceptions') }}</option><option value="data_quality" @selected($productFilters['health']==='data_quality')>{{ __('catalog_completion.exceptions.data_quality') }}</option></select></label>
 <div class="catalog-filter-actions"><button class="btn primary">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button><a class="btn" data-catalog-filter-reset href="{{ route('admin.catalog.index',array_merge(['tab'=>'products'],$scopeParams)) }}">{{ app()->getLocale()==='ar'?'مسح الفلاتر':'Clear filters' }}</a></div>
 <div class="catalog-filter-state" role="status" aria-live="polite"><strong>{{ $products->total() }}</strong> {{ app()->getLocale()==='ar'?'نتيجة':'results' }} @if($hasProductFilters)<span class="catalog-filter-chip">{{ app()->getLocale()==='ar'?'تم تطبيق فلاتر':'Filtered' }}</span>@endif</div>
 </form>
@@ -178,6 +178,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <details class="catalog-actions">
 <summary aria-label="{{ app()->getLocale()==='ar'?'إجراءات المنتج':'Product actions' }}">⋮</summary>
 <div class="catalog-action-menu">
+<a href="{{ route('admin.catalog.index',array_merge(['tab'=>'products','product_detail'=>$p->id],$scopeParams)) }}" style="display:block;text-decoration:none;padding:9px 10px;color:var(--foodex-ink)">{{ __('catalog_completion.product_360.title') }}</a>
 <button type="button" data-dialog-open="catalog-edit-{{ $p->id }}">{{ app()->getLocale()==='ar'?'تعديل المنتج':'Edit product' }}</button>
 <button type="button" data-dialog-open="catalog-price-{{ $p->id }}">{{ app()->getLocale()==='ar'?'إدارة السعر':'Manage price' }}</button>
 <button type="button" data-dialog-open="catalog-images-{{ $p->id }}">{{ app()->getLocale()==='ar'?'إدارة الصور':'Manage images' }}</button>
@@ -372,6 +373,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @elseif($tab==='stores' && $canManageStores)
 <div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة متجر':'Add store' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.stores.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'النوع':'Type' }}<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}">{{ $t->code }} — {{ $t->name }}</option>@endforeach</select></label><label>{{ app()->getLocale()==='ar'?'الكود':'Code' }}<input name="code" placeholder="{{ app()->getLocale()==='ar'?'مثال: PCS':'e.g. PCS' }}" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'أدخل الاسم':'Enter name' }}" required></label><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة المتجر':'Add store' }}</button></form></section><section class="card table-wrap"><table class="table"><thead><tr><th>{{ app()->getLocale()==='ar'?'النوع':'Type' }}</th><th>{{ app()->getLocale()==='ar'?'الكود':'Code' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</th></tr></thead><tbody>@foreach($stores as $s)<tr><td>{{ $s->type_code }}</td><td>{{ $s->code }}</td><td>{{ $s->name }}</td><td><form class="inline-form" method="post" action="{{ route('admin.catalog.stores.update',$s->id) }}">@csrf @method('PATCH')<select name="store_type_id">@foreach($storeTypes as $t)<option value="{{ $t->id }}" @selected($s->store_type_id==$t->id)>{{ $t->code }}</option>@endforeach</select><input name="code" value="{{ $s->code }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: STORE-01':'e.g. STORE-01' }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: STORE-01':'e.g. STORE-01' }}"><input name="name" value="{{ $s->name }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المتجر':'Store name' }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المتجر':'Store name' }}"><label class="check"><input type="checkbox" name="is_active" value="1" @checked($s->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form></td></tr>@endforeach</tbody></table></section></div>
 @endif
+@include('admin._catalog-product-completion')
 </main></div><script>
 (() => {
     document.querySelectorAll('.js-catalog-image-preview').forEach((input) => {
