@@ -8,6 +8,7 @@ use App\Models\UpdateHistory;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class SystemUpdateAuthorizationTest extends TestCase
@@ -89,6 +90,8 @@ class SystemUpdateAuthorizationTest extends TestCase
 
     public function test_non_update_admin_cannot_open_system_update_center(): void
     {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         $user = $this->userWithRole('B2B_ADMIN');
 
         $this->actingAs($user)
