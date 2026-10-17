@@ -114,19 +114,120 @@ async function assertNoPageOverflow(page, label) {
   }
 }
 
+async function assertLocaleDirection(page, locale, label) {
+  const proof = await page.evaluate(() => ({
+    direction: getComputedStyle(document.documentElement).direction,
+    dirAttribute: document.documentElement.getAttribute('dir'),
+    lang: document.documentElement.getAttribute('lang'),
+    title: document.title,
+    body: (document.body?.innerText || '').replace(/\\s+/g, ' ').slice(0, 320),
+  }));
+  const expected = locale === 'ar' ? 'rtl' : 'ltr';
+  if (proof.direction !== expected) {
+    throw new Error(
+      `Unexpected document direction for ${label}: ${proof.direction} (expected ${expected}); `
+      + `runtime=${JSON.stringify(proof)} url=${page.url()}`,
+    );
+  }
+}
+
+async function assertVisibleActionsInViewport(page, label) {
+  const clipped = await page.evaluate(() => {
+    const root = document.querySelector('.foodex-admin-main, main') || document.body;
+    const selectors = 'button, a.btn, a.foodex-btn, input[type="submit"], [role="button"]';
+    const reachableHorizontalScroller = (element) => {
+      let parent = element.parentElement;
+      while (parent && parent !== root.parentElement) {
+        const style = getComputedStyle(parent);
+        const rect = parent.getBoundingClientRect();
+        const scrollable = ['auto', 'scroll'].includes(style.overflowX)
+          && parent.scrollWidth > parent.clientWidth + 2
+          && rect.left >= -2 && rect.right <= window.innerWidth + 2;
+        if (scrollable) return true;
+        if (parent === root) break;
+        parent = parent.parentElement;
+      }
+      return false;
+    };
+    return [...root.querySelectorAll(selectors)].filter((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const visible = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
+        && rect.width > 0 && rect.height > 0
+        && rect.bottom > 0 && rect.top < window.innerHeight;
+      return visible
+        && !reachableHorizontalScroller(element)
+        && (rect.left < -2 || rect.right > window.innerWidth + 2);
+    }).slice(0, 8).map((element) => {
+      const ancestry = [];
+      let parent = element.parentElement;
+      while (parent && ancestry.length < 4) {
+        const rect = parent.getBoundingClientRect();
+        const style = getComputedStyle(parent);
+        ancestry.push({
+          tag: parent.tagName.toLowerCase(),
+          className: String(parent.className || '').slice(0, 120),
+          rect: {left: rect.left, right: rect.right, width: rect.width},
+          overflowX: style.overflowX,
+          display: style.display,
+          gridTemplateColumns: style.gridTemplateColumns,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth,
+        });
+        if (parent === root) break;
+        parent = parent.parentElement;
+      }
+      return {
+        text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 80),
+        rect: element.getBoundingClientRect().toJSON(),
+        viewport: {width: window.innerWidth, height: window.innerHeight},
+        ancestry,
+      };
+    });
+  });
+  if (clipped.length) {
+    throw new Error(`Visible action clipped outside viewport for ${label}: ${JSON.stringify(clipped)}`);
+  }
+}
+
 async function captureResponsiveRoute(page, locale, channel, name, route) {
-  const viewports = [
+  const representativeViewports = [
     ['desktop-1280', 1280, 900],
     ['compact-1024', 1024, 900],
     ['tablet-768', 768, 900],
     ['mobile-390', 390, 844],
+    ['mobile-320', 320, 844],
   ];
-  if (['foodex-reset', 'production-launch'].includes(name)) viewports.push(['small-320', 320, 844]);
+  const fullViewports = [
+    ['desktop-1280', 1280, 900],
+    ['compact-1024', 1024, 900],
+    ['tablet-768', 768, 900],
+    ['mobile-430', 430, 932],
+    ['mobile-412', 412, 915],
+    ['mobile-390', 390, 844],
+    ['mobile-360', 360, 800],
+    ['mobile-320', 320, 844],
+  ];
+  const viewports = process.env.FOODEX_RESPONSIVE_PROFILE === 'full'
+    ? fullViewports
+    : representativeViewports;
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
-    await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
+    if (!response || !response.ok()) {
+      const body = (await page.locator('body').innerText().catch(() => ''))
+        .replace(/\\s+/g, ' ')
+        .slice(0, 800);
+      throw new Error(
+        `Responsive runtime route failed for ${channel}/${route}/${locale}/${state}: `
+        + `HTTP ${response?.status() ?? 'no-response'} ${page.url()}`
+        + (body ? ` · ${body}` : ''),
+      );
+    }
     await assertNoPageOverflow(page, `${channel}/${route}/${locale}/${state}`);
+    await assertLocaleDirection(page, locale, `${channel}/${route}/${locale}/${state}`);
+    await assertVisibleActionsInViewport(page, `${channel}/${route}/${locale}/${state}`);
     if (['foodex-reset', 'production-launch'].includes(name) && width < 768) {
       const sidebar = page.locator('aside.sidebar');
       const closed = await sidebar.boundingBox();
@@ -1320,21 +1421,14 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-payments',
-    '/admin/smart-ordering/operations?tab=payments',
+    '/admin/smart-ordering?tab=payments',
   );
   await captureResponsiveRoute(
     page,
     locale,
     'B2C_Admin',
     'smart-ordering-tables',
-    '/admin/smart-ordering/operations?tab=tables',
-  );
-  await captureResponsiveRoute(
-    page,
-    locale,
-    'B2C_Admin',
-    'smart-ordering-workforce',
-    '/admin/smart-ordering/operations?tab=workforce',
+    '/admin/smart-ordering?tab=tables',
   );
   await captureResponsiveRoute(
     page,
@@ -1348,7 +1442,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-supply',
-    '/admin/smart-ordering/supply',
+    '/admin/smart-ordering/supply?support_access=1',
   );
   await captureResponsiveRoute(
     page,

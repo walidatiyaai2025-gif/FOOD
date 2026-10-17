@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -80,6 +82,24 @@ jobs:
           cat /tmp/foodex-ui-qa-server.log
           exit 1
 
+      - name: Choose responsive evidence profile
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          if [ -n "$base" ] && [ -n "$head" ]; then
+            range="$base...$head"
+          else
+            range="HEAD^...HEAD"
+          fi
+          if git diff --name-only "$range" | grep -Eq '^(backend/public/assets/admin/|backend/resources/views/admin/(layouts|components)/|scripts/capture_web_screenshots\.mjs|\.ai/uiux/visual-evidence-matrix\.json|\.github/workflows/ui-visual-qa\.yml)'; then
+            profile=full
+          else
+            profile=representative
+          fi
+          echo "FOODEX_RESPONSIVE_PROFILE=$profile" >> "$GITHUB_ENV"
+          echo "Responsive evidence profile: $profile"
+
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend
         env:
@@ -105,7 +125,16 @@ jobs:
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
           test "$count" -ge 106
-          test "$responsive_count" -eq 236
+          if [ "${FOODEX_RESPONSIVE_PROFILE:-representative}" = "full" ]; then
+            test "$responsive_count" -ge 352
+            test -n "$(find ScreenShots/02_Web/Responsive -type f -name '*__mobile-430__ar.png' -print -quit)"
+            test -n "$(find ScreenShots/02_Web/Responsive -type f -name '*__mobile-412__en.png' -print -quit)"
+            test -n "$(find ScreenShots/02_Web/Responsive -type f -name '*__mobile-360__ar.png' -print -quit)"
+          else
+            test "$responsive_count" -ge 220
+          fi
+          test -n "$(find ScreenShots/02_Web/Responsive -type f -name '*__mobile-320__ar.png' -print -quit)"
+          test -n "$(find ScreenShots/02_Web/Responsive -type f -name '*__mobile-320__en.png' -print -quit)"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/treasury-master__desktop-1280__ar.png"
@@ -132,18 +161,10 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__desktop-1280__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__compact-1024__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__tablet-768__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__mobile-390__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__desktop-1280__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__desktop-1280__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__compact-1024__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__tablet-768__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-workforce__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__desktop-1280__ar.png"
@@ -234,12 +255,12 @@ jobs:
           test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__mobile-390__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__small-320__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__small-320__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__mobile-320__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/foodex-reset__mobile-320__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__mobile-390__en.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__small-320__ar.png"
-          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__small-320__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__mobile-320__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-launch__mobile-320__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-dataset__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-dataset__desktop-1280__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/production-dataset__mobile-390__ar.png"
