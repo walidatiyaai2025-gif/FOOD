@@ -66,7 +66,7 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertStringContainsString('height:var(--foodex-header-height-mobile)!important', $shell);
         $this->assertStringContainsString('grid-template-columns:minmax(70px,.72fr) minmax(105px,1fr) auto', $shell);
         $this->assertStringContainsString('.user-card>strong,.user-card>span,.roles{display:none}', $shell);
-        $this->assertStringContainsString("data-foodex-dashboard-header-search", $shell);
+        $this->assertStringContainsString('data-foodex-dashboard-header-search', $shell);
         $this->assertStringContainsString("@include('admin._live-notifications')", $shell);
     }
 
