@@ -331,8 +331,12 @@ final class WhatsAppCampaignController extends Controller
         return response()->json(['ok' => true, 'batch_id' => $batchId] + $result);
     }
 
-    public function storeTemplate(Request $request, TemplateRegistryService $templates): JsonResponse|RedirectResponse
-    {
+    public function storeTemplate(
+        Request $request,
+        TemplateRegistryService $templates,
+        AuditLogger $audit,
+    ): JsonResponse|RedirectResponse {
+        $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -345,12 +349,29 @@ final class WhatsAppCampaignController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $id = $templates->upsert($data, $request->user()?->getKey());
+        $before = DB::table('whats_app_templates')
+            ->where('provider_name', trim((string) $data['provider_name']))
+            ->where('locale', strtolower(trim((string) $data['locale'])))
+            ->first();
+        $id = $templates->upsert($data, $actor->getKey());
+        $after = DB::table('whats_app_templates')->where('id', $id)->first();
+        $audit->record(
+            'whatsapp.campaign.template_updated',
+            $actor,
+            null,
+            $before === null ? null : (array) $before,
+            $after === null ? ['template_id' => $id] : (array) $after,
+            $request,
+        );
 
         return $this->mutationResponse($request, ['template_id' => $id], 'Template registry updated.');
     }
 
-    public function createMetaTemplate(Request $request, MetaTemplateService $metaTemplates): JsonResponse|RedirectResponse
+    public function createMetaTemplate(
+        Request $request,
+        MetaTemplateService $metaTemplates,
+        AuditLogger $audit,
+    ): JsonResponse|RedirectResponse
     {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
@@ -363,6 +384,17 @@ final class WhatsAppCampaignController extends Controller
         ]);
 
         $result = $metaTemplates->create($data, $actor->getKey());
+        $template = DB::table('whats_app_templates')
+            ->where('id', (int) $result['template_id'])
+            ->first();
+        $audit->record(
+            'whatsapp.campaign.meta_template_created',
+            $actor,
+            null,
+            null,
+            $template === null ? $result : (array) $template,
+            $request,
+        );
 
         return $this->mutationResponse(
             $request,
@@ -371,10 +403,23 @@ final class WhatsAppCampaignController extends Controller
         );
     }
 
-    public function syncMetaTemplates(Request $request, MetaTemplateService $metaTemplates): JsonResponse|RedirectResponse
+    public function syncMetaTemplates(
+        Request $request,
+        MetaTemplateService $metaTemplates,
+        AuditLogger $audit,
+    ): JsonResponse|RedirectResponse
     {
+        $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $result = $metaTemplates->sync();
+        $audit->record(
+            'whatsapp.campaign.meta_templates_synced',
+            $actor,
+            null,
+            null,
+            $result,
+            $request,
+        );
 
         return $this->mutationResponse(
             $request,
@@ -394,6 +439,7 @@ final class WhatsAppCampaignController extends Controller
         Request $request,
         MarketingConsentService $consent,
         OperationalTenantScope $scope,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
@@ -412,12 +458,31 @@ final class WhatsAppCampaignController extends Controller
         abort_unless($customer !== null && $customer->origin_store_id !== null, 404);
         $scope->assertStore($actor, (int) $customer->origin_store_id, 'whatsapp.campaigns.manage');
 
+        $before = DB::table('whats_app_marketing_preferences')
+            ->where('platform_customer_id', (int) $data['platform_customer_id'])
+            ->first();
+
         $id = $consent->record(
             (int) $data['platform_customer_id'],
             (string) $data['state'],
             (string) $data['source'],
             $actor->getKey(),
             ['evidence' => (string) $data['evidence']],
+        );
+        $after = DB::table('whats_app_marketing_preferences')
+            ->where('platform_customer_id', (int) $data['platform_customer_id'])
+            ->first();
+        $audit->record(
+            'whatsapp.campaign.consent_updated',
+            $actor,
+            null,
+            $before === null ? null : ((array) $before + ['store_id' => (int) $customer->origin_store_id]),
+            ($after === null ? [] : (array) $after) + [
+                'store_id' => (int) $customer->origin_store_id,
+                'consent_id' => $id,
+                'source' => (string) $data['source'],
+            ],
+            $request,
         );
 
         return $this->mutationResponse($request, ['consent_id' => $id], 'Marketing consent updated.');
