@@ -973,7 +973,13 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
   ]) {
     const runtimeResponse = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (!runtimeResponse || !runtimeResponse.ok() || page.url().includes('/login')) {
-      throw new Error(`System administration evidence route failed: ${surface}/${locale}`);
+      const status = runtimeResponse?.status() ?? 'no-response';
+      const body = (await page.locator('body').innerText().catch(() => ''))
+        .replace(/\\s+/g, ' ')
+        .slice(0, 600);
+      throw new Error(
+        `System administration evidence route failed: ${surface}/${locale}; HTTP ${status}; url=${page.url()}; body=${body}`,
+      );
     }
     if (await page.locator(requiredSelector).count() !== 1) {
       throw new Error(`System administration runtime contract missing: ${surface}/${locale}`);
