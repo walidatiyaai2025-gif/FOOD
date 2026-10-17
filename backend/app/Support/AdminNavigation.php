@@ -83,7 +83,7 @@ class AdminNavigation
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
-                $this->routeItemScoped($user, 'smart_ordering', 'smart_ordering.nav_title', 'admin.smart-ordering.index', 'smart_ordering.view'),
+                $this->restaurantSaasItem($user),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
             ]),
@@ -122,7 +122,6 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
-                $this->routeItemScoped($user, 'smart_ordering_qr', 'smart_ordering_qr.nav_title', 'admin.smart-ordering.qr.index', 'smart_ordering.qr.view'),
                 $this->whatsAppCampaignsItem($user),
                 $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
@@ -138,7 +137,6 @@ class AdminNavigation
                 $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
-                $this->routeItemScoped($user, 'smart_ordering_analytics', 'smart_ordering.analytics.nav_title', 'admin.smart-ordering.analytics.index', 'smart_ordering.analytics.view'),
                 $this->whatsAppSupervisorItem($user),
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'finance', 'admin.b2c_workspace.modules.finance', 'finance.view'),
@@ -269,6 +267,31 @@ class AdminNavigation
                 ->whereIn('roles.code', $storeRoles)
                 ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))
             ->exists();
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function restaurantSaasItem(User $user): ?array
+    {
+        $destinations = [
+            ['route' => 'admin.smart-ordering.index', 'permission' => 'smart_ordering.view'],
+            ['route' => 'admin.smart-ordering.operations.index', 'permission' => 'orders.view'],
+            ['route' => 'admin.smart-ordering.qr.index', 'permission' => 'smart_ordering.qr.view'],
+            ['route' => 'admin.smart-ordering.analytics.index', 'permission' => 'smart_ordering.analytics.view'],
+        ];
+
+        foreach ($destinations as $destination) {
+            if (Route::has($destination['route']) && $this->hasPermissionInScope($user, $destination['permission'])) {
+                return [
+                    'key' => 'smart_ordering',
+                    'label' => 'smart_ordering.nav_title',
+                    'route' => $destination['route'],
+                    'params' => [],
+                    'permission' => $destination['permission'],
+                ];
+            }
+        }
+
+        return null;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
