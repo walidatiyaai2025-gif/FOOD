@@ -71,6 +71,10 @@ return new class extends Migration {
             $table->foreignId('contract_id')->constrained('enterprise_procurement_contracts')->cascadeOnDelete();
             $table->string('title', 190);
             $table->string('reference', 190)->nullable();
+            $table->string('storage_path', 500)->nullable();
+            $table->string('original_name', 255)->nullable();
+            $table->string('mime_type', 120)->nullable();
+            $table->unsignedBigInteger('size_bytes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
