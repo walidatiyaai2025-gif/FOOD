@@ -11,6 +11,7 @@ return [
     ],
     'actions' => [
         'export' => 'تصدير',
+        'retry' => 'إعادة المحاولة',
     ],
     'comparison' => [
         'previous_period' => 'الفترة السابقة',
