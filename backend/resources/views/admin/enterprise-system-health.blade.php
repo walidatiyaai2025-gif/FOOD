@@ -113,7 +113,7 @@ $moduleDashboardFilters=[
 
     <article class="foodex-viz-card foodex-module-chart system-admin-chart" data-foodex-module-chart>
         <h3>{{ __('system_admin.sections.failed_jobs') }}</h3>
-        <p>{{ __('system_admin.labels.queue_driver') }}: {{ IlluminateSupportStr::headline($queueDriver ?: '—') }}</p>
+        <p>{{ __('system_admin.labels.queue_driver') }}: {{ \Illuminate\Support\Str::headline($queueDriver ?: '—') }}</p>
         @php
             $jobTrend=$failedJobs['trend']??[];
             $jobMax=max(1,collect($jobTrend)->max('count')??1);
@@ -195,7 +195,7 @@ $moduleDashboardFilters=[
 <thead><tr><th>{{ __('system_admin.labels.type') }}</th><th>{{ __('system_admin.labels.created_at') }}</th><th>{{ __('system_admin.labels.size') }}</th><th>{{ __('system_admin.labels.hash') }}</th><th>{{ __('system_admin.labels.status') }}</th><th>{{ __('system_admin.labels.origin') }}</th><th></th></tr></thead>
 <tbody>@foreach($backupRows as $row)<tr>
 <td>{{ $row['type'] }}</td><td dir="ltr">{{ $row['created_at']??'—' }}</td><td>{{ $row['size'] }}</td><td><code>{{ $row['reference'] }}</code></td><td>{{ $row['status'] }}</td><td>{{ $row['origin'] }}</td>
-<td><a class="foodex-action-secondary" href="{{ $row['url'] }}">{{ __('admin.actions.view') ?? __('system_admin.actions.update') }}</a></td>
+<td><a class="foodex-action-secondary" href="{{ $row['url'] }}">{{ __('system_admin.actions.update') }}</a></td>
 </tr>@endforeach</tbody></table></div>
 @endif
 </section>
@@ -216,7 +216,7 @@ $moduleDashboardFilters=[
 @php
 $ev=is_array($row->execution_evidence)?$row->execution_evidence:[];
 $statusKey=match(strtolower((string)$row->status)){'success','completed','succeeded'=>'succeeded','failed','error'=>'failed',default=>'pending'};
-$evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pending','passed','failed','not_required','available','not_created','succeeded','incomplete','automatic','manual_recovery'],true)?$value:'unknown'));
+$evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pending','passed','failed','not_required','available','partial','not_created','succeeded','incomplete','automatic','manual_recovery'],true)?$value:'unknown'));
 @endphp
 <tr>
 <td><code>{{ $row->from_version?:'—' }}</code> → <code>{{ $row->to_version }}</code></td>
@@ -242,7 +242,7 @@ $evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pendin
 @else
 <div class="system-admin-table-wrap"><table class="system-admin-table">
 <thead><tr><th>{{ __('system_admin.labels.hash') }}</th><th>{{ __('system_admin.labels.queue_driver') }}</th><th>{{ __('system_admin.labels.source') }}</th><th>{{ __('system_admin.labels.date') }}</th></tr></thead>
-<tbody>@foreach($failedJobs['rows'] as $row)<tr><td><code>{{ IlluminateSupportStr::limit($row['reference'],24,'…') }}</code></td><td>{{ $row['connection']?:'—' }}</td><td>{{ $row['queue']?:'—' }}</td><td dir="ltr">{{ $row['failed_at']?:'—' }}</td></tr>@endforeach</tbody>
+<tbody>@foreach($failedJobs['rows'] as $row)<tr><td><code>{{ \Illuminate\Support\Str::limit($row['reference'],24,'…') }}</code></td><td>{{ $row['connection']?:'—' }}</td><td>{{ $row['queue']?:'—' }}</td><td dir="ltr">{{ $row['failed_at']?:'—' }}</td></tr>@endforeach</tbody>
 </table></div>
 @endif
 </section>
@@ -250,9 +250,9 @@ $evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pendin
 <section class="system-admin-section">
 <h2>{{ __('enterprise_health.system_signals') }}</h2>
 <div class="system-admin-signals">
-<article class="foodex-card system-admin-signal"><span>{{ __('enterprise_health.outbox') }}</span>@if($outboxCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="system-admin-pills">@foreach($outboxCounts as $status=>$count)<span class="system-admin-pill">{{ IlluminateSupportStr::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</article>
-<article class="foodex-card system-admin-signal"><span>{{ __('enterprise_health.workflow') }}</span>@if($workflowCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="system-admin-pills">@foreach($workflowCounts as $status=>$count)<span class="system-admin-pill">{{ IlluminateSupportStr::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</article>
-<article class="foodex-card system-admin-signal"><span>{{ __('system_admin.labels.heartbeat') }}</span><strong>{{ $schedulerHealth['last_run']??__('system_admin.states.unknown') }}</strong><p class="system-admin-note">{{ __('system_admin.labels.queue_driver') }}: {{ IlluminateSupportStr::headline($queueDriver?:'—') }}</p></article>
+<article class="foodex-card system-admin-signal"><span>{{ __('enterprise_health.outbox') }}</span>@if($outboxCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="system-admin-pills">@foreach($outboxCounts as $status=>$count)<span class="system-admin-pill">{{ \Illuminate\Support\Str::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</article>
+<article class="foodex-card system-admin-signal"><span>{{ __('enterprise_health.workflow') }}</span>@if($workflowCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="system-admin-pills">@foreach($workflowCounts as $status=>$count)<span class="system-admin-pill">{{ \Illuminate\Support\Str::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</article>
+<article class="foodex-card system-admin-signal"><span>{{ __('system_admin.labels.heartbeat') }}</span><strong>{{ $schedulerHealth['last_run']??__('system_admin.states.unknown') }}</strong><p class="system-admin-note">{{ __('system_admin.labels.queue_driver') }}: {{ \Illuminate\Support\Str::headline($queueDriver?:'—') }}</p></article>
 </div>
 </section>
 
