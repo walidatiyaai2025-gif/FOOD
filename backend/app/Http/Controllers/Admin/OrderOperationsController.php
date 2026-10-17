@@ -159,7 +159,7 @@ final class OrderOperationsController extends Controller
 
         $selectedException = isset($data['exception']) ? (string) $data['exception'] : null;
         if ($selectedException !== null) {
-            $this->salesDashboard->applyExceptionFilter($orderQuery, $scopes, $selectedException);
+            $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
         $statusCounts = (clone $orderQuery)
