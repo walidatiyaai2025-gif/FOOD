@@ -18,7 +18,7 @@
 
     @if(($retry_url ?? null) && $moduleDashboardState === 'error')
         <a class="foodex-action-secondary button secondary" href="{{ $retry_url }}">
-            {{ $retry_label ?? __('order_operations.lookup.retry') }}
+            {{ $retry_label ?? __('module_dashboard.actions.retry') }}
         </a>
     @endif
 </section>
