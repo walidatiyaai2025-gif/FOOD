@@ -175,6 +175,7 @@ Route::prefix('admin')
             Route::post('/contracts/{contract}/activate', [EnterpriseProcurementController::class, 'activateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.activate');
             Route::post('/contracts/{contract}/terminate', [EnterpriseProcurementController::class, 'terminateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.terminate');
             Route::post('/contracts/{contract}/documents', [EnterpriseProcurementController::class, 'registerContractDocument'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.documents.store');
+            Route::get('/contracts/{contract}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadContractDocument'])->whereNumber('contract')->whereNumber('document')->middleware('throttle:60,1')->name('contracts.documents.download');
             Route::post('/orders/{purchaseOrder}/contract', [EnterpriseProcurementController::class, 'assignContract'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('orders.contract');
             Route::post('/invoices/{purchaseInvoice}/match-review', [EnterpriseProcurementController::class, 'reviewMatch'])->whereNumber('purchaseInvoice')->middleware('throttle:30,1')->name('matches.review');
             Route::get('/reports/export', [EnterpriseProcurementController::class, 'exportReport'])->middleware('throttle:30,1')->name('reports.export');
