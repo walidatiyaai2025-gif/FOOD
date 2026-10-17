@@ -257,7 +257,32 @@ final class ProcurementCompletionManager
                 'suppliers.name_ar as supplier_name_ar',
             ]);
 
-        return compact('rfq', 'lines', 'invitations', 'quotes');
+        $quoteDocuments = $quotes->isEmpty()
+            ? collect()
+            : DB::table('enterprise_procurement_quote_documents')
+                ->whereIn('quote_id', $quotes->pluck('id')->all())
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('quote_id');
+
+        return compact('rfq', 'lines', 'invitations', 'quotes', 'quoteDocuments');
+    }
+
+    public function quoteDocument(
+        User $actor,
+        ResolvedTenantContext $context,
+        int $rfqId,
+        int $documentId,
+    ): object {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_requests.view');
+        $rfq = $this->visibleRfq($scope, $rfqId);
+
+        return DB::table('enterprise_procurement_quote_documents as documents')
+            ->join('enterprise_procurement_quotes as quotes', 'quotes.id', '=', 'documents.quote_id')
+            ->where('quotes.rfq_id', $rfq->id)
+            ->where('documents.id', $documentId)
+            ->select('documents.*')
+            ->firstOrFail();
     }
 
     /** @param array<string,mixed> $attributes */
@@ -648,12 +673,31 @@ final class ProcurementCompletionManager
                 ->where('quote_id', $existingQuote->id)
                 ->get()
                 ->keyBy('rfq_line_id');
+        $quoteDocuments = $existingQuote === null
+            ? collect()
+            : DB::table('enterprise_procurement_quote_documents')
+                ->where('quote_id', $existingQuote->id)
+                ->orderByDesc('id')
+                ->limit(25)
+                ->get();
 
-        return compact('invitation', 'rfq', 'lines', 'supplier', 'existingQuote', 'existingLines');
+        return compact(
+            'invitation',
+            'rfq',
+            'lines',
+            'supplier',
+            'existingQuote',
+            'existingLines',
+            'quoteDocuments',
+        );
     }
 
     /** @param array<string,mixed> $attributes */
-    public function submitPortalQuote(string $token, array $attributes): object
+    public function submitPortalQuote(
+        string $token,
+        array $attributes,
+        ?UploadedFile $attachment = null,
+    ): object
     {
         $invitation = $this->portalInvitation($token, false);
         $rfq = DB::table('enterprise_procurement_rfqs')->where('id', $invitation->rfq_id)->firstOrFail();
@@ -740,6 +784,34 @@ final class ProcurementCompletionManager
                 'submitted_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            if ($attachment instanceof UploadedFile) {
+                $extension = strtolower((string) ($attachment->guessExtension() ?: $attachment->getClientOriginalExtension()));
+                $filename = Str::uuid()->toString().($extension !== '' ? '.'.$extension : '');
+                $directory = 'procurement/quotes/'.$publicId;
+                $stored = Storage::disk('local')->putFileAs($directory, $attachment, $filename);
+                if (! is_string($stored) || $stored === '' || ! Storage::disk('local')->exists($stored)) {
+                    throw ValidationException::withMessages([
+                        'attachment' => ['The quote attachment could not be stored safely.'],
+                    ]);
+                }
+
+                try {
+                    DB::table('enterprise_procurement_quote_documents')->insert([
+                        'quote_id' => $quoteId,
+                        'title' => Str::limit($attachment->getClientOriginalName(), 190, ''),
+                        'storage_path' => $stored,
+                        'original_name' => Str::limit($attachment->getClientOriginalName(), 255, ''),
+                        'mime_type' => $attachment->getMimeType() ?: null,
+                        'size_bytes' => (int) $attachment->getSize(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (\Throwable $exception) {
+                    Storage::disk('local')->delete($stored);
+                    throw $exception;
+                }
+            }
 
             $quote = DB::table('enterprise_procurement_quotes')->where('id', $quoteId)->firstOrFail();
             $this->audit->record('enterprise.procurement.quote.submitted', null, null, null, [
