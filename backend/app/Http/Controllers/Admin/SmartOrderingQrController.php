@@ -105,7 +105,7 @@ final class SmartOrderingQrController extends Controller
             'filters' => $filters,
             'canCreate' => $canCreate,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => 'smart_ordering_qr',
+            'navContext' => 'smart_ordering',
         ]);
     }
 
