@@ -39,6 +39,8 @@ return [
         'sso' => 'الدخول الموحد المؤسسي',
         'sessions' => 'جلسات الإدارة',
         'audit' => 'مستكشف سجل التدقيق',
+        'stale_privilege_window' => 'مراجعة الصلاحيات غير المستخدمة منذ 90 يومًا',
+        'risky_delegation_window' => 'أطول من 30 يومًا',
     ],
     'states' => [
         'healthy' => 'سليم',
