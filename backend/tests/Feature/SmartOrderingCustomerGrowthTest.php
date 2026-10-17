@@ -414,6 +414,7 @@ class SmartOrderingCustomerGrowthTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $this->enableRestaurantSaasForTestStore($storeId);
         $site = app(SmartOrderingSiteService::class)->ensureForStore($storeId, $admin);
 
         return [$storeId, $admin, $site];

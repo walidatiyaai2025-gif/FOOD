@@ -47,6 +47,8 @@
     $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
     $restaurantAppearanceParams = array_filter([
         'site' => $restaurantSiteKey !== '' ? $restaurantSiteKey : null,
+        'store_id' => $restaurantStoreId > 0 ? $restaurantStoreId : null,
+        'support_access' => $restaurantSupport ? 1 : null,
     ], static fn ($value) => $value !== null);
     $restaurantSupplyEnabled = false;
     if ($restaurantSiteId > 0) {
@@ -68,7 +70,7 @@
         </a>
     @endif
     @if($restaurantCanOrders)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index') }}" @if(request()->routeIs('admin.smart-ordering.operations.*')) aria-current="page" @endif>
+        <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.operations.*')) aria-current="page" @endif>
             {{ __('smart_ordering.operations_tab') }}
         </a>
     @endif
