@@ -158,6 +158,98 @@ final class SalesOrderOperationsDashboardService
             ->values()
             ->all();
 
+        $storeBreakdown = DB::table('orders')
+            ->join('stores', 'stores.id', '=', 'orders.store_id');
+        $this->applyScope($storeBreakdown, $scopes, $storeId, $fromUtc, $toUtc);
+        $storeBreakdown = $storeBreakdown
+            ->selectRaw('stores.id, stores.name, COUNT(*) as orders_count')
+            ->groupBy('stores.id', 'stores.name')
+            ->orderByDesc('orders_count')
+            ->limit(12)
+            ->get()
+            ->map(static fn (object $row): array => [
+                'store_id' => (int) $row->id,
+                'store' => (string) $row->name,
+                'orders' => (int) $row->orders_count,
+            ])
+            ->values()
+            ->all();
+
+        $topCustomers = DB::table('orders')
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id');
+        $this->applyScope($topCustomers, $scopes, $storeId, $fromUtc, $toUtc);
+        $topCustomers = $topCustomers
+            ->selectRaw(
+                "orders.channel, orders.b2c_customer_id, orders.b2b_customer_id, orders.customer_id, ".
+                "COALESCE(b2c_customers.name, b2b_customers.name, legacy_customers.name, '—') as customer, ".
+                "COUNT(*) as orders_count"
+            )
+            ->groupBy(
+                'orders.channel',
+                'orders.b2c_customer_id',
+                'orders.b2b_customer_id',
+                'orders.customer_id',
+                'b2c_customers.name',
+                'b2b_customers.name',
+                'legacy_customers.name',
+            )
+            ->orderByDesc('orders_count')
+            ->limit(8)
+            ->get()
+            ->map(static fn (object $row): array => [
+                'channel' => (string) $row->channel,
+                'customer_id' => $row->channel === 'b2b'
+                    ? ($row->b2b_customer_id === null ? null : (int) $row->b2b_customer_id)
+                    : ($row->b2c_customer_id === null ? null : (int) $row->b2c_customer_id),
+                'customer' => (string) $row->customer,
+                'orders' => (int) $row->orders_count,
+            ])
+            ->values()
+            ->all();
+
+        $cancellationReasons = DB::table('order_status_history')
+            ->join('orders', 'orders.id', '=', 'order_status_history.order_id');
+        $this->applyScope($cancellationReasons, $scopes, $storeId, $fromUtc, $toUtc);
+        $cancellationReasons = $cancellationReasons
+            ->whereIn('order_status_history.to_status', self::NON_REVENUE_STATUSES)
+            ->selectRaw(
+                "COALESCE(NULLIF(TRIM(order_status_history.note), ''), 'unspecified') as reason, COUNT(*) as aggregate"
+            )
+            ->groupBy('reason')
+            ->orderByDesc('aggregate')
+            ->limit(10)
+            ->get()
+            ->map(static fn (object $row): array => [
+                'reason' => (string) $row->reason,
+                'count' => (int) $row->aggregate,
+            ])
+            ->values()
+            ->all();
+
+        $fulfillmentRows = DB::table('order_status_history')
+            ->join('orders', 'orders.id', '=', 'order_status_history.order_id');
+        $this->applyScope($fulfillmentRows, $scopes, $storeId, $fromUtc, $toUtc);
+        $fulfillmentMinutes = $fulfillmentRows
+            ->where('order_status_history.to_status', 'delivered')
+            ->get(['orders.id', 'orders.created_at as ordered_at', 'order_status_history.created_at as delivered_at'])
+            ->map(static fn (object $row): float => max(
+                0,
+                CarbonImmutable::parse((string) $row->ordered_at, 'UTC')
+                    ->diffInMinutes(CarbonImmutable::parse((string) $row->delivered_at, 'UTC')),
+            ));
+
+        $fulfillmentAverage = $fulfillmentMinutes->isEmpty()
+            ? null
+            : round((float) $fulfillmentMinutes->average(), 1);
+        $fulfillmentBreakdown = [
+            ['bucket' => 'under_60', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes <= 60)->count()],
+            ['bucket' => '60_120', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 60 && $minutes <= 120)->count()],
+            ['bucket' => '120_240', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 120 && $minutes <= 240)->count()],
+            ['bucket' => 'over_240', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 240)->count()],
+        ];
+
         $topProducts = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id');
@@ -217,12 +309,17 @@ final class SalesOrderOperationsDashboardService
                 'invoice_exceptions' => $invoiceExceptions,
                 'cancelled_refunded' => $cancelledRefunded,
                 'open_within_sla_percent' => $openWithinSlaPercent,
+                'average_fulfillment_minutes' => $fulfillmentAverage,
             ],
             'daily' => $daily,
             'status_breakdown' => $statusBreakdown,
             'channel_breakdown' => $channelBreakdown,
+            'store_breakdown' => $storeBreakdown,
             'payment_breakdown' => $paymentProviders,
             'top_products' => $topProducts,
+            'top_customers' => $topCustomers,
+            'cancellation_reasons' => $cancellationReasons,
+            'fulfillment_breakdown' => $fulfillmentBreakdown,
             'source_breakdown' => $sourceBreakdown,
             'exceptions' => [
                 ['key' => 'delayed', 'count' => $delayedOrders],
