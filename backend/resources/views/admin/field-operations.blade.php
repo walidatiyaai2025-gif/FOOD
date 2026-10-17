@@ -77,7 +77,7 @@
             </div>
         @endif
 
-        <div class="foodex-ops-shell">
+        <div class="foodex-ops-shell" data-fieldops-shell-section="{{ $fieldOperationsSection }}" data-fieldops-is-vans="{{ $fieldOperationsSection === 'vans' ? '1' : '0' }}">
         @if($fieldOperationsSection === 'overview')
             @php
                 $s = $summary ?? [];
