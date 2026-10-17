@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Product;
 use App\Models\Store;
 use App\Models\Unit;
 use App\Models\User;
@@ -617,7 +619,8 @@ final class CatalogManagementController extends Controller
         }
         $sku = $this->skuGenerator->generate((int) $catalog->id, (int) $data['store_id']);
 
-        $id = DB::transaction(function () use ($data, $request, $catalog, $sku): int {
+        $active = $request->boolean('is_active', true);
+        $id = DB::transaction(function () use ($data, $catalog, $sku, $active): int {
             $id = (int) DB::table('products')->insertGetId([
                 'catalog_id' => $catalog->id,
                 'sku' => $sku,
@@ -626,7 +629,9 @@ final class CatalogManagementController extends Controller
                 'category_id' => $data['category_id'] ?? null,
                 'brand_id' => $data['brand_id'] ?? null,
                 'unit_id' => $data['unit_id'],
-                'is_active' => $request->boolean('is_active', true),
+                'is_active' => $active,
+                'lifecycle_state' => $active ? 'active' : 'draft',
+                'lifecycle_effective_at' => now(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -635,7 +640,7 @@ final class CatalogManagementController extends Controller
                 'store_id' => $data['store_id'],
                 'product_id' => $id,
                 'price' => $data['price'] ?? null,
-                'is_active' => true,
+                'is_active' => $active,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -685,11 +690,43 @@ final class CatalogManagementController extends Controller
         $this->validateProductCategoryReference($categoryId, $owner);
         $this->validateProductLookupReference('units', $unitId, $owner);
         $this->validateProductLookupReference('brands', $brandId, $owner);
-        DB::table('products')->where('id', $product)->update([
-            ...collect($data)->except(['is_active', 'images'])->all(),
-            'is_active' => $request->boolean('is_active'),
-            'updated_at' => now(),
-        ]);
+        $beforeProduct = DB::table('products')->where('id', $product)->first();
+        $active = $request->boolean('is_active');
+        $nextLifecycle = $active ? 'active' : 'paused';
+        DB::transaction(function () use ($product, $data, $active, $nextLifecycle, $beforeProduct, $request): void {
+            DB::table('products')->where('id', $product)->update([
+                ...collect($data)->except(['is_active', 'images'])->all(),
+                'is_active' => $active,
+                'lifecycle_state' => $nextLifecycle,
+                'lifecycle_effective_at' => ($beforeProduct?->lifecycle_state ?? null) === $nextLifecycle
+                    ? ($beforeProduct?->lifecycle_effective_at ?? now())
+                    : now(),
+                'end_of_life_at' => null,
+                'updated_at' => now(),
+            ]);
+
+            if (($beforeProduct?->lifecycle_state ?? null) !== $nextLifecycle) {
+                DB::table('product_lifecycle_transitions')->insert([
+                    'product_id' => $product,
+                    'user_id' => $this->actor($request)->id,
+                    'from_state' => $beforeProduct?->lifecycle_state,
+                    'to_state' => $nextLifecycle,
+                    'effective_at' => now(),
+                    'reason' => __('catalog_completion.lifecycle.legacy_active_toggle_reason'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        app(AuditLogger::class)->record(
+            'catalog.product.updated',
+            $this->actor($request),
+            Product::query()->find($product),
+            $beforeProduct === null ? null : (array) $beforeProduct,
+            (array) DB::table('products')->where('id', $product)->first(),
+            $request,
+        );
 
         /** @var list<UploadedFile> $files */
         $files = collect($request->file('images', []))
@@ -739,10 +776,34 @@ final class CatalogManagementController extends Controller
         $used = DB::table('order_items')->where('product_id', $product)->exists();
 
         if ($used) {
-            DB::table('products')->where('id', $product)->update([
-                'is_active' => false,
-                'updated_at' => now(),
-            ]);
+            $beforeProduct = DB::table('products')->where('id', $product)->first();
+            DB::transaction(function () use ($product, $request, $beforeProduct): void {
+                DB::table('products')->where('id', $product)->update([
+                    'is_active' => false,
+                    'lifecycle_state' => 'end_of_life',
+                    'lifecycle_effective_at' => now(),
+                    'end_of_life_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('product_lifecycle_transitions')->insert([
+                    'product_id' => $product,
+                    'user_id' => $this->actor($request)->id,
+                    'from_state' => $beforeProduct?->lifecycle_state,
+                    'to_state' => 'end_of_life',
+                    'effective_at' => now(),
+                    'reason' => __('catalog_completion.lifecycle.referenced_delete_reason'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            });
+            app(AuditLogger::class)->record(
+                'catalog.product.lifecycle.transitioned',
+                $this->actor($request),
+                Product::query()->find($product),
+                $beforeProduct === null ? null : (array) $beforeProduct,
+                ['lifecycle_state' => 'end_of_life'],
+                $request,
+            );
 
             return back()->with('status', $this->msg(
                 'المنتج مستخدم في طلبات سابقة، لذلك تم تعطيله بدلاً من حذفه.',
@@ -817,6 +878,14 @@ final class CatalogManagementController extends Controller
         if ($categoryImage instanceof UploadedFile) {
             $this->images->replaceCategoryImage($categoryId, $categoryImage);
         }
+        app(AuditLogger::class)->record(
+            'catalog.category.created',
+            $this->actor($request),
+            Category::query()->find($categoryId),
+            null,
+            ['category_id' => $categoryId, 'catalog_id' => (int) $catalog->id],
+            $request,
+        );
 
         return back()->with('status', $this->msg('تمت إضافة التصنيف وصورته.', 'Category and image added.'));
     }
@@ -838,6 +907,7 @@ final class CatalogManagementController extends Controller
         $this->catalogs->assertParentInCatalog(isset($data['parent_id']) ? (int) $data['parent_id'] : null, (int) $owner->catalog_id);
         $this->assertSlugAvailable((int) $owner->catalog_id, (string) $data['slug'], $category);
 
+        $beforeCategory = DB::table('categories')->where('id', $category)->first();
         DB::table('categories')->where('id', $category)->update([
             'name' => $data['name'],
             'slug' => $data['slug'],
@@ -853,6 +923,14 @@ final class CatalogManagementController extends Controller
         if ($categoryImage instanceof UploadedFile) {
             $this->images->replaceCategoryImage($category, $categoryImage);
         }
+        app(AuditLogger::class)->record(
+            'catalog.category.updated',
+            $this->actor($request),
+            Category::query()->find($category),
+            $beforeCategory === null ? null : (array) $beforeCategory,
+            (array) DB::table('categories')->where('id', $category)->first(),
+            $request,
+        );
 
         return back()->with('status', $this->msg('تم تعديل التصنيف وصورته.', 'Category and image updated.'));
     }
