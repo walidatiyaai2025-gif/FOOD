@@ -48,7 +48,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return array<string,mixed>
      */
     public function dashboard(User $actor, array $filters = []): array
@@ -155,7 +155,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return LengthAwarePaginator<int,object>
      */
     public function paginateCases(User $actor, array $filters = [], int $perPage = 25): LengthAwarePaginator
@@ -174,7 +174,6 @@ final class CustomerServiceCaseManager
             ->withQueryString();
     }
 
-    /** @return object */
     public function caseDetail(User $actor, int $caseId): object
     {
         $storeIds = $this->viewStoreIds($actor);
@@ -199,7 +198,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     public function createCase(User $actor, array $attributes): CustomerServiceCase
     {
@@ -272,7 +271,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     public function updateCase(User $actor, int $caseId, array $attributes): CustomerServiceCase
     {
@@ -399,7 +398,6 @@ final class CustomerServiceCaseManager
         return $noteId;
     }
 
-    /** @return object */
     public function attachment(User $actor, int $caseId, int $noteId): object
     {
         $this->caseDetail($actor, $caseId);
@@ -416,7 +414,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     public function recordFeedback(User $actor, int $caseId, array $attributes): CustomerServiceCase
     {
@@ -453,7 +451,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param list<int> $requestedStoreIds
+     * @param  list<int>  $requestedStoreIds
      * @return Collection<int,object>
      */
     public function customerCases(User $actor, int $platformCustomerId, array $requestedStoreIds): Collection
@@ -610,7 +608,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return array{rows:list<array<string,mixed>>,total:int}
      */
     public function reportForStore(
@@ -667,7 +665,7 @@ final class CustomerServiceCaseManager
     }
 
     /**
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      */
     private function applyCaseFilters($query, array $filters, User $actor): void
     {
@@ -954,8 +952,7 @@ final class CustomerServiceCaseManager
             ->whereNotNull('sla_target_at')
             ->get(['resolved_at', 'sla_target_at']);
 
-        $attained = $closed->filter(static fn (object $row): bool =>
-            CarbonImmutable::parse((string) $row->resolved_at)->lessThanOrEqualTo(CarbonImmutable::parse((string) $row->sla_target_at))
+        $attained = $closed->filter(static fn (object $row): bool => CarbonImmutable::parse((string) $row->resolved_at)->lessThanOrEqualTo(CarbonImmutable::parse((string) $row->sla_target_at))
         )->count();
 
         return [
