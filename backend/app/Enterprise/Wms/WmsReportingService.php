@@ -369,14 +369,71 @@ final class WmsReportingService
         ?int $afterInventoryId = null,
         int $limit = 25,
     ): Collection {
-        return $this->inventorySummary(
-            $actor,
-            $storeId,
-            $warehouseId,
-            $productId,
-            $afterInventoryId,
-            $limit,
-        )->filter(static fn (\stdClass $row): bool => (int) $row->age_days >= 90)->values();
+        $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
+        $productId = $this->positiveIdentifier($productId, 'product_id');
+        $afterInventoryId = $this->positiveIdentifier($afterInventoryId, 'after_inventory_id');
+
+        if ($warehouseIds === []) {
+            return collect();
+        }
+
+        $inbound = DB::table('stock_movements as inbound_movement')
+            ->join('inventories as inbound_inventory', 'inbound_inventory.id', '=', 'inbound_movement.inventory_id')
+            ->where('inbound_movement.store_id', $storeId)
+            ->whereIn('inbound_inventory.warehouse_id', $warehouseIds)
+            ->where('inbound_movement.quantity', '>', 0)
+            ->whereIn('inbound_movement.type', self::INBOUND_MOVEMENT_TYPES)
+            ->selectRaw('inbound_movement.inventory_id, MAX(inbound_movement.created_at) as last_inbound_at')
+            ->groupBy('inbound_movement.inventory_id');
+
+        $cutoff = CarbonImmutable::now()->subDays(90)->startOfDay();
+
+        return DB::table('inventories as inventory')
+            ->join('warehouses as warehouse', 'warehouse.id', '=', 'inventory.warehouse_id')
+            ->join('products as product', 'product.id', '=', 'inventory.product_id')
+            ->leftJoin('enterprise_inventory_valuation_policies as valuation', function ($join): void {
+                $join
+                    ->on('valuation.warehouse_id', '=', 'inventory.warehouse_id')
+                    ->on('valuation.product_id', '=', 'inventory.product_id')
+                    ->where('valuation.is_active', true);
+            })
+            ->leftJoinSub($inbound, 'inbound', 'inbound.inventory_id', '=', 'inventory.id')
+            ->where('warehouse.store_id', $storeId)
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
+            ->whereRaw('COALESCE(inbound.last_inbound_at, inventory.created_at) < ?', [$cutoff->toDateTimeString()])
+            ->when($productId !== null, fn ($query) => $query->where('inventory.product_id', $productId))
+            ->when($afterInventoryId !== null, fn ($query) => $query->where('inventory.id', '>', $afterInventoryId))
+            ->orderBy('inventory.id')
+            ->limit($this->boundedLimit($limit))
+            ->get([
+                'inventory.id as inventory_id',
+                'inventory.warehouse_id',
+                'inventory.product_id',
+                'inventory.quantity',
+                'inventory.reserved_quantity',
+                'warehouse.code as warehouse_code',
+                'warehouse.name as warehouse_name',
+                'product.sku as product_sku',
+                'product.name as product_name',
+                'valuation.unit_cost',
+                'inbound.last_inbound_at',
+                'inventory.created_at as inventory_created_at',
+            ])
+            ->map(function (\stdClass $row): \stdClass {
+                $lastInboundAt = $row->last_inbound_at ?? $row->inventory_created_at;
+                $ageDays = max(0, (int) CarbonImmutable::parse((string) $lastInboundAt)->diffInDays(CarbonImmutable::now(), true));
+                $quantity = round((float) $row->quantity, 3);
+                $reserved = round((float) $row->reserved_quantity, 3);
+                $row->quantity = $quantity;
+                $row->reserved_quantity = $reserved;
+                $row->available_quantity = round($quantity - $reserved, 3);
+                $row->last_inbound_at = (string) $lastInboundAt;
+                $row->age_days = $ageDays;
+                $row->stock_status = $ageDays >= 180 ? 'dead' : 'slow';
+                $row->inventory_value = $row->unit_cost === null ? null : round($quantity * (float) $row->unit_cost, 3);
+
+                return $row;
+            });
     }
 
     /** @return Collection<int, \stdClass> */
