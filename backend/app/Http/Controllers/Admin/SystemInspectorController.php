@@ -64,6 +64,26 @@ final class SystemInspectorController extends Controller
             ->orderByDesc('id');
 
         $since = now()->subDay();
+        $trendStart = now()->startOfDay()->subDays(6);
+        $incidentCounts = SystemInspectorEvent::query()
+            ->where('occurred_at', '>=', $trendStart)
+            ->selectRaw('DATE(occurred_at) as day, COUNT(*) as aggregate')
+            ->groupByRaw('DATE(occurred_at)')
+            ->pluck('aggregate', 'day')
+            ->map(static fn ($count): int => (int) $count);
+
+        $incidentTrend = collect(range(6, 0))
+            ->map(function (int $daysAgo) use ($incidentCounts): array {
+                $date = now()->startOfDay()->subDays($daysAgo);
+                $key = $date->toDateString();
+
+                return [
+                    'day' => $key,
+                    'label' => $date->format('m-d'),
+                    'count' => (int) ($incidentCounts[$key] ?? 0),
+                ];
+            })
+            ->all();
 
         return view('admin.system-inspector', [
             'user' => $actor,
@@ -92,6 +112,7 @@ final class SystemInspectorController extends Controller
             ],
             'diagnostics' => $this->diagnostics(),
             'runtime' => $systemRuntime->healthSnapshot(),
+            'incidentTrend' => $incidentTrend,
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
