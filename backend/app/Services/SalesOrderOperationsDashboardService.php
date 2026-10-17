@@ -127,7 +127,7 @@ final class SalesOrderOperationsDashboardService
 
         $daily = (clone $base)
             ->selectRaw(
-                "DATE(orders.created_at) as day, COUNT(*) as orders_count, ".
+                'DATE(orders.created_at) as day, COUNT(*) as orders_count, '.
                 "COALESCE(SUM(CASE WHEN orders.status NOT IN ('cancelled','refunded') THEN orders.grand_total ELSE 0 END), 0) as recognized_revenue"
             )
             ->groupByRaw('DATE(orders.created_at)')
@@ -182,9 +182,9 @@ final class SalesOrderOperationsDashboardService
         $this->applyScope($topCustomers, $scopes, $storeId, $fromUtc, $toUtc);
         $topCustomers = $topCustomers
             ->selectRaw(
-                "orders.channel, orders.b2c_customer_id, orders.b2b_customer_id, orders.customer_id, ".
+                'orders.channel, orders.b2c_customer_id, orders.b2b_customer_id, orders.customer_id, '.
                 "COALESCE(b2c_customers.name, b2b_customers.name, legacy_customers.name, '—') as customer, ".
-                "COUNT(*) as orders_count"
+                'COUNT(*) as orders_count'
             )
             ->groupBy(
                 'orders.channel',
@@ -332,9 +332,6 @@ final class SalesOrderOperationsDashboardService
         ];
     }
 
-    /**
-     * @param  array{b2b:list<int>,b2c:list<int>}  $scopes
-     */
     public function applyExceptionFilter(Builder $query, string $exception): void
     {
         if (! in_array($exception, self::EXCEPTIONS, true)) {
