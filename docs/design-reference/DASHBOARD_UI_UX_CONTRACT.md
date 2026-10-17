@@ -306,6 +306,24 @@ A Dashboard page is not complete merely because desktop works.
 
 ---
 
+## 13B. Compact Admin Header System
+
+The Laravel Admin/Dashboard uses one compact shared header strategy. Oversized page chrome is a functional density regression.
+
+Shared header rules:
+
+- desktop header chrome targets **32 px** height;
+- compact/tablet header chrome targets **34 px** height;
+- mobile web uses **44 px** so interactive controls continue to satisfy the mandatory touch-target contract;
+- header titles use compact single-line typography and ellipsis instead of growing the header vertically;
+- optional subtitle/description text must remain secondary, single-line and truncated when necessary; verbose explanatory copy belongs in the page body, not permanent chrome;
+- header action groups stay on one horizontal rail and may scroll horizontally instead of wrapping into a tall button wall;
+- header search, notifications and account controls use compact visual sizing on desktop/tablet while mobile controls retain 44 px touch targets;
+- the canonical Admin shell must keep search, notifications, account identity/access and permission-aware actions; compactness must not remove authorization or navigation truth;
+- page-local CSS must not restore oversized padding, title typography, wrapped action stacks or a competing header-height strategy.
+
+The shared tokens in `admin._brand` and shared rules in `admin._brand-components` are authoritative. A page may extend header content, but it must not override the compact platform geometry without an explicit repository-owner exception.
+
 ## 14. Compact mobile layout contract - Customer / Driver / Van
 
 This section is mandatory for all three FOODEX mobile applications:
