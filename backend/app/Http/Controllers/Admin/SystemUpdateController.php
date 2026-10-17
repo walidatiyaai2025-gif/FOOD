@@ -45,7 +45,7 @@ final class SystemUpdateController extends Controller
 
         return view('admin.system-update', [
             'currentVersion' => $currentVersion,
-            'historyRows' => UpdateHistory::query()->latest('id')->paginate(20)->withQueryString(),
+            'historyRows' => UpdateHistory::query()->with('actor:id,name')->latest('id')->paginate(20)->withQueryString(),
         ]);
     }
 
