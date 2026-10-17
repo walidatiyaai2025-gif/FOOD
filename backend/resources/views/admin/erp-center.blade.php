@@ -47,7 +47,7 @@ body{margin:0}
 .erp-status{display:inline-flex;align-items:center;min-height:32px;padding-inline:var(--foodex-space-3);border-radius:999px;font-weight:800;font-size:var(--foodex-text-sm)}
 .erp-status[data-state="available"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .erp-status[data-state="degraded"]{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
-.erp-status[data-state="setup_required"]{background:var(--foodex-blue-soft);color:var(--foodex-blue)}
+.erp-status[data-state="setup_required"]{background:rgba(75,140,245,.12);color:var(--foodex-blue)}
 .erp-status[data-state="disabled"],.erp-status[data-state="not_entitled"]{background:var(--foodex-background);color:var(--foodex-muted);border:1px solid var(--foodex-border)}
 .erp-note{font-size:var(--foodex-text-sm);color:var(--foodex-muted)}
 .erp-health{font-size:var(--foodex-text-xs);font-weight:800;color:var(--foodex-muted)}
