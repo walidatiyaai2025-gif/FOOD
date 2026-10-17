@@ -1652,8 +1652,8 @@ class SmartOrderingCoreTest extends TestCase
             ->assertOk()
             ->assertSee('Restaurant workforce')
             ->assertSee('Host Team Member')
-            ->assertSee('Retail Store Admin')
-            ->assertDontSee('B2C_STORE_ADMIN');
+            ->assertSee('Retail Operations')
+            ->assertDontSee('RETAIL_OPERATIONS');
 
         $this->actingAs($admin)
             ->post(route('admin.smart-ordering.workforce.shifts.store', $this->branch->public_id), [
@@ -1736,8 +1736,8 @@ class SmartOrderingCoreTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('فريق عمل المطعم')
-            ->assertSee('مسؤول متجر التجزئة')
-            ->assertDontSee('B2C_STORE_ADMIN');
+            ->assertSee('عمليات التجزئة')
+            ->assertDontSee('RETAIL_OPERATIONS');
     }
 
     public function test_restaurant_time_clock_transitions_use_server_time_and_manager_correction_is_audited(): void
@@ -1938,7 +1938,7 @@ class SmartOrderingCoreTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $role = Role::query()->where('code', 'RETAIL_OPERATIONS')->firstOrFail();
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $storeId,
