@@ -113,7 +113,6 @@ return [
         'store' => 'المتجر',
         'channel' => 'القناة',
         'unit' => 'الوحدة',
-        'unit_code_value' => 'الرمز: :code',
         'category' => 'التصنيف',
         'brand' => 'العلامة',
         'price' => 'السعر',
