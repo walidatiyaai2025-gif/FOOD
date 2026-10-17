@@ -12,9 +12,13 @@ use Illuminate\Validation\ValidationException;
 final class WmsDemandPlanningService
 {
     private const TIMEZONE = 'Asia/Kuwait';
+
     private const DEFAULT_LEAD_TIME_DAYS = 7.0;
+
     private const SAFETY_STOCK_DAYS = 3.0;
+
     private const SALES_EXCLUDED_STATUSES = ['cancelled', 'refunded'];
+
     private const VELOCITY_WEIGHTS = [
         'days_1_7' => 0.50,
         'days_8_14' => 0.30,
@@ -188,7 +192,6 @@ final class WmsDemandPlanningService
         });
     }
 
-    /** @return object */
     public function approve(
         User $actor,
         int $storeId,
