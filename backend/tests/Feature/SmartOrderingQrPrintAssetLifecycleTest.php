@@ -175,6 +175,9 @@ class SmartOrderingQrPrintAssetLifecycleTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $this->enableRestaurantSaasForTestStore($a);
+        $this->enableRestaurantSaasForTestStore($b);
+
         return [$a, $b];
     }
 

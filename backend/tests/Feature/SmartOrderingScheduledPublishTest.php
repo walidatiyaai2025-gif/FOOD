@@ -282,6 +282,7 @@ class SmartOrderingScheduledPublishTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $this->enableRestaurantSaasForTestStore($storeId);
         $site = app(SmartOrderingSiteService::class)->ensureForStore($storeId, $admin);
 
         return [

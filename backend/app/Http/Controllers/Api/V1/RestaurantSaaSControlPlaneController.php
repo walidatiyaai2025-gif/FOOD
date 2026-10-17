@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\RestaurantSaaS\RestaurantControlPlaneService;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
@@ -70,6 +71,12 @@ final class RestaurantSaaSControlPlaneController extends Controller
             $request,
         );
         abort_unless($actor->hasPermission('smart_ordering.manage', (int) $store->getKey()), 403);
+        app(RestaurantSaasStoreAccess::class)->assertStore(
+            $actor,
+            (int) $store->getKey(),
+            'smart_ordering.manage',
+            'b2c',
+        );
 
         return $actor;
     }
