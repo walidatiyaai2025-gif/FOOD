@@ -163,7 +163,7 @@
                             </tr></thead>
                             <tbody>
                             @foreach($cases as $case)
-                                @php($overdue=in_array($case->status,['open','pending'],true) && $case->sla_target_at && \\Illuminate\\Support\\Carbon::parse($case->sla_target_at)->isPast())
+                                @php($overdue=in_array($case->status,['open','pending'],true) && $case->sla_target_at && \Illuminate\Support\Carbon::parse($case->sla_target_at)->isPast())
                                 <tr>
                                     <td data-label="{{ __('customer_service_workspace.cases.case') }}"><strong>#{{ $case->id }}</strong><br><small>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</small></td>
                                     <td data-label="{{ __('customer_service_workspace.cases.customer') }}">{{ $case->customer_name ?: '—' }}</td>
@@ -198,7 +198,7 @@
                         <label class="wide">{{ __('customer_service_workspace.cases.description') }}<textarea name="description" maxlength="8000">{{ old('description') }}</textarea></label>
                         <label>{{ __('customer_service_workspace.cases.order_id') }}<select name="order_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($orderOptions as $record)<option value="{{ $record->id }}" @selected((string)old('order_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
                         <label>{{ __('customer_service_workspace.cases.invoice_id') }}<select name="invoice_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($invoiceOptions as $record)<option value="{{ $record->id }}" @selected((string)old('invoice_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.conversation_id') }}<select name="conversation_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($conversationOptions as $record)<option value="{{ $record->id }}" @selected((string)old('conversation_id')===(string)$record->id)>{{ $record->customer_name }} · {{ $record->store_name }} · {{ \\Illuminate\\Support\\Str::limit($record->reference,18) }}</option>@endforeach</select></label>
+                        <label>{{ __('customer_service_workspace.cases.conversation_id') }}<select name="conversation_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($conversationOptions as $record)<option value="{{ $record->id }}" @selected((string)old('conversation_id')===(string)$record->id)>{{ $record->customer_name }} · {{ $record->store_name }} · {{ \Illuminate\Support\Str::limit($record->reference,18) }}</option>@endforeach</select></label>
                         <label>{{ __('customer_service_workspace.cases.delivery_reference') }}<input name="delivery_reference" maxlength="120" value="{{ old('delivery_reference') }}"></label>
                         <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ old('sla_target_at') }}"></label>
                         <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.cases.create_action') }}</button></div>
@@ -208,7 +208,7 @@
             @endif
 
             @if($selectedCase)
-            @php($selectedOverdue=in_array($selectedCase->status,['open','pending'],true) && $selectedCase->sla_target_at && \\Illuminate\\Support\\Carbon::parse($selectedCase->sla_target_at)->isPast())
+            @php($selectedOverdue=in_array($selectedCase->status,['open','pending'],true) && $selectedCase->sla_target_at && \Illuminate\Support\Carbon::parse($selectedCase->sla_target_at)->isPast())
             <section class="foodex-card cs-panel" id="case-detail">
                 <div class="cs-section-head">
                     <div><h2>#{{ $selectedCase->id }} · {{ $selectedCase->subject ?: __('customer_service_workspace.values.untitled') }}</h2><p>{{ $selectedCase->customer_name }} · {{ $selectedCase->store_name }}</p></div>
@@ -239,7 +239,7 @@
                     <label>{{ __('customer_service_workspace.filters.priority') }}<select name="priority">@foreach($casePriorities as $value)<option value="{{ $value }}" @selected($selectedCase->priority===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
                     <label>{{ __('customer_service_workspace.filters.queue') }}<select name="queue">@foreach($caseQueues as $value)<option value="{{ $value }}" @selected(($selectedCase->queue?:'general')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
                     <label>{{ __('customer_service_workspace.cases.owner') }}<select name="assigned_agent_id"><option value="">{{ __('customer_service_workspace.values.unassigned') }}</option>@foreach($agentOptions as $agent)<option value="{{ $agent->id }}" @selected((int)$selectedCase->assigned_agent_id===(int)$agent->id)>{{ $agent->name }}</option>@endforeach</select></label>
-                    <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ $selectedCase->sla_target_at ? \\Illuminate\\Support\\Carbon::parse($selectedCase->sla_target_at)->format('Y-m-d\TH:i') : '' }}"></label>
+                    <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ $selectedCase->sla_target_at ? \Illuminate\Support\Carbon::parse($selectedCase->sla_target_at)->format('Y-m-d\TH:i') : '' }}"></label>
                     <label>{{ __('customer_service_workspace.cases.recovery_code') }}<input name="service_recovery_code" maxlength="64" value="{{ $selectedCase->service_recovery_code }}"></label>
                     <label class="wide">{{ __('customer_service_workspace.cases.recovery_note') }}<textarea name="service_recovery_note" maxlength="4000">{{ $selectedCase->service_recovery_note }}</textarea></label>
                     <label>{{ __('customer_service_workspace.cases.delivery_reference') }}<input name="delivery_reference" maxlength="120" value="{{ $selectedCase->delivery_reference }}"></label>
