@@ -238,7 +238,7 @@ final class SalesOrderOperationsDashboardService
     /**
      * @param  array{b2b:list<int>,b2c:list<int>}  $scopes
      */
-    public function applyExceptionFilter(Builder $query, array $scopes, string $exception): void
+    public function applyExceptionFilter(Builder $query, string $exception): void
     {
         if (! in_array($exception, self::EXCEPTIONS, true)) {
             return;
