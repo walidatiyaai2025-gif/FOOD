@@ -219,8 +219,16 @@ final class PurchaseOrderManager
                     ]);
                 }
 
+                if ($lines->contains(fn ($line): bool => $line->unit_price === null)) {
+                    throw ValidationException::withMessages([
+                        'procurement_contract_id' => [
+                            'Contract-backed purchase orders require a known unit price for every line.',
+                        ],
+                    ]);
+                }
+
                 $orderValue = round((float) $lines->sum(
-                    fn ($line): float => (float) ($line->unit_price ?? 0) * (float) $line->quantity,
+                    fn ($line): float => (float) $line->unit_price * (float) $line->quantity,
                 ), 3);
                 $orderQuantity = round((float) $lines->sum('quantity'), 3);
                 $nextValue = round((float) $contract->committed_value + $orderValue, 3);
