@@ -283,10 +283,21 @@ final class EnterpriseProcurementController extends Controller
             ->with('status', __('enterprise_procurement.flash.supplier_governance_updated'));
     }
 
-    public function createRfq(Request $request, int $purchaseRequest): RedirectResponse
+    public function storeRfq(Request $request): RedirectResponse
     {
         [$actor, $context, $storeId] = $this->mutationContext($request);
-        $rfq = $this->completion->createRfq($actor, $context, $purchaseRequest, $request->all());
+        $validated = $request->validate([
+            'purchase_request_id' => ['required', 'integer', 'min:1'],
+            'title' => ['required', 'string', 'max:190'],
+            'response_due_at' => ['nullable', 'date', 'after:now'],
+            'contract_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $rfq = $this->completion->createRfq(
+            $actor,
+            $context,
+            (int) $validated['purchase_request_id'],
+            $validated,
+        );
 
         return $this->backTo('rfqs', $storeId, ['rfq' => $rfq->id])
             ->with('status', __('enterprise_procurement.flash.rfq_created'));
@@ -300,10 +311,20 @@ final class EnterpriseProcurementController extends Controller
             'supplier_ids.*' => ['integer', 'min:1', 'distinct'],
         ]);
         $tokens = $this->completion->publishRfq($actor, $context, $rfq, $validated['supplier_ids']);
-        $links = collect($tokens)->map(fn (array $entry): array => [
-            'supplier_id' => $entry['supplier_id'],
-            'url' => route('supplier.rfq.show', ['token' => $entry['token']]),
-        ])->all();
+        $supplierMap = DB::table('enterprise_suppliers')
+            ->whereIn('id', collect($tokens)->pluck('supplier_id')->all())
+            ->get(['id', 'code', 'name_en', 'name_ar'])
+            ->keyBy('id');
+        $links = collect($tokens)->map(function (array $entry) use ($supplierMap): array {
+            $supplier = $supplierMap->get($entry['supplier_id']);
+
+            return [
+                'supplier_code' => $supplier?->code ?? '—',
+                'supplier_name_en' => $supplier?->name_en ?? '—',
+                'supplier_name_ar' => $supplier?->name_ar,
+                'url' => route('supplier.rfq.show', ['token' => $entry['token']]),
+            ];
+        })->all();
 
         return $this->backTo('rfqs', $storeId, ['rfq' => $rfq])
             ->with('status', __('enterprise_procurement.flash.rfq_published'))
