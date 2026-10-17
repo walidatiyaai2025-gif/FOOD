@@ -48,6 +48,16 @@
         </section>
         @endif
 
+        <section class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <div>
+                    <h2>{{ __('restaurant_growth.title') }}</h2>
+                    <p>{{ __('restaurant_growth.subtitle') }}</p>
+                </div>
+                <a class="primary" href="{{ route('admin.smart-ordering.growth.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('restaurant_growth.title') }}</a>
+            </div>
+        </section>
+
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 

@@ -751,6 +751,15 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
       const integrationsUrl = new URL(integrationsHref, baseUrl);
       shellRoutes.push(['restaurant-integrations', `${integrationsUrl.pathname}${integrationsUrl.search}`]);
     }
+    const growthHref = await page
+      .locator('a[href*="/admin/smart-ordering/sites/"][href*="/growth"]')
+      .first()
+      .getAttribute('href')
+      .catch(() => null);
+    if (growthHref) {
+      const growthUrl = new URL(growthHref, baseUrl);
+      shellRoutes.push(['restaurant-growth-scale', `${growthUrl.pathname}${growthUrl.search}`]);
+    }
   }
 
   await page.setViewportSize({ width: 1440, height: 1080 });
