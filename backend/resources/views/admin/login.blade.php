@@ -21,7 +21,7 @@
         .error{background:#fff2f1;border:1px solid #ffd5d1;color:#a92920;border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:16px}
         .error ul{margin:0;padding-inline-start:20px}.error a{color:inherit;font-weight:700;text-underline-offset:2px}
         button{width:100%;border:0;border-radius:12px;padding:14px 16px;background:var(--foodex-green,#158A3A);color:#fff;font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}button:hover{filter:brightness(.96)}
-        .channel-switch{margin:22px 0 0;text-align:center;color:var(--foodex-muted,#667085);font-size:13px}.channel-switch a{color:var(--foodex-orange,#EE731C);font-weight:var(--foodex-font-weight-bold);text-decoration:none}
+        .channel-switch{margin:22px 0 0;text-align:center;color:var(--foodex-muted,#667085);font-size:13px}.channel-switch a{color:var(--foodex-orange,#EE731C);font-weight:var(--foodex-font-weight-bold);text-decoration:none}.sso-link{display:block;margin-top:12px;border:1px solid var(--foodex-border,#D9DEE7);border-radius:12px;padding:12px 14px;text-align:center;text-decoration:none;color:var(--foodex-ink,#172033);font-weight:var(--foodex-font-weight-bold)}
         .no-register{margin-top:18px;padding-top:18px;border-top:1px solid var(--foodex-border,#E6EAF0);font-size:12px;color:var(--foodex-muted,#667085);line-height:1.6;text-align:center}
         @media(max-width:820px){.page{grid-template-columns:1fr}.brand-pane{min-height:220px;padding:30px}.brand-copy h1{font-size:30px}.brand-copy p{font-size:14px}.secure{display:none}.form-pane{padding:20px;margin-top:-26px;position:relative;z-index:2}.card{border-radius:20px}}
     </style>
@@ -89,6 +89,10 @@
                 </div>
                 <button type="submit">{{ __('admin_login.sign_in_action') }}</button>
             </form>
+
+            @if(($ssoReadiness['enabled'] ?? false) && ($ssoReadiness['configured'] ?? false))
+                <a class="sso-link" href="{{ route('admin.sso.redirect') }}">{{ __('security_governance.sso.sign_in') }}</a>
+            @endif
 
             @php($otherChannel = $channel === 'b2b' ? 'b2c' : 'b2b')
             <p class="channel-switch">
