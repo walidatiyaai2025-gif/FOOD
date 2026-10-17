@@ -18,7 +18,7 @@
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<div class="foodex-page-toolbar"><div><span class="foodex-subtitle">FOODEX · {{ $ar?'الدعايا':'Advertising' }}</span><h1>{{ __('coupons.title') }}</h1><p>{{ __('coupons.description') }}</p></div></div>
+<div class="foodex-page-toolbar"><div><span class="foodex-subtitle">FOODEX · {{ __('admin.nav_groups.advertising') }}</span><h1>{{ __('coupons.title') }}</h1><p>{{ __('coupons.description') }}</p></div></div>
 <div class="coupon-shell">
 @if(session('status'))<div class="foodex-card coupon-panel" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-card coupon-panel" style="border-color:#fecaca;color:#991b1b"><strong>{{ $errors->first() }}</strong></div>@endif
