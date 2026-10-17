@@ -32,8 +32,8 @@ final class StoreChannelOperationsService
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
                 'kpis' => [
-                    'active_stores' => 0, 'inactive_stores' => 0, 'sales_today' => 0.0,
-                    'sales_period' => 0.0, 'orders_period' => 0, 'availability_issues' => 0,
+                    'active_stores' => 0, 'inactive_stores' => 0, 'sales_today' => [],
+                    'sales_period' => [], 'orders_period' => 0, 'availability_issues' => 0,
                     'integration_degradation' => 0, 'ready_stores' => 0,
                 ],
                 'channels' => [],
@@ -57,8 +57,8 @@ final class StoreChannelOperationsService
             'kpis' => [
                 'active_stores' => $stores->where('is_active', true)->count(),
                 'inactive_stores' => $stores->where('is_active', false)->count(),
-                'sales_today' => (float) $today['total'],
-                'sales_period' => (float) $orders['total'],
+                'sales_today' => $today['by_currency'],
+                'sales_period' => $orders['by_currency'],
                 'orders_period' => (int) $orders['count'],
                 'availability_issues' => array_sum($availability),
                 'integration_degradation' => array_sum($degraded),
@@ -260,19 +260,24 @@ final class StoreChannelOperationsService
             ->get(['stores.id', 'stores.code', 'stores.name', 'stores.is_active', 'stores.logo_path', 'stores.created_at']);
     }
 
-    /** @param list<int> $ids @return array{count:int,total:float} */
+    /** @param list<int> $ids @return array{count:int,by_currency:array<string,float>} */
     private function ordersAggregate(array $ids, CarbonImmutable $from, CarbonImmutable $to): array
     {
         if ($ids === [] || ! Schema::hasTable('orders')) {
-            return ['count' => 0, 'total' => 0.0];
+            return ['count' => 0, 'by_currency' => []];
         }
-        $row = DB::table('orders')
+        $rows = DB::table('orders')
             ->whereIn('store_id', $ids)
             ->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])
-            ->selectRaw('COUNT(*) as aggregate_count, COALESCE(SUM(grand_total),0) as aggregate_total')
-            ->first();
+            ->selectRaw('currency, COUNT(*) as aggregate_count, COALESCE(SUM(grand_total),0) as aggregate_total')
+            ->groupBy('currency')
+            ->orderBy('currency')
+            ->get();
 
-        return ['count' => (int) ($row?->aggregate_count ?? 0), 'total' => (float) ($row?->aggregate_total ?? 0)];
+        return [
+            'count' => (int) $rows->sum(fn (object $row): int => (int) $row->aggregate_count),
+            'by_currency' => $rows->mapWithKeys(fn (object $row): array => [(string) $row->currency => (float) $row->aggregate_total])->all(),
+        ];
     }
 
     /** @param Collection<int,object> $stores @return array<int,array<string,mixed>> */
@@ -427,18 +432,20 @@ final class StoreChannelOperationsService
         $rows = Schema::hasTable('orders') && $ids !== []
             ? DB::table('orders')->whereIn('store_id', $ids)
                 ->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])
-                ->selectRaw('store_id, COUNT(*) as orders, COALESCE(SUM(grand_total),0) as revenue')
-                ->groupBy('store_id')->get()->keyBy('store_id')
+                ->selectRaw('store_id, currency, COUNT(*) as orders, COALESCE(SUM(grand_total),0) as revenue')
+                ->groupBy('store_id', 'currency')->get()
             : collect();
 
-        return $stores->map(function (object $store) use ($rows): array {
-            $row = $rows->get((int) $store->id);
+        $storeById = $stores->keyBy('id');
+        return $rows->map(function (object $row) use ($storeById): array {
+            $store = $storeById->get((int) $row->store_id);
             return [
-                'store_id' => (int) $store->id,
-                'store' => (string) $store->name,
-                'code' => (string) $store->code,
-                'orders' => (int) ($row?->orders ?? 0),
-                'revenue' => (float) ($row?->revenue ?? 0),
+                'store_id' => (int) $row->store_id,
+                'store' => (string) ($store?->name ?? ('#'.$row->store_id)),
+                'code' => (string) ($store?->code ?? ''),
+                'currency' => (string) $row->currency,
+                'orders' => (int) $row->orders,
+                'revenue' => (float) $row->revenue,
             ];
         })->sortByDesc('revenue')->values()->all();
     }
@@ -451,10 +458,11 @@ final class StoreChannelOperationsService
         }
         return DB::table('orders')->whereIn('store_id', $ids)
             ->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])
-            ->selectRaw('channel, COUNT(*) as orders, COALESCE(SUM(grand_total),0) as revenue')
-            ->groupBy('channel')->orderByDesc('revenue')->get()
+            ->selectRaw('channel, currency, COUNT(*) as orders, COALESCE(SUM(grand_total),0) as revenue')
+            ->groupBy('channel', 'currency')->orderByDesc('revenue')->get()
             ->map(fn (object $row): array => [
-                'channel' => (string) $row->channel, 'orders' => (int) $row->orders, 'revenue' => (float) $row->revenue,
+                'channel' => (string) $row->channel, 'currency' => (string) $row->currency,
+                'orders' => (int) $row->orders, 'revenue' => (float) $row->revenue,
             ])->all();
     }
 
