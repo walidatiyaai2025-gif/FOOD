@@ -92,7 +92,7 @@ jobs:
           else
             range="HEAD^...HEAD"
           fi
-          if git diff --name-only "$range" | grep -Eq '^(backend/public/assets/admin/|backend/resources/views/admin/(layouts|components)/|scripts/capture_web_screenshots\.mjs|\.ai/uiux/visual-evidence-matrix\.json|\.github/workflows/ui-visual-qa\.yml)'; then
+          if git diff --name-only "$range" | grep -Eq '^(backend/public/assets/admin/|backend/resources/views/admin/(layouts|components)/|backend/resources/views/admin/_brand-components\.blade\.php|scripts/capture_web_screenshots\.mjs|\.ai/uiux/visual-evidence-matrix\.json|\.github/workflows/ui-visual-qa\.yml)'; then
             profile=full
           else
             profile=representative
