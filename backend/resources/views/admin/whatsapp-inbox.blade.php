@@ -40,12 +40,12 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
             @include('admin._live-notifications',['user'=>auth()->user()])
         </header>
 
-        @if(session('status'))
+        <?php if(session('status')): ?>
             <div class="wa-flash" role="status">{{ session('status') }}</div>
-        @endif
-        @if($errors->any())
+        <?php endif; ?>
+        <?php if($errors->any()): ?>
             <div class="wa-flash error" role="alert">{{ $errors->first() }}</div>
-        @endif
+        <?php endif; ?>
 
         <div class="wa-golden-workspace" data-wa-golden-workspace data-golden-reference="docs/golden/customer-service-inbox/customer-service-inbox-golden.webp">
             <aside class="wa-pane wa-context-pane" data-wa-pane="customer-context">
@@ -53,46 +53,48 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                     <h2 class="wa-context-title">{{ __('whatsapp.inbox.golden.customer_data') }}</h2>
                     <button type="button" class="wa-icon-button" aria-label="{{ __('whatsapp.inbox.golden.more') }}">•••</button>
                 </div>
-                @if($customer360)
-                    @php($customer=$customer360['customer'])
+                <?php if($customer360): ?>
+                    <?php $customer=$customer360['customer']; ?>
                     <section class="wa-customer-card wa-customer-center">
-                        @php($customerInitial=mb_substr((string)($customer->name ?: __('whatsapp.inbox.customer')),0,2))
+                        <?php $customerInitial=mb_substr((string)($customer->name ?: __('whatsapp.inbox.customer')),0,2); ?>
                         <div class="wa-avatar lg">{{ $customerInitial }}</div>
                         <div class="wa-customer-name">{{ $customer->name }}</div>
                         <div class="wa-presence">{{ __('whatsapp.inbox.golden.active_customer') }}</div>
                         <div class="wa-customer-contact">
-                            @if($customer->phone)
+                            <?php if($customer->phone): ?>
                                 <span><b>☎</b><span dir="ltr">{{ $customer->phone }}</span><b class="wa-whatsapp">◉</b></span>
-                            @endif
-                            @if($customer->email)
+                            <?php endif; ?>
+                            <?php if($customer->email): ?>
                                 <span><b>✉</b><span dir="ltr">{{ $customer->email }}</span></span>
-                            @endif
-                            @if($customer->originStore)
+                            <?php endif; ?>
+                            <?php if($customer->originStore): ?>
                                 <span><b>⌖</b>{{ $customer->originStore->name }}</span>
-                            @endif
-                            @if($customer->created_at)
+                            <?php endif; ?>
+                            <?php if($customer->created_at): ?>
                                 <span><b>▣</b>{{ __('whatsapp.inbox.golden.customer_since') }} {{ \Illuminate\Support\Carbon::parse($customer->created_at)->translatedFormat('d M Y') }}</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </section>
 
                     <section class="wa-section">
                         <div class="wa-section-head"><strong class="wa-section-title">{{ __('whatsapp.inbox.golden.categories_tags') }}</strong><span>✎</span></div>
                         <div class="wa-tags">
-                            @forelse($tags as $tag)
-                                <span class="wa-tag {{ $loop->first?'vip':'' }}">{{ $tag->name }}</span>
-                            @empty
+                            <?php if($tags->isEmpty()): ?>
                                 <span class="wa-tag">{{ __('whatsapp.inbox.none') }}</span>
-                            @endforelse
-                            @if($customer->origin_channel)
+                            <?php else: ?>
+                                @foreach($tags as $tag)
+                                    <span class="wa-tag {{ $loop->first?'vip':'' }}">{{ $tag->name }}</span>
+                                @endforeach
+                            <?php endif; ?>
+                            <?php if($customer->origin_channel): ?>
                                 <span class="wa-tag">{{ __('whatsapp.inbox.channels.'.strtolower((string)$customer->origin_channel)) }}</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </section>
 
                     <section class="wa-section">
                         <div class="wa-section-head"><strong class="wa-section-title">{{ __('whatsapp.inbox.golden.total_purchases') }}</strong></div>
-                        @php($latestOrder=$customer360['orders']->first())
+                        <?php $latestOrder=$customer360['orders']->first(); ?>
                         <div class="wa-summary-grid">
                             <div class="wa-summary-stat"><strong>{{ $latestOrder ? \Illuminate\Support\Carbon::parse($latestOrder->created_at)->translatedFormat('d M Y') : '—' }}</strong><span>{{ __('whatsapp.inbox.golden.customer_since') }}</span></div>
                             <div class="wa-summary-stat"><strong>{{ $customer360['orders_count'] }}</strong><span>{{ __('whatsapp.inbox.golden.orders_count') }}</span></div>
@@ -103,17 +105,19 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                     <section class="wa-section">
                         <div class="wa-section-head"><strong class="wa-section-title">{{ __('whatsapp.inbox.recent_orders') }}</strong><span class="wa-section-link">{{ __('whatsapp.inbox.golden.show_all') }} ‹</span></div>
                         <div class="wa-record-list">
-                            @forelse($customer360['orders']->take(3) as $order)
-                                <div class="wa-record">
-                                    <div class="wa-record-main">
-                                        <div class="wa-record-title">#{{ $order->order_number }}</div>
-                                        <div class="wa-record-sub">{{ \Illuminate\Support\Carbon::parse($order->created_at)->translatedFormat('d M Y') }}</div>
-                                    </div>
-                                    <div class="wa-record-value">{{ number_format((float)$order->grand_total,0) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}<br><span class="wa-status-pill">{{ __('whatsapp.inbox.status_values.'.strtolower((string)$order->status)) }}</span></div>
-                                </div>
-                            @empty
+                            <?php if($customer360['orders']->isEmpty()): ?>
                                 <div class="wa-empty">{{ __('whatsapp.inbox.none') }}</div>
-                            @endforelse
+                            <?php else: ?>
+                                @foreach($customer360['orders']->take(3) as $order)
+                                    <div class="wa-record">
+                                        <div class="wa-record-main">
+                                            <div class="wa-record-title">#{{ $order->order_number }}</div>
+                                            <div class="wa-record-sub">{{ \Illuminate\Support\Carbon::parse($order->created_at)->translatedFormat('d M Y') }}</div>
+                                        </div>
+                                        <div class="wa-record-value">{{ number_format((float)$order->grand_total,0) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}<br><span class="wa-status-pill">{{ __('whatsapp.inbox.status_values.'.strtolower((string)$order->status)) }}</span></div>
+                                    </div>
+                                @endforeach
+                            <?php endif; ?>
                         </div>
                     </section>
 
@@ -126,31 +130,33 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                             @foreach($customer360['payments']->take(3) as $payment)
                                 <div class="wa-record"><div class="wa-record-main"><div class="wa-record-title">{{ __('whatsapp.inbox.payment_providers.'.strtolower((string)$payment->provider)) }}</div><div class="wa-record-sub">{{ \Illuminate\Support\Carbon::parse($payment->created_at)->translatedFormat('d M Y') }}</div></div><div class="wa-record-value">{{ number_format((float)$payment->amount,0) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$payment->currency)) }}<br><span class="wa-status-pill">{{ __('whatsapp.inbox.status_values.'.strtolower((string)$payment->status)) }}</span></div></div>
                             @endforeach
-                            @if($customer360['invoices']->isEmpty() && $customer360['payments']->isEmpty())
+                            <?php if($customer360['invoices']->isEmpty() && $customer360['payments']->isEmpty()): ?>
                                 <div class="wa-empty">{{ __('whatsapp.inbox.none') }}</div>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </section>
 
                     <section class="wa-section">
                         <div class="wa-section-head"><strong class="wa-section-title">{{ __('whatsapp.inbox.golden.activity_log') }}</strong></div>
                         <div class="wa-activity">
-                            @forelse($timeline->reverse()->take(5) as $activity)
-                                <div class="wa-activity-row"><span class="wa-activity-icon">{{ $activity['kind']==='note'?'▱':'◉' }}</span><span>{{ \Illuminate\Support\Str::limit((string)($activity['body'] ?: $activity['actor']),55) }}</span><span class="wa-activity-time">{{ $activity['timestamp'] ? \Illuminate\Support\Carbon::parse($activity['timestamp'])->diffForHumans(null,true) : '' }}</span></div>
-                            @empty
+                            <?php if($timeline->isEmpty()): ?>
                                 <div class="wa-empty">{{ __('whatsapp.inbox.no_messages') }}</div>
-                            @endforelse
+                            <?php else: ?>
+                                @foreach($timeline->reverse()->take(5) as $activity)
+                                    <div class="wa-activity-row"><span class="wa-activity-icon">{{ $activity['kind']==='note'?'▱':'◉' }}</span><span>{{ \Illuminate\Support\Str::limit((string)($activity['body'] ?: $activity['actor']),55) }}</span><span class="wa-activity-time">{{ $activity['timestamp'] ? \Illuminate\Support\Carbon::parse($activity['timestamp'])->diffForHumans(null,true) : '' }}</span></div>
+                                @endforeach
+                            <?php endif; ?>
                         </div>
                     </section>
-                @else
+                <?php else: ?>
                     <div class="wa-empty">{{ __('whatsapp.inbox.no_customer_identity') }}</div>
-                @endif
+                <?php endif; ?>
             </aside>
 
             <section class="wa-pane wa-thread-pane" data-wa-pane="active-conversation">
-                @if($selected)
-                    @php($selectedName=$selected->customer_name ?: __('whatsapp.inbox.customer'))
-                    @php($selectedInitial=mb_substr((string)$selectedName,0,2))
+                <?php if($selected): ?>
+                    <?php $selectedName=$selected->customer_name ?: __('whatsapp.inbox.customer'); ?>
+                    <?php $selectedInitial=mb_substr((string)$selectedName,0,2); ?>
                     <div class="wa-thread-head">
                         <div class="wa-thread-customer">
                             <div class="wa-avatar lg blue">{{ $selectedInitial }}</div>
@@ -160,16 +166,16 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                             </div>
                         </div>
                         <div class="wa-thread-actions">
-                            @if($callsEnabled)
+                            <?php if($callsEnabled): ?>
                             <div class="wa-call-tools" id="wa-call-tools" data-conversation="{{ $selected->id }}" data-can-dial="{{ $canDialCalls ? '1' : '0' }}" data-can-manage="{{ $canManageCalls ? '1' : '0' }}">
-                                @if($canDialCalls)
+                                <?php if($canDialCalls): ?>
                                     <button type="button" class="wa-icon-button" id="wa-call-start" aria-label="{{ __('whatsapp.inbox.make_call') }}">☎</button>
                                     <button type="button" class="wa-icon-button" id="wa-call-permission" aria-label="{{ __('whatsapp.inbox.request_call_permission') }}">✓</button>
-                                @endif
+                                <?php endif; ?>
                                 <button type="button" class="wa-icon-button wa-call-danger" id="wa-call-hangup" hidden aria-label="{{ __('whatsapp.inbox.hang_up') }}">■</button>
                                 <span class="wa-call-status" id="wa-call-status">{{ $inboundCallsEnabled ? '' : __('whatsapp.inbox.calls_disabled') }}</span>
                             </div>
-                            @endif
+                            <?php endif; ?>
                             <details class="wa-utility">
                                 <summary class="wa-icon-button" aria-label="{{ __('whatsapp.inbox.golden.more') }}">•••</summary>
                                 <div class="wa-utility-menu">
@@ -200,11 +206,13 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                         <div class="wa-meta-cell">
                             <div class="wa-meta-label">{{ __('whatsapp.inbox.golden.tags') }}</div>
                             <details class="wa-meta-details"><summary class="wa-meta-value">
-                                @forelse($tags->take(2) as $tag)
-                                    <span class="wa-meta-chip">{{ $tag->name }}</span>
-                                @empty
+                                <?php if($tags->isEmpty()): ?>
                                     <span class="wa-meta-chip">{{ __('whatsapp.inbox.none') }}</span>
-                                @endforelse
+                                <?php else: ?>
+                                    @foreach($tags->take(2) as $tag)
+                                        <span class="wa-meta-chip">{{ $tag->name }}</span>
+                                    @endforeach
+                                <?php endif; ?>
                                 <span>＋</span>
                             </summary>
                                 <div class="wa-meta-popover">
@@ -219,58 +227,62 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                     </div>
 
                     <div class="wa-timeline" id="wa-conversation-timeline" data-conversation="{{ $selected->id }}">
-                        @php($lastDay=null)
-                        @forelse($timeline as $item)
-                            @php($dayKey=$item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->toDateString():'')
-                            @if($dayKey!==$lastDay)
+                        <?php $lastDay=null; ?>
+                        <?php if($timeline->isEmpty()): ?>
+                            <div class="wa-empty">{{ __('whatsapp.inbox.no_messages') }}</div>
+                        <?php else: ?>
+                        @foreach($timeline as $item)
+                            <?php $dayKey=$item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->toDateString():''; ?>
+                            <?php if($dayKey!==$lastDay): ?>
                                 <div class="wa-day-separator">{{ $item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->translatedFormat('d M Y'):__('whatsapp.inbox.golden.today') }}</div>
-                                @php($lastDay=$dayKey)
-                            @endif
+                                <?php $lastDay=$dayKey; ?>
+                            <?php endif; ?>
                             <article class="wa-message {{ $item['kind']==='note'?'note':($item['kind']==='smart_ordering'?'smart-ordering':$item['direction']) }}">
-                                @if($item['kind']==='note')
+                                <?php if($item['kind']==='note'): ?>
                                     <strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>
-                                @endif
-                                @if($item['kind']==='smart_ordering')
+                                <?php endif; ?>
+                                <?php if($item['kind']==='smart_ordering'): ?>
                                     <strong>🧾 {{ __('whatsapp.smart_ordering.timeline_actor') }}</strong>
-                                @endif
-                                @if(!empty($item['attachment']))
-                                    @php($attachment=$item['attachment'])
+                                <?php endif; ?>
+                                <?php if(!empty($item['attachment'])): ?>
+                                    <?php $attachment=$item['attachment']; ?>
                                     <div class="wa-attachment">
-                                        @if(in_array($attachment['media_type'],['image','sticker'],true))
+                                        <?php if(in_array($attachment['media_type'],['image','sticker'],true)): ?>
                                             <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
                                                 <img src="{{ $attachment['url'] }}" alt="{{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}" loading="lazy">
                                             </a>
-                                        @elseif($attachment['media_type']==='video')
+                                        <?php elseif($attachment['media_type']==='video'): ?>
                                             <video controls preload="metadata">
-                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                                <source src="{{ $attachment['url'] }}" <?php if($attachment['mime_type']): ?> type="{{ $attachment['mime_type'] }}" <?php endif; ?>>
                                             </video>
-                                        @elseif($attachment['media_type']==='audio')
+                                        <?php elseif($attachment['media_type']==='audio'): ?>
                                             <audio controls preload="metadata">
-                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                                <source src="{{ $attachment['url'] }}" <?php if($attachment['mime_type']): ?> type="{{ $attachment['mime_type'] }}" <?php endif; ?>>
                                             </audio>
-                                        @else
+                                        <?php else: ?>
                                             <a class="wa-attachment-link" href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
                                                 📎 {{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}
                                             </a>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
-                                @endif
-                                @if(filled($item['body']))
+                                <?php endif; ?>
+                                <?php if(filled($item['body'])): ?>
                                     <div>{{ $item['body'] }}</div>
-                                @elseif(empty($item['attachment']))
+                                <?php elseif(empty($item['attachment'])): ?>
                                     <div>{{ __('whatsapp.inbox.attachment') }}</div>
-                                @endif
-                                @if($item['kind']==='smart_ordering' && !empty($item['smart_ordering']['order_url']))
+                                <?php endif; ?>
+                                <?php if($item['kind']==='smart_ordering' && !empty($item['smart_ordering']['order_url'])): ?>
                                     <a class="wa-so-action" href="{{ $item['smart_ordering']['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
-                                @endif
+                                <?php endif; ?>
                                 <small>
                                     {{ $item['actor'] }} · {{ $item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->format('H:i'):'' }}
-                                    @if($item['delivery_status'])
+                                    <?php if($item['delivery_status']): ?>
                                         · {{ __('whatsapp.inbox.delivery_statuses.'.$item['delivery_status']) }}
-                                    @endif
+                                    <?php endif; ?>
                                 </small>
                             </article>
-                        @empty<div class="wa-empty">{{ __('whatsapp.inbox.no_messages') }}</div>@endforelse
+                        @endforeach
+                        <?php endif; ?>
                     </div>
 
                     <div class="wa-compose-wrap">
@@ -279,15 +291,15 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                             <details>
                                 <summary class="wa-compose-tab">▣ {{ __('whatsapp.inbox.golden.attach_order') }}</summary>
                                 <div class="wa-order-menu">
-                                    @if($customer360 && $customer360['orders']->isNotEmpty())
+                                    <?php if($customer360 && $customer360['orders']->isNotEmpty()): ?>
                                         @foreach($customer360['orders'] as $order)
                                             <button type="button" class="wa-order-ref" data-wa-order-ref="#{{ $order->order_number }}">
                                                 #{{ $order->order_number }} · {{ number_format((float)$order->grand_total,0) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}
                                             </button>
                                         @endforeach
-                                    @else
+                                    <?php else: ?>
                                         <div class="wa-empty">{{ __('whatsapp.inbox.none') }}</div>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
                             </details>
                             <button class="wa-compose-tab" type="button" data-wa-note-toggle>▱ {{ __('whatsapp.inbox.internal_note') }}</button>
@@ -306,25 +318,25 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                             <button class="wa-secondary" type="submit">{{ __('whatsapp.inbox.save_note') }}</button>
                         </form>
                     </div>
-                @else
+                <?php else: ?>
                     <div class="wa-empty">{{ __('whatsapp.inbox.choose_conversation') }}</div>
-                @endif
+                <?php endif; ?>
             </section>
 
             <aside class="wa-pane wa-conversation-rail" data-wa-pane="conversation-list">
-                @php
+                <?php
                     $stateFilter = (string) ($filters['status'] ?? '');
                     $mediumFilter = (string) ($filters['channel'] ?? '');
-                @endphp
+                ?>
                 <div class="wa-rail-top">
                     <h1 class="wa-rail-title">{{ __('whatsapp.inbox.heading') }}</h1>
                     <p class="wa-rail-helper">{{ __('whatsapp.inbox.golden.helper') }}</p>
                     <div class="wa-rail-tools">
                         <form class="wa-search" method="get" action="{{ route('admin.whatsapp-inbox.index') }}">
                             @foreach(request()->except('q','page','conversation') as $key=>$value)
-                                @if(is_scalar($value))
+                                <?php if(is_scalar($value)): ?>
                                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                @endif
+                                <?php endif; ?>
                             @endforeach
                             <span>⌕</span><input name="q" value="{{ $filters['q']??'' }}" aria-label="{{ __('whatsapp.inbox.search') }}" placeholder="{{ __('whatsapp.inbox.search_placeholder') }}">
                         </form>
@@ -333,12 +345,12 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                                 <summary class="wa-icon-button" aria-label="{{ __('whatsapp.inbox.golden.filters') }}">☷</summary>
                                 <div class="wa-utility-menu">
                                     <form method="get" action="{{ route('admin.whatsapp-inbox.index') }}">
-                                        @if(!empty($filters['q']))
+                                        <?php if(!empty($filters['q'])): ?>
                                             <input type="hidden" name="q" value="{{ $filters['q'] }}">
-                                        @endif
-                                        @if($stateFilter !== '')
+                                        <?php endif; ?>
+                                        <?php if($stateFilter !== ''): ?>
                                             <input type="hidden" name="status" value="{{ $stateFilter }}">
-                                        @endif
+                                        <?php endif; ?>
                                         <label>{{ __('whatsapp.inbox.assignment') }}<select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select></label>
                                         <label>{{ __('whatsapp.inbox.store') }}<select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select></label>
                                         <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $mediumFilter }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
@@ -357,7 +369,7 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                         </div>
                     </div>
                 </div>
-                @php($statusBase=request()->except('page','conversation','status'))
+                <?php $statusBase=request()->except('page','conversation','status'); ?>
                 <nav class="wa-filter-tabs" aria-label="{{ __('whatsapp.inbox.status') }}">
                     <a class="wa-filter-tab primary {{ $stateFilter===''?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',$statusBase) }}">⌄ {{ __('whatsapp.inbox.golden.all_conversations') }} ({{ $conversations->total() }})</a>
                     <a class="wa-filter-tab {{ $stateFilter==='OPEN'?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'OPEN'])) }}">{{ __('whatsapp.inbox.golden.open') }}</a>
@@ -365,10 +377,13 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                     <a class="wa-filter-tab {{ in_array($stateFilter,['RESOLVED','CLOSED'],true)?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'CLOSED'])) }}">{{ __('whatsapp.inbox.golden.closed') }}</a>
                 </nav>
                 <div class="wa-list">
-                    @forelse($conversations as $row)
-                        @php($active=$selected && (int)$selected->id===(int)$row->id)
-                        @php($rowName=$row->customer_name ?: __('whatsapp.inbox.unknown_customer'))
-                        @php($rowInitial=mb_substr((string)$rowName,0,2))
+                    <?php if($conversations->count() === 0): ?>
+                        <div class="wa-empty">{{ __('whatsapp.inbox.no_conversations') }}</div>
+                    <?php else: ?>
+                    @foreach($conversations as $row)
+                        <?php $active=$selected && (int)$selected->id===(int)$row->id; ?>
+                        <?php $rowName=$row->customer_name ?: __('whatsapp.inbox.unknown_customer'); ?>
+                        <?php $rowInitial=mb_substr((string)$rowName,0,2); ?>
                         <a class="wa-conversation-row {{ $active?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge(request()->except('page','conversation'),['conversation'=>$row->id])) }}" aria-current="{{ $active?'page':'false' }}">
                             <div class="wa-avatar {{ $loop->index%4===1?'violet':($loop->index%4===2?'pink':($loop->index%4===3?'green':'blue')) }}">{{ $rowInitial }}</div>
                             <div class="wa-conversation-main">
@@ -377,12 +392,13 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                             </div>
                             <div class="wa-conversation-meta">
                                 <span>{{ $row->last_message_at?\Illuminate\Support\Carbon::parse($row->last_message_at)->format('H:i'):'' }}</span>
-                                @if($row->unread_count>0)
+                                <?php if($row->unread_count>0): ?>
                                     <span class="wa-unread">{{ $row->unread_count }}</span>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </a>
-                    @empty<div class="wa-empty">{{ __('whatsapp.inbox.no_conversations') }}</div>@endforelse
+                    @endforeach
+                    <?php endif; ?>
                 </div>
                 <div class="wa-rail-pagination">{{ $conversations->onEachSide(0)->links() }}</div>
             </aside>
