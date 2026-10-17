@@ -231,8 +231,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         SystemAdministrationRuntime $systemRuntime,
-    ): StreamedResponse
-    {
+    ): StreamedResponse {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
