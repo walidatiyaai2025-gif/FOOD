@@ -543,6 +543,73 @@ final class CustomerServiceCaseManager
     }
 
     /**
+     * @return array{
+     *   orders:Collection<int,object>,
+     *   invoices:Collection<int,object>,
+     *   conversations:Collection<int,object>
+     * }
+     */
+    public function relatedRecordOptions(User $actor, int $limit = 100): array
+    {
+        $storeIds = $this->viewStoreIds($actor);
+        if ($storeIds === []) {
+            return ['orders' => collect(), 'invoices' => collect(), 'conversations' => collect()];
+        }
+
+        $limit = max(10, min(200, $limit));
+
+        $orders = DB::table('orders as records')
+            ->join('platform_customers as customers', 'customers.legacy_customer_id', '=', 'records.customer_id')
+            ->join('stores', 'stores.id', '=', 'records.store_id')
+            ->whereIn('records.store_id', $storeIds)
+            ->orderByDesc('records.id')
+            ->limit($limit)
+            ->get([
+                'records.id',
+                'records.order_number as reference',
+                'records.store_id',
+                'customers.id as platform_customer_id',
+                'customers.name as customer_name',
+                'stores.name as store_name',
+            ]);
+
+        $invoices = DB::table('invoices as records')
+            ->join('platform_customers as customers', function ($join): void {
+                $join->on('customers.id', '=', 'records.platform_customer_id')
+                    ->orOn('customers.legacy_customer_id', '=', 'records.customer_id');
+            })
+            ->join('stores', 'stores.id', '=', 'records.store_id')
+            ->whereIn('records.store_id', $storeIds)
+            ->orderByDesc('records.id')
+            ->limit($limit)
+            ->get([
+                'records.id',
+                'records.invoice_number as reference',
+                'records.store_id',
+                'customers.id as platform_customer_id',
+                'customers.name as customer_name',
+                'stores.name as store_name',
+            ]);
+
+        $conversations = DB::table('whats_app_conversations as records')
+            ->join('platform_customers as customers', 'customers.id', '=', 'records.platform_customer_id')
+            ->join('stores', 'stores.id', '=', 'records.store_id')
+            ->whereIn('records.store_id', $storeIds)
+            ->orderByDesc('records.id')
+            ->limit($limit)
+            ->get([
+                'records.id',
+                'records.public_id as reference',
+                'records.store_id',
+                'customers.id as platform_customer_id',
+                'customers.name as customer_name',
+                'stores.name as store_name',
+            ]);
+
+        return compact('orders', 'invoices', 'conversations');
+    }
+
+    /**
      * @param array<string,mixed> $filters
      * @return array{rows:list<array<string,mixed>>,total:int}
      */
