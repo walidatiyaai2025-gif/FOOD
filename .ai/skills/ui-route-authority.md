@@ -55,21 +55,35 @@ A visible navigation destination must open for the intended actor and remain una
 
 ## 3. Route Authority Lock
 
-Before UI implementation state internally:
+Before UI implementation state internally and carry the resolved values into the Issue/PR evidence:
 
 ```text
-Function:
+Domain:
+Role:
+Capability / function:
 Surface:
 Canonical route:
 Canonical renderer/controller:
-Normal navigation entry:
+Navigation owner:
+Navigation type:
+Entry point:
+Parent surface:
 Actor / permission:
+Active context:
+Mobile discoverability:
+Desktop discoverability:
+RTL / LTR behavior:
+Fallback / back path:
 Existing authority entry:
 Existing authority/navigation tests:
 Deep-link behavior:
 ```
 
-If the function already has an authority, modify that implementation rather than create a sibling replacement.
+Allowed navigation types are `SIDEBAR`, `DOMAIN_HUB`, `PAGE_TAB`, `CONTEXT_ACTION`, `ADMIN_SETTINGS`, `WORKFLOW_STEP`, and `EXPLICIT_EXCEPTION`.
+
+`DIRECT_URL_ONLY` does not satisfy completion for a normal business capability. `EXPLICIT_EXCEPTION` is only for intentionally non-browsable technical routes/surfaces and must document why no visible product entry point is correct.
+
+If the function already has an authority, modify that implementation rather than create a sibling replacement. Do not solve discoverability by automatically adding a Sidebar item; use the smallest correct navigation owner under the adaptive placement contract.
 
 ## 4. New canonical route/screen rule
 
@@ -105,7 +119,11 @@ Page tabs may represent sibling functions inside one canonical domain workspace.
 PASS only if:
 - no duplicate route/screen authority was introduced;
 - canonical source is documented/updated;
-- normal product navigation reaches the function;
+- the Issue/PR records the full discoverability metadata required by `UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`;
+- an authorized user can reach the capability from an existing visible product surface without relying on an undocumented direct URL;
+- the PR proves start → click → landing → active-context/back-path behavior;
+- the selected navigation level is role-correct and does not inflate the Sidebar;
+- Arabic/English and mobile/desktop navigation remain discoverable;
 - permissions/channel scope are enforced server-side;
 - authority/navigation tests pass;
 - evidence harness knows the canonical surface where required.

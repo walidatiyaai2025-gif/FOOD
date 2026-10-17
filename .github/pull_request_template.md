@@ -21,6 +21,15 @@ Placement contract: `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.
 - Placement type:
 - Primary screen pattern:
 - Navigation impact / business-domain owner:
+- Navigation discoverability:
+  - Domain / role / capability / canonical route:
+  - Navigation owner / type (`SIDEBAR|DOMAIN_HUB|PAGE_TAB|CONTEXT_ACTION|ADMIN_SETTINGS|WORKFLOW_STEP|EXPLICIT_EXCEPTION`):
+  - Entry point / parent surface:
+  - Permission / active context:
+  - User path (start → click → landing):
+  - Fallback / back path:
+  - Mobile / desktop behavior:
+  - AR/RTL / EN/LTR behavior:
 - New-screen justification (required for New Screen; explain why Reuse/Extend/Compose are insufficient):
 - Desktop evidence:
 - Tablet evidence:
