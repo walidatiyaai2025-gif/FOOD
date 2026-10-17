@@ -33,7 +33,8 @@ final class RestaurantWorkforceService
         $branchId = (int) $selected->getKey();
         $storeId = (int) $selected->store_id;
         $timezone = (string) ($selected->timezone ?: 'UTC');
-        $canManage = $actor->hasPermission('orders.manage', $storeId) || $actor->hasPermission('orders.manage');
+        $canManage = $actor->hasPermission('smart_ordering.manage', $storeId)
+            || $actor->hasPermission('smart_ordering.manage');
 
         $identityRows = DB::table('user_store_roles as usr')
             ->join('users as u', 'u.id', '=', 'usr.user_id')
