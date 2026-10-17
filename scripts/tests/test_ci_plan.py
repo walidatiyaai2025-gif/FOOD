@@ -36,6 +36,17 @@ class CiPlanTest(unittest.TestCase):
         self.assertTrue(p["backend_dashboard_only"])
         for area in ("customer","driver","van","mobile_ui"):
             self.assertFalse(p["areas"][area],area)
+    def test_dashboard_visual_gate_changes_trigger_dashboard_runtime_evidence(self):
+        for path in (
+            "scripts/capture_web_screenshots.mjs",
+            "scripts/foodex-ui-pr-plan.py",
+            ".ai/uiux/visual-evidence-matrix.json",
+            ".github/workflows/ui-visual-qa.yml",
+        ):
+            p=module.resolve(self.config,[path],"test/1943-responsive-runtime-gate")
+            self.assertTrue(p["areas"]["dashboard_ui"],path)
+            self.assertFalse(p["areas"]["mobile_ui"],path)
+
     def test_final_convergence_branch_can_explicitly_restore_mobile_lanes(self):
         p=module.resolve(self.config,["backend/app/Services/OrderService.php"],"test/1253-operational-completion-e2e")
         self.assertFalse(p["backend_dashboard_only"])
