@@ -74,6 +74,9 @@
             </div>
         </header>
 
+        @if($activeChannel === null)
+            @include('admin._executive-overview')
+        @else
         <section class="panel foodex-card">
             <strong>{{ __('admin.shell_ready') }}</strong>
             <p>{{ __('admin.shell_description') }}</p>
@@ -89,6 +92,7 @@
 
             <p class="boundary">{{ __('admin.authorization_boundary') }}</p>
         </section>
+        @endif
     </main>
 </div>
 </body>
