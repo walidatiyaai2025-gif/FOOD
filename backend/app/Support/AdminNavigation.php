@@ -206,7 +206,7 @@ class AdminNavigation
         }
 
         foreach ((array) config('admin.dashboard_permissions', []) as $permission) {
-            if (is_string($permission) && $this->hasPermission($user, $permission)) {
+            if (is_string($permission) && $this->hasPermissionInScope($user, $permission)) {
                 return true;
             }
         }
