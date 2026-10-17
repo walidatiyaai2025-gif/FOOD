@@ -13,7 +13,7 @@ return [
     'runtime_states' => ['DISABLED', 'INTERNAL_TEST', 'PILOT', 'ENABLED', 'EMERGENCY_STOP'],
     'entitlements' => [
         'public_menu', 'ordering', 'dine_in', 'pickup', 'delivery', 'whatsapp',
-        'chatbot', 'offers', 'campaign_qr', 'analytics', 'loyalty', 'reviews',
+        'chatbot', 'offers', 'campaign_qr', 'analytics', 'loyalty', 'reviews', 'reservations',
         'advanced_upsell', 'multi_branch', 'custom_domain', 'foodex_supply_intelligence',
     ],
     'customer_tags' => [
@@ -34,6 +34,9 @@ return [
     'reviews' => [
         'low_rating_threshold' => 2,
         'external_review_min_rating' => 4,
+    ],
+    'reservations' => [
+        'turn_minutes' => 120,
     ],
     'analytics' => [
         'retention_days' => (int) env('SMART_ORDERING_ANALYTICS_RETENTION_DAYS', 400),
