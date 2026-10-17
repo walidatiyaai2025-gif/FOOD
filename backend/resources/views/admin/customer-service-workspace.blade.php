@@ -148,7 +148,7 @@
             </section>
             @endif
 
-            <section class="foodex-card cs-panel">
+            <section class="foodex-card cs-panel" data-pagination-required>
                 <div class="cs-section-head">
                     <div><h2>{{ __('customer_service_workspace.cases.title') }}</h2><p>{{ __('customer_service_workspace.cases.help') }}</p></div>
                     @if($canManageCases)<span class="cs-badge ok">{{ __('customer_service_workspace.cases.manage_enabled') }}</span>@endif
@@ -165,7 +165,7 @@
                             @foreach($cases as $case)
                                 @php($overdue=in_array($case->status,['open','pending'],true) && $case->sla_target_at && \Illuminate\Support\Carbon::parse($case->sla_target_at)->isPast())
                                 <tr>
-                                    <td data-label="{{ __('customer_service_workspace.cases.case') }}"><strong>#{{ $case->id }}</strong><br><small>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</small></td>
+                                    <td data-label="{{ __('customer_service_workspace.cases.case') }}"><strong>{{ \App\Support\DisplayNumber::reference($case->id) }}</strong><br><small>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</small></td>
                                     <td data-label="{{ __('customer_service_workspace.cases.customer') }}">{{ $case->customer_name ?: '—' }}</td>
                                     <td data-label="{{ __('customer_service_workspace.filters.store') }}">{{ $case->store_name ?: '—' }}</td>
                                     <td data-label="{{ __('customer_service_workspace.filters.status') }}"><span class="cs-badge">{{ __('customer_service_workspace.values.'.$case->status) }}</span></td>
@@ -211,7 +211,7 @@
             @php($selectedOverdue=in_array($selectedCase->status,['open','pending'],true) && $selectedCase->sla_target_at && \Illuminate\Support\Carbon::parse($selectedCase->sla_target_at)->isPast())
             <section class="foodex-card cs-panel" id="case-detail">
                 <div class="cs-section-head">
-                    <div><h2>#{{ $selectedCase->id }} · {{ $selectedCase->subject ?: __('customer_service_workspace.values.untitled') }}</h2><p>{{ $selectedCase->customer_name }} · {{ $selectedCase->store_name }}</p></div>
+                    <div><h2>{{ \App\Support\DisplayNumber::reference($selectedCase->id) }} · {{ $selectedCase->subject ?: __('customer_service_workspace.values.untitled') }}</h2><p>{{ $selectedCase->customer_name }} · {{ $selectedCase->store_name }}</p></div>
                     <span class="cs-badge {{ $selectedOverdue?'danger':'ok' }}">{{ __('customer_service_workspace.values.'.$selectedCase->status) }}</span>
                 </div>
                 <div class="cs-detail-grid">
