@@ -70,6 +70,7 @@ const b2c = [
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
   ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
+  ['16_MFA_Enrollment', '/admin/security/mfa/enroll'],
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
@@ -1521,6 +1522,14 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'system-update',
     '/admin/settings/system-update',
+    { fullMatrix: true },
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'security-mfa-enroll',
+    '/admin/security/mfa/enroll',
     { fullMatrix: true },
   );
   await captureResponsiveRoute(
