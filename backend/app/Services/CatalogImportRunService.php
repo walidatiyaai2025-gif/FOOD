@@ -23,8 +23,8 @@ final class CatalogImportRunService
     public function preview(UploadedFile $archive, int $storeId, int $catalogId, string $channel): array
     {
         $result = $this->imports->preview($archive, $storeId, $catalogId, $channel);
-        $result['errors'] = $this->localizedMessages($result['errors'] ?? []);
-        $result['warnings'] = $this->localizedMessages($result['warnings'] ?? []);
+        $result['errors'] = $this->localizedMessages($result['errors']);
+        $result['warnings'] = $this->localizedMessages($result['warnings']);
         $token = is_string($result['token'] ?? null) && $result['token'] !== ''
             ? (string) $result['token']
             : (string) Str::uuid();
@@ -40,10 +40,10 @@ final class CatalogImportRunService
                 'catalog_id' => $catalogId,
                 'channel' => strtolower($channel),
                 'package_hash' => is_string($hash) ? $hash : hash('sha256', $token),
-                'status' => ($result['errors'] ?? []) === [] ? 'validated' : 'validation_failed',
-                'counts_json' => json_encode($result['counts'] ?? [], JSON_THROW_ON_ERROR),
-                'errors_json' => json_encode($result['errors'] ?? [], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                'warnings_json' => json_encode($result['warnings'] ?? [], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'status' => $result['errors'] === [] ? 'validated' : 'validation_failed',
+                'counts_json' => json_encode($result['counts'], JSON_THROW_ON_ERROR),
+                'errors_json' => json_encode($result['errors'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'warnings_json' => json_encode($result['warnings'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                 'result_json' => null,
                 'committed_at' => null,
                 'created_at' => now(),
@@ -114,7 +114,7 @@ final class CatalogImportRunService
 
         try {
             $result = $this->imports->commit($token);
-            $result['media_errors'] = $this->localizedMessages($result['media_errors'] ?? []);
+            $result['media_errors'] = $this->localizedMessages($result['media_errors']);
             DB::table('catalog_import_runs')->where('token', $token)->update([
                 'status' => 'committed',
                 'result_json' => json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
@@ -145,10 +145,10 @@ final class CatalogImportRunService
     private function localizedMessages(array $messages): array
     {
         if (app()->getLocale() !== 'ar') {
-            return array_values($messages);
+            return $messages;
         }
 
-        return array_values(array_map(fn (string $message): string => $this->localizeMessage($message), $messages));
+        return array_map(fn (string $message): string => $this->localizeMessage($message), $messages);
     }
 
     private function localizeMessage(string $message): string
