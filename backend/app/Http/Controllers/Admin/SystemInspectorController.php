@@ -224,6 +224,10 @@ final class SystemInspectorController extends Controller
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
             'runtime' => $systemRuntime->healthSnapshot(),
+            'recovery' => [
+                'backups' => $systemRuntime->backups(100),
+                'operations' => $systemRuntime->recentOperations(100),
+            ],
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
