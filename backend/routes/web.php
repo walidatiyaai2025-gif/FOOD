@@ -171,6 +171,7 @@ Route::prefix('admin')
             Route::post('/rfqs/{rfq}/publish', [EnterpriseProcurementController::class, 'publishRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.publish');
             Route::post('/rfqs/{rfq}/cancel', [EnterpriseProcurementController::class, 'cancelRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.cancel');
             Route::post('/rfqs/{rfq}/quotes/{quote}/award', [EnterpriseProcurementController::class, 'awardRfq'])->whereNumber('rfq')->whereNumber('quote')->middleware('throttle:30,1')->name('rfqs.award');
+            Route::get('/rfqs/{rfq}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadQuoteDocument'])->whereNumber('rfq')->whereNumber('document')->middleware('throttle:60,1')->name('rfqs.documents.download');
             Route::post('/contracts', [EnterpriseProcurementController::class, 'createContract'])->middleware('throttle:30,1')->name('contracts.store');
             Route::post('/contracts/{contract}/activate', [EnterpriseProcurementController::class, 'activateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.activate');
             Route::post('/contracts/{contract}/terminate', [EnterpriseProcurementController::class, 'terminateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.terminate');
