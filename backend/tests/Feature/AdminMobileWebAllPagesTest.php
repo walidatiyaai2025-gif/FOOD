@@ -41,11 +41,11 @@ class AdminMobileWebAllPagesTest extends TestCase
                 $filename.' must declare a real mobile viewport.',
             );
 
-            if ($filename === 'login.blade.php') {
+            if (in_array($filename, ['login.blade.php', 'whatsapp-otp.blade.php'], true)) {
                 $this->assertStringContainsString(
                     'data-foodex-mobile-web-exception="auth"',
                     $content,
-                    'Login is the only standalone auth-shell exception.',
+                    $filename.' must remain inside the unauthenticated auth shell and must not mount the Dashboard drawer.',
                 );
 
                 continue;
