@@ -84,6 +84,49 @@ class SystemUpdateAuthorizationTest extends TestCase
         ]);
     }
 
+
+    public function test_update_center_renders_sanitized_execution_evidence_without_private_backup_paths(): void
+    {
+        $user = $this->userWithRole('SUPER_ADMIN');
+
+        UpdateHistory::query()->create([
+            'actor_id' => $user->id,
+            'from_version' => '1.0.90',
+            'to_version' => '1.0.91',
+            'status' => 'failed',
+            'environment' => 'production',
+            'backup_status' => 'available',
+            'file_backup_reference' => '/private/system/update-backups/secret-files-path',
+            'database_backup_reference' => '/private/system/update-backups/secret-db-path',
+            'failed_stage' => 'health_check',
+            'rollback_status' => 'succeeded',
+            'package_hash' => str_repeat('c', 64),
+            'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+            'execution_evidence' => [
+                'package_integrity' => 'passed',
+                'preflight' => 'passed',
+                'file_backup' => ['reference' => '20261017-files-abc', 'size_bytes' => 2048, 'sha256' => str_repeat('d', 64)],
+                'database_backup' => ['reference' => '20261017-database-def', 'size_bytes' => 4096, 'sha256' => str_repeat('e', 64)],
+                'migrations' => 'passed',
+                'health_check' => 'failed',
+                'rollback_files' => 'passed',
+                'rollback_database' => 'passed',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/settings/system-update')
+            ->assertOk()
+            ->assertSee('Execution evidence')
+            ->assertSee('20261017-files-abc')
+            ->assertSee('20261017-database-def')
+            ->assertSee('health_check')
+            ->assertDontSee('/private/system/update-backups/secret-files-path')
+            ->assertDontSee('/private/system/update-backups/secret-db-path');
+    }
+
     public function test_non_update_admin_cannot_open_system_update_center(): void
     {
         $user = $this->userWithRole('B2B_ADMIN');
