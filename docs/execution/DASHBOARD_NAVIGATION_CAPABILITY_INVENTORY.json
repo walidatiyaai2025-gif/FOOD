@@ -1852,5 +1852,12 @@
     "mobile_desktop": "Shared responsive shell plus current visual evidence matrix; Restaurant Menu/Appearance use full 320/360/390/412/430/768/1024/1280+ matrix",
     "localization": "Localization gate + AR/EN runtime evidence; capability labels are recorded in both languages"
   },
-  "conclusion": "Current durable business capabilities are navigation-covered or explicitly classified. #1992 enforces this ledger model in required CI: new business pages must declare an approved navigation strategy, while reviewable technical/support endpoints remain explicit exceptions."
+  "conclusion": "Current durable business capabilities are navigation-covered or explicitly classified. #1992 enforces this ledger model in required CI: new business pages must declare an approved navigation strategy, while reviewable technical/support endpoints remain explicit exceptions.",
+  "enforcement": {
+    "issue": 1992,
+    "test": "backend/tests/Feature/NavigationCapabilityInventoryTest.php",
+    "required_ci": true,
+    "direct_url_only_allowed": false,
+    "rule": "Every new business-facing admin page requires an approved navigation declaration or an explicit reviewable non-screen exception."
+  }
 }
