@@ -62,7 +62,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
 
         $this->assertStringContainsString('data-restaurant-saas-workspace-nav', $source);
         $this->assertStringContainsString('data-restaurant-saas-context-nav', $source);
-        $this->assertStringContainsString("'support_access' => $restaurantSupport ? 1 : null", $source);
+        $this->assertStringContainsString("'support_access' => \$restaurantSupport ? 1 : null", $source);
         $this->assertStringNotContainsString('customers.show', $source);
         $this->assertStringNotContainsString('service-recovery.index', $source);
     }
