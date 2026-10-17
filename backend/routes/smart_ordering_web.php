@@ -70,6 +70,8 @@ Route::prefix('admin/smart-ordering')
             ->whereNumber('site')->whereUuid('mapping')->name('supply.mappings.deactivate');
         Route::put('/sites/{site}/supply/stock', [SmartOrderingSupplyController::class, 'stock'])
             ->whereNumber('site')->name('supply.stock');
+        Route::post('/sites/{site}/supply/waste', [SmartOrderingSupplyController::class, 'waste'])
+            ->whereNumber('site')->name('supply.waste');
         Route::post('/sites/{site}/supply/draft', [SmartOrderingSupplyController::class, 'draft'])
             ->whereNumber('site')->name('supply.draft');
         Route::post('/sites/{site}/supply/recommendations/{product}/dismiss', [SmartOrderingSupplyController::class, 'dismiss'])
