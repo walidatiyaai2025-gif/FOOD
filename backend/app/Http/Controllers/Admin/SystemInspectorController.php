@@ -354,6 +354,7 @@ final class SystemInspectorController extends Controller
                     'to_version' => $row->to_version,
                     'status' => $row->status,
                     'environment' => $row->environment,
+                    'operation_reason' => $row->operation_reason,
                     'backup_status' => $row->backup_status,
                     'failed_stage' => $row->failed_stage,
                     'rollback_status' => $row->rollback_status,
