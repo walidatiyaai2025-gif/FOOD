@@ -158,7 +158,7 @@ final class FieldOperationsDashboardService
 
         $daily = (clone $assignments)
             ->selectRaw(
-                "DATE(order_van_assignments.assigned_at) as day, COUNT(*) as deliveries, ".
+                'DATE(order_van_assignments.assigned_at) as day, COUNT(*) as deliveries, '.
                 "SUM(CASE WHEN order_van_execution_states.status IN ('delivered','completed') THEN 1 ELSE 0 END) as completed, ".
                 "SUM(CASE WHEN order_van_execution_states.status IN ('failed','returned') THEN 1 ELSE 0 END) as failed"
             )
@@ -177,7 +177,7 @@ final class FieldOperationsDashboardService
 
         $vanWorkload = (clone $assignments)
             ->selectRaw(
-                "vans.id as van_id, vans.code as van, COUNT(*) as deliveries, ".
+                'vans.id as van_id, vans.code as van, COUNT(*) as deliveries, '.
                 "SUM(CASE WHEN order_van_execution_states.status IN ('delivered','completed') THEN 1 ELSE 0 END) as completed, ".
                 "SUM(CASE WHEN order_van_execution_states.status IN ('failed','returned') THEN 1 ELSE 0 END) as failed"
             )
@@ -359,8 +359,8 @@ final class FieldOperationsDashboardService
     }
 
     /**
-     * @param array<int,array{status:string,received_at:string}> $staleVans
-     * @param list<int> $vanIds
+     * @param  array<int,array{status:string,received_at:string}>  $staleVans
+     * @param  list<int>  $vanIds
      * @return list<array<string,mixed>>
      */
     private function exceptionQueue(
