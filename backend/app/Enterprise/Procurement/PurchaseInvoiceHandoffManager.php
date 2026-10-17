@@ -39,6 +39,7 @@ final class PurchaseInvoiceHandoffManager
         private readonly AuditLogger $audit,
         private readonly ModuleRegistry $modules,
         private readonly TransactionalOutbox $outbox,
+        private readonly ProcurementMatchManager $matching,
     ) {}
 
     /**
@@ -265,6 +266,7 @@ final class PurchaseInvoiceHandoffManager
         int $invoiceId,
     ): EnterprisePurchaseInvoice {
         $scope = $this->authorizedScope($actor, $context, self::HANDOFF_PERMISSION);
+        $this->matching->assertInvoiceHandoffAllowed($actor, $context, $invoiceId);
 
         return DB::transaction(function () use ($actor, $scope, $invoiceId): EnterprisePurchaseInvoice {
             $invoice = $this->lockVisible($scope, $invoiceId);
