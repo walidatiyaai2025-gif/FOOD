@@ -1629,7 +1629,7 @@ class SmartOrderingCoreTest extends TestCase
     public function test_restaurant_workforce_reuses_store_identity_rejects_overlap_and_cross_scope(): void
     {
         $admin = $this->storeAdmin($this->storeId);
-        $staff = $this->workforceUser($this->storeId, 'Host Team Member');
+        $staff = $this->workforceUser($this->storeId, 'Host Team Member', true);
 
         $this->actingAs($admin)
             ->post(route('admin.smart-ordering.workforce.staff.store', $this->branch->public_id), [
@@ -1855,7 +1855,7 @@ class SmartOrderingCoreTest extends TestCase
         ]);
     }
 
-    private function workforceUser(int $storeId, string $name): User
+    private function workforceUser(int $storeId, string $name, bool $manager = false): User
     {
         $user = User::query()->create([
             'name' => $name,
@@ -1864,17 +1864,23 @@ class SmartOrderingCoreTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $role = Role::query()->firstOrCreate(
-            ['code' => 'TEST_RESTAURANT_STAFF'],
-            [
-                'name' => 'Test Restaurant Staff',
-                'scope' => 'store',
-                'is_system' => false,
-                'is_active' => true,
-            ],
-        );
-        $ordersView = (int) DB::table('permissions')->where('code', 'orders.view')->value('id');
-        $role->permissions()->syncWithoutDetaching([$ordersView]);
+
+        if ($manager) {
+            $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        } else {
+            $role = Role::query()->firstOrCreate(
+                ['code' => 'TEST_RESTAURANT_STAFF'],
+                [
+                    'name' => 'Test Restaurant Staff',
+                    'scope' => 'store',
+                    'is_system' => false,
+                    'is_active' => true,
+                ],
+            );
+            $ordersView = (int) DB::table('permissions')->where('code', 'orders.view')->value('id');
+            $role->permissions()->syncWithoutDetaching([$ordersView]);
+        }
+
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $storeId,
