@@ -86,6 +86,7 @@ return [
         'failed' => 'Failed',
         'not_required' => 'Not required',
         'available' => 'Available',
+        'partial' => 'Partial',
         'not_created' => 'Not created',
         'succeeded' => 'Succeeded',
         'incomplete' => 'Incomplete',
