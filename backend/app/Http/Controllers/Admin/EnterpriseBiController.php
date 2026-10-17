@@ -69,6 +69,17 @@ final class EnterpriseBiController extends Controller
                 'product' => ['product_id', 'stock_status'],
             ],
         ],
+        'field_operations.delivery_performance' => [
+            'key' => 'field_operations',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'daily' => ['date', 'status'],
+                'status' => ['status'],
+                'van' => ['van_id', 'status'],
+                'territory' => ['territory', 'status'],
+                'failure' => ['failure_reason'],
+            ],
+        ],
         'procurement.open_orders' => [
             'key' => 'procurement_open_orders',
             'scope' => EntitlementScope::STORE,
