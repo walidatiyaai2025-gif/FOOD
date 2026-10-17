@@ -74,11 +74,17 @@
         </section>
 
         @php
-            $runtimeStateLabel = match((string)($runtime['state'] ?? 'unknown')) {
+            $runtimeCode = (string)($runtime['state'] ?? 'unknown');
+            $runtimeStateLabel = match($runtimeCode) {
                 'healthy' => __('admin.system_update_surface.healthy'),
                 'warning' => __('admin.system_update_surface.warning'),
                 'error' => __('admin.system_update_surface.error'),
                 default => __('admin.system_update_surface.unknown'),
+            };
+            $runtimeBadgeState = match($runtimeCode) {
+                'healthy' => 'success',
+                'warning' => 'warning',
+                default => 'error',
             };
             $runtimeMetrics = [
                 ['label'=>__('admin.system_update_surface.application_health'),'value'=>$runtimeStateLabel],
@@ -99,7 +105,7 @@
                     <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
                 </div>
                 <div class="inspector-actions">
-                    <span class="foodex-status-badge" data-state="{{ ($runtime['state'] ?? '')==='healthy'?'success':((($runtime['state'] ?? '')==='warning')?'warning':'error') }}">{{ $runtimeStateLabel }}</span>
+                    <span class="foodex-status-badge" data-state="{{ $runtimeBadgeState }}">{{ $runtimeStateLabel }}</span>
                     <a class="foodex-action-secondary button secondary" href="{{ route('admin.system-update.index') }}">{{ __('admin.system_update_surface.backup_center') }}</a>
                 </div>
             </div>
@@ -125,10 +131,10 @@
             <article class="foodex-viz-card foodex-module-chart inspector-trend" data-foodex-module-chart>
                 <div class="foodex-viz-header">
                     <div>
-                        <h3 class="foodex-viz-title">{{ $ar?'اتجاه حوادث التشغيل خلال 7 أيام':'7-day runtime incident trend' }}</h3>
-                        <p class="foodex-viz-subtitle">{{ $ar?'من سجل System Inspector المعتمد':'From authoritative System Inspector events' }}</p>
+                        <h3 class="foodex-viz-title">{{ __('admin.system_update_surface.incident_trend_title') }}</h3>
+                        <p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.incident_trend_description') }}</p>
                     </div>
-                    <span class="badge">{{ $ar?'فشل المهام 24 ساعة':'Failed jobs · 24h' }}: <span class="foodex-number">{{ $runtime['queue']['failed_jobs_24h'] ?? '—' }}</span></span>
+                    <span class="badge">{{ __('admin.system_update_surface.failed_jobs_24h') }}: <span class="foodex-number">{{ $runtime['queue']['failed_jobs_24h'] ?? '—' }}</span></span>
                 </div>
                 @foreach($incidentTrend as $point)
                     @php($incidentPercent = max(2, (int)round(((int)$point['count'] / $incidentMax) * 100)))
@@ -140,7 +146,7 @@
                 @endforeach
                 <div class="foodex-module-chart-table-wrap">
                     <table class="foodex-module-chart-table" data-pagination-exempt="fixed-7-day-runtime-summary">
-                        <thead><tr><th>{{ $ar?'اليوم':'Day' }}</th><th>{{ $ar?'الحوادث':'Incidents' }}</th></tr></thead>
+                        <thead><tr><th>{{ __('admin.system_update_surface.day') }}</th><th>{{ __('admin.system_update_surface.incidents') }}</th></tr></thead>
                         <tbody>@foreach($incidentTrend as $point)<tr><td>{{ $point['day'] }}</td><td class="foodex-number">{{ $point['count'] }}</td></tr>@endforeach</tbody>
                     </table>
                 </div>
