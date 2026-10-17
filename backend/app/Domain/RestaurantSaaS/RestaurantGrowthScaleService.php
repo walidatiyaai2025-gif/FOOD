@@ -138,24 +138,32 @@ final class RestaurantGrowthScaleService
                 ->lockForUpdate()
                 ->first();
             abort_unless($card !== null, 404);
-            abort_unless($card->status === 'active', 409, 'Gift card is not active.');
-            abort_if($card->expires_at !== null && now()->gte($card->expires_at), 409, 'Gift card has expired.');
             abort_if($card->company_id !== null && (int) $card->company_id !== (int) $enterprise['company_id'], 404);
             abort_if($card->store_id !== null && (int) $card->store_id !== (int) $store->getKey(), 404);
 
             $key = mb_substr(trim($idempotencyKey), 0, 128);
+            abort_if($key === '', 422, 'Gift-card redemption requires an idempotency key.');
             $existing = DB::table('restaurant_saas_gift_card_entries')
                 ->where('gift_card_id', $card->id)
                 ->where('idempotency_key', $key)
-                ->first(['id']);
+                ->first(['id', 'amount', 'reference']);
             $balance = round((float) DB::table('restaurant_saas_gift_card_entries')
                 ->where('gift_card_id', $card->id)
                 ->sum('amount'), 3);
 
             if ($existing !== null) {
+                abort_if(
+                    round(abs((float) $existing->amount), 3) !== round($amount, 3)
+                    || ($existing->reference === null ? null : (string) $existing->reference) !== ($reference === null ? null : mb_substr($reference, 0, 128)),
+                    409,
+                    'Gift-card redemption idempotency key was reused with different parameters.',
+                );
+
                 return ['public_id' => (string) $card->public_id, 'balance' => $balance, 'duplicate' => true];
             }
 
+            abort_unless($card->status === 'active', 409, 'Gift card is not active.');
+            abort_if($card->expires_at !== null && now()->gte($card->expires_at), 409, 'Gift card has expired.');
             abort_if($balance < $amount, 409, 'Insufficient gift-card balance.');
             DB::table('restaurant_saas_gift_card_entries')->insert([
                 'gift_card_id' => (int) $card->id,
