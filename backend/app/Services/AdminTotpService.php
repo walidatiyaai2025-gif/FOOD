@@ -70,16 +70,16 @@ final class AdminTotpService
     public function consumeRecoveryCode(AdminMfaCredential $credential, string $code): bool
     {
         $needle = $this->recoveryHash($code);
-        $hashes = array_values(array_filter((array) $credential->recovery_codes, 'is_string'));
+        $hashes = $credential->recovery_codes;
         $index = array_search($needle, $hashes, true);
 
         if ($index === false) {
             return false;
         }
 
-        unset($hashes[$index]);
+        array_splice($hashes, $index, 1);
         $credential->forceFill([
-            'recovery_codes' => array_values($hashes),
+            'recovery_codes' => $hashes,
             'last_verified_at' => now(),
         ])->save();
 
