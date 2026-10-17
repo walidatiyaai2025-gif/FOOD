@@ -41,20 +41,26 @@ final class SmartOrderingEnterpriseEntitlementCompatibilityTest extends TestCase
         );
     }
 
-    public function test_disabled_bridge_preserves_legacy_behavior_without_enterprise_queries(): void
+    public function test_store_master_is_required_even_when_capability_bridge_is_disabled(): void
     {
         [$site, $admin] = $this->site('SO-BRIDGE-OFF');
         app(SmartOrderingSiteService::class)->setEntitlement($admin, $site, Module::PUBLIC_MENU, true);
 
-        $queries = [];
-        DB::listen(static function ($query) use (&$queries): void {
-            $queries[] = (string) $query->sql;
-        });
+        $this->assertFalse(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
+
+        $this->scopeStore((int) $site->store_id);
+        $lifecycle = app(ModuleLifecycleManager::class);
+        $lifecycle->transition(
+            SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE,
+            ModuleState::ENABLING,
+        );
+        $lifecycle->transition(
+            SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE,
+            ModuleState::ENABLED,
+        );
+        $this->setEnterpriseEntitlement((int) $site->store_id, true);
 
         $this->assertTrue(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
-        $this->assertFalse(collect($queries)->contains(
-            static fn (string $sql): bool => str_contains($sql, 'enterprise_'),
-        ));
     }
 
     public function test_enabled_bridge_fails_closed_while_enterprise_module_is_disabled(): void

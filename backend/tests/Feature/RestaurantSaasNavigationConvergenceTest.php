@@ -148,7 +148,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        return (int) DB::table('stores')->insertGetId([
+        $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
             'code' => 'RESTAURANT-NAV',
             'name' => 'Restaurant Navigation',
@@ -156,5 +156,8 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($storeId);
+
+        return $storeId;
     }
 }

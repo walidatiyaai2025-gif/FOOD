@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Http\Controllers\Controller;
 use App\Models\SmartOrderingQrCode;
 use App\Models\User;
@@ -28,8 +29,8 @@ final class SmartOrderingQrController extends Controller
         SmartOrderingQrManager $manager,
     ): View {
         $actor = $this->actor($request);
-        $storeIds = $scope->allowedStoreIds($actor, 'smart_ordering.qr.view', 'b2c');
-        abort_if($storeIds === [], 403);
+        $storeIds = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, 'smart_ordering.qr.view', $request);
 
         $canCreate = collect($storeIds)
             ->contains(fn (int $storeId): bool => $actor->hasPermission('smart_ordering.qr.manage', $storeId));
@@ -117,7 +118,7 @@ final class SmartOrderingQrController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $data = $this->payload($request, true);
-        $scope->assertStore($actor, (int) $data['store_id'], 'smart_ordering.qr.manage', 'b2c');
+        app(RestaurantSaasStoreAccess::class)->assertStore($actor, (int) $data['store_id'], 'smart_ordering.qr.manage', 'b2c');
 
         $created = $manager->create($data, (int) $actor->getKey());
         $audit->record('smart_ordering.qr.created', $actor, $created['qr'], null, $created['qr']->toArray(), $request);
@@ -133,7 +134,7 @@ final class SmartOrderingQrController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        $scope->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
+        app(RestaurantSaasStoreAccess::class)->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
         $before = $qr->toArray();
         $updated = $manager->update($qr, $this->payload($request, false), (int) $actor->getKey());
         $audit->record('smart_ordering.qr.updated', $actor, $updated, $before, $updated->toArray(), $request);
@@ -149,7 +150,7 @@ final class SmartOrderingQrController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        $scope->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
+        app(RestaurantSaasStoreAccess::class)->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
         $before = $qr->toArray();
         $updated = $manager->setEnabled($qr, ! $qr->is_enabled, (int) $actor->getKey());
         $audit->record('smart_ordering.qr.toggled', $actor, $updated, $before, $updated->toArray(), $request);
@@ -165,7 +166,7 @@ final class SmartOrderingQrController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        $scope->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
+        app(RestaurantSaasStoreAccess::class)->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.manage', 'b2c');
 
         $data = $request->validate([
             'keep_previous' => ['nullable', 'boolean'],
@@ -241,7 +242,7 @@ final class SmartOrderingQrController extends Controller
     private function authorizeView(Request $request, SmartOrderingQrCode $qr, OperationalTenantScope $scope): void
     {
         $actor = $this->actor($request);
-        $scope->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.view', 'b2c');
+        app(RestaurantSaasStoreAccess::class)->assertStore($actor, (int) $qr->store_id, 'smart_ordering.qr.view', 'b2c');
     }
 
     private function assetVersion(Request $request): ?string

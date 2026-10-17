@@ -295,6 +295,7 @@ class SmartOrderingPublicMenuRevisionContractTest extends TestCase
         }
 
         $admin = $this->storeAdmin($storeId, $suffix);
+        $this->enableRestaurantSaasForTestStore($storeId);
         $site = app(SmartOrderingSiteService::class)->ensureForStore($storeId, $admin);
 
         return [
