@@ -13,7 +13,7 @@ use App\Services\AuditLogger;
 use App\Services\CatalogImageService;
 use App\Services\CatalogProductCompletionManager;
 use App\Services\CatalogOwnership;
-use App\Services\CatalogZipImportService;
+use App\Services\CatalogImportRunService;
 use App\Services\LookupScopeService;
 use App\Services\ProductAvailabilityService;
 use App\Services\ProductSkuGenerator;
@@ -42,7 +42,7 @@ final class CatalogManagementController extends Controller
         private readonly ProductAvailabilityService $availability,
         private readonly ProductSkuGenerator $skuGenerator,
         private readonly CatalogImageService $images,
-        private readonly CatalogZipImportService $catalogImports,
+        private readonly CatalogImportRunService $catalogImports,
         private readonly CatalogProductCompletionManager $catalogCompletion,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
