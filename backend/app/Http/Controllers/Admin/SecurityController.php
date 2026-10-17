@@ -26,7 +26,6 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -197,6 +196,10 @@ final class SecurityController extends Controller
             ->whereIn('user_id', $users->getCollection()->pluck('id'))
             ->get()
             ->groupBy('user_id');
+        $effectivePermissionsByUser = $users->getCollection()
+            ->mapWithKeys(fn (User $managedUser): array => [
+                (int) $managedUser->id => $managedUser->effectivePermissionCodes(),
+            ]);
         $securitySessions = AdminSecuritySession::query()
             ->with('user:id,name,email')
             ->whereNull('revoked_at')
@@ -232,6 +235,7 @@ final class SecurityController extends Controller
             'governance' => $governance,
             'mfaByUser' => $mfaByUser,
             'ssoByUser' => $ssoByUser,
+            'effectivePermissionsByUser' => $effectivePermissionsByUser,
             'securitySessions' => $securitySessions,
             'currentSecuritySessionHash' => hash('sha256', $request->session()->getId()),
             'auditRows' => $audit['rows'],
@@ -392,7 +396,19 @@ final class SecurityController extends Controller
         Gate::authorize('users.roles.manage');
         $data = $request->validate([
             'provider' => ['required', 'string', 'max:80'],
-            'subject' => ['required', 'string', 'max:191'],
+            'subject' => [
+                'required',
+                'string',
+                'max:191',
+                Rule::unique('enterprise_sso_identities', 'subject')
+                    ->where(fn ($query) => $query->where('provider', (string) $request->input('provider')))
+                    ->ignore(
+                        EnterpriseSsoIdentity::query()
+                            ->where('user_id', $user->id)
+                            ->where('provider', (string) $request->input('provider'))
+                            ->value('id'),
+                    ),
+            ],
         ]);
         $provider = trim((string) $data['provider']);
         $expectedProvider = (string) config('security.sso.provider', 'enterprise');
