@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}
 :root{--wa-green:var(--foodex-green);--wa-green-dark:var(--foodex-action-green);--wa-green-soft:var(--foodex-green-soft);--wa-ink:var(--foodex-ink);--wa-muted:var(--foodex-muted);--wa-border:var(--foodex-border);--wa-bg:var(--foodex-background);--wa-panel:var(--foodex-surface);--wa-shadow:0 8px 24px rgba(15,23,42,.08)}
-.wa-inbox-main{min-width:0}.wa-shell-marker{display:none!important}
+.wa-inbox-main{min-width:0}header.foodex-page-header.wa-shell-marker{display:none!important;visibility:hidden!important;width:0!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
 .wa-flash{position:fixed;z-index:10020;top:12px;left:50%;transform:translateX(-50%);max-width:min(680px,calc(100vw - 32px));padding:10px 16px;border:1px solid var(--wa-border);border-radius:10px;background:var(--foodex-surface);box-shadow:var(--wa-shadow);font-size:13px}.wa-flash.error{color:var(--foodex-red)}
 .wa-golden-workspace{display:grid;grid-template-areas:"context thread rail";grid-template-columns:448px minmax(0,1fr) 379px;width:100%;min-width:0;background:var(--foodex-surface);color:var(--wa-ink)}
 html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
@@ -36,7 +36,7 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
 <div class="foodex-admin-layout wa-inbox-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main wa-inbox-main">
-        <header class="foodex-page-header wa-shell-marker" aria-hidden="true">
+        <header class="foodex-page-header wa-shell-marker" aria-hidden="true" hidden style="display:none!important">
             <div><h1>{{ __('whatsapp.inbox.heading') }}</h1><p>{{ __('whatsapp.inbox.intro') }}</p></div>
             @include('admin._live-notifications',['user'=>auth()->user()])
         </header>
