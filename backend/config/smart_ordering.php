@@ -14,7 +14,7 @@ return [
     'entitlements' => [
         'public_menu', 'ordering', 'dine_in', 'pickup', 'delivery', 'whatsapp',
         'chatbot', 'offers', 'campaign_qr', 'analytics', 'loyalty', 'reviews', 'reservations',
-        'advanced_upsell', 'multi_branch', 'custom_domain', 'foodex_supply_intelligence',
+        'advanced_upsell', 'multi_branch', 'custom_domain', 'kitchen_display', 'kitchen_routing', 'foodex_supply_intelligence',
     ],
     'customer_tags' => [
         'frequent_order_count' => 5,

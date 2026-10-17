@@ -43,6 +43,8 @@ return [
                 'advanced_upsell',
                 'multi_branch',
                 'custom_domain',
+                'kitchen_display',
+                'kitchen_routing',
                 'foodex_supply_intelligence',
             ],
             'permissions' => [],

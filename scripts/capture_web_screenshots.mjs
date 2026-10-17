@@ -1436,6 +1436,7 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'smart-ordering-workforce',
     '/admin/smart-ordering?tab=workforce',
+    { fullMatrix: true },
   );
   await captureResponsiveRoute(
     page,
