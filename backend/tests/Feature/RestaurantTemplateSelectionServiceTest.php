@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\SmartOrdering\Themes\RestaurantTemplateSelectionService;
@@ -55,7 +56,7 @@ final class RestaurantTemplateSelectionServiceTest extends TestCase
             ->selectDraft($admin, $site, 'quick-bite');
     }
 
-    /** @return array{0:User,1:\App\Domain\SmartOrdering\Models\SmartOrderingSite} */
+    /** @return array{0:User,1:SmartOrderingSite} */
     private function context(): array
     {
         $this->seed(CoreReferenceSeeder::class);
