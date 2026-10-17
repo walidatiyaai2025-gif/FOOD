@@ -22,6 +22,8 @@ return [
     'provider_key' => 'Provider key',
     'display_name' => 'Display name',
     'credential_reference' => 'Credential reference',
+    'credential_reference_placeholder' => 'vault://restaurant/provider',
+    'target_url_placeholder' => 'https://example.com/webhooks/foodex',
     'credential_reference_help' => 'Reference only; do not paste raw provider secrets.',
     'capabilities' => 'Capabilities',
     'save_connector' => 'Install disabled connector',
