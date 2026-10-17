@@ -15,6 +15,7 @@ $dashboardChartLabels=[
     'spend_by_supplier'=>__('enterprise_procurement.spend_by_supplier'),
     'spend_by_category'=>__('enterprise_procurement.spend_by_category'),
     'po_status'=>__('enterprise_procurement.po_status_chart'),
+    'po_aging'=>__('enterprise_procurement.po_aging_chart'),
     'supplier_performance'=>__('enterprise_procurement.supplier_performance'),
     'savings'=>__('enterprise_procurement.purchase_savings'),
     'contract_expiry'=>__('enterprise_procurement.contract_expiry_horizon'),
