@@ -993,8 +993,8 @@ final class ProcurementCompletionManager
             }
 
             $storagePath = $stored;
-            $originalName = $attachment->getClientOriginalName();
-            $mimeType = $attachment->getMimeType();
+            $originalName = Str::limit($attachment->getClientOriginalName(), 255, '');
+            $mimeType = $attachment->getMimeType() ?: null;
             $sizeBytes = $attachment->getSize();
         }
 
