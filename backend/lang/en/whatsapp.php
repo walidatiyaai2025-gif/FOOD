@@ -36,6 +36,21 @@ return [
     'features' => ['inbound' => 'Inbound messaging', 'agent_inbox' => 'Agent inbox', 'transactional' => 'Transactional notifications', 'campaigns' => 'Marketing campaigns', 'automation' => 'Automated messaging', 'outbound' => 'Outbound messaging', 'calls' => 'WhatsApp voice calls'],
 
     'inbox' => [
+        'thread_ui' => [
+            'conversation_classification' => 'Conversation classification',
+            'responsible' => 'Owner',
+            'priority' => 'Priority',
+            'priority_normal' => 'Normal',
+            'priority_high' => 'High',
+            'tags' => 'Tags',
+            'more' => 'More',
+            'manage_assignment' => 'Manage owner and tags',
+            'today' => 'Today',
+            'quick_replies' => 'Quick replies',
+            'attach_order' => 'Attach order',
+            'no_quick_replies' => 'Write a reply directly; no quick-reply templates are configured.',
+            'write_message' => 'Write your message here...',
+        ],
         'page_title' => 'Customer Service Inbox · FOODEX',
         'subtitle' => 'FOODEX · WhatsApp CRM · Experimental',
         'heading' => 'Shared Customer Service Inbox',
