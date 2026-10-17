@@ -614,7 +614,7 @@ final class ManagementReportService
                 'orders.grand_total',
             ])
             ->selectRaw(
-                "CASE ".
+                'CASE '.
                 "WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') AND orders.created_at <= ? THEN 'delayed' ".
                 "WHEN EXISTS (SELECT 1 FROM order_dispatch_states ods WHERE ods.order_id = orders.id AND ods.status = 'awaiting_dispatch') THEN 'awaiting_dispatch' ".
                 "WHEN EXISTS (SELECT 1 FROM payments ep WHERE ep.order_id = orders.id AND ep.status IN ('failed','voided')) THEN 'payment' ".
