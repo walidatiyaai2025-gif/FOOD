@@ -32,8 +32,8 @@ final class ErpCenterTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('ERP Center')
-            ->assertSee('data-erp-key="procurement" data-erp-status="disabled"', false)
-            ->assertSee('Disabled')
+            ->assertSee('data-erp-key="procurement" data-erp-status="setup_required"', false)
+            ->assertSee('Setup required')
             ->assertSee('dir="ltr"', false);
     }
 

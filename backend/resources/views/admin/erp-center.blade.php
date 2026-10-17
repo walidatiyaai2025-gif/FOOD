@@ -23,7 +23,7 @@ body{margin:0}
 .erp-bars{display:grid;gap:10px;margin-top:14px}
 .erp-bar-row{display:grid;grid-template-columns:minmax(110px,.8fr) minmax(0,2fr) auto;align-items:center;gap:10px;color:inherit;text-decoration:none}
 .erp-bar-track{height:12px;border-radius:999px;background:var(--foodex-background);overflow:hidden}
-.erp-bar-fill{display:block;height:100%;width:var(--erp-bar-width);min-width:2px;border-radius:inherit;background:var(--foodex-green)}
+.erp-bar-fill{display:block;height:100%;width:var(--erp-bar-width);border-radius:inherit;background:var(--foodex-green)}
 .erp-bar-row[data-exceptions="true"] .erp-bar-fill{background:var(--foodex-orange)}
 .erp-bar-values{display:flex;gap:7px;white-space:nowrap;color:var(--foodex-muted);font-size:var(--foodex-text-xs)}
 .erp-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
@@ -83,12 +83,19 @@ body{margin:0}
 </div>
 <div class="foodex-module-kpis erp-kpis" data-erp-kpis>
 @foreach($kpis as $kpi)
-@php($kpiTag = $kpi['url'] ? 'a' : 'article')
-<{{ $kpiTag }}
-    class="foodex-viz-card foodex-module-kpi {{ $kpi['url'] ? 'erp-kpi-link' : '' }} {{ $kpi['available'] ? '' : 'erp-kpi-unavailable' }}"
+@if($kpi['url'])
+<a
+    class="foodex-viz-card foodex-module-kpi erp-kpi-link {{ $kpi['available'] ? '' : 'erp-kpi-unavailable' }}"
     data-erp-kpi="{{ $kpi['key'] }}"
-    @if($kpi['url']) href="{{ $kpi['url'] }}" data-interactive="true" @endif
+    href="{{ $kpi['url'] }}"
+    data-interactive="true"
 >
+@else
+<article
+    class="foodex-viz-card foodex-module-kpi erp-kpi-unavailable"
+    data-erp-kpi="{{ $kpi['key'] }}"
+>
+@endif
 <span class="foodex-module-kpi-label">{{ __('admin.erp_center.kpis.'.$kpi['key'].'.label') }}</span>
 <strong class="foodex-module-kpi-value">{{ $kpi['available'] ? $kpi['value'] : '—' }}</strong>
 <div class="foodex-module-kpi-meta">
@@ -104,7 +111,11 @@ body{margin:0}
 @endif
 </span>
 </div>
-</{{ $kpiTag }}>
+@if($kpi['url'])
+</a>
+@else
+</article>
+@endif
 @endforeach
 </div>
 </section>
@@ -125,7 +136,7 @@ body{margin:0}
 @foreach($workload as $row)
 <a class="erp-bar-row" data-erp-work-module="{{ $row['key'] }}" data-exceptions="{{ $row['exceptions'] > 0 ? 'true' : 'false' }}" href="{{ $row['url'] }}">
 <strong>{{ $row['label'] }}</strong>
-<span class="erp-bar-track" aria-hidden="true"><span class="erp-bar-fill" style="--erp-bar-width:{{ min(100, max(2, (int) round(($row['total'] / $workMax) * 100))) }}%"></span></span>
+<span class="erp-bar-track" aria-hidden="true"><span class="erp-bar-fill" style="--erp-bar-width:{{ $row['total'] > 0 ? min(100, max(2, (int) round(($row['total'] / $workMax) * 100))) : 0 }}%"></span></span>
 <span class="erp-bar-values">
 <span>{{ __('admin.erp_center.analytics.workload.total',['count'=>$row['total']]) }}</span>
 <span>{{ __('admin.erp_center.analytics.workload.exceptions',['count'=>$row['exceptions']]) }}</span>
