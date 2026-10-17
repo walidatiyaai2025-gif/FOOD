@@ -146,7 +146,7 @@ return [
             'navigation' => [],
         ],
         'procurement' => [
-            'version' => 1,
+            'version' => 2,
             'category' => 'operations',
             'default_state' => 'DISABLED',
             'required_core' => [
@@ -170,6 +170,11 @@ return [
                 'procurement.purchase_returns',
                 'procurement.purchase_invoices',
                 'procurement.supplier_statements',
+                'procurement.rfq',
+                'procurement.contracts',
+                'procurement.three_way_match',
+                'procurement.analytics',
+                'procurement.supplier_portal',
             ],
             'permissions' => [
                 'procurement.suppliers.view',
@@ -190,6 +195,7 @@ return [
                 'procurement.purchase_invoices.manage',
                 'procurement.purchase_invoices.handoff',
                 'procurement.supplier_statements.view',
+                'reports.export',
             ],
             'health_checks' => [
                 'database',
