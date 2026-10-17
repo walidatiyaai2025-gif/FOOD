@@ -80,7 +80,7 @@ final class EnterpriseBiController extends Controller
             'key' => 'catalog_category_brand_performance',
             'scope' => EntitlementScope::STORE,
             'breakdowns' => [
-                'category_brand' => ['category_id', 'category', 'brand_id', 'brand'],
+                'category_brand' => ['category', 'brand'],
             ],
         ],
         'catalog.margin_exceptions' => [
@@ -453,6 +453,31 @@ final class EnterpriseBiController extends Controller
             if (array_key_exists('supplier_reference', $row)) {
                 $row['supplier'] = (string) $row['supplier_reference'];
                 unset($row['supplier_reference']);
+            }
+
+            foreach (['lifecycle_state' => 'catalog_completion.lifecycle.states.', 'availability_state' => 'catalog_completion.chart_labels.'] as $catalogField => $translationPrefix) {
+                if (isset($row[$catalogField]) && is_string($row[$catalogField])) {
+                    $translated = __($translationPrefix.$row[$catalogField]);
+                    if ($translated !== $translationPrefix.$row[$catalogField]) {
+                        $row[$catalogField] = $translated;
+                    }
+                }
+            }
+            if (isset($row['issue']) && is_string($row['issue'])) {
+                $translatedIssue = __('catalog_completion.report_values.'.$row['issue']);
+                if ($translatedIssue !== 'catalog_completion.report_values.'.$row['issue']) {
+                    $row['issue'] = $translatedIssue;
+                }
+            }
+            if (isset($row['issues']) && is_string($row['issues'])) {
+                $row['issues'] = collect(explode(',', $row['issues']))
+                    ->filter()
+                    ->map(function (string $issue): string {
+                        $translatedIssue = __('catalog_completion.report_values.'.$issue);
+
+                        return $translatedIssue === 'catalog_completion.report_values.'.$issue ? $issue : $translatedIssue;
+                    })
+                    ->implode(' · ');
             }
 
             $drillUrl = null;
