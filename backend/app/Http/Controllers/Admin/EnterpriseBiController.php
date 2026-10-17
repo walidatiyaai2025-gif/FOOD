@@ -141,6 +141,7 @@ final class EnterpriseBiController extends Controller
             'rows' => $rows,
             'runError' => $runError,
             'overview' => $workspace->overview($actor, $catalog->all(), $request, $selection),
+            'canSchedule' => $actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.export'),
             'exports' => $this->recentExports($actor),
             'schedules' => $this->recentSchedules($actor),
             'exceptions' => $this->exceptionSummary($actor),
