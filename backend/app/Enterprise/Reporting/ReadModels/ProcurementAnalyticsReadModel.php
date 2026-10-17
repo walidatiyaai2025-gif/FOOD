@@ -142,6 +142,10 @@ final class ProcurementAnalyticsReadModel
         CarbonImmutable $from,
         CarbonImmutable $to,
     ): Builder {
+        $leadDays = DB::connection()->getDriverName() === 'sqlite'
+            ? '(julianday(receipt.posted_at) - julianday(purchase_order.issued_at))'
+            : 'DATEDIFF(receipt.posted_at, purchase_order.issued_at)';
+
         $builder = DB::table('enterprise_goods_receipts as receipt')
             ->join('enterprise_purchase_orders as purchase_order', 'purchase_order.id', '=', 'receipt.purchase_order_id')
             ->where('receipt.store_id', $storeId)
@@ -153,7 +157,7 @@ final class ProcurementAnalyticsReadModel
         $this->selectMeasures($builder, $query, [
             'receipts' => 'COUNT(*)',
             'on_time_rate' => 'CASE WHEN COUNT(*) = 0 THEN 0 ELSE 100.0 * SUM(CASE WHEN purchase_order.needed_by IS NOT NULL AND DATE(receipt.posted_at) <= purchase_order.needed_by THEN 1 ELSE 0 END) / COUNT(*) END',
-            'average_lead_days' => 'AVG(CASE WHEN purchase_order.issued_at IS NULL THEN NULL ELSE TIMESTAMPDIFF(DAY, purchase_order.issued_at, receipt.posted_at) END)',
+            'average_lead_days' => "AVG(CASE WHEN purchase_order.issued_at IS NULL THEN NULL ELSE {$leadDays} END)",
         ]);
         $this->groupDimensions($builder, $query, $dimensionMap);
         $this->filterCommon($builder, $query, ['supplier_id' => 'receipt.supplier_id']);
@@ -201,11 +205,20 @@ final class ProcurementAnalyticsReadModel
 
     private function contractExpiry(ReportQuery $query, int $storeId): Builder
     {
+        $today = CarbonImmutable::today()->toDateString();
         $days = "CASE
-            WHEN contract.valid_to < CURRENT_DATE THEN 'expired'
-            WHEN contract.valid_to <= DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY) THEN '0_30'
-            WHEN contract.valid_to <= DATE_ADD(CURRENT_DATE, INTERVAL 60 DAY) THEN '31_60'
-            WHEN contract.valid_to <= DATE_ADD(CURRENT_DATE, INTERVAL 90 DAY) THEN '61_90'
+            WHEN contract.valid_to < '{$today}' THEN 'expired'
+            WHEN contract.valid_to <= '".$today."' THEN '0_30'
+            ELSE 'over_90'
+        END";
+        $day30 = CarbonImmutable::today()->addDays(30)->toDateString();
+        $day60 = CarbonImmutable::today()->addDays(60)->toDateString();
+        $day90 = CarbonImmutable::today()->addDays(90)->toDateString();
+        $days = "CASE
+            WHEN contract.valid_to < '{$today}' THEN 'expired'
+            WHEN contract.valid_to <= '{$day30}' THEN '0_30'
+            WHEN contract.valid_to <= '{$day60}' THEN '31_60'
+            WHEN contract.valid_to <= '{$day90}' THEN '61_90'
             ELSE 'over_90'
         END";
 
