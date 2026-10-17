@@ -154,6 +154,7 @@ final class RestaurantIntegrationService
             'event_type' => mb_substr($eventType, 0, 120),
             'external_event_key' => mb_substr($externalEventKey, 0, 190),
             'payload_hash' => $payloadHash,
+            'payload_ciphertext' => Crypt::encryptString($payloadJson),
             'status' => 'received',
             'attempts' => 0,
             'occurred_at' => $occurredAt ?? now(),
@@ -312,6 +313,7 @@ final class RestaurantIntegrationService
             'event_key' => mb_substr(trim($eventKey), 0, 190),
             'event_type' => mb_substr(trim($eventType), 0, 120),
             'payload_hash' => $hash,
+            'payload_ciphertext' => Crypt::encryptString($raw),
             'status' => 'pending',
             'attempts' => 0,
             'scheduled_at' => now(),
@@ -324,6 +326,31 @@ final class RestaurantIntegrationService
             'signature' => $this->signature((string) $subscription->secret_ciphertext, $raw),
             'duplicate' => false,
         ];
+    }
+
+    public function recordIntegrationEventResult(int $eventId, bool $success, ?string $errorCode = null): void
+    {
+        DB::transaction(function () use ($eventId, $success, $errorCode): void {
+            $event = DB::table('restaurant_saas_integration_events')->where('id', $eventId)->lockForUpdate()->first();
+            abort_unless($event !== null, 404);
+
+            $attempts = (int) $event->attempts + 1;
+            $status = $success ? 'processed' : ($attempts >= 5 ? 'dead_letter' : 'retry');
+            DB::table('restaurant_saas_integration_events')->where('id', $eventId)->update([
+                'status' => $status,
+                'attempts' => $attempts,
+                'last_error_code' => $success ? null : mb_substr((string) $errorCode, 0, 80),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('restaurant_saas_integrations')->where('id', $event->integration_id)->update([
+                'last_success_at' => $success ? now() : DB::raw('last_success_at'),
+                'last_failure_at' => $success ? DB::raw('last_failure_at') : now(),
+                'last_error_code' => $success ? null : mb_substr((string) $errorCode, 0, 80),
+                'status' => $success ? DB::raw("CASE WHEN status = 'degraded' THEN 'enabled' ELSE status END") : 'degraded',
+                'updated_at' => now(),
+            ]);
+        }, 3);
     }
 
     public function recordDeliveryResult(int $deliveryId, ?int $httpStatus, ?string $errorCode): void
