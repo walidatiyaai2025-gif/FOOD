@@ -2,11 +2,16 @@
 
 namespace App\Domain\SmartOrdering\Themes;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenu;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenuCategory;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
+use App\Domain\SmartOrdering\Models\SmartOrderingModifierGroup;
+use App\Domain\SmartOrdering\Models\SmartOrderingModifierOption;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
+use App\Models\Store;
 use App\Services\CommerceQuoteService;
 use App\Support\DisplayNumber;
 use Illuminate\Support\Facades\DB;
@@ -46,11 +51,21 @@ final class RestaurantMenuContentSnapshotService
             ->orderBy('id')
             ->get();
 
-        $items = $menus
-            ->flatMap(fn (SmartOrderingMenu $menu) => $menu->categories)
-            ->flatMap(fn ($category) => $category->items)
-            ->filter(fn ($item) => $item instanceof SmartOrderingMenuItem)
-            ->values();
+        /** @var \Illuminate\Support\Collection<int,SmartOrderingMenuItem> $items */
+        $items = collect();
+        foreach ($menus as $menu) {
+            foreach ($menu->categories as $category) {
+                if (! $category instanceof SmartOrderingMenuCategory) {
+                    continue;
+                }
+                foreach ($category->items as $item) {
+                    if ($item instanceof SmartOrderingMenuItem) {
+                        $items->push($item);
+                    }
+                }
+            }
+        }
+        $items = $items->values();
 
         $currency = $this->quotes->currencyForStore((int) $site->store_id);
         $resolved = $this->prices->displayPrices($site, $items);
@@ -60,13 +75,13 @@ final class RestaurantMenuContentSnapshotService
         $categories = [];
         foreach ($menus as $menu) {
             foreach ($menu->categories as $category) {
-                if (! $category->is_visible) {
+                if (! $category instanceof SmartOrderingMenuCategory || ! $category->is_visible) {
                     continue;
                 }
 
                 $publicItems = [];
                 foreach ($category->items as $item) {
-                    if (! $item->is_visible || isset($priceErrors[(int) $item->id])) {
+                    if (! $item instanceof SmartOrderingMenuItem || ! $item->is_visible || isset($priceErrors[(int) $item->id])) {
                         continue;
                     }
 
@@ -91,13 +106,13 @@ final class RestaurantMenuContentSnapshotService
 
                     $groups = [];
                     foreach ($item->modifierGroups as $group) {
-                        if (! $group->is_visible) {
+                        if (! $group instanceof SmartOrderingModifierGroup || ! $group->is_visible) {
                             continue;
                         }
 
                         $options = [];
                         foreach ($group->options as $option) {
-                            if (! $option->is_visible) {
+                            if (! $option instanceof SmartOrderingModifierOption || ! $option->is_visible) {
                                 continue;
                             }
                             $delta = round((float) $option->price_delta, 3);
@@ -144,11 +159,13 @@ final class RestaurantMenuContentSnapshotService
             }
         }
 
-        $nameEn = $this->text($identity['name_en'] ?? $legacySite['name_en'] ?? $store?->name ?? 'Restaurant', 160);
+        $storeName = $store instanceof Store ? $store->getAttribute('name') : null;
+        $storeLogoPath = $store instanceof Store ? $store->getAttribute('logo_path') : null;
+        $nameEn = $this->text($identity['name_en'] ?? $legacySite['name_en'] ?? $storeName ?? 'Restaurant', 160);
         $nameAr = $this->text($identity['name_ar'] ?? $legacySite['name_ar'] ?? $nameEn, 160);
         $descriptionEn = $this->text($identity['description_en'] ?? '', 1000);
         $descriptionAr = $this->text($identity['description_ar'] ?? $descriptionEn, 1000);
-        $logoUrl = $this->mediaUrl($identity['logo_url'] ?? $store?->logo_path ?? null);
+        $logoUrl = $this->mediaUrl($identity['logo_url'] ?? $storeLogoPath);
         $coverUrl = $this->mediaUrl($identity['cover_url'] ?? null) ?? $this->firstMedia($categories);
 
         return [
@@ -213,7 +230,7 @@ final class RestaurantMenuContentSnapshotService
             ->get()
             ->groupBy('branch_id');
 
-        return $branches->map(function ($branch) use ($branchContent, $hours): array {
+        return $branches->map(function (SmartOrderingBranch $branch) use ($branchContent, $content, $hours): array {
             $override = is_array($branchContent[(string) $branch->public_id] ?? null)
                 ? $branchContent[(string) $branch->public_id]
                 : [];
