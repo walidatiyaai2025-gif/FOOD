@@ -189,7 +189,7 @@ final class TreasuryPlanningService
             ->withQueryString();
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int,\stdClass> */
     public function facilityOptions(User $actor, ResolvedTenantContext $context): Collection
     {
         $scope = $this->authorizedScope($actor, $context, self::VIEW_PERMISSION, self::READ_CAPABILITY);
@@ -205,7 +205,7 @@ final class TreasuryPlanningService
             ->get(['id', 'code', 'lender_name', 'currency_code', 'facility_limit', 'maturity_date']);
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int,\stdClass> */
     public function postedJournalOptions(User $actor, ResolvedTenantContext $context): Collection
     {
         $scope = $this->authorizedScope($actor, $context, self::VIEW_PERMISSION, self::READ_CAPABILITY);
