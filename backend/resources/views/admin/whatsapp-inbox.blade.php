@@ -41,13 +41,38 @@
 @media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}}
 @media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}
 @media(max-width:760px){.wa-status{grid-template-columns:1fr}.wa-workspace{grid-template-columns:1fr}.wa-context{grid-column:auto}.wa-message{max-width:94%}.wa-filter-grid{grid-template-columns:1fr}.wa-conversation-search{grid-template-columns:minmax(0,1fr) auto}}
+
+/* #2019 final pixel-certification shell: preserve worker pane internals, own only shared geometry/skin. */
+@media(min-width:1200px){
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%;overflow:hidden}
+    body{margin:0}
+    .wa-inbox-layout{display:block!important;min-height:100vh}
+    .wa-inbox-layout>.sidebar{display:none!important}
+    .wa-inbox-main{padding:0!important;margin:0!important;max-width:none!important;width:100%!important;height:100vh!important;min-height:0!important}
+    header.foodex-page-header.wa-shell-marker{display:none!important;visibility:hidden!important;width:0!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
+    .wa-shell.wa-golden-shell{height:100vh;min-height:0;gap:0}
+    .wa-golden-workspace{display:grid;grid-template-areas:"context thread rail";grid-template-columns:448px minmax(0,1fr) 379px;width:100%;height:100vh;min-height:0;gap:0;background:var(--foodex-surface);color:var(--foodex-ink)}
+    html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
+    .wa-golden-workspace>[data-wa-pane="customer-context"]{grid-area:context}
+    .wa-golden-workspace>[data-wa-pane="active-conversation"]{grid-area:thread}
+    .wa-golden-workspace>[data-wa-pane="conversation-list"]{grid-area:rail}
+    .wa-golden-workspace>.wa-pane{height:100vh!important;min-height:0!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important}
+    .wa-golden-workspace>.wa-thread-pane{border-inline:1px solid var(--foodex-border)}
+    .wa-golden-workspace>.wa-conversation-pane{display:flex;flex-direction:column;overflow:hidden}
+    .wa-golden-workspace>.wa-conversation-pane>.wa-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+    .wa-golden-workspace>.wa-conversation-pane>.wa-list-pagination{flex:0 0 auto}
+    .wa-golden-workspace>.wa-thread-pane>.wa-timeline{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+    .wa-golden-workspace>.wa-context>.wa-pane-body{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+}
+
 </style>
 </head>
 <body>
-<div class="foodex-admin-layout">
+<div class="foodex-admin-layout wa-inbox-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
-    <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+    <main class="foodex-admin-main foodex-admin-page wa-inbox-main">
+        <header class="foodex-page-header wa-shell-marker">
             <div>
                 <span class="foodex-subtitle">{{ __('whatsapp.inbox.subtitle') }}</span>
                 <h1>{{ __('whatsapp.inbox.heading') }}</h1>
@@ -59,9 +84,9 @@
         @if(session('status'))<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px;color:var(--foodex-red)"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-        <div class="wa-shell">
-            <div class="wa-workspace">
-                <section class="foodex-card wa-pane wa-conversation-pane">
+        <div class="wa-shell wa-golden-shell">
+            <div class="wa-workspace wa-golden-workspace" data-wa-golden-workspace data-golden-reference="docs/golden/customer-service-inbox/customer-service-inbox-golden.webp">
+                <section class="foodex-card wa-pane wa-conversation-pane" data-wa-pane="conversation-list">
                     @php
                         $activeStatus = (string) ($filters['status'] ?? '');
                         $statusTabs = [
