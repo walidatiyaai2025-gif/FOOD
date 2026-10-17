@@ -272,6 +272,10 @@ class AdminNavigation
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
     private function restaurantSaasItem(User $user): ?array
     {
+        if (! $this->canAccess($user, 'b2c')) {
+            return null;
+        }
+
         $destinations = [
             ['route' => 'admin.smart-ordering.index', 'permission' => 'smart_ordering.view'],
             ['route' => 'admin.smart-ordering.operations.index', 'permission' => 'orders.view'],
