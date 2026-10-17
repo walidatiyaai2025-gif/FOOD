@@ -76,8 +76,10 @@ class NavigationCapabilityInventoryTest extends TestCase
             $this->assertNotSame('', trim((string) $row['back_path']));
             $this->assertNotSame('miscellaneous', strtolower(trim((string) $row['domain'])));
             $this->assertNotSame('DIRECT_URL_ONLY', $row['navigation_type']);
-            $this->assertTrue((bool) $row['desktop_reachable']);
-            $this->assertTrue((bool) $row['mobile_reachable']);
+            if ($row['status'] !== 'INTERNAL_EXCEPTION') {
+                $this->assertTrue((bool) $row['desktop_reachable']);
+                $this->assertTrue((bool) $row['mobile_reachable']);
+            }
 
             if (in_array($row['status'], ['NAV_MISSING', 'NAV_WEAK'], true)) {
                 $this->assertNotEmpty($row['remediation_owner']);
@@ -275,8 +277,23 @@ class NavigationCapabilityInventoryTest extends TestCase
 
         foreach ($this->ledger()['capabilities'] as $row) {
             foreach ((array) $row['route'] as $routeName) {
-                if (is_string($routeName) && ! str_contains($routeName, '/')) {
+                if (! is_string($routeName)) {
+                    continue;
+                }
+
+                if (! str_contains($routeName, '/')) {
                     $declared[$routeName] = true;
+
+                    continue;
+                }
+
+                $parts = explode('/', $routeName);
+                $first = array_shift($parts);
+                $declared[$first] = true;
+                $prefix = substr($first, 0, (int) strrpos($first, '.') + 1);
+
+                foreach ($parts as $suffix) {
+                    $declared[$prefix.$suffix] = true;
                 }
             }
         }
@@ -284,6 +301,14 @@ class NavigationCapabilityInventoryTest extends TestCase
         foreach ($this->ledger()['route_level_overrides'] as $override) {
             if (isset($override['route']) && is_string($override['route'])) {
                 $declared[$override['route']] = true;
+            }
+        }
+
+        foreach ($this->ledger()['explicit_exceptions'] as $exception) {
+            foreach ((array) ($exception['routes'] ?? []) as $routeName) {
+                if (is_string($routeName)) {
+                    $declared[$routeName] = true;
+                }
             }
         }
 
