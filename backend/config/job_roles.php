@@ -92,4 +92,11 @@ return [
         'EXECUTIVE_VIEWER' => ['domain'=>'analytics','scope'=>'global','business_scope'=>'tenant','level'=>'viewer','required_modules'=>['enterprise_bi'],'optional_modules'=>[],'permissions'=>['reports.view','reports.export'],'sort'=>1200],
         'BUSINESS_ANALYST' => ['domain'=>'analytics','scope'=>'global','business_scope'=>'tenant','level'=>'specialist','required_modules'=>['enterprise_bi'],'optional_modules'=>[],'permissions'=>['reports.view','reports.export'],'sort'=>1210],
     ],
+
+    'sod_warnings' => [
+        [
+            'roles' => ['PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER'],
+            'message_key' => 'procurement_maker_checker',
+        ],
+    ],
 ];
