@@ -6,6 +6,7 @@ use App\Domain\RestaurantSaaS\RestaurantControlPlaneService;
 use App\Domain\RestaurantSaaS\RestaurantMenuImportPreviewService;
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
@@ -113,13 +114,12 @@ final class RestaurantOnboardingController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $tenants->retail(
+        app(RestaurantSaasStoreAccess::class)->assertStore(
             $actor,
             (int) $site->store_id,
-            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
-            $request,
+            $permission,
+            'b2c',
         );
-        abort_unless($actor->hasPermission($permission, (int) $site->store_id), 403);
 
         return $actor;
     }
