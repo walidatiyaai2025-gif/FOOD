@@ -23,6 +23,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Nested Required CI child red while top-level checks look green | required gate child inspection | Read all applicable child jobs; one red means not ready. |
 | New mobile app path is absent from Required CI changed-area detection | `required-ci-gate` may look green while app analyzer/tests never run | Wire every first-class mobile app into a dedicated reusable CI workflow and the Required CI detector/gate before the lane can be considered complete. |
 | Main branch drift | exact-head/base comparison | Revalidate against current main before readiness/merge. |
+| Reverse sync PR (`head=main`, `base=<issue branch>`) paints protected main red | PR head/base inspection before opening sync | Never use `main` as PR head for feature synchronization; merge/rebase `origin/main` into the existing Issue branch and push that branch, then rerun exact-head gates there. |
 | Stale release artifact | release-registry validation + SHA manifest/checksum | Dashboard update `target_version` must equal `VERSION`, and manifest/checksum/registry SHA-256 values must match the exact package bytes on the validated head. |
 | Repeated identical CI failure across pushes | failure fingerprint | Reproduce locally before another push; promote rule/check. |
 | Dependency/lockfile accidental drift | diff preflight | Reject unrelated lockfile changes and implicit upgrades. |
