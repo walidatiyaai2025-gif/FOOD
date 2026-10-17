@@ -90,10 +90,10 @@
                 ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtime['configuration_warnings'] ?? [])],
             ];
         @endphp
-        <section class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
+        <section id="system-runtime" class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
             <div class="inspector-enterprise-heading">
                 <div>
-                    <span class="foodex-subtitle">FOODEX · Runtime Health</span>
+                    <span class="foodex-subtitle">FOODEX · {{ __('admin.system_update_surface.dashboard_title') }}</span>
                     <h2>{{ __('admin.system_update_surface.dashboard_title') }}</h2>
                     <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
                 </div>
