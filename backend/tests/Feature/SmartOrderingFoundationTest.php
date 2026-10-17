@@ -189,7 +189,7 @@ class SmartOrderingFoundationTest extends TestCase
             ->put(route('admin.smart-ordering.runtime', $siteB), [
                 'runtime_state' => RuntimeState::ENABLED->value,
                 'master_enabled' => 1,
-            ])->assertForbidden();
+            ])->assertNotFound();
 
         $this->assertSame(RuntimeState::DISABLED->value, $siteB->fresh()->runtime_state);
     }
