@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\WhatsApp\Capability;
 use App\Domain\WhatsApp\ConnectionHealthStatus;
 use App\Domain\WhatsApp\ConnectionProfileStatus;
 use App\Domain\WhatsApp\OutboundMessage;
@@ -33,11 +34,14 @@ final class AdminWhatsAppOtpService
         }
 
         $state = $this->runtime->state();
-        if (! $this->runtime->isOperational($state) || $state->emergencyStop) {
+        if (! $this->runtime->isOperational($state) || $state->emergencyStop
+            || ! $state->has(Capability::OUTBOUND) || ! $state->has(Capability::TRANSACTIONAL)) {
             return false;
         }
 
-        return $this->profile() !== null && $this->template($locale) !== null;
+        $profile = $this->profile();
+
+        return $profile !== null && $profile->secretConfigured() && $this->template($locale) !== null;
     }
 
     public function normalizePhone(string $value): ?string
