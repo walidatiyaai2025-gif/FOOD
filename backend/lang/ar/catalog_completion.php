@@ -177,6 +177,14 @@ return [
         'all_authorized_stores' => 'كل المتاجر المصرح بها',
         'not_set' => 'غير محدد',
     ],
+    'report_values' => [
+        'missing_category' => 'بدون تصنيف',
+        'missing_brand' => 'بدون علامة',
+        'unpriced' => 'بلا سعر',
+        'missing_image' => 'بدون صورة منتج',
+        'missing_cost' => 'بدون تكلفة',
+        'non_positive_margin' => 'هامش صفري / سالب',
+    ],
     'status' => [
         'attribute_created' => 'تم إنشاء سمة المنتج.',
         'attribute_updated' => 'تم تحديث سمة المنتج.',
@@ -197,5 +205,7 @@ return [
         'store_scope_required' => 'يلزم تحديد نطاق متجر للكتالوج.',
         'unsupported_report' => 'تقرير الكتالوج المطلوب غير مدعوم.',
         'unsupported_attribute_type' => 'نوع السمة غير مدعوم.',
+        'import_preview_missing' => 'معاينة استيراد الكتالوج غير موجودة. ارفع الحزمة مرة أخرى.',
+        'import_already_processing' => 'عملية استيراد الكتالوج قيد المعالجة بالفعل. حدّث سجل الاستيراد قبل إعادة المحاولة.',
     ],
 ];
