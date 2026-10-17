@@ -179,7 +179,7 @@ $reportValue = static function ($value, string $key) use ($data, $moneyFields, $
                 <div class="empty">{{ __('reports.empty') }}</div>
             @else
                 <div class="table-wrap"><table data-pagination-required><thead><tr>@foreach($data['columns'] as $column)<th>{{ __("reports.columns.$column") }}</th>@endforeach</tr></thead><tbody>
-                @foreach($data['rows'] as $row)<tr>@foreach($data['columns'] as $column)<td>{{ $reportValue($row[$column] ?? null, (string) $column) }}</td>@endforeach</tr>@endforeach
+                @foreach($data['rows'] as $row)<tr>@foreach($data['columns'] as $column)<td>{{ in_array((string)$column,['channel','status','exception'],true) ? $reportLabel($row[$column] ?? null) : $reportValue($row[$column] ?? null, (string) $column) }}</td>@endforeach</tr>@endforeach
                 </tbody></table></div>
                 {{ $rowsPaginator->links() }}
             @endif

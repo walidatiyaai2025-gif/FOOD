@@ -27,6 +27,7 @@ final class ManagementReportService
             'products' => 'reports.families.products',
             'customers' => 'reports.families.customers',
             'operations' => 'reports.families.operations',
+            'sales_exceptions' => 'reports.families.sales_exceptions',
         ];
     }
 
@@ -48,6 +49,7 @@ final class ManagementReportService
             'products' => $this->productsReport($filters, $limit, $offset),
             'customers' => $this->customersReport($filters, $limit, $offset),
             'operations' => $this->operationsReport($filters, $limit, $offset),
+            'sales_exceptions' => $this->salesExceptionsReport($filters, $limit, $offset),
             default => throw ValidationException::withMessages([
                 'report' => __('reports.invalid_report'),
             ]),
@@ -524,6 +526,142 @@ final class ManagementReportService
             $rows->count(),
             $limit,
             ['delivery_breakdown' => $deliveryBreakdown],
+        );
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function salesExceptionsReport(array $filters, int $limit, int $offset): array
+    {
+        $delayCutoff = CarbonImmutable::now('UTC')
+            ->subHours(SalesOrderOperationsDashboardService::DELAY_HOURS)
+            ->toDateTimeString();
+
+        $base = DB::table('orders')
+            ->join('stores', 'stores.id', '=', 'orders.store_id');
+        $this->applyOrderFilters($base, $filters);
+
+        $delayed = fn (): Builder => (clone $base)
+            ->whereNotIn('orders.status', ['delivered', 'cancelled', 'refunded', 'failed'])
+            ->where('orders.created_at', '<=', $delayCutoff);
+        $awaitingDispatch = fn (): Builder => (clone $base)
+            ->whereExists(function (Builder $query): void {
+                $query->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
+            });
+        $payment = fn (): Builder => (clone $base)
+            ->whereExists(function (Builder $query): void {
+                $query->selectRaw('1')
+                    ->from('payments')
+                    ->whereColumn('payments.order_id', 'orders.id')
+                    ->whereIn('payments.status', ['failed', 'voided']);
+            });
+        $invoice = fn (): Builder => (clone $base)
+            ->where('orders.status', 'delivered')
+            ->whereNotExists(function (Builder $query): void {
+                $query->selectRaw('1')
+                    ->from('invoices')
+                    ->whereColumn('invoices.order_id', 'orders.id')
+                    ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided']);
+            });
+        $cancelledRefunded = fn (): Builder => (clone $base)
+            ->whereIn('orders.status', self::NON_REVENUE_STATUSES);
+
+        $exceptionQuery = (clone $base)
+            ->where(function (Builder $query) use ($delayCutoff): void {
+                $query
+                    ->where(function (Builder $delayed) use ($delayCutoff): void {
+                        $delayed
+                            ->whereNotIn('orders.status', ['delivered', 'cancelled', 'refunded', 'failed'])
+                            ->where('orders.created_at', '<=', $delayCutoff);
+                    })
+                    ->orWhereExists(function (Builder $dispatch): void {
+                        $dispatch->selectRaw('1')
+                            ->from('order_dispatch_states')
+                            ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                            ->where('order_dispatch_states.status', 'awaiting_dispatch');
+                    })
+                    ->orWhereExists(function (Builder $payments): void {
+                        $payments->selectRaw('1')
+                            ->from('payments')
+                            ->whereColumn('payments.order_id', 'orders.id')
+                            ->whereIn('payments.status', ['failed', 'voided']);
+                    })
+                    ->orWhere(function (Builder $invoice): void {
+                        $invoice
+                            ->where('orders.status', 'delivered')
+                            ->whereNotExists(function (Builder $invoices): void {
+                                $invoices->selectRaw('1')
+                                    ->from('invoices')
+                                    ->whereColumn('invoices.order_id', 'orders.id')
+                                    ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided']);
+                            });
+                    })
+                    ->orWhereIn('orders.status', self::NON_REVENUE_STATUSES);
+            });
+
+        $totalRows = (clone $exceptionQuery)->count('orders.id');
+
+        $rows = $exceptionQuery
+            ->select([
+                'orders.id',
+                'orders.order_number',
+                'orders.created_at',
+                'stores.name as store',
+                'orders.channel',
+                'orders.status',
+                'orders.grand_total',
+            ])
+            ->selectRaw(
+                'CASE '.
+                "WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') AND orders.created_at <= ? THEN 'delayed' ".
+                "WHEN EXISTS (SELECT 1 FROM order_dispatch_states ods WHERE ods.order_id = orders.id AND ods.status = 'awaiting_dispatch') THEN 'awaiting_dispatch' ".
+                "WHEN EXISTS (SELECT 1 FROM payments ep WHERE ep.order_id = orders.id AND ep.status IN ('failed','voided')) THEN 'payment' ".
+                "WHEN orders.status = 'delivered' AND NOT EXISTS (SELECT 1 FROM invoices ei WHERE ei.order_id = orders.id AND ei.status NOT IN ('cancelled','void','voided')) THEN 'invoice' ".
+                "WHEN orders.status IN ('cancelled','refunded') THEN 'cancelled_refunded' ".
+                "ELSE 'exception' END as exception",
+                [$delayCutoff],
+            )
+            ->selectSub(
+                DB::table('payments as latest_payment')
+                    ->select('latest_payment.provider')
+                    ->whereColumn('latest_payment.order_id', 'orders.id')
+                    ->latest('latest_payment.id')
+                    ->limit(1),
+                'payment_provider',
+            )
+            ->latest('orders.created_at')
+            ->offset(max(0, $offset))
+            ->limit($limit)
+            ->get()
+            ->map(fn (object $row): array => [
+                'order_number' => DisplayNumber::reference($row->id),
+                'date' => $this->localDateTime($row->created_at),
+                'store' => (string) $row->store,
+                'channel' => strtolower((string) $row->channel),
+                'status' => (string) $row->status,
+                'exception' => (string) $row->exception,
+                'total' => round((float) $row->grand_total, 3),
+                'payment_method' => $row->payment_provider === null ? '—' : (string) $row->payment_provider,
+            ])
+            ->all();
+
+        return $this->reportPayload(
+            'sales_exceptions',
+            $filters,
+            [
+                'exception_orders' => $totalRows,
+                'delayed_orders' => $delayed()->count('orders.id'),
+                'awaiting_dispatch' => $awaitingDispatch()->count('orders.id'),
+                'payment_exceptions' => $payment()->count('orders.id'),
+                'invoice_exceptions' => $invoice()->count('orders.id'),
+                'cancelled_refunded' => $cancelledRefunded()->count('orders.id'),
+            ],
+            ['order_number', 'date', 'store', 'channel', 'status', 'exception', 'total', 'payment_method'],
+            $rows,
+            $totalRows,
+            $limit,
         );
     }
 
