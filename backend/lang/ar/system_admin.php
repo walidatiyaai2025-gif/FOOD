@@ -26,6 +26,7 @@ return [
         'queue_scheduler' => 'الطابور والمجدول',
         'failed_jobs' => 'المهام الفاشلة',
         'last_backup' => 'آخر نسخة موثقة',
+        'backup_age' => 'عمر النسخة الاحتياطية',
         'current_version' => 'الإصدار الحالي',
         'pending_migrations' => 'الترحيلات المعلقة',
         'storage' => 'صحة التخزين',
