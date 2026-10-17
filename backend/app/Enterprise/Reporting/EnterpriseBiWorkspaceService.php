@@ -121,7 +121,7 @@ final class EnterpriseBiWorkspaceService
     }
 
     /**
-     * @param list<array<string,mixed>> $catalog
+     * @param  list<array<string,mixed>>  $catalog
      * @return list<array{key:string,label:string,scope:EntitlementScope}>
      */
     private function scopeOptions(array $catalog, string $type): array
@@ -136,7 +136,7 @@ final class EnterpriseBiWorkspaceService
     }
 
     /**
-     * @param list<array{key:string,label:string,scope:EntitlementScope}> $options
+     * @param  list<array{key:string,label:string,scope:EntitlementScope}>  $options
      * @return array{key:string,label:string,scope:EntitlementScope}|null
      */
     private function selectedScope(array $options, string $requested): ?array
@@ -211,7 +211,7 @@ final class EnterpriseBiWorkspaceService
     }
 
     /**
-     * @param array<string,mixed>|null $selection
+     * @param  array<string,mixed>|null  $selection
      * @return array<string,mixed>|null
      */
     private function savedViewState(User $actor, ?array $selection): ?array
@@ -268,7 +268,7 @@ final class EnterpriseBiWorkspaceService
         }
     }
 
-    /** @param array<string,mixed> $query
+    /** @param  array<string,mixed>  $query
      * @return array<string,mixed>
      */
     private function savedViewQuery(array $query): array
