@@ -72,6 +72,13 @@ final class MessagingOperationsOverviewService
             ->pluck('total', 'mp.state')
             ->map(static fn ($value): int => (int) $value)
             ->all();
+        $metrics['opted_out'] = (int) ($consent['opted_out'] ?? 0);
+        $rates = [
+            'delivery' => $metrics['sent'] > 0 ? round(($metrics['delivered'] / $metrics['sent']) * 100, 2) : 0.0,
+            'read' => $metrics['delivered'] > 0 ? round(($metrics['read'] / $metrics['delivered']) * 100, 2) : 0.0,
+            'reply' => $metrics['delivered'] > 0 ? round(($metrics['replied'] / $metrics['delivered']) * 100, 2) : 0.0,
+            'failure' => $metrics['eligible'] > 0 ? round(($metrics['failed'] / $metrics['eligible']) * 100, 2) : 0.0,
+        ];
 
         $inbox = DB::table('whats_app_conversations')
             ->whereIn('store_id', $storeIds)
@@ -96,6 +103,7 @@ final class MessagingOperationsOverviewService
             'as_of' => now()->toIso8601String(),
             'metrics' => $metrics,
             'campaign_statuses' => $campaignStatuses,
+            'rates' => $rates,
             'delivery_funnel' => [
                 'selected' => (int) $metrics['recipients'],
                 'eligible' => (int) $metrics['eligible'],
