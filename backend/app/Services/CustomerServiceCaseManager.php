@@ -509,7 +509,7 @@ final class CustomerServiceCaseManager
             ->get(['pc.id', 'pc.name', 'pc.email', 'pc.phone', 'pc.origin_store_id']);
     }
 
-    /** @return Collection<int,object> */
+    /** @return \Illuminate\Database\Eloquent\Collection<int,User> */
     public function agentOptions(User $actor): Collection
     {
         $storeIds = $this->manageStoreIds($actor);
@@ -542,9 +542,9 @@ final class CustomerServiceCaseManager
 
     /**
      * @return array{
-     *   orders:Collection<int,object>,
-     *   invoices:Collection<int,object>,
-     *   conversations:Collection<int,object>
+     *   orders:Collection<int,\stdClass>,
+     *   invoices:Collection<int,\stdClass>,
+     *   conversations:Collection<int,\stdClass>
      * }
      */
     public function relatedRecordOptions(User $actor, int $limit = 100): array
