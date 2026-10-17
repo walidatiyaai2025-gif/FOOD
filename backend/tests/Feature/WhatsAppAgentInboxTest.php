@@ -540,6 +540,63 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
+    public function test_customer_360_context_pane_has_golden_section_order_and_locale_parity(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
+
+        $sections = [
+            'customer-details',
+            'classifications-tags',
+            'purchase-summary',
+            'recent-orders',
+            'invoices-payments',
+            'activity-history',
+        ];
+
+        $previousPosition = -1;
+        foreach ($sections as $section) {
+            $needle = 'data-wa-context-section="'.$section.'"';
+            $position = strpos($view, $needle);
+
+            $this->assertNotFalse($position, $needle.' must exist in the Customer 360 pane.');
+            $this->assertGreaterThan($previousPosition, $position, $needle.' must preserve golden section order.');
+            $previousPosition = $position;
+        }
+
+        foreach ([
+            'data-wa-pane="customer-context"',
+            'data-wa-context-stack',
+            'class="wa-context-stats"',
+            'class="wa-context-smart"',
+            'class="wa-activity-list"',
+            '$customer360[\'orders\']',
+            '$customer360[\'invoices\']',
+            '$customer360[\'payments\']',
+            '$smartOrderingContext[\'orders\']',
+            '$timeline->take(-4)',
+        ] as $contract) {
+            $this->assertStringContainsString($contract, $view);
+        }
+
+        $en = require lang_path('en/whatsapp.php');
+        $ar = require lang_path('ar/whatsapp.php');
+
+        foreach ([
+            'customer_details',
+            'classifications_tags',
+            'no_tags',
+            'purchase_summary',
+            'invoices_payments',
+            'activity_history',
+            'no_activity',
+        ] as $key) {
+            $this->assertArrayHasKey($key, $en['inbox']);
+            $this->assertArrayHasKey($key, $ar['inbox']);
+            $this->assertNotSame('', trim((string) $en['inbox'][$key]));
+            $this->assertNotSame('', trim((string) $ar['inbox'][$key]));
+        }
+    }
+
     public function test_inbox_center_thread_composer_has_golden_structure_and_locale_parity(): void
     {
         $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
