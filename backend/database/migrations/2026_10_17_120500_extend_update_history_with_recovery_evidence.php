@@ -10,7 +10,8 @@ return new class extends Migration {
         Schema::table('update_history', function (Blueprint $table): void {
             $table->foreignId('actor_id')->nullable()->after('id')->constrained('users')->nullOnDelete();
             $table->string('environment', 64)->nullable()->after('status');
-            $table->string('backup_status', 32)->nullable()->after('environment');
+            $table->string('operation_reason', 80)->nullable()->after('environment');
+            $table->string('backup_status', 32)->nullable()->after('operation_reason');
             $table->text('file_backup_reference')->nullable()->after('backup_status');
             $table->text('database_backup_reference')->nullable()->after('file_backup_reference');
             $table->string('failed_stage', 80)->nullable()->after('database_backup_reference');
@@ -27,6 +28,7 @@ return new class extends Migration {
             $table->dropConstrainedForeignId('actor_id');
             $table->dropColumn([
                 'environment',
+                'operation_reason',
                 'backup_status',
                 'file_backup_reference',
                 'database_backup_reference',
