@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
+use App\Http\Controllers\Admin\SmartOrderingKitchenController;
 use App\Http\Controllers\Admin\SmartOrderingGuestServiceController;
 use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
@@ -42,6 +43,16 @@ Route::post('/branches/{branch}/tables/{table}/combine', [SmartOrderingTableCont
 Route::delete('/branches/{branch}/table-combinations/{combination}', [SmartOrderingTableController::class, 'split'])
     ->whereUuid('branch')->whereUuid('combination')->name('tables.split');
 
+Route::post('/branches/{branch}/kitchen/stations', [SmartOrderingKitchenController::class, 'storeStation'])
+    ->whereUuid('branch')->name('kitchen.stations.store');
+Route::post('/branches/{branch}/kitchen/rules', [SmartOrderingKitchenController::class, 'storeRule'])
+    ->whereUuid('branch')->name('kitchen.rules.store');
+Route::delete('/branches/{branch}/kitchen/rules/{rule}', [SmartOrderingKitchenController::class, 'destroyRule'])
+    ->whereUuid('branch')->whereUuid('rule')->name('kitchen.rules.destroy');
+Route::post('/branches/{branch}/kitchen/tickets/{reference}/action', [SmartOrderingKitchenController::class, 'ticketAction'])
+    ->whereUuid('branch')->whereUuid('reference')->name('kitchen.ticket-action');
+Route::post('/branches/{branch}/kitchen/tickets/{reference}/items/{line}/action', [SmartOrderingKitchenController::class, 'itemAction'])
+    ->whereUuid('branch')->whereUuid('reference')->whereNumber('line')->name('kitchen.item-action');
 Route::post('/branches/{branch}/workforce/staff', [SmartOrderingWorkforceController::class, 'storeAssignment'])
     ->whereUuid('branch')->name('workforce.staff.store');
 Route::delete('/branches/{branch}/workforce/staff/{user}', [SmartOrderingWorkforceController::class, 'destroyAssignment'])

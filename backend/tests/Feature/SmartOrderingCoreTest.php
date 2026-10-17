@@ -1935,6 +1935,243 @@ class SmartOrderingCoreTest extends TestCase
         ]);
     }
 
+    public function test_kitchen_board_routes_canonical_orders_and_ticket_actions_are_idempotent(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        foreach (['kitchen_display', 'kitchen_routing'] as $module) {
+            DB::table('smart_ordering_entitlements')->updateOrInsert(
+                [
+                    'site_id' => $this->branch->site_id,
+                    'branch_id' => null,
+                    'scope_key' => 'site',
+                    'module' => $module,
+                ],
+                [
+                    'enabled' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+        }
+        $this->branch->forceFill(['pickup_promise_minutes' => 2])->save();
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.kitchen.stations.store', $this->branch->public_id),
+            [
+                'name_en' => 'Grill',
+                'name_ar' => 'الشواية',
+                'capacity_limit' => 12,
+                'sort_order' => 10,
+                'is_active' => 1,
+            ],
+        )->assertRedirect();
+
+        $station = DB::table('smart_ordering_kitchen_stations')
+            ->where('branch_id', $this->branch->id)
+            ->where('name_en', 'Grill')
+            ->firstOrFail();
+
+        $this->actingAs($admin)->post(
+            route('admin.smart-ordering.kitchen.rules.store', $this->branch->public_id),
+            [
+                'station_public_id' => $station->public_id,
+                'match_type' => 'product',
+                'product_id' => $this->productId,
+                'priority' => 10,
+                'is_active' => 1,
+            ],
+        )->assertRedirect();
+
+        $this->app['auth']->guard()->logout();
+
+        [$cart, $token] = $this->cart();
+        $this->addItem($cart, $token, 2);
+        $checkout = $this->checkout($cart, $token, 'smart-ordering-kitchen-0001', [
+            'fulfillment_mode' => 'pickup',
+        ])->assertCreated();
+        $reference = (string) $checkout->json('data.reference');
+
+        $context = DB::table('smart_ordering_order_contexts')
+            ->where('public_reference', $reference)
+            ->firstOrFail();
+        DB::table('smart_ordering_order_contexts')
+            ->where('id', $context->id)
+            ->update(['lifecycle_status' => 'CONFIRMED', 'updated_at' => now()]);
+        DB::table('orders')
+            ->where('id', $context->order_id)
+            ->update(['created_at' => now()->subMinutes(5), 'updated_at' => now()]);
+
+        $lineId = (int) DB::table('order_items')
+            ->where('order_id', $context->order_id)
+            ->orderBy('id')
+            ->value('id');
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'kitchen',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Kitchen display &amp; routing', false)
+            ->assertSee('Grill')
+            ->assertSee('Meal')
+            ->assertSee('Queued')
+            ->assertSee('Over SLA')
+            ->assertDontSee('order_context_id', false);
+
+        $itemOperationKey = (string) Str::uuid();
+        $itemActionUrl = route('admin.smart-ordering.kitchen.item-action', [
+            $this->branch->public_id,
+            $reference,
+            $lineId,
+        ]);
+        $itemPayload = ['action' => 'bump', 'operation_key' => $itemOperationKey];
+
+        $this->actingAs($admin)->post($itemActionUrl, $itemPayload)->assertRedirect();
+        $this->actingAs($admin)->post($itemActionUrl, $itemPayload)->assertRedirect();
+
+        $itemState = DB::table('smart_ordering_kitchen_item_states')
+            ->where('order_item_id', $lineId)
+            ->firstOrFail();
+        $this->assertSame('preparing', $itemState->status);
+        $this->assertSame(
+            1,
+            DB::table('smart_ordering_kitchen_ticket_events')
+                ->where('order_item_id', $lineId)
+                ->where('operation_key', $itemOperationKey)
+                ->count(),
+        );
+
+        $operationKey = (string) Str::uuid();
+        $actionUrl = route('admin.smart-ordering.kitchen.ticket-action', [
+            $this->branch->public_id,
+            $reference,
+        ]);
+        $payload = ['action' => 'bump', 'operation_key' => $operationKey];
+
+        $this->actingAs($admin)->post($actionUrl, $payload)->assertRedirect();
+        $this->actingAs($admin)->post($actionUrl, $payload)->assertRedirect();
+
+        $state = DB::table('smart_ordering_kitchen_ticket_states')
+            ->where('order_context_id', $context->id)
+            ->firstOrFail();
+        $this->assertSame('preparing', $state->status);
+        $this->assertSame(
+            1,
+            DB::table('smart_ordering_kitchen_ticket_events')
+                ->where('ticket_state_id', $state->id)
+                ->whereNull('order_item_id')
+                ->where('operation_key', $operationKey)
+                ->count(),
+        );
+
+        $siblingBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $this->branch->site_id,
+            'code' => 'kw-kitchen-sibling',
+            'name_ar' => 'فرع مطبخ ثان',
+            'name_en' => 'Kitchen Sibling',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+        ]);
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.kitchen.ticket-action', [$siblingBranch->public_id, $reference]), [
+                'action' => 'bump',
+                'operation_key' => (string) Str::uuid(),
+            ])
+            ->assertNotFound();
+
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'SMART-ORDERING-KITCHEN-FOREIGN',
+            'name' => 'Foreign Kitchen Restaurant',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $foreignStoreId,
+            'slug' => 'foreign-kitchen-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $foreignSiteId,
+            'code' => 'foreign-kitchen-branch',
+            'name_ar' => 'مطبخ خارجي',
+            'name_en' => 'Foreign Kitchen',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+        ]);
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.kitchen.stations.store', $foreignBranch->public_id), [
+                'name_en' => 'Forbidden Station',
+                'capacity_limit' => 1,
+                'is_active' => 1,
+            ])
+            ->assertNotFound();
+
+        DB::table('smart_ordering_entitlements')
+            ->where('site_id', $this->branch->site_id)
+            ->where('module', 'kitchen_routing')
+            ->update(['enabled' => false, 'updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.kitchen.rules.store', $this->branch->public_id), [
+                'station_public_id' => $station->public_id,
+                'match_type' => 'all',
+                'priority' => 20,
+                'is_active' => 1,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'kitchen',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Kitchen routing is disabled')
+            ->assertSee('Unrouted')
+            ->assertSee('Preparing');
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'kitchen',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('شاشة المطبخ والتوجيه')
+            ->assertSee('الشواية')
+            ->assertSee('بدون توجيه');
+
+        DB::table('smart_ordering_entitlements')
+            ->where('site_id', $this->branch->site_id)
+            ->where('module', 'kitchen_display')
+            ->update(['enabled' => false, 'updated_at' => now()]);
+
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'kitchen',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('وحدة شاشة المطبخ غير مفعلة');
+
+        $this->assertDatabaseHas('smart_ordering_order_contexts', [
+            'public_reference' => $reference,
+            'lifecycle_status' => 'CONFIRMED',
+        ]);
+    }
+
     private function storeAdmin(int $storeId): User
     {
         $user = User::query()->create([
