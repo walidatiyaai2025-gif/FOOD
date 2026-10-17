@@ -108,6 +108,33 @@ Use an **accordion/progressive disclosure** for optional or advanced sections in
 
 The Sidebar is a business-domain navigator, not a feature dump.
 
+### Discoverability completion invariant
+
+Placement and discoverability are separate decisions and both are mandatory. A business-facing capability is **incomplete** until its Issue/PR records:
+
+- `domain`
+- `role`
+- `capability`
+- `canonical_route`
+- `navigation_owner`
+- `navigation_type`
+- `entry_point`
+- `parent_surface`
+- `permission`
+- `active_context`
+- `mobile`
+- `desktop`
+- `rtl_ltr`
+- `fallback/back_path`
+
+`navigation_type` must be one of: `SIDEBAR`, `DOMAIN_HUB`, `PAGE_TAB`, `CONTEXT_ACTION`, `ADMIN_SETTINGS`, `WORKFLOW_STEP`, or `EXPLICIT_EXCEPTION`.
+
+For normal business capability delivery, `DIRECT_URL_ONLY` is prohibited. The PR must prove the actual product path: **where the authorized user starts → what they click → where they land → how the active context/back path behaves**. Arabic/English and mobile/desktop discoverability must remain usable, and the selected navigation element must obey the same permission/entitlement rules as the destination.
+
+`EXPLICIT_EXCEPTION` is reserved for intentionally non-browsable endpoints/surfaces such as callbacks, downloads, or internal-only technical routes. The reason and safe access model must be documented. It is not a waiver for a hidden business screen.
+
+This invariant does not imply Sidebar placement. Sidebar inflation is a placement defect; the correct result may instead be a domain hub card, page tab, contextual action, Admin Hub/Settings entry, or workflow step.
+
 Before adding a Sidebar entry, prove all of the following:
 
 1. the destination belongs to a stable business domain;
