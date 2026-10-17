@@ -50,21 +50,23 @@ final class SystemAdministrationRuntime
         }
 
         $failedJobs = null;
+        $failedJobs24h = null;
         try {
-            $failedJobs = Schema::hasTable('failed_jobs')
-                ? (int) DB::table('failed_jobs')->count()
-                : 0;
+            if (Schema::hasTable('failed_jobs')) {
+                $failedJobs = (int) DB::table('failed_jobs')->count();
+                $failedJobs24h = (int) DB::table('failed_jobs')
+                    ->where('failed_at', '>=', now()->subDay())
+                    ->count();
+            } else {
+                $failedJobs = 0;
+                $failedJobs24h = 0;
+            }
         } catch (Throwable) {
             $failedJobs = null;
+            $failedJobs24h = null;
         }
 
         $failedJobRows = $this->failedJobs(50);
-        $failedJobs24h = count(array_filter(
-            $failedJobRows,
-            static fn (array $row): bool => is_string($row['failed_at'])
-                && strtotime($row['failed_at']) !== false
-                && strtotime($row['failed_at']) >= now()->subDay()->getTimestamp(),
-        ));
 
         $pendingMigrations = $this->pendingMigrationCount();
         $scheduler = $this->schedulerHealth();
