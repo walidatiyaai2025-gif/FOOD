@@ -726,6 +726,8 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['smart-ordering', '/admin/smart-ordering'],
     ['smart-ordering-analytics', '/admin/smart-ordering/analytics'],
     ['smart-ordering-settings', '/admin/smart-ordering/settings'],
+    ['smart-ordering-menu', '/admin/smart-ordering/menu'],
+    ['smart-ordering-appearance', '/admin/smart-ordering/appearance'],
     ['smart-ordering-qr', '/admin/smart-ordering/qr'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
