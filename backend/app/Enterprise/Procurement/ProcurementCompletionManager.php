@@ -10,8 +10,10 @@ use App\Support\EnterpriseDataScope;
 use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -869,6 +871,7 @@ final class ProcurementCompletionManager
         ResolvedTenantContext $context,
         int $contractId,
         array $attributes,
+        ?UploadedFile $attachment = null,
     ): object {
         $scope = $this->scope($actor, $context, 'procurement.purchase_orders.manage');
         $contract = $this->visibleContract($scope, $contractId);
@@ -877,14 +880,47 @@ final class ProcurementCompletionManager
             'reference' => ['nullable', 'string', 'max:190'],
         ])->validate();
 
-        $id = DB::table('enterprise_procurement_contract_documents')->insertGetId([
-            'contract_id' => $contract->id,
-            'title' => $data['title'],
-            'reference' => $data['reference'] ?? null,
-            'created_by' => $actor->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $storagePath = null;
+        $originalName = null;
+        $mimeType = null;
+        $sizeBytes = null;
+
+        if ($attachment instanceof UploadedFile) {
+            $extension = strtolower((string) ($attachment->guessExtension() ?: $attachment->getClientOriginalExtension()));
+            $filename = Str::uuid()->toString().($extension !== '' ? '.'.$extension : '');
+            $directory = 'procurement/contracts/'.$contract->public_id;
+            $stored = Storage::disk('local')->putFileAs($directory, $attachment, $filename);
+            if (! is_string($stored) || $stored === '' || ! Storage::disk('local')->exists($stored)) {
+                throw ValidationException::withMessages([
+                    'attachment' => ['The contract attachment could not be stored safely.'],
+                ]);
+            }
+
+            $storagePath = $stored;
+            $originalName = $attachment->getClientOriginalName();
+            $mimeType = $attachment->getMimeType();
+            $sizeBytes = $attachment->getSize();
+        }
+
+        try {
+            $id = DB::table('enterprise_procurement_contract_documents')->insertGetId([
+                'contract_id' => $contract->id,
+                'title' => $data['title'],
+                'reference' => $data['reference'] ?? null,
+                'storage_path' => $storagePath,
+                'original_name' => $originalName,
+                'mime_type' => $mimeType,
+                'size_bytes' => $sizeBytes,
+                'created_by' => $actor->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            if ($storagePath !== null) {
+                Storage::disk('local')->delete($storagePath);
+            }
+            throw $exception;
+        }
 
         $document = DB::table('enterprise_procurement_contract_documents')->where('id', $id)->firstOrFail();
         $this->audit->record('enterprise.procurement.contract.document_registered', $actor, null, null, [
@@ -892,9 +928,25 @@ final class ProcurementCompletionManager
             'contract_id' => $contract->id,
             'document_id' => $id,
             'title' => $document->title,
+            'has_attachment' => $storagePath !== null,
         ]);
 
         return $document;
+    }
+
+    public function contractDocument(
+        User $actor,
+        ResolvedTenantContext $context,
+        int $contractId,
+        int $documentId,
+    ): object {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_orders.view');
+        $contract = $this->visibleContract($scope, $contractId);
+
+        return DB::table('enterprise_procurement_contract_documents')
+            ->where('contract_id', $contract->id)
+            ->where('id', $documentId)
+            ->firstOrFail();
     }
 
     /** @param array<string,mixed> $attributes */
