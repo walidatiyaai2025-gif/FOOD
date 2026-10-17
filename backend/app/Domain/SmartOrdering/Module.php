@@ -16,6 +16,7 @@ enum Module: string
     case ANALYTICS = 'analytics';
     case LOYALTY = 'loyalty';
     case REVIEWS = 'reviews';
+    case RESERVATIONS = 'reservations';
     case ADVANCED_UPSELL = 'advanced_upsell';
     case MULTI_BRANCH = 'multi_branch';
     case CUSTOM_DOMAIN = 'custom_domain';
