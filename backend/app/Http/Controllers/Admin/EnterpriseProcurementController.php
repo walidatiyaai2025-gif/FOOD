@@ -471,6 +471,7 @@ final class EnterpriseProcurementController extends Controller
             'lines' => ['required', 'array', 'min:1', 'max:100'],
             'lines.*.goods_receipt_line_id' => ['required', 'integer', 'min:1', 'distinct'],
             'lines.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
         ]);
         $invoice = $this->invoices->createFromPostedReceipt($actor, $context, $goodsReceipt, $payload);
 
