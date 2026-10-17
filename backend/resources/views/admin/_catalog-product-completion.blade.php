@@ -240,7 +240,7 @@
     <div class="catalog-completion-heading">
         <div>
             <h2>{{ __('catalog_completion.product_360.title') }} · {{ $productDetail->name }}</h2>
-            <p class="muted">{{ $productDetail->sku }} · {{ $productDetail->store_id }} · {{ $productDetail->channel }}</p>
+            <p class="muted">{{ $productDetail->sku }} · {{ $stores->firstWhere('id',$productDetail->store_id)?->name ?? '—' }} · {{ strtoupper((string)$productDetail->channel) }}</p>
         </div>
         <a class="btn" href="{{ route('admin.catalog.index', array_merge(['tab'=>'products'], $scopeParams)) }}">×</a>
     </div>
@@ -268,7 +268,7 @@
         <article>
             <h3>{{ __('catalog_completion.product_360.commercial') }}</h3>
             <dl class="catalog-360-facts">
-                <div><dt>{{ __('catalog_completion.product_360.commercial_status') }}</dt><dd>{{ $productDetail->commercial_status ?: '—' }}</dd></div>
+                <div><dt>{{ __('catalog_completion.product_360.commercial_status') }}</dt><dd>{{ $productDetail->commercial_status ? __('commercial.sales_control.statuses.'.strtolower((string)$productDetail->commercial_status)) : '—' }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.selling_units') }}</dt><dd>{{ $product360['selling_units']->count() }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.availability_windows') }}</dt><dd>{{ $product360['availability_windows']->count() }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.targeting_rules') }}</dt><dd>{{ $product360['commercial_rules']->count() }}</dd></div>
