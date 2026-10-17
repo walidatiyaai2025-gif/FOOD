@@ -274,7 +274,7 @@ final class BuiltInJobRoleCatalogTest extends TestCase
             ->get(route('admin.security.index'))
             ->assertOk()
             ->assertSee('data-role-risk-pairs', false)
-            ->assertSee($arabicWarning);
+            ->assertSee('procurement_maker_checker');
     }
 
     public function test_enabling_module_exposes_roles_without_auto_assigning_existing_users(): void
