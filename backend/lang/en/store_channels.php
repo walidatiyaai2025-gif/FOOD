@@ -42,9 +42,10 @@ return [
     ],
     'states' => [
         'ready' => 'Ready', 'attention' => 'Needs attention', 'ACTIVE' => 'Active',
-        'SUSPENDED' => 'Suspended', 'CLOSED' => 'Closed',
+        'SUSPENDED' => 'Suspended', 'CLOSED' => 'Closed', 'suspended' => 'Suspended', 'closed' => 'Closed',
     ],
     'channels' => ['b2c' => 'Retail / B2C', 'b2b' => 'Wholesale / B2B', 'restaurant' => 'Restaurant'],
+    'channel_states' => ['active'=>'Active','inactive'=>'Inactive','not_linked'=>'Not linked','not_configured'=>'Not configured','disabled'=>'Disabled','enabled'=>'Enabled','internal_test'=>'Internal test','pilot'=>'Pilot','emergency_stop'=>'Emergency stop','degraded'=>'Degraded','suspended'=>'Suspended'],
     'reports' => [
         'performance' => 'Store performance', 'readiness' => 'Store readiness / health',
         'availability' => 'Availability exceptions', 'integrations' => 'Integration / channel exceptions',
