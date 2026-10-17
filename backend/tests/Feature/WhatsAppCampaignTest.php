@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\WhatsApp\CampaignSendPolicy;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
+use App\Domain\WhatsApp\MessagingOperationsOverviewService;
 use App\Domain\WhatsApp\OutboundPaused;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Middleware\EnsureWhatsAppCapability;
@@ -222,6 +223,130 @@ final class WhatsAppCampaignTest extends TestCase
             'send_status' => 'pending',
             'message_id' => null,
         ]);
+    }
+
+    public function test_unified_messaging_overview_uses_authoritative_whatsapp_delivery_signals(): void
+    {
+        $storeId = $this->store('B2C', 'WA-OPS');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000333');
+        $this->enableCampaigns(['+96550000333']);
+
+        app(MarketingConsentService::class)->record(
+            $customerId,
+            MarketingConsentService::GRANTED,
+            'admin_verified',
+        );
+
+        $campaignId = $this->campaign(
+            $this->template('operations_overview'),
+            ['customer_ids' => [$customerId]],
+            ['+96550000333'],
+        );
+        app(CampaignService::class)->snapshot($campaignId);
+        DB::table('whats_app_campaigns')->where('id', $campaignId)->update([
+            'status' => 'running',
+            'started_at' => now()->subHour(),
+            'updated_at' => now(),
+        ]);
+        DB::table('whats_app_campaign_recipients')->where('campaign_id', $campaignId)->update([
+            'send_status' => 'sent',
+            'sent_at' => now()->subMinutes(40),
+            'delivered_at' => now()->subMinutes(35),
+            'read_at' => now()->subMinutes(30),
+            'replied_at' => now()->subMinutes(20),
+            'updated_at' => now(),
+        ]);
+        $this->conversation($customerId);
+
+        DB::table('notification_campaigns')->insert([
+            'name' => 'Push campaign is not WhatsApp delivery truth',
+            'type' => 'promotion',
+            'title_ar' => 'عرض',
+            'title_en' => 'Offer',
+            'body_ar' => 'رسالة',
+            'body_en' => 'Message',
+            'audience' => 'customer',
+            'app' => 'customer',
+            'target_channel' => 'b2c',
+            'delivery_channel' => 'push',
+            'store_id' => $storeId,
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = User::factory()->create([
+            'name' => 'Messaging Operations Admin',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $overview = app(MessagingOperationsOverviewService::class)->overview($admin);
+
+        $this->assertSame(1, $overview['metrics']['campaigns']);
+        $this->assertSame(1, $overview['metrics']['recipients']);
+        $this->assertSame(1, $overview['metrics']['sent']);
+        $this->assertSame(1, $overview['metrics']['delivered']);
+        $this->assertSame(1, $overview['metrics']['read']);
+        $this->assertSame(1, $overview['metrics']['replied']);
+        $this->assertSame(1, $overview['inbox_unresolved']);
+        $this->assertTrue($overview['notification_campaigns']['visible']);
+        $this->assertSame(1, $overview['notification_campaigns']['total']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-campaigns.index'))
+            ->assertOk()
+            ->assertSee('Messaging operations overview')
+            ->assertSee('provider-confirmed only')
+            ->assertSee('foodex-module-overview', false);
+    }
+
+    public function test_campaign_lifecycle_mutations_write_audit_events(): void
+    {
+        $storeId = $this->store('B2C', 'WA-AUDIT');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000444');
+        $this->enableCampaigns(['+96550000444']);
+        app(MarketingConsentService::class)->record(
+            $customerId,
+            MarketingConsentService::GRANTED,
+            'admin_verified',
+        );
+
+        $campaignId = $this->campaign(
+            $this->template('audit_operations'),
+            ['customer_ids' => [$customerId]],
+            ['+96550000444'],
+        );
+
+        $admin = User::factory()->create([
+            'name' => 'Campaign Audit Admin',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($admin)
+            ->post(route('admin.whatsapp-campaigns.snapshot', ['campaign' => $campaignId]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.campaign.snapshot_rebuilt']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.whatsapp-campaigns.schedule', ['campaign' => $campaignId]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.campaign.scheduled']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.whatsapp-campaigns.pause', ['campaign' => $campaignId]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.campaign.paused']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.whatsapp-campaigns.cancel', ['campaign' => $campaignId]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.campaign.cancelled']);
     }
 
     public function test_campaign_schema_is_additive_and_round_trip_safe(): void
