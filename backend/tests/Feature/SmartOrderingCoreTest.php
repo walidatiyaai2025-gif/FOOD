@@ -211,6 +211,27 @@ class SmartOrderingCoreTest extends TestCase
             ->assertSee('Europe/London');
     }
 
+    public function test_operations_workspace_uses_authenticated_admin_locale_for_document_direction(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('en');
+
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('<html lang="ar" dir="rtl">', false);
+
+        $admin->forceFill(['locale' => 'en'])->save();
+        app()->setLocale('ar');
+
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('<html lang="en" dir="ltr">', false);
+    }
+
     public function test_branch_delivery_zone_editor_is_map_first_and_geometry_remains_server_authoritative(): void
     {
         $admin = $this->storeAdmin($this->storeId);
