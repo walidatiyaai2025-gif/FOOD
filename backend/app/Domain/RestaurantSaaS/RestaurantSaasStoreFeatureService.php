@@ -48,6 +48,7 @@ final class RestaurantSaasStoreFeatureService
     ): void {
         $this->assertRetailStore($store);
         $before = $this->isEnabled($store);
+        $this->modules->syncManifest(SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE);
 
         if ($enabled) {
             $this->ensureModuleEnabled($actor);
