@@ -166,5 +166,44 @@ class LocalizationQualityGateTest(unittest.TestCase):
         self.assertEqual([], errors)
 
 
+    def test_blade_enum_resolvers_data_attributes_and_inline_conditions_are_not_false_positives(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    115,
+                    "<section data-state=\"{{ $dashboard['state'] ?? 'current' }}\">",
+                ),
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    226,
+                    "<td><span class=\"badge\">{{ $statusLabel($row->status) }}</span></td>",
+                ),
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    233,
+                    "<td>@if($canManage && $row->status==='scheduled')<form method=\"post\"></form>@endif</td>",
+                ),
+            ],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+    def test_blade_direct_dynamic_enum_render_still_fails(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/orders.blade.php",
+                    42,
+                    "<td>{{ $row->status }}</td>",
+                ),
+            ],
+            errors,
+        )
+        self.assertTrue(any("status/type/channel" in error for error in errors))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,1872 @@
+{
+  "schema_version": 1,
+  "issue": 1989,
+  "parent": 1987,
+  "generated_from_main": "c07d075c938ec59d18cb8af0f6b28064a762da77",
+  "generated_at": "2026-10-17T15:50:00+03:00",
+  "mission": "Current Dashboard business capability discoverability inventory. A visible inbound product path is required; direct URL knowledge and merely rendering the Sidebar do not count.",
+  "authorities": [
+    "AGENTS.md",
+    "backend/routes/web.php",
+    "backend/routes/smart-ordering-admin.php",
+    "backend/routes/smart_ordering.php",
+    "backend/routes/smart_ordering_web.php",
+    "backend/app/Support/AdminNavigation.php",
+    "backend/resources/views/admin/_sidebar.blade.php",
+    "backend/resources/views/admin/administration-hub.blade.php",
+    "backend/app/Http/Controllers/Admin/SettingsCenterController.php",
+    "backend/resources/views/admin/_account-menu.blade.php",
+    "backend/resources/views/admin/field-operations.blade.php",
+    "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+    "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+    "backend/tests/Feature/AdminNavigationAuthorizationAuditTest.php",
+    "scripts/capture_web_screenshots.mjs"
+  ],
+  "status_values": [
+    "NAV_OK",
+    "NAV_WEAK",
+    "NAV_MISSING",
+    "CONTEXT_ONLY_OK",
+    "ADMIN_HUB_OK",
+    "INTERNAL_EXCEPTION",
+    "DEAD_ROUTE",
+    "DUPLICATE_DESTINATION"
+  ],
+  "navigation_types": [
+    "SIDEBAR",
+    "DOMAIN_HUB",
+    "PAGE_TAB",
+    "CONTEXT_ACTION",
+    "ADMIN_SETTINGS",
+    "WORKFLOW_STEP",
+    "EXPLICIT_EXCEPTION"
+  ],
+  "scope": {
+    "business_facing": "Durable Dashboard destinations/capabilities rendered for an operator through GET/HEAD routes or stable workspace tabs/actions.",
+    "explicit_non_screen_exceptions": [
+      "feed/poll endpoints",
+      "lookup AJAX endpoints",
+      "exports/downloads",
+      "assets/attachments",
+      "webhooks/callbacks",
+      "mutation-only endpoints",
+      "preview-data endpoints",
+      "public storefront/SEO endpoints",
+      "site-scoped JSON service endpoints without an operator screen"
+    ],
+    "rule": "An exception must be explicit. A page containing the Sidebar is not discoverability evidence."
+  },
+  "coverage_summary": {
+    "baseline_route_families": 42,
+    "audited_capabilities": 49,
+    "unresolved_nav_missing": 0,
+    "unresolved_nav_weak": 0,
+    "duplicate_destinations": 1,
+    "internal_exceptions": 6,
+    "unresolved_duplicate_destinations": 0,
+    "resolved_compatibility_aliases": 4
+  },
+  "capabilities": [
+    {
+      "id": "platform.shell",
+      "domain": "Platform",
+      "capability": "Management Dashboard",
+      "route": [
+        "admin.index",
+        "admin.global-search"
+      ],
+      "route_path": [
+        "/admin",
+        "/admin/search"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Dashboard shell",
+      "role_persona": "authorized management user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Dashboard shell",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "domain shell + header search",
+      "parent_context": "Dashboard shell",
+      "ar_label": "لوحة إدارة FOODEX",
+      "en_label": "FOODEX Management",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Dashboard shell context remains active",
+      "back_path": "Return through Dashboard shell",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "platform.action_center",
+      "domain": "Enterprise Operations",
+      "capability": "Workflow work item",
+      "route": [
+        "admin.action-center.index"
+      ],
+      "route_path": [
+        "/admin/action-center"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / Action Center",
+      "role_persona": "operator/manager",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "ERP / Action Center",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center + contextual entry",
+      "parent_context": "ERP / Action Center",
+      "ar_label": "مركز الإجراءات",
+      "en_label": "Action Center",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / Action Center context remains active",
+      "back_path": "Return through ERP / Action Center",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Expanded by closed ERP child #1912; do not create a parallel workflow queue."
+    },
+    {
+      "id": "erp.center",
+      "domain": "ERP",
+      "capability": "ERP module",
+      "route": [
+        "admin.erp.index"
+      ],
+      "route_path": [
+        "/admin/erp"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP Center",
+      "role_persona": "ERP operator/manager",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "ERP Center",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "first-class ERP domain landing",
+      "parent_context": "ERP Center",
+      "ar_label": "مركز ERP",
+      "en_label": "ERP Center",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP Center context remains active",
+      "back_path": "Return through ERP Center",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Canonical ERP entry delivered by #1906."
+    },
+    {
+      "id": "erp.procurement",
+      "domain": "ERP / Procurement",
+      "capability": "Supplier / PR / PO / GRN / Purchase Invoice / Return",
+      "route": [
+        "admin.erp.procurement.index"
+      ],
+      "route_path": [
+        "/admin/erp/procurement"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / Procurement",
+      "role_persona": "procurement user",
+      "permission_entitlement": "procurement.suppliers.view + module entitlement",
+      "navigation_owner": "ERP / Procurement",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module",
+      "parent_context": "ERP / Procurement",
+      "ar_label": "المشتريات",
+      "en_label": "Procurement",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / Procurement context remains active",
+      "back_path": "Return through ERP / Procurement",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "erp.wms",
+      "domain": "ERP / WMS",
+      "capability": "Stock / transfer / count / lot / reservation / reorder",
+      "route": [
+        "admin.erp.wms.index"
+      ],
+      "route_path": [
+        "/admin/erp/wms"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / WMS",
+      "role_persona": "warehouse user",
+      "permission_entitlement": "inventory.view + inventory_wms entitlement",
+      "navigation_owner": "ERP / WMS",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module",
+      "parent_context": "ERP / WMS",
+      "ar_label": "إدارة المستودعات والمخزون",
+      "en_label": "Warehouse & Inventory",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / WMS context remains active",
+      "back_path": "Return through ERP / WMS",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "erp.finance",
+      "domain": "ERP / Finance",
+      "capability": "Account / period / journal / AR / AP",
+      "route": [
+        "admin.erp.finance.index"
+      ],
+      "route_path": [
+        "/admin/erp/finance"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / Finance",
+      "role_persona": "accountant",
+      "permission_entitlement": "finance.view + finance entitlement",
+      "navigation_owner": "ERP / Finance",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module",
+      "parent_context": "ERP / Finance",
+      "ar_label": "المالية",
+      "en_label": "Finance",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / Finance context remains active",
+      "back_path": "Return through ERP / Finance",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "erp.treasury",
+      "domain": "ERP / Treasury",
+      "capability": "Receipt / payment / cheque / reconciliation / cashbox / bank account",
+      "route": [
+        "admin.erp.treasury.index",
+        "admin.treasury.master.index"
+      ],
+      "route_path": [
+        "/admin/erp/treasury",
+        "/admin/treasury/master-data"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / Treasury",
+      "role_persona": "treasury user",
+      "permission_entitlement": "finance.view + treasury entitlement",
+      "navigation_owner": "ERP / Treasury",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module + owned master-data sub-surface",
+      "parent_context": "ERP / Treasury",
+      "ar_label": "الخزينة",
+      "en_label": "Treasury",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / Treasury context remains active",
+      "back_path": "Return through ERP / Treasury",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Master data remains a treasury-owned sub-surface, not a new top-level domain."
+    },
+    {
+      "id": "erp.bi",
+      "domain": "ERP / BI",
+      "capability": "Report / metric / export",
+      "route": [
+        "admin.erp.bi"
+      ],
+      "route_path": [
+        "/admin/erp/bi"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / BI",
+      "role_persona": "manager/analyst",
+      "permission_entitlement": "reports.view + enterprise_bi entitlement",
+      "navigation_owner": "ERP / BI",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module",
+      "parent_context": "ERP / BI",
+      "ar_label": "ذكاء الأعمال",
+      "en_label": "Business Intelligence",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / BI context remains active",
+      "back_path": "Return through ERP / BI",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "erp.customer_service",
+      "domain": "ERP / Customer Service",
+      "capability": "Customer / order / invoice / delivery / conversation",
+      "route": [
+        "admin.erp.customer-service"
+      ],
+      "route_path": [
+        "/admin/erp/customer-service"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: ERP / Customer Service",
+      "role_persona": "service agent",
+      "permission_entitlement": "customers.view or b2b.accounts.view",
+      "navigation_owner": "ERP / Customer Service",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "ERP Center module composed from canonical authorities",
+      "parent_context": "ERP / Customer Service",
+      "ar_label": "خدمة العملاء",
+      "en_label": "Customer Service",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical ERP / Customer Service context remains active",
+      "back_path": "Return through ERP / Customer Service",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Composition/deep-link is required; no parallel CRM/order/payment truth."
+    },
+    {
+      "id": "enterprise.workspaces",
+      "domain": "Enterprise",
+      "capability": "Cross-module workspace",
+      "route": [
+        "admin.enterprise-workspaces.index"
+      ],
+      "route_path": [
+        "/admin/workspaces/executive",
+        "/admin/workspaces/finance",
+        "/admin/workspaces/sales",
+        "/admin/workspaces/warehouse"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Enterprise",
+      "role_persona": "enterprise role",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Enterprise",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "contextual route; ERP Center is the ERP entry",
+      "parent_context": "Enterprise",
+      "ar_label": "مساحات عمل المؤسسة",
+      "en_label": "Enterprise Workspaces",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Enterprise context remains active",
+      "back_path": "Return through Enterprise",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Preserved as existing canonical/contextual routes. Do not add duplicate sidebar entries merely because ERP Center exists."
+    },
+    {
+      "id": "administration.hub",
+      "domain": "Administration",
+      "capability": "Organization / company / legal entity / business unit / module health / admin utilities",
+      "route": [
+        "admin.administration.index",
+        "admin.enterprise-organizations.index/show",
+        "admin.enterprise-companies.show",
+        "admin.enterprise-legal-entities.show",
+        "admin.enterprise-business-units.show",
+        "admin.enterprise-system-health.index",
+        "admin.enterprise-modules.index/show",
+        "admin.van-finance-support.index",
+        "admin.notifications.index"
+      ],
+      "route_path": [
+        "/admin/administration",
+        "/admin/administration/organizations",
+        "/admin/administration/organizations/{organization}",
+        "/admin/administration/companies/{company}",
+        "/admin/administration/legal-entities/{legalEntity}",
+        "/admin/administration/business-units/{businessUnit}",
+        "/admin/administration/system-health",
+        "/admin/administration/modules",
+        "/admin/administration/modules/{module}",
+        "/admin/van-finance-support",
+        "/admin/notifications"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Administration Hub",
+      "role_persona": "platform admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Administration Hub",
+      "navigation_type": "DOMAIN_HUB",
+      "visible_entry_point": "Administration Hub + header/admin contextual entries + exact-record routes",
+      "parent_context": "Administration Hub",
+      "ar_label": "مركز الإدارة",
+      "en_label": "Administration Hub",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Administration Hub context remains active",
+      "back_path": "Return through Administration Hub",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/administration-hub.blade.php",
+        "backend/resources/views/admin/_live-notifications.blade.php",
+        "backend/app/Http/Controllers/Admin/VanFinanceSupportController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Administration Hub owns platform administration; Notifications Center is reachable from the header utility and Van Finance Support from the Administration Hub. Neither requires a duplicate Sidebar item."
+    },
+    {
+      "id": "settings.center",
+      "domain": "Platform Settings",
+      "capability": "Configuration",
+      "route": [
+        "admin.settings.index",
+        "admin.assistant-settings.index",
+        "admin.app-versions.index",
+        "admin.sms-settings.index",
+        "admin.mobile-settings.index",
+        "admin.foodex-reset.index",
+        "admin.production-dataset-switch.index",
+        "admin.production-launch.index",
+        "admin.system-update.index",
+        "admin.translations.index"
+      ],
+      "route_path": [
+        "/admin/settings",
+        "/admin/settings/assistant",
+        "/admin/settings/app-versions",
+        "/admin/settings/sms",
+        "/admin/settings/mobile",
+        "/admin/settings/foodex-reset",
+        "/admin/settings/production-dataset",
+        "/admin/settings/production-launch",
+        "/admin/settings/system-update",
+        "/admin/settings/translations"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Settings Center",
+      "role_persona": "platform admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Settings Center",
+      "navigation_type": "ADMIN_SETTINGS",
+      "visible_entry_point": "Settings Center owned sub-pages",
+      "parent_context": "Settings Center",
+      "ar_label": "مركز الإعدادات",
+      "en_label": "Settings Center",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Settings Center context remains active",
+      "back_path": "Return through Settings Center",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Http/Controllers/Admin/SettingsCenterController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "whatsapp.settings",
+      "domain": "Communications",
+      "capability": "WhatsApp profile/connection",
+      "route": [
+        "admin.whatsapp.index",
+        "admin.whatsapp.connections.index"
+      ],
+      "route_path": [
+        "/admin/settings/whatsapp",
+        "/admin/settings/whatsapp/connections"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: WhatsApp",
+      "role_persona": "communications admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "WhatsApp",
+      "navigation_type": "ADMIN_SETTINGS",
+      "visible_entry_point": "Settings Center / Communications",
+      "parent_context": "WhatsApp",
+      "ar_label": "إعدادات واتساب",
+      "en_label": "WhatsApp Settings",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical WhatsApp context remains active",
+      "back_path": "Return through WhatsApp",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Http/Controllers/Admin/SettingsCenterController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "whatsapp.operations",
+      "domain": "Communications",
+      "capability": "Conversation / campaign / chatbot",
+      "route": [
+        "admin.whatsapp-inbox.index",
+        "admin.whatsapp-supervisor.index",
+        "admin.whatsapp-campaigns.index/report",
+        "admin.whatsapp-chatbot.index",
+        "admin.whatsapp-chatbot.preview"
+      ],
+      "route_path": [
+        "/admin/whatsapp/inbox",
+        "/admin/whatsapp/supervisor",
+        "/admin/whatsapp/campaigns",
+        "/admin/whatsapp/campaigns/{campaign}/report",
+        "/admin/whatsapp/chatbot/{section?}",
+        "/admin/whatsapp/chatbot/preview/{screen?}"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: WhatsApp",
+      "role_persona": "agent/supervisor/marketer",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "WhatsApp",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "communications-owned workbenches; chatbot preview is a contextual action from the canonical chatbot workspace",
+      "parent_context": "WhatsApp",
+      "ar_label": "واتساب",
+      "en_label": "WhatsApp Operations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical WhatsApp context remains active",
+      "back_path": "Return through WhatsApp",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Chatbot preview is a contextual child of the canonical chatbot workspace, not a second Sidebar authority."
+    },
+    {
+      "id": "restaurant.qr",
+      "domain": "Restaurant SaaS / Smart Ordering",
+      "capability": "QR configuration",
+      "route": [
+        "admin.smart-ordering.qr.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/qr"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Restaurant SaaS",
+      "role_persona": "restaurant operator",
+      "permission_entitlement": "smart_ordering.qr.view",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Smart Ordering context",
+      "parent_context": "Restaurant SaaS",
+      "ar_label": "إدارة QR",
+      "en_label": "QR Manager",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Restaurant SaaS context remains active",
+      "back_path": "Return through Restaurant SaaS",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Reuse delivered Smart Ordering QR lineage; no Restaurant-v2 QR engine."
+    },
+    {
+      "id": "restaurant.control",
+      "domain": "Restaurant SaaS / Smart Ordering",
+      "capability": "Restaurant site/runtime/entitlement/publish revision",
+      "route": [
+        "admin.smart-ordering.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/settings"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Restaurant SaaS",
+      "role_persona": "restaurant owner/admin",
+      "permission_entitlement": "smart_ordering.view",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Restaurant SaaS existing Smart Ordering control surface",
+      "parent_context": "Restaurant SaaS",
+      "ar_label": "Restaurant SaaS",
+      "en_label": "Restaurant SaaS",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Restaurant SaaS context remains active",
+      "back_path": "Return through Restaurant SaaS",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "restaurant.menu",
+      "domain": "Restaurant SaaS / Menu",
+      "capability": "Menu/category/item/modifier/revision",
+      "route": [
+        "admin.smart-ordering.menu.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/menu"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Restaurant SaaS",
+      "role_persona": "restaurant operator",
+      "permission_entitlement": "smart_ordering.manage",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Restaurant SaaS existing menu context",
+      "parent_context": "Restaurant SaaS",
+      "ar_label": "منشئ المنيو",
+      "en_label": "Menu Builder",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Restaurant SaaS context remains active",
+      "back_path": "Return through Restaurant SaaS",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Master plan explicitly requires reuse of delivered menu domain; future Menu Studio improvements extend this authority."
+    },
+    {
+      "id": "restaurant.supply",
+      "domain": "Restaurant SaaS / Supply",
+      "capability": "Supply mapping / stock / recommendation",
+      "route": [
+        "admin.smart-ordering.supply.entry/index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/supply",
+        "/admin/smart-ordering/sites/{site}/supply"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Restaurant SaaS",
+      "role_persona": "restaurant operator",
+      "permission_entitlement": "smart_ordering.view + site entitlement",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "PAGE_TAB",
+      "visible_entry_point": "Restaurant SaaS / site context",
+      "parent_context": "Restaurant SaaS",
+      "ar_label": "التوريد للمطاعم",
+      "en_label": "Restaurant Supply",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Restaurant SaaS context remains active",
+      "back_path": "Return through Restaurant SaaS",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "restaurant.customer_growth",
+      "domain": "Restaurant SaaS / Growth",
+      "capability": "Restaurant guest / loyalty / service recovery",
+      "route": [
+        "admin.smart-ordering.customers.show/orders/loyalty",
+        "admin.smart-ordering.loyalty.rewards",
+        "admin.smart-ordering.service-recovery.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/sites/{site}/customers/{customer}",
+        "/admin/smart-ordering/sites/{site}/customers/{customer}/orders",
+        "/admin/smart-ordering/sites/{site}/customers/{customer}/loyalty",
+        "/admin/smart-ordering/sites/{site}/loyalty/rewards",
+        "/admin/smart-ordering/sites/{site}/service-recovery"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Restaurant SaaS",
+      "role_persona": "restaurant operator",
+      "permission_entitlement": "smart_ordering.view/manage on site-scoped API",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "EXPLICIT_EXCEPTION",
+      "visible_entry_point": "site-scoped exact customer context",
+      "parent_context": "Restaurant SaaS",
+      "ar_label": "نمو العملاء والولاء",
+      "en_label": "Customer Growth & Loyalty",
+      "desktop_reachable": false,
+      "mobile_reachable": false,
+      "active_highlight_behavior": "Canonical Restaurant SaaS context remains active",
+      "back_path": "Not an operator destination; return to owning workspace",
+      "status": "INTERNAL_EXCEPTION",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "admin.profile",
+      "domain": "Identity",
+      "capability": "Admin profile",
+      "route": [
+        "admin.profile.index"
+      ],
+      "route_path": [
+        "/admin/profile"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Admin shell",
+      "role_persona": "authenticated admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Admin shell",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "header account control",
+      "parent_context": "Admin shell",
+      "ar_label": "الملف الشخصي",
+      "en_label": "Profile",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Admin shell context remains active",
+      "back_path": "Return through Admin shell",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/_account-menu.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "app.preview",
+      "domain": "Platform / App Preview",
+      "capability": "Preview session/configuration/event",
+      "route": [
+        "admin.app-preview.index",
+        "admin.app-preview.storefront-configuration",
+        "admin.app-preview.events"
+      ],
+      "route_path": [
+        "/admin/app-preview",
+        "/admin/app-preview/storefront-configuration",
+        "/admin/app-preview/events"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: App Preview",
+      "role_persona": "platform admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "App Preview",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Administration/Settings contextual tool",
+      "parent_context": "App Preview",
+      "ar_label": "معاينة التطبيقات",
+      "en_label": "App Preview",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical App Preview context remains active",
+      "back_path": "Return through App Preview",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.overview",
+      "domain": "Field Operations",
+      "capability": "Fleet / route / field status",
+      "route": [
+        "admin.field-operations.overview",
+        "admin.field-operations.fleet"
+      ],
+      "route_path": [
+        "/admin/field-operations",
+        "/admin/field-operations/fleet-map"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Field Operations",
+      "role_persona": "field ops user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Field Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Field Operations domain",
+      "parent_context": "Field Operations",
+      "ar_label": "العمليات الميدانية",
+      "en_label": "Field Operations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Field Operations context remains active",
+      "back_path": "Return through Field Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.vans",
+      "domain": "Field Operations",
+      "capability": "Van / assignment",
+      "route": [
+        "admin.field-operations.vans/vans.show/assignments"
+      ],
+      "route_path": [
+        "/admin/field-operations/vans",
+        "/admin/field-operations/vans/{van}",
+        "/admin/field-operations/assignments"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Field Operations",
+      "role_persona": "field ops user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Field Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Field Operations domain + exact record",
+      "parent_context": "Field Operations",
+      "ar_label": "الفانات والتكليفات",
+      "en_label": "Vans & Assignments",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Field Operations context remains active",
+      "back_path": "Return through Field Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.customers_visits",
+      "domain": "Field Operations",
+      "capability": "Customer / visit",
+      "route": [
+        "admin.field-operations.customers",
+        "admin.field-operations.visits"
+      ],
+      "route_path": [
+        "/admin/field-operations/customers",
+        "/admin/field-operations/visits"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Field Operations",
+      "role_persona": "field ops user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Field Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Field Operations domain",
+      "parent_context": "Field Operations",
+      "ar_label": "العملاء والزيارات",
+      "en_label": "Customers & Visits",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Field Operations context remains active",
+      "back_path": "Return through Field Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.territory",
+      "domain": "Field Operations",
+      "capability": "Territory / address review / routing policy",
+      "route": [
+        "admin.field-operations.territories",
+        "admin.field-operations.address-quality",
+        "admin.field-operations.routing"
+      ],
+      "route_path": [
+        "/admin/field-operations/territories",
+        "/admin/field-operations/address-quality",
+        "/admin/field-operations/routing-policies"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Field Operations",
+      "role_persona": "field ops planner",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Field Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Field Operations domain",
+      "parent_context": "Field Operations",
+      "ar_label": "المناطق والتوجيه",
+      "en_label": "Territories & Routing",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Field Operations context remains active",
+      "back_path": "Return through Field Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "field_ops.finance_tracking",
+      "domain": "Field Operations",
+      "capability": "Remittance / live driver-van state",
+      "route": [
+        "admin.field-operations.finance",
+        "admin.driver-live-tracking.index"
+      ],
+      "route_path": [
+        "/admin/field-operations/finance",
+        "/admin/driver-live-tracking"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Field Operations",
+      "role_persona": "field ops/finance user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Field Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Field Operations domain",
+      "parent_context": "Field Operations",
+      "ar_label": "التحصيل والتتبع الحي",
+      "en_label": "Finance & Live Tracking",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Field Operations context remains active",
+      "back_path": "Return through Field Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Feed/lookups/proof/evidence endpoints are supporting data/actions, not sidebar destinations."
+    },
+    {
+      "id": "customer360",
+      "domain": "Customer Service / CRM",
+      "capability": "Platform customer",
+      "route": [
+        "admin.customer-360.index",
+        "admin.customer-360.show"
+      ],
+      "route_path": [
+        "/admin/customer-360",
+        "/admin/customer-360/{platformCustomer}"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Customer 360",
+      "role_persona": "service/finance user",
+      "permission_entitlement": "customers.view or b2b.accounts.view",
+      "navigation_owner": "Customer 360",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Customer Service contextual authority",
+      "parent_context": "Customer 360",
+      "ar_label": "ملف العميل 360",
+      "en_label": "Customer 360",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Customer 360 context remains active",
+      "back_path": "Return through Customer 360",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "invoice.detail",
+      "domain": "Finance / Sales",
+      "capability": "Invoice",
+      "route": [
+        "admin.invoices.show"
+      ],
+      "route_path": [
+        "/admin/invoices/{invoice}"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Invoices",
+      "role_persona": "authorized finance/service user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Invoices",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "deep link from canonical source records",
+      "parent_context": "Invoices",
+      "ar_label": "تفاصيل الفاتورة",
+      "en_label": "Invoice Detail",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Invoices context remains active",
+      "back_path": "Return through Invoices",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "b2b.workspace",
+      "domain": "Wholesale / B2B",
+      "capability": "Wholesale operations",
+      "route": [
+        "admin.b2b.dashboard",
+        "admin.b2b.orders.canonical",
+        "admin.b2b.pricing-approvals",
+        "admin.b2b.settings-permissions",
+        "admin.b2b.module"
+      ],
+      "route_path": [
+        "/admin/b2b/dashboard",
+        "/admin/b2b/orders",
+        "/admin/b2b/pricing-approvals",
+        "/admin/b2b/settings-permissions",
+        "/admin/b2b/{module}"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: B2B Workspace",
+      "role_persona": "B2B admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "B2B Workspace",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "B2B domain shell",
+      "parent_context": "B2B Workspace",
+      "ar_label": "إدارة الجملة B2B",
+      "en_label": "B2B Workspace",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical B2B Workspace context remains active",
+      "back_path": "Return through B2B Workspace",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Orders already route to canonical OrderOperations surface; dynamic module route remains domain-owned."
+    },
+    {
+      "id": "commercial.sales_control",
+      "domain": "Commercial",
+      "capability": "Product sales control",
+      "route": [
+        "admin.commercial.sales-control"
+      ],
+      "route_path": [
+        "/admin/b2b/commercial/sales-control"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Commercial",
+      "role_persona": "commercial user",
+      "permission_entitlement": "catalog.view",
+      "navigation_owner": "Commercial",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Commercial domain; canonical B2B route",
+      "parent_context": "Commercial",
+      "ar_label": "التحكم التجاري",
+      "en_label": "Commercial Sales Control",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Commercial context remains active",
+      "back_path": "Return through Commercial",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Duplicate destination already consolidated; do not recreate a B2C copy."
+    },
+    {
+      "id": "b2c.workspace",
+      "domain": "Retail / B2C",
+      "capability": "Retail operations",
+      "route": [
+        "admin.b2c.dashboard",
+        "admin.b2c.orders.canonical",
+        "admin.b2c.module"
+      ],
+      "route_path": [
+        "/admin/b2c/dashboard",
+        "/admin/b2c/orders",
+        "/admin/b2c/{module}"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: B2C Workspace",
+      "role_persona": "B2C admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "B2C Workspace",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "B2C domain shell",
+      "parent_context": "B2C Workspace",
+      "ar_label": "إدارة التجزئة B2C",
+      "en_label": "B2C Workspace",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical B2C Workspace context remains active",
+      "back_path": "Return through B2C Workspace",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "b2c.commercial_storefront",
+      "domain": "Retail / Commercial",
+      "capability": "Flash offer / storefront",
+      "route": [
+        "admin.commercial.flash-offers",
+        "admin.b2c.storefront-preview"
+      ],
+      "route_path": [
+        "/admin/b2c/commercial/flash-offers",
+        "/admin/b2c/storefront-preview"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: B2C Workspace",
+      "role_persona": "retail commercial user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "B2C Workspace",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "B2C commercial/storefront context",
+      "parent_context": "B2C Workspace",
+      "ar_label": "العروض وواجهة المتجر",
+      "en_label": "Commercial & Storefront",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical B2C Workspace context remains active",
+      "back_path": "Return through B2C Workspace",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Offer preview/analytics are contextual subroutes, not independent navigation."
+    },
+    {
+      "id": "catalog",
+      "domain": "Catalog",
+      "capability": "Product / category",
+      "route": [
+        "admin.catalog.index",
+        "admin.catalog.categories.index"
+      ],
+      "route_path": [
+        "/admin/catalog",
+        "/admin/catalog/categories"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Catalog",
+      "role_persona": "catalog admin",
+      "permission_entitlement": "catalog.view",
+      "navigation_owner": "Catalog",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Catalog domain",
+      "parent_context": "Catalog",
+      "ar_label": "الكتالوج",
+      "en_label": "Catalog",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Catalog context remains active",
+      "back_path": "Return through Catalog",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "master_data.lookups",
+      "domain": "Master Data",
+      "capability": "Brand/unit/system lookup",
+      "route": [
+        "admin.lookups.index",
+        "admin.operations.lookups.index"
+      ],
+      "route_path": [
+        "/admin/lookups",
+        "/admin/operations/lookups"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Master Data",
+      "role_persona": "authorized admin/operator",
+      "permission_entitlement": "lookups.view",
+      "navigation_owner": "Master Data",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "domain-owned lookup surfaces",
+      "parent_context": "Master Data",
+      "ar_label": "البيانات المرجعية",
+      "en_label": "Master Data Lookups",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Master Data context remains active",
+      "back_path": "Return through Master Data",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Http/Controllers/Admin/SettingsCenterController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "business.management",
+      "domain": "Business Management",
+      "capability": "Warehouse / inventory / customer / promotion / driver",
+      "route": [
+        "admin.business.index"
+      ],
+      "route_path": [
+        "/admin/business"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Business",
+      "role_persona": "business admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Business",
+      "navigation_type": "EXPLICIT_EXCEPTION",
+      "visible_entry_point": "Compatibility redirect only; no visible navigation owner",
+      "parent_context": "Business",
+      "ar_label": "إدارة الأعمال القديمة",
+      "en_label": "Legacy Business Management",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Compatibility alias resolves into canonical owner",
+      "back_path": "Redirects to authoritative B2B/B2C workspace",
+      "status": "DUPLICATE_DESTINATION",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "retail_stores",
+      "domain": "Retail Administration",
+      "capability": "Retail store / role assignment",
+      "route": [
+        "admin.retail-stores.index"
+      ],
+      "route_path": [
+        "/admin/retail-stores"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Retail Stores",
+      "role_persona": "platform/retail admin",
+      "permission_entitlement": "platform.manage",
+      "navigation_owner": "Retail Stores",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Administration / Retail context",
+      "parent_context": "Retail Stores",
+      "ar_label": "إدارة المتاجر",
+      "en_label": "Retail Stores",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Retail Stores context remains active",
+      "back_path": "Return through Retail Stores",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "live_ads",
+      "domain": "Commercial / Content",
+      "capability": "Live ad",
+      "route": [
+        "admin.live-ads.index"
+      ],
+      "route_path": [
+        "/admin/live-ads"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Live Ads",
+      "role_persona": "marketing user",
+      "permission_entitlement": "live_ads.view",
+      "navigation_owner": "Live Ads",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Commercial/content context",
+      "parent_context": "Live Ads",
+      "ar_label": "الإعلانات المباشرة",
+      "en_label": "Live Ads",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Live Ads context remains active",
+      "back_path": "Return through Live Ads",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "order_operations",
+      "domain": "Operations",
+      "capability": "Order / dispatch",
+      "route": [
+        "admin.operations.orders.index"
+      ],
+      "route_path": [
+        "/admin/operations/orders"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Order Operations",
+      "role_persona": "operations user",
+      "permission_entitlement": "orders.view",
+      "navigation_owner": "Order Operations",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Operations domain; reused by B2B/B2C canonical order routes",
+      "parent_context": "Order Operations",
+      "ar_label": "إدارة الطلبات",
+      "en_label": "Order Operations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Order Operations context remains active",
+      "back_path": "Return through Order Operations",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "reports",
+      "domain": "Reporting",
+      "capability": "Report",
+      "route": [
+        "admin.reports.index"
+      ],
+      "route_path": [
+        "/admin/reports"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Reports",
+      "role_persona": "manager/analyst",
+      "permission_entitlement": "reports.view",
+      "navigation_owner": "Reports",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Reporting domain; ERP users enter via ERP BI where applicable",
+      "parent_context": "Reports",
+      "ar_label": "التقارير",
+      "en_label": "Reports",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Reports context remains active",
+      "back_path": "Return through Reports",
+      "status": "NAV_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "ERP BI is the ERP-oriented discovery surface; generic Reports remains shared reporting authority."
+    },
+    {
+      "id": "system.inspector",
+      "domain": "Platform Operations",
+      "capability": "System/runtime/tenant health",
+      "route": [
+        "admin.inspector.index"
+      ],
+      "route_path": [
+        "/admin/inspector"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: System Inspector",
+      "role_persona": "platform support/admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "System Inspector",
+      "navigation_type": "ADMIN_SETTINGS",
+      "visible_entry_point": "Administration/support context",
+      "parent_context": "System Inspector",
+      "ar_label": "فاحص النظام",
+      "en_label": "System Inspector",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical System Inspector context remains active",
+      "back_path": "Return through System Inspector",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/administration-hub.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Restaurant support/lifecycle actions are support controls, not Restaurant operator navigation."
+    },
+    {
+      "id": "security",
+      "domain": "Security",
+      "capability": "User / role / scope / delegation / demo data",
+      "route": [
+        "admin.security.index",
+        "admin.enterprise-security.index",
+        "admin.security.demo-data.index"
+      ],
+      "route_path": [
+        "/admin/security",
+        "/admin/security/enterprise",
+        "/admin/security/demo-data"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Security",
+      "role_persona": "security admin",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Security",
+      "navigation_type": "ADMIN_SETTINGS",
+      "visible_entry_point": "Administration/Security domain",
+      "parent_context": "Security",
+      "ar_label": "الأمان",
+      "en_label": "Security",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Security context remains active",
+      "back_path": "Return through Security",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/administration-hub.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "mobile_release_ops",
+      "domain": "Platform Release",
+      "capability": "Mobile release artifact",
+      "route": [
+        "admin.mobile-apps.status"
+      ],
+      "route_path": [
+        "/admin/apps/downloads/status"
+      ],
+      "controller_view": "Resolved by current named-route authority; canonical surface owner: Mobile Release",
+      "role_persona": "release/admin user",
+      "permission_entitlement": "Canonical route middleware + role/store scope",
+      "navigation_owner": "Mobile Release",
+      "navigation_type": "ADMIN_SETTINGS",
+      "visible_entry_point": "Settings/Admin release context",
+      "parent_context": "Mobile Release",
+      "ar_label": "إصدارات تطبيقات الموبايل",
+      "en_label": "Mobile Release Operations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Canonical Mobile Release context remains active",
+      "back_path": "Return through Mobile Release",
+      "status": "ADMIN_HUB_OK",
+      "evidence": [
+        "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
+        "backend/resources/views/admin/administration-hub.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Per-app download routes are actions/downloads, not separate navigation destinations."
+    },
+    {
+      "id": "restaurant.operations",
+      "domain": "Restaurant SaaS / Operations",
+      "capability": "Orders, payments, tables, reservations, waitlist, guest book, KDS, workforce",
+      "route": [
+        "admin.smart-ordering.operations.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/operations"
+      ],
+      "controller_view": "SmartOrderingOperationsController / admin.smart-ordering-operations",
+      "role_persona": "restaurant operator/manager",
+      "permission_entitlement": "orders.view plus contextual feature permissions",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "PAGE_TAB",
+      "visible_entry_point": "Restaurant SaaS workspace → Operations; operational subtabs inside the canonical workbench",
+      "parent_context": "Restaurant SaaS workspace",
+      "ar_label": "العمليات",
+      "en_label": "Operations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS remains active; operation subtab owns local state",
+      "back_path": "Restaurant SaaS workspace tabs",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+        "backend/resources/views/admin/smart-ordering-operations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Reservations/waitlist/guest book/KDS/workforce are composed as contextual subtabs, not sidebar inflation."
+    },
+    {
+      "id": "restaurant.appearance",
+      "domain": "Restaurant SaaS / Storefront",
+      "capability": "Storefront Appearance and five menu templates",
+      "route": [
+        "admin.smart-ordering.appearance.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/appearance"
+      ],
+      "controller_view": "SmartOrderingThemePreviewController / admin.smart-ordering.appearance",
+      "role_persona": "restaurant operator/manager",
+      "permission_entitlement": "smart_ordering.view in Restaurant SaaS workspace",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "PAGE_TAB",
+      "visible_entry_point": "Restaurant SaaS workspace → Appearance",
+      "parent_context": "Restaurant SaaS workspace",
+      "ar_label": "المظهر",
+      "en_label": "Appearance",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS sidebar remains active; Appearance tab has aria-current",
+      "back_path": "Restaurant SaaS workspace tabs",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+        "backend/resources/views/admin/smart-ordering/appearance.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Canonical screen exposes five templates including Elegant Dining."
+    },
+    {
+      "id": "restaurant.analytics",
+      "domain": "Restaurant SaaS / Analytics",
+      "capability": "Restaurant ordering analytics",
+      "route": [
+        "admin.smart-ordering.analytics.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/analytics"
+      ],
+      "controller_view": "SmartOrderingAnalyticsController / admin.smart-ordering-analytics",
+      "role_persona": "restaurant manager",
+      "permission_entitlement": "smart_ordering.analytics.view",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "PAGE_TAB",
+      "visible_entry_point": "Restaurant SaaS workspace → Analytics",
+      "parent_context": "Restaurant SaaS workspace",
+      "ar_label": "التحليلات",
+      "en_label": "Analytics",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS sidebar remains active; Analytics tab has aria-current",
+      "back_path": "Restaurant SaaS workspace tabs",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+        "backend/app/Http/Controllers/Admin/SmartOrderingAnalyticsController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "restaurant.integrations",
+      "domain": "Restaurant SaaS / Integrations",
+      "capability": "Restaurant Integration Hub",
+      "route": [
+        "admin.smart-ordering.integrations.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/sites/{site}/integrations"
+      ],
+      "controller_view": "RestaurantIntegrationController / admin.smart-ordering-integrations",
+      "role_persona": "restaurant manager",
+      "permission_entitlement": "smart_ordering.view on selected site",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "Restaurant SaaS site context → Integrations",
+      "parent_context": "Selected restaurant site",
+      "ar_label": "التكاملات",
+      "en_label": "Integrations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS stays active; contextual tab has aria-current",
+      "back_path": "Restaurant SaaS settings for the same store/site",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+        "backend/resources/views/admin/smart-ordering-integrations.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Site-specific destination intentionally stays out of global Sidebar."
+    },
+    {
+      "id": "restaurant.growth",
+      "domain": "Restaurant SaaS / Growth",
+      "capability": "Growth, gift cards, lifecycle, franchise and exports",
+      "route": [
+        "admin.smart-ordering.growth.index"
+      ],
+      "route_path": [
+        "/admin/smart-ordering/sites/{site}/growth"
+      ],
+      "controller_view": "RestaurantGrowthController / admin.smart-ordering-growth",
+      "role_persona": "restaurant manager",
+      "permission_entitlement": "smart_ordering.view on selected site",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "Restaurant SaaS site context → Growth",
+      "parent_context": "Selected restaurant site",
+      "ar_label": "النمو",
+      "en_label": "Growth",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS stays active; contextual tab has aria-current",
+      "back_path": "Restaurant SaaS settings for the same store/site",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php",
+        "backend/resources/views/admin/smart-ordering-growth.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Site-specific destination intentionally stays out of global Sidebar."
+    },
+    {
+      "id": "advertising.notification_campaigns",
+      "domain": "Advertising / Notifications",
+      "capability": "Notification campaigns",
+      "route": [
+        "admin.notification-campaigns.index"
+      ],
+      "route_path": [
+        "/admin/notification-campaigns"
+      ],
+      "controller_view": "NotificationCampaignController / canonical campaign screen",
+      "role_persona": "authorized campaign operator",
+      "permission_entitlement": "notifications.view + advertising entitlement",
+      "navigation_owner": "Advertising",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Sidebar → Advertising → Notification campaigns",
+      "parent_context": "Advertising",
+      "ar_label": "حملات الإشعارات",
+      "en_label": "Notification Campaigns",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Advertising group and campaign item active",
+      "back_path": "Advertising/sidebar",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    },
+    {
+      "id": "advertising.coupons",
+      "domain": "Advertising / Promotions",
+      "capability": "Coupons",
+      "route": [
+        "admin.coupons.index"
+      ],
+      "route_path": [
+        "/admin/coupons"
+      ],
+      "controller_view": "CouponController / canonical coupons screen",
+      "role_persona": "authorized promotion operator",
+      "permission_entitlement": "coupons.view + advertising entitlement",
+      "navigation_owner": "Advertising",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Sidebar → Advertising → Coupons",
+      "parent_context": "Advertising",
+      "ar_label": "الكوبونات",
+      "en_label": "Coupons",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Advertising group and Coupons item active",
+      "back_path": "Advertising/sidebar",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": null
+    }
+  ],
+  "route_level_overrides": [
+    {
+      "route": "admin.catalog.categories.index",
+      "status": "DUPLICATE_DESTINATION",
+      "canonical": "admin.catalog.index?tab=categories",
+      "evidence": "CatalogManagementController::categories returns RedirectResponse",
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
+    },
+    {
+      "route": "admin.business.index",
+      "status": "DUPLICATE_DESTINATION",
+      "canonical": "authoritative B2B/B2C workspaces",
+      "evidence": "BusinessManagementController::index is a retired compatibility redirect; business-management.blade.php is a retired stub",
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
+    },
+    {
+      "route": "admin.b2b.orders.canonical",
+      "status": "DUPLICATE_DESTINATION",
+      "canonical": "admin.operations.orders.index",
+      "evidence": "B2B canonical order handoff uses shared Order Operations authority",
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
+    },
+    {
+      "route": "admin.b2c.orders.canonical",
+      "status": "DUPLICATE_DESTINATION",
+      "canonical": "admin.operations.orders.index",
+      "evidence": "B2C canonical order handoff uses shared Order Operations authority",
+      "remediation_owner": "#1991 RESOLVED",
+      "scope": "Compatibility-only entry. It must converge on the canonical authority and must never become a separate Sidebar/domain navigation owner."
+    }
+  ],
+  "explicit_exceptions": [
+    {
+      "pattern": "*.feed / *.poll / *lookup*",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "runtime data transport; never an independent operator destination"
+    },
+    {
+      "pattern": "*.export / *.download / *.asset / *.attachment",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "action/file response owned by a visible parent surface"
+    },
+    {
+      "pattern": "webhook/callback/mutation-only routes",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "machine/action endpoint; no inbound navigation required"
+    },
+    {
+      "pattern": "public /smart-ordering/{siteKey} storefront + sitemap",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "guest/public surface, outside Dashboard navigation"
+    },
+    {
+      "pattern": "admin.smart-ordering.customers.* / loyalty.* / service-recovery.* JSON endpoints",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "site-scoped service APIs; operator discovery is through Restaurant Operations Guest Book/customer context, not raw JSON navigation"
+    },
+    {
+      "pattern": "authenticated support/data GET endpoints owned by visible surfaces",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "JSON/data transport, auth bootstrap, validation guard, or file/report response owned by a visible parent surface; these are intentionally not independent navigation destinations.",
+      "routes": [
+        "admin.app-preview.targets",
+        "admin.assistant.bootstrap",
+        "admin.assistant.conversations.index",
+        "admin.assistant.conversations.messages.index",
+        "admin.b2b.login",
+        "admin.b2c.login",
+        "admin.csrf-token",
+        "admin.customer-360.finance-invoices",
+        "admin.customer-360.invalid-reference",
+        "admin.driver-live-tracking.evidence",
+        "admin.driver-live-tracking.lookups",
+        "admin.notifications.live",
+        "admin.production-launch.report",
+        "admin.reports.lookups",
+        "admin.smart-ordering.merchandising.index",
+        "admin.whatsapp-calls.permission",
+        "admin.whatsapp-campaigns.customers"
+      ]
+    }
+  ],
+  "findings": {
+    "nav_missing": [],
+    "nav_weak": [],
+    "prioritized_orphans": [],
+    "duplicates": [],
+    "permission_visibility_mismatches": [],
+    "misleading_active_context": [],
+    "dead_routes": [],
+    "recent_hidden_features": [
+      {
+        "scope": "Restaurant SaaS",
+        "resolution": "#1990 merged to main",
+        "status": "RESOLVED",
+        "evidence": "Shared Restaurant SaaS workspace now provides inbound links to Menu, Appearance, QR, Analytics, Supply, Integrations and Growth while preserving permissions/site context."
+      }
+    ],
+    "resolved_compatibility_aliases": [
+      {
+        "route": "admin.business.index",
+        "canonical": "authoritative B2B/B2C workspaces",
+        "resolution": "#1991 verified the legacy mixed-domain GET is redirect-only and is not a navigation authority.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.catalog.categories.index",
+        "canonical": "admin.catalog.index?tab=categories",
+        "resolution": "#1991 verified the route is redirect-only and preserves store/support context.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.b2b.orders.canonical",
+        "canonical": "admin.operations.orders.index?channel=b2b",
+        "resolution": "#1991 verified the route composes the shared Order Operations controller with a fixed B2B channel.",
+        "status": "RESOLVED_COMPATIBILITY"
+      },
+      {
+        "route": "admin.b2c.orders.canonical",
+        "canonical": "admin.operations.orders.index?channel=b2c",
+        "resolution": "#1991 verified the route composes the shared Order Operations controller with a fixed B2C channel.",
+        "status": "RESOLVED_COMPATIBILITY"
+      }
+    ]
+  },
+  "persona_evidence": {
+    "super_admin": "AdminNavigationAuthorizationAuditTest + Dashboard runtime evidence",
+    "retail_store_operator": "AdminNavigationAuthorizationAuditTest retail role + Restaurant SaaS permission-scoped workspace",
+    "wholesale_admin": "AdminNavigationAuthorizationAuditTest B2B role; Restaurant SaaS is hidden outside retail channel",
+    "mobile_desktop": "Shared responsive shell plus current visual evidence matrix; Restaurant Menu/Appearance use full 320/360/390/412/430/768/1024/1280+ matrix",
+    "localization": "Localization gate + AR/EN runtime evidence; capability labels are recorded in both languages"
+  },
+  "conclusion": "Current durable business capabilities are navigation-covered or explicitly classified. #1991 resolved all remaining duplicate findings as compatibility-only aliases that converge on canonical authorities; #1992 now enforces the navigation ledger in required CI so new business pages must declare an approved navigation strategy while reviewable technical/support endpoints remain explicit exceptions.",
+  "enforcement": {
+    "issue": 1992,
+    "test": "backend/tests/Feature/NavigationCapabilityInventoryTest.php",
+    "required_ci": true,
+    "direct_url_only_allowed": false,
+    "rule": "Every new business-facing admin page requires an approved navigation declaration or an explicit reviewable non-screen exception."
+  }
+}
