@@ -282,6 +282,33 @@ final class PurchaseOrderManager
 
             $this->requireStatus($order, ['draft', 'issued'], 'cancelled');
             $before = $order->toArray();
+
+            if ($order->status === 'issued' && $order->procurement_contract_id !== null) {
+                $contract = DB::table('enterprise_procurement_contracts')
+                    ->where('id', $order->procurement_contract_id)
+                    ->where('organization_id', $scope->organizationId)
+                    ->where('company_id', $scope->companyId)
+                    ->where('store_id', $scope->storeId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($contract !== null) {
+                    $lines = $order->lines()->get();
+                    $orderValue = round((float) $lines->sum(
+                        fn ($line): float => (float) ($line->unit_price ?? 0) * (float) $line->quantity,
+                    ), 3);
+                    $orderQuantity = round((float) $lines->sum('quantity'), 3);
+                    DB::table('enterprise_procurement_contracts')
+                        ->where('id', $contract->id)
+                        ->update([
+                            'committed_value' => max(0, round((float) $contract->committed_value - $orderValue, 3)),
+                            'committed_quantity' => max(0, round((float) $contract->committed_quantity - $orderQuantity, 3)),
+                            'updated_by' => $actor->id,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
+
             $order->forceFill([
                 'status' => 'cancelled',
                 'cancelled_by' => $actor->id,
@@ -364,6 +391,7 @@ final class PurchaseOrderManager
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
             ->where('status', 'active')
+            ->where('qualification_status', '!=', 'unqualified')
             ->where(function (Builder $query) use ($scope): void {
                 $query
                     ->where('scope_type', 'company')
