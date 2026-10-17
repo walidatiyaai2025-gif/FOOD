@@ -115,10 +115,19 @@ async function assertNoPageOverflow(page, label) {
 }
 
 async function assertLocaleDirection(page, locale, label) {
-  const direction = await page.evaluate(() => getComputedStyle(document.documentElement).direction);
+  const proof = await page.evaluate(() => ({
+    direction: getComputedStyle(document.documentElement).direction,
+    dirAttribute: document.documentElement.getAttribute('dir'),
+    lang: document.documentElement.getAttribute('lang'),
+    title: document.title,
+    body: (document.body?.innerText || '').replace(/\\s+/g, ' ').slice(0, 320),
+  }));
   const expected = locale === 'ar' ? 'rtl' : 'ltr';
-  if (direction !== expected) {
-    throw new Error(`Unexpected document direction for ${label}: ${direction} (expected ${expected})`);
+  if (proof.direction !== expected) {
+    throw new Error(
+      `Unexpected document direction for ${label}: ${proof.direction} (expected ${expected}); `
+      + `runtime=${JSON.stringify(proof)} url=${page.url()}`,
+    );
   }
 }
 
@@ -204,8 +213,18 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
     : representativeViewports;
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
-    await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
+    if (!response || !response.ok()) {
+      const body = (await page.locator('body').innerText().catch(() => ''))
+        .replace(/\\s+/g, ' ')
+        .slice(0, 800);
+      throw new Error(
+        `Responsive runtime route failed for ${channel}/${route}/${locale}/${state}: `
+        + `HTTP ${response?.status() ?? 'no-response'} ${page.url()}`
+        + (body ? ` · ${body}` : ''),
+      );
+    }
     await assertNoPageOverflow(page, `${channel}/${route}/${locale}/${state}`);
     await assertLocaleDirection(page, locale, `${channel}/${route}/${locale}/${state}`);
     await assertVisibleActionsInViewport(page, `${channel}/${route}/${locale}/${state}`);
