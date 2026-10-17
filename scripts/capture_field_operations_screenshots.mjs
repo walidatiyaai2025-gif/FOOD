@@ -116,6 +116,7 @@ async function captureCase(page, locale, entry, state, width, height) {
         selects: document.querySelectorAll('select').length,
         mainText: (document.querySelector('main')?.innerText ?? '').replace(/\\s+/g, ' ').slice(0, 900),
         mainHtmlLength: document.querySelector('main')?.innerHTML.length ?? 0,
+        shellHtml: (document.querySelector('.foodex-ops-shell')?.innerHTML ?? '').replace(/\\s+/g, ' ').slice(0, 1800),
       }));
       throw new Error(
         `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state}) · ${JSON.stringify(diagnostic)}`,
