@@ -67,7 +67,7 @@
                     <th>{{ __('system_admin.labels.migrations') }} / {{ __('system_admin.labels.health_check') }}</th>
                     <th>{{ __('system_admin.labels.rollback') }}</th>
                     <th>{{ __('system_admin.update_center.environment') }}</th>
-                    <th>{{ __('system_admin.labels.origin') }}</th>
+                    <th>{{ __('system_admin.labels.actor') }} / {{ __('system_admin.labels.reason') }}</th>
                     <th>{{ __('admin.system_update_surface.failure') }}</th>
                 </tr></thead>
                 <tbody>
@@ -112,7 +112,7 @@
                             </div>
                         </td>
                         <td>{{ $row->environment ?: '—' }}</td>
-                        <td>{{ $row->actor?->name ?: '—' }}</td>
+                        <td>{{ $row->actor?->name ?: '—' }}<br><code>{{ $row->operation_reason ?: '—' }}</code></td>
                         <td>{{ $row->failure_reason ?: '—' }}</td>
                     </tr>
                 @empty
