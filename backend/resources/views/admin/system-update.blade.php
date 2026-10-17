@@ -54,7 +54,7 @@
     <header class="foodex-page-header">
         <div>
             <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
-            <span class="foodex-subtitle">FOODEX · Runtime & Recovery</span>
+            <span class="foodex-subtitle">FOODEX · {{ __('admin.system_update_surface.dashboard_title') }}</span>
             <h1>{{ __('admin.system_update_surface.title') }}</h1>
             <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
         </div>
@@ -84,28 +84,28 @@
         </div>
         <div class="system-runtime-grid foodex-module-kpis">
             @php($runtimeMetrics = [
-                ['label'=>__('admin.system_update_surface.database_health'),'value'=>$statusLabel((string)($runtimeHealth['database']['state'] ?? 'unknown'))],
-                ['label'=>__('admin.system_update_surface.cache_health'),'value'=>$statusLabel((string)($runtimeHealth['cache']['state'] ?? 'unknown'))],
-                ['label'=>__('admin.system_update_surface.failed_jobs'),'value'=>$runtimeHealth['queue']['failed_jobs'] ?? '—'],
-                ['label'=>__('admin.system_update_surface.scheduler_health'),'value'=>$statusLabel((string)($runtimeHealth['scheduler']['state'] ?? 'unknown'))],
-                ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtimeHealth['pending_migrations'] ?? '—'],
-                ['label'=>__('admin.system_update_surface.storage_health'),'value'=>$statusLabel((string)($runtimeHealth['storage']['state'] ?? 'unknown'))],
-                ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtimeHealth['configuration_warnings'] ?? [])],
-                ['label'=>__('admin.system_update_surface.last_backup'),'value'=>is_array($lastBackup) ? ($lastBackup['reference'] ?? __('admin.system_update_surface.not_available')) : __('admin.system_update_surface.not_available')],
-                ['label'=>__('admin.system_update_surface.backup_age'),'value'=>$backupAgeDays === null ? __('admin.system_update_surface.not_available') : $backupAgeDays.' '.__('admin.system_update_surface.days')],
+                ['label'=>__('admin.system_update_surface.database_health'),'value'=>$statusLabel((string)($runtimeHealth['database']['state'] ?? 'unknown')),'url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.cache_health'),'value'=>$statusLabel((string)($runtimeHealth['cache']['state'] ?? 'unknown')),'url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.failed_jobs'),'value'=>$runtimeHealth['queue']['failed_jobs'] ?? '—','url'=>'#failed-jobs'],
+                ['label'=>__('admin.system_update_surface.scheduler_health'),'value'=>$statusLabel((string)($runtimeHealth['scheduler']['state'] ?? 'unknown')),'url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtimeHealth['pending_migrations'] ?? '—','url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.storage_health'),'value'=>$statusLabel((string)($runtimeHealth['storage']['state'] ?? 'unknown')),'url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtimeHealth['configuration_warnings'] ?? []),'url'=>route('admin.inspector.index').'#system-runtime'],
+                ['label'=>__('admin.system_update_surface.last_backup'),'value'=>is_array($lastBackup) ? ($lastBackup['reference'] ?? __('admin.system_update_surface.not_available')) : __('admin.system_update_surface.not_available'),'url'=>'#backup-center'],
+                ['label'=>__('admin.system_update_surface.backup_age'),'value'=>$backupAgeDays === null ? __('admin.system_update_surface.not_available') : $backupAgeDays.' '.__('admin.system_update_surface.days'),'url'=>'#backup-center'],
             ])
             @foreach($runtimeMetrics as $metric)
-                <article class="foodex-viz-card foodex-module-kpi" data-foodex-module-kpi data-interactive="false">
+                <a class="foodex-viz-card foodex-module-kpi" data-foodex-module-kpi data-interactive="true" href="{{ $metric['url'] }}">
                     <span class="foodex-module-kpi-label">{{ $metric['label'] }}</span>
                     <strong class="foodex-module-kpi-value foodex-number">{{ $metric['value'] }}</strong>
-                </article>
+                </a>
             @endforeach
         </div>
     </section>
 
     <section class="system-runtime-panels foodex-module-panels">
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
-            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.status_distribution') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.status_distribution_description') }}</p></div></div>
+            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title"><a href="#update-history">{{ __('admin.system_update_surface.status_distribution') }}</a></h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.status_distribution_description') }}</p></div></div>
             @forelse($updateStatusCounts as $status => $count)
                 @php($percent = max(2, min(100, (int) round(($count / $statusTotal) * 100))))
                 <div class="system-runtime-chart-row">
@@ -120,7 +120,7 @@
         </article>
 
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
-            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.backup_distribution') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.backup_distribution_description') }}</p></div></div>
+            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title"><a href="#backup-center">{{ __('admin.system_update_surface.backup_distribution') }}</a></h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.backup_distribution_description') }}</p></div></div>
             @foreach([
                 __('admin.system_update_surface.database') => $databaseBackups,
                 __('admin.system_update_surface.release_files') => $fileBackups,
@@ -137,7 +137,7 @@
         </article>
     </section>
 
-    <section class="foodex-card system-runtime-card" data-system-failed-jobs>
+    <section id="failed-jobs" class="foodex-card system-runtime-card" data-system-failed-jobs>
         <div class="foodex-viz-header">
             <div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.failed_jobs_title') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.failed_jobs_description') }}</p></div>
             <span class="badge">{{ __('admin.system_update_surface.failed_jobs') }} · 24h: <span class="foodex-number">{{ $runtimeHealth['queue']['failed_jobs_24h'] ?? 0 }}</span></span>
@@ -168,7 +168,7 @@
         </div>
     </section>
 
-    <section class="foodex-card system-runtime-card" data-system-backup-center>
+    <section id="backup-center" class="foodex-card system-runtime-card" data-system-backup-center>
         <div class="foodex-viz-header">
             <div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.backup_center') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.backup_description') }}</p></div>
         </div>
@@ -252,7 +252,7 @@
         </form>
     </section>
 
-    <section class="foodex-card system-runtime-card">
+    <section id="update-history" class="foodex-card system-runtime-card">
         <h2>{{ __('admin.system_update_surface.history') }}</h2>
         <div class="system-runtime-table-wrap">
             <table class="foodex-table system-runtime-table" data-pagination-required>
