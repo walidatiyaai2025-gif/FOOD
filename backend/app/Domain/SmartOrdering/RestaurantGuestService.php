@@ -39,7 +39,10 @@ final class RestaurantGuestService
         'CANCELLED' => [],
     ];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly SmartOrderingRuntimePolicy $runtime,
+    ) {}
 
     /**
      * @param  Collection<int, SmartOrderingBranch>  $branches
@@ -65,13 +68,26 @@ final class RestaurantGuestService
                 'tables' => [],
                 'records' => null,
                 'can_manage' => false,
+                'module_enabled' => false,
+            ];
+        }
+
+        $selected->loadMissing('site');
+        $moduleEnabled = $this->runtime->entitled($selected->site, Module::RESERVATIONS, $selected);
+        $canManage = $actor->hasPermission('orders.manage', (int) $selected->store_id)
+            || $actor->hasPermission('orders.manage');
+
+        if (! $moduleEnabled) {
+            return [
+                'selected_branch' => $selected,
+                'tables' => [],
+                'records' => null,
+                'can_manage' => false,
+                'module_enabled' => false,
             ];
         }
 
         $branchId = (int) $selected->getKey();
-        $canManage = $actor->hasPermission('orders.manage', (int) $selected->store_id)
-            || $actor->hasPermission('orders.manage');
-
         $tables = DB::table('smart_ordering_tables')
             ->where('branch_id', $branchId)
             ->where('is_active', true)
@@ -84,21 +100,26 @@ final class RestaurantGuestService
             ])
             ->all();
 
-        $records = $tab === 'waitlist'
-            ? $this->waitlistPage($selected)
-            : $this->reservationPage($selected);
+        $records = match ($tab) {
+            'waitlist' => $this->waitlistPage($selected),
+            'guest_book' => $this->guestBookPage($selected),
+            default => $this->reservationPage($selected),
+        };
 
         return [
             'selected_branch' => $selected,
             'tables' => $tables,
             'records' => $records,
             'can_manage' => $canManage,
+            'module_enabled' => true,
         ];
     }
 
     /** @param array<string,mixed> $data */
     public function createReservation(SmartOrderingBranch $branch, array $data, User $actor): string
     {
+        $this->assertOperational($branch);
+
         return DB::transaction(function () use ($branch, $data, $actor): string {
             $serviceAt = $this->serviceAtUtc($branch, (string) $data['service_at']);
             $table = $this->optionalTable($branch, $data['table_public_id'] ?? null);
@@ -147,6 +168,8 @@ final class RestaurantGuestService
         array $data,
         User $actor,
     ): void {
+        $this->assertOperational($branch);
+
         DB::transaction(function () use ($branch, $publicId, $data, $actor): void {
             $record = $this->reservation($branch, $publicId, true);
             if (in_array((string) $record->status, ['COMPLETED', 'CANCELLED', 'NO_SHOW'], true)) {
@@ -210,6 +233,8 @@ final class RestaurantGuestService
         string $target,
         User $actor,
     ): void {
+        $this->assertOperational($branch);
+
         DB::transaction(function () use ($branch, $publicId, $target, $actor): void {
             $record = $this->reservation($branch, $publicId, true);
             $current = (string) $record->status;
@@ -260,6 +285,8 @@ final class RestaurantGuestService
     /** @param array<string,mixed> $data */
     public function createWaitlist(SmartOrderingBranch $branch, array $data, User $actor): string
     {
+        $this->assertOperational($branch);
+
         return DB::transaction(function () use ($branch, $data, $actor): string {
             $publicId = (string) Str::uuid();
             $customerId = $this->matchedCustomerId($branch, $data);
@@ -303,6 +330,8 @@ final class RestaurantGuestService
         array $data,
         User $actor,
     ): void {
+        $this->assertOperational($branch);
+
         DB::transaction(function () use ($branch, $publicId, $data, $actor): void {
             $record = $this->waitlist($branch, $publicId, true);
             if (in_array((string) $record->status, ['CONVERTED', 'CANCELLED'], true)) {
@@ -344,6 +373,8 @@ final class RestaurantGuestService
         string $target,
         User $actor,
     ): void {
+        $this->assertOperational($branch);
+
         DB::transaction(function () use ($branch, $publicId, $target, $actor): void {
             $record = $this->waitlist($branch, $publicId, true);
             $current = (string) $record->status;
@@ -386,6 +417,8 @@ final class RestaurantGuestService
         bool $seatNow,
         User $actor,
     ): string {
+        $this->assertOperational($branch);
+
         return DB::transaction(function () use ($branch, $publicId, $tablePublicId, $seatNow, $actor): string {
             $wait = $this->waitlist($branch, $publicId, true);
 
@@ -529,13 +562,80 @@ final class RestaurantGuestService
         return $paginator;
     }
 
+    private function guestBookPage(SmartOrderingBranch $branch): LengthAwarePaginator
+    {
+        $reservations = DB::table('smart_ordering_reservations')
+            ->where('branch_id', (int) $branch->getKey())
+            ->select([
+                'customer_id',
+                'guest_name',
+                'guest_phone',
+                'guest_email',
+                DB::raw('created_at as last_seen_at'),
+                DB::raw("'reservation' as interaction_type"),
+            ]);
+
+        $waitlist = DB::table('smart_ordering_waitlist_entries')
+            ->where('branch_id', (int) $branch->getKey())
+            ->select([
+                'customer_id',
+                'guest_name',
+                'guest_phone',
+                'guest_email',
+                DB::raw('created_at as last_seen_at'),
+                DB::raw("'waitlist' as interaction_type"),
+            ]);
+
+        $events = $reservations->unionAll($waitlist);
+
+        $paginator = DB::query()
+            ->fromSub($events, 'guest_events')
+            ->select([
+                'customer_id',
+                'guest_name',
+                'guest_phone',
+                'guest_email',
+                DB::raw('MAX(last_seen_at) as last_seen_at'),
+                DB::raw("SUM(CASE WHEN interaction_type = 'reservation' THEN 1 ELSE 0 END) as reservation_count"),
+                DB::raw("SUM(CASE WHEN interaction_type = 'waitlist' THEN 1 ELSE 0 END) as waitlist_count"),
+            ])
+            ->groupBy('customer_id', 'guest_name', 'guest_phone', 'guest_email')
+            ->orderByDesc('last_seen_at')
+            ->paginate(25, ['*'], 'guest_book_page')
+            ->withQueryString();
+
+        $timezone = (string) ($branch->timezone ?: 'Asia/Kuwait');
+        $paginator->setCollection($paginator->getCollection()->map(
+            static fn (object $row): array => [
+                'guest_name' => (string) $row->guest_name,
+                'guest_phone' => $row->guest_phone,
+                'guest_email' => $row->guest_email,
+                'customer_linked' => $row->customer_id !== null,
+                'reservation_count' => (int) $row->reservation_count,
+                'waitlist_count' => (int) $row->waitlist_count,
+                'last_seen_display' => $row->last_seen_at === null
+                    ? '—'
+                    : CarbonImmutable::parse((string) $row->last_seen_at, 'UTC')
+                        ->setTimezone($timezone)
+                        ->format('Y-m-d H:i'),
+            ],
+        ));
+
+        return $paginator;
+    }
+
     private function serviceAtUtc(SmartOrderingBranch $branch, string $value): string
     {
         $timezone = (string) ($branch->timezone ?: 'Asia/Kuwait');
 
-        return CarbonImmutable::createFromFormat('Y-m-d\\TH:i', $value, $timezone)
-            ->utc()
-            ->format('Y-m-d H:i:s');
+        $serviceAt = CarbonImmutable::createFromFormat('Y-m-d\\TH:i', $value, $timezone)->utc();
+        if ($serviceAt->lt(now()->utc()->subMinutes(5))) {
+            throw ValidationException::withMessages([
+                'service_at' => [__('smart_ordering.guest_service.errors.service_time_past')],
+            ]);
+        }
+
+        return $serviceAt->format('Y-m-d H:i:s');
     }
 
     private function optionalTable(SmartOrderingBranch $branch, mixed $publicId): ?object
@@ -671,9 +771,25 @@ final class RestaurantGuestService
             })
             ->orderBy('id');
 
-        $value = $query->value('legacy_customer_id');
+        $matches = $query
+            ->pluck('legacy_customer_id')
+            ->filter(static fn ($id): bool => $id !== null)
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->take(2)
+            ->values();
 
-        return $value === null ? null : (int) $value;
+        return $matches->count() === 1 ? (int) $matches->first() : null;
+    }
+
+    private function assertOperational(SmartOrderingBranch $branch): void
+    {
+        $branch->loadMissing('site');
+        abort_unless($branch->is_active, 404);
+        abort_unless(
+            $this->runtime->entitled($branch->site, Module::RESERVATIONS, $branch),
+            404,
+        );
     }
 
     private function cleanNullable(mixed $value): ?string
