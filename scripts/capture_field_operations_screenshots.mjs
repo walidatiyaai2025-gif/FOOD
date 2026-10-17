@@ -116,6 +116,8 @@ async function captureCase(page, locale, entry, state, width, height) {
         selects: document.querySelectorAll('select').length,
         mainText: (document.querySelector('main')?.innerText ?? '').replace(/\\s+/g, ' ').slice(0, 900),
         mainHtmlLength: document.querySelector('main')?.innerHTML.length ?? 0,
+        shellSection: document.querySelector('.foodex-ops-shell')?.getAttribute('data-fieldops-shell-section') ?? null,
+        shellIsVans: document.querySelector('.foodex-ops-shell')?.getAttribute('data-fieldops-is-vans') ?? null,
         shellHtml: (document.querySelector('.foodex-ops-shell')?.innerHTML ?? '').replace(/\\s+/g, ' ').slice(0, 1800),
       }));
       throw new Error(
