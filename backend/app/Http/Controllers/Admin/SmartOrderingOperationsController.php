@@ -366,6 +366,8 @@ final class SmartOrderingOperationsController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
+        app()->setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
+
         return $actor;
     }
 
