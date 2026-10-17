@@ -299,6 +299,11 @@ return [
         'failed_at' => 'Failed at',
         'no_failed_jobs' => 'No failed jobs are currently recorded.',
         'backup_references' => 'Backup references',
+        'incident_trend_title' => '7-day runtime incident trend',
+        'incident_trend_description' => 'From authoritative System Inspector events.',
+        'failed_jobs_24h' => 'Failed jobs · 24h',
+        'day' => 'Day',
+        'incidents' => 'Incidents',
     ],
     'field_operations' => [
         'overview' => 'Operations Overview',
