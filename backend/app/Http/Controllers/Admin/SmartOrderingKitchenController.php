@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\RestaurantKitchenService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
