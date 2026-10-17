@@ -27,28 +27,30 @@ final class BuiltInJobRoleCatalog
     public function definitions(): Collection
     {
         /** @var array<string,array<string,mixed>> $definitions */
-        $definitions = (array) config('job_roles.roles', []);
+        $definitions = [];
+
+        foreach ((array) config('job_roles.roles', []) as $code => $definition) {
+            $code = (string) $code;
+            $definition = (array) $definition;
+
+            $normalized = [
+                'code' => $code,
+                'domain' => (string) ($definition['domain'] ?? 'administration'),
+                'scope' => (string) ($definition['scope'] ?? 'global'),
+                'business_scope' => (string) ($definition['business_scope'] ?? ($definition['scope'] ?? 'global')),
+                'level' => (string) ($definition['level'] ?? 'specialist'),
+                'required_modules' => array_values(array_unique(array_map('strval', (array) ($definition['required_modules'] ?? [])))),
+                'optional_modules' => array_values(array_unique(array_map('strval', (array) ($definition['optional_modules'] ?? [])))),
+                'permissions' => $this->defaultPermissions($code, $definition),
+                'is_system' => true,
+                'sort' => (int) ($definition['sort'] ?? 9999),
+            ];
+
+            $this->assertDefinition($normalized);
+            $definitions[$code] = $normalized;
+        }
 
         return collect($definitions)
-            ->map(function (array $definition, string $code): array {
-                /** @var array<string,mixed> $normalized */
-                $normalized = [
-                    'code' => $code,
-                    'domain' => (string) ($definition['domain'] ?? 'administration'),
-                    'scope' => (string) ($definition['scope'] ?? 'global'),
-                    'business_scope' => (string) ($definition['business_scope'] ?? ($definition['scope'] ?? 'global')),
-                    'level' => (string) ($definition['level'] ?? 'specialist'),
-                    'required_modules' => array_values(array_unique(array_map('strval', (array) ($definition['required_modules'] ?? [])))),
-                    'optional_modules' => array_values(array_unique(array_map('strval', (array) ($definition['optional_modules'] ?? [])))),
-                    'permissions' => $this->defaultPermissions($code, $definition),
-                    'is_system' => true,
-                    'sort' => (int) ($definition['sort'] ?? 9999),
-                ];
-
-                $this->assertDefinition($normalized);
-
-                return $normalized;
-            })
             ->sortBy([['sort', 'asc'], ['code', 'asc']]);
     }
 
