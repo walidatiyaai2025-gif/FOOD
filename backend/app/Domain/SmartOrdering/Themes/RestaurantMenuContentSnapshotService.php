@@ -14,6 +14,7 @@ use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Models\Store;
 use App\Services\CommerceQuoteService;
 use App\Support\DisplayNumber;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -51,7 +52,7 @@ final class RestaurantMenuContentSnapshotService
             ->orderBy('id')
             ->get();
 
-        /** @var \Illuminate\Support\Collection<int,SmartOrderingMenuItem> $items */
+        /** @var Collection<int,SmartOrderingMenuItem> $items */
         $items = collect();
         foreach ($menus as $menu) {
             foreach ($menu->categories as $category) {
