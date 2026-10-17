@@ -42,9 +42,10 @@ return [
     ],
     'states' => [
         'ready' => 'جاهز', 'attention' => 'يحتاج انتباه', 'ACTIVE' => 'نشط',
-        'SUSPENDED' => 'موقوف', 'CLOSED' => 'مغلق',
+        'SUSPENDED' => 'موقوف', 'CLOSED' => 'مغلق', 'suspended' => 'موقوف', 'closed' => 'مغلق',
     ],
     'channels' => ['b2c' => 'التجزئة / B2C', 'b2b' => 'الجملة / B2B', 'restaurant' => 'المطاعم'],
+    'channel_states' => ['active'=>'نشط','inactive'=>'غير نشط','not_linked'=>'غير مرتبط','not_configured'=>'غير مهيأ','disabled'=>'معطل','enabled'=>'مفعل','internal_test'=>'اختبار داخلي','pilot'=>'تجريبي','emergency_stop'=>'إيقاف طارئ','degraded'=>'متدهور','suspended'=>'موقوف'],
     'reports' => [
         'performance' => 'أداء المتاجر', 'readiness' => 'جاهزية / صحة المتاجر',
         'availability' => 'استثناءات التوفر', 'integrations' => 'استثناءات التكامل / القنوات',
