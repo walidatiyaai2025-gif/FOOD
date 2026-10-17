@@ -8,6 +8,7 @@ use App\Domain\WhatsApp\CampaignReportExporter;
 use App\Domain\WhatsApp\CampaignReportService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
+use App\Domain\WhatsApp\MessagingOperationsOverviewService;
 use App\Domain\WhatsApp\MetaTemplateService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Controllers\Controller;
@@ -32,6 +33,7 @@ final class WhatsAppCampaignController extends Controller
         Request $request,
         CampaignService $campaigns,
         CampaignReportService $reports,
+        MessagingOperationsOverviewService $operations,
         OperationalTenantScope $scope,
     ): View|JsonResponse {
         $actor = $this->actor($request);
@@ -68,8 +70,14 @@ final class WhatsAppCampaignController extends Controller
             ->limit(100)
             ->get();
 
+        $operationsOverview = $operations->overview($actor);
+
         if ($request->expectsJson()) {
-            return response()->json(['campaigns' => $rows, 'templates' => $templates]);
+            return response()->json([
+                'campaigns' => $rows,
+                'templates' => $templates,
+                'operations_overview' => $operationsOverview,
+            ]);
         }
 
         $storeIds = $scope->allowedStoreIds($actor, 'whatsapp.campaigns.view');
@@ -96,6 +104,7 @@ final class WhatsAppCampaignController extends Controller
         return view('admin.whatsapp-campaigns.index', [
             'campaigns' => $rows,
             'templates' => $templates,
+            'operationsOverview' => $operationsOverview,
             'stores' => $stores,
             'tags' => $tags,
             'agents' => $agents,
