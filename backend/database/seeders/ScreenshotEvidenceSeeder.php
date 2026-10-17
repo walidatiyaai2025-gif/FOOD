@@ -453,6 +453,13 @@ class ScreenshotEvidenceSeeder extends Seeder
 
         $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
+        app(ModuleEntitlementManager::class)->set(
+            'smart_ordering',
+            new EntitlementScope(EntitlementScope::STORE, $retailStoreId),
+            true,
+            null,
+            $procurementActor,
+        );
         $retailFinanceHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($retailStoreId);
         if ($retailFinanceHierarchy === null) {
             throw new RuntimeException('Finance screenshot fixture requires a retail legal-entity scope.');
