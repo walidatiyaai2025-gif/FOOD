@@ -97,7 +97,8 @@ final class SystemAdministrationRuntime
         ) {
             $state = 'error';
         } elseif (
-            ($failedJobs ?? 0) > 0
+            $failedJobs === null
+            || ($failedJobs ?? 0) > 0
             || $scheduler['state'] === 'warning'
             || $configurationWarnings !== []
         ) {
