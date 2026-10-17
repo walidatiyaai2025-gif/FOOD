@@ -144,7 +144,7 @@ final class ErpCenterController extends Controller
             1,
             route('admin.action-center.index'),
         );
-        $failedReports = $this->failedReportJobs($actor);
+        $failedReports = $this->failedReportJobs($actor, $cards);
         $healthSummary = $this->healthSummary($cards);
         $workload = $this->workloadByModule($actor, $cards);
 
@@ -189,9 +189,7 @@ final class ErpCenterController extends Controller
                 'value' => $failedReports['count'],
                 'available' => $failedReports['available'],
                 'bounded' => false,
-                'url' => $failedReports['available'] && Route::has('admin.erp.bi')
-                    ? route('admin.erp.bi')
-                    : null,
+                'url' => $failedReports['url'],
             ],
             [
                 'key' => 'module_health',
@@ -414,28 +412,37 @@ final class ErpCenterController extends Controller
         return $rows;
     }
 
-    /** @return array{available:bool,count:?int} */
-    private function failedReportJobs(User $actor): array
+    /** @param list<array<string,mixed>> $cards
+     * @return array{available:bool,count:?int,url:?string}
+     */
+    private function failedReportJobs(User $actor, array $cards): array
     {
-        if (! ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'))) {
-            return ['available' => false, 'count' => null];
+        $biCard = collect($cards)->firstWhere('key', 'bi');
+        $biOperational = is_array($biCard)
+            && in_array($biCard['status'], ['available', 'degraded'], true)
+            && is_string($biCard['url'])
+            && $biCard['url'] !== '';
+
+        if (! $biOperational
+            || ! ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'))) {
+            return ['available' => false, 'count' => null, 'url' => null];
         }
 
         $hasExports = Schema::hasTable('enterprise_report_exports');
         $hasSchedules = Schema::hasTable('enterprise_scheduled_reports');
         if (! $hasExports && ! $hasSchedules) {
-            return ['available' => false, 'count' => null];
+            return ['available' => false, 'count' => null, 'url' => null];
         }
 
         $failedExports = $hasExports
-            ? (int) \DB::table('enterprise_report_exports')
+            ? (int) DB::table('enterprise_report_exports')
                 ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
                 ->where('status', 'failed')
                 ->count()
             : 0;
 
         $failedSchedules = $hasSchedules
-            ? (int) \DB::table('enterprise_scheduled_reports')
+            ? (int) DB::table('enterprise_scheduled_reports')
                 ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
                 ->whereNotNull('last_error')
                 ->count()
@@ -444,6 +451,7 @@ final class ErpCenterController extends Controller
         return [
             'available' => true,
             'count' => $failedExports + $failedSchedules,
+            'url' => $biCard['url'],
         ];
     }
 }
