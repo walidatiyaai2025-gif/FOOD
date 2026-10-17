@@ -465,8 +465,10 @@ final class TreasuryAnalyticsService
             ->where('status', EnterpriseTreasuryReceipt::STATUS_POSTED)
             ->whereBetween('value_date', [$from->toDateString(), $to->toDateString()])
             ->groupBy('currency_code')
-            ->pluck(DB::raw('SUM(amount)'), 'currency_code')
-            ->map(fn ($amount): int => $this->toMills((string) $amount))
+            ->get(['currency_code', DB::raw('SUM(amount) as amount')])
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->currency_code => $this->toMills((string) $row->amount),
+            ])
             ->all();
 
         $outflow = DB::table('enterprise_treasury_payments')
@@ -476,8 +478,10 @@ final class TreasuryAnalyticsService
             ->where('status', EnterpriseTreasuryPayment::STATUS_POSTED)
             ->whereBetween('value_date', [$from->toDateString(), $to->toDateString()])
             ->groupBy('currency_code')
-            ->pluck(DB::raw('SUM(amount)'), 'currency_code')
-            ->map(fn ($amount): int => $this->toMills((string) $amount))
+            ->get(['currency_code', DB::raw('SUM(amount) as amount')])
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->currency_code => $this->toMills((string) $row->amount),
+            ])
             ->all();
 
         return ['inflow' => $inflow, 'outflow' => $outflow];
