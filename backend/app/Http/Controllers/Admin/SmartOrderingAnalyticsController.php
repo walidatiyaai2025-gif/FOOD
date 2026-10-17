@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\RestaurantAnalyticsService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -104,8 +105,8 @@ final class SmartOrderingAnalyticsController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $allowed = $scope->allowedStoreIds($actor, $permission, 'b2c');
-        abort_if($allowed === [], 403);
+        $allowed = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, $permission, $request);
 
         $filters = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
