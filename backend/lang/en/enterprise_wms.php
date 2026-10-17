@@ -90,6 +90,12 @@ return [
             'slow' => 'Slow',
             'dead' => 'Dead',
             'last_refresh' => 'Last refresh',
+            'expiry_buckets' => [
+                'days_0_7' => '0–7 days',
+                'days_8_30' => '8–30 days',
+                'days_31_60' => '31–60 days',
+                'days_61_90' => '61–90 days',
+            ],
         ],
     ],
     'movements' => [
