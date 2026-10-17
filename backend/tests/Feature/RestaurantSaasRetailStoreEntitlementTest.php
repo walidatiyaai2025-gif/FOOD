@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Models\Role;
@@ -76,7 +77,7 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
         $this->assertNotNull($site);
         app(SmartOrderingSiteService::class)->setEntitlement(
             $manager,
-            \App\Domain\SmartOrdering\Models\SmartOrderingSite::query()->findOrFail($site->id),
+            SmartOrderingSite::query()->findOrFail($site->id),
             Module::PUBLIC_MENU,
             true,
         );
