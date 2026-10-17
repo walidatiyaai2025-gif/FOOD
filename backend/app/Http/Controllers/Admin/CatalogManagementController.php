@@ -698,18 +698,18 @@ final class CatalogManagementController extends Controller
                 ...collect($data)->except(['is_active', 'images'])->all(),
                 'is_active' => $active,
                 'lifecycle_state' => $nextLifecycle,
-                'lifecycle_effective_at' => ($beforeProduct?->lifecycle_state ?? null) === $nextLifecycle
-                    ? ($beforeProduct?->lifecycle_effective_at ?? now())
+                'lifecycle_effective_at' => ($beforeProduct->lifecycle_state ?? null) === $nextLifecycle
+                    ? ($beforeProduct->lifecycle_effective_at ?? now())
                     : now(),
                 'end_of_life_at' => null,
                 'updated_at' => now(),
             ]);
 
-            if (($beforeProduct?->lifecycle_state ?? null) !== $nextLifecycle) {
+            if (($beforeProduct->lifecycle_state ?? null) !== $nextLifecycle) {
                 DB::table('product_lifecycle_transitions')->insert([
                     'product_id' => $product,
                     'user_id' => $this->actor($request)->id,
-                    'from_state' => $beforeProduct?->lifecycle_state,
+                    'from_state' => $beforeProduct->lifecycle_state,
                     'to_state' => $nextLifecycle,
                     'effective_at' => now(),
                     'reason' => __('catalog_completion.lifecycle.legacy_active_toggle_reason'),
