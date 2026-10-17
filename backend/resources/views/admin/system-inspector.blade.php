@@ -5,7 +5,7 @@
 <title>{{ __('admin.system_inspector') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-.inspector-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}
+.inspector-grid{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-5)}
 .inspector-stat{padding:var(--foodex-space-5)}.inspector-stat strong{display:block;color:var(--foodex-muted);font-size:var(--foodex-text-xs)}.inspector-stat b{display:block;margin-top:6px;font-size:1.8rem}
 .inspector-toolbar{display:flex;flex-wrap:wrap;gap:var(--foodex-space-3);align-items:end;padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
 .inspector-toolbar label{display:grid;gap:6px;font-weight:700}.inspector-toolbar input,.inspector-toolbar select{min-width:170px}
