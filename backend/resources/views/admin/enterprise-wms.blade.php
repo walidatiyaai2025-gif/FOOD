@@ -15,8 +15,11 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .wms-table-wrap{overflow:auto}.wms-table{width:100%;border-collapse:collapse;min-width:720px}.wms-table th,.wms-table td{padding:11px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.wms-table th{font-size:.82rem;color:var(--foodex-muted)}.wms-table small{color:var(--foodex-muted)}.wms-badge{display:inline-flex;align-items:center;min-height:30px;padding-inline:9px;border:1px solid var(--foodex-border);border-radius:999px;font-weight:800}
 .wms-actions{display:flex;gap:6px;flex-wrap:wrap}.wms-actions form{margin:0}.wms-actions button,.wms-form button,.wms-context button{min-height:42px}.wms-checks{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.wms-check{display:flex;gap:8px;align-items:flex-start;padding:9px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface)}.wms-check input{margin-top:4px}.wms-help{grid-column:1/-1;margin:0;color:var(--foodex-muted);font-size:.9rem}
 .wms-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-block-start:14px}.wms-empty{padding:24px;text-align:center;color:var(--foodex-muted)}
-@media(max-width:900px){.wms-context form,.wms-form{grid-template-columns:repeat(2,minmax(0,1fr))}.wms-split{grid-template-columns:1fr}.wms-checks{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:767px){.wms-page{padding:13px}.wms-context form,.wms-form{grid-template-columns:1fr}.wms-form .wide{grid-column:auto}.wms-checks{grid-template-columns:1fr}.wms-panel{padding:13px}.wms-table{min-width:0}.wms-table-wrap{overflow:visible}}
+.wms-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wms-donut-row{display:grid;grid-template-columns:minmax(124px,.8fr) minmax(0,1.2fr);gap:16px;align-items:center}.wms-donut-row .foodex-viz-legend{display:grid;margin-top:0}.wms-chart-list{display:grid;gap:8px}.wms-chart-list>span{display:flex;align-items:center;justify-content:space-between;gap:10px}.wms-exception-list{display:grid;gap:8px}.wms-exception-list>a{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1fr) auto;align-items:center;gap:10px;min-height:44px;padding:8px 10px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:var(--foodex-ink)}.wms-exception-list>a:last-child{border-bottom:0}.foodex-viz-swatch[data-series="warning"]{background:var(--foodex-viz-warning)}.foodex-viz-swatch[data-series="danger"]{background:var(--foodex-viz-danger)}
+.wms-location-forms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wms-location-forms>.wms-form:last-child{grid-column:1/-1}.wms-report-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.wms-report-card{display:grid;gap:5px;text-decoration:none;color:var(--foodex-ink)}.wms-report-card small{color:var(--foodex-muted);overflow-wrap:anywhere}.wms-plan-explain td{background:var(--foodex-background);color:var(--foodex-muted)}.wms-360-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wms-360-facts>span{display:grid;gap:2px;padding:8px;border-bottom:1px solid var(--foodex-border);color:var(--foodex-muted)}.wms-360-facts strong{color:var(--foodex-ink)}
+
+@media(max-width:900px){.wms-context form,.wms-form{grid-template-columns:repeat(2,minmax(0,1fr))}.wms-split,.wms-dashboard-grid{grid-template-columns:1fr}.wms-checks{grid-template-columns:repeat(2,minmax(0,1fr))}.wms-report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.wms-page{padding:13px}.wms-context form,.wms-form{grid-template-columns:1fr}.wms-form .wide{grid-column:auto}.wms-checks,.wms-location-forms,.wms-report-cards{grid-template-columns:1fr}.wms-location-forms>.wms-form:last-child{grid-column:auto}.wms-panel{padding:13px}.wms-table{min-width:0}.wms-table-wrap{overflow:visible}.wms-donut-row{grid-template-columns:1fr}.wms-exception-list>a{grid-template-columns:1fr}.wms-360-facts{grid-template-columns:1fr}}
 </style>
 </head><body>
 @php
@@ -46,14 +49,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 <section class="wms-panel foodex-card">
 @if($tab==='overview')
-<h2>{{ __('enterprise_wms.overview.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.overview.subtitle') }}</p>
-<div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.product') }}</th><th>{{ __('enterprise_wms.common.warehouse') }}</th><th>{{ __('enterprise_wms.common.quantity') }}</th><th>{{ __('enterprise_wms.common.reserved') }}</th><th>{{ __('enterprise_wms.common.available') }}</th><th>{{ __('enterprise_wms.common.unit_cost') }}</th></tr></thead><tbody>
-@forelse($inventoryRows as $row)<tr><td><strong>{{ $row->product_name }}</strong><br><small>{{ $row->product_sku }}</small></td><td>{{ $row->warehouse_name }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->reserved_quantity) }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity-(float)$row->reserved_quantity) }}</td><td>{{ $row->unit_cost===null ? '—' : \App\Support\DisplayNumber::money((float)$row->unit_cost, null) }}</td></tr>@empty<tr><td colspan="6" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
-</tbody></table></div>
-<h3>{{ __('enterprise_wms.overview.low_stock') }}</h3>
-<div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.product') }}</th><th>{{ __('enterprise_wms.reorder.minimum') }}</th><th>{{ __('enterprise_wms.common.available') }}</th><th>{{ __('enterprise_wms.reorder.reorder_quantity') }}</th></tr></thead><tbody>
-@forelse($lowStockRows as $row) @php($product=$productLabels->get((int)$row->product_id)) <tr><td>{{ $product?->product_name ?? __('enterprise_wms.common.product') }} @if($product)<br><small>{{ $product->sku }}</small>@endif</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->minimum_quantity) }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->available_quantity) }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->reorder_quantity) }}</td></tr>@empty<tr><td colspan="4" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
-</tbody></table></div>
+@include('admin._enterprise-wms-overview')
 
 @elseif($tab==='movements')
 <h2>{{ __('enterprise_wms.movements.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.movements.subtitle') }}</p>
@@ -194,8 +190,18 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </tbody></table></div></div><div><h3>{{ __('enterprise_wms.aging.slow_dead') }}</h3><div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.product') }}</th><th>{{ __('enterprise_wms.common.quantity') }}</th><th>{{ __('enterprise_wms.common.last_inbound') }}</th></tr></thead><tbody>
 @forelse($slowStockRows as $row) @php($product=$productLabels->get((int)$row->product_id)) <tr><td>{{ $product?->product_name ?? __('enterprise_wms.common.product') }}</td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</td><td>{{ \Illuminate\Support\Carbon::parse($row->last_inbound_at)->format('Y-m-d') }}</td></tr>@empty<tr><td colspan="3" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
 </tbody></table></div></div></div>
+@elseif($tab==='locations')
+@include('admin._enterprise-wms-locations')
+
+@elseif($tab==='planning')
+@include('admin._enterprise-wms-planning')
+
+@elseif($tab==='reports')
+@include('admin._enterprise-wms-reports')
+
 @endif
 </section>
+@include('admin._enterprise-wms-record360')
 </main></div>
 <script>
 document.querySelectorAll('[data-wms-mutation]').forEach((form)=>{

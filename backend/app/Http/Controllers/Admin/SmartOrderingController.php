@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
+use App\Domain\RestaurantSaaS\RestaurantOperationsOverviewService;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
@@ -29,6 +30,7 @@ final class SmartOrderingController extends Controller
         SmartOrderingSiteService $sites,
         SmartOrderingRevisionService $revisions,
         RestaurantOnboardingService $onboarding,
+        RestaurantOperationsOverviewService $overview,
     ): View {
         $actor = $this->actor($request);
         $storeIds = $tenants->retailStoreIds($actor);
@@ -50,6 +52,14 @@ final class SmartOrderingController extends Controller
         abort_unless($selectedStore instanceof Store, 404);
         $onboardingStatus = $onboarding->status($selectedStore, $actor);
 
+        $overviewFilters = $request->validate([
+            'branch' => ['nullable', 'uuid'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'channel' => ['nullable', Rule::in(['dine_in', 'pickup', 'delivery'])],
+        ]);
+        $restaurantOverview = $overview->snapshot($site, $actor, $overviewFilters);
+
         $entitlements = DB::table('smart_ordering_entitlements')
             ->where('site_id', $site->id)
             ->pluck('enabled', 'module')
@@ -69,6 +79,7 @@ final class SmartOrderingController extends Controller
             'canManageOnboarding' => $actor->hasPermission('smart_ordering.manage', $storeId),
             'canLaunchOnboarding' => $actor->hasPermission('smart_ordering.publish', $storeId),
             'onboardingTimezones' => DateTimeZone::listIdentifiers(),
+            'restaurantOverview' => $restaurantOverview,
         ]);
     }
 

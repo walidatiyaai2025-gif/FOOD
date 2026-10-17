@@ -24,10 +24,6 @@ final class ScheduledReportDispatcher
 
     public function dispatchDue(int $limit = 25): int
     {
-        if (! $this->modules->isEnabled('enterprise_bi')) {
-            return 0;
-        }
-
         $ids = DB::table('enterprise_scheduled_reports')
             ->where('enabled', true)
             ->where('next_run_at', '<=', now())
@@ -65,6 +61,10 @@ final class ScheduledReportDispatcher
 
         try {
             $report = $this->reports->require((string) $schedule->report_code);
+            if (! $this->modules->isEnabled($report->moduleCode)) {
+                return false;
+            }
+
             $scope = new EntitlementScope(
                 (string) $schedule->scope_type,
                 $schedule->scope_id === null ? null : (int) $schedule->scope_id,

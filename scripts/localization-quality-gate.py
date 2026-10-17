@@ -138,6 +138,8 @@ def looks_like_blade_source_fragment(value: str) -> bool:
         return True
     if re.search(r"\b[A-Za-z][A-Za-z0-9_]*_[A-Za-z0-9_]*\)+$", candidate):
         return True
+    if re.search(r"(?:===|!==|==|!=|>=|<=|&&|\|\||=>|\?\?)", candidate):
+        return True
     return False
 
 
@@ -388,7 +390,20 @@ def scan_added_lines(
                         f"{path}:{lineno}: raw user-facing Blade text {value!r}; use __()"
                     )
 
-            if BLADE_DYNAMIC_ENUM_PATTERN.search(line) and "__(" not in line and "trans(" not in line:
+            for enum_match in BLADE_DYNAMIC_ENUM_PATTERN.finditer(line):
+                expression = enum_match.group(0)
+                prefix = line[: enum_match.start()]
+                data_attribute = re.search(
+                    r"\bdata-[\w:-]+\s*=\s*(['\"])[^'\"]*$",
+                    prefix,
+                    flags=re.IGNORECASE,
+                )
+                localized_resolver = re.search(
+                    r"\$[A-Za-z_][A-Za-z0-9_]*Label\s*\(",
+                    expression,
+                )
+                if data_attribute or "__(" in expression or "trans(" in expression or localized_resolver:
+                    continue
                 errors.append(
                     f"{path}:{lineno}: status/type/channel/payment/role/unit is rendered directly; "
                     "use a localized label/translation"

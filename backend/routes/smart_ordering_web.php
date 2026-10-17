@@ -59,8 +59,18 @@ Route::prefix('admin/smart-ordering')
             ->whereNumber('site')->whereUuid('integration')->name('integrations.status');
         Route::post('/sites/{site}/integrations/api-clients', [RestaurantIntegrationController::class, 'apiClient'])
             ->whereNumber('site')->name('integrations.api-clients.store');
+        Route::patch('/sites/{site}/integrations/api-clients/{client}/revoke', [RestaurantIntegrationController::class, 'revokeApiClient'])
+            ->whereNumber('site')->whereUuid('client')->name('integrations.api-clients.revoke');
         Route::post('/sites/{site}/integrations/webhooks', [RestaurantIntegrationController::class, 'webhook'])
             ->whereNumber('site')->name('integrations.webhooks.store');
+        Route::patch('/sites/{site}/integrations/webhooks/{webhook}/status', [RestaurantIntegrationController::class, 'webhookStatus'])
+            ->whereNumber('site')->whereUuid('webhook')->name('integrations.webhooks.status');
+        Route::post('/sites/{site}/integrations/events/{event}/retry', [RestaurantIntegrationController::class, 'retryEvent'])
+            ->whereNumber('site')->whereNumber('event')->name('integrations.events.retry');
+        Route::post('/sites/{site}/integrations/deliveries/{delivery}/replay', [RestaurantIntegrationController::class, 'replayDelivery'])
+            ->whereNumber('site')->whereNumber('delivery')->name('integrations.deliveries.replay');
+        Route::get('/sites/{site}/integrations/export', [RestaurantIntegrationController::class, 'export'])
+            ->whereNumber('site')->name('integrations.export');
 
         Route::get('/supply', [SmartOrderingSupplyController::class, 'entry'])->name('supply.entry');
         Route::get('/sites/{site}/supply', [SmartOrderingSupplyController::class, 'index'])

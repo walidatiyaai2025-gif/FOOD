@@ -6,12 +6,14 @@ use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class RestaurantIntegrationController extends Controller
 {
@@ -22,6 +24,18 @@ final class RestaurantIntegrationController extends Controller
         TenantContextResolver $tenants,
     ): View {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.view');
+        $filters = $request->validate([
+            'provider' => ['nullable', 'alpha_dash', 'max:80'],
+            'capability' => ['nullable', 'string', 'max:80'],
+            'direction' => ['nullable', 'in:inbound,outbound'],
+            'status' => ['nullable', 'in:received,processed,retry,dead_letter'],
+            'webhook_status' => ['nullable', 'in:pending,retry,delivered,dead_letter'],
+            'event_type' => ['nullable', 'string', 'max:120'],
+            'branch_id' => ['nullable', 'integer', 'min:1'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'q' => ['nullable', 'string', 'max:190'],
+        ]);
 
         return view('admin.smart-ordering-integrations', [
             'site' => $site,
@@ -33,7 +47,12 @@ final class RestaurantIntegrationController extends Controller
                 ->get(),
             'integrations' => $integrations->integrations($site),
             'webhooks' => $integrations->webhooks($site),
+            'apiClients' => $integrations->apiClients($site),
+            'events' => $integrations->integrationEvents($site, $filters),
+            'deliveries' => $integrations->webhookDeliveries($site, $filters),
+            'analytics' => $integrations->analytics($site),
             'health' => $integrations->health($site),
+            'filters' => $filters,
             'connectorTypes' => RestaurantIntegrationService::CONNECTOR_TYPES,
             'capabilities' => RestaurantIntegrationService::CAPABILITIES,
         ]);
@@ -76,10 +95,17 @@ final class RestaurantIntegrationController extends Controller
         string $integration,
         RestaurantIntegrationService $integrations,
         TenantContextResolver $tenants,
+        AuditLogger $audit,
     ): RedirectResponse {
-        $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
         $data = $request->validate(['status' => ['required', 'in:disabled,enabled,degraded,suspended']]);
         $integrations->setStatus($site, $integration, (string) $data['status']);
+        $audit->record('restaurant.integration.status_changed', $actor, null, null, [
+            'store_id' => (int) $site->store_id,
+            'site_id' => (int) $site->getKey(),
+            'integration' => $integration,
+            'status' => (string) $data['status'],
+        ], $request);
 
         return back()->with('status', __('restaurant_integrations.status_updated'));
     }
@@ -111,6 +137,25 @@ final class RestaurantIntegrationController extends Controller
             ->with('restaurant_api_credential', $result['credential']);
     }
 
+    public function revokeApiClient(
+        Request $request,
+        SmartOrderingSite $site,
+        string $client,
+        RestaurantIntegrationService $integrations,
+        TenantContextResolver $tenants,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $integrations->revokeApiClient($site, $client);
+        $audit->record('restaurant.integration.api_client_revoked', $actor, null, null, [
+            'store_id' => (int) $site->store_id,
+            'site_id' => (int) $site->getKey(),
+            'api_client' => $client,
+        ], $request);
+
+        return back()->with('status', __('restaurant_integrations.api_client_revoked'));
+    }
+
     public function webhook(
         Request $request,
         SmartOrderingSite $site,
@@ -129,6 +174,94 @@ final class RestaurantIntegrationController extends Controller
         return back()
             ->with('status', __('restaurant_integrations.webhook_created'))
             ->with('restaurant_webhook_secret', $result['secret']);
+    }
+
+    public function webhookStatus(
+        Request $request,
+        SmartOrderingSite $site,
+        string $webhook,
+        RestaurantIntegrationService $integrations,
+        TenantContextResolver $tenants,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $data = $request->validate(['active' => ['required', 'boolean']]);
+        $integrations->setWebhookActive($site, $webhook, (bool) $data['active']);
+        $audit->record('restaurant.integration.webhook_status_changed', $actor, null, null, [
+            'store_id' => (int) $site->store_id,
+            'site_id' => (int) $site->getKey(),
+            'webhook' => $webhook,
+            'active' => (bool) $data['active'],
+        ], $request);
+
+        return back()->with('status', __('restaurant_integrations.webhook_status_updated'));
+    }
+
+    public function retryEvent(
+        Request $request,
+        SmartOrderingSite $site,
+        int $event,
+        RestaurantIntegrationService $integrations,
+        TenantContextResolver $tenants,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $integrations->retryIntegrationEvent($site, $event);
+        $audit->record('restaurant.integration.event_requeued', $actor, null, null, [
+            'store_id' => (int) $site->store_id,
+            'site_id' => (int) $site->getKey(),
+            'event_id' => $event,
+        ], $request);
+
+        return back()->with('status', __('restaurant_integrations.retry_queued'));
+    }
+
+    public function replayDelivery(
+        Request $request,
+        SmartOrderingSite $site,
+        int $delivery,
+        RestaurantIntegrationService $integrations,
+        TenantContextResolver $tenants,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $integrations->replayWebhookDelivery($site, $delivery);
+        $audit->record('restaurant.integration.webhook_requeued', $actor, null, null, [
+            'store_id' => (int) $site->store_id,
+            'site_id' => (int) $site->getKey(),
+            'delivery_id' => $delivery,
+        ], $request);
+
+        return back()->with('status', __('restaurant_integrations.retry_queued'));
+    }
+
+    public function export(
+        Request $request,
+        SmartOrderingSite $site,
+        RestaurantIntegrationService $integrations,
+        TenantContextResolver $tenants,
+    ): StreamedResponse {
+        $this->authorizeSite($request, $site, $tenants, 'smart_ordering.view');
+        $data = $request->validate([
+            'report' => ['required', 'in:connector-health,sync-failures,api-usage,webhook-performance,exceptions'],
+        ]);
+        $report = (string) $data['report'];
+        $rows = $integrations->reportRows($site, $report);
+
+        return response()->streamDownload(function () use ($rows): void {
+            $stream = fopen('php://output', 'wb');
+            if ($stream === false) {
+                return;
+            }
+
+            if ($rows !== []) {
+                fputcsv($stream, array_keys($rows[0]));
+                foreach ($rows as $row) {
+                    fputcsv($stream, array_values($row));
+                }
+            }
+            fclose($stream);
+        }, 'restaurant-integration-'.$report.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     private function authorizeSite(
