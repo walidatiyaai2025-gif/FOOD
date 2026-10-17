@@ -19,8 +19,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -70,6 +72,8 @@ final class EnterpriseSystemHealthController extends Controller
         })->values();
 
         $database = $this->databaseHealth();
+        $cache = $this->cacheHealth();
+        $queue = $this->queueHealth();
         $storage = $this->storageHealth();
         $failedJobs = $this->failedJobs($from, $to);
         $scheduler = $this->schedulerHealth();
@@ -85,14 +89,14 @@ final class EnterpriseSystemHealthController extends Controller
             ->filter(static fn (array $row): bool => is_string($row['created_at'] ?? null) && $row['created_at'] !== '')
             ->sortByDesc('created_at')
             ->first();
-        $warnings = $this->configurationWarnings($database, $storage, $scheduler);
-        $applicationState = $this->applicationState($modules);
+        $warnings = $this->configurationWarnings($database, $cache, $queue, $storage, $scheduler);
+        $applicationState = $this->applicationState($modules, $database, $cache, $storage);
         $currentVersion = $this->currentVersion();
         $incidentTrend = $this->incidentTrend($from, $to);
         $updateTrend = $this->updateTrend($from, $to);
         $now = now()->toIso8601String();
 
-        $queueState = ($failedJobs['count'] > 0 || $scheduler['state'] !== 'healthy')
+        $queueState = ($failedJobs['count'] > 0 || $scheduler['state'] !== 'healthy' || $queue['state'] !== 'healthy')
             ? 'degraded'
             : 'healthy';
 
@@ -185,6 +189,8 @@ final class EnterpriseSystemHealthController extends Controller
             'workflowCounts' => $this->statusCounts(EnterpriseWorkflowRequest::query(), 'status'),
             'queueDriver' => (string) config('queue.default', ''),
             'databaseHealth' => $database,
+            'cacheHealth' => $cache,
+            'queueHealth' => $queue,
             'storageHealth' => $storage,
             'schedulerHealth' => $scheduler,
             'failedJobs' => $failedJobs,
@@ -252,6 +258,45 @@ final class EnterpriseSystemHealthController extends Controller
             DB::select('select 1');
 
             return ['state' => 'healthy'];
+        } catch (Throwable) {
+            return ['state' => 'error'];
+        }
+    }
+
+    /** @return array{state:string} */
+    private function cacheHealth(): array
+    {
+        $key = 'foodex:system-health:'.bin2hex(random_bytes(6));
+
+        try {
+            Cache::put($key, 'ok', 5);
+            $healthy = Cache::get($key) === 'ok';
+            Cache::forget($key);
+
+            return ['state' => $healthy ? 'healthy' : 'error'];
+        } catch (Throwable) {
+            return ['state' => 'error'];
+        }
+    }
+
+    /** @return array{state:string} */
+    private function queueHealth(): array
+    {
+        $driver = (string) config('queue.default');
+
+        if ($driver === 'sync') {
+            return ['state' => app()->environment('production') ? 'degraded' : 'healthy'];
+        }
+
+        if ($driver !== 'redis') {
+            return ['state' => 'degraded'];
+        }
+
+        try {
+            $connection = (string) config('queue.connections.redis.connection', 'default');
+            $reply = Redis::connection($connection)->ping();
+
+            return ['state' => $reply === false ? 'error' : 'healthy'];
         } catch (Throwable) {
             return ['state' => 'error'];
         }
@@ -428,8 +473,13 @@ final class EnterpriseSystemHealthController extends Controller
     }
 
     /** @return list<string> */
-    private function configurationWarnings(array $database, array $storage, array $scheduler): array
-    {
+    private function configurationWarnings(
+        array $database,
+        array $cache,
+        array $queue,
+        array $storage,
+        array $scheduler,
+    ): array {
         $warnings = [];
 
         if (app()->environment('production') && (bool) config('app.debug')) {
@@ -450,16 +500,29 @@ final class EnterpriseSystemHealthController extends Controller
             $warnings[] = __('system_admin.messages.queue_sync_production');
         }
         if (($database['state'] ?? null) === 'error') {
-            $warnings[] = __('system_admin.kpis.database').': '.__('system_admin.states.error');
+            $warnings[] = __('system_admin.messages.database_unavailable');
+        }
+        if (($cache['state'] ?? null) === 'error') {
+            $warnings[] = __('system_admin.messages.cache_unavailable');
+        }
+        if (($queue['state'] ?? null) === 'error') {
+            $warnings[] = __('system_admin.messages.queue_unavailable');
         }
 
         return $warnings;
     }
 
     /** @param Collection<int,array<string,mixed>> $modules */
-    private function applicationState(Collection $modules): string
-    {
-        if ($modules->contains(static fn (array $module): bool => in_array($module['health'], ['ERROR'], true) || $module['lifecycle'] === 'ERROR')) {
+    private function applicationState(
+        Collection $modules,
+        array $database,
+        array $cache,
+        array $storage,
+    ): string {
+        if (($database['state'] ?? null) === 'error'
+            || ($cache['state'] ?? null) === 'error'
+            || ($storage['state'] ?? null) !== 'writable'
+            || $modules->contains(static fn (array $module): bool => in_array($module['health'], ['ERROR'], true) || $module['lifecycle'] === 'ERROR')) {
             return 'error';
         }
 
