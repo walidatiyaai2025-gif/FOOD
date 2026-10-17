@@ -42,10 +42,21 @@ final class CatalogProductCompletionManager
             ->where('p.is_active', true)
             ->count('p.id');
         $inactive = max(0, $total - $active);
-        $outOfStock = (clone $base)
+        $commerciallyAvailable = (clone $base)
+            ->where('p.lifecycle_state', 'active')
+            ->where('p.is_active', true)
+            ->whereNotNull('sp.id')
+            ->where('sp.is_active', true)
+            ->where(function ($query): void {
+                $query->whereNull('policy.status')->orWhere('policy.status', '!=', 'CLOSED');
+            });
+        $available = (clone $commerciallyAvailable)
+            ->whereRaw('COALESCE(stock.available_quantity, 0) > 0')
+            ->count('p.id');
+        $outOfStock = (clone $commerciallyAvailable)
             ->whereRaw('COALESCE(stock.available_quantity, 0) <= 0')
             ->count('p.id');
-        $lowStock = (clone $base)
+        $lowStock = (clone $commerciallyAvailable)
             ->where('p.low_stock_threshold', '>', 0)
             ->whereRaw('COALESCE(stock.available_quantity, 0) > 0')
             ->whereRaw('COALESCE(stock.available_quantity, 0) <= p.low_stock_threshold')
@@ -53,20 +64,12 @@ final class CatalogProductCompletionManager
         $unpriced = (clone $base)->whereNull('sp.price')->count('p.id');
         $marginExceptions = (clone $base)
             ->whereNotNull('sp.price')
-            ->whereNotNull('sp.cost_price')
-            ->whereColumn('sp.price', '<=', 'sp.cost_price')
-            ->count('p.id');
-        $unavailable = (clone $base)
             ->where(function ($query): void {
-                $query->where('p.lifecycle_state', '!=', 'active')
-                    ->orWhere('p.is_active', false)
-                    ->orWhere(function ($assignment): void {
-                        $assignment->whereNotNull('sp.id')->where('sp.is_active', false);
-                    })
-                    ->orWhereRaw('COALESCE(stock.available_quantity, 0) <= 0')
-                    ->orWhere('policy.status', 'CLOSED');
+                $query->whereNull('sp.cost_price')
+                    ->orWhereColumn('sp.price', '<=', 'sp.cost_price');
             })
             ->count('p.id');
+        $unavailable = max(0, $total - (clone $commerciallyAvailable)->count('p.id'));
         $categoryCoverage = $total === 0
             ? 0
             : round(((clone $base)->whereNotNull('p.category_id')->count('p.id') / $total) * 100, 1);
@@ -98,7 +101,7 @@ final class CatalogProductCompletionManager
         ];
 
         $availabilityDistribution = [
-            ['label' => 'available', 'value' => max(0, $total - $outOfStock - $unavailable)],
+            ['label' => 'available', 'value' => $available],
             ['label' => 'out_of_stock', 'value' => $outOfStock],
             ['label' => 'unavailable', 'value' => $unavailable],
         ];
