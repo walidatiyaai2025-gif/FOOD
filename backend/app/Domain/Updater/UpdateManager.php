@@ -49,6 +49,11 @@ final class UpdateManager
             $stage = 'backup_database';
             $databaseBackup = $this->runtime->backupDatabase($manifest->containsMigrations);
 
+            if ($databaseBackup !== null) {
+                $stage = 'verify_database_backup';
+                $this->runtime->verifyDatabaseBackup($databaseBackup);
+            }
+
             $stage = 'maintenance_mode';
             $this->runtime->enterMaintenanceMode();
             $maintenanceMode = true;
@@ -87,7 +92,11 @@ final class UpdateManager
                 $actor,
                 $history,
                 ['version' => $currentVersion],
-                ['version' => $manifest->targetVersion],
+                [
+                    'version' => $manifest->targetVersion,
+                    'file_backup_reference' => basename($fileBackup),
+                    'database_backup_reference' => $databaseBackup === null ? null : basename($databaseBackup),
+                ],
             );
 
             return $history->refresh();
@@ -139,7 +148,12 @@ final class UpdateManager
                 $actor,
                 $history,
                 ['version' => $currentVersion],
-                ['target_version' => $manifest->targetVersion, 'stage' => $stage],
+                [
+                    'target_version' => $manifest->targetVersion,
+                    'stage' => $stage,
+                    'file_backup_reference' => $fileBackup === null ? null : basename($fileBackup),
+                    'database_backup_reference' => $databaseBackup === null ? null : basename($databaseBackup),
+                ],
             );
 
             throw new RuntimeException($reason, 0, $exception);

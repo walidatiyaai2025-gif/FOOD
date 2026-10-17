@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
+use App\Services\SystemAdministrationRuntime;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         RestaurantOperatorService $restaurantOperator,
+        SystemAdministrationRuntime $systemRuntime,
     ): View {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -62,6 +64,26 @@ final class SystemInspectorController extends Controller
             ->orderByDesc('id');
 
         $since = now()->subDay();
+        $trendStart = now()->startOfDay()->subDays(6);
+        $incidentCounts = SystemInspectorEvent::query()
+            ->where('occurred_at', '>=', $trendStart)
+            ->selectRaw('DATE(occurred_at) as day, COUNT(*) as aggregate')
+            ->groupByRaw('DATE(occurred_at)')
+            ->pluck('aggregate', 'day')
+            ->map(static fn ($count): int => (int) $count);
+
+        $incidentTrend = collect(range(6, 0))
+            ->map(function (int $daysAgo) use ($incidentCounts): array {
+                $date = now()->startOfDay()->subDays($daysAgo);
+                $key = $date->toDateString();
+
+                return [
+                    'day' => $key,
+                    'label' => $date->format('m-d'),
+                    'count' => (int) ($incidentCounts[$key] ?? 0),
+                ];
+            })
+            ->all();
 
         return view('admin.system-inspector', [
             'user' => $actor,
@@ -89,6 +111,8 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $systemRuntime->healthSnapshot(),
+            'incidentTrend' => $incidentTrend,
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
@@ -203,8 +227,11 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
-    {
+    public function export(
+        Request $request,
+        EnterpriseSystemInspector $enterpriseInspector,
+        SystemAdministrationRuntime $systemRuntime,
+    ): StreamedResponse {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
@@ -216,6 +243,11 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'runtime' => $systemRuntime->healthSnapshot(),
+            'recovery' => [
+                'backups' => $systemRuntime->backups(100),
+                'operations' => $systemRuntime->recentOperations(100),
+            ],
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
