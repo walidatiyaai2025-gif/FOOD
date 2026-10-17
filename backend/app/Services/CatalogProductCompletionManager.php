@@ -453,6 +453,7 @@ final class CatalogProductCompletionManager
                         ->where('product_id', $productId)
                         ->where('attribute_definition_id', $definition->id)
                         ->delete();
+
                     continue;
                 }
 
@@ -701,10 +702,12 @@ final class CatalogProductCompletionManager
         foreach ($this->productScope($storeIds)->limit(5000)->get(['sp.price', 'sp.cost_price']) as $row) {
             if ($row->price === null) {
                 $buckets['unpriced']++;
+
                 continue;
             }
             if ($row->cost_price === null || (float) $row->price <= 0) {
                 $buckets['non_positive']++;
+
                 continue;
             }
             $margin = (((float) $row->price - (float) $row->cost_price) / (float) $row->price) * 100;
