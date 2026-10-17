@@ -18,6 +18,22 @@
 .wa-call-overlay{position:fixed;inset:0;background:rgba(15,23,42,.46);display:none;align-items:center;justify-content:center;z-index:99999;padding:18px}.wa-call-overlay.show{display:flex}.wa-call-card{width:min(440px,100%);background:var(--foodex-surface);border-radius:18px;padding:24px;box-shadow:0 22px 70px rgba(15,23,42,.28);text-align:center}.wa-call-icon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:var(--foodex-green-soft);font-size:32px}.wa-call-card h2{margin:0 0 7px}.wa-call-card p{color:var(--foodex-muted);margin:0 0 18px}.wa-call-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.wa-inline label{display:grid;gap:4px;min-width:130px}
 .wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-so-order{display:grid;gap:8px}.wa-so-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.wa-so-items{display:grid;gap:4px;padding:8px 0;border-block:1px solid var(--foodex-border)}.wa-so-items span{font-size:12px}.wa-so-action{display:inline-flex;justify-content:center;text-decoration:none}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
 .wa-empty{padding:32px;text-align:center;color:var(--foodex-muted)}.wa-status{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto;gap:8px;align-items:end}
+
+/* #2017 center conversation pane — golden thread/composer contract. */
+.wa-thread-pane{--wa-green:var(--foodex-green);--wa-green-dark:var(--foodex-action-green);--wa-border:var(--foodex-border);--wa-muted:var(--foodex-muted);--wa-ink:var(--foodex-ink);display:flex;flex-direction:column;min-height:68vh;background:var(--foodex-surface)}
+.wa-thread-pane .wa-avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--foodex-muted);background:color-mix(in srgb,var(--foodex-blue) 12%,var(--foodex-surface));flex:0 0 auto}
+.wa-thread-pane .wa-presence{display:inline-flex;align-items:center;gap:6px;color:var(--wa-green-dark);font-size:12px;font-weight:700}.wa-thread-pane .wa-presence::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green-bright)}
+.wa-thread-pane .wa-whatsapp{color:var(--foodex-green-bright);font-weight:900;font-size:17px}
+.wa-thread-head{min-height:95px;padding:16px 22px;border-bottom:1px solid var(--wa-border);display:flex;align-items:center;justify-content:space-between;gap:14px}.wa-thread-customer{display:flex;align-items:center;gap:12px;min-width:0}.wa-thread-identity{min-width:0}.wa-thread-name-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.wa-thread-name{font-size:17px;font-weight:900}.wa-thread-subline{display:flex;gap:8px;align-items:center;margin-top:5px;font-size:12px;color:var(--foodex-muted);direction:ltr;justify-content:flex-end}html[dir=ltr] .wa-thread-subline{justify-content:flex-start}.wa-thread-actions{display:flex;align-items:center;gap:7px}
+.wa-thread-pane .wa-icon-button{width:38px;height:38px;border:1px solid var(--wa-border);border-radius:8px;background:var(--foodex-surface);color:var(--foodex-muted);display:inline-grid;place-items:center;cursor:pointer;text-decoration:none}.wa-thread-pane .wa-icon-button:hover{background:var(--foodex-background)}.wa-thread-pane .wa-icon-button:focus-visible,.wa-thread-pane .wa-compose-tab:focus-visible,.wa-thread-pane .wa-send:focus-visible{outline:3px solid color-mix(in srgb,var(--foodex-green) 22%,transparent);outline-offset:2px}
+.wa-thread-pane .wa-call-tools{display:flex;align-items:center;gap:7px;padding:0;margin:0;border:0;background:transparent}.wa-thread-pane .wa-call-status{font-size:11px;color:var(--wa-muted);max-width:160px;min-width:0}.wa-thread-pane .wa-call-live{color:var(--wa-green-dark);font-weight:800}.wa-thread-pane .wa-call-danger{color:var(--foodex-danger-text)!important;background:var(--foodex-surface)!important;border-color:var(--wa-border)!important}
+.wa-thread-pane .wa-utility{position:relative}.wa-thread-pane .wa-utility>summary{list-style:none}.wa-thread-pane .wa-utility>summary::-webkit-details-marker{display:none}.wa-thread-pane .wa-utility-menu{position:absolute;z-index:40;inset-inline-end:0;top:44px;width:220px;max-width:calc(100vw - 32px);background:var(--foodex-surface);border:1px solid var(--wa-border);border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:12px}.wa-thread-pane .wa-utility-menu form{display:grid;gap:8px}
+.wa-thread-meta{min-height:72px;padding:10px 20px;border-bottom:1px solid var(--wa-border);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--foodex-surface)}.wa-meta-cell{min-width:0;padding-inline:8px;border-inline-end:1px solid var(--wa-border)}.wa-meta-cell:last-child{border-inline-end:0}.wa-meta-label{font-size:10px;color:var(--foodex-muted);margin-bottom:6px}.wa-meta-value{font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wa-meta-chip{padding:4px 8px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:10px;font-weight:800}.wa-meta-chip.green{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-meta-details{position:relative}.wa-meta-details>summary{list-style:none;cursor:pointer}.wa-meta-details>summary::-webkit-details-marker{display:none}.wa-meta-popover{position:absolute;z-index:35;top:34px;inset-inline-start:0;width:340px;max-width:80vw;padding:12px;background:var(--foodex-surface);border:1px solid var(--wa-border);border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08)}.wa-meta-popover form{display:grid;gap:8px;margin-bottom:10px}.wa-meta-popover form:last-child{margin-bottom:0}.wa-meta-popover label{display:grid;gap:4px;font-size:11px;color:var(--wa-muted)}.wa-meta-popover select,.wa-meta-popover input{min-height:38px;border:1px solid var(--wa-border);border-radius:8px;padding:6px 8px}
+.wa-thread-pane .wa-timeline{flex:1;min-height:0;max-height:none;overflow:auto;padding:28px 32px 20px;background:var(--foodex-background);display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain}.wa-day-separator{align-self:center;padding:7px 18px;border-radius:999px;background:var(--foodex-surface);border:1px solid var(--wa-border);color:var(--foodex-muted);font-size:11px;margin:3px 0 8px}.wa-thread-pane .wa-message{max-width:68%;border:1px solid var(--wa-border);background:var(--foodex-surface);border-radius:13px;padding:11px 14px;font-size:13px;line-height:1.65;box-shadow:0 2px 7px rgba(15,23,42,.025)}html[dir=rtl] .wa-thread-pane .wa-message.inbound{align-self:flex-end}html[dir=rtl] .wa-thread-pane .wa-message.outbound{align-self:flex-start}html[dir=ltr] .wa-thread-pane .wa-message.inbound{align-self:flex-start}html[dir=ltr] .wa-thread-pane .wa-message.outbound{align-self:flex-end}.wa-thread-pane .wa-message.outbound{margin-inline-start:0;background:var(--foodex-green-soft);border-color:color-mix(in srgb,var(--foodex-green) 18%,var(--foodex-surface))}.wa-thread-pane .wa-message.note{align-self:center!important;max-width:88%;background:var(--foodex-orange-soft);border-style:dashed;border-color:var(--foodex-orange)}.wa-thread-pane .wa-message.smart-ordering{max-width:80%;background:var(--foodex-green-soft);border-color:color-mix(in srgb,var(--foodex-green) 16%,var(--foodex-surface))}.wa-thread-pane .wa-message small{display:block;margin-top:5px;color:var(--foodex-muted);font-size:10px}.wa-thread-pane .wa-message.outbound small{color:var(--foodex-green-dark)}
+.wa-thread-pane .wa-attachment{display:grid;gap:6px;margin-bottom:7px}.wa-thread-pane .wa-attachment img,.wa-thread-pane .wa-attachment video{display:block;max-width:min(340px,100%);max-height:250px;border-radius:10px;border:1px solid var(--wa-border)}.wa-thread-pane .wa-attachment audio{max-width:100%}.wa-thread-pane .wa-attachment-link{display:inline-flex;gap:6px;color:var(--wa-green-dark);font-weight:700;text-decoration:none}.wa-thread-pane .wa-so-action{display:inline-flex;margin-top:7px}
+.wa-compose-wrap{border-top:1px solid var(--wa-border);background:var(--foodex-surface);padding:0 18px 14px}.wa-compose-tabs{display:flex;align-items:center;border-bottom:1px solid var(--wa-border);min-height:48px}.wa-compose-tab{min-height:44px;border:0;background:transparent;padding:0 16px;color:var(--foodex-muted);font-size:12px;display:inline-flex;align-items:center;gap:7px;cursor:pointer}.wa-compose-tab+.wa-compose-tab,.wa-compose-tabs details{border-inline-start:1px solid var(--wa-border)}.wa-compose-tabs details{position:relative}.wa-compose-tabs summary{list-style:none;cursor:pointer}.wa-compose-tabs summary::-webkit-details-marker{display:none}.wa-order-menu{position:absolute;z-index:30;bottom:44px;inset-inline-start:0;width:300px;max-width:75vw;background:var(--foodex-surface);border:1px solid var(--wa-border);border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:10px}.wa-order-ref{width:100%;border:0;background:var(--foodex-surface);text-align:start;padding:9px;border-radius:7px;cursor:pointer}.wa-order-ref:hover{background:var(--foodex-background)}.wa-quick-hint{display:none;padding:8px 12px;color:var(--foodex-muted);font-size:11px}.wa-quick-hint.show{display:block}.wa-reply-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end;padding-top:11px}.wa-reply-input{border:0;resize:none;min-height:64px;max-height:140px;padding:8px 4px;outline:none;background:var(--foodex-surface);width:100%;font-size:13px}.wa-compose-bottom{display:flex;align-items:center;gap:10px;margin-top:4px}.wa-attach-label{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--foodex-muted)}.wa-attach-label input{display:none}.wa-send{height:40px;min-width:104px;border:0;border-radius:8px;background:var(--wa-green);color:var(--foodex-surface);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}.wa-send:disabled{opacity:.6;cursor:wait}.wa-note-form{display:none;grid-template-columns:minmax(0,1fr) auto;gap:9px;padding:10px 0 0}.wa-note-form.show{display:grid}.wa-note-form textarea{min-height:54px;border:1px solid var(--wa-border);border-radius:9px;padding:9px;resize:vertical}.wa-thread-pane .wa-secondary{min-height:40px;border:1px solid color-mix(in srgb,var(--foodex-green) 24%,var(--foodex-surface));background:var(--foodex-green-soft);color:var(--wa-green-dark);border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer}
+@media(max-width:760px){.wa-thread-meta{grid-template-columns:repeat(2,minmax(0,1fr));padding:9px}.wa-thread-pane .wa-timeline{min-height:390px;padding:18px 12px}.wa-thread-pane .wa-message{max-width:90%}.wa-compose-wrap{padding-inline:10px}.wa-compose-tabs{overflow-x:auto}.wa-compose-tab{white-space:nowrap;padding-inline:11px}.wa-meta-popover{position:fixed;top:88px;inset-inline:16px;width:auto;max-width:none}.wa-reply-form,.wa-note-form{grid-template-columns:1fr}.wa-send{width:100%}}
+
 @media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}
 @media(max-width:760px){.wa-toolbar form,.wa-status{grid-template-columns:1fr}.wa-workspace{grid-template-columns:1fr}.wa-context{grid-column:auto}.wa-message{max-width:94%}}
@@ -58,115 +74,175 @@
                     <div class="wa-pane-body">{{ $conversations->links() }}</div>
                 </section>
 
-                <section class="foodex-card wa-pane">
-                    @if($selected)
-                    <div class="wa-pane-head">
-                        <div><strong>{{ $selected->customer_name ?: __('whatsapp.inbox.customer') }}</strong><div style="font-size:12px;color:var(--foodex-muted)">{{ $selected->customer_phone ?: ($selected->external_participant_phone ?: $selected->customer_email) }}</div></div>
-                        <span class="wa-badge">{{ __('whatsapp.inbox.conversation_statuses.'.$selected->status) }}</span>
+                <section class="foodex-card wa-pane wa-thread-pane" data-wa-pane="active-conversation">
+                <?php if($selected): ?>
+                    <?php $selectedName=$selected->customer_name ?: __('whatsapp.inbox.customer'); ?>
+                    <?php $selectedInitial=mb_substr((string)$selectedName,0,2); ?>
+                    <div class="wa-thread-head">
+                        <div class="wa-thread-customer">
+                            <div class="wa-avatar lg blue">{{ $selectedInitial }}</div>
+                            <div class="wa-thread-identity">
+                                <div class="wa-thread-name-line"><span class="wa-thread-name">{{ $selectedName }}</span><span class="wa-presence">{{ __('whatsapp.inbox.conversation_statuses.'.$selected->status) }}</span></div>
+                                <div class="wa-thread-subline"><span>{{ $selected->customer_phone ?: ($selected->external_participant_phone ?: $selected->customer_email) }}</span><span class="wa-whatsapp">◉</span></div>
+                            </div>
+                        </div>
+                        <div class="wa-thread-actions">
+                            <?php if($callsEnabled): ?>
+                            <div class="wa-call-tools" id="wa-call-tools" data-conversation="{{ $selected->id }}" data-can-dial="{{ $canDialCalls ? '1' : '0' }}" data-can-manage="{{ $canManageCalls ? '1' : '0' }}">
+                                <?php if($canDialCalls): ?>
+                                    <button type="button" class="wa-icon-button" id="wa-call-start" aria-label="{{ __('whatsapp.inbox.make_call') }}">☎</button>
+                                    <button type="button" class="wa-icon-button" id="wa-call-permission" aria-label="{{ __('whatsapp.inbox.request_call_permission') }}">✓</button>
+                                <?php endif; ?>
+                                <button type="button" class="wa-icon-button wa-call-danger" id="wa-call-hangup" hidden aria-label="{{ __('whatsapp.inbox.hang_up') }}">■</button>
+                                <span class="wa-call-status" id="wa-call-status">{{ $inboundCallsEnabled ? '' : __('whatsapp.inbox.calls_disabled') }}</span>
+                            </div>
+                            <?php endif; ?>
+                            <details class="wa-utility">
+                                <summary class="wa-icon-button" aria-label="{{ __('whatsapp.inbox.thread_ui.more') }}">•••</summary>
+                                <div class="wa-utility-menu">
+                                    <form method="post" action="{{ route('admin.whatsapp-inbox.transition',['conversation'=>$selected->id]) }}" data-wa-mutation>@csrf @method('PATCH')<input type="hidden" name="action" value="{{ $transitionAction }}"><button class="wa-secondary" type="submit">{{ $selectedIsResolved?__('whatsapp.inbox.reopen'):__('whatsapp.inbox.resolve') }}</button></form>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                    <div class="wa-pane-body">
-                        @if($callsEnabled)
-                        <div class="wa-call-tools" id="wa-call-tools"
-                             data-conversation="{{ $selected->id }}"
-                             data-can-dial="{{ $canDialCalls ? '1' : '0' }}"
-                             data-can-manage="{{ $canManageCalls ? '1' : '0' }}">
-                            @if($canDialCalls)
-                                <button type="button" class="foodex-action-primary" id="wa-call-start">☎ {{ __('whatsapp.inbox.make_call') }}</button>
-                                <button type="button" class="foodex-action-secondary" id="wa-call-permission">✓ {{ __('whatsapp.inbox.request_call_permission') }}</button>
-                            @endif
-                            <button type="button" class="foodex-action-secondary wa-call-danger" id="wa-call-hangup" hidden>{{ __('whatsapp.inbox.hang_up') }}</button>
-                            <span class="wa-call-status" id="wa-call-status">{{ $inboundCallsEnabled ? '' : __('whatsapp.inbox.calls_disabled') }}</span>
+
+                    <div class="wa-thread-meta">
+                        <div class="wa-meta-cell"><div class="wa-meta-label">{{ __('whatsapp.inbox.thread_ui.conversation_classification') }}</div><div class="wa-meta-value">{{ __('whatsapp.inbox.channels.'.strtolower((string)$selected->channel)) }}⌄</div></div>
+                        <div class="wa-meta-cell">
+                            <div class="wa-meta-label">{{ __('whatsapp.inbox.thread_ui.responsible') }}</div>
+                            <details class="wa-meta-details"><summary class="wa-meta-value">{{ $selected->agent_name ?: __('whatsapp.inbox.unassigned') }}⌄</summary>
+                                <div class="wa-meta-popover">
+                                    <form method="post" action="{{ route('admin.whatsapp-inbox.assign',['conversation'=>$selected->id]) }}" data-wa-mutation>
+                                        @csrf @method('PATCH')
+                                        <input type="hidden" name="expected_version" value="{{ $selected->lock_version }}">
+                                        <label>{{ __('whatsapp.inbox.primary_agent') }}<select name="agent_id" required><option value="">{{ __('whatsapp.inbox.choose') }}</option>@foreach($agents as $agent)<option value="{{ $agent->id }}" @selected((int)$selected->primary_agent_id===$agent->id)>{{ $agent->name }} · {{ $agent->load }}/{{ $agent->capacity }}</option>@endforeach</select></label>
+                                        <label>{{ __('whatsapp.inbox.backup') }}<select name="backup_agent_id"><option value="">{{ __('whatsapp.inbox.none') }}</option>@foreach($agents as $agent)<option value="{{ $agent->id }}">{{ $agent->name }}</option>@endforeach</select></label>
+                                        <label>{{ __('whatsapp.inbox.reason') }}<input name="reason" maxlength="500"></label>
+                                        <button class="wa-secondary" type="submit">{{ __('whatsapp.inbox.assign_reassign') }}</button>
+                                    </form>
+                                </div>
+                            </details>
                         </div>
-                        @endif
-                        <div class="wa-inline" style="margin-bottom:10px">
-                            @foreach($tags as $tag)<span class="wa-tag">{{ $tag->name }}</span>@endforeach
-                        </div>
-                        <form method="post" action="{{ route('admin.whatsapp-inbox.assign',['conversation'=>$selected->id]) }}" class="wa-inline">
-                            @csrf @method('PATCH')
-                            <input type="hidden" name="expected_version" value="{{ $selected->lock_version }}">
-                            <label>{{ __('whatsapp.inbox.primary_agent') }}<select name="agent_id" required><option value="">{{ __('whatsapp.inbox.choose') }}</option>@foreach($agents as $agent)<option value="{{ $agent->id }}" @selected((int)$selected->primary_agent_id===$agent->id)>{{ $agent->name }} · {{ $agent->load }}/{{ $agent->capacity }}</option>@endforeach</select></label>
-                            <label>{{ __('whatsapp.inbox.backup') }}<select name="backup_agent_id"><option value="">{{ __('whatsapp.inbox.none') }}</option>@foreach($agents as $agent)<option value="{{ $agent->id }}">{{ $agent->name }}</option>@endforeach</select></label>
-                            <label>{{ __('whatsapp.inbox.reason') }}<input name="reason" maxlength="500"></label>
-                            <button class="foodex-action-secondary" type="submit">{{ __('whatsapp.inbox.assign_reassign') }}</button>
-                        </form>
-                        <div class="wa-inline" style="margin-top:10px">
-                            <form method="post" action="{{ route('admin.whatsapp-inbox.transition',['conversation'=>$selected->id]) }}">@csrf @method('PATCH')<input type="hidden" name="action" value="{{ $transitionAction }}">@if($selectedIsResolved)<button class="foodex-action-secondary" type="submit">{{ __('whatsapp.inbox.reopen') }}</button>@else<button class="foodex-action-secondary" type="submit">{{ __('whatsapp.inbox.resolve') }}</button>@endif</form>
-                            <form method="post" action="{{ route('admin.whatsapp-inbox.tag',['conversation'=>$selected->id]) }}" class="wa-inline">@csrf
-                                <select name="tag_id" required><option value="">{{ __('whatsapp.inbox.tag') }}</option>@foreach($allTags as $tag)<option value="{{ $tag->id }}">{{ $tag->name }}</option>@endforeach</select>
-                                <select name="action"><option value="attach">{{ __('whatsapp.inbox.attach') }}</option><option value="detach">{{ __('whatsapp.inbox.detach') }}</option></select>
-                                <button class="foodex-action-secondary" type="submit">{{ __('whatsapp.inbox.update_tag') }}</button>
-                            </form>
+                        <div class="wa-meta-cell"><div class="wa-meta-label">{{ __('whatsapp.inbox.thread_ui.priority') }}</div><div class="wa-meta-value"><span class="wa-meta-chip green">● {{ ((int)$selected->priority)>1?__('whatsapp.inbox.thread_ui.priority_high'):__('whatsapp.inbox.thread_ui.priority_normal') }}</span></div></div>
+                        <div class="wa-meta-cell">
+                            <div class="wa-meta-label">{{ __('whatsapp.inbox.thread_ui.tags') }}</div>
+                            <details class="wa-meta-details"><summary class="wa-meta-value">
+                                <?php if($tags->isEmpty()): ?>
+                                    <span class="wa-meta-chip">{{ __('whatsapp.inbox.none') }}</span>
+                                <?php else: ?>
+                                    @foreach($tags->take(2) as $tag)
+                                        <span class="wa-meta-chip">{{ $tag->name }}</span>
+                                    @endforeach
+                                <?php endif; ?>
+                                <span>＋</span>
+                            </summary>
+                                <div class="wa-meta-popover">
+                                    <form method="post" action="{{ route('admin.whatsapp-inbox.tag',['conversation'=>$selected->id]) }}" data-wa-mutation>@csrf
+                                        <label>{{ __('whatsapp.inbox.tag') }}<select name="tag_id" required><option value="">{{ __('whatsapp.inbox.choose') }}</option>@foreach($allTags as $tag)<option value="{{ $tag->id }}">{{ $tag->name }}</option>@endforeach</select></label>
+                                        <label>{{ __('whatsapp.inbox.thread_ui.manage_assignment') }}<select name="action"><option value="attach">{{ __('whatsapp.inbox.attach') }}</option><option value="detach">{{ __('whatsapp.inbox.detach') }}</option></select></label>
+                                        <button class="wa-secondary" type="submit">{{ __('whatsapp.inbox.update_tag') }}</button>
+                                    </form>
+                                </div>
+                            </details>
                         </div>
                     </div>
 
                     <div class="wa-timeline" id="wa-conversation-timeline" data-conversation="{{ $selected->id }}">
-                        @forelse($timeline as $item)
-                            <div class="wa-message {{ $item['kind']==='note'?'note':($item['kind']==='smart_ordering'?'smart-ordering':$item['direction']) }}">
-                                @if($item['kind']==='note')<strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>@endif
-                                @if($item['kind']==='smart_ordering')<strong>🧾 {{ __('whatsapp.smart_ordering.timeline_actor') }}</strong>@endif
-                                @if(!empty($item['attachment']))
-                                    @php($attachment=$item['attachment'])
+                        <?php $lastDay=null; ?>
+                        <?php if($timeline->isEmpty()): ?>
+                            <div class="wa-empty">{{ __('whatsapp.inbox.no_messages') }}</div>
+                        <?php else: ?>
+                        @foreach($timeline as $item)
+                            <?php $dayKey=$item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->toDateString():''; ?>
+                            <?php if($dayKey!==$lastDay): ?>
+                                <div class="wa-day-separator">{{ $item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->translatedFormat('d M Y'):__('whatsapp.inbox.thread_ui.today') }}</div>
+                                <?php $lastDay=$dayKey; ?>
+                            <?php endif; ?>
+                            <article class="wa-message {{ $item['kind']==='note'?'note':($item['kind']==='smart_ordering'?'smart-ordering':$item['direction']) }}">
+                                <?php if($item['kind']==='note'): ?>
+                                    <strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>
+                                <?php endif; ?>
+                                <?php if($item['kind']==='smart_ordering'): ?>
+                                    <strong>🧾 {{ __('whatsapp.smart_ordering.timeline_actor') }}</strong>
+                                <?php endif; ?>
+                                <?php if(!empty($item['attachment'])): ?>
+                                    <?php $attachment=$item['attachment']; ?>
                                     <div class="wa-attachment">
-                                        @if(in_array($attachment['media_type'], ['image','sticker'], true))
+                                        <?php if(in_array($attachment['media_type'],['image','sticker'],true)): ?>
                                             <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
                                                 <img src="{{ $attachment['url'] }}" alt="{{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}" loading="lazy">
                                             </a>
-                                        @elseif($attachment['media_type']==='video')
+                                        <?php elseif($attachment['media_type']==='video'): ?>
                                             <video controls preload="metadata">
-                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                                <source src="{{ $attachment['url'] }}" <?php if($attachment['mime_type']): ?> type="{{ $attachment['mime_type'] }}" <?php endif; ?>>
                                             </video>
-                                        @elseif($attachment['media_type']==='audio')
+                                        <?php elseif($attachment['media_type']==='audio'): ?>
                                             <audio controls preload="metadata">
-                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                                <source src="{{ $attachment['url'] }}" <?php if($attachment['mime_type']): ?> type="{{ $attachment['mime_type'] }}" <?php endif; ?>>
                                             </audio>
-                                        @else
+                                        <?php else: ?>
                                             <a class="wa-attachment-link" href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
-                                                <span>📎</span>
-                                                <span class="wa-attachment-name">{{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}</span>
+                                                📎 {{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}
                                             </a>
-                                        @endif
-                                        @if($attachment['filename'] && $attachment['media_type']!=='document')
-                                            <a class="wa-attachment-link" href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
-                                                <span>📎</span><span class="wa-attachment-name">{{ $attachment['filename'] }}</span>
-                                            </a>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
-                                @endif
-                                @if(filled($item['body']))
+                                <?php endif; ?>
+                                <?php if(filled($item['body'])): ?>
                                     <div>{{ $item['body'] }}</div>
-                                @elseif(empty($item['attachment']))
+                                <?php elseif(empty($item['attachment'])): ?>
                                     <div>{{ __('whatsapp.inbox.attachment') }}</div>
-                                @endif
-                                @if($item['kind']==='smart_ordering' && !empty($item['smart_ordering']['order_url']))
-                                    <a class="foodex-action-secondary wa-so-action" href="{{ $item['smart_ordering']['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
-                                @endif
-                                <small>{{ $item['actor'] }} · {{ $item['timestamp'] }} @if($item['delivery_status']) · {{ __('whatsapp.inbox.delivery_statuses.'.$item['delivery_status']) }}@endif</small>
-                            </div>
-                        @empty
-                            <div class="wa-empty">{{ __('whatsapp.inbox.no_messages') }}</div>
-                        @endforelse
+                                <?php endif; ?>
+                                <?php if($item['kind']==='smart_ordering' && !empty($item['smart_ordering']['order_url'])): ?>
+                                    <a class="wa-so-action" href="{{ $item['smart_ordering']['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
+                                <?php endif; ?>
+                                <small>
+                                    {{ $item['actor'] }} · {{ $item['timestamp']?\Illuminate\Support\Carbon::parse($item['timestamp'])->format('H:i'):'' }}
+                                    <?php if($item['delivery_status']): ?>
+                                        · {{ __('whatsapp.inbox.delivery_statuses.'.$item['delivery_status']) }}
+                                    <?php endif; ?>
+                                </small>
+                            </article>
+                        @endforeach
+                        <?php endif; ?>
                     </div>
 
-                    <div class="wa-compose">
-                        <form method="post" enctype="multipart/form-data" action="{{ route('admin.whatsapp-inbox.reply',['conversation'=>$selected->id]) }}">@csrf
-                            <label><strong>{{ __('whatsapp.inbox.customer_reply') }}</strong><textarea name="body" maxlength="5000" placeholder="{{ __('whatsapp.inbox.caption_optional') }}"></textarea></label>
-                            <label class="wa-compose-file">
-                                <strong>{{ __('whatsapp.inbox.send_attachment') }}</strong>
-                                <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.3gp,.mp3,.m4a,.aac,.amr,.ogg,.opus">
-                                <small>{{ __('whatsapp.inbox.attachment_hint') }}</small>
-                            </label>
-                            <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.queue_transport') }}</button>
-                            <small>{{ __('whatsapp.inbox.transport_hint') }}</small>
+                    <div class="wa-compose-wrap">
+                        <div class="wa-compose-tabs">
+                            <button class="wa-compose-tab" type="button" data-wa-quick-toggle>⚡ {{ __('whatsapp.inbox.thread_ui.quick_replies') }}</button>
+                            <details>
+                                <summary class="wa-compose-tab">▣ {{ __('whatsapp.inbox.thread_ui.attach_order') }}</summary>
+                                <div class="wa-order-menu">
+                                    <?php if($customer360 && $customer360['orders']->isNotEmpty()): ?>
+                                        @foreach($customer360['orders'] as $order)
+                                            <button type="button" class="wa-order-ref" data-wa-order-ref="#{{ $order->order_number }}">
+                                                #{{ $order->order_number }} · {{ number_format((float)$order->grand_total,0) }} {{ __('whatsapp.inbox.currencies.'.strtolower((string)$order->currency)) }}
+                                            </button>
+                                        @endforeach
+                                    <?php else: ?>
+                                        <div class="wa-empty">{{ __('whatsapp.inbox.none') }}</div>
+                                    <?php endif; ?>
+                                </div>
+                            </details>
+                            <button class="wa-compose-tab" type="button" data-wa-note-toggle>▱ {{ __('whatsapp.inbox.internal_note') }}</button>
+                        </div>
+                        <div class="wa-quick-hint" data-wa-quick-hint>{{ __('whatsapp.inbox.thread_ui.no_quick_replies') }}</div>
+                        <form class="wa-reply-form" method="post" enctype="multipart/form-data" action="{{ route('admin.whatsapp-inbox.reply',['conversation'=>$selected->id]) }}" data-wa-mutation>
+                            @csrf
+                            <div>
+                                <textarea class="wa-reply-input" name="body" maxlength="5000" placeholder="{{ __('whatsapp.inbox.thread_ui.write_message') }}" data-wa-reply></textarea>
+                                <div class="wa-compose-bottom"><span aria-hidden="true">☺</span><label class="wa-attach-label" aria-label="{{ __('whatsapp.inbox.send_attachment') }}">⌕<input type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.3gp,.mp3,.m4a,.aac,.amr,.ogg,.opus"></label></div>
+                            </div>
+                            <button class="wa-send" type="submit">➤ {{ __('whatsapp.inbox.queue_transport') }}</button>
                         </form>
-                        <form method="post" action="{{ route('admin.whatsapp-inbox.note',['conversation'=>$selected->id]) }}">@csrf
-                            <label><strong>{{ __('whatsapp.inbox.internal_note_only') }}</strong><textarea name="body" required maxlength="5000"></textarea></label>
-                            <button class="foodex-action-secondary" type="submit">{{ __('whatsapp.inbox.save_note') }}</button>
+                        <form class="wa-note-form" method="post" action="{{ route('admin.whatsapp-inbox.note',['conversation'=>$selected->id]) }}" data-wa-note-form data-wa-mutation>@csrf
+                            <textarea name="body" required maxlength="5000" placeholder="{{ __('whatsapp.inbox.internal_note_only') }}"></textarea>
+                            <button class="wa-secondary" type="submit">{{ __('whatsapp.inbox.save_note') }}</button>
                         </form>
                     </div>
-                    @else
-                        <div class="wa-empty">{{ __('whatsapp.inbox.choose_conversation') }}</div>
-                    @endif
-                </section>
+                <?php else: ?>
+                    <div class="wa-empty">{{ __('whatsapp.inbox.choose_conversation') }}</div>
+                <?php endif; ?>
+            </section>
 
                 <section class="foodex-card wa-pane wa-context">
                     <div class="wa-pane-head"><strong>{{ __('whatsapp.inbox.customer_360') }}</strong></div>
@@ -276,36 +352,51 @@
 <script>
 (() => {
     const timeline = document.getElementById('wa-conversation-timeline');
-    if (!timeline) return;
+    const reply = document.querySelector('[data-wa-reply]');
+    const noteForm = document.querySelector('[data-wa-note-form]');
+    const quickHint = document.querySelector('[data-wa-quick-hint]');
 
-    let scheduled = false;
     const scrollToLatest = () => {
-        if (scheduled) return;
-        scheduled = true;
-        requestAnimationFrame(() => {
-            scheduled = false;
-            timeline.scrollTop = timeline.scrollHeight;
-        });
+        if (!timeline) return;
+        requestAnimationFrame(() => { timeline.scrollTop = timeline.scrollHeight; });
     };
-
-    // Every opened/reloaded conversation starts at the newest customer message.
     scrollToLatest();
-    window.addEventListener('load', scrollToLatest, {once: true});
+    window.addEventListener('load', scrollToLatest, {once:true});
     window.addEventListener('pageshow', scrollToLatest);
+    if (timeline) {
+        new MutationObserver(mutations => {
+            if (mutations.some(mutation => mutation.addedNodes.length > 0)) scrollToLatest();
+        }).observe(timeline,{childList:true,subtree:true});
+        timeline.querySelectorAll('img,video,audio').forEach(media => {
+            media.addEventListener('load',scrollToLatest,{once:true});
+            media.addEventListener('loadedmetadata',scrollToLatest,{once:true});
+        });
+    }
 
-    // If the Inbox gains live DOM updates, keep new messages visible automatically.
-    const observer = new MutationObserver(mutations => {
-        if (mutations.some(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)) {
-            scrollToLatest();
-        }
+    document.querySelector('[data-wa-note-toggle]')?.addEventListener('click', () => {
+        noteForm?.classList.toggle('show');
+        if (noteForm?.classList.contains('show')) noteForm.querySelector('textarea')?.focus();
     });
-    observer.observe(timeline, {childList: true, subtree: true});
-
-    // Attachments can change the timeline height after the first paint.
-    timeline.querySelectorAll('img, video, audio').forEach(media => {
-        media.addEventListener('load', scrollToLatest, {once: true});
-        media.addEventListener('loadedmetadata', scrollToLatest, {once: true});
+    document.querySelector('[data-wa-quick-toggle]')?.addEventListener('click', () => {
+        quickHint?.classList.toggle('show');
+        reply?.focus();
     });
+    document.querySelectorAll('[data-wa-order-ref]').forEach(button => button.addEventListener('click', () => {
+        if (!reply) return;
+        const ref = button.dataset.waOrderRef || '';
+        const prefix = reply.value.trim() === '' ? '' : reply.value.replace(/\s*$/,'') + ' ';
+        reply.value = prefix + ref + ' ';
+        reply.focus();
+        button.closest('details')?.removeAttribute('open');
+    }));
+    document.querySelectorAll('form[data-wa-mutation]').forEach(form => form.addEventListener('submit', () => {
+        if (form.dataset.waSubmitting === '1') return;
+        form.dataset.waSubmitting = '1';
+        form.querySelectorAll('button[type="submit"],input[type="submit"]').forEach(button => {
+            button.disabled = true;
+            button.setAttribute('aria-busy','true');
+        });
+    }));
 })();
 </script>
 
