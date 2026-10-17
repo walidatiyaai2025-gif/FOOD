@@ -62,8 +62,6 @@ final class ScheduledReportDispatcher
         try {
             $report = $this->reports->require((string) $schedule->report_code);
             if (! $this->modules->isEnabled($report->moduleCode)) {
-                $this->disable($id, 'module_disabled');
-
                 return false;
             }
 
