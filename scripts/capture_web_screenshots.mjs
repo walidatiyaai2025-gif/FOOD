@@ -742,6 +742,15 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
       const supplyUrl = new URL(supplyHref, baseUrl);
       shellRoutes.push(['smart-ordering-supply', `${supplyUrl.pathname}${supplyUrl.search}`]);
     }
+    const integrationsHref = await page
+      .locator('a[href*="/admin/smart-ordering/sites/"][href*="/integrations"]')
+      .first()
+      .getAttribute('href')
+      .catch(() => null);
+    if (integrationsHref) {
+      const integrationsUrl = new URL(integrationsHref, baseUrl);
+      shellRoutes.push(['restaurant-integrations', `${integrationsUrl.pathname}${integrationsUrl.search}`]);
+    }
   }
 
   await page.setViewportSize({ width: 1440, height: 1080 });
