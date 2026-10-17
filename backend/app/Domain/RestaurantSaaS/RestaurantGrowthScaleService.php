@@ -470,7 +470,7 @@ final class RestaurantGrowthScaleService
         ];
     }
 
-    /** @return array<string,mixed> */
+    /** @return array{period:array{from:string,to:string},source:string,rows:list<array{sales_date:string,store_id:int,currency:string,subtotal:float,discounts:float,delivery:float,net_sales:float,refunded_value:float}>} */
     public function accountingSummary(Store $store, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
         $this->assertReportingWindow($from, $to);
