@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "issue": 2109,
+  "authority": "Restaurant Management workspace reuses canonical FOODEX domains; no duplicate restaurant engines.",
+  "generated_for": "FOODEX web restaurant operator workspace",
+  "boundaries": {
+    "restaurant_saas": "B2C Retail Store capability gated by STORE:smart_ordering and store/site RBAC.",
+    "erp": "Platform ERP is not exposed as a restaurant-retail workspace destination.",
+    "public_menu": "Public customer menu is separate from operator navigation.",
+    "gaps": "Incomplete restaurant capabilities are surfaced explicitly rather than relabeling generic screens."
+  },
+  "capabilities": [
+    {
+      "id": "overview",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingController",
+      "entry": "admin.smart-ordering.index",
+      "permission": "smart_ordering.view",
+      "ar": "نظرة عامة",
+      "en": "Overview"
+    },
+    {
+      "id": "orders",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingOperationsController",
+      "entry": "admin.smart-ordering.operations.index?tab=orders",
+      "permission": "orders.view",
+      "ar": "الطلبات",
+      "en": "Orders"
+    },
+    {
+      "id": "kds",
+      "state": "PRODUCTION",
+      "authority": "RestaurantKitchenService",
+      "entry": "admin.smart-ordering.operations.index?tab=kitchen#restaurant-kds-live",
+      "permission": "orders.view",
+      "ar": "شاشة المطبخ",
+      "en": "Kitchen display"
+    },
+    {
+      "id": "kitchen_config",
+      "state": "PRODUCTION",
+      "authority": "RestaurantKitchenService",
+      "entry": "admin.smart-ordering.operations.index?tab=kitchen#restaurant-kitchen-config",
+      "permission": "orders.view/manage + entitlement",
+      "ar": "إعدادات المطبخ",
+      "en": "Kitchen configuration"
+    },
+    {
+      "id": "floor",
+      "state": "PRODUCTION",
+      "authority": "RestaurantTableService",
+      "entry": "admin.smart-ordering.operations.index?tab=tables",
+      "permission": "orders.view/manage",
+      "ar": "الطاولات والصالة",
+      "en": "Tables & floor plan"
+    },
+    {
+      "id": "reservations",
+      "state": "PRODUCTION",
+      "authority": "RestaurantGuestService",
+      "entry": "admin.smart-ordering.operations.index?tab=reservations",
+      "permission": "orders.view/manage + entitlement",
+      "ar": "الحجوزات",
+      "en": "Reservations"
+    },
+    {
+      "id": "waitlist",
+      "state": "PRODUCTION",
+      "authority": "RestaurantGuestService",
+      "entry": "admin.smart-ordering.operations.index?tab=waitlist",
+      "permission": "orders.view/manage + entitlement",
+      "ar": "قائمة الانتظار",
+      "en": "Waitlist"
+    },
+    {
+      "id": "guest_book",
+      "state": "PRODUCTION",
+      "authority": "RestaurantGuestService",
+      "entry": "admin.smart-ordering.operations.index?tab=guest_book",
+      "permission": "orders.view",
+      "ar": "سجل الضيوف",
+      "en": "Guest book"
+    },
+    {
+      "id": "pos",
+      "state": "PARTIAL_GAP",
+      "authority": "none — do not alias generic Orders",
+      "entry": null,
+      "permission": "future restaurant_pos entitlement",
+      "ar": "نقطة البيع",
+      "en": "POS / staff order entry",
+      "gap": "Dedicated staff order-entry/POS flow is not production complete."
+    },
+    {
+      "id": "dispatch",
+      "state": "PARTIAL_GAP",
+      "authority": "canonical restaurant order lifecycle only",
+      "entry": "admin.smart-ordering.operations.index?tab=orders",
+      "permission": "orders.view/manage",
+      "ar": "إدارة التوصيل",
+      "en": "Delivery dispatch",
+      "gap": "Full first-party restaurant dispatch/proof/courier fallback is not production complete."
+    },
+    {
+      "id": "menu",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingMenuController",
+      "entry": "admin.smart-ordering.menu.index",
+      "permission": "smart_ordering.manage",
+      "ar": "إدارة المنيو",
+      "en": "Menu management"
+    },
+    {
+      "id": "appearance",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingThemePreviewController",
+      "entry": "admin.smart-ordering.appearance.index",
+      "permission": "smart_ordering.view",
+      "ar": "مظهر المنيو",
+      "en": "Menu appearance"
+    },
+    {
+      "id": "qr",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingQrController",
+      "entry": "admin.smart-ordering.qr.index",
+      "permission": "smart_ordering.qr.view",
+      "ar": "إدارة QR",
+      "en": "QR management"
+    },
+    {
+      "id": "customers_crm",
+      "state": "PRODUCTION",
+      "authority": "RestaurantGrowthController / canonical customer truth",
+      "entry": "admin.smart-ordering.growth.index",
+      "permission": "customers.view + smart_ordering.view",
+      "ar": "العملاء وCRM",
+      "en": "Customers & CRM"
+    },
+    {
+      "id": "offers_loyalty",
+      "state": "PRODUCTION",
+      "authority": "RestaurantGrowthController",
+      "entry": "admin.smart-ordering.growth.index",
+      "permission": "promotions.view + smart_ordering.view",
+      "ar": "العروض والولاء",
+      "en": "Offers & loyalty"
+    },
+    {
+      "id": "staff_shifts",
+      "state": "PRODUCTION",
+      "authority": "RestaurantWorkforceService",
+      "entry": "admin.smart-ordering.operations.index?tab=workforce",
+      "permission": "orders.view/manage",
+      "ar": "الموظفون والورديات",
+      "en": "Staff & shifts"
+    },
+    {
+      "id": "inventory",
+      "state": "PRODUCTION_REUSE",
+      "authority": "B2cWorkspaceController canonical inventory",
+      "entry": "admin.b2c.module?module=inventory",
+      "permission": "inventory.view",
+      "ar": "المخزون",
+      "en": "Inventory"
+    },
+    {
+      "id": "recipes_food_cost",
+      "state": "PRODUCTION_REUSE",
+      "authority": "SupplyIntelligenceService",
+      "entry": "admin.smart-ordering.supply.index",
+      "permission": "smart_ordering.view + foodex_supply_intelligence entitlement",
+      "ar": "الوصفات وتكلفة الطعام",
+      "en": "Recipes & food cost"
+    },
+    {
+      "id": "purchasing",
+      "state": "PARTIAL_GAP",
+      "authority": "SupplyIntelligenceService draft replenishment only",
+      "entry": "admin.smart-ordering.supply.index",
+      "permission": "smart_ordering.view + foodex_supply_intelligence entitlement",
+      "ar": "المشتريات وإعادة التوريد",
+      "en": "Purchasing / replenishment",
+      "gap": "Restaurant workspace provides explainable draft-only replenishment, not a full restaurant purchasing lifecycle."
+    },
+    {
+      "id": "payments",
+      "state": "PRODUCTION",
+      "authority": "RestaurantPaymentService",
+      "entry": "admin.smart-ordering.operations.index?tab=payments",
+      "permission": "finance.view/manage",
+      "ar": "المدفوعات",
+      "en": "Payments"
+    },
+    {
+      "id": "finance",
+      "state": "PRODUCTION_REUSE",
+      "authority": "B2cWorkspaceController canonical finance",
+      "entry": "admin.b2c.module?module=finance",
+      "permission": "finance.view",
+      "ar": "المالية",
+      "en": "Finance"
+    },
+    {
+      "id": "analytics",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingAnalyticsController",
+      "entry": "admin.smart-ordering.analytics.index",
+      "permission": "smart_ordering.analytics.view",
+      "ar": "التحليلات",
+      "en": "Analytics"
+    },
+    {
+      "id": "reports",
+      "state": "PRODUCTION_REUSE",
+      "authority": "Reports center",
+      "entry": "admin.reports.index?channel=b2c",
+      "permission": "reports.view",
+      "ar": "التقارير",
+      "en": "Reports"
+    },
+    {
+      "id": "integrations",
+      "state": "PRODUCTION",
+      "authority": "RestaurantIntegrationController",
+      "entry": "admin.smart-ordering.integrations.index",
+      "permission": "smart_ordering.view/manage",
+      "ar": "التكاملات",
+      "en": "Integrations"
+    },
+    {
+      "id": "settings",
+      "state": "PRODUCTION",
+      "authority": "SmartOrderingController",
+      "entry": "admin.smart-ordering.index",
+      "permission": "smart_ordering.view/manage",
+      "ar": "الإعدادات",
+      "en": "Settings"
+    }
+  ],
+  "exit_contract": {
+    "visible_groups": [
+      "service",
+      "menu_growth",
+      "people_supply",
+      "finance_insights",
+      "connections_settings"
+    ],
+    "responsive": true,
+    "ar_en": true,
+    "rtl_ltr": true,
+    "permission_gated": true,
+    "duplicate_engines": false,
+    "platform_erp_linked_from_restaurant_workspace": false
+  }
+}
