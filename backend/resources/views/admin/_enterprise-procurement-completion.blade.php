@@ -328,6 +328,7 @@ $exceptionLabels=[
 
 @if($activeTab==='reports')
 <section class="foodex-card">
+<h2>{{ __('enterprise_procurement.reports') }}</h2>
 <form method="get" action="{{ route('admin.erp.procurement.index') }}" class="erp-filters">
 <input type="hidden" name="tab" value="reports"><input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
 <label>{{ __('enterprise_procurement.report') }}<select name="report" required><option value="">—</option>@foreach(['open_orders','spend','supplier_performance','savings','contract_expiry','match_exceptions'] as $reportCode)<option value="{{ $reportCode }}" @selected($reportName===$reportCode)>{{ __('enterprise_procurement.reports_catalog.'.$reportCode) }}</option>@endforeach</select></label>
