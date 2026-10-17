@@ -100,7 +100,6 @@ final class SmartOrderingStorefrontController extends Controller
         $prepared['ordering'] = [
             'enabled' => $analyticsSite instanceof SmartOrderingSite
                 && $analyticsBranch !== null
-                && $published !== null
                 && (bool) ($prepared['is_open'] ?? false),
             'site_slug' => $analyticsSite?->slug,
             'branch_public_id' => $analyticsBranch?->public_id,
