@@ -36,6 +36,7 @@ class RestaurantOperationsDashboardConvergenceTest extends TestCase
             'foodex-module-chart',
             'data-foodex-module-filters',
             'data-foodex-module-export',
+            'data-pagination-exempt="bounded-90-day-overview-trend"',
             'admin.smart-ordering.operations.index',
             'admin.smart-ordering.analytics.index',
             'admin.smart-ordering.analytics.export',
