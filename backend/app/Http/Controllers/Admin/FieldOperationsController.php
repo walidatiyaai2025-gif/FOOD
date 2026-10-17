@@ -249,12 +249,13 @@ final class FieldOperationsController extends Controller
             ->orderByRaw("CASE WHEN order_van_assignments.status = 'active' THEN 0 ELSE 1 END")
             ->orderByDesc('order_van_assignments.assigned_at')
             ->limit(50)
-            ->get([
+            ->select([
                 'orders.id',
                 'orders.order_number',
                 'orders.status as order_status',
                 'orders.currency',
                 'orders.grand_total',
+                'order_van_assignments.id as van_assignment_id',
                 'order_van_assignments.status as assignment_status',
                 'order_van_assignments.source',
                 'order_van_assignments.reason',
@@ -263,7 +264,26 @@ final class FieldOperationsController extends Controller
                 'order_van_execution_states.status as execution_status',
                 'order_van_execution_states.failure_reason_code',
                 'order_van_execution_states.last_transition_at',
-            ]);
+            ])
+            ->selectSub(function ($proof): void {
+                $proof->from('order_van_execution_events')
+                    ->select('order_van_execution_events.id')
+                    ->whereColumn('order_van_execution_events.order_van_assignment_id', 'order_van_assignments.id')
+                    ->whereNotNull('order_van_execution_events.proof_path')
+                    ->orderByDesc('order_van_execution_events.id')
+                    ->limit(1);
+            }, 'latest_proof_id')
+            ->selectSub(function ($invoice): void {
+                $invoice->from('invoices')
+                    ->select('invoices.id')
+                    ->whereColumn('invoices.order_id', 'orders.id')
+                    ->where('invoices.channel', 'b2b')
+                    ->orderByDesc('invoices.id')
+                    ->limit(1);
+            }, 'invoice_id')
+            ->get();
+
+        $canViewFinanceLinks = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
 
         return $this->render($request, 'van-detail', compact(
             'van',
@@ -274,6 +294,7 @@ final class FieldOperationsController extends Controller
             'representativeNames',
             'territoryNames',
             'b2bOrders',
+            'canViewFinanceLinks',
         ));
     }
 
