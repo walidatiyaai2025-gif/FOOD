@@ -90,15 +90,15 @@ final class AdminTotpService
     {
         $key = $this->base32Decode($secret);
         $high = intdiv($counter, 0x100000000);
-        $low = $counter & 0xffffffff;
+        $low = $counter & 0xFFFFFFFF;
         $binaryCounter = pack('N2', $high, $low);
         $hash = hash_hmac('sha1', $binaryCounter, $key, true);
-        $offset = ord($hash[19]) & 0x0f;
+        $offset = ord($hash[19]) & 0x0F;
         $value = (
-            ((ord($hash[$offset]) & 0x7f) << 24)
-            | ((ord($hash[$offset + 1]) & 0xff) << 16)
-            | ((ord($hash[$offset + 2]) & 0xff) << 8)
-            | (ord($hash[$offset + 3]) & 0xff)
+            ((ord($hash[$offset]) & 0x7F) << 24)
+            | ((ord($hash[$offset + 1]) & 0xFF) << 16)
+            | ((ord($hash[$offset + 2]) & 0xFF) << 8)
+            | (ord($hash[$offset + 3]) & 0xFF)
         );
 
         $modulo = 10 ** (int) config('security.mfa.digits', 6);
