@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="foodex-admin-layout" data-builder>
-<aside class="sidebar">@include('admin._sidebar')</aside>
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside>
 <main class="foodex-admin-main foodex-admin-page">
 <div class="so-builder-shell">
 <header class="foodex-page-header">
@@ -46,6 +46,8 @@
 </div>
 @include('admin._live-notifications')
 </header>
+
+@include('admin._smart-ordering-workspace-nav')
 
 <div class="so-builder-grid">
 <section class="foodex-card so-builder-panel" aria-label="{{ __('smart_ordering.appearance.controls_label') }}">
