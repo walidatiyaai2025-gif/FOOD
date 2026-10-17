@@ -95,7 +95,7 @@ $exceptionLabels=[
                                 </div>
                             @endforeach
                         </div>
-                        <div class="foodex-module-chart-table-wrap">
+                        <div class="foodex-module-chart-table-wrap" data-pagination-exempt="bounded-dashboard-chart-series">
                             <table class="foodex-module-chart-table">
                                 <thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.chart_value') }}</th></tr></thead>
                                 <tbody>
@@ -186,7 +186,7 @@ $exceptionLabels=[
 </details>
 @endif
 
-<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table">
+<section class="foodex-card erp-table-wrap" data-pagination-required><table class="foodex-table erp-table">
 <thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.rfq_title') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.response_due') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead>
 <tbody>
 @forelse($rows as $row)
@@ -222,7 +222,7 @@ $exceptionLabels=[
 <form method="post" action="{{ route('admin.erp.procurement.rfqs.cancel',$rfqDetail['rfq']->id) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.cancel') }}</button></form>
 @endif
 <h3>{{ __('enterprise_procurement.quotes') }}</h3>
-<div class="erp-table-wrap"><table class="foodex-table"><thead><tr><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.quote_total') }}</th><th>{{ __('enterprise_procurement.lead_time') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
+<div class="erp-table-wrap" data-pagination-exempt="single-rfq-quote-comparison"><table class="foodex-table"><thead><tr><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.quote_total') }}</th><th>{{ __('enterprise_procurement.lead_time') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
 @forelse($rfqDetail['quotes'] as $quote)
 <tr><td>{{ $quote->supplier_code }} · {{ app()->getLocale()==='ar' && $quote->supplier_name_ar ? $quote->supplier_name_ar : $quote->supplier_name_en }}
 @foreach($rfqDetail['quoteDocuments']->get($quote->id,collect()) as $quoteDocument)<div><a class="erp-link" href="{{ route('admin.erp.procurement.rfqs.documents.download',['rfq'=>$rfqDetail['rfq']->id,'document'=>$quoteDocument->id,'store_id'=>$selectedStoreId]) }}">{{ $quoteDocument->original_name }}</a></div>@endforeach
@@ -260,7 +260,7 @@ $exceptionLabels=[
 <div><button class="foodex-primary">{{ __('enterprise_procurement.create') }}</button></div>
 </form></details>
 @endif
-<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.ends_on') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
+<section class="foodex-card erp-table-wrap" data-pagination-required><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.ends_on') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
 @forelse($rows as $row)@php($contractStatus=$row->status==='active' && (string)$row->ends_on < now()->toDateString() ? 'expired' : $row->status)<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$contractStatus) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
 @empty<tr><td colspan="5">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table><div class="erp-pagination">{{ $rows->withQueryString()->links() }}</div></section>
@@ -297,7 +297,7 @@ $exceptionLabels=[
 @endif
 
 @if($activeTab==='matches')
-<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.three_way_match') }}</th><th>{{ __('enterprise_procurement.quantity_variance') }}</th><th>{{ __('enterprise_procurement.value_variance') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
+<section class="foodex-card erp-table-wrap" data-pagination-required><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.three_way_match') }}</th><th>{{ __('enterprise_procurement.quantity_variance') }}</th><th>{{ __('enterprise_procurement.value_variance') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
 @forelse($rows as $row)
 <tr><td class="erp-ref">{{ $row->invoice_number }}<div class="foodex-subtitle">{{ $row->supplier_invoice_number }}</div></td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.($row->match_status ?: 'pending')) }}<div class="foodex-subtitle">{{ $row->exception_reason }}</div></td><td>{{ $row->quantity_variance ?? '—' }}</td><td>{{ $row->value_variance ?? '—' }} {{ $row->currency_code }}</td><td>
 @if(in_array($row->match_status,['pending','rejected'],true) && $can['invoice_handoff'])
@@ -320,7 +320,7 @@ $exceptionLabels=[
 </form>
 </section>
 @if($reportData)
-<section class="foodex-card erp-table-wrap">
+<section class="foodex-card erp-table-wrap" data-pagination-exempt="server-bounded-report-preview">
 <div class="erp-actions" style="padding:12px">
 @if($can['report_export'])<a class="erp-link foodex-module-export" href="{{ route('admin.erp.procurement.reports.export',['store_id'=>$selectedStoreId,'report'=>$reportName,'from'=>request('from'),'to'=>request('to')]) }}">{{ __('enterprise_procurement.export_csv') }}</a>@endif
 <a class="erp-link" href="{{ route('admin.erp.bi',['report'=>'procurement.'.$reportName]) }}">{{ __('enterprise_procurement.scheduled_reporting') }}</a>
