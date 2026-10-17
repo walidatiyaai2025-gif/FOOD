@@ -4,6 +4,8 @@ namespace App\Enterprise\Treasury;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Models\EnterpriseBankAccount;
+use App\Models\EnterpriseCashbox;
 use App\Models\EnterpriseTreasuryPayment;
 use App\Models\EnterpriseTreasuryReceipt;
 use App\Models\User;
@@ -404,16 +406,28 @@ final class TreasuryAnalyticsService
         $rows = collect();
         foreach (DB::table('enterprise_cashboxes')
             ->where('company_id', $scope->companyId)
-            ->where('store_id', $scope->storeId)
             ->where('is_active', true)
+            ->where(function ($query) use ($scope): void {
+                $query->where('operator_visibility', EnterpriseCashbox::VISIBILITY_COMPANY)
+                    ->orWhere(function ($storeVisible) use ($scope): void {
+                        $storeVisible->where('operator_visibility', EnterpriseCashbox::VISIBILITY_STORE)
+                            ->where('store_id', $scope->storeId);
+                    });
+            })
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'currency_code']) as $target) {
             $rows->push($this->positionRow('cashbox', $target, $receiptTotals, $paymentTotals));
         }
         foreach (DB::table('enterprise_bank_accounts')
             ->where('company_id', $scope->companyId)
-            ->where('store_id', $scope->storeId)
             ->where('is_active', true)
+            ->where(function ($query) use ($scope): void {
+                $query->where('operator_visibility', EnterpriseBankAccount::VISIBILITY_COMPANY)
+                    ->orWhere(function ($storeVisible) use ($scope): void {
+                        $storeVisible->where('operator_visibility', EnterpriseBankAccount::VISIBILITY_STORE)
+                            ->where('store_id', $scope->storeId);
+                    });
+            })
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'bank_name', 'currency_code']) as $target) {
             $rows->push($this->positionRow('bank_account', $target, $receiptTotals, $paymentTotals));
