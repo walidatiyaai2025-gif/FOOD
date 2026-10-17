@@ -190,6 +190,9 @@ final class SmartOrderingOperationsController extends Controller
             })->all();
         }
 
+        $locale = in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar';
+        app()->setLocale($locale);
+
         return view('admin.smart-ordering-operations', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -203,7 +206,7 @@ final class SmartOrderingOperationsController extends Controller
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
             'paymentProviderOptions' => $paymentProviderOptions,
-            'isAr' => app()->getLocale() === 'ar',
+            'isAr' => $locale === 'ar',
             'timezoneOptions' => $this->timezoneOptions(),
         ]);
     }
@@ -369,8 +372,6 @@ final class SmartOrderingOperationsController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-
-        app()->setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
 
         return $actor;
     }
