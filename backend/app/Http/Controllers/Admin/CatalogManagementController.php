@@ -1110,7 +1110,6 @@ final class CatalogManagementController extends Controller
         return back()->with('status', $this->msg('تم تعديل المتجر.', 'Store updated.'));
     }
 
-
     public function storeAttribute(Request $request): RedirectResponse
     {
         $data = $request->validate([
