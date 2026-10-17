@@ -293,7 +293,7 @@ final class UpdateManager
     }
 
     /**
-     * @param array<string,string> $evidence
+     * @param array<string,mixed> $evidence
      * @param array<string,mixed> $attributes
      */
     private function checkpoint(UpdateHistory $history, array $evidence, array $attributes = []): void
