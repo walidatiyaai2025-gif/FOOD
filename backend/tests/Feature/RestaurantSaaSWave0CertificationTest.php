@@ -39,7 +39,7 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
 
     public function test_clean_tenant_billing_suspend_restore_and_smart_ordering_compatibility_are_coherent(): void
     {
-        [$store, $admin] = $this->restaurant('RS-W0-CERT-A');
+        [$store, $admin] = $this->restaurant('RS-W0-CERT-A', false);
 
         $controlPlane = app(RestaurantControlPlaneService::class);
         $first = $controlPlane->provision($store, $admin);
@@ -210,7 +210,7 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
     }
 
     /** @return array{Store,User} */
-    private function restaurant(string $code): array
+    private function restaurant(string $code, bool $enableRestaurantSaas = true): array
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $store = Store::query()->create([
@@ -220,7 +220,9 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->enableRestaurantSaasForTestStore((int) $store->id);
+        if ($enableRestaurantSaas) {
+            $this->enableRestaurantSaasForTestStore((int) $store->id);
+        }
 
         $admin = User::query()->create([
             'name' => 'Restaurant Wave 0 Certification Admin',
