@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminMfaCredential;
 use App\Models\User;
+use App\Services\AdminSecurityPolicy;
+use App\Services\AdminSessionRegistry;
 use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
@@ -13,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -22,6 +26,8 @@ class AdminLoginController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly CredentialAuthenticator $credentials,
         private readonly AuditLogger $audit,
+        private readonly AdminSecurityPolicy $securityPolicy,
+        private readonly AdminSessionRegistry $securitySessions,
     ) {}
 
     public function show(Request $request): View|RedirectResponse
@@ -48,6 +54,7 @@ class AdminLoginController extends Controller
         return view('admin.login', [
             'channel' => $channel,
             'locale' => $locale,
+            'ssoReadiness' => $this->securityPolicy->ssoReadiness(),
         ]);
     }
 
@@ -78,6 +85,7 @@ class AdminLoginController extends Controller
                 'channel' => $channel,
                 'reason' => 'invalid_or_inactive_credentials',
             ]);
+            $this->recordAuthFailure($request, $channel, 'invalid_or_inactive_credentials');
 
             throw ValidationException::withMessages([
                 'email' => [__('admin_login.invalid_credentials')],
@@ -92,6 +100,14 @@ class AdminLoginController extends Controller
                 'user_id' => $user->getKey(),
                 'reason' => 'no_management_channel',
             ]);
+            $this->audit->record(
+                'management.login.failed',
+                $user,
+                $user,
+                null,
+                ['requested_channel' => $channel, 'reason' => 'no_management_channel'],
+                $request,
+            );
 
             throw ValidationException::withMessages([
                 'email' => [__('admin_login.not_authorized')],
@@ -100,6 +116,7 @@ class AdminLoginController extends Controller
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
+        $this->securitySessions->ensure($request, $user);
 
         $userLocale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : $locale;
         $request->session()->put('admin_login_locale', $userLocale);
@@ -120,12 +137,24 @@ class AdminLoginController extends Controller
         ]);
 
         $intended = $this->authorizedIntendedUrl($request, $user);
+        $defaultTarget = route("admin.{$target}.dashboard");
+
+        if ($this->securityPolicy->requiresMfa($user)) {
+            $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
+            $hasMfa = AdminMfaCredential::query()
+                ->where('user_id', $user->id)
+                ->whereNotNull('enabled_at')
+                ->whereNull('revoked_at')
+                ->exists();
+
+            return redirect()->route($hasMfa ? 'admin.mfa.challenge' : 'admin.mfa.enroll');
+        }
 
         if ($intended !== null) {
             return redirect()->to($intended);
         }
 
-        return redirect()->route("admin.{$target}.dashboard");
+        return redirect()->to($defaultTarget);
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -143,6 +172,25 @@ class AdminLoginController extends Controller
         Log::info('Management logout', ['user_id' => $user?->getKey()]);
 
         return redirect()->route('admin.b2c.login');
+    }
+
+    private function recordAuthFailure(Request $request, string $channel, string $reason): void
+    {
+        DB::table('audit_logs')->insert([
+            'user_id' => null,
+            'event' => 'management.login.failed',
+            'auditable_type' => 'management_auth',
+            'auditable_id' => null,
+            'before' => null,
+            'after' => json_encode([
+                'requested_channel' => $channel,
+                'reason' => $reason,
+            ], JSON_THROW_ON_ERROR),
+            'ip_address' => $request->ip(),
+            'user_agent' => mb_substr((string) $request->userAgent(), 0, 2000),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function channel(Request $request): string

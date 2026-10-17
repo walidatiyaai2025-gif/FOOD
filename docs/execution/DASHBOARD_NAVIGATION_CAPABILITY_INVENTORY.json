@@ -1787,6 +1787,16 @@
       "reason": "site-scoped service APIs; operator discovery is through Restaurant Operations Guest Book/customer context, not raw JSON navigation"
     },
     {
+      "pattern": "management authentication workflow screens and redirects",
+      "status": "INTERNAL_EXCEPTION",
+      "reason": "MFA enrollment/challenge and enterprise SSO initiation are mandatory authentication workflow steps, not independent business navigation destinations.",
+      "routes": [
+        "admin.mfa.enroll",
+        "admin.mfa.challenge",
+        "admin.sso.redirect"
+      ]
+    },
+    {
       "pattern": "authenticated support/data GET endpoints owned by visible surfaces",
       "status": "INTERNAL_EXCEPTION",
       "reason": "JSON/data transport, auth bootstrap, validation guard, or file/report response owned by a visible parent surface; these are intentionally not independent navigation destinations.",

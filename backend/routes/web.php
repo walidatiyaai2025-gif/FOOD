@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Admin\AdministrationHubController;
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminMfaController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
+use App\Http\Controllers\Admin\AdminSsoController;
 use App\Http\Controllers\Admin\AppPreviewConfigurationController;
 use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
@@ -151,6 +153,24 @@ Route::prefix('admin')
             ->defaults('channel', 'b2c')
             ->middleware('throttle:login')
             ->name('b2c.login.store');
+        Route::get('/sso', [AdminSsoController::class, 'redirect'])
+            ->middleware('throttle:20,1')
+            ->name('sso.redirect');
+        Route::get('/sso/callback', [AdminSsoController::class, 'callback'])
+            ->middleware('throttle:20,1')
+            ->name('sso.callback');
+        Route::get('/security/mfa/enroll', [AdminMfaController::class, 'enroll'])
+            ->middleware('auth')
+            ->name('mfa.enroll');
+        Route::post('/security/mfa/enroll', [AdminMfaController::class, 'confirmEnrollment'])
+            ->middleware(['auth', 'throttle:20,1'])
+            ->name('mfa.enroll.confirm');
+        Route::get('/security/mfa/challenge', [AdminMfaController::class, 'challenge'])
+            ->middleware('auth')
+            ->name('mfa.challenge');
+        Route::post('/security/mfa/challenge', [AdminMfaController::class, 'verify'])
+            ->middleware(['auth', 'throttle:20,1'])
+            ->name('mfa.verify');
         Route::post('/logout', [AdminLoginController::class, 'destroy'])
             ->middleware('auth')
             ->name('logout');
@@ -773,6 +793,14 @@ Route::prefix('admin')
         Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');
         Route::patch('/security/users/{user}/status', [SecurityController::class, 'updateUserStatus'])->name('security.users.status');
         Route::put('/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles'])->name('security.users.roles');
+        Route::delete('/security/users/{user}/mfa', [SecurityController::class, 'resetUserMfa'])->middleware('throttle:20,1')->name('security.users.mfa.reset');
+        Route::post('/security/users/{user}/sso-identities', [SecurityController::class, 'storeSsoIdentity'])->middleware('throttle:20,1')->name('security.users.sso.store');
+        Route::delete('/security/sso-identities/{identity}', [SecurityController::class, 'destroySsoIdentity'])->middleware('throttle:20,1')->name('security.users.sso.destroy');
+        Route::delete('/security/sessions/{securitySession}', [SecurityController::class, 'revokeSecuritySession'])->middleware('throttle:30,1')->name('security.sessions.revoke');
+        Route::get('/security/reports/{report}.csv', [SecurityController::class, 'exportGovernanceReport'])
+            ->whereIn('report', ['effective-access', 'privileged-changes', 'delegations', 'mfa', 'auth-audit'])
+            ->middleware('throttle:30,1')
+            ->name('security.reports.export');
         Route::post('/security/roles', [SecurityController::class, 'storeRole'])->name('security.roles.store');
         Route::patch('/security/roles/{role}', [SecurityController::class, 'updateRole'])->name('security.roles.update');
         Route::post('/security/roles/{role}/clone', [SecurityController::class, 'cloneRole'])->name('security.roles.clone');
