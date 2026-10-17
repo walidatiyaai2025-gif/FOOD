@@ -58,7 +58,7 @@ $roleLabel = static function ($role): string {
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header">
             <div>
-                <span class="foodex-subtitle">{{ $ar ? 'تهيئة متجر التجزئة' : 'Retail Store Provisioning' }} · FOODEX · SUPER_ADMIN</span>
+                <span class="foodex-subtitle">{{ __('store_channels.provisioning_label') }} · FOODEX · SUPER_ADMIN</span>
                 <h1>{{ __('store_channels.title') }}</h1>
                 <p>{{ __('store_channels.subtitle') }}</p>
             </div>
