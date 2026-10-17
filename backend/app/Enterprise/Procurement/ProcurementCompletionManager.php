@@ -44,6 +44,7 @@ final class ProcurementCompletionManager
         [$from, $to] = $this->dateWindow($filters['from'] ?? null, $filters['to'] ?? null);
         $storeId = $scope->storeId;
         $lastRefresh = now()->format('Y-m-d H:i');
+        $contractWarningDays = max(1, (int) config('procurement.contract_expiry_warning_days', 30));
 
         $canRequests = $this->can($actor, $context, 'procurement.purchase_requests.view', $scope);
         $canOrders = $this->can($actor, $context, 'procurement.purchase_orders.view', $scope);
@@ -104,13 +105,15 @@ final class ProcurementCompletionManager
             ? DB::table('enterprise_procurement_contracts')
                 ->where('store_id', $storeId)
                 ->where('status', 'active')
+                ->whereDate('starts_on', '<=', now()->toDateString())
+                ->whereDate('ends_on', '>=', now()->toDateString())
                 ->count()
             : null;
         $expiringContracts = $canOrders
             ? DB::table('enterprise_procurement_contracts')
                 ->where('store_id', $storeId)
                 ->where('status', 'active')
-                ->whereBetween('ends_on', [now()->toDateString(), now()->addDays(30)->toDateString()])
+                ->whereBetween('ends_on', [now()->toDateString(), now()->addDays($contractWarningDays)->toDateString()])
                 ->count()
             : null;
         $activeRfqs = $canRequests
@@ -749,7 +752,20 @@ final class ProcurementCompletionManager
             ->where('contracts.store_id', $scope->storeId)
             ->when(
                 $validated['status'] ?? null,
-                fn ($query, string $status) => $query->where('contracts.status', $status),
+                function ($query, string $status) {
+                    if ($status === 'expired') {
+                        return $query
+                            ->where('contracts.status', 'active')
+                            ->whereDate('contracts.ends_on', '<', now()->toDateString());
+                    }
+
+                    $query->where('contracts.status', $status);
+                    if ($status === 'active') {
+                        $query->whereDate('contracts.ends_on', '>=', now()->toDateString());
+                    }
+
+                    return $query;
+                },
             )
             ->when(
                 $term !== '',
@@ -1128,8 +1144,8 @@ final class ProcurementCompletionManager
             }
             $quantityVariance = round($quantityVariance, 3);
             $valueVariance = round($valueVariance, 3);
-            $quantityTolerance = 0.0;
-            $valueTolerance = 0.010;
+            $quantityTolerance = max(0.0, (float) config('procurement.three_way_match.quantity_tolerance', 0));
+            $valueTolerance = max(0.0, (float) config('procurement.three_way_match.value_tolerance', 0.010));
             $autoApproved = $quantityVariance <= $quantityTolerance && $valueVariance <= $valueTolerance;
 
             $existing = DB::table('enterprise_procurement_match_reviews')
@@ -1327,14 +1343,20 @@ final class ProcurementCompletionManager
                 ->where('invoices.store_id', $storeId)
                 ->whereIn('matches.status', ['pending', 'rejected'])
                 ->count();
-            $financePending = DB::table('enterprise_purchase_invoices')
-                ->where('store_id', $storeId)
-                ->where('status', 'draft')
-                ->where('updated_at', '<', now()->subDay())
+            $financeFailed = DB::table('enterprise_purchase_invoices as invoices')
+                ->join(
+                    'enterprise_outbox_messages as outbox',
+                    'outbox.event_id',
+                    '=',
+                    'invoices.outbox_event_id',
+                )
+                ->where('invoices.store_id', $storeId)
+                ->where('outbox.event_type', 'ProcurementPurchaseInvoiceHandedOff')
+                ->where('outbox.status', 'failed')
                 ->count();
 
             $exceptions[] = ['key' => 'match_variance', 'count' => $matchVariance, 'tab' => 'matches'];
-            $exceptions[] = ['key' => 'finance_handoff_pending', 'count' => $financePending, 'tab' => 'invoices'];
+            $exceptions[] = ['key' => 'finance_handoff_failed', 'count' => $financeFailed, 'tab' => 'invoices'];
         }
 
         if ($canSuppliers) {
