@@ -9,6 +9,18 @@ return [
     'draft_ready' => 'Editable menu draft is ready.',
     'published' => 'Menu draft published atomically.',
     'scheduled' => 'Menu draft scheduled for publishing.',
+    'public_menu' => [
+        'open' => 'Open public menu',
+        'copy' => 'Copy public URL',
+        'copied' => 'Public URL copied',
+        'qr' => 'Manage share & QR',
+        'unpublished' => 'Public menu is unpublished',
+    ],
+    'unpublish' => [
+        'action' => 'Unpublish public menu',
+        'confirm' => 'Unpublish this restaurant menu now? Customers will lose access until you publish again.',
+        'done' => 'Public menu unpublished. Draft content remains private and editable.',
+    ],
     'schedule' => [
         'label' => 'Scheduled publishing',
         'at' => 'Publish at',
