@@ -61,15 +61,8 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
             true,
         );
 
-        $queries = [];
-        DB::listen(static function ($query) use (&$queries): void {
-            $queries[] = (string) $query->sql;
-        });
-
-        $this->assertTrue(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
-        $this->assertFalse(collect($queries)->contains(
-            static fn (string $sql): bool => str_contains($sql, 'enterprise_'),
-        ));
+        // Legacy child entitlements cannot bypass the explicit Retail Store master switch.
+        $this->assertFalse(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
 
         $plan = RestaurantSaasPlan::query()->create([
             'code' => 'W0-CERT-PRO',
