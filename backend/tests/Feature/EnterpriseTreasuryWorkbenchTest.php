@@ -141,7 +141,6 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
         }
     }
 
-
     public function test_complete_treasury_surface_composes_dashboard_financing_forecast_and_shared_reports(): void
     {
         Queue::fake();
