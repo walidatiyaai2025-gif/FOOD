@@ -7,6 +7,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\RestaurantGuestService;
 use App\Domain\SmartOrdering\RestaurantPaymentService;
 use App\Domain\SmartOrdering\RestaurantTableService;
+use App\Domain\SmartOrdering\RestaurantWorkforceService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
@@ -33,6 +34,7 @@ final class SmartOrderingOperationsController extends Controller
         private readonly SmartOrderingSiteService $sites,
         private readonly RestaurantPaymentService $payments,
         private readonly RestaurantTableService $restaurantTables,
+        private readonly RestaurantWorkforceService $restaurantWorkforce,
         private readonly RestaurantGuestService $restaurantGuests,
     ) {}
 
@@ -46,7 +48,7 @@ final class SmartOrderingOperationsController extends Controller
             'branch' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'reservations', 'waitlist', 'guest_book', 'payments'])],
+            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'workforce', 'reservations', 'waitlist', 'guest_book', 'payments'])],
             'payment_status' => ['nullable', Rule::in(['pending', 'authorized', 'captured', 'partially_refunded', 'refunded', 'voided', 'failed'])],
             'payment_provider' => ['nullable', 'string', 'max:80'],
             'reconciliation' => ['nullable', Rule::in(['mismatch'])],
@@ -151,6 +153,25 @@ final class SmartOrderingOperationsController extends Controller
             );
         }
 
+        $workforceWorkspace = [
+            'selected_branch' => null,
+            'timezone' => null,
+            'can_manage' => false,
+            'actor_assigned' => false,
+            'available_staff' => [],
+            'assignments' => [],
+            'shifts' => [],
+            'sessions' => [],
+            'current_session' => null,
+        ];
+        if ($tab === 'workforce') {
+            $workforceWorkspace = $this->restaurantWorkforce->workspace(
+                $branches,
+                $validated['branch'] ?? null,
+                $actor,
+            );
+        }
+
         $paymentPaginator = null;
         $paymentRows = [];
         $paymentProviderOptions = [];
@@ -212,6 +233,7 @@ final class SmartOrderingOperationsController extends Controller
             'stores' => $stores,
             'tab' => $tab,
             'tableWorkspace' => $tableWorkspace,
+            'workforceWorkspace' => $workforceWorkspace,
             'guestWorkspace' => $guestWorkspace,
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
