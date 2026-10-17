@@ -112,6 +112,7 @@ class UpdateManagerTest extends TestCase
             'health_check',
             'rollback_files',
             'rollback_database',
+            'health_check',
             'exit_maintenance_mode',
         ], $runtime->calls);
 
@@ -128,6 +129,7 @@ class UpdateManagerTest extends TestCase
         $this->assertSame('failed', $failedHistory->execution_evidence['health_check'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_files'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_database'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_health_check'] ?? null);
         $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
     }
@@ -193,6 +195,8 @@ final class RecordingUpdateRuntime implements UpdateRuntime
      * @var array<int, string>
      */
     public array $calls = [];
+
+    private bool $primaryFailureTriggered = false;
 
     public function __construct(
         private readonly ?string $failAt = null,
@@ -267,7 +271,12 @@ final class RecordingUpdateRuntime implements UpdateRuntime
     {
         $this->calls[] = $stage;
 
-        if ($this->failAt === $stage || $this->failRollbackAt === $stage) {
+        if ($this->failRollbackAt === $stage) {
+            throw new RuntimeException('Simulated update runtime failure.');
+        }
+
+        if ($this->failAt === $stage && ! $this->primaryFailureTriggered) {
+            $this->primaryFailureTriggered = true;
             throw new RuntimeException('Simulated update runtime failure.');
         }
     }
