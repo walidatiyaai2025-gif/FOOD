@@ -176,6 +176,29 @@ final class RestaurantGrowthScaleService
         }, 3);
     }
 
+    public function setGiftCardStatus(
+        Store $store,
+        string $publicId,
+        string $status,
+    ): void {
+        abort_unless(in_array($status, ['active', 'suspended', 'closed'], true), 422);
+        $enterprise = $this->scope($store);
+
+        DB::transaction(function () use ($enterprise, $publicId, $status): void {
+            $card = DB::table('restaurant_saas_gift_cards')
+                ->where('organization_id', (int) $enterprise['organization_id'])
+                ->where('public_id', $publicId)
+                ->lockForUpdate()
+                ->first(['id', 'status']);
+            abort_unless($card !== null, 404);
+            abort_if($card->status === 'closed' && $status !== 'closed', 409, 'Closed gift cards cannot be reactivated.');
+
+            DB::table('restaurant_saas_gift_cards')
+                ->where('id', $card->id)
+                ->update(['status' => $status, 'updated_at' => now()]);
+        }, 3);
+    }
+
     /** @param array<string,mixed> $configuration */
     public function createJourney(
         Store $store,
@@ -236,9 +259,12 @@ final class RestaurantGrowthScaleService
             ->first();
         abort_unless($journey !== null, 404);
 
+        $normalizedEventKey = mb_substr(trim($eventKey), 0, 160);
+        abort_if($normalizedEventKey === '', 422, 'Lifecycle event requires an idempotency key.');
+
         $existing = DB::table('restaurant_saas_lifecycle_events')
             ->where('journey_id', $journey->id)
-            ->where('event_key', $eventKey)
+            ->where('event_key', $normalizedEventKey)
             ->first(['status']);
         if ($existing !== null) {
             return ['status' => (string) $existing->status, 'duplicate' => true];
@@ -248,7 +274,7 @@ final class RestaurantGrowthScaleService
         $status = $suppressed ? 'suppressed' : 'pending';
         DB::table('restaurant_saas_lifecycle_events')->insert([
             'journey_id' => (int) $journey->id,
-            'event_key' => mb_substr(trim($eventKey), 0, 160),
+            'event_key' => $normalizedEventKey,
             'subject_reference' => mb_substr(trim($subjectReference), 0, 190),
             'status' => $status,
             'reason_code' => $suppressed ? 'consent_required' : null,
@@ -369,6 +395,7 @@ final class RestaurantGrowthScaleService
     /** @return array<string,mixed> */
     public function analytics(Store $store, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
+        $this->assertReportingWindow($from, $to);
         $enterprise = $this->scope($store);
         $storeIds = $this->organizationStoreIds((int) $enterprise['organization_id']);
 
@@ -438,6 +465,7 @@ final class RestaurantGrowthScaleService
     /** @return array<string,mixed> */
     public function accountingSummary(Store $store, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
+        $this->assertReportingWindow($from, $to);
         $enterprise = $this->scope($store);
         $storeIds = $this->organizationStoreIds((int) $enterprise['organization_id']);
 
@@ -446,8 +474,9 @@ final class RestaurantGrowthScaleService
             ->whereIn('o.store_id', $storeIds)
             ->whereBetween('o.created_at', [$from, $to])
             ->groupBy('o.store_id', 'o.currency')
+            ->groupByRaw('DATE(o.created_at)')
             ->selectRaw(
-                "o.store_id, o.currency,
+                "DATE(o.created_at) as sales_date, o.store_id, o.currency,
                  SUM(CASE WHEN c.lifecycle_status = 'COMPLETED' THEN o.subtotal ELSE 0 END) as subtotal,
                  SUM(CASE WHEN c.lifecycle_status = 'COMPLETED' THEN o.discount_total ELSE 0 END) as discounts,
                  SUM(CASE WHEN c.lifecycle_status = 'COMPLETED' THEN o.delivery_total ELSE 0 END) as delivery,
@@ -460,6 +489,7 @@ final class RestaurantGrowthScaleService
             'period' => ['from' => $from->format(DATE_ATOM), 'to' => $to->format(DATE_ATOM)],
             'source' => 'canonical_orders_and_smart_ordering_lifecycle',
             'rows' => $rows->map(static fn (object $row): array => [
+                'sales_date' => (string) $row->sales_date,
                 'store_id' => (int) $row->store_id,
                 'currency' => (string) $row->currency,
                 'subtotal' => round((float) $row->subtotal, 3),
@@ -584,6 +614,13 @@ final class RestaurantGrowthScaleService
         }
 
         return $result;
+    }
+
+    private function assertReportingWindow(\DateTimeInterface $from, \DateTimeInterface $to): void
+    {
+        $seconds = $to->getTimestamp() - $from->getTimestamp();
+        abort_if($seconds < 0, 422, 'Reporting period end must not precede its start.');
+        abort_if($seconds > 366 * 86400, 422, 'Reporting period is limited to 366 days.');
     }
 
     /** @return array{organization_id:int,company_id:int,legal_entity_id:int,business_unit_id:int,store_id:int} */
