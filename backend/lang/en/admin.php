@@ -55,25 +55,95 @@ return [
         'nav_title' => 'ERP Center',
         'eyebrow' => 'Enterprise operations',
         'title' => 'ERP Center',
-        'description' => 'One role-aware entry point for procurement, warehouse, finance, treasury, customer service, reporting and personal follow-up using FOODEX authoritative modules.',
+        'description' => 'One role-aware command center for procurement, warehouse, finance, treasury, customer service, reporting and personal follow-up using FOODEX authoritative modules.',
+        'snapshot' => [
+            'title' => '30-second ERP snapshot',
+            'description' => 'Permission-filtered approvals, overdue work, exceptions, reporting failures and module health with direct drill-down to the owning workspace.',
+        ],
         'modules_title' => 'ERP workspaces',
-        'modules_description' => 'Only authorized business functions are actionable. Disabled or unentitled modules remain explicit without exposing a dead or unsafe action.',
+        'modules_description' => 'Only authorized business functions are actionable. Disabled, setup-required or unentitled modules remain explicit without exposing a dead or unsafe action.',
         'open' => 'Open workspace',
         'empty' => 'No ERP workspace is available for this role.',
+        'empty_filtered' => 'No ERP workspace matches this state filter.',
         'summary' => [
             'label' => 'ERP availability summary',
             'available' => 'Available',
+            'degraded' => 'Degraded',
+            'setup_required' => 'Setup required',
             'disabled' => 'Disabled modules',
             'restricted' => 'Not entitled',
         ],
         'statuses' => [
             'available' => 'Available',
+            'degraded' => 'Degraded',
+            'setup_required' => 'Setup required',
             'disabled' => 'Disabled',
             'not_entitled' => 'Not entitled',
         ],
         'status_help' => [
+            'degraded' => 'The module is not currently healthy or operational. Review its state before using it.',
+            'setup_required' => 'The module is installed or being prepared but is not ready for normal operation yet.',
             'disabled' => 'This enterprise module is not enabled.',
             'not_entitled' => 'The module is enabled but not entitled for the current business scope.',
+        ],
+        'health_statuses' => [
+            'healthy' => 'Health: healthy',
+            'degraded' => 'Health: degraded',
+            'error' => 'Health: error',
+            'maintenance' => 'Health: maintenance',
+        ],
+        'kpis' => [
+            'pending_approvals' => [
+                'label' => 'Pending approvals',
+                'hint' => 'Authorized approval decisions awaiting action.',
+            ],
+            'overdue_work' => [
+                'label' => 'Overdue work',
+                'hint' => 'Visible ERP follow-up items past their authoritative due date.',
+            ],
+            'open_exceptions' => [
+                'label' => 'Open exceptions',
+                'hint' => 'Visible work items that currently need attention.',
+            ],
+            'failed_reports' => [
+                'label' => 'Failed report / export jobs',
+                'hint' => 'Failed report exports and scheduled-report runs visible to this user.',
+            ],
+            'module_health' => [
+                'label' => 'Module health issues',
+                'hint' => 'Operational ERP modules reporting degraded or error health.',
+                'meta' => ':healthy of :total visible operational modules healthy.',
+            ],
+            'unavailable' => 'Not available for the current role or runtime.',
+            'bounded' => 'Bounded approval scan reached its safe limit; open the Action Center for the complete operational view.',
+        ],
+        'analytics' => [
+            'label' => 'ERP command-center analytics',
+            'table_summary' => 'Show accessible table summary',
+            'workload' => [
+                'title' => 'Work & exceptions by module',
+                'description' => 'Only modules with an authorized operational work authority are included; unavailable modules are omitted instead of showing fake zeroes.',
+                'empty' => 'No authorized operational workload is available for this role.',
+                'total' => ':count visible',
+                'exceptions' => ':count exceptions',
+            ],
+            'states' => [
+                'title' => 'Module state distribution',
+                'description' => 'Current visible ERP destinations grouped by operational availability.',
+            ],
+        ],
+        'follow_up' => [
+            'label' => 'ERP follow-up',
+            'my_work_title' => 'My Work preview',
+            'my_work_description' => 'Highest-priority visible items from the existing Action Center authority, including authoritative due dates where available.',
+            'open_all' => 'Open Action Center',
+            'activity_title' => 'Recent cross-module activity',
+            'activity_description' => 'A bounded activity feed from the same permission-filtered operational work set.',
+            'activity_empty' => 'No recent authorized ERP activity is available.',
+        ],
+        'filters' => [
+            'label' => 'Filter ERP workspaces by state',
+            'all' => 'All states',
         ],
         'modules' => [
             'procurement' => [
