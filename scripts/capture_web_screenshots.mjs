@@ -74,8 +74,8 @@ const b2c = [
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
-  ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu'],
-  ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply'],
+  ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
+  ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
 ];
 
 async function ensureDir(dir) {
@@ -726,6 +726,8 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['smart-ordering', '/admin/smart-ordering'],
     ['smart-ordering-analytics', '/admin/smart-ordering/analytics'],
     ['smart-ordering-settings', '/admin/smart-ordering/settings'],
+    ['smart-ordering-menu', '/admin/smart-ordering/menu?support_access=1'],
+    ['smart-ordering-appearance', '/admin/smart-ordering/appearance'],
     ['smart-ordering-qr', '/admin/smart-ordering/qr'],
     ['whatsapp-chatbot-control', '/admin/whatsapp/chatbot/control'],
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
@@ -1486,6 +1488,22 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'smart-ordering-analytics',
     '/admin/smart-ordering/analytics',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-menu',
+    '/admin/smart-ordering/menu?support_access=1',
+    { fullMatrix: true },
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-appearance',
+    '/admin/smart-ordering/appearance',
+    { fullMatrix: true },
   );
   await captureResponsiveRoute(
     page,
