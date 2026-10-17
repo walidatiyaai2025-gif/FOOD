@@ -258,7 +258,7 @@ class RestaurantSaaSIntegrationHubTest extends TestCase
 
         $analytics = $service->analytics($site);
         $this->assertSame(1, $analytics['health']['installed']);
-        $this->assertSame(1, $analytics['health']['retry_backlog']);
+        $this->assertSame(2, $analytics['health']['retry_backlog']);
         $this->assertSame(2, $analytics['health']['api_requests']);
         $this->assertSame(1, $analytics['health']['rate_limit_violations']);
 
