@@ -26,7 +26,7 @@
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div>
 <span class="foodex-subtitle">{{ __('smart_ordering.analytics.eyebrow') }}</span>
 <h1>{{ __('smart_ordering.analytics.title') }}</h1>
@@ -36,7 +36,7 @@
 
 <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.analytics.export',request()->query()) }}">{{ __('smart_ordering.analytics.export_csv') }}</a>
 </div>
-</header>
+</div>
 
 @include('admin._smart-ordering-workspace-nav')
 

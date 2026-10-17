@@ -39,7 +39,7 @@
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
         <div class="cb-shell">
-            <header class="foodex-page-toolbar">
+            <div class="foodex-page-toolbar">
                 <div>
                     <span class="foodex-subtitle">{{ __('chatbot.subtitle') }}</span>
                     <h1>{{ __('chatbot.page_title') }}</h1>
@@ -49,7 +49,7 @@
                     <a class="foodex-action-primary" href="{{ route('admin.whatsapp-chatbot.preview', ['screen' => 'home']) }}">{{ __('chatbot.preview_title') }}</a>
                     
                 </div>
-            </header>
+            </div>
 
             @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="foodex-alert error" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

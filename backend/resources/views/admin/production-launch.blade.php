@@ -32,7 +32,7 @@
 @include('admin._global-header')
         @include('admin._admin-center-switcher',['active'=>'settings'])
 
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('production_launch.title') }}</h1>
                 <p>{{ __('production_launch.description') }}</p>
@@ -41,7 +41,7 @@
                 <a class="foodex-action-secondary" href="{{ route('admin.production-launch.report') }}">{{ __('production_launch.report.download') }}</a>
                 <a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('production_launch.back') }}</a>
             </div>
-        </header>
+        </div>
 
         @if(session('status'))
             <div class="foodex-state" role="status">{{ session('status') }}</div>

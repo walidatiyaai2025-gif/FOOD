@@ -26,14 +26,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div>
 <span class="foodex-subtitle">FOODEX Assistant V1</span>
 <h1>{{ $ar?'إعدادات مساعد FOODEX':'FOODEX Assistant Settings' }}</h1>
 <p>{{ $ar?'تحكم في التفعيل العام للمساعد التشغيلي مع بقاء الصلاحيات والقراءة فقط مفروضة من الخادم.':'Control global Assistant availability while server-side permissions and read-only enforcement remain authoritative.' }}</p>
 </div>
 
-</header>
+</div>
 
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())

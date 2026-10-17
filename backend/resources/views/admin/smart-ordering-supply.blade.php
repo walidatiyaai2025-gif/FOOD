@@ -41,13 +41,13 @@
     </aside>
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_supply.title') }}</h1>
                 <p>{{ __('smart_ordering_supply.subtitle') }}</p>
             </div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.smart_ordering_settings') }}</a>
-        </header>
+        </div>
 
         @include('admin._smart-ordering-workspace-nav')
 

@@ -14,7 +14,7 @@
 <main class="page foodex-admin-main foodex-admin-page" data-foodex-utility="security">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="top foodex-page-toolbar"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.administration.index') }}">{{ __('admin.security.back') }}</a></header>
+<div class="top foodex-page-toolbar"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.administration.index') }}">{{ __('admin.security.back') }}</a></div>
 <nav class="foodex-tabs" aria-label="{{ __('admin.security.title') }}" style="margin-bottom:18px"><a class="back" aria-current="page" href="{{ route('admin.security.index') }}">{{ __('admin.security.title') }}</a><a class="back" href="{{ route('admin.enterprise-security.index') }}">{{ __('enterprise_security.title') }}</a></nav>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="errors foodex-state" role="alert"><strong>{{ __('admin.security.validation_failed') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

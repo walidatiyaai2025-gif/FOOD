@@ -46,7 +46,7 @@
 @include('admin._global-header')
 <div class="wa-supervisor-shell">
 
-    <header class="foodex-page-toolbar">
+    <div class="foodex-page-toolbar">
         <div>
             <span class="foodex-subtitle">{{ __('whatsapp_supervisor.subtitle') }}</span>
             <h1>{{ __('whatsapp_supervisor.heading') }}</h1>
@@ -56,7 +56,7 @@
             <span class="badge bg-warning">{{ __('whatsapp_supervisor.dark_launch') }}</span>
             
         </div>
-    </header>
+    </div>
 
     @if(session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>

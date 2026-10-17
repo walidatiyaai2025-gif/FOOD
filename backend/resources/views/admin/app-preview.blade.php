@@ -34,14 +34,14 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · Shared Flutter Runtime</span>
                 <h1>{{ __('admin.preview_center.title') }}</h1>
                 <p>{{ __('admin.preview_center.description') }}</p>
             </div>
             
-        </header>
+        </div>
 
         <div class="preview-layout" data-preview-entry="auto" data-preview-default-app="customer" data-preview-default-configuration="published">
             <section class="foodex-card preview-controls" aria-label="{{ __('admin.preview_center.controls') }}">

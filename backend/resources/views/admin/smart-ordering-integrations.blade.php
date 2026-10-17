@@ -40,7 +40,7 @@ $providers=collect($integrations)->pluck('provider_key')->filter()->unique()->so
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor($user),'navContext'=>'smart_ordering','user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface foodex-module-overview">
 @include('admin._global-header')
-<header class="foodex-page-toolbar"><div><h1>{{ __('restaurant_integrations.title') }}</h1><p>{{ __('restaurant_integrations.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('restaurant_integrations.back') }}</a></header>
+<div class="foodex-page-toolbar"><div><h1>{{ __('restaurant_integrations.title') }}</h1><p>{{ __('restaurant_integrations.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('restaurant_integrations.back') }}</a></div>
 @include('admin._smart-ordering-workspace-nav')
 @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
 @if(session('restaurant_api_credential'))<section class="panel"><strong>{{ __('restaurant_integrations.credential_once') }}</strong><div class="ri-secret">{{ session('restaurant_api_credential') }}</div></section>@endif

@@ -26,9 +26,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page workspace-page" data-enterprise-workspaces="true">
 @include('admin._global-header')
-<header class="workspace-head foodex-page-toolbar">
+<div class="workspace-head foodex-page-toolbar">
 <div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_workspaces.eyebrow') }}</div><h1>{{ __('enterprise_workspaces.title') }}</h1><p>{{ __('enterprise_workspaces.description') }}</p></div>
-</header>
+</div>
 <nav class="workspace-tabs" aria-label="{{ __('enterprise_workspaces.title') }}">
 @foreach($workspace['available'] as $key)
 <a class="workspace-tab {{ $workspace['key']===$key ? 'is-active' : '' }}" href="{{ route('admin.enterprise-workspaces.index',['workspace'=>$key]) }}" @if($workspace['key']===$key) aria-current="page" @endif>{{ __('enterprise_workspaces.workspaces.'.$key) }}</a>

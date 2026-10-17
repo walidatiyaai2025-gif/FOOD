@@ -39,14 +39,14 @@
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
         <div class="cbp-shell">
-            <header class="foodex-page-toolbar">
+            <div class="foodex-page-toolbar">
                 <div>
                     <span class="foodex-subtitle">{{ __('chatbot.preview_title') }}</span>
                     <h1>{{ __('chatbot.preview_screens.'.$screen) }}</h1>
                     <p>{{ __('chatbot.admin.customer_preview_hint') }}</p>
                 </div>
                 <div class="foodex-header-actions"><a class="foodex-action-primary" href="{{ route('admin.whatsapp-chatbot.index') }}">{{ __('chatbot.page_title') }}</a></div>
-            </header>
+            </div>
 
             <div class="cbp-toolbar">
                 <nav class="cbp-screen-tabs" aria-label="{{ __('chatbot.preview_title') }}">

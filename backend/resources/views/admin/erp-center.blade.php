@@ -65,14 +65,14 @@ body{margin:0}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page erp-center">
 @include('admin._global-header')
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div>
 <p class="erp-eyebrow">{{ __('admin.erp_center.eyebrow') }}</p>
 <h1>{{ __('admin.erp_center.title') }}</h1>
 <p class="erp-subtitle">{{ __('admin.erp_center.description') }}</p>
 </div>
 
-</header>
+</div>
 
 <div class="foodex-module-overview">
 <section class="erp-section" aria-labelledby="erp-snapshot-title">

@@ -14,7 +14,7 @@
 @include('admin._global-header')
     @include('admin._admin-center-switcher',['active'=>'settings'])
 @php($ar = app()->getLocale() === 'ar')
-    <header class="foodex-page-toolbar settings-page-heading">
+    <div class="foodex-page-toolbar settings-page-heading">
         <div>
             <span class="foodex-subtitle">FOODEX · {{ __('admin.settings_center.title') }}</span>
             <h1>{{ __('app_versions.title') }}</h1>
@@ -24,7 +24,7 @@
             <a class="settings-page-link" href="{{ route('admin.settings.index') }}">{{ __('admin.settings_center.title') }}</a>
             <a class="settings-page-link" href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ __('admin.settings_center.items.mobile') }}</a>
         </div>
-    </header>
+    </div>
     <p class="settings-page-note">{{ $ar
         ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
         : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}</p>

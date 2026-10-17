@@ -31,7 +31,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page wms-page">
 @include('admin._global-header')
-<header class="wms-head foodex-page-toolbar"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_wms.eyebrow') }}</div><h1>{{ __('enterprise_wms.title') }}</h1><p>{{ __('enterprise_wms.description') }}</p></div></header>
+<div class="wms-head foodex-page-toolbar"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_wms.eyebrow') }}</div><h1>{{ __('enterprise_wms.title') }}</h1><p>{{ __('enterprise_wms.description') }}</p></div></div>
 @if(session('status'))<div class="wms-state foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="wms-state foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

@@ -40,13 +40,13 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('customer_service_workspace.eyebrow') }}</span>
                 <h1>{{ __('customer_service_workspace.title') }}</h1>
                 <p>{{ __('customer_service_workspace.subtitle') }}</p>
             </div>
-        </header>
+        </div>
 
         <div class="cs-shell">
             @if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif

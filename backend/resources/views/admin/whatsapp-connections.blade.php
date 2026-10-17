@@ -14,7 +14,7 @@
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
         @include('admin._admin-center-switcher', ['active'=>'administration'])
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('whatsapp.connections.title') }}</h1>
                 <p>{{ __('whatsapp.connections.description') }}</p>
@@ -23,7 +23,7 @@
                 <a class="action" href="{{ route('admin.whatsapp.index') }}">{{ __('whatsapp.connections.module_controls') }}</a>
                 <a class="primary" href="{{ route('admin.administration.index') }}">{{ __('whatsapp.back') }}</a>
             </div>
-        </header>
+        </div>
 
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif

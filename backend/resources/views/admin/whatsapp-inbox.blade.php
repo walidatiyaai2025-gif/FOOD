@@ -73,14 +73,14 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page wa-inbox-main">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar wa-shell-marker">
+        <div class="foodex-page-toolbar wa-shell-marker">
             <div>
                 <span class="foodex-subtitle">{{ __('whatsapp.inbox.subtitle') }}</span>
                 <h1>{{ __('whatsapp.inbox.heading') }}</h1>
                 <p>{{ __('whatsapp.inbox.intro') }}</p>
             </div>
             
-        </header>
+        </div>
 
         @if(session('status'))<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px;color:var(--foodex-red)"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

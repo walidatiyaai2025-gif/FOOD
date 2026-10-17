@@ -38,10 +38,10 @@ html[dir=ltr] .main{grid-column:2}
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="header foodex-page-toolbar">
+<div class="header foodex-page-toolbar">
 <div><span class="foodex-subtitle">FOODEX · {{ __('admin.administration_hub.van') }}</span><h1>{{ __('van_finance_support.title') }}</h1><p class="muted">{{ __('van_finance_support.description') }}</p></div>
 <a class="action" href="{{ route('admin.field-operations.finance') }}">{{ __('van_finance_support.operational_link') }}</a>
-</header>
+</div>
 
 <section class="card">
 <nav class="tabs" aria-label="{{ __('van_finance_support.title') }}">

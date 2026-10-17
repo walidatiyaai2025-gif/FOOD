@@ -44,14 +44,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @include('admin._global-header')
 <div class="settings-wrap">
 @include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="settings-hero foodex-page-toolbar">
+<div class="settings-hero foodex-page-toolbar">
 <div>
 <p class="settings-eyebrow">{{ __('admin.settings_center.eyebrow') }}</p>
 <h1>{{ __('admin.settings_center.title') }}</h1>
 <p class="settings-muted">{{ __('admin.settings_center.description') }}</p>
 </div>
 
-</header>
+</div>
 
 <div class="settings-search">
 <label for="settings-search">{{ __('admin.settings_center.search_label') }}</label>

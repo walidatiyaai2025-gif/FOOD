@@ -59,14 +59,14 @@ html[dir=ltr] .main{grid-column:2}
 <main class="main foodex-admin-main">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="hub-intro foodex-page-toolbar">
+<div class="hub-intro foodex-page-toolbar">
 <div>
 <p class="eyebrow">{{ __('admin.administration_hub.eyebrow') }}</p>
 <h1>{{ __('admin.administration_hub.title') }}</h1>
 <p class="muted">{{ __('admin.administration_hub.description') }}</p>
 </div>
 
-</header>
+</div>
 
 <section class="section" data-admin-applications>
 <div class="section-head">

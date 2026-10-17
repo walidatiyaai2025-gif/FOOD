@@ -17,10 +17,10 @@
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
-        </header>
+        </div>
         @include('admin._smart-ordering-workspace-nav')
 
         @php

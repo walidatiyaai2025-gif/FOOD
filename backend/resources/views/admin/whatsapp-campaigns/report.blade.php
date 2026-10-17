@@ -18,7 +18,7 @@
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
     <div>
         <span class="foodex-subtitle">{{ __('whatsapp.campaigns.reports') }}</span>
         <h1>{{ $overview['campaign']->name }}</h1>
@@ -38,7 +38,7 @@
         <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'csv'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id','from','to']))) }}">{{ __('whatsapp.campaigns.export_csv') }}</a>
         <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'xlsx'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id','from','to']))) }}">{{ __('whatsapp.campaigns.export_xlsx') }}</a>
     </div>
-</header>
+</div>
 
 <div class="wa-report-shell">
 <section class="wa-report-kpis">

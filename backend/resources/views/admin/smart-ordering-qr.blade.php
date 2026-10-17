@@ -56,7 +56,7 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('smart_ordering_qr.nav_title') }}</span>
                 <h1>{{ __('smart_ordering_qr.heading') }}</h1>
@@ -68,7 +68,7 @@
                     <button type="button" class="foodex-action-primary" data-open-dialog="so-qr-create">{{ __('smart_ordering_qr.create') }}</button>
                 @endif
             </div>
-        </header>
+        </div>
 
         @include('admin._smart-ordering-workspace-nav')
 

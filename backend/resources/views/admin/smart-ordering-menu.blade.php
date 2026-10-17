@@ -58,7 +58,7 @@
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_menu.title') }}</h1>
                 <p>{{ __('smart_ordering_menu.description') }}</p>
@@ -71,7 +71,7 @@
                 @endif
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
             </div>
-        </header>
+        </div>
 
         @include('admin._smart-ordering-workspace-nav')
 

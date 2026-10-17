@@ -37,7 +37,7 @@
 @include('admin._global-header')
         @include('admin._admin-center-switcher',['active'=>'administration'])
 @php($ar=app()->getLocale()==='ar')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · Runtime Diagnostics</span>
                 <h1>{{ __('admin.system_inspector') }}</h1>
@@ -50,7 +50,7 @@
                     <button class="foodex-action-secondary button secondary" type="submit">↻ {{ $ar?'فحص/إصلاح رابط الصور':'Check / repair image link' }}</button>
                 </form>
             </div>
-        </header>
+        </div>
 
         @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif

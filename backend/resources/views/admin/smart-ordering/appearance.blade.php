@@ -39,14 +39,14 @@
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
 <div class="so-builder-shell">
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div>
 <span class="foodex-subtitle">{{ __('smart_ordering.appearance.eyebrow') }}</span>
 <h1>{{ __('smart_ordering.appearance.heading') }}</h1>
 <p>{{ __('smart_ordering.appearance.description') }}</p>
 </div>
 
-</header>
+</div>
 
 @include('admin._smart-ordering-workspace-nav')
 

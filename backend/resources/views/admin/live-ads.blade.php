@@ -15,7 +15,7 @@
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-    <header class="foodex-page-toolbar"><div><h1>{{ __('live_ads.title') }}</h1><p>{{ __('live_ads.description') }}</p></div></header>
+    <div class="foodex-page-toolbar"><div><h1>{{ __('live_ads.title') }}</h1><p>{{ __('live_ads.description') }}</p></div></div>
     @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

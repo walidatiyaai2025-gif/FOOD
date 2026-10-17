@@ -277,6 +277,7 @@ class CustomerServiceWorkspaceTest extends TestCase
     private function storeUser(int $storeId, array $codes): User
     {
         $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $this->grantPlatformErpAccess($user);
         $role = Role::query()->create([
             'code' => 'CUSTOMER_SERVICE_TEST_'.strtoupper(bin2hex(random_bytes(3))),
             'name' => 'Customer Service Test',

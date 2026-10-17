@@ -21,7 +21,7 @@
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div>
 <div class="muted">{{ __('treasury.eyebrow') }}</div>
 <h1>{{ __('treasury.title') }}</h1>
@@ -36,7 +36,7 @@
 @endif
 </div>
 @endif
-</header>
+</div>
 
 @if(session('status'))
 <div class="foodex-alert foodex-alert-success" role="status">{{ session('status') }}</div>

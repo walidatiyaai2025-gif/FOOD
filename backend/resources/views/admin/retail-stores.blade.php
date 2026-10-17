@@ -58,14 +58,14 @@ $roleLabel = static function ($role): string {
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · SUPER_ADMIN</span>
                 <h1>{{ $ar?'إدارة متاجر التجزئة':'Retail Store Provisioning' }}</h1>
                 <p>{{ $ar?'إنشاء متاجر التجزئة وتعيين المدراء والأدوار والدخول للدعم من شاشة واحدة منظمة.':'Provision retail stores, assign managers and roles, and enter support context from one organized control plane.' }}</p>
             </div>
             
-        </header>
+        </div>
 
         <div class="store-shell">
             <section class="foodex-card store-panel store-create-launch">

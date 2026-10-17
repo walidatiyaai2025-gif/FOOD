@@ -23,10 +23,10 @@ $targetOptions=[
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page erp-treasury" data-erp-treasury-workbench="true">
 @include('admin._global-header')
-<header class="foodex-page-toolbar">
+<div class="foodex-page-toolbar">
 <div><div class="foodex-subtitle">{{ __('enterprise_treasury.eyebrow') }}</div><h1>{{ __('enterprise_treasury.title') }}</h1><p>{{ __('enterprise_treasury.description') }}</p></div>
 <div class="erp-actions"><a class="foodex-primary" href="{{ route('admin.treasury.master.index',['store_id'=>$selectedStoreId]) }}">{{ __('enterprise_treasury.open_master_data') }}</a></div>
-</header>
+</div>
 
 <section class="foodex-card erp-context">
 <form method="get" action="{{ route('admin.erp.treasury.index') }}">

@@ -73,13 +73,13 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page finance-page" data-finance-workbench="true">
 @include('admin._global-header')
-<header class="finance-head foodex-page-toolbar">
+<div class="finance-head foodex-page-toolbar">
 <div>
 <div class="foodex-subtitle">FOODEX · {{ __('finance_workbench.eyebrow') }}</div>
 <h1>{{ __('finance_workbench.title') }}</h1>
 <p>{{ __('finance_workbench.description') }}</p>
 </div>
-</header>
+</div>
 
 @if(session('success'))
 <div class="finance-flash" role="status">{{ session('success') }}</div>

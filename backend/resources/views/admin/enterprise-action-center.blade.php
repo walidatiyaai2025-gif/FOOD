@@ -35,13 +35,13 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page action-center" data-enterprise-action-center="true">
 @include('admin._global-header')
-<header class="action-head foodex-page-toolbar">
+<div class="action-head foodex-page-toolbar">
 <div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_my_work.eyebrow') }}</div><h1>{{ __('enterprise_my_work.title') }}</h1><p>{{ __('enterprise_my_work.description') }}</p></div>
 <div class="action-head__actions">
 <a class="foodex-action-secondary" href="{{ route('admin.action-center.export', request()->query()) }}">{{ __('enterprise_my_work.export') }}</a>
 @can('reports.view')<a class="foodex-action-secondary" href="{{ route('admin.reports.index') }}">{{ __('enterprise_my_work.open_reports') }}</a>@endcan
 </div>
-</header>
+</div>
 @if(session('status'))<div class="action-state foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="action-state foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @if($truncated)<div class="action-state foodex-state" role="status">{{ __('enterprise_action_center.bounded_notice') }}</div>@endif

@@ -22,14 +22,14 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-        <header class="foodex-page-toolbar">
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">FOODEX · {{ $accessModeLabel }}</span>
                 <h1>{{ $ar?'العميل 360':'Customer 360' }}</h1>
                 <p>{{ $ar?'هوية عميل واحدة مع مصدر التسجيل والتعاملات المصرح بها حسب نطاقك.':'One customer identity with registration provenance and commerce history limited to your authorized scope.' }}</p>
             </div>
             
-        </header>
+        </div>
 
         <div class="c360-shell">
             <section class="foodex-card c360-panel">

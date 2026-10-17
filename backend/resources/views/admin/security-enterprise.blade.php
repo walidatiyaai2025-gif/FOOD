@@ -24,7 +24,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <main class="foodex-admin-main foodex-admin-page es-page" data-enterprise-security-center="true">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<header class="es-head foodex-page-toolbar"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_security.eyebrow') }}</div><h1>{{ __('enterprise_security.title') }}</h1><p>{{ __('enterprise_security.description') }}</p></div><a class="es-back" href="{{ route('admin.security.index') }}">{{ __('enterprise_security.back') }}</a></header>
+<div class="es-head foodex-page-toolbar"><div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_security.eyebrow') }}</div><h1>{{ __('enterprise_security.title') }}</h1><p>{{ __('enterprise_security.description') }}</p></div><a class="es-back" href="{{ route('admin.security.index') }}">{{ __('enterprise_security.back') }}</a></div>
 <nav class="es-tabs foodex-tabs" aria-label="{{ __('enterprise_security.eyebrow') }}"><a class="es-link" href="{{ route('admin.security.index') }}">{{ __('admin.security.title') }}</a><a class="es-link active" aria-current="page" href="{{ route('admin.enterprise-security.index') }}">{{ __('enterprise_security.title') }}</a></nav>
 
 @if(session('status'))<div class="es-notice" role="status">{{ session('status') }}</div>@endif
