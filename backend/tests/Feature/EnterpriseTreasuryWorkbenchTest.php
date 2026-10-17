@@ -317,6 +317,7 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
             'locale' => $locale,
             'is_active' => true,
         ]);
+        $this->grantPlatformErpAccess($user);
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $store->id,
