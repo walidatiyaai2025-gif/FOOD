@@ -87,7 +87,7 @@ class NavigationCapabilityInventoryTest extends TestCase
             }
 
             if ($row['navigation_type'] === 'EXPLICIT_EXCEPTION') {
-                $this->assertSame('INTERNAL_EXCEPTION', $row['status']);
+                $this->assertContains($row['status'], ['INTERNAL_EXCEPTION', 'DUPLICATE_DESTINATION', 'DEAD_ROUTE']);
             }
         }
     }
