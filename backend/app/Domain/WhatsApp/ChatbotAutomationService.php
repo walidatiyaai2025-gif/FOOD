@@ -529,8 +529,8 @@ final class ChatbotAutomationService
         }
 
         $agentId = $this->conversations->autoAssign($conversationId);
-        if ($agentId !== null && Schema::hasTable('whats_app_chatbot_cases')) {
-            DB::table('whats_app_chatbot_cases')
+        if ($agentId !== null && Schema::hasTable('customer_service_cases')) {
+            DB::table('customer_service_cases')
                 ->where('conversation_id', $conversationId)
                 ->where('status', 'open')
                 ->whereNull('assigned_agent_id')

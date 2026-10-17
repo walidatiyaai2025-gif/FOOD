@@ -20,8 +20,27 @@ final class CustomerTimelineService
         $legacyId = (int) $customer->legacy_customer_id;
         $visible = ($customer->origin_store_id !== null && in_array((int) $customer->origin_store_id, $storeIds, true))
             || DB::table('whats_app_conversations')->where('platform_customer_id', $platformCustomerId)->whereIn('store_id', $storeIds)->exists()
-            || DB::table('orders')->where('customer_id', $legacyId)->whereIn('store_id', $storeIds)->exists();
+            || DB::table('orders')->where('customer_id', $legacyId)->whereIn('store_id', $storeIds)->exists()
+            || DB::table('b2b_customers')->where('user_id', $customer->user_id)->exists()
+            || DB::table('retail_wholesale_accounts')
+                ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+                ->where('retail_wholesale_accounts.owner_user_id', $customer->user_id)
+                ->where('b2b_accounts.status', 'active')
+                ->exists();
         abort_unless($actor->hasRole('SUPER_ADMIN') || $visible, 404);
+
+        $whatsAppStoreIds = array_values(array_filter(
+            $storeIds,
+            static fn (int $storeId): bool => $actor->hasRole('SUPER_ADMIN')
+                || $actor->hasPermission('whatsapp.inbox.view', $storeId),
+        ));
+        $caseStoreIds = array_values(array_filter(
+            $storeIds,
+            static fn (int $storeId): bool => $actor->hasRole('SUPER_ADMIN')
+                || $actor->hasPermission('customers.view', $storeId)
+                || $actor->hasPermission('b2b.accounts.view', $storeId)
+                || $actor->hasPermission('whatsapp.inbox.view', $storeId),
+        ));
 
         $events = collect();
 
@@ -29,7 +48,7 @@ final class CustomerTimelineService
             ->join('whats_app_conversations as c', 'c.id', '=', 'm.conversation_id')
             ->leftJoin('users as u', 'u.id', '=', 'm.actor_user_id')
             ->where('c.platform_customer_id', $platformCustomerId)
-            ->whereIn('c.store_id', $storeIds)
+            ->whereIn('c.store_id', $whatsAppStoreIds)
             ->get([
                 'm.id', 'm.direction', 'm.actor_type', 'm.body', 'm.delivery_status',
                 'm.occurred_at', 'c.id as conversation_id', 'c.store_id', 'u.name as actor_name',
@@ -51,7 +70,7 @@ final class CustomerTimelineService
             ->join('whats_app_conversations as c', 'c.id', '=', 'n.conversation_id')
             ->leftJoin('users as u', 'u.id', '=', 'n.author_user_id')
             ->where('c.platform_customer_id', $platformCustomerId)
-            ->whereIn('c.store_id', $storeIds)
+            ->whereIn('c.store_id', $whatsAppStoreIds)
             ->get(['n.id', 'n.body', 'n.created_at', 'c.id as conversation_id', 'c.store_id', 'u.name as actor_name'])
             ->map(static fn (object $row): array => [
                 'kind' => 'internal_note',
@@ -69,7 +88,7 @@ final class CustomerTimelineService
         $assignments = DB::table('whats_app_assignment_history as h')
             ->leftJoin('users as a', 'a.id', '=', 'h.new_primary_agent_id')
             ->where('h.platform_customer_id', $platformCustomerId)
-            ->whereIn('h.store_id', $storeIds)
+            ->whereIn('h.store_id', $whatsAppStoreIds)
             ->get(['h.id', 'h.source', 'h.reason', 'h.occurred_at', 'h.conversation_id', 'h.store_id', 'a.name as agent_name'])
             ->map(static fn (object $row): array => [
                 'kind' => 'assignment',
@@ -86,7 +105,7 @@ final class CustomerTimelineService
 
         $crm = DB::table('whats_app_crm_events')
             ->where('platform_customer_id', $platformCustomerId)
-            ->whereIn('store_id', $storeIds)
+            ->whereIn('store_id', $whatsAppStoreIds)
             ->get(['id', 'event_type', 'payload', 'occurred_at', 'conversation_id', 'store_id'])
             ->map(static function (object $row): array {
                 $payload = json_decode((string) ($row->payload ?? '{}'), true);
@@ -105,7 +124,7 @@ final class CustomerTimelineService
         $events = $events->concat($crm);
 
         $campaigns = $customer->origin_store_id !== null
-            && in_array((int) $customer->origin_store_id, $storeIds, true)
+            && in_array((int) $customer->origin_store_id, $whatsAppStoreIds, true)
             ? DB::table('whats_app_campaign_recipients as r')
                 ->join('whats_app_campaigns as c', 'c.id', '=', 'r.campaign_id')
                 ->where('r.platform_customer_id', $platformCustomerId)
@@ -141,7 +160,7 @@ final class CustomerTimelineService
 
         $transactional = DB::table('whats_app_transactional_events')
             ->where('platform_customer_id', $platformCustomerId)
-            ->whereIn('store_id', $storeIds)
+            ->whereIn('store_id', $whatsAppStoreIds)
             ->select(['id', 'event_name', 'event_key', 'status', 'store_id'])
             ->addSelect(DB::raw('COALESCE(processed_at, queued_at, created_at) as occurred_at'))
             ->get();
@@ -155,6 +174,30 @@ final class CustomerTimelineService
                 'status' => (string) $row->status,
                 'occurred_at' => $row->occurred_at,
                 'conversation_id' => null,
+            ]);
+        }
+
+        $serviceCases = DB::table('customer_service_cases')
+            ->where('platform_customer_id', $platformCustomerId)
+            ->whereIn('store_id', $caseStoreIds)
+            ->get([
+                'id', 'subject', 'status', 'priority', 'queue', 'store_id',
+                'sla_target_at', 'resolved_at', 'updated_at',
+            ]);
+        foreach ($serviceCases as $row) {
+            $events->push([
+                'kind' => 'service_case',
+                'source_id' => (int) $row->id,
+                'store_id' => (int) $row->store_id,
+                'title' => __('customer_service_workspace.cases.case').' #'.(int) $row->id
+                    .' · '.((string) ($row->subject ?: __('customer_service_workspace.values.untitled'))),
+                'detail' => __('customer_service_workspace.values.'.(string) $row->priority)
+                    .' · '.__('customer_service_workspace.values.'.(string) ($row->queue ?: 'general')),
+                'status' => (string) $row->status,
+                'occurred_at' => $row->resolved_at ?? $row->updated_at,
+                'conversation_id' => null,
+                'service_case_id' => (int) $row->id,
+                'sla_target_at' => $row->sla_target_at,
             ]);
         }
 
