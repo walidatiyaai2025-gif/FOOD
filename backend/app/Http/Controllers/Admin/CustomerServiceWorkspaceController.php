@@ -21,16 +21,18 @@ final class CustomerServiceWorkspaceController extends Controller
         abort_unless($actor instanceof User && $actor->is_active, 403);
 
         $isSuper = $actor->hasRole('SUPER_ADMIN');
-        $canCustomers = $isSuper
-            || $actor->hasPermission('customers.view')
-            || $actor->hasPermission('b2b.accounts.view');
-        $canOrders = $isSuper || $actor->hasPermission('orders.view');
-        $canFinance = $isSuper || $actor->hasPermission('finance.view');
-        $canDelivery = $isSuper
-            || $actor->hasPermission('field_ops.manage')
-            || $actor->hasPermission('drivers.b2b.view')
-            || $actor->hasPermission('drivers.tracking.view');
-        $canWhatsApp = $isSuper || $actor->hasPermission('whatsapp.inbox.view');
+        $canCustomers = $isSuper || $this->navigation->hasAnyPermissionInScope($actor, [
+            'customers.view',
+            'b2b.accounts.view',
+        ]);
+        $canOrders = $isSuper || $this->navigation->hasPermissionInScope($actor, 'orders.view');
+        $canFinance = $isSuper || $this->navigation->hasPermissionInScope($actor, 'finance.view');
+        $canDelivery = $isSuper || $this->navigation->hasAnyPermissionInScope($actor, [
+            'field_ops.manage',
+            'drivers.b2b.view',
+            'drivers.tracking.view',
+        ]);
+        $canWhatsApp = $isSuper || $this->navigation->hasPermissionInScope($actor, 'whatsapp.inbox.view');
 
         abort_unless($canCustomers || $canOrders || $canFinance || $canDelivery || $canWhatsApp, 403);
 

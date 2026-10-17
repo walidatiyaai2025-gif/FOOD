@@ -72,13 +72,13 @@ class AdminNavigation
             ]),
             $this->group('erp', 'admin.nav_groups.erp', '▤', [
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
-                $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.action-center.index', 'procurement', 'procurement.suppliers.view', ['module' => 'procurement']),
-                $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.enterprise-workspaces.index', 'inventory_wms', 'inventory.view', ['workspace' => 'warehouse']),
-                $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.enterprise-workspaces.index', 'finance', 'finance.view', ['workspace' => 'finance']),
-                $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.treasury.master.index', 'treasury', 'finance.view'),
-                $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.customer-360.index', 'customers.view')
-                    ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.customer-360.index', 'b2b.accounts.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.reports.index', 'enterprise_bi', 'reports.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view'),
+                $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
+                    ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
+                $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view'),
                 $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
             ]),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
