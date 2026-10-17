@@ -164,7 +164,9 @@ final class RestaurantSaaSGrowthScaleTest extends TestCase
         $this->assertArrayHasKey('menus', $payload);
         $this->assertArrayHasKey('menu_items', $payload);
         $this->assertArrayHasKey('customers', $payload);
+        $this->assertArrayHasKey('orders', $payload);
         $this->assertSame('portable@example.test', $payload['customers'][0]['email']);
+        $this->assertSame('PORTABLE-1001', $payload['orders'][0]['order_number']);
         $this->assertStringNotContainsString($issued['code'], $json);
         $this->assertStringNotContainsString('code_ciphertext', $json);
         $this->assertStringNotContainsString('code_hash', $json);
