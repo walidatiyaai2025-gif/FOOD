@@ -540,6 +540,81 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
+
+    public function test_inbox_center_thread_composer_has_golden_structure_and_locale_parity(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
+
+        foreach ([
+            'data-wa-pane="active-conversation"',
+            'class="wa-thread-head"',
+            'class="wa-thread-meta"',
+            'id="wa-conversation-timeline"',
+            'class="wa-compose-wrap"',
+            'data-wa-quick-toggle',
+            'data-wa-note-toggle',
+            'data-wa-reply',
+            "route('admin.whatsapp-inbox.assign'",
+            "route('admin.whatsapp-inbox.tag'",
+            "route('admin.whatsapp-inbox.transition'",
+            "route('admin.whatsapp-inbox.reply'",
+            "route('admin.whatsapp-inbox.note'",
+            "route('admin.whatsapp-calls.feed')",
+        ] as $contract) {
+            $this->assertStringContainsString($contract, $view);
+        }
+
+        $en = require lang_path('en/whatsapp.php');
+        $ar = require lang_path('ar/whatsapp.php');
+
+        $this->assertSame(
+            array_keys($en['inbox']['thread_ui']),
+            array_keys($ar['inbox']['thread_ui']),
+        );
+        $this->assertSame([
+            'conversation_classification',
+            'responsible',
+            'priority',
+            'priority_normal',
+            'priority_high',
+            'tags',
+            'more',
+            'manage_assignment',
+            'today',
+            'quick_replies',
+            'attach_order',
+            'no_quick_replies',
+            'write_message',
+        ], array_keys($en['inbox']['thread_ui']));
+    }
+
+    public function test_inbox_center_thread_composer_renders_real_arabic_thread_actions(): void
+    {
+        $this->enableInbox();
+        $store = $this->store('B2B', 'WA-CENTER-GOLDEN');
+        $customer = $this->customer($store, 'b2b', 'Golden Center Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $this->message($conversation, 'inbound', 'Golden center customer message');
+
+        $admin = $this->globalUser('SUPER_ADMIN', 'Golden Center Admin');
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('data-wa-pane="active-conversation"', false)
+            ->assertSee('تصنيف المحادثة')
+            ->assertSee('المسؤول')
+            ->assertSee('الأولوية')
+            ->assertSee('الوسوم')
+            ->assertSee('ردود سريعة')
+            ->assertSee('إرفاق طلب')
+            ->assertSee('اكتب رسالتك هنا...')
+            ->assertSee('data-wa-note-toggle', false)
+            ->assertSee('data-wa-reply', false)
+            ->assertSee('Golden center customer message');
+    }
+
     private function enableInbox(bool $calls = false): void
     {
         WhatsAppModuleState::query()->findOrFail(1)->forceFill([
