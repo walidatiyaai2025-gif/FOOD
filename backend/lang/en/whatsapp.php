@@ -264,6 +264,9 @@ return [
             'kpis' => [
                 'campaigns' => 'Campaigns',
                 'whatsapp_campaigns' => 'WhatsApp campaigns',
+                'active' => 'Active campaigns',
+                'scheduled' => 'Scheduled campaigns',
+                'completed' => 'Completed campaigns',
                 'recipients' => 'Recipients',
                 'sent' => 'WhatsApp sent',
                 'delivered' => 'WhatsApp delivered',
