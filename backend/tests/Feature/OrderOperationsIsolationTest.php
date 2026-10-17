@@ -295,7 +295,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_platform_all_filter_unions_only_authorized_wholesale_and_retail_scopes_with_provenance(): void
+    public function test_platform_admin_keeps_wholesale_and_retail_order_workspaces_strictly_isolated(): void
     {
         $retailStore = $this->store('OPS-ALL-RETAIL');
         $retailCustomer = app(B2cCustomerService::class)->create($retailStore, ['name' => 'All Retail Buyer']);
@@ -381,21 +381,28 @@ class OrderOperationsIsolationTest extends TestCase
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all')
+            ->assertForbidden();
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
             ->assertSee('#'.$retailOrder)
-            ->assertSee('#'.$wholesaleOrder)
+            ->assertDontSee('#'.$wholesaleOrder)
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Customer checkout')
-            ->assertSee('Dashboard')
             ->assertDontSee('customer_checkout');
 
         $this->actingAs($super)
-            ->get('/admin/operations/orders?channel=all&order='.$retailOrder)
+            ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertSee('data-order-authoritative-context', false)
-            ->assertDontSee('store_id='.$retailStore, false)
-            ->assertSee('Customer checkout')
-            ->assertDontSee('customer_checkout');
+            ->assertSee('#'.$wholesaleOrder)
+            ->assertDontSee('#'.$retailOrder)
+            ->assertDontSee('OPS-ALL-ROGUE-3001')
+            ->assertSee('Dashboard');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
+            ->assertNotFound();
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b&order='.$retailOrder)
