@@ -253,7 +253,7 @@
                 <div><dt>{{ __('catalog_completion.product_360.channel') }}</dt><dd>{{ __('catalog_completion.channels.'.strtolower((string)$productDetail->channel)) }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.category') }}</dt><dd>{{ $productDetail->category_name ?: '—' }}</dd></div>
                 <div><dt>{{ __('catalog_completion.product_360.brand') }}</dt><dd>{{ $productDetail->brand_name ?: '—' }}</dd></div>
-                <div><dt>{{ __('catalog_completion.product_360.unit') }}</dt><dd>{{ $productDetail->unit_name ?: '—' }}</dd></div>
+                <div><dt>{{ __('catalog_completion.product_360.unit') }}</dt><dd>{{ $productDetail->unit_name ?: '—' }} @if($productDetail->unit_code)({{ __('catalog_completion.product_360.unit_code_value', ['code' => $productDetail->unit_code]) }})@endif</dd></div>
             </dl>
         </article>
         <article>
