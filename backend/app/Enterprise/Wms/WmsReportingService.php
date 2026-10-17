@@ -49,6 +49,26 @@ final class WmsReportingService
             'read_model' => 'wms_adjustment_exceptions',
             'filters' => ['warehouse_id', 'product_id', 'classification', 'after_movement_id'],
         ],
+        'wms.low_stock' => [
+            'read_model' => 'wms_low_stock',
+            'filters' => ['warehouse_id', 'product_id', 'after_inventory_id'],
+        ],
+        'wms.stock_aging' => [
+            'read_model' => 'wms_stock_aging',
+            'filters' => ['warehouse_id', 'product_id', 'after_inventory_id'],
+        ],
+        'wms.count_variance' => [
+            'read_model' => 'wms_count_variance',
+            'filters' => ['warehouse_id', 'product_id', 'after_count_line_id'],
+        ],
+        'wms.transfer_performance' => [
+            'read_model' => 'wms_transfer_performance',
+            'filters' => ['warehouse_id', 'after_transfer_id'],
+        ],
+        'wms.demand_plan' => [
+            'read_model' => 'wms_demand_plan',
+            'filters' => ['warehouse_id', 'product_id', 'after_inventory_id'],
+        ],
     ];
 
     public function __construct(private readonly WarehouseScope $warehouseScope) {}
@@ -284,6 +304,249 @@ final class WmsReportingService
             });
     }
 
+    /** @return array<string, array{read_model:string,filters:list<string>}> */
+    public function reportCatalog(): array
+    {
+        return self::REPORTS;
+    }
+
+    /** @return Collection<int, \stdClass> */
+    public function lowStock(
+        User $actor,
+        int $storeId,
+        ?int $warehouseId = null,
+        ?int $productId = null,
+        ?int $afterInventoryId = null,
+        int $limit = 25,
+    ): Collection {
+        $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
+        $productId = $this->positiveIdentifier($productId, 'product_id');
+        $afterInventoryId = $this->positiveIdentifier($afterInventoryId, 'after_inventory_id');
+
+        if ($warehouseIds === []) {
+            return collect();
+        }
+
+        return DB::table('enterprise_reorder_policies as policy')
+            ->join('inventories as inventory', function ($join): void {
+                $join
+                    ->on('inventory.warehouse_id', '=', 'policy.warehouse_id')
+                    ->on('inventory.product_id', '=', 'policy.product_id');
+            })
+            ->join('warehouses as warehouse', 'warehouse.id', '=', 'inventory.warehouse_id')
+            ->join('products as product', 'product.id', '=', 'inventory.product_id')
+            ->where('policy.store_id', $storeId)
+            ->whereIn('policy.warehouse_id', $warehouseIds)
+            ->where('policy.is_active', true)
+            ->whereRaw('(inventory.quantity - inventory.reserved_quantity) <= policy.minimum_quantity')
+            ->when($productId !== null, fn ($query) => $query->where('inventory.product_id', $productId))
+            ->when($afterInventoryId !== null, fn ($query) => $query->where('inventory.id', '>', $afterInventoryId))
+            ->orderBy('inventory.id')
+            ->limit($this->boundedLimit($limit))
+            ->get([
+                'inventory.id as inventory_id',
+                'inventory.warehouse_id',
+                'inventory.product_id',
+                'inventory.quantity',
+                'inventory.reserved_quantity',
+                'warehouse.code as warehouse_code',
+                'warehouse.name as warehouse_name',
+                'product.sku as product_sku',
+                'product.name as product_name',
+                'policy.minimum_quantity',
+                'policy.reorder_quantity',
+                'policy.maximum_quantity',
+                DB::raw('(inventory.quantity - inventory.reserved_quantity) as available_quantity'),
+            ]);
+    }
+
+    /** @return Collection<int, \stdClass> */
+    public function stockAging(
+        User $actor,
+        int $storeId,
+        ?int $warehouseId = null,
+        ?int $productId = null,
+        ?int $afterInventoryId = null,
+        int $limit = 25,
+    ): Collection {
+        $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
+        $productId = $this->positiveIdentifier($productId, 'product_id');
+        $afterInventoryId = $this->positiveIdentifier($afterInventoryId, 'after_inventory_id');
+
+        if ($warehouseIds === []) {
+            return collect();
+        }
+
+        $inbound = DB::table('stock_movements as inbound_movement')
+            ->join('inventories as inbound_inventory', 'inbound_inventory.id', '=', 'inbound_movement.inventory_id')
+            ->where('inbound_movement.store_id', $storeId)
+            ->whereIn('inbound_inventory.warehouse_id', $warehouseIds)
+            ->where('inbound_movement.quantity', '>', 0)
+            ->whereIn('inbound_movement.type', self::INBOUND_MOVEMENT_TYPES)
+            ->selectRaw('inbound_movement.inventory_id, MAX(inbound_movement.created_at) as last_inbound_at')
+            ->groupBy('inbound_movement.inventory_id');
+
+        $cutoff = CarbonImmutable::now()->subDays(90)->startOfDay();
+
+        return DB::table('inventories as inventory')
+            ->join('warehouses as warehouse', 'warehouse.id', '=', 'inventory.warehouse_id')
+            ->join('products as product', 'product.id', '=', 'inventory.product_id')
+            ->leftJoin('enterprise_inventory_valuation_policies as valuation', function ($join): void {
+                $join
+                    ->on('valuation.warehouse_id', '=', 'inventory.warehouse_id')
+                    ->on('valuation.product_id', '=', 'inventory.product_id')
+                    ->where('valuation.is_active', true);
+            })
+            ->leftJoinSub($inbound, 'inbound', 'inbound.inventory_id', '=', 'inventory.id')
+            ->where('warehouse.store_id', $storeId)
+            ->whereIn('inventory.warehouse_id', $warehouseIds)
+            ->whereRaw('COALESCE(inbound.last_inbound_at, inventory.created_at) < ?', [$cutoff->toDateTimeString()])
+            ->when($productId !== null, fn ($query) => $query->where('inventory.product_id', $productId))
+            ->when($afterInventoryId !== null, fn ($query) => $query->where('inventory.id', '>', $afterInventoryId))
+            ->orderBy('inventory.id')
+            ->limit($this->boundedLimit($limit))
+            ->get([
+                'inventory.id as inventory_id',
+                'inventory.warehouse_id',
+                'inventory.product_id',
+                'inventory.quantity',
+                'inventory.reserved_quantity',
+                'warehouse.code as warehouse_code',
+                'warehouse.name as warehouse_name',
+                'product.sku as product_sku',
+                'product.name as product_name',
+                'valuation.unit_cost',
+                'inbound.last_inbound_at',
+                'inventory.created_at as inventory_created_at',
+            ])
+            ->map(function (\stdClass $row): \stdClass {
+                $lastInboundAt = $row->last_inbound_at ?? $row->inventory_created_at;
+                $ageDays = max(0, (int) CarbonImmutable::parse((string) $lastInboundAt)->diffInDays(CarbonImmutable::now(), true));
+                $quantity = round((float) $row->quantity, 3);
+                $reserved = round((float) $row->reserved_quantity, 3);
+                $row->quantity = $quantity;
+                $row->reserved_quantity = $reserved;
+                $row->available_quantity = round($quantity - $reserved, 3);
+                $row->last_inbound_at = (string) $lastInboundAt;
+                $row->age_days = $ageDays;
+                $row->stock_status = $ageDays >= 180 ? 'dead' : 'slow';
+                $row->inventory_value = $row->unit_cost === null ? null : round($quantity * (float) $row->unit_cost, 3);
+
+                return $row;
+            });
+    }
+
+    /** @return Collection<int, \stdClass> */
+    public function countVariance(
+        User $actor,
+        int $storeId,
+        string $fromDate,
+        string $toDate,
+        ?int $warehouseId = null,
+        ?int $productId = null,
+        ?int $afterLineId = null,
+        int $limit = 25,
+    ): Collection {
+        [$from, $to] = $this->boundedDateRange($fromDate, $toDate, self::MAX_REPORT_RANGE_DAYS, 'report');
+        $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
+        $productId = $this->positiveIdentifier($productId, 'product_id');
+        $afterLineId = $this->positiveIdentifier($afterLineId, 'after_count_line_id');
+
+        if ($warehouseIds === []) {
+            return collect();
+        }
+
+        return DB::table('enterprise_inventory_count_lines as line')
+            ->join('enterprise_inventory_counts as count', 'count.id', '=', 'line.count_id')
+            ->join('warehouses as warehouse', 'warehouse.id', '=', 'count.warehouse_id')
+            ->join('products as product', 'product.id', '=', 'line.product_id')
+            ->where('count.store_id', $storeId)
+            ->whereIn('count.warehouse_id', $warehouseIds)
+            ->whereBetween('count.started_at', [$from->startOfDay(), $to->endOfDay()])
+            ->whereNotNull('line.variance_quantity')
+            ->when($productId !== null, fn ($query) => $query->where('line.product_id', $productId))
+            ->when($afterLineId !== null, fn ($query) => $query->where('line.id', '>', $afterLineId))
+            ->orderBy('line.id')
+            ->limit($this->boundedLimit($limit))
+            ->get([
+                'line.id as count_line_id',
+                'line.count_id',
+                'line.inventory_id',
+                'line.product_id',
+                'line.expected_quantity',
+                'line.counted_quantity',
+                'line.variance_quantity',
+                'line.counted_at',
+                'count.warehouse_id',
+                'count.status',
+                'warehouse.code as warehouse_code',
+                'warehouse.name as warehouse_name',
+                'product.sku as product_sku',
+                'product.name as product_name',
+            ]);
+    }
+
+    /** @return Collection<int, \stdClass> */
+    public function transferPerformance(
+        User $actor,
+        int $storeId,
+        string $fromDate,
+        string $toDate,
+        ?int $warehouseId = null,
+        ?int $afterTransferId = null,
+        int $limit = 25,
+    ): Collection {
+        [$from, $to] = $this->boundedDateRange($fromDate, $toDate, self::MAX_REPORT_RANGE_DAYS, 'report');
+        $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
+        $afterTransferId = $this->positiveIdentifier($afterTransferId, 'after_transfer_id');
+
+        if ($warehouseIds === []) {
+            return collect();
+        }
+
+        return DB::table('enterprise_warehouse_transfers as transfer')
+            ->join('warehouses as source', 'source.id', '=', 'transfer.source_warehouse_id')
+            ->join('warehouses as target', 'target.id', '=', 'transfer.target_warehouse_id')
+            ->where('transfer.store_id', $storeId)
+            ->where(function ($query) use ($warehouseIds): void {
+                $query->whereIn('transfer.source_warehouse_id', $warehouseIds)
+                    ->orWhereIn('transfer.target_warehouse_id', $warehouseIds);
+            })
+            ->whereBetween('transfer.created_at', [$from->startOfDay(), $to->endOfDay()])
+            ->when($afterTransferId !== null, fn ($query) => $query->where('transfer.id', '>', $afterTransferId))
+            ->orderBy('transfer.id')
+            ->limit($this->boundedLimit($limit))
+            ->get([
+                'transfer.id as transfer_id',
+                'transfer.status',
+                'transfer.source_warehouse_id',
+                'transfer.target_warehouse_id',
+                'transfer.created_at',
+                'transfer.dispatched_at',
+                'transfer.received_at',
+                'source.code as source_code',
+                'source.name as source_name',
+                'target.code as target_code',
+                'target.name as target_name',
+            ])
+            ->map(static function (\stdClass $row): \stdClass {
+                $row->dispatch_hours = $row->dispatched_at === null
+                    ? null
+                    : round(CarbonImmutable::parse((string) $row->created_at)->diffInSeconds(
+                        CarbonImmutable::parse((string) $row->dispatched_at),
+                        true,
+                    ) / 3600, 2);
+                $row->receipt_hours = $row->received_at === null || $row->dispatched_at === null
+                    ? null
+                    : round(CarbonImmutable::parse((string) $row->dispatched_at)->diffInSeconds(
+                        CarbonImmutable::parse((string) $row->received_at),
+                        true,
+                    ) / 3600, 2);
+
+                return $row;
+            });
+    }
+
     /**
      * Produce the existing Enterprise queued-export contract without owning an export ledger.
      *
@@ -394,7 +657,15 @@ final class WmsReportingService
             $normalized[$key] = $value;
         }
 
-        foreach (['warehouse_id', 'product_id', 'after_inventory_id', 'after_lot_id', 'after_movement_id'] as $identifier) {
+        foreach ([
+            'warehouse_id',
+            'product_id',
+            'after_inventory_id',
+            'after_lot_id',
+            'after_movement_id',
+            'after_count_line_id',
+            'after_transfer_id',
+        ] as $identifier) {
             if (! array_key_exists($identifier, $normalized) || $normalized[$identifier] === null) {
                 continue;
             }
@@ -431,10 +702,15 @@ final class WmsReportingService
         ?string $fromDate,
         ?string $toDate,
     ): array {
-        if ($reportCode === 'wms.inventory_summary') {
+        if (in_array($reportCode, [
+            'wms.inventory_summary',
+            'wms.low_stock',
+            'wms.stock_aging',
+            'wms.demand_plan',
+        ], true)) {
             if ($fromDate !== null || $toDate !== null) {
                 throw ValidationException::withMessages([
-                    'date_range' => ['Current inventory summary does not accept a historical date range.'],
+                    'date_range' => ['This current-state WMS report does not accept a historical date range.'],
                 ]);
             }
 
