@@ -39,7 +39,7 @@ class AdminModalAccessibilityContractTest extends TestCase
         $this->assertStringContainsString('returnFocus: trigger,', $brand);
         $this->assertStringContainsString('modalSession = window.FoodexModalA11y?.activate({', $wizard);
         $this->assertStringContainsString('returnFocus: opener instanceof HTMLElement ? opener : null,', $wizard);
-        $this->assertStringContainsString('<dialog class="order-detail-drawer" open aria-modal="true"', $orders);
+        $this->assertStringContainsString('<dialog class="order-detail-drawer foodex-record-drawer" open aria-modal="true"', $orders);
         $this->assertStringContainsString("__('order_operations.detail.close')", $orders);
         $this->assertStringContainsString('modalSession = window.FoodexModalA11y.activate({', $orders);
         $this->assertStringContainsString('onEscape: dismissDrawer,', $orders);

@@ -38,7 +38,11 @@
       "preferred_primitives": [
         "foodex-operational-dialog-host",
         "foodex-modal",
-        "foodex-ops-detail-grid"
+        "foodex-ops-detail-grid",
+        "foodex-record-drawer",
+        "foodex-record-drawer-shell",
+        "foodex-record-grid",
+        "foodex-status-badge"
       ]
     },
     "create-edit": {
@@ -130,6 +134,26 @@
         "map_first_interaction",
         "no_fabricated_pins"
       ]
+    },
+    "multi-step-flow": {
+      "surfaces": [
+        "dashboard"
+      ],
+      "required_capabilities": [
+        "ordered_progress",
+        "step_validation",
+        "back_next_navigation",
+        "preserved_context",
+        "completion_action",
+        "error_feedback"
+      ],
+      "preferred_primitives": [
+        "foodex-stepper",
+        "foodex-step",
+        "foodex-form",
+        "foodex-control"
+      ],
+      "responsive_rule": "Two-column compact progress on mobile with wrapped labels; same workflow and actions remain available."
     }
   }
 }

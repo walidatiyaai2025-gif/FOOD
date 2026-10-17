@@ -97,6 +97,12 @@ class FoodexUiPrPlanTest(unittest.TestCase):
         for width in ("mobile-320", "mobile-360", "mobile-390", "mobile-412", "mobile-430"):
             self.assertIn(width, impact["required_viewports"])
 
+        root_shared = module.responsive_impact(
+            "dashboard", [("M", "backend/resources/views/admin/_brand-components.blade.php")], matrix
+        )
+        self.assertEqual("shared-primitive-full-matrix", root_shared["coverage_profile"])
+        self.assertEqual(8, len(root_shared["required_viewports"]))
+
 
 if __name__ == "__main__":
     unittest.main()

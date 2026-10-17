@@ -511,6 +511,8 @@ class CommercialDashboardContractTest extends TestCase
             ->assertOk()
             ->assertSee('data-flash-offer-form', false)
             ->assertSee('data-flash-wizard-progress', false)
+            ->assertSee('class="flash-wizard-progress foodex-stepper"', false)
+            ->assertSee('class="foodex-step"', false)
             ->assertSee('data-flash-wizard-step="0"', false)
             ->assertSee('data-flash-product-context', false)
             ->assertSee('data-product-context="retail"', false)

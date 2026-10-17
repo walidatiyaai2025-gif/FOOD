@@ -60,8 +60,11 @@ def dashboard_responsive_scope(rows: list[tuple[str, str]]) -> str:
         "backend/resources/views/admin/layouts/",
         "backend/resources/views/admin/components/",
     )
+    shared_files = {
+        "backend/resources/views/admin/_brand-components.blade.php",
+    }
     return "shared-primitive-full-matrix" if any(
-        path.startswith(shared_prefixes) for _, path in rows
+        path.startswith(shared_prefixes) or path in shared_files for _, path in rows
     ) else "page-local-representative"
 
 

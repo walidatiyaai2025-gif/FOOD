@@ -62,7 +62,44 @@
           "foodex-pagination",
           "pagination",
           "pager"
+        ],
+        "status": [
+          "foodex-status-badge",
+          "foodex-priority-badge"
+        ],
+        "stepper": [
+          "foodex-stepper",
+          "foodex-step"
+        ],
+        "record_detail": [
+          "foodex-record-drawer",
+          "foodex-record-drawer-shell",
+          "foodex-record-drawer-header",
+          "foodex-record-drawer-close",
+          "foodex-record-grid",
+          "foodex-record-section"
         ]
+      },
+      "semantic_icon_actions": {
+        "source_contract": "docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md",
+        "base_primitive": "foodex-icon",
+        "map": {
+          "create": "plus/add",
+          "edit": "pencil/edit",
+          "view": "eye/details",
+          "more": "ellipsis",
+          "search": "magnifier",
+          "filter": "funnel/filter",
+          "refresh": "refresh",
+          "download": "download",
+          "upload": "upload",
+          "approve": "check",
+          "warning": "warning",
+          "destructive": "trash/error",
+          "settings": "settings/gear",
+          "history": "history/clock",
+          "location": "location/map-marker"
+        }
       }
     },
     "customer": {

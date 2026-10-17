@@ -115,4 +115,29 @@ class AdminResponsiveLayoutTest extends TestCase
             $this->assertStringNotContainsString('@media(max-width:1000px)', $view, $file);
         }
     }
+
+    public function test_shared_screen_pattern_primitives_are_semantic_touch_safe_and_mobile_complete(): void
+    {
+        $shared = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+        $registry = json_decode(
+            file_get_contents(base_path('../.ai/uiux/component-registry.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertIsString($shared);
+        $this->assertStringContainsString('.foodex-status-badge,.foodex-priority-badge{', $shared);
+        $this->assertStringContainsString('.foodex-stepper{', $shared);
+        $this->assertStringContainsString('min-height:var(--foodex-touch-target)', $shared);
+        $this->assertStringContainsString('.foodex-record-drawer{', $shared);
+        $this->assertStringContainsString('.foodex-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))', $shared);
+        $this->assertStringContainsString('.foodex-record-drawer{width:100vw;max-width:100vw;', $shared);
+
+        $dashboard = $registry['surfaces']['dashboard'];
+        $this->assertContains('foodex-status-badge', $dashboard['primitives']['status']);
+        $this->assertContains('foodex-stepper', $dashboard['primitives']['stepper']);
+        $this->assertContains('foodex-record-drawer', $dashboard['primitives']['record_detail']);
+        $this->assertSame('ellipsis', $dashboard['semantic_icon_actions']['map']['more']);
+    }
 }
