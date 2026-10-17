@@ -107,7 +107,7 @@
                 </div>
                 <div class="foodex-module-chart-summary">{{ __('enterprise_bi_ui.charts.source_note') }}</div>
                 <div class="bi-table-wrap foodex-module-chart-table">
-                    <table class="bi-table">
+                    <table class="bi-table" data-pagination-required="bounded-dashboard" data-bounded-rows="12">
                         <thead><tr>@foreach(array_keys($chartRows->first()) as $key)@if($key!=='drill_down')<th>{{ __('enterprise_bi_ui.fields.'.$key) }}</th>@endif @endforeach</tr></thead>
                         <tbody>@foreach($chartRows as $row)<tr>@foreach($row as $key=>$value)@if($key!=='drill_down')<td>{{ $value }}</td>@endif @endforeach</tr>@endforeach</tbody>
                     </table>
