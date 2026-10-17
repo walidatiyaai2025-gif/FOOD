@@ -167,7 +167,7 @@
             'to'=>$dashboard['selected_to'],
         ];
     @endphp
-    <section class="b2b-reference-dashboard" data-b2b-reference-dashboard="841x564">
+    <section class="b2b-reference-dashboard foodex-module-overview" data-b2b-reference-dashboard="841x564" data-foodex-module-overview data-state="current">
         <div class="b2b-ref-header-tools" data-foodex-dashboard-header-search-row>
             <div class="b2b-ref-header-search" data-foodex-dashboard-header-search>
                 @include('admin._global-search', ['globalSearchVariant' => 'header'])
@@ -176,7 +176,7 @@
                 @include('admin._live-notifications')
             </div>
         </div>
-        <div class="b2b-ref-kpis">
+        <div class="b2b-ref-kpis foodex-module-kpis">
             @foreach($kpiConfig as $config)
                 @php
                     $kpi = $dashboard['kpis'][$config['key']];
@@ -191,11 +191,11 @@
                         ? 'down'
                         : ($delta === null || $delta == 0 ? 'neutral' : '');
                 @endphp
-                <article class="b2b-ref-card b2b-ref-kpi">
+                <article class="b2b-ref-card b2b-ref-kpi foodex-module-kpi">
                     <div class="b2b-ref-kpi-copy">
-                        <div class="b2b-ref-kpi-label">{{ $config['label'] }}</div>
-                        <div class="b2b-ref-kpi-value foodex-number" @if($config['money']) dir="ltr" aria-label="{{ $dashboardCurrency }} {{ $kpiExactValue }}" @endif>{{ $kpiValue }}</div>
-                        <div class="b2b-ref-kpi-delta {{ $deltaClass }}">
+                        <div class="b2b-ref-kpi-label foodex-module-kpi-label">{{ $config['label'] }}</div>
+                        <div class="b2b-ref-kpi-value foodex-module-kpi-value foodex-number" @if($config['money']) dir="ltr" aria-label="{{ $dashboardCurrency }} {{ $kpiExactValue }}" @endif>{{ $kpiValue }}</div>
+                        <div class="b2b-ref-kpi-delta foodex-module-kpi-comparison {{ $deltaClass }}" data-trend="{{ $delta !== null && $delta > 0 ? 'up' : ($delta !== null && $delta < 0 ? 'down' : 'neutral') }}">
                             @if($delta === null)
                                 <span>—</span>
                             @elseif($delta > 0)
@@ -213,10 +213,10 @@
         </div>
 
         <div class="b2b-ref-middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
-            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="sales" data-platform-analytics="b2b-sales">
+            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card foodex-module-chart" data-foodex-module-chart data-dashboard-primary-card="sales" data-platform-analytics="b2b-sales">
                 <div class="b2b-ref-panel-head foodex-viz-header">
                     <div><h2 class="foodex-viz-title">{{ $isAr?'المبيعات':'Sales' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'اتجاه المبيعات من بيانات الطلبات المعتمدة':'Sales trend from authoritative order data' }}</p></div>
-                    <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
+                    <form class="b2b-date-range foodex-module-date-range" data-foodex-module-date-range method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
                         <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}"></label>
                         <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}"></label>
                         <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
@@ -264,7 +264,7 @@
             </article>
             @endif
 
-            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="order-distribution" data-platform-analytics="b2b-order-distribution">
+            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card foodex-module-chart" data-foodex-module-chart data-dashboard-primary-card="order-distribution" data-platform-analytics="b2b-order-distribution">
                 <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',array_merge(['module'=>'orders'],$dashboardPeriodQuery)) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
                 <div class="b2b-ref-donut-body">
                     <div class="foodex-viz-donut" role="img" aria-label="{{ $isAr?'توزيع حالات طلبات الجملة':'Wholesale order status distribution' }}" style="--foodex-viz-p1:{{ $distributionCount > 0 ? $processingEnd : 0 }}%;--foodex-viz-p2:{{ $distributionCount > 0 ? $deliveryEnd : 0 }}%;--foodex-viz-p3:{{ $distributionCount > 0 ? 100 : 0 }}%"></div>
