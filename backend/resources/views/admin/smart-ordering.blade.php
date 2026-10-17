@@ -20,6 +20,7 @@
             <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
         </header>
+        @include('admin._smart-ordering-workspace-nav')
         <section class="panel">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
                 <div><h2>{{ __('smart_ordering_menu.nav_title') }}</h2><p>{{ __('smart_ordering_menu.description') }}</p></div>
@@ -65,6 +66,7 @@
 
         <section class="panel">
             <form class="foodex-form" method="get" action="{{ route('admin.smart-ordering.index') }}">
+                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <label for="store">{{ __('smart_ordering.store') }}</label>
                 <select class="foodex-control" id="store" name="store_id" onchange="this.form.submit()">
                     @foreach($stores as $store)

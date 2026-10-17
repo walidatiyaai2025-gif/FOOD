@@ -18,7 +18,8 @@ $localized=static fn($ar,$en)=>trim((string)($isAr?$ar:$en))!==''?(string)($isAr
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="restaurant-integrations">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor($user),'navContext'=>'smart_ordering','user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-<header class="foodex-page-header"><div><h1>{{ __('restaurant_integrations.title') }}</h1><p>{{ __('restaurant_integrations.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ __('restaurant_integrations.back') }}</a></header>
+<header class="foodex-page-header"><div><h1>{{ __('restaurant_integrations.title') }}</h1><p>{{ __('restaurant_integrations.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('restaurant_integrations.back') }}</a></header>
+@include('admin._smart-ordering-workspace-nav')
 @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
 @if(session('restaurant_api_credential'))<section class="panel"><strong>{{ __('restaurant_integrations.credential_once') }}</strong><div class="ri-secret">{{ session('restaurant_api_credential') }}</div></section>@endif
 @if(session('restaurant_webhook_secret'))<section class="panel"><strong>{{ __('restaurant_integrations.secret_once') }}</strong><div class="ri-secret">{{ session('restaurant_webhook_secret') }}</div></section>@endif

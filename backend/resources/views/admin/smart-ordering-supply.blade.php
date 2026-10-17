@@ -48,6 +48,8 @@
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.smart_ordering_settings') }}</a>
         </header>
 
+        @include('admin._smart-ordering-workspace-nav')
+
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
