@@ -192,9 +192,9 @@ $moduleDashboardFilters=[
     @include('admin._module-dashboard-state',['state'=>'empty','message'=>__('system_admin.messages.no_backups')])
 @else
 <div class="system-admin-table-wrap"><table class="system-admin-table" data-pagination-required>
-<thead><tr><th>{{ __('system_admin.labels.type') }}</th><th>{{ __('system_admin.labels.created_at') }}</th><th>{{ __('system_admin.labels.size') }}</th><th>{{ __('system_admin.labels.hash') }}</th><th>{{ __('system_admin.labels.status') }}</th><th>{{ __('system_admin.labels.origin') }}</th><th></th></tr></thead>
+<thead><tr><th>{{ __('system_admin.labels.type') }}</th><th>{{ __('system_admin.labels.scope') }}</th><th>{{ __('system_admin.labels.created_at') }}</th><th>{{ __('system_admin.labels.size') }}</th><th>{{ __('system_admin.labels.hash') }}</th><th>{{ __('system_admin.labels.status') }}</th><th>{{ __('system_admin.labels.retention') }}</th><th>{{ __('system_admin.labels.reason') }}</th><th>{{ __('system_admin.labels.origin') }}</th><th></th></tr></thead>
 <tbody>@foreach($backupRows as $row)<tr>
-<td>{{ $row['type'] }}</td><td dir="ltr">{{ $row['created_at']??'—' }}</td><td>{{ $row['size'] }}</td><td><code>{{ $row['reference'] }}</code></td><td>{{ $row['status'] }}</td><td>{{ $row['origin'] }}</td>
+<td>{{ $row['type'] }}</td><td>{{ $row['scope'] }}</td><td dir="ltr">{{ $row['created_at']??'—' }}</td><td>{{ $row['size'] }}</td><td><code>{{ $row['reference'] }}</code></td><td>{{ $row['status'] }}</td><td>{{ $row['retention'] }}</td><td><code>{{ $row['reason'] }}</code></td><td>{{ $row['origin'] }}</td>
 <td><a class="foodex-action-secondary" href="{{ $row['url'] }}">{{ __('system_admin.actions.update') }}</a></td>
 </tr>@endforeach</tbody></table></div>
 @endif
@@ -210,7 +210,7 @@ $moduleDashboardFilters=[
 <th>{{ __('system_admin.labels.from') }} → {{ __('system_admin.labels.to') }}</th>
 <th>{{ __('system_admin.labels.status') }}</th><th>{{ __('system_admin.labels.preflight') }}</th><th>{{ __('system_admin.labels.backup') }}</th>
 <th>{{ __('system_admin.labels.migrations') }}</th><th>{{ __('system_admin.labels.health_check') }}</th><th>{{ __('system_admin.labels.rollback') }}</th>
-<th>{{ __('system_admin.labels.failed_stage') }}</th><th>{{ __('system_admin.update_center.environment') }}</th>
+<th>{{ __('system_admin.labels.failed_stage') }}</th><th>{{ __('system_admin.update_center.environment') }}</th><th>{{ __('system_admin.labels.reason') }}</th><th>{{ __('system_admin.labels.actor') }}</th>
 </tr></thead><tbody>
 @foreach($updateRows as $row)
 @php
@@ -226,7 +226,7 @@ $evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pendin
 <td>{{ $evidenceLabel($ev['migrations']??'not_required') }}</td>
 <td>{{ $evidenceLabel($ev['health_check']??'pending') }}</td>
 <td>{{ $evidenceLabel($row->rollback_status?:'unknown') }}</td>
-<td>{{ $row->failed_stage?:'—' }}</td><td>{{ $row->environment?:'—' }}</td>
+<td>{{ $row->failed_stage?:'—' }}</td><td>{{ $row->environment?:'—' }}</td><td><code>{{ $row->operation_reason?:'—' }}</code></td><td>{{ $row->actor?->name?:'—' }}</td>
 </tr>
 @endforeach
 </tbody></table></div>
@@ -235,6 +235,7 @@ $evidenceLabel=fn($value)=>__('system_admin.evidence.'.(in_array($value,['pendin
 
 <section class="system-admin-section" id="failed-jobs">
 <h2>{{ __('system_admin.sections.failed_jobs') }}</h2>
+<p class="system-admin-note">{{ __('system_admin.messages.failed_job_retry_policy') }}</p>
 @if(!$failedJobs['available'])
     @include('admin._module-dashboard-state',['state'=>'disabled','message'=>__('system_admin.messages.failed_jobs_unavailable')])
 @elseif($failedJobs['rows']===[])
