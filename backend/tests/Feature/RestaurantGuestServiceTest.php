@@ -18,11 +18,17 @@ final class RestaurantGuestServiceTest extends TestCase
     use RefreshDatabase;
 
     private int $storeA;
+
     private int $storeB;
+
     private SmartOrderingBranch $branchA;
+
     private SmartOrderingBranch $branchB;
+
     private User $admin;
+
     private string $tableA;
+
     private string $tableB;
 
     protected function setUp(): void
