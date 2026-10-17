@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseBiController;
+use App\Http\Controllers\Admin\EnterpriseBiScheduleController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseProcurementController;
@@ -524,6 +525,8 @@ Route::prefix('admin')
             ->whereNumber('proof')
             ->name('driver-live-tracking.proofs.show');
         Route::get('/erp/bi', [EnterpriseBiController::class, 'index'])->name('erp.bi');
+        Route::post('/erp/bi/schedules', [EnterpriseBiScheduleController::class, 'store'])->middleware('throttle:30,1')->name('erp.bi.schedules.store');
+        Route::patch('/erp/bi/schedules/{schedule}', [EnterpriseBiScheduleController::class, 'update'])->whereNumber('schedule')->middleware('throttle:30,1')->name('erp.bi.schedules.update');
         Route::get('/erp/customer-service', [CustomerServiceWorkspaceController::class, 'index'])->name('erp.customer-service');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
