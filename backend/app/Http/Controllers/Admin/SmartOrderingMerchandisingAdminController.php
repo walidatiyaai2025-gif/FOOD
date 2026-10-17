@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMerchandisingService;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\TenantContextResolver;
@@ -336,13 +337,12 @@ final class SmartOrderingMerchandisingAdminController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $tenants->retail(
+        app(RestaurantSaasStoreAccess::class)->assertStore(
             $actor,
             (int) $site->store_id,
-            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
-            $request,
+            $permission,
+            'b2c',
         );
-        abort_unless($actor->hasPermission($permission, (int) $site->store_id), 403);
 
         return $actor;
     }
