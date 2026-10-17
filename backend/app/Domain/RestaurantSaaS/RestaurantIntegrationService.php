@@ -793,8 +793,8 @@ final class RestaurantIntegrationService
         ];
     }
 
-    /** @param \Illuminate\Database\Query\Builder $query
-     * @param array<string,mixed> $filters
+    /** @param Builder $query
+     * @param  array<string,mixed>  $filters
      */
     private function applyEventFilters($query, array $filters): void
     {
