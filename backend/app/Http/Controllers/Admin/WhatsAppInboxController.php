@@ -449,6 +449,20 @@ final class WhatsAppInboxController extends Controller
                 'stores.name as store_name',
                 'stores.code as store_code',
                 'agents.name as agent_name',
+            ])
+            ->addSelect([
+                'last_message_body' => DB::table('whats_app_messages as latest_message')
+                    ->select('latest_message.body')
+                    ->whereColumn('latest_message.conversation_id', 'conversations.id')
+                    ->orderByDesc('latest_message.occurred_at')
+                    ->orderByDesc('latest_message.id')
+                    ->limit(1),
+                'last_message_at' => DB::table('whats_app_messages as latest_message')
+                    ->select('latest_message.occurred_at')
+                    ->whereColumn('latest_message.conversation_id', 'conversations.id')
+                    ->orderByDesc('latest_message.occurred_at')
+                    ->orderByDesc('latest_message.id')
+                    ->limit(1),
             ]);
 
         if (! $actor->hasRole('SUPER_ADMIN')) {
