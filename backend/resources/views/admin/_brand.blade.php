@@ -29,12 +29,14 @@
     --foodex-font-weight-regular:400;
     --foodex-font-weight-medium:500;
     --foodex-font-weight-bold:700;
-    --foodex-text-xs:.75rem;
-    --foodex-text-sm:.875rem;
-    --foodex-text-md:1rem;
-    --foodex-text-lg:1.125rem;
-    --foodex-text-xl:1.5rem;
-    --foodex-text-2xl:1.875rem;
+    /* Platform density contract: typography is 20% smaller than the prior scale. */
+    --foodex-text-xs:.6rem;
+    --foodex-text-sm:.7rem;
+    --foodex-text-md:.8rem;
+    --foodex-text-lg:.9rem;
+    --foodex-text-xl:1.2rem;
+    --foodex-text-2xl:1.5rem;
+    --foodex-card-columns:6;
     --foodex-leading-tight:1.25;
     --foodex-leading-normal:1.55;
 
