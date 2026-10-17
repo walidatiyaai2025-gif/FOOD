@@ -46,6 +46,7 @@ return [
     ],
     'channels' => ['b2c' => 'Retail / B2C', 'b2b' => 'Wholesale / B2B', 'restaurant' => 'Restaurant'],
     'channel_states' => ['active'=>'Active','inactive'=>'Inactive','not_linked'=>'Not linked','not_configured'=>'Not configured','disabled'=>'Disabled','enabled'=>'Enabled','internal_test'=>'Internal test','pilot'=>'Pilot','emergency_stop'=>'Emergency stop','degraded'=>'Degraded','suspended'=>'Suspended'],
+    'order_channels' => ['b2c'=>'Retail / B2C','b2b'=>'Wholesale / B2B','restaurant'=>'Restaurant','smart_ordering'=>'Smart Ordering','customer_app'=>'Customer App','web'=>'Web','mobile'=>'Mobile','van'=>'Van','marketplace'=>'Marketplace'],
     'reports' => [
         'performance' => 'Store performance', 'readiness' => 'Store readiness / health',
         'availability' => 'Availability exceptions', 'integrations' => 'Integration / channel exceptions',
