@@ -43,7 +43,7 @@
 .foodex-module-filter-group{display:grid;gap:4px;min-width:0;color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem);font-weight:700}
 .foodex-module-filter-group>input,.foodex-module-filter-group>select{min-width:0;width:100%}
 .foodex-module-scope{min-width:min(240px,100%)}
-.foodex-module-date-range{display:grid;grid-template-columns:minmax(120px,1fr) minmax(120px,1fr) auto;align-items:end;gap:var(--foodex-space-2,8px);min-width:0}
+.foodex-module-date-range{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:var(--foodex-space-2,8px);min-width:0;max-width:100%}\n.foodex-module-date-range label{min-width:0}\n.foodex-module-date-range input,.foodex-module-date-range select{min-width:0!important;width:100%}
 .foodex-module-toolbar-actions{display:flex;align-items:center;gap:var(--foodex-space-2,8px);flex-wrap:wrap;margin-inline-start:auto}
 .foodex-module-export{white-space:nowrap}
 .foodex-module-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3,12px);min-width:0}
