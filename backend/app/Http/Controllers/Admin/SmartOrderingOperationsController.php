@@ -46,7 +46,7 @@ final class SmartOrderingOperationsController extends Controller
             'branch' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'reservations', 'waitlist', 'payments'])],
+            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'reservations', 'waitlist', 'guest_book', 'payments'])],
             'payment_status' => ['nullable', Rule::in(['pending', 'authorized', 'captured', 'partially_refunded', 'refunded', 'voided', 'failed'])],
             'payment_provider' => ['nullable', 'string', 'max:80'],
             'reconciliation' => ['nullable', Rule::in(['mismatch'])],
@@ -140,8 +140,9 @@ final class SmartOrderingOperationsController extends Controller
             'tables' => [],
             'records' => null,
             'can_manage' => false,
+            'module_enabled' => false,
         ];
-        if (in_array($tab, ['reservations', 'waitlist'], true)) {
+        if (in_array($tab, ['reservations', 'waitlist', 'guest_book'], true)) {
             $guestWorkspace = $this->restaurantGuests->workspace(
                 $branches,
                 $validated['branch'] ?? null,
