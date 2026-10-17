@@ -3,6 +3,7 @@
 namespace App\Enterprise\Reporting;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Reporting\ReadModels\CatalogOperationsReadModel;
 use App\Enterprise\Reporting\ReadModels\CommercialProfitabilityReadModel;
 use App\Enterprise\Reporting\ReadModels\FinanceExposureReadModel;
 use App\Enterprise\Reporting\ReadModels\OrdersSummaryReadModel;
@@ -22,6 +23,7 @@ final class ReportBuilderExecutor
         private readonly FinanceExposureReadModel $financeExposure,
         private readonly StockExposureReadModel $stockExposure,
         private readonly ProcurementOperationsReadModel $procurementOperations,
+        private readonly CatalogOperationsReadModel $catalogOperations,
         private readonly ReportExportManager $exports,
     ) {}
 
@@ -115,6 +117,7 @@ final class ReportBuilderExecutor
             'finance_ar_exposure', 'finance_ap_exposure' => $this->financeExposure->read($query, $scope),
             'wms_stock_exposure' => $this->stockExposure->read($query, $scope),
             'procurement_operations' => $this->procurementOperations->read($query, $scope),
+            'catalog_operations' => $this->catalogOperations->read($query, $scope),
             default => throw ValidationException::withMessages([
                 'read_model' => ["Unsupported registered read model [{$query->report->readModel}]."],
             ]),
