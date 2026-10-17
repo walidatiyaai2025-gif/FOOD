@@ -25,7 +25,7 @@
 </style>
 
 <div class="so-kitchen-grid">
-    <section>
+    <section id="restaurant-kds-live" style="scroll-margin-top:72px">
         <div class="foodex-card">
             <h3>{{ __('smart_ordering.kitchen.live_board') }}</h3>
             <p>{{ __('smart_ordering.kitchen.live_board_help') }}</p>
@@ -90,7 +90,7 @@
         </div>
     </section>
 
-    <aside class="so-kitchen-settings">
+    <aside class="so-kitchen-settings" id="restaurant-kitchen-config" style="scroll-margin-top:72px">
         <section class="foodex-card">
             <h3>{{ __('smart_ordering.kitchen.stations') }}</h3>
             <div class="so-station-list">
