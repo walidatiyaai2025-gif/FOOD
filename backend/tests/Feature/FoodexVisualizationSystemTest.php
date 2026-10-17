@@ -23,11 +23,20 @@ class FoodexVisualizationSystemTest extends TestCase
             '.foodex-viz-progress',
             '.foodex-viz-heatmap',
             '.foodex-viz-legend',
+            '.foodex-module-overview',
+            '.foodex-module-toolbar',
+            '.foodex-module-kpis',
+            '.foodex-module-kpi',
+            '.foodex-module-chart',
+            '.foodex-module-state',
         ] as $primitive) {
             $this->assertStringContainsString($primitive, $css);
         }
 
         $this->assertStringContainsString('[dir="rtl"] .foodex-viz-bars', $css);
+        $this->assertStringContainsString('[dir="rtl"] .foodex-viz-header,[dir="rtl"] .foodex-viz-legend,[dir="rtl"] .foodex-module-toolbar', $css);
+        $this->assertStringContainsString('@media(max-width:1023px)', $css);
+        $this->assertStringContainsString('@media(max-width:767px)', $css);
         $this->assertStringContainsString('prefers-reduced-motion', $css);
     }
 }
