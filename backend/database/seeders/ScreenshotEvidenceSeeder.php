@@ -310,6 +310,20 @@ class ScreenshotEvidenceSeeder extends Seeder
                 'updated_at' => $now,
             ]);
 
+        DB::table('smart_ordering_entitlements')->updateOrInsert(
+            [
+                'site_id' => $smartOrderingSite->getKey(),
+                'scope_key' => 'site',
+                'module' => 'reservations',
+            ],
+            [
+                'branch_id' => null,
+                'enabled' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
         DB::table('smart_ordering_branches')->updateOrInsert(
             ['site_id' => $smartOrderingSite->getKey(), 'code' => 'EVID-DINING'],
             [
@@ -411,6 +425,90 @@ class ScreenshotEvidenceSeeder extends Seeder
                 'split_by' => null,
                 'combined_at' => $now->copy()->subMinutes(12),
                 'note' => 'Evidence family seating',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
+        $t01 = (int) DB::table('smart_ordering_tables')
+            ->where('branch_id', $restaurantEvidenceBranchId)->where('label', 'T01')->value('id');
+        DB::table('smart_ordering_reservations')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'guest_name' => 'Noura Al Salem'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'customer_id' => null,
+                'table_id' => $t02,
+                'guest_phone' => '+96550001001',
+                'guest_email' => 'noura.reservation@example.test',
+                'party_size' => 4,
+                'service_at' => $now->copy()->addHours(4),
+                'status' => 'CONFIRMED',
+                'notes' => 'Window seating preferred',
+                'created_by' => null,
+                'updated_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        DB::table('smart_ordering_reservations')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'guest_name' => 'Omar Haddad'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'customer_id' => null,
+                'table_id' => $t01,
+                'guest_phone' => '+96550001002',
+                'guest_email' => null,
+                'party_size' => 2,
+                'service_at' => $now->copy()->addHours(6),
+                'status' => 'BOOKED',
+                'notes' => null,
+                'created_by' => null,
+                'updated_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        DB::table('smart_ordering_waitlist_entries')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'guest_name' => 'Mariam Youssef'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'customer_id' => null,
+                'table_id' => null,
+                'reservation_id' => null,
+                'guest_phone' => '+96550001003',
+                'guest_email' => null,
+                'party_size' => 3,
+                'arrived_at' => $now->copy()->subMinutes(12),
+                'quoted_wait_minutes' => 20,
+                'priority' => 2,
+                'priority_reason' => 'Young child',
+                'status' => 'WAITING',
+                'notes' => 'Prefers indoor seating',
+                'created_by' => null,
+                'updated_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        DB::table('smart_ordering_waitlist_entries')->updateOrInsert(
+            ['branch_id' => $restaurantEvidenceBranchId, 'guest_name' => 'Fahad Al Mutairi'],
+            [
+                'public_id' => (string) Str::uuid(),
+                'customer_id' => null,
+                'table_id' => null,
+                'reservation_id' => null,
+                'guest_phone' => '+96550001004',
+                'guest_email' => null,
+                'party_size' => 2,
+                'arrived_at' => $now->copy()->subMinutes(5),
+                'quoted_wait_minutes' => 10,
+                'priority' => 0,
+                'priority_reason' => null,
+                'status' => 'CONTACTED',
+                'contacted_at' => $now->copy()->subMinute(),
+                'notes' => null,
+                'created_by' => null,
+                'updated_by' => null,
                 'created_at' => $now,
                 'updated_at' => $now,
             ],

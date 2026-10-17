@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
+use App\Http\Controllers\Admin\SmartOrderingGuestServiceController;
 use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use App\Http\Controllers\Admin\SmartOrderingTableController;
+use App\Http\Controllers\Admin\SmartOrderingWorkforceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SmartOrderingOperationsController::class, 'index'])->name('operations.index');
@@ -39,6 +41,36 @@ Route::post('/branches/{branch}/tables/{table}/combine', [SmartOrderingTableCont
     ->whereUuid('branch')->whereUuid('table')->name('tables.combine');
 Route::delete('/branches/{branch}/table-combinations/{combination}', [SmartOrderingTableController::class, 'split'])
     ->whereUuid('branch')->whereUuid('combination')->name('tables.split');
+
+Route::post('/branches/{branch}/workforce/staff', [SmartOrderingWorkforceController::class, 'storeAssignment'])
+    ->whereUuid('branch')->name('workforce.staff.store');
+Route::delete('/branches/{branch}/workforce/staff/{user}', [SmartOrderingWorkforceController::class, 'destroyAssignment'])
+    ->whereUuid('branch')->whereNumber('user')->name('workforce.staff.destroy');
+Route::post('/branches/{branch}/workforce/shifts', [SmartOrderingWorkforceController::class, 'storeShift'])
+    ->whereUuid('branch')->name('workforce.shifts.store');
+Route::put('/branches/{branch}/workforce/shifts/{shift}', [SmartOrderingWorkforceController::class, 'updateShift'])
+    ->whereUuid('branch')->whereUuid('shift')->name('workforce.shifts.update');
+Route::post('/branches/{branch}/workforce/shifts/{shift}/transition', [SmartOrderingWorkforceController::class, 'transitionShift'])
+    ->whereUuid('branch')->whereUuid('shift')->name('workforce.shifts.transition');
+Route::post('/branches/{branch}/workforce/time-clock', [SmartOrderingWorkforceController::class, 'clock'])
+    ->whereUuid('branch')->name('workforce.clock');
+Route::put('/branches/{branch}/workforce/time-clock/{session}/correction', [SmartOrderingWorkforceController::class, 'correctSession'])
+    ->whereUuid('branch')->whereUuid('session')->name('workforce.sessions.correct');
+
+Route::post('/branches/{branch}/reservations', [SmartOrderingGuestServiceController::class, 'storeReservation'])
+    ->whereUuid('branch')->name('reservations.store');
+Route::put('/branches/{branch}/reservations/{reservation}', [SmartOrderingGuestServiceController::class, 'updateReservation'])
+    ->whereUuid('branch')->whereUuid('reservation')->name('reservations.update');
+Route::post('/branches/{branch}/reservations/{reservation}/transition', [SmartOrderingGuestServiceController::class, 'transitionReservation'])
+    ->whereUuid('branch')->whereUuid('reservation')->name('reservations.transition');
+Route::post('/branches/{branch}/waitlist', [SmartOrderingGuestServiceController::class, 'storeWaitlist'])
+    ->whereUuid('branch')->name('waitlist.store');
+Route::put('/branches/{branch}/waitlist/{entry}', [SmartOrderingGuestServiceController::class, 'updateWaitlist'])
+    ->whereUuid('branch')->whereUuid('entry')->name('waitlist.update');
+Route::post('/branches/{branch}/waitlist/{entry}/transition', [SmartOrderingGuestServiceController::class, 'transitionWaitlist'])
+    ->whereUuid('branch')->whereUuid('entry')->name('waitlist.transition');
+Route::post('/branches/{branch}/waitlist/{entry}/convert', [SmartOrderingGuestServiceController::class, 'convertWaitlist'])
+    ->whereUuid('branch')->whereUuid('entry')->name('waitlist.convert');
 Route::post('/orders/{reference}/status', [SmartOrderingOperationsController::class, 'transition'])
     ->whereUuid('reference')->name('orders.transition');
 

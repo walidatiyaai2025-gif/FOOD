@@ -1626,6 +1626,272 @@ class SmartOrderingCoreTest extends TestCase
             ->assertSee('متاحة');
     }
 
+    public function test_restaurant_workforce_reuses_store_identity_rejects_overlap_and_cross_scope(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $staff = $this->workforceUser($this->storeId, 'Host Team Member', true);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.staff.store', $this->branch->public_id), [
+                'user_id' => $staff->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('restaurant_staff_assignments', [
+            'branch_id' => $this->branch->id,
+            'user_id' => $staff->id,
+            'is_active' => true,
+        ]);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'workforce',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Restaurant workforce')
+            ->assertSee('Host Team Member')
+            ->assertSee('Retail Store Admin')
+            ->assertDontSee('B2C_STORE_ADMIN');
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.shifts.store', $this->branch->public_id), [
+                'user_id' => $staff->id,
+                'starts_at' => '2026-10-18T10:00',
+                'ends_at' => '2026-10-18T18:00',
+                'notes' => 'Lunch and dinner coverage',
+            ])
+            ->assertRedirect();
+
+        $shift = DB::table('restaurant_shifts')->where('user_id', $staff->id)->first();
+        $this->assertNotNull($shift);
+        $this->assertSame('2026-10-18 07:00', CarbonImmutable::parse((string) $shift->starts_at, 'UTC')->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-18 15:00', CarbonImmutable::parse((string) $shift->ends_at, 'UTC')->format('Y-m-d H:i'));
+        $this->assertSame('DRAFT', $shift->status);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.shifts.store', $this->branch->public_id), [
+                'user_id' => $staff->id,
+                'starts_at' => '2026-10-18T12:00',
+                'ends_at' => '2026-10-18T14:00',
+            ])
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, DB::table('restaurant_shifts')->where('user_id', $staff->id)->count());
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.shifts.transition', [
+                $this->branch->public_id,
+                $shift->public_id,
+            ]), ['action' => 'publish'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('restaurant_shifts', [
+            'id' => $shift->id,
+            'status' => 'PUBLISHED',
+        ]);
+
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'WORKFORCE-FOREIGN',
+            'name' => 'Foreign Workforce Restaurant',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $foreignStoreId,
+            'slug' => 'foreign-workforce-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $foreignSiteId,
+            'code' => 'foreign-workforce-branch',
+            'name_ar' => 'فرع فريق خارجي',
+            'name_en' => 'Foreign Workforce Branch',
+            'timezone' => 'Asia/Kuwait',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.staff.store', $foreignBranch->public_id), [
+                'user_id' => $staff->id,
+            ])
+            ->assertNotFound();
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'workforce',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('فريق عمل المطعم')
+            ->assertSee('مسؤول متجر التجزئة')
+            ->assertDontSee('B2C_STORE_ADMIN');
+    }
+
+    public function test_restaurant_time_clock_transitions_use_server_time_and_manager_correction_is_audited(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $staff = $this->workforceUser($this->storeId, 'Clock Team Member');
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.staff.store', $this->branch->public_id), [
+                'user_id' => $staff->id,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('admin.smart-ordering.workforce.staff.store', $this->branch->public_id), [
+                'user_id' => $admin->id,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($staff)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'workforce',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Clock Team Member')
+            ->assertSee('data-workforce-user-id="'.$staff->id.'"', false)
+            ->assertDontSee('data-workforce-user-id="'.$admin->id.'"', false);
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'clock_in',
+            ])
+            ->assertRedirect();
+
+        $session = DB::table('restaurant_time_clock_sessions')->where('user_id', $staff->id)->first();
+        $this->assertNotNull($session);
+        $this->assertSame('OPEN', $session->status);
+        $this->assertNotNull($session->clocked_in_at);
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'clock_in',
+            ])
+            ->assertSessionHasErrors('action');
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'break_start',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('restaurant_time_clock_sessions', [
+            'id' => $session->id,
+            'status' => 'ON_BREAK',
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'clock_out',
+            ])
+            ->assertSessionHasErrors('action');
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'break_end',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($staff)
+            ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
+                'action' => 'clock_out',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('restaurant_time_clock_sessions', [
+            'id' => $session->id,
+            'status' => 'CLOSED',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.workforce.sessions.correct', [
+                $this->branch->public_id,
+                $session->public_id,
+            ]), [
+                'clocked_in_at' => '2026-10-18T10:00',
+                'clocked_out_at' => '2026-10-18T18:00',
+                'total_break_minutes' => 600,
+                'reason' => 'Invalid correction must be rejected.',
+            ])
+            ->assertSessionHasErrors('total_break_minutes');
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.workforce.sessions.correct', [
+                $this->branch->public_id,
+                $session->public_id,
+            ]), [
+                'clocked_in_at' => '2026-10-18T10:00',
+                'clocked_out_at' => '2026-10-18T18:00',
+                'total_break_minutes' => 30,
+                'reason' => 'Manager corrected approved paper timesheet.',
+            ])
+            ->assertRedirect();
+
+        $corrected = DB::table('restaurant_time_clock_sessions')->where('id', $session->id)->first();
+        $this->assertSame('2026-10-18 07:00', CarbonImmutable::parse((string) $corrected->clocked_in_at, 'UTC')->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-18 15:00', CarbonImmutable::parse((string) $corrected->clocked_out_at, 'UTC')->format('Y-m-d H:i'));
+        $this->assertSame(1800, (int) $corrected->total_break_seconds);
+        $this->assertSame($admin->id, (int) $corrected->corrected_by_user_id);
+        $this->assertSame('Manager corrected approved paper timesheet.', $corrected->correction_note);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'event' => 'smart_ordering.workforce.time_clock.corrected',
+        ]);
+    }
+
+    private function workforceUser(int $storeId, string $name, bool $manager = false): User
+    {
+        $user = User::query()->create([
+            'name' => $name,
+            'email' => 'workforce-'.Str::lower(Str::random(8)).'@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        if ($manager) {
+            $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        } else {
+            $role = Role::query()->firstOrCreate(
+                ['code' => 'TEST_RESTAURANT_STAFF'],
+                [
+                    'name' => 'Test Restaurant Staff',
+                    'scope' => 'store',
+                    'is_system' => false,
+                    'is_active' => true,
+                ],
+            );
+            $ordersView = (int) DB::table('permissions')->where('code', 'orders.view')->value('id');
+            $role->permissions()->syncWithoutDetaching([$ordersView]);
+        }
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $user;
+    }
+
     private function restaurantTable(
         string $label,
         string $token,

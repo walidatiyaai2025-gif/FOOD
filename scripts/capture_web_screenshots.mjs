@@ -190,7 +190,7 @@ async function assertVisibleActionsInViewport(page, label) {
   }
 }
 
-async function captureResponsiveRoute(page, locale, channel, name, route) {
+async function captureResponsiveRoute(page, locale, channel, name, route, options = {}) {
   const representativeViewports = [
     ['desktop-1280', 1280, 900],
     ['compact-1024', 1024, 900],
@@ -208,9 +208,9 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
     ['mobile-360', 360, 800],
     ['mobile-320', 320, 844],
   ];
-  const viewports = process.env.FOODEX_RESPONSIVE_PROFILE === 'full'
+  const viewports = options.fullMatrix
     ? fullViewports
-    : representativeViewports;
+    : (process.env.FOODEX_RESPONSIVE_PROFILE === 'full' ? fullViewports : representativeViewports);
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
     const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
@@ -1429,6 +1429,37 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'smart-ordering-tables',
     '/admin/smart-ordering?tab=tables',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-workforce',
+    '/admin/smart-ordering?tab=workforce',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-reservations',
+    '/admin/smart-ordering?tab=reservations',
+    { fullMatrix: true },
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-waitlist',
+    '/admin/smart-ordering?tab=waitlist',
+    { fullMatrix: true },
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-guest-book',
+    '/admin/smart-ordering?tab=guest_book',
+    { fullMatrix: true },
   );
   await captureResponsiveRoute(
     page,
