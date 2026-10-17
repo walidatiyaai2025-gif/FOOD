@@ -51,7 +51,7 @@
         @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}\n    </style>
 </head>
-<body>
+<body data-fieldops-super="{{ $isSuper ? '1' : '0' }}" data-fieldops-can-manage-van="{{ $canManageVan ? '1' : '0' }}">
 <div class="foodex-admin-layout" data-field-operations-page="{{ $section }}">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
     <main class="foodex-admin-main foodex-admin-page">
