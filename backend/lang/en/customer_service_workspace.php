@@ -107,6 +107,7 @@ return [
     'values' => [
         'all' => 'All',
         'choose' => 'Choose',
+        'none' => 'None',
         'open' => 'Open',
         'pending' => 'Pending',
         'resolved' => 'Resolved',
