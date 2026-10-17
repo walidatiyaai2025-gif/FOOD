@@ -18,5 +18,6 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="SECURITY_MFA_ENFORCE_PRIVILEGED" value="false" force="true"/>
     </php>
 </phpunit>

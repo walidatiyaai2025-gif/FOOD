@@ -7,7 +7,7 @@
     @include('admin._brand-components')
     <style>
         *{box-sizing:border-box}
-        body{margin:0;min-height:100vh;font-family:var(--foodex-font-ui);background:linear-gradient(135deg,#f8fbf9 0%,#fff7ef 100%);color:var(--foodex-ink,#172033)}
+        body{margin:0;min-height:100vh;font-family:var(--foodex-font-ui);background:linear-gradient(135deg,#f8fbf9 0%,#fff7ef 100%);color:var(--foodex-ink)}
         .page{min-height:100vh;display:grid;grid-template-columns:minmax(320px,.9fr) minmax(460px,1.1fr)}
         .brand-pane{padding:clamp(32px,6vw,84px);background:linear-gradient(145deg,var(--foodex-green,#158A3A),#0d642a);color:#fff;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
         .brand-pane:after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.07);inset:auto -180px -150px auto}
@@ -17,11 +17,11 @@
         .form-pane{display:grid;place-items:center;padding:32px}
         .card{width:min(100%,520px);background:#fff;border:1px solid var(--foodex-border,#E6EAF0);border-radius:24px;padding:clamp(28px,5vw,48px);box-shadow:0 28px 70px rgba(16,24,40,.10)}
         .top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:30px}.eyebrow{color:var(--foodex-green,#158A3A);font-weight:var(--foodex-font-weight-bold);font-size:13px;margin:0 0 7px}.card h2{font-size:30px;margin:0}.lang{display:flex;gap:6px}.lang a{border:1px solid var(--foodex-border,#E6EAF0);border-radius:999px;padding:7px 10px;text-decoration:none;color:inherit;font-size:12px}.lang a.active{background:var(--foodex-green-soft,#EAF7EF);border-color:var(--foodex-green,#158A3A);color:var(--foodex-green,#158A3A)}
-        label{display:block;font-size:13px;font-weight:var(--foodex-font-weight-bold);margin:0 0 7px}.field{margin-bottom:18px}.field input{width:100%;border:1px solid var(--foodex-border,#D9DEE7);border-radius:12px;padding:13px 14px;font:inherit;outline:none;background:#fff}.field input:focus{border-color:var(--foodex-green,#158A3A);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
+        label{display:block;font-size:13px;font-weight:var(--foodex-font-weight-bold);margin:0 0 7px}.field{margin-bottom:18px}.field input{width:100%;border:1px solid var(--foodex-border);border-radius:12px;padding:13px 14px;font:inherit;outline:none;background:#fff}.field input:focus{border-color:var(--foodex-green,#158A3A);box-shadow:0 0 0 3px rgba(21,138,58,.12)}
         .error{background:#fff2f1;border:1px solid #ffd5d1;color:#a92920;border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:16px}
         .error ul{margin:0;padding-inline-start:20px}.error a{color:inherit;font-weight:700;text-underline-offset:2px}
         button{width:100%;border:0;border-radius:12px;padding:14px 16px;background:var(--foodex-green,#158A3A);color:#fff;font:inherit;font-weight:var(--foodex-font-weight-bold);cursor:pointer}button:hover{filter:brightness(.96)}
-        .channel-switch{margin:22px 0 0;text-align:center;color:var(--foodex-muted,#667085);font-size:13px}.channel-switch a{color:var(--foodex-orange,#EE731C);font-weight:var(--foodex-font-weight-bold);text-decoration:none}
+        .channel-switch{margin:22px 0 0;text-align:center;color:var(--foodex-muted,#667085);font-size:13px}.channel-switch a{color:var(--foodex-orange,#EE731C);font-weight:var(--foodex-font-weight-bold);text-decoration:none}.sso-link{display:block;margin-top:12px;border:1px solid var(--foodex-border);border-radius:12px;padding:12px 14px;text-align:center;text-decoration:none;color:var(--foodex-ink);font-weight:var(--foodex-font-weight-bold)}
         .no-register{margin-top:18px;padding-top:18px;border-top:1px solid var(--foodex-border,#E6EAF0);font-size:12px;color:var(--foodex-muted,#667085);line-height:1.6;text-align:center}
         @media(max-width:820px){.page{grid-template-columns:1fr}.brand-pane{min-height:220px;padding:30px}.brand-copy h1{font-size:30px}.brand-copy p{font-size:14px}.secure{display:none}.form-pane{padding:20px;margin-top:-26px;position:relative;z-index:2}.card{border-radius:20px}}
     </style>
@@ -89,6 +89,10 @@
                 </div>
                 <button type="submit">{{ __('admin_login.sign_in_action') }}</button>
             </form>
+
+            @if(($ssoReadiness['enabled'] ?? false) && ($ssoReadiness['configured'] ?? false))
+                <a class="sso-link" href="{{ route('admin.sso.redirect') }}">{{ __('security_governance.sso.sign_in') }}</a>
+            @endif
 
             @php($otherChannel = $channel === 'b2b' ? 'b2c' : 'b2b')
             <p class="channel-switch">
