@@ -449,7 +449,34 @@ final class WhatsAppInboxController extends Controller
                 'stores.name as store_name',
                 'stores.code as store_code',
                 'agents.name as agent_name',
-            ]);
+            ])
+            ->selectSub(function (Builder $message): void {
+                $message
+                    ->from('whats_app_messages as preview_messages')
+                    ->select('preview_messages.body')
+                    ->whereColumn('preview_messages.conversation_id', 'conversations.id')
+                    ->orderByDesc('preview_messages.occurred_at')
+                    ->orderByDesc('preview_messages.id')
+                    ->limit(1);
+            }, 'last_message_body')
+            ->selectSub(function (Builder $message): void {
+                $message
+                    ->from('whats_app_messages as preview_messages')
+                    ->select('preview_messages.content_type')
+                    ->whereColumn('preview_messages.conversation_id', 'conversations.id')
+                    ->orderByDesc('preview_messages.occurred_at')
+                    ->orderByDesc('preview_messages.id')
+                    ->limit(1);
+            }, 'last_message_type')
+            ->selectSub(function (Builder $message): void {
+                $message
+                    ->from('whats_app_messages as preview_messages')
+                    ->select('preview_messages.occurred_at')
+                    ->whereColumn('preview_messages.conversation_id', 'conversations.id')
+                    ->orderByDesc('preview_messages.occurred_at')
+                    ->orderByDesc('preview_messages.id')
+                    ->limit(1);
+            }, 'last_message_at');
 
         if (! $actor->hasRole('SUPER_ADMIN')) {
             $query->whereIn('conversations.store_id', $allowedStoreIds);
