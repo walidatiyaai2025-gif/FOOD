@@ -9,6 +9,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CatalogImageService;
+use App\Services\CatalogProductCompletionManager;
 use App\Services\CatalogOwnership;
 use App\Services\CatalogZipImportService;
 use App\Services\LookupScopeService;
@@ -40,6 +41,7 @@ final class CatalogManagementController extends Controller
         private readonly ProductSkuGenerator $skuGenerator,
         private readonly CatalogImageService $images,
         private readonly CatalogZipImportService $catalogImports,
+        private readonly CatalogProductCompletionManager $catalogCompletion,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
     ) {}
 
@@ -54,7 +56,7 @@ final class CatalogManagementController extends Controller
             abort(403);
         }
 
-        $tab = in_array((string) $request->query('tab'), ['products', 'categories', 'import'], true)
+        $tab = in_array((string) $request->query('tab'), ['overview', 'products', 'categories', 'attributes', 'import'], true)
             ? (string) $request->query('tab')
             : 'products';
 
@@ -100,6 +102,9 @@ final class CatalogManagementController extends Controller
         $productAvailability = in_array((string) $request->query('product_availability'), ['available', 'out_of_stock'], true)
             ? (string) $request->query('product_availability')
             : '';
+        $productHealth = in_array((string) $request->query('product_health'), ['low_stock', 'unpriced', 'unavailable', 'missing_category', 'missing_brand', 'margin_exception', 'data_quality'], true)
+            ? (string) $request->query('product_health')
+            : '';
         $categorySearch = mb_substr(trim((string) $request->query('category_q', '')), 0, 120);
         $categoryStatus = in_array((string) $request->query('category_status'), ['active', 'inactive'], true)
             ? (string) $request->query('category_status')
@@ -115,6 +120,10 @@ final class CatalogManagementController extends Controller
             'products.name',
             'products.description',
             'products.is_active',
+            'products.lifecycle_state',
+            'products.lifecycle_effective_at',
+            'products.end_of_life_at',
+            'products.low_stock_threshold',
             'products.category_id',
             'products.brand_id',
             'products.unit_id',
@@ -194,6 +203,78 @@ final class CatalogManagementController extends Controller
                     })->orWhereExists(static function ($subquery) use ($inventoryScope): void {
                         $inventoryScope($subquery, true);
                     });
+                });
+            }
+        }
+
+        if ($productHealth !== '') {
+            $assignmentExists = static function ($query, ?string $condition = null): void {
+                $query->selectRaw('1')
+                    ->from('store_products as catalog_health_assignment')
+                    ->whereColumn('catalog_health_assignment.product_id', 'products.id')
+                    ->whereColumn('catalog_health_assignment.store_id', 'catalogs.store_id');
+
+                if ($condition === 'unpriced') {
+                    $query->whereNull('catalog_health_assignment.price');
+                } elseif ($condition === 'margin_exception') {
+                    $query->whereNotNull('catalog_health_assignment.price')
+                        ->whereNotNull('catalog_health_assignment.cost_price')
+                        ->whereColumn('catalog_health_assignment.price', '<=', 'catalog_health_assignment.cost_price');
+                } elseif ($condition === 'inactive') {
+                    $query->where('catalog_health_assignment.is_active', false);
+                }
+            };
+
+            if ($productHealth === 'unpriced') {
+                $productQuery->where(function ($query) use ($assignmentExists): void {
+                    $query->whereNotExists(static function ($subquery) use ($assignmentExists): void {
+                        $assignmentExists($subquery);
+                    })->orWhereExists(static function ($subquery) use ($assignmentExists): void {
+                        $assignmentExists($subquery, 'unpriced');
+                    });
+                });
+            } elseif ($productHealth === 'margin_exception') {
+                $productQuery->whereExists(static function ($query) use ($assignmentExists): void {
+                    $assignmentExists($query, 'margin_exception');
+                });
+            } elseif ($productHealth === 'missing_category') {
+                $productQuery->whereNull('products.category_id');
+            } elseif ($productHealth === 'missing_brand') {
+                $productQuery->whereNull('products.brand_id');
+            } elseif ($productHealth === 'low_stock') {
+                $productQuery
+                    ->where('products.low_stock_threshold', '>', 0)
+                    ->whereRaw('(SELECT COALESCE(SUM(catalog_health_inventory.quantity - catalog_health_inventory.reserved_quantity), 0) FROM inventories AS catalog_health_inventory INNER JOIN warehouses AS catalog_health_warehouse ON catalog_health_warehouse.id = catalog_health_inventory.warehouse_id WHERE catalog_health_inventory.product_id = products.id AND catalog_health_warehouse.store_id = catalogs.store_id AND catalog_health_warehouse.is_active = 1) > 0')
+                    ->whereRaw('(SELECT COALESCE(SUM(catalog_health_inventory.quantity - catalog_health_inventory.reserved_quantity), 0) FROM inventories AS catalog_health_inventory INNER JOIN warehouses AS catalog_health_warehouse ON catalog_health_warehouse.id = catalog_health_inventory.warehouse_id WHERE catalog_health_inventory.product_id = products.id AND catalog_health_warehouse.store_id = catalogs.store_id AND catalog_health_warehouse.is_active = 1) <= products.low_stock_threshold');
+            } elseif ($productHealth === 'unavailable') {
+                $productQuery->where(function ($query) use ($assignmentExists): void {
+                    $query->where('products.lifecycle_state', '!=', 'active')
+                        ->orWhere('products.is_active', false)
+                        ->orWhereExists(static function ($subquery) use ($assignmentExists): void {
+                            $assignmentExists($subquery, 'inactive');
+                        })
+                        ->orWhereExists(static function ($subquery): void {
+                            $subquery->selectRaw('1')
+                                ->from('product_commercial_policies as catalog_health_policy')
+                                ->whereColumn('catalog_health_policy.product_id', 'products.id')
+                                ->where('catalog_health_policy.status', 'CLOSED');
+                        });
+                });
+            } elseif ($productHealth === 'data_quality') {
+                $productQuery->where(function ($query) use ($assignmentExists): void {
+                    $query->whereNull('products.category_id')
+                        ->orWhereNull('products.brand_id')
+                        ->orWhereNotExists(static function ($subquery) use ($assignmentExists): void {
+                            $assignmentExists($subquery);
+                        })
+                        ->orWhereExists(static function ($subquery) use ($assignmentExists): void {
+                            $assignmentExists($subquery, 'unpriced');
+                        })
+                        ->orWhereNotExists(static function ($subquery): void {
+                            $subquery->selectRaw('1')
+                                ->from('product_images as catalog_health_image')
+                                ->whereColumn('catalog_health_image.product_id', 'products.id');
+                        });
                 });
             }
         }
@@ -282,6 +363,7 @@ final class CatalogManagementController extends Controller
                 'brand_id' => $productBrandId,
                 'status' => $productStatus,
                 'availability' => $productAvailability,
+                'health' => $productHealth,
             ],
             'categoryFilters' => [
                 'q' => $categorySearch,
@@ -378,6 +460,29 @@ final class CatalogManagementController extends Controller
 
                     return null;
                 }),
+            'catalogDashboard' => $tab === 'overview'
+                ? $this->catalogCompletion->dashboard($storeIds, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ])
+                : null,
+            'attributeDefinitions' => $tab === 'attributes'
+                ? $this->catalogCompletion->attributeDefinitions($storeIds)
+                : null,
+            'product360' => $request->integer('product_detail') > 0
+                ? $this->catalogCompletion->product360($storeIds, $request->integer('product_detail'))
+                : null,
+            'category360' => $request->integer('category_detail') > 0
+                ? $this->catalogCompletion->category360($storeIds, $request->integer('category_detail'))
+                : null,
+            'importRuns' => $tab === 'import'
+                ? DB::table('catalog_import_runs')
+                    ->whereIn('store_id', $storeIds)
+                    ->orderByDesc('id')
+                    ->paginate(25, ['*'], 'import_run_page')
+                    ->withQueryString()
+                : null,
+            'reportsUrl' => route('admin.erp.bi', ['report' => 'catalog.availability']),
             'canManageStores' => $canManageStores,
             'scopeParams' => $scopeParams,
         ]);
@@ -925,6 +1030,129 @@ final class CatalogManagementController extends Controller
         }
 
         return back()->with('status', $this->msg('تم تعديل المتجر.', 'Store updated.'));
+    }
+
+
+    public function storeAttribute(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $catalog = $this->catalogs->defaultCatalogForStore((int) $data['store_id']);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $data['store_id'], (string) $catalog->channel);
+
+        $this->catalogCompletion->storeAttributeDefinition(
+            $this->actor($request),
+            (int) $catalog->id,
+            $request->all(),
+            $request,
+        );
+
+        return redirect()->route('admin.catalog.index', $this->catalogRouteParams($request, 'attributes', (int) $data['store_id']))
+            ->with('status', __('catalog_completion.status.attribute_created'));
+    }
+
+    public function updateAttribute(Request $request, int $attribute): RedirectResponse
+    {
+        $owner = DB::table('product_attribute_definitions as attributes')
+            ->join('catalogs', 'catalogs.id', '=', 'attributes.catalog_id')
+            ->where('attributes.id', $attribute)
+            ->first(['attributes.catalog_id', 'catalogs.store_id', 'catalogs.channel']);
+        abort_if($owner === null, 404);
+
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
+        $this->catalogCompletion->updateAttributeDefinition(
+            $this->actor($request),
+            $attribute,
+            (int) $owner->catalog_id,
+            $request->all(),
+            $request,
+        );
+
+        return redirect()->route('admin.catalog.index', $this->catalogRouteParams($request, 'attributes', (int) $owner->store_id))
+            ->with('status', __('catalog_completion.status.attribute_updated'));
+    }
+
+    public function saveProductAttributes(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
+        $data = $request->validate(['attributes' => ['nullable', 'array']]);
+
+        $this->catalogCompletion->saveProductAttributes(
+            $this->actor($request),
+            [(int) $owner->store_id],
+            $product,
+            $data['attributes'] ?? [],
+            $request,
+        );
+
+        return redirect()->route('admin.catalog.index', $this->catalogRouteParams($request, 'products', (int) $owner->store_id, [
+            'product_detail' => $product,
+        ]))->with('status', __('catalog_completion.status.attributes_saved'));
+    }
+
+    public function transitionProductLifecycle(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
+
+        $this->catalogCompletion->transitionLifecycle(
+            $this->actor($request),
+            [(int) $owner->store_id],
+            $product,
+            $request->only(['state', 'effective_at', 'reason']),
+            $request,
+        );
+
+        return redirect()->route('admin.catalog.index', $this->catalogRouteParams($request, 'products', (int) $owner->store_id, [
+            'product_detail' => $product,
+        ]))->with('status', __('catalog_completion.status.lifecycle_updated'));
+    }
+
+    public function exportCatalog(Request $request): Response
+    {
+        $actor = $this->actor($request);
+        $storeIds = $this->catalogReadableStoreIds($actor, $this->visibleStoreIds($actor, $request));
+        if ($storeIds === []) {
+            abort(403);
+        }
+
+        $rows = $this->catalogCompletion->bulkExportRows($storeIds);
+        $stream = fopen('php://temp', 'w+');
+        if ($stream === false) {
+            abort(500);
+        }
+
+        $headers = [
+            'store_id', 'channel', 'sku', 'name', 'description', 'category', 'brand', 'unit_code',
+            'lifecycle_state', 'lifecycle_effective_at', 'end_of_life_at', 'price', 'cost_price',
+            'available_quantity', 'commercial_status', 'attributes_json',
+        ];
+        fputcsv($stream, $headers);
+        foreach ($rows as $row) {
+            fputcsv($stream, array_map(static fn (string $header): mixed => $row[$header] ?? null, $headers));
+        }
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return response("\xEF\xBB\xBF".($csv === false ? '' : $csv), 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="foodex-catalog-export-'.now()->format('Ymd-His').'.csv"',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** @param array<string,int|string> $extra @return array<string,int|string> */
+    private function catalogRouteParams(Request $request, string $tab, int $storeId, array $extra = []): array
+    {
+        $params = ['tab' => $tab, 'store_id' => $storeId, ...$extra];
+        if ($request->boolean('support_access')) {
+            $params['support_access'] = 1;
+        }
+
+        return $params;
     }
 
     private function productOwner(int $product): object
