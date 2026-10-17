@@ -371,8 +371,7 @@ final class WhatsAppCampaignController extends Controller
         Request $request,
         MetaTemplateService $metaTemplates,
         AuditLogger $audit,
-    ): JsonResponse|RedirectResponse
-    {
+    ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $data = $request->validate([
@@ -407,8 +406,7 @@ final class WhatsAppCampaignController extends Controller
         Request $request,
         MetaTemplateService $metaTemplates,
         AuditLogger $audit,
-    ): JsonResponse|RedirectResponse
-    {
+    ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $result = $metaTemplates->sync();
