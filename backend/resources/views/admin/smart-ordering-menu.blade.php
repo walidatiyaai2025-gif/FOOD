@@ -68,9 +68,11 @@
                 @else
                 <a class="foodex-action-primary so-review-link" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'review'=>1] + ($supportAccess ? ['support_access'=>1] : [])) }}#so-draft-review">{{ $isAr ? 'مراجعة المنيو قبل النشر' : 'Review menu before publishing' }}</a>
                 @endif
-                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
             </div>
         </header>
+
+        @include('admin._smart-ordering-workspace-nav')
 
         @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
