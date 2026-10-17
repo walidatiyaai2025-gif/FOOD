@@ -380,6 +380,7 @@ final class TreasuryAnalyticsService
             ->where('company_id', $scope->companyId)
             ->where('store_id', $scope->storeId)
             ->where('status', EnterpriseTreasuryReceipt::STATUS_POSTED)
+            ->whereDate('value_date', '<=', CarbonImmutable::today()->toDateString())
             ->groupBy('target_type', 'target_id', 'currency_code')
             ->get([
                 'target_type',
@@ -394,6 +395,7 @@ final class TreasuryAnalyticsService
             ->where('company_id', $scope->companyId)
             ->where('store_id', $scope->storeId)
             ->where('status', EnterpriseTreasuryPayment::STATUS_POSTED)
+            ->whereDate('value_date', '<=', CarbonImmutable::today()->toDateString())
             ->groupBy('target_type', 'target_id', 'currency_code')
             ->get([
                 'target_type',
