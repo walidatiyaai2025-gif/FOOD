@@ -20,6 +20,7 @@ use App\Services\AddressQualityService;
 use App\Services\AuditLogger;
 use App\Services\CollectionCustodyService;
 use App\Services\CommercialFeatureFlags;
+use App\Services\FieldOperationsDashboardService;
 use App\Services\FieldOperationsFinanceService;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
@@ -58,10 +59,16 @@ final class FieldOperationsController extends Controller
         // Constructor promotion defines the complete immutable service dependencies.
     }
 
-    public function overview(Request $request): View
+    public function overview(Request $request, FieldOperationsDashboardService $dashboardService): View
     {
         $user = $this->actor($request);
         $this->authorizeAny($user, ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1', 'exists:stores,id'],
+        ]);
 
         $isSuper = $user->hasRole('SUPER_ADMIN');
         $canTrack = $isSuper || $user->hasPermission('drivers.tracking.view');
@@ -69,6 +76,27 @@ final class FieldOperationsController extends Controller
         $canVisits = $canDrivers && ($isSuper || $user->hasPermission('customers.view'));
         $canTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
         $canAddress = $isSuper || $user->hasPermission('customers.view');
+        $canFinance = $isSuper || $user->hasPermission('finance.view');
+
+        $storeIds = $this->b2bStoreIds($user);
+        $selectedStoreId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
+        if ($selectedStoreId !== null) {
+            abort_unless(in_array($selectedStoreId, $storeIds, true), 403);
+        }
+
+        $dashboard = $dashboardService->build(
+            $storeIds,
+            $selectedStoreId,
+            isset($filters['from']) ? (string) $filters['from'] : null,
+            isset($filters['to']) ? (string) $filters['to'] : null,
+        );
+        $dashboardStores = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+        $canReports = $isSuper || $user->hasPermission('reports.view')
+            || collect($storeIds)->contains(fn (int $id): bool => $user->hasPermission('reports.view', $id));
+
         $locationHealth = ['online' => 0, 'stale' => 0, 'offline' => 0];
         if ($canTrack) {
             $locations = FleetCurrentLocation::query()->where('actor_type', 'van')->get();
@@ -81,7 +109,6 @@ final class FieldOperationsController extends Controller
             }
         }
 
-        $canFinance = $isSuper || $user->hasPermission('finance.view');
         $outstanding = $canFinance
             ? (float) DB::table('custody_ledger_entries')
                 ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
@@ -118,6 +145,14 @@ final class FieldOperationsController extends Controller
                 'territories' => $canTerritories,
                 'address' => $canAddress,
                 'finance' => $canFinance,
+                'reports' => $canReports,
+            ],
+            'dashboard' => $dashboard,
+            'dashboardStores' => $dashboardStores,
+            'dashboardFilters' => [
+                'from' => $dashboard['period']['from'],
+                'to' => $dashboard['period']['to'],
+                'store_id' => $selectedStoreId,
             ],
         ]);
     }
