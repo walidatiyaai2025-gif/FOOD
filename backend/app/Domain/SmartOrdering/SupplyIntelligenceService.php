@@ -261,31 +261,277 @@ final class SupplyIntelligenceService
             throw ValidationException::withMessages(['source' => ['An authoritative stock source is required.']]);
         }
 
-        $query = DB::table('smart_ordering_supply_stock')
-            ->where('site_id', $site->getKey())
-            ->where('foodex_product_id', $foodexProductId)
-            ->when($branchId === null, fn ($q) => $q->whereNull('branch_id'), fn ($q) => $q->where('branch_id', $branchId));
-        $existing = $query->first(['id']);
+        DB::transaction(function () use ($actor, $site, $foodexProductId, $branchId, $onHand, $source, $countedAt): void {
+            $query = DB::table('smart_ordering_supply_stock')
+                ->where('site_id', $site->getKey())
+                ->where('foodex_product_id', $foodexProductId)
+                ->when($branchId === null, fn ($q) => $q->whereNull('branch_id'), fn ($q) => $q->where('branch_id', $branchId));
+            $existing = $query->lockForUpdate()->first(['id']);
 
-        $values = [
-            'branch_id' => $branchId,
-            'on_hand_quantity' => round($onHand, 6),
-            'source' => mb_substr($source, 0, 120),
-            'counted_at' => $countedAt,
-            'updated_by' => (int) $actor->getKey(),
-            'updated_at' => now(),
-        ];
+            $values = [
+                'branch_id' => $branchId,
+                'on_hand_quantity' => round($onHand, 6),
+                'source' => mb_substr($source, 0, 120),
+                'counted_at' => $countedAt->utc(),
+                'updated_by' => (int) $actor->getKey(),
+                'updated_at' => now(),
+            ];
 
-        if ($existing === null) {
-            DB::table('smart_ordering_supply_stock')->insert([
+            if ($existing === null) {
+                DB::table('smart_ordering_supply_stock')->insert([
+                    'site_id' => (int) $site->getKey(),
+                    'foodex_product_id' => $foodexProductId,
+                    ...$values,
+                    'created_at' => now(),
+                ]);
+            } else {
+                DB::table('smart_ordering_supply_stock')->where('id', $existing->id)->update($values);
+            }
+
+            DB::table('smart_ordering_supply_stock_snapshots')->insert([
                 'site_id' => (int) $site->getKey(),
+                'branch_id' => $branchId,
                 'foodex_product_id' => $foodexProductId,
-                ...$values,
+                'on_hand_quantity' => round($onHand, 6),
+                'source' => mb_substr($source, 0, 120),
+                'counted_at' => $countedAt->utc(),
+                'recorded_by' => (int) $actor->getKey(),
                 'created_at' => now(),
+                'updated_at' => now(),
             ]);
-        } else {
-            DB::table('smart_ordering_supply_stock')->where('id', $existing->id)->update($values);
+        }, 3);
+    }
+
+    public function recordWaste(
+        User $actor,
+        SmartOrderingSite $site,
+        int $foodexProductId,
+        ?int $branchId,
+        float $quantity,
+        string $reason,
+        CarbonImmutable $occurredAt,
+    ): string {
+        if ($branchId !== null) {
+            $this->assertBranch($site, $branchId);
         }
+        $this->assertFoodexProduct($foodexProductId);
+        if ($quantity <= 0) {
+            throw ValidationException::withMessages(['quantity' => ['Waste quantity must be greater than zero.']]);
+        }
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw ValidationException::withMessages(['reason' => ['A waste reason is required.']]);
+        }
+
+        $publicId = (string) Str::uuid();
+        DB::table('smart_ordering_supply_waste_events')->insert([
+            'public_id' => $publicId,
+            'site_id' => (int) $site->getKey(),
+            'branch_id' => $branchId,
+            'foodex_product_id' => $foodexProductId,
+            'quantity' => round($quantity, 6),
+            'reason' => mb_substr($reason, 0, 160),
+            'occurred_at' => $occurredAt->utc(),
+            'recorded_by' => (int) $actor->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $publicId;
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function wasteEvents(SmartOrderingSite $site, ?int $branchId = null, int $limit = 100): array
+    {
+        if ($branchId !== null) {
+            $this->assertBranch($site, $branchId);
+        }
+
+        return DB::table('smart_ordering_supply_waste_events as w')
+            ->join('products as p', 'p.id', '=', 'w.foodex_product_id')
+            ->leftJoin('smart_ordering_branches as b', 'b.id', '=', 'w.branch_id')
+            ->where('w.site_id', $site->getKey())
+            ->when($branchId !== null, fn ($q) => $q->where('w.branch_id', $branchId))
+            ->orderByDesc('w.occurred_at')
+            ->orderByDesc('w.id')
+            ->limit(max(1, min(500, $limit)))
+            ->get([
+                'w.public_id', 'w.quantity', 'w.reason', 'w.occurred_at',
+                'p.sku', 'p.name as product_name',
+                'b.name_ar as branch_name_ar', 'b.name_en as branch_name_en',
+            ])
+            ->map(static fn (object $row): array => (array) $row)
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function stockHistory(SmartOrderingSite $site, ?int $branchId = null, int $limit = 100): array
+    {
+        if ($branchId !== null) {
+            $this->assertBranch($site, $branchId);
+        }
+
+        return DB::table('smart_ordering_supply_stock_snapshots as s')
+            ->join('products as p', 'p.id', '=', 's.foodex_product_id')
+            ->leftJoin('smart_ordering_branches as b', 'b.id', '=', 's.branch_id')
+            ->where('s.site_id', $site->getKey())
+            ->when($branchId !== null, fn ($q) => $q->where('s.branch_id', $branchId))
+            ->orderByDesc('s.counted_at')
+            ->orderByDesc('s.id')
+            ->limit(max(1, min(500, $limit)))
+            ->get([
+                's.foodex_product_id', 's.on_hand_quantity', 's.source', 's.counted_at',
+                'p.sku', 'p.name as product_name',
+                'b.name_ar as branch_name_ar', 'b.name_en as branch_name_en',
+            ])
+            ->map(static fn (object $row): array => (array) $row)
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function recipeCosts(SmartOrderingSite $site, ?int $branchId = null): array
+    {
+        if ($branchId !== null) {
+            $this->assertBranch($site, $branchId);
+        }
+
+        $customer = $this->linkedCustomer($site);
+        $principalStoreId = $this->principal->storeId();
+        $items = $this->menuItems($site);
+        $recipes = [];
+        $productIds = [];
+
+        foreach ($items as $item) {
+            $mappings = $this->effectiveMappings(
+                (int) $site->getKey(),
+                $branchId ?? 0,
+                (string) $item['public_id'],
+                0,
+                CarbonImmutable::now('UTC'),
+            );
+            if ($mappings->isEmpty()) {
+                continue;
+            }
+
+            $lines = $mappings->map(static function (object $mapping) use (&$productIds): array {
+                $productId = (int) $mapping->foodex_product_id;
+                $productIds[] = $productId;
+
+                return [
+                    'foodex_product_id' => $productId,
+                    'quantity_per_item' => (float) $mapping->quantity_per_item,
+                    'waste_factor' => (float) $mapping->waste_factor,
+                ];
+            })->all();
+
+            $recipes[] = [
+                'menu_item_public_id' => (string) $item['public_id'],
+                'name_ar' => $item['name_ar'],
+                'name_en' => $item['name_en'],
+                'lines' => $lines,
+            ];
+        }
+
+        $prices = [];
+        if ($customer instanceof B2bCustomer && $productIds !== []) {
+            try {
+                $prices = $this->pricing->resolveMany(
+                    $customer,
+                    collect($productIds)->unique()->map(static fn (int $id): array => [
+                        'store_id' => $principalStoreId,
+                        'product_id' => $id,
+                    ])->values()->all(),
+                );
+            } catch (Throwable) {
+                $prices = [];
+            }
+        }
+        $products = $this->productRows(array_values(array_unique($productIds)));
+
+        return collect($recipes)->map(function (array $recipe) use ($prices, $products, $principalStoreId): array {
+            $cost = 0.0;
+            $complete = true;
+            $recipe['lines'] = collect($recipe['lines'])->map(function (array $line) use ($prices, $products, $principalStoreId, &$cost, &$complete): array {
+                $productId = (int) $line['foodex_product_id'];
+                $price = $prices[$principalStoreId.':'.$productId] ?? null;
+                $unitCost = is_array($price) ? (float) $price['price'] : null;
+                $lineCost = $unitCost === null
+                    ? null
+                    : round((float) $line['quantity_per_item'] * (1 + (float) $line['waste_factor']) * $unitCost, 3);
+                if ($lineCost === null) {
+                    $complete = false;
+                } else {
+                    $cost += $lineCost;
+                }
+
+                return [
+                    ...$line,
+                    'sku' => $products[$productId]['sku'] ?? null,
+                    'product_name' => $products[$productId]['name'] ?? null,
+                    'unit_cost' => $unitCost,
+                    'line_cost' => $lineCost,
+                ];
+            })->all();
+            $recipe['estimated_cost'] = $complete ? round($cost, 3) : null;
+            $recipe['cost_complete'] = $complete;
+
+            return $recipe;
+        })->values()->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function stockVariance(
+        SmartOrderingSite $site,
+        CarbonImmutable $from,
+        CarbonImmutable $to,
+        ?int $branchId = null,
+    ): array {
+        $consumption = collect($this->consumption($site, $from, $to, $branchId)['products'])
+            ->keyBy('foodex_product_id');
+
+        $snapshots = DB::table('smart_ordering_supply_stock_snapshots')
+            ->where('site_id', $site->getKey())
+            ->when($branchId === null, fn ($q) => $q, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('counted_at', [$from->utc(), $to->utc()])
+            ->orderBy('counted_at')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('foodex_product_id');
+
+        $waste = DB::table('smart_ordering_supply_waste_events')
+            ->where('site_id', $site->getKey())
+            ->when($branchId === null, fn ($q) => $q, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('occurred_at', [$from->utc(), $to->utc()])
+            ->groupBy('foodex_product_id')
+            ->selectRaw('foodex_product_id, SUM(quantity) as quantity')
+            ->pluck('quantity', 'foodex_product_id');
+
+        $ids = $snapshots->keys()->merge($consumption->keys())->unique()->map(fn ($id) => (int) $id)->values()->all();
+        $products = $this->productRows($ids);
+
+        return collect($ids)->map(function (int $productId) use ($snapshots, $consumption, $waste, $products): array {
+            $group = $snapshots->get($productId, collect());
+            $opening = $group->first();
+            $closing = $group->last();
+            $observed = $group->count() >= 2
+                ? round((float) $opening->on_hand_quantity - (float) $closing->on_hand_quantity, 6)
+                : null;
+            $theoretical = (float) ($consumption->get($productId)['estimated_usage'] ?? 0.0);
+            $recordedWaste = round((float) ($waste[$productId] ?? 0.0), 6);
+
+            return [
+                'foodex_product_id' => $productId,
+                'sku' => $products[$productId]['sku'] ?? null,
+                'name' => $products[$productId]['name'] ?? null,
+                'opening_on_hand' => $opening?->on_hand_quantity === null ? null : (float) $opening->on_hand_quantity,
+                'closing_on_hand' => $closing?->on_hand_quantity === null ? null : (float) $closing->on_hand_quantity,
+                'observed_stock_delta' => $observed,
+                'theoretical_usage' => round($theoretical, 6),
+                'recorded_waste' => $recordedWaste,
+                'variance' => $observed === null ? null : round($observed - $theoretical, 6),
+                'evidence' => $observed === null ? 'insufficient_stock_snapshots' : 'snapshot_delta_only',
+            ];
+        })->values()->all();
     }
 
     /**

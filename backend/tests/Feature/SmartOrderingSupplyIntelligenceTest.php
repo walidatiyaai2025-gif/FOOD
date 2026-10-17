@@ -297,6 +297,83 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
         $this->assertSame($f['menu_item_public_id'], $snapshot['items'][0]['menu_item_public_id']);
     }
 
+    public function test_recipe_cost_waste_and_stock_count_variance_are_auditable_without_replacing_inventory_truth(): void
+    {
+        $f = $this->fixture();
+        $supply = app(SupplyIntelligenceService::class);
+
+        $supply->createMapping($f['actor'], $f['site'], [
+            'menu_item_public_id' => $f['menu_item_public_id'],
+            'foodex_product_id' => $f['wholesale_product_id'],
+            'quantity_per_item' => 1,
+            'waste_factor' => 0,
+            'effective_from' => now()->subDay(),
+        ]);
+
+        $from = CarbonImmutable::now('Asia/Kuwait')->subHours(3);
+        $to = CarbonImmutable::now('Asia/Kuwait')->addMinute();
+
+        $supply->setAuthoritativeStock(
+            $f['actor'],
+            $f['site'],
+            $f['wholesale_product_id'],
+            $f['branch_id'],
+            10,
+            'opening_count',
+            CarbonImmutable::now('Asia/Kuwait')->subHours(2),
+        );
+
+        $this->smartOrder($f, 'delivered', 'COMPLETED', [
+            ['menu_item_public_id' => $f['menu_item_public_id'], 'product_id' => $f['restaurant_product_id'], 'quantity' => 2, 'selection' => []],
+        ], now()->subHour());
+
+        $wasteId = $supply->recordWaste(
+            $f['actor'],
+            $f['site'],
+            $f['wholesale_product_id'],
+            $f['branch_id'],
+            0.5,
+            'prep_loss',
+            CarbonImmutable::now('Asia/Kuwait')->subMinutes(30),
+        );
+
+        $supply->setAuthoritativeStock(
+            $f['actor'],
+            $f['site'],
+            $f['wholesale_product_id'],
+            $f['branch_id'],
+            7,
+            'closing_count',
+            CarbonImmutable::now('Asia/Kuwait'),
+        );
+
+        $this->assertDatabaseCount('smart_ordering_supply_stock_snapshots', 2);
+        $this->assertDatabaseHas('smart_ordering_supply_waste_events', [
+            'public_id' => $wasteId,
+            'site_id' => $f['site_id'],
+            'branch_id' => $f['branch_id'],
+            'quantity' => 0.5,
+            'reason' => 'prep_loss',
+        ]);
+
+        $costs = $supply->recipeCosts($f['site'], $f['branch_id']);
+        $this->assertCount(1, $costs);
+        $this->assertTrue($costs[0]['cost_complete']);
+        $this->assertEqualsWithDelta(5.0, $costs[0]['estimated_cost'], 0.001);
+
+        $variance = collect($supply->stockVariance($f['site'], $from, $to, $f['branch_id']))
+            ->firstWhere('foodex_product_id', $f['wholesale_product_id']);
+
+        $this->assertNotNull($variance);
+        $this->assertEqualsWithDelta(10.0, $variance['opening_on_hand'], 0.000001);
+        $this->assertEqualsWithDelta(7.0, $variance['closing_on_hand'], 0.000001);
+        $this->assertEqualsWithDelta(3.0, $variance['observed_stock_delta'], 0.000001);
+        $this->assertEqualsWithDelta(2.0, $variance['theoretical_usage'], 0.000001);
+        $this->assertEqualsWithDelta(0.5, $variance['recorded_waste'], 0.000001);
+        $this->assertEqualsWithDelta(1.0, $variance['variance'], 0.000001);
+        $this->assertSame('snapshot_delta_only', $variance['evidence']);
+    }
+
     /** @return array<string,mixed> */
     private function fixture(): array
     {

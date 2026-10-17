@@ -157,6 +157,50 @@
             </section>
         </div>
 
+        <div class="si-grid">
+            <section class="panel">
+                <h2>{{ __('smart_ordering_supply.waste_title') }}</h2>
+                <p class="si-muted">{{ __('smart_ordering_supply.waste_help') }}</p>
+                <form class="si-form" method="post" action="{{ route('admin.smart-ordering.supply.waste',$site) }}">
+                    @csrf
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <label>{{ __('smart_ordering_supply.foodex_sku') }}
+                        <select class="foodex-control" name="foodex_product_id" required>
+                            @foreach($foodexProducts as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} — {{ $product['name'] }}</option>@endforeach
+                        </select>
+                    </label>
+                    <label>{{ __('smart_ordering_supply.branch') }}
+                        <select class="foodex-control" name="branch_id">
+                            <option value="">{{ __('smart_ordering_supply.all_branches') }}</option>
+                            @foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch->name_ar, $branch->name_en) }}</option>@endforeach
+                        </select>
+                    </label>
+                    <label>{{ __('smart_ordering_supply.waste_quantity') }}<input class="foodex-control" type="number" step="0.000001" min="0.000001" name="quantity" required></label>
+                    <label>{{ __('smart_ordering_supply.waste_reason') }}<input class="foodex-control" name="reason" maxlength="160" placeholder="{{ __('smart_ordering_supply.waste_reason_placeholder') }}" required></label>
+                    <label>{{ __('smart_ordering_supply.occurred_at') }}<input class="foodex-control" type="datetime-local" name="occurred_at" value="{{ now('Asia/Kuwait')->format('Y-m-d\TH:i') }}" required></label>
+                    <button class="primary" type="submit">{{ __('smart_ordering_supply.record_waste') }}</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <h2>{{ __('smart_ordering_supply.waste_history') }}</h2>
+                <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-100-audit">
+                    <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.branch') }}</th><th>{{ __('smart_ordering_supply.waste_quantity') }}</th><th>{{ __('smart_ordering_supply.waste_reason') }}</th><th>{{ __('smart_ordering_supply.occurred_at') }}</th></tr></thead>
+                    <tbody>
+                    @forelse($wasteEvents as $event)
+                        <tr>
+                            <td>{{ $event['sku'] }} — {{ $event['product_name'] }}</td>
+                            <td>{{ $event['branch_name_en'] || $event['branch_name_ar'] ? $localized($event['branch_name_ar'], $event['branch_name_en']) : __('smart_ordering_supply.all_branches') }}</td>
+                            <td>{{ number_format((float)$event['quantity'],6) }}</td>
+                            <td>{{ $event['reason'] }}</td>
+                            <td>{{ $event['occurred_at'] }}</td>
+                        </tr>
+                    @empty<tr><td colspan="5">{{ __('smart_ordering_supply.no_waste_events') }}</td></tr>@endforelse
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
+
         <section class="panel">
             <h2>{{ __('smart_ordering_supply.mappings_title') }}</h2>
             <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-500-analysis-snapshot">
@@ -183,6 +227,80 @@
                 </tbody>
             </table></div>
         </section>
+
+        <section class="panel">
+            <h2>{{ __('smart_ordering_supply.recipe_cost_title') }}</h2>
+            <p class="si-muted">{{ __('smart_ordering_supply.recipe_cost_help') }}</p>
+            <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-menu-recipe-cost">
+                <thead><tr><th>{{ __('smart_ordering_supply.menu_item') }}</th><th>{{ __('smart_ordering_supply.ingredient') }}</th><th>{{ __('smart_ordering_supply.estimated_recipe_cost') }}</th></tr></thead>
+                <tbody>
+                @forelse($recipeCosts as $recipe)
+                    <tr>
+                        <td>{{ $localized($recipe['name_ar'], $recipe['name_en']) }}</td>
+                        <td>
+                            @foreach($recipe['lines'] as $line)
+                                <div>{{ $line['sku'] }} — {{ $line['product_name'] }} · {{ number_format((float)$line['quantity_per_item'],6) }} + {{ number_format((float)$line['waste_factor']*100,2) }}% · {{ $line['line_cost'] === null ? '—' : number_format((float)$line['line_cost'],3) }}</div>
+                            @endforeach
+                        </td>
+                        <td>
+                            @if($recipe['cost_complete'])
+                                <strong>{{ number_format((float)$recipe['estimated_cost'],3) }}</strong>
+                            @else
+                                <span class="si-badge">{{ __('smart_ordering_supply.cost_incomplete') }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty<tr><td colspan="3">{{ __('smart_ordering_supply.no_recipe_costs') }}</td></tr>@endforelse
+                </tbody>
+            </table></div>
+        </section>
+
+        <div class="si-grid">
+            <section class="panel">
+                <h2>{{ __('smart_ordering_supply.stock_history_title') }}</h2>
+                <p class="si-muted">{{ __('smart_ordering_supply.stock_history_help') }}</p>
+                <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-100-stock-history">
+                    <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.branch') }}</th><th>{{ __('smart_ordering_supply.authoritative_on_hand') }}</th><th>{{ __('smart_ordering_supply.source') }}</th><th>{{ __('smart_ordering_supply.counted_at') }}</th></tr></thead>
+                    <tbody>
+                    @forelse($stockHistory as $row)
+                        <tr>
+                            <td>{{ $row['sku'] }} — {{ $row['product_name'] }}</td>
+                            <td>{{ $row['branch_name_en'] || $row['branch_name_ar'] ? $localized($row['branch_name_ar'], $row['branch_name_en']) : __('smart_ordering_supply.all_branches') }}</td>
+                            <td>{{ number_format((float)$row['on_hand_quantity'],6) }}</td>
+                            <td>{{ $row['source'] }}</td>
+                            <td>{{ $row['counted_at'] }}</td>
+                        </tr>
+                    @empty<tr><td colspan="5">{{ __('smart_ordering_supply.no_stock_history') }}</td></tr>@endforelse
+                    </tbody>
+                </table></div>
+            </section>
+
+            <section class="panel">
+                <h2>{{ __('smart_ordering_supply.variance_title') }}</h2>
+                <p class="si-muted">{{ __('smart_ordering_supply.variance_help') }}</p>
+                <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-stock-variance">
+                    <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.opening') }}</th><th>{{ __('smart_ordering_supply.closing') }}</th><th>{{ __('smart_ordering_supply.theoretical') }}</th><th>{{ __('smart_ordering_supply.recorded_waste') }}</th><th>{{ __('smart_ordering_supply.variance') }}</th></tr></thead>
+                    <tbody>
+                    @forelse($stockVariance as $row)
+                        <tr>
+                            <td>{{ $row['sku'] }} — {{ $row['name'] }}</td>
+                            <td>{{ $row['opening_on_hand'] === null ? '—' : number_format((float)$row['opening_on_hand'],6) }}</td>
+                            <td>{{ $row['closing_on_hand'] === null ? '—' : number_format((float)$row['closing_on_hand'],6) }}</td>
+                            <td>{{ number_format((float)$row['theoretical_usage'],6) }}</td>
+                            <td>{{ number_format((float)$row['recorded_waste'],6) }}</td>
+                            <td>
+                                @if($row['variance'] === null)
+                                    <span class="si-badge">{{ __('smart_ordering_supply.insufficient_snapshots') }}</span>
+                                @else
+                                    {{ number_format((float)$row['variance'],6) }} <span class="si-badge">{{ __('smart_ordering_supply.snapshot_delta_only') }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty<tr><td colspan="6">{{ __('smart_ordering_supply.no_stock_history') }}</td></tr>@endforelse
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
 
         <section class="panel">
             <h2>{{ __('smart_ordering_supply.consumption_title') }}</h2>

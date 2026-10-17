@@ -100,6 +100,10 @@ final class SmartOrderingSupplyController extends Controller
             'mappings' => $supply->mappings($site),
             'consumption' => $supply->consumption($site, $from, $to, $branchId),
             'recommendations' => $supply->recommendations($site, $branchId, $from, $to),
+            'recipeCosts' => $supply->recipeCosts($site, $branchId),
+            'stockHistory' => $supply->stockHistory($site, $branchId),
+            'wasteEvents' => $supply->wasteEvents($site, $branchId),
+            'stockVariance' => $supply->stockVariance($site, $from, $to, $branchId),
             'commercial' => $supply->commercialInsight($site),
             'relatedProducts' => $supply->relatedProducts($site),
             'supportAccess' => (bool) ($request->user()?->hasRole('SUPER_ADMIN') && $request->boolean('support_access')),
@@ -171,6 +175,35 @@ final class SmartOrderingSupplyController extends Controller
         );
 
         return back()->with('status', $this->msg('تم حفظ الرصيد الموثق.', 'Authoritative stock snapshot saved.'));
+    }
+
+    public function waste(
+        Request $request,
+        SmartOrderingSite $site,
+        SupplyIntelligenceService $supply,
+        TenantContextResolver $tenants,
+    ): RedirectResponse {
+        $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $this->assertEntitled($site);
+        $data = $request->validate([
+            'foodex_product_id' => ['required', 'integer', 'min:1'],
+            'branch_id' => ['nullable', 'integer', 'min:1'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'reason' => ['required', 'string', 'max:160'],
+            'occurred_at' => ['required', 'date'],
+        ]);
+
+        $supply->recordWaste(
+            $actor,
+            $site,
+            (int) $data['foodex_product_id'],
+            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+            (float) $data['quantity'],
+            (string) $data['reason'],
+            CarbonImmutable::parse((string) $data['occurred_at'], 'Asia/Kuwait'),
+        );
+
+        return back()->with('status', $this->msg('تم تسجيل الهدر في سجل التدقيق دون تعديل رصيد المخزون تلقائياً.', 'Waste recorded in the audit ledger without silently changing physical stock.'));
     }
 
     public function draft(
