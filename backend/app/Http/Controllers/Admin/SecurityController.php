@@ -795,7 +795,7 @@ final class SecurityController extends Controller
                     'active' => $user->is_active ? 'yes' : 'no',
                     'global_roles' => $user->roles->pluck('code')->join('|'),
                     'store_roles' => $user->storeRoleAssignments->map(
-                        fn ($assignment): string => ($assignment->store?->code ?? '?').':'.($assignment->role?->code ?? '?'),
+                        fn ($assignment): string => $assignment->store->code.':'.$assignment->role->code,
                     )->join('|'),
                     'effective_permissions' => implode('|', $user->effectivePermissionCodes()),
                 ])->all(),
@@ -805,14 +805,14 @@ final class SecurityController extends Controller
                 ->orderByDesc('created_at')
                 ->limit(5000)
                 ->get()
-                ->map(fn ($change): array => [
+                ->map(fn (EnterpriseWorkflowRequest $change): array => [
                     'id' => $change->id,
-                    'status' => is_object($change->status) && property_exists($change->status, 'value') ? $change->status->value : (string) $change->status,
-                    'requester' => $change->requester?->email,
+                    'status' => $change->status->value,
+                    'requester' => $change->requester->email,
                     'entity_type' => $change->entity_type,
                     'entity_id' => $change->entity_id,
-                    'created_at' => $change->created_at?->toIso8601String(),
-                    'updated_at' => $change->updated_at?->toIso8601String(),
+                    'created_at' => $change->created_at->toIso8601String(),
+                    'updated_at' => $change->updated_at->toIso8601String(),
                 ])->all(),
             'delegations' => EnterpriseDelegation::query()
                 ->with(['delegator:id,email', 'delegate:id,email'])
@@ -820,12 +820,12 @@ final class SecurityController extends Controller
                 ->limit(5000)
                 ->get()
                 ->map(fn (EnterpriseDelegation $row): array => [
-                    'delegator' => $row->delegator?->email,
-                    'delegate' => $row->delegate?->email,
+                    'delegator' => $row->delegator->email,
+                    'delegate' => $row->delegate->email,
                     'permission' => $row->permission_code,
                     'scope' => $row->scope_key,
-                    'starts_at' => $row->starts_at?->toIso8601String(),
-                    'ends_at' => $row->ends_at?->toIso8601String(),
+                    'starts_at' => $row->starts_at->toIso8601String(),
+                    'ends_at' => $row->ends_at->toIso8601String(),
                     'revoked_at' => $row->revoked_at?->toIso8601String(),
                 ])->all(),
             'mfa' => User::query()
@@ -837,12 +837,22 @@ final class SecurityController extends Controller
                 ->map(function (User $user): array {
                     $credential = AdminMfaCredential::query()->where('user_id', $user->id)->first();
 
+                    if ($credential === null) {
+                        return [
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                            'mfa_enabled' => 'no',
+                            'enabled_at' => null,
+                            'last_verified_at' => null,
+                        ];
+                    }
+
                     return [
                         'user_id' => $user->id,
                         'email' => $user->email,
-                        'mfa_enabled' => $credential?->enabled_at && ! $credential?->revoked_at ? 'yes' : 'no',
-                        'enabled_at' => $credential?->enabled_at?->toIso8601String(),
-                        'last_verified_at' => $credential?->last_verified_at?->toIso8601String(),
+                        'mfa_enabled' => $credential->enabled_at !== null && $credential->revoked_at === null ? 'yes' : 'no',
+                        'enabled_at' => $credential->enabled_at?->toIso8601String(),
+                        'last_verified_at' => $credential->last_verified_at?->toIso8601String(),
                     ];
                 })->values()->all(),
             'auth-audit' => DB::table('audit_logs')
