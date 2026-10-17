@@ -41,6 +41,10 @@ class CoreReferenceSeeder extends Seeder
             $this->seedPermissions();
             $this->seedRolePermissions();
         });
+
+        // Reconcile the richer canonical catalog only after #96 reference
+        // permissions exist. The reconciler is idempotent and never edits custom roles.
+        $this->call(BuiltInJobRoleSeeder::class);
     }
 
     /** @param array<int, array{code:string,name:string}> $references */
