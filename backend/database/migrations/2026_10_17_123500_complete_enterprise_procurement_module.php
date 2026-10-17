@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -259,6 +260,12 @@ return new class extends Migration {
         });
 
         Schema::table('enterprise_procurement_rfqs', function (Blueprint $table): void {
+            if (DB::getDriverName() === 'sqlite') {
+                $table->dropForeign(['awarded_quote_id']);
+
+                return;
+            }
+
             $table->dropForeign('eprfq_awarded_quote_fk');
         });
 
