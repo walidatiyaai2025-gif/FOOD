@@ -22,7 +22,9 @@ final class TreasuryAnalyticsService
     public const MODULE = 'treasury';
 
     private const VIEW_PERMISSION = 'finance.view';
+
     private const READ_CAPABILITY = 'treasury.receipts.read';
+
     private const MAX_WINDOW_DAYS = 90;
 
     /** @var array<string,string> */
@@ -439,8 +441,8 @@ final class TreasuryAnalyticsService
     }
 
     /** @param Collection<string,object> $receiptTotals
-     *  @param Collection<string,object> $paymentTotals
-     *  @return array<string,mixed>
+     * @param  Collection<string,object>  $paymentTotals
+     * @return array<string,mixed>
      */
     private function positionRow(
         string $type,
@@ -808,7 +810,7 @@ final class TreasuryAnalyticsService
     }
 
     /** @param list<array<string,mixed>> $rows
-     *  @return list<array<string,mixed>>
+     * @return list<array<string,mixed>>
      */
     private function aggregateForecast(array $rows): array
     {
@@ -852,8 +854,8 @@ final class TreasuryAnalyticsService
     }
 
     /** @param array<string,int> $opening
-     *  @param list<array<string,mixed>> $forecast
-     *  @return array<string,int>
+     * @param  list<array<string,mixed>>  $forecast
+     * @return array<string,int>
      */
     private function liquidityGap(array $opening, array $forecast): array
     {
