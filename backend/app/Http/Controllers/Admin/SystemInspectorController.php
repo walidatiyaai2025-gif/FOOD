@@ -17,8 +17,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -485,6 +487,27 @@ final class SystemInspectorController extends Controller
             $databaseHealthy = false;
         }
 
+        $cacheKey = 'foodex:inspector-health:'.bin2hex(random_bytes(5));
+        try {
+            Cache::put($cacheKey, 'ok', 5);
+            $cacheHealthy = Cache::get($cacheKey) === 'ok';
+            Cache::forget($cacheKey);
+        } catch (Throwable) {
+            $cacheHealthy = false;
+        }
+
+        $queueDriver = (string) config('queue.default');
+        if ($queueDriver === 'redis') {
+            try {
+                $connection = (string) config('queue.connections.redis.connection', 'default');
+                $queueHealthy = Redis::connection($connection)->ping() !== false;
+            } catch (Throwable) {
+                $queueHealthy = false;
+            }
+        } else {
+            $queueHealthy = $queueDriver === 'sync' && ! app()->environment('production');
+        }
+
         $heartbeatPath = storage_path('app/system/scheduler-heartbeat.lock');
         $heartbeatTimestamp = is_file($heartbeatPath)
             ? (int) trim((string) @file_get_contents($heartbeatPath))
@@ -498,7 +521,9 @@ final class SystemInspectorController extends Controller
             'database_driver' => (string) config('database.default'),
             'database_healthy' => $databaseHealthy,
             'cache_driver' => (string) config('cache.default'),
-            'queue_driver' => (string) config('queue.default'),
+            'cache_healthy' => $cacheHealthy,
+            'queue_driver' => $queueDriver,
+            'queue_healthy' => $queueHealthy,
             'maintenance_mode' => app()->isDownForMaintenance(),
             'scheduler_heartbeat_enabled' => (bool) config('foodex.scheduler_heartbeat', true),
             'scheduler_last_run' => $heartbeatTimestamp > 0 ? date(DATE_ATOM, $heartbeatTimestamp) : null,
