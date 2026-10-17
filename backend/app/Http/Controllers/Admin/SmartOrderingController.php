@@ -50,7 +50,10 @@ final class SmartOrderingController extends Controller
         $storeId = $requested > 0 ? $requested : (int) $storeIds[0];
 
         $site = SmartOrderingSite::query()->where('store_id', $storeId)->firstOrFail();
-        $published = $revisions->ensurePublished($site, $actor);
+        $published = $revisions->published($site);
+        if ($published === null && ! SmartOrderingRevision::query()->where('site_id', $site->id)->exists()) {
+            $published = $revisions->ensurePublished($site, $actor);
+        }
         $draft = $revisions->draft($site);
         $selectedStore = $stores->firstWhere('id', $storeId);
         abort_unless($selectedStore instanceof Store, 404);
