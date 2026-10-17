@@ -595,6 +595,29 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
+    public function test_final_golden_workspace_keeps_three_worker_panes_and_certification_geometry(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-wa-golden-workspace', $view);
+        $this->assertStringContainsString('data-golden-reference="docs/golden/customer-service-inbox/customer-service-inbox-golden.webp"', $view);
+        $this->assertStringContainsString('data-wa-pane="conversation-list"', $view);
+        $this->assertStringContainsString('data-wa-pane="active-conversation"', $view);
+        $this->assertStringContainsString('data-wa-pane="customer-context"', $view);
+        $this->assertStringContainsString('grid-template-columns:448px minmax(0,1fr) 379px', $view);
+        $this->assertStringContainsString('grid-template-areas:"context thread rail"', $view);
+        $this->assertStringContainsString('html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}', $view);
+
+        $golden = base_path('../docs/golden/customer-service-inbox/customer-service-inbox-golden.webp');
+        $this->assertFileExists($golden);
+
+        $size = getimagesize($golden);
+        $this->assertIsArray($size);
+        $this->assertSame(1504, $size[0]);
+        $this->assertSame(851, $size[1]);
+    }
+
     public function test_customer_360_context_pane_has_golden_section_order_and_locale_parity(): void
     {
         $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
