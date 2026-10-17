@@ -28,6 +28,9 @@ return [
         'B2B_DRIVER' => 'سائق الجملة',
     ],
     'profile_surface' => [
+        'eyebrow' => 'حساب FOODEX',
+        'title' => 'الملف الشخصي والصلاحيات',
+        'description' => 'راجع حسابك والأدوار والصلاحيات الفعلية وغير كلمة المرور أو لغة لوحة الإدارة.',
         'global_roles' => 'الأدوار العامة',
         'no_global_roles' => 'لا توجد أدوار عامة.',
         'store_assignments' => 'أدوار المتاجر',
