@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
 @elseif($tab==='tables')
 <link rel="stylesheet" href="{{ asset('assets/admin/smart-ordering-tables.css') }}">
+@elseif(in_array($tab,['reservations','waitlist','guest_book'],true))
+<link rel="stylesheet" href="{{ asset('assets/admin/smart-ordering-guest-service.css') }}">
 @endif
 <style>
 .so-toolbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-bottom:16px}
@@ -101,6 +103,9 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'workforce']) }}" @if($tab==='workforce') aria-current="page" @endif>{{ __('smart_ordering.workforce_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'reservations']) }}" @if($tab==='reservations') aria-current="page" @endif>{{ __('smart_ordering.reservations_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'waitlist']) }}" @if($tab==='waitlist') aria-current="page" @endif>{{ __('smart_ordering.waitlist_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'guest_book']) }}" @if($tab==='guest_book') aria-current="page" @endif>{{ __('smart_ordering.guest_book_tab') }}</a>
 @if($user->hasPermission('finance.view') || $stores->contains(fn($store) => $user->hasPermission('finance.view',(int)$store->id)))
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
 @endif
@@ -161,6 +166,10 @@
 @include('admin._smart-ordering-tables')
 @elseif($tab==='workforce')
 @include('admin._smart-ordering-workforce')
+@elseif(in_array($tab,['reservations','waitlist'],true))
+@include('admin._smart-ordering-guest-service')
+@elseif($tab==='guest_book')
+@include('admin._smart-ordering-guest-book')
 @elseif($tab==='payments')
 <section class="foodex-card">
 <h2>{{ __('smart_ordering.payments.title') }}</h2>

@@ -31,7 +31,7 @@ final class SmartOrderingProgramCertificationTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'public_menu', 'ordering', 'dine_in', 'pickup', 'delivery', 'whatsapp',
             'chatbot', 'offers', 'campaign_qr', 'analytics', 'loyalty', 'reviews',
-            'advanced_upsell', 'multi_branch', 'custom_domain', 'foodex_supply_intelligence',
+            'advanced_upsell', 'multi_branch', 'custom_domain', 'foodex_supply_intelligence', 'reservations',
         ], config('smart_ordering.entitlements'));
 
         foreach ([

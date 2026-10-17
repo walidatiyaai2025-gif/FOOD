@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\RestaurantGuestService;
 use App\Domain\SmartOrdering\RestaurantPaymentService;
 use App\Domain\SmartOrdering\RestaurantTableService;
 use App\Domain\SmartOrdering\RestaurantWorkforceService;
@@ -34,6 +35,7 @@ final class SmartOrderingOperationsController extends Controller
         private readonly RestaurantPaymentService $payments,
         private readonly RestaurantTableService $restaurantTables,
         private readonly RestaurantWorkforceService $restaurantWorkforce,
+        private readonly RestaurantGuestService $restaurantGuests,
     ) {}
 
     public function index(Request $request): View
@@ -46,7 +48,7 @@ final class SmartOrderingOperationsController extends Controller
             'branch' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'workforce', 'payments'])],
+            'tab' => ['nullable', Rule::in(['orders', 'branches', 'tables', 'workforce', 'reservations', 'waitlist', 'guest_book', 'payments'])],
             'payment_status' => ['nullable', Rule::in(['pending', 'authorized', 'captured', 'partially_refunded', 'refunded', 'voided', 'failed'])],
             'payment_provider' => ['nullable', 'string', 'max:80'],
             'reconciliation' => ['nullable', Rule::in(['mismatch'])],
@@ -135,6 +137,22 @@ final class SmartOrderingOperationsController extends Controller
             );
         }
 
+        $guestWorkspace = [
+            'selected_branch' => null,
+            'tables' => [],
+            'records' => null,
+            'can_manage' => false,
+            'module_enabled' => false,
+        ];
+        if (in_array($tab, ['reservations', 'waitlist', 'guest_book'], true)) {
+            $guestWorkspace = $this->restaurantGuests->workspace(
+                $branches,
+                $validated['branch'] ?? null,
+                $actor,
+                $tab,
+            );
+        }
+
         $workforceWorkspace = [
             'selected_branch' => null,
             'timezone' => null,
@@ -216,6 +234,7 @@ final class SmartOrderingOperationsController extends Controller
             'tab' => $tab,
             'tableWorkspace' => $tableWorkspace,
             'workforceWorkspace' => $workforceWorkspace,
+            'guestWorkspace' => $guestWorkspace,
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
             'paymentProviderOptions' => $paymentProviderOptions,
