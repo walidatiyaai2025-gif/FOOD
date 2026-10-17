@@ -218,7 +218,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </tr></thead><tbody>
 @foreach($serviceCases as $case)
 <tr>
-<td><strong>#{{ $case->id }}</strong><div>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</div></td>
+<td><strong>{{ \App\Support\DisplayNumber::reference($case->id) }}</strong><div>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</div></td>
 <td>{{ __('customer_service_workspace.values.'.$case->status) }}</td>
 <td>{{ __('customer_service_workspace.values.'.$case->priority) }}</td>
 <td>{{ __('customer_service_workspace.values.'.($case->queue ?: 'general')) }}</td>
