@@ -59,9 +59,27 @@
 .so-zone-advanced{grid-column:1/-1;border:1px dashed var(--foodex-border);border-radius:12px;padding:10px}
 .so-zone-advanced summary{cursor:pointer;font-weight:800}
 .so-zone-coordinate-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.so-workforce-head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.so-workforce-head h2,.so-workforce-section-head h3{margin:0}
+.so-workforce-head p,.so-workforce-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
+.so-workforce-branch{min-width:min(100%,280px)}
+.so-workforce-branch label,.so-workforce-form label,.so-workforce-inline label,.so-workforce-menu label{display:grid;gap:6px;font-weight:700;font-size:.82rem}
+.so-workforce-meta{margin:10px 0;color:var(--foodex-muted);font-size:.82rem}
+.so-workforce-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
+.so-workforce-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.so-workforce-inline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:12px}
+.so-workforce-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end;margin-bottom:14px}
+.so-workforce-wide{grid-column:span 2}
+.so-workforce-list{display:grid;gap:10px}
+.so-workforce-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface)}
+.so-workforce-shift,.so-workforce-session{align-items:center}
+.so-workforce-muted{color:var(--foodex-muted);font-size:.82rem;margin-top:3px}
+.so-workforce-role{font-size:.82rem;margin-top:4px}
+.so-workforce-clock{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.so-workforce-menu{width:min(360px,88vw)}
 @media(max-width:1023px){.so-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.so-toolbar .so-actions{grid-column:1/-1}}
-@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-payment-filter{grid-template-columns:1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}}
-@media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}.so-zone-location-search,.so-zone-coordinate-grid{grid-template-columns:1fr}.so-zone-location-search button{width:100%}.so-dialog-body{padding:14px}}
+@media(max-width:767px){.so-toolbar{grid-template-columns:1fr 1fr}.so-workforce-grid{grid-template-columns:1fr}.so-workforce-form{grid-template-columns:1fr 1fr}.so-workforce-wide{grid-column:1/-1}.so-workforce-inline{grid-template-columns:1fr}.so-payment-filter{grid-template-columns:1fr}.so-grid{grid-template-columns:1fr}.so-checks{grid-template-columns:1fr 1fr}.so-hour-row{grid-template-columns:1fr 1fr}.so-hour-row strong{grid-column:1/-1}.so-zone-grid{grid-template-columns:1fr 1fr}.so-table-wrap{overflow:visible}}
+@media(max-width:479px){.so-toolbar{grid-template-columns:1fr}.so-workforce-form{grid-template-columns:1fr}.so-workforce-wide{grid-column:auto}.so-workforce-item{display:grid}.so-workforce-item form{width:100%}.so-workforce-item button{width:100%}.so-checks{grid-template-columns:1fr}.so-hour-row{grid-template-columns:1fr}.so-zone-grid{grid-template-columns:1fr}.so-zone-location-search,.so-zone-coordinate-grid{grid-template-columns:1fr}.so-zone-location-search button{width:100%}.so-dialog-body{padding:14px}}
 </style>
 </head>
 <body>
@@ -82,6 +100,7 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'workforce']) }}" @if($tab==='workforce') aria-current="page" @endif>{{ __('smart_ordering.workforce_tab') }}</a>
 @if($user->hasPermission('finance.view') || $stores->contains(fn($store) => $user->hasPermission('finance.view',(int)$store->id)))
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
 @endif
@@ -140,6 +159,8 @@
 {{ $orders->links() }}
 @elseif($tab==='tables')
 @include('admin._smart-ordering-tables')
+@elseif($tab==='workforce')
+@include('admin._smart-ordering-workforce')
 @elseif($tab==='payments')
 <section class="foodex-card">
 <h2>{{ __('smart_ordering.payments.title') }}</h2>
