@@ -86,9 +86,15 @@ final class EnterpriseSystemHealthController extends Controller
             ->get();
         $backupRows = $this->backupRows($updates, $snapshot);
         $lastBackup = collect($backupRows)
-            ->filter(static fn (array $row): bool => is_string($row['created_at'] ?? null) && $row['created_at'] !== '')
+            ->filter(static fn (array $row): bool => ($row['successful'] ?? false) === true
+                && is_string($row['created_at'] ?? null)
+                && $row['created_at'] !== '')
             ->sortByDesc('created_at')
             ->first();
+        $backupAge = $lastBackup !== null
+            ? CarbonImmutable::parse((string) $lastBackup['created_at'])->diffForHumans()
+            : '—';
+        $latestUpdate = $updates->first();
         $warnings = $this->configurationWarnings($database, $cache, $queue, $storage, $scheduler);
         $applicationState = $this->applicationState($modules, $database, $cache, $storage);
         $currentVersion = $this->currentVersion();
@@ -143,10 +149,25 @@ final class EnterpriseSystemHealthController extends Controller
                 'drilldown_url' => '#backup-history',
             ],
             [
+                'label' => __('system_admin.kpis.backup_age'),
+                'value' => $backupAge,
+                'status' => [
+                    'state' => $lastBackup === null ? 'warning' : 'success',
+                    'label' => $lastBackup === null ? __('system_admin.states.not_available') : __('system_admin.states.available'),
+                ],
+                'last_refresh' => $now,
+                'drilldown_url' => '#backup-history',
+            ],
+            [
                 'label' => __('system_admin.kpis.current_version'),
                 'value' => $currentVersion,
-                'status' => ['state' => 'current', 'label' => __('system_admin.states.current')],
-                'last_refresh' => $now,
+                'status' => [
+                    'state' => $latestUpdate?->status === 'failed' ? 'danger' : 'current',
+                    'label' => $latestUpdate?->status === 'failed'
+                        ? __('system_admin.evidence.failed')
+                        : __('system_admin.states.current'),
+                ],
+                'last_refresh' => optional($latestUpdate?->finished_at)->toIso8601String() ?: $now,
                 'drilldown_url' => route('admin.system-update.index'),
             ],
             [
@@ -440,6 +461,7 @@ final class EnterpriseSystemHealthController extends Controller
                 'status' => ($snapshot['verified'] ?? false) === true
                     ? __('system_admin.states.verified')
                     : __('system_admin.states.not_verified'),
+                'successful' => ($snapshot['verified'] ?? false) === true,
                 'scope' => __('system_admin.labels.database_scope'),
                 'retention' => __('system_admin.retention.snapshot'),
                 'reason' => (string) ($snapshot['restore_reason'] ?? $snapshot['snapshot_reason'] ?? 'prelaunch_protection'),
@@ -465,6 +487,7 @@ final class EnterpriseSystemHealthController extends Controller
                 'size' => $this->formatBytes($size > 0 ? $size : null),
                 'reference' => $hash !== '' ? substr($hash, 0, 16) : '#'.$update->id,
                 'status' => __('system_admin.evidence.'.($update->backup_status ?: 'unknown')),
+                'successful' => $update->backup_status === 'available',
                 'scope' => $update->database_backup_reference !== null
                     ? __('system_admin.labels.files_database_scope')
                     : __('system_admin.labels.files_scope'),
