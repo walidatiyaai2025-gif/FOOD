@@ -44,9 +44,13 @@ final class RestaurantSaasStoreAccess
         User $actor,
         int $storeId,
         string $permission,
-        Request $request,
-    ): void {
+        ?string $expectedChannel = 'b2c',
+    ): string {
+        /** @var Request $request */
+        $request = request();
+
         if ($actor->hasRole('SUPER_ADMIN')) {
+            abort_unless($expectedChannel === null || strtolower($expectedChannel) === 'b2c', 404);
             $this->tenants->retail(
                 $actor,
                 $storeId,
@@ -55,10 +59,12 @@ final class RestaurantSaasStoreAccess
             );
             abort_unless($actor->hasPermission($permission, $storeId), 403);
         } else {
-            $this->scope->assertStore($actor, $storeId, $permission, 'b2c');
+            $this->scope->assertStore($actor, $storeId, $permission, $expectedChannel ?? 'b2c');
         }
 
         $this->entitlements->assertStoreEnabled($storeId);
+
+        return 'b2c';
     }
 
     /** @param list<int> $storeIds
