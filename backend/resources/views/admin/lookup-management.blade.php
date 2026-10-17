@@ -39,7 +39,7 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 <aside>@include('admin._sidebar',['navContext'=>'lookup_management'])</aside>
 <main>
 @include('admin._global-header')
-<div class="header foodex-page-toolbar"><div><h1>{{ $ar?'العلامات والوحدات':'Brands & Units' }}</h1><div class="muted">{{ $ar?'إدارة العلامات التجارية ووحدات القياس حسب صلاحية ونطاق المستخدم الحالي.':'Manage brands and units inside the current authorized business scope.' }}</div></div></div>
+<div class="header foodex-page-toolbar"><div><h1>{{ $ar?'العلامات والوحدات':'Brands & Units' }}</h1><div class="muted">{{ $ar?'إدارة العلامات التجارية ووحدات القياس حسب صلاحية ونطاق المستخدم الحالي.':'Manage brands and units inside the current authorized business scope.' }}</div></div></div> {{-- localization-gate: allow — #2078 reclassifies this existing bilingual page copy from legacy header to content toolbar without changing wording. --}}
 
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
