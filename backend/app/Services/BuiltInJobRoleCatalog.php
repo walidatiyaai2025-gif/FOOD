@@ -102,8 +102,8 @@ final class BuiltInJobRoleCatalog
      * Existing unavailable assignments may be retained for audit/re-enable.
      * A crafted request cannot add an unavailable built-in role.
      *
-     * @param list<int> $currentGlobalRoleIds
-     * @param list<string> $currentStorePairs roleId:storeId
+     * @param  list<int>  $currentGlobalRoleIds
+     * @param  list<string>  $currentStorePairs  roleId:storeId
      */
     public function assertAssignmentsAvailable(
         Collection $globalRoles,
