@@ -3,6 +3,7 @@
 return [
     'title' => 'Stores & Channels Control Center',
     'subtitle' => 'Cross-store health, performance, readiness and lifecycle control over canonical FOODEX store and channel authorities.',
+    'provisioning_label' => 'Retail Store Provisioning',
     'period' => 'Performance period',
     'apply' => 'Apply',
     'kpis' => [
