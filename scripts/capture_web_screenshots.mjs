@@ -1421,14 +1421,14 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-payments',
-    '/admin/smart-ordering/operations?tab=payments',
+    '/admin/smart-ordering?tab=payments',
   );
   await captureResponsiveRoute(
     page,
     locale,
     'B2C_Admin',
     'smart-ordering-tables',
-    '/admin/smart-ordering/operations?tab=tables',
+    '/admin/smart-ordering?tab=tables',
   );
   await captureResponsiveRoute(
     page,
