@@ -4,12 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Procurement\GoodsReceiptManager;
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Procurement\ProcurementAnalyticsService;
+use App\Enterprise\Procurement\ProcurementMatchManager;
+use App\Enterprise\Procurement\ProcurementSourcingManager;
 use App\Enterprise\Procurement\PurchaseInvoiceHandoffManager;
 use App\Enterprise\Procurement\PurchaseOrderManager;
 use App\Enterprise\Procurement\PurchaseRequestManager;
 use App\Enterprise\Procurement\PurchaseReturnManager;
+use App\Enterprise\Procurement\SupplierCollaborationManager;
 use App\Enterprise\Procurement\SupplierDirectory;
 use App\Enterprise\Procurement\SupplierStatementAgingManager;
+use App\Enterprise\Reporting\ReportBuilderExecutor;
+use App\Enterprise\Reporting\ReportRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -24,15 +31,20 @@ use Illuminate\Validation\Rule;
 
 final class EnterpriseProcurementController extends Controller
 {
-    /** @var array<string,string> */
+    /** @var array<string,string|null> */
     private const TABS = [
+        'overview' => null,
         'suppliers' => 'procurement.suppliers.view',
         'requests' => 'procurement.purchase_requests.view',
+        'sourcing' => 'procurement.purchase_requests.view',
         'orders' => 'procurement.purchase_orders.view',
         'receipts' => 'procurement.goods_receipts.view',
         'invoices' => 'procurement.purchase_invoices.view',
+        'matching' => 'procurement.purchase_invoices.view',
         'returns' => 'procurement.purchase_returns.view',
+        'contracts' => 'procurement.suppliers.view',
         'statements' => 'procurement.supplier_statements.view',
+        'reports' => null,
     ];
 
     public function __construct(
@@ -43,6 +55,12 @@ final class EnterpriseProcurementController extends Controller
         private readonly PurchaseInvoiceHandoffManager $invoices,
         private readonly PurchaseReturnManager $returns,
         private readonly SupplierStatementAgingManager $statements,
+        private readonly ProcurementSourcingManager $sourcing,
+        private readonly ProcurementMatchManager $matching,
+        private readonly SupplierCollaborationManager $collaboration,
+        private readonly ProcurementAnalyticsService $analytics,
+        private readonly ReportRegistry $reportRegistry,
+        private readonly ReportBuilderExecutor $reportExecutor,
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
@@ -75,6 +93,15 @@ final class EnterpriseProcurementController extends Controller
             'sourceReceipt' => null,
             'statement' => null,
             'aging' => null,
+            'dashboard' => null,
+            'moduleDashboardFilters' => null,
+            'sourcingDetail' => null,
+            'contractDetail' => null,
+            'matchDetail' => null,
+            'reportData' => null,
+            'activeReport' => null,
+            'approvedRequestsForLookup' => collect(),
+            'ordersForLookup' => collect(),
         ];
 
         if ($this->allowed($actor, $storeId, 'procurement.suppliers.view')) {
@@ -83,7 +110,41 @@ final class EnterpriseProcurementController extends Controller
                 ->getCollection();
         }
 
+        if ($this->allowed($actor, $storeId, 'procurement.purchase_requests.view')) {
+            $data['approvedRequestsForLookup'] = $this->requests
+                ->paginate($actor, $context, ['status' => 'approved'], 100)
+                ->getCollection();
+        }
+        if ($this->allowed($actor, $storeId, 'procurement.purchase_orders.view')) {
+            $data['ordersForLookup'] = $this->orders
+                ->paginate($actor, $context, [], 100)
+                ->getCollection();
+        }
+
         switch ($tab) {
+            case 'overview':
+                $data['dashboard'] = $this->analytics->dashboard(
+                    $actor,
+                    $context,
+                    $request->query('from'),
+                    $request->query('to'),
+                );
+                $data['moduleDashboardFilters'] = [
+                    'action' => route('admin.erp.procurement.index'),
+                    'scope_name' => 'store_id',
+                    'scope_value' => (string) $storeId,
+                    'scope_options' => collect($storeOptions)->mapWithKeys(
+                        static fn (array $store): array => [
+                            (string) $store['id'] => $store['name'].' · '.$store['code'],
+                        ],
+                    )->all(),
+                    'from_value' => $data['dashboard']['from'],
+                    'to_value' => $data['dashboard']['to'],
+                    'hidden' => ['tab' => 'overview'],
+                    'reset_url' => route('admin.erp.procurement.index', ['tab' => 'overview', 'store_id' => $storeId]),
+                ];
+                break;
+
             case 'suppliers':
                 $data['rows'] = $this->suppliers->paginate($actor, $context, [
                     'q' => $request->query('q'),
@@ -102,6 +163,20 @@ final class EnterpriseProcurementController extends Controller
                 ], 25);
                 if ($request->integer('request') > 0) {
                     $data['detail'] = $this->requests->detail($actor, $context, $request->integer('request'));
+                }
+                break;
+
+            case 'sourcing':
+                $data['rows'] = $this->sourcing->paginateRfqs($actor, $context, [
+                    'status' => $request->query('status'),
+                    'supplier_id' => $request->integer('supplier_id') ?: null,
+                ], 25);
+                if ($request->integer('rfq') > 0) {
+                    $data['sourcingDetail'] = $this->sourcing->rfqDetail(
+                        $actor,
+                        $context,
+                        $request->integer('rfq'),
+                    );
                 }
                 break;
 
@@ -158,6 +233,20 @@ final class EnterpriseProcurementController extends Controller
                 }
                 break;
 
+            case 'matching':
+                $data['rows'] = $this->matching->paginate($actor, $context, [
+                    'status' => $request->query('status'),
+                    'supplier_id' => $request->integer('supplier_id') ?: null,
+                ], 25);
+                if ($request->integer('invoice') > 0) {
+                    $data['matchDetail'] = $this->matching->detail(
+                        $actor,
+                        $context,
+                        $request->integer('invoice'),
+                    );
+                }
+                break;
+
             case 'returns':
                 $data['rows'] = $this->returns->paginate($actor, $context, [
                     'q' => $request->query('q'),
@@ -175,6 +264,21 @@ final class EnterpriseProcurementController extends Controller
                 }
                 break;
 
+            case 'contracts':
+                $data['rows'] = $this->sourcing->paginateContracts($actor, $context, [
+                    'status' => $request->query('status'),
+                    'supplier_id' => $request->integer('supplier_id') ?: null,
+                    'expiring_days' => $request->integer('expiring_days') ?: null,
+                ], 25);
+                if ($request->integer('contract') > 0) {
+                    $data['contractDetail'] = $this->sourcing->contractDetail(
+                        $actor,
+                        $context,
+                        $request->integer('contract'),
+                    );
+                }
+                break;
+
             case 'statements':
                 $supplierId = $request->integer('supplier_id');
                 if ($supplierId > 0) {
@@ -188,6 +292,16 @@ final class EnterpriseProcurementController extends Controller
                         'currency_code' => $request->query('currency_code', 'KWD'),
                     ]);
                 }
+                break;
+
+            case 'reports':
+                $report = (string) $request->query('report', 'open_po');
+                abort_unless(in_array($report, ProcurementAnalyticsService::REPORT_CODES, true), 404);
+                $data['activeReport'] = $report;
+                $data['reportData'] = $this->analytics->report($actor, $context, $report, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ]);
                 break;
         }
 
