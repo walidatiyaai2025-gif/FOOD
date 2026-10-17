@@ -42,6 +42,11 @@ final class ProductionDatasetSnapshot
             'verified' => ($metadata['verified'] ?? false) === true,
             'source_release' => $metadata['source_release'] ?? null,
             'source_sha' => $metadata['source_sha'] ?? null,
+            'environment' => $metadata['environment'] ?? null,
+            'snapshot_reason' => $metadata['snapshot_reason'] ?? null,
+            'restore_reason' => $metadata['restore_reason'] ?? null,
+            'target_release' => $metadata['target_release'] ?? null,
+            'last_outcome' => $metadata['last_outcome'] ?? null,
             'size' => is_numeric($metadata['size'] ?? null) ? (int) $metadata['size'] : null,
             'checksum_sha256' => $metadata['checksum_sha256'] ?? null,
             'migration_fingerprint' => $metadata['migration_fingerprint'] ?? null,
@@ -86,6 +91,11 @@ final class ProductionDatasetSnapshot
                 'connection' => (string) config('database.default'),
                 'source_release' => trim((string) @file_get_contents(base_path('../VERSION'))),
                 'source_sha' => (string) (config('foodex.release_source_sha') ?: 'unknown'),
+                'environment' => (string) app()->environment(),
+                'snapshot_reason' => 'prelaunch_protection',
+                'restore_reason' => null,
+                'target_release' => null,
+                'last_outcome' => 'snapshot_created',
                 'backup_reference' => $reference,
                 'snapshot_file' => $snapshot,
                 'size' => $size,
@@ -124,6 +134,7 @@ final class ProductionDatasetSnapshot
             throw new RuntimeException('Snapshot is not ready to enter launch-active state.');
         }
         $metadata['state'] = self::LAUNCH_ACTIVE;
+        $metadata['last_outcome'] = 'launch_active';
         $metadata['launch_activated_at'] = now()->toIso8601String();
         $this->writeMetadata($metadata);
         $this->audit->record('system.production_snapshot.launch_active', $actor, null, null, $this->safeAudit($metadata), $request);
@@ -144,6 +155,9 @@ final class ProductionDatasetSnapshot
             $this->verify($metadata);
             $this->assertRestoreCompatibility($metadata);
             $metadata['restore_compatibility_verified_at'] = now()->toIso8601String();
+            $metadata['restore_reason'] = 'production_dataset_legacy_restore';
+            $metadata['target_release'] = trim((string) @file_get_contents(base_path('../VERSION')));
+            $metadata['last_outcome'] = 'restore_started';
             $metadata['state'] = self::RESTORING;
             $metadata['restore_started_at'] = now()->toIso8601String();
             $this->writeMetadata($metadata);
@@ -159,6 +173,7 @@ final class ProductionDatasetSnapshot
                 $this->assertRestoreCompatibility($metadata);
                 $this->runtime->healthCheck();
                 $metadata['restore_health_verified_at'] = now()->toIso8601String();
+                $metadata['last_outcome'] = 'restored';
                 $metadata['state'] = self::LEGACY_RESTORED;
                 $metadata['restored_at'] = now()->toIso8601String();
                 $this->writeMetadata($metadata);
@@ -172,6 +187,7 @@ final class ProductionDatasetSnapshot
                 $metadata['state'] = self::FAILED;
                 $metadata['failed_at'] = now()->toIso8601String();
                 $metadata['failure'] = 'restore_failed';
+                $metadata['last_outcome'] = 'restore_failed';
                 $this->writeMetadata($metadata);
                 $this->audit->record('system.production_snapshot.restore_failed', $actor, null, null, $this->safeAudit($metadata), $request);
                 throw $exception;
@@ -293,6 +309,7 @@ final class ProductionDatasetSnapshot
     {
         return array_intersect_key($metadata, array_flip([
             'state', 'snapshot_id', 'database', 'connection', 'source_release', 'source_sha',
+            'environment', 'snapshot_reason', 'restore_reason', 'target_release', 'last_outcome',
             'size', 'checksum_sha256', 'migration_fingerprint', 'created_at', 'verified', 'verified_at',
             'launch_activated_at', 'restore_started_at', 'restored_at',
             'restore_compatibility_verified_at', 'restore_health_verified_at', 'failed_at', 'failure',
