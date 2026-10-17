@@ -53,8 +53,6 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 @endforeach
 </nav>
 
-@include('admin._enterprise-procurement-completion')
-
 @if(!in_array($activeTab,['overview','statements','reports'],true))
 <form method="get" class="foodex-card erp-filters">
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="{{ $activeTab }}">
@@ -68,6 +66,8 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <div class="erp-actions"><button class="foodex-filter-action">{{ __('enterprise_procurement.apply') }}</button><a class="erp-link" href="{{ route('admin.erp.procurement.index',$base) }}">{{ __('enterprise_procurement.clear') }}</a></div>
 </form>
 @endif
+
+@include('admin._enterprise-procurement-completion')
 
 @if($activeTab==='suppliers')
 @if($can['supplier_manage'])
