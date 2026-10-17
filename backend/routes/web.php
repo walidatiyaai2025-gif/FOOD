@@ -529,6 +529,12 @@ Route::prefix('admin')
         Route::post('/erp/bi/schedules', [EnterpriseBiScheduleController::class, 'store'])->middleware('throttle:30,1')->name('erp.bi.schedules.store');
         Route::patch('/erp/bi/schedules/{schedule}', [EnterpriseBiScheduleController::class, 'update'])->whereNumber('schedule')->middleware('throttle:30,1')->name('erp.bi.schedules.update');
         Route::get('/erp/customer-service', [CustomerServiceWorkspaceController::class, 'index'])->name('erp.customer-service');
+        Route::post('/erp/customer-service/cases', [CustomerServiceWorkspaceController::class, 'storeCase'])->middleware('throttle:30,1')->name('erp.customer-service.cases.store');
+        Route::get('/erp/customer-service/cases/{case}', [CustomerServiceWorkspaceController::class, 'showCase'])->whereNumber('case')->name('erp.customer-service.cases.show');
+        Route::patch('/erp/customer-service/cases/{case}', [CustomerServiceWorkspaceController::class, 'updateCase'])->whereNumber('case')->middleware('throttle:30,1')->name('erp.customer-service.cases.update');
+        Route::post('/erp/customer-service/cases/{case}/notes', [CustomerServiceWorkspaceController::class, 'addNote'])->whereNumber('case')->middleware('throttle:30,1')->name('erp.customer-service.cases.notes.store');
+        Route::post('/erp/customer-service/cases/{case}/feedback', [CustomerServiceWorkspaceController::class, 'recordFeedback'])->whereNumber('case')->middleware('throttle:30,1')->name('erp.customer-service.cases.feedback.store');
+        Route::get('/erp/customer-service/cases/{case}/notes/{note}/attachment', [CustomerServiceWorkspaceController::class, 'attachment'])->whereNumber('case')->whereNumber('note')->name('erp.customer-service.cases.notes.attachment');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::get('/customer-360/{platformCustomer}/finance-invoices', [Customer360Controller::class, 'financeInvoices'])->whereNumber('platformCustomer')->name('customer-360.finance-invoices');
@@ -675,6 +681,7 @@ Route::prefix('admin')
         Route::get('/retail-stores', [RetailStoreProvisioningController::class, 'index'])->name('retail-stores.index');
         Route::post('/retail-stores', [RetailStoreProvisioningController::class, 'store'])->name('retail-stores.store');
         Route::patch('/retail-stores/{store}', [RetailStoreProvisioningController::class, 'update'])->name('retail-stores.update');
+        Route::patch('/retail-stores/{store}/features/restaurant-saas', [RetailStoreProvisioningController::class, 'restaurantSaas'])->name('retail-stores.restaurant-saas');
         Route::post('/retail-stores/{store}/roles', [RetailStoreProvisioningController::class, 'assignRole'])->name('retail-stores.roles.assign');
         Route::delete('/retail-stores/{store}/roles/{assignment}', [RetailStoreProvisioningController::class, 'removeRole'])->name('retail-stores.roles.remove');
         Route::post('/retail-stores/{store}/inspect', [RetailStoreProvisioningController::class, 'inspect'])->name('retail-stores.inspect');

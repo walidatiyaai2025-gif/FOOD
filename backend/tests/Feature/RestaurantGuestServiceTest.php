@@ -40,6 +40,8 @@ final class RestaurantGuestServiceTest extends TestCase
         $type = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $this->storeA = $this->store($type, 'GUEST-A');
         $this->storeB = $this->store($type, 'GUEST-B');
+        $this->enableRestaurantSaasForTestStore($this->storeA);
+        $this->enableRestaurantSaasForTestStore($this->storeB);
         $this->branchA = $this->branch($this->storeA, 'guest-a');
         $this->branchB = $this->branch($this->storeB, 'guest-b');
 

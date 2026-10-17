@@ -250,6 +250,8 @@ final class SmartOrderingWhatsAppBridgeTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $this->enableRestaurantSaasForTestStore($storeId);
+
         $siteId = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $storeId,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\WhatsApp\CustomerTimelineService;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\B2bAccount;
@@ -16,6 +17,7 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\CustomerReplicaReportPdfService;
 use App\Services\CustomerReplicaReportService;
+use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use App\Services\RetailMerchantIdentityService;
@@ -42,6 +44,8 @@ final class Customer360Controller extends Controller
     public function __construct(
         private readonly OperationalTenantScope $scope,
         private readonly AdminNavigation $navigation,
+        private readonly CustomerServiceCaseManager $serviceCases,
+        private readonly CustomerTimelineService $customerTimeline,
     ) {}
 
     public function index(Request $request): View
@@ -275,6 +279,26 @@ final class Customer360Controller extends Controller
             );
         }
 
+        $serviceStoreIds = array_values(array_intersect(
+            $access['origin_store_ids'],
+            $this->serviceCases->viewStoreIds($actor),
+        ));
+        $serviceCaseRows = $this->serviceCases->customerCases(
+            $actor,
+            (int) $customer->getKey(),
+            $serviceStoreIds,
+        );
+        $serviceTimeline = $serviceStoreIds === []
+            ? collect()
+            : $this->customerTimeline->forCustomer(
+                $actor,
+                (int) $customer->getKey(),
+                $serviceStoreIds,
+                150,
+            );
+        $canManageServiceCases = collect($serviceStoreIds)
+            ->contains(fn (int $storeId): bool => $this->serviceCases->canManageStore($actor, $storeId));
+
         return view('admin.customer-360-show', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -292,6 +316,9 @@ final class Customer360Controller extends Controller
             'addresses' => $addresses,
             'geographyOptions' => $this->geographyOptions(),
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
+            'serviceCases' => $serviceCaseRows,
+            'serviceTimeline' => $serviceTimeline,
+            'canManageServiceCases' => $canManageServiceCases,
         ]);
     }
 

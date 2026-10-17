@@ -446,7 +446,7 @@ final class WhatsAppChatbotTest extends TestCase
             ['interactive_id' => 'chatbot:human_handoff_missing'],
         ));
 
-        $this->assertDatabaseHas('whats_app_chatbot_cases', [
+        $this->assertDatabaseHas('customer_service_cases', [
             'conversation_id' => $conversationId,
             'platform_customer_id' => $customerId,
             'type' => 'missing',
@@ -569,7 +569,7 @@ final class WhatsAppChatbotTest extends TestCase
             'whats_app_chatbot_flow_versions',
             'whats_app_chatbot_segments',
             'whats_app_chatbot_sessions',
-            'whats_app_chatbot_cases',
+            'customer_service_cases',
             'whats_app_chatbot_events',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table));
@@ -578,7 +578,7 @@ final class WhatsAppChatbotTest extends TestCase
         $this->assertTrue(Schema::hasColumn('whats_app_chatbot_settings', 'lifecycle'));
         $this->assertTrue(Schema::hasColumn('whats_app_chatbot_settings', 'pilot_segment_codes'));
         $this->assertTrue(Schema::hasColumn('whats_app_chatbot_events', 'actor_user_id'));
-        $this->assertTrue(Schema::hasColumn('whats_app_chatbot_cases', 'public_id'));
+        $this->assertTrue(Schema::hasColumn('customer_service_cases', 'public_id'));
     }
 
     private function superAdmin(): User

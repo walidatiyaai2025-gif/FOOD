@@ -3,10 +3,18 @@
 namespace Tests\Feature;
 
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
+use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class SmartOrderingStorefrontTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_public_storefront_renders_all_five_templates_in_both_languages_and_modes(): void
     {
         foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
@@ -92,7 +100,44 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     public function test_authorized_preview_can_switch_theme_without_changing_snapshot_and_is_not_cacheable(): void
     {
-        $this->withoutMiddleware();
+        $this->seed(CoreReferenceSeeder::class);
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'STOREFRONT-PREVIEW',
+            'name' => 'Storefront Preview',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->enableRestaurantSaasForTestStore($storeId);
+
+        DB::table('smart_ordering_sites')->insert([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'slug' => 'demo',
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = User::query()->create([
+            'name' => 'Storefront Preview Admin',
+            'email' => 'storefront-preview@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $admin->id,
+            'store_id' => $storeId,
+            'role_id' => Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin);
         $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot('quick-bite', 'light')));
 
         $response = $this->get('/admin/smart-ordering/appearance/preview?site=demo&theme=signature-brand&appearance=dark&lang=ar&revision=draft');

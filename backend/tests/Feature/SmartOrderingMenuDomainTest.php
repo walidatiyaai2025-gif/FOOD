@@ -721,6 +721,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         ]);
 
         $admin = $this->storeAdmin($storeId, $suffix);
+        $this->enableRestaurantSaasForTestStore($storeId);
         $site = app(SmartOrderingSiteService::class)->ensureForStore($storeId, $admin);
 
         return compact('storeId', 'productId', 'admin', 'site') + [

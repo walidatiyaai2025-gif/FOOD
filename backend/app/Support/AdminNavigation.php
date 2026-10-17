@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
@@ -27,6 +28,7 @@ class AdminNavigation
         private readonly ModuleRegistry $enterpriseModules,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
         private readonly TenantContextResolver $tenantContext,
+        private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
     ) {}
 
     /** @return array<string, array<string, mixed>> */
@@ -272,7 +274,11 @@ class AdminNavigation
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
     private function restaurantSaasItem(User $user): ?array
     {
-        if (! $this->canAccess($user, 'b2c')) {
+        if ($this->isSuperAdmin($user) || ! $this->canAccess($user, 'b2c')) {
+            return null;
+        }
+
+        if ($this->restaurantSaasAccess->enabledStoreIds($this->tenantContext->retailStoreIds($user)) === []) {
             return null;
         }
 
