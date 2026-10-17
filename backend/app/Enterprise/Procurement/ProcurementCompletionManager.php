@@ -716,7 +716,7 @@ final class ProcurementCompletionManager
             'lines.*.lead_time_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
         ])->validate();
 
-        return DB::transaction(function () use ($invitation, $rfq, $data): object {
+        return DB::transaction(function () use ($invitation, $rfq, $data, $attachment): object {
             $rfqLines = DB::table('enterprise_procurement_rfq_lines')
                 ->where('rfq_id', $rfq->id)
                 ->orderBy('line_no')
@@ -737,8 +737,8 @@ final class ProcurementCompletionManager
                 throw ValidationException::withMessages(['status' => ['This quote can no longer be edited.']]);
             }
 
-            $publicId = $existing?->public_id ?? (string) Str::uuid();
-            $quoteId = $existing?->id ?? DB::table('enterprise_procurement_quotes')->insertGetId([
+            $publicId = $existing !== null ? (string) $existing->public_id : (string) Str::uuid();
+            $quoteId = $existing !== null ? (int) $existing->id : DB::table('enterprise_procurement_quotes')->insertGetId([
                 'public_id' => $publicId,
                 'quote_number' => 'QT-'.strtoupper(substr(str_replace('-', '', $publicId), 0, 12)),
                 'rfq_id' => $rfq->id,
@@ -1318,7 +1318,7 @@ final class ProcurementCompletionManager
                         ? null
                         : 'PO / GRN / invoice quantity or value is outside configured tolerance.',
                     'updated_at' => now(),
-                    'created_at' => $existing?->created_at ?? now(),
+                    'created_at' => $existing !== null ? $existing->created_at : now(),
                 ],
             );
 
@@ -1546,7 +1546,7 @@ final class ProcurementCompletionManager
 
     private function orderedNotReceivedCount(int $storeId): int
     {
-        return DB::table('enterprise_purchase_orders as orders')
+        $orders = DB::table('enterprise_purchase_orders as orders')
             ->join('enterprise_purchase_order_lines as order_lines', 'order_lines.purchase_order_id', '=', 'orders.id')
             ->leftJoin('enterprise_goods_receipt_lines as receipt_lines', 'receipt_lines.purchase_order_line_id', '=', 'order_lines.id')
             ->leftJoin('enterprise_goods_receipts as receipts', function ($join): void {
@@ -1555,10 +1555,11 @@ final class ProcurementCompletionManager
             })
             ->where('orders.store_id', $storeId)
             ->where('orders.status', 'issued')
+            ->select('orders.id')
             ->groupBy('orders.id')
-            ->havingRaw('SUM(order_lines.quantity) > COALESCE(SUM(CASE WHEN receipts.id IS NOT NULL THEN receipt_lines.received_quantity ELSE 0 END), 0)')
-            ->get(['orders.id'])
-            ->count();
+            ->havingRaw('SUM(order_lines.quantity) > COALESCE(SUM(CASE WHEN receipts.id IS NOT NULL THEN receipt_lines.received_quantity ELSE 0 END), 0)');
+
+        return DB::query()->fromSub($orders, 'ordered_not_received')->count();
     }
 
     /** @return list<array<string,mixed>> */

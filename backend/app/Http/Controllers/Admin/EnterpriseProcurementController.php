@@ -320,8 +320,8 @@ final class EnterpriseProcurementController extends Controller
             $supplier = $supplierMap->get($entry['supplier_id']);
 
             return [
-                'supplier_code' => $supplier?->code ?? '—',
-                'supplier_name_en' => $supplier?->name_en ?? '—',
+                'supplier_code' => $supplier->code ?? '—',
+                'supplier_name_en' => $supplier->name_en ?? '—',
                 'supplier_name_ar' => $supplier?->name_ar,
                 'url' => route('supplier.rfq.show', ['token' => $entry['token']]),
             ];
