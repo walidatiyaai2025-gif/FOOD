@@ -367,6 +367,53 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('Shared Customer Service Inbox');
     }
 
+    public function test_inbox_matches_the_approved_golden_three_pane_contract(): void
+    {
+        $this->enableInbox();
+        $store = $this->store('B2B', 'WA-GOLDEN');
+        $customer = $this->customer($store, 'b2b', 'Golden Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $this->message($conversation, 'inbound', 'Golden runtime message');
+
+        $admin = $this->globalUser('SUPER_ADMIN', 'Golden Admin');
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('data-wa-golden-workspace', false)
+            ->assertSee('data-wa-pane="conversation-list"', false)
+            ->assertSee('data-wa-pane="active-conversation"', false)
+            ->assertSee('data-wa-pane="customer-context"', false)
+            ->assertSee('docs/golden/customer-service-inbox/customer-service-inbox-golden.webp', false)
+            ->assertSee('Golden runtime message')
+            ->assertSee('ردود سريعة')
+            ->assertSee('إرفاق طلب')
+            ->assertSee('ملاحظة داخلية')
+            ->assertSee('data-wa-mutation', false);
+
+        $html = (string) $response->getContent();
+        $this->assertStringContainsString('grid-template-columns:448px minmax(0,1fr) 379px', $html);
+
+        $golden = base_path('../docs/golden/customer-service-inbox/customer-service-inbox-golden.webp');
+        $this->assertFileExists($golden);
+        $size = getimagesize($golden);
+        $this->assertIsArray($size);
+        $this->assertSame(1504, $size[0]);
+        $this->assertSame(851, $size[1]);
+    }
+
+    public function test_inbox_golden_copy_has_arabic_english_key_parity(): void
+    {
+        $ar = require lang_path('ar/whatsapp.php');
+        $en = require lang_path('en/whatsapp.php');
+
+        $this->assertSame(
+            array_keys($en['inbox']['golden']),
+            array_keys($ar['inbox']['golden']),
+        );
+    }
+
     public function test_inbox_auto_scrolls_selected_conversation_to_latest_message(): void
     {
         $this->enableInbox();
