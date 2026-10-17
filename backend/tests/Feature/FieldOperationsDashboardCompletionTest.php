@@ -24,7 +24,7 @@ class FieldOperationsDashboardCompletionTest extends TestCase
         $admin = $this->superAdmin('field-dashboard@example.test');
 
         $this->actingAs($admin)
-            ->get('/admin/field-operations/overview')
+            ->get(route('admin.field-operations.overview'))
             ->assertOk()
             ->assertSee('data-field-operations-dashboard', false)
             ->assertSee('data-field-operations-kpis', false)
