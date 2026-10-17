@@ -392,7 +392,7 @@ final class EnterpriseWmsController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
-        $this->locations->saveZone($actor, (int) $data['warehouse_id'], (string) $data['code'], (string) $data['name'], (bool)($data['is_active'] ?? true));
+        $this->locations->saveZone($actor, (int) $data['warehouse_id'], (string) $data['code'], (string) $data['name'], (bool) ($data['is_active'] ?? true));
 
         return $this->backTo('locations', $data, __('enterprise_wms.messages.zone_saved'));
     }
@@ -415,7 +415,7 @@ final class EnterpriseWmsController extends Controller
             isset($data['zone_id']) ? (int) $data['zone_id'] : null,
             (string) $data['code'],
             (string) $data['name'],
-            (bool)($data['is_active'] ?? true),
+            (bool) ($data['is_active'] ?? true),
         );
 
         return $this->backTo('locations', $data, __('enterprise_wms.messages.bin_saved'));
