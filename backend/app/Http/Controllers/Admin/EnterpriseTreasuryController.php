@@ -2,9 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Reporting\ReportExportManager;
+use App\Enterprise\Reporting\ReportQuery;
+use App\Enterprise\Reporting\ReportRegistry;
+use App\Enterprise\Reporting\ScheduledReportManager;
+use App\Enterprise\Treasury\TreasuryAnalyticsService;
 use App\Enterprise\Treasury\TreasuryChequeService;
 use App\Enterprise\Treasury\TreasuryPaymentService;
+use App\Enterprise\Treasury\TreasuryPlanningService;
 use App\Enterprise\Treasury\TreasuryReceiptService;
 use App\Enterprise\Treasury\TreasuryReconciliationService;
 use App\Http\Controllers\Controller;
@@ -16,6 +23,7 @@ use App\Models\User;
 use App\Support\AdminNavigation;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,11 +35,16 @@ final class EnterpriseTreasuryController extends Controller
 {
     /** @var list<string> */
     private const TABS = [
+        'overview',
         'receipts',
         'payments',
         'cheques',
         'reconciliation',
         'cash_closing',
+        'financing',
+        'investments',
+        'forecast',
+        'reports',
     ];
 
     public function __construct(
@@ -39,6 +52,8 @@ final class EnterpriseTreasuryController extends Controller
         private readonly TreasuryPaymentService $payments,
         private readonly TreasuryChequeService $cheques,
         private readonly TreasuryReconciliationService $reconciliation,
+        private readonly TreasuryPlanningService $planning,
+        private readonly TreasuryAnalyticsService $analytics,
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
@@ -50,7 +65,7 @@ final class EnterpriseTreasuryController extends Controller
         abort_unless($this->modules->isEnabled('treasury'), 404, 'Treasury module is disabled.');
 
         [$context, $storeOptions, $storeId] = $this->context($request, $actor);
-        $tab = (string) $request->query('tab', 'receipts');
+        $tab = (string) $request->query('tab', 'overview');
         abort_unless(in_array($tab, self::TABS, true), 404);
         abort_unless($this->allowed($actor, $storeId, 'finance.view'), 403);
 
@@ -95,6 +110,12 @@ final class EnterpriseTreasuryController extends Controller
             'targetLabels' => $targetLabels,
             'canManage' => $this->allowed($actor, $storeId, 'finance.manage'),
             'rows' => null,
+            'dashboard' => null,
+            'forecast' => null,
+            'reports' => null,
+            'repayments' => null,
+            'facilityOptions' => collect(),
+            'financeJournals' => collect(),
             'postedReceipts' => collect(),
             'postedPayments' => collect(),
             'receiptToken' => 'ui-receipt-'.Str::ulid(),
@@ -103,9 +124,57 @@ final class EnterpriseTreasuryController extends Controller
             'transitionToken' => 'ui-cheque-transition-'.Str::ulid(),
             'reconciliationToken' => 'ui-reconciliation-'.Str::ulid(),
             'cashClosingToken' => 'ui-cash-close-'.Str::ulid(),
+            'facilityToken' => 'ui-facility-'.Str::ulid(),
+            'drawdownToken' => 'ui-drawdown-'.Str::ulid(),
+            'investmentToken' => 'ui-investment-'.Str::ulid(),
+            'reportToken' => 'ui-treasury-report-'.Str::ulid(),
         ];
 
         switch ($tab) {
+            case 'overview':
+                $data['dashboard'] = $this->analytics->dashboard($actor, $context, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ]);
+                break;
+
+            case 'financing':
+                $data['rows'] = $this->planning->paginateFacilities($actor, $context, [
+                    'q' => $request->query('q'),
+                    'status' => $request->query('status'),
+                ]);
+                $data['repayments'] = $this->planning->paginateRepayments($actor, $context, [
+                    'status' => $request->query('repayment_status'),
+                    'facility_id' => $request->integer('facility_id') ?: null,
+                    'from' => $request->query('date_from'),
+                    'to' => $request->query('date_to'),
+                ]);
+                $data['facilityOptions'] = $this->planning->facilityOptions($actor, $context);
+                $data['financeJournals'] = $this->planning->postedJournalOptions($actor, $context);
+                break;
+
+            case 'investments':
+                $data['rows'] = $this->planning->paginateInvestments($actor, $context, [
+                    'q' => $request->query('q'),
+                    'status' => $request->query('status'),
+                ]);
+                $data['financeJournals'] = $this->planning->postedJournalOptions($actor, $context);
+                break;
+
+            case 'forecast':
+                $data['forecast'] = $this->analytics->forecast($actor, $context, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ]);
+                break;
+
+            case 'reports':
+                $data['reports'] = $this->analytics->reports($actor, $context, [
+                    'from' => $request->query('from'),
+                    'to' => $request->query('to'),
+                ]);
+                break;
+
             case 'receipts':
                 $data['rows'] = $this->receipts->paginateReceipts($actor, $context, [
                     'q' => $request->query('q'),
@@ -412,6 +481,178 @@ final class EnterpriseTreasuryController extends Controller
 
         return $this->backTo('cash_closing', $storeId)
             ->with('status', __('enterprise_treasury.flash.cash_closing_closed'));
+    }
+
+    public function storeFacility(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            '_operation_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'code' => ['required', 'string', 'max:64'],
+            'lender_name' => ['required', 'string', 'max:190'],
+            'currency_code' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'facility_limit' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'annual_rate' => ['required', 'regex:/^\d{1,3}(?:\.\d{1,6})?$/'],
+            'margin_rate' => ['required', 'regex:/^\d{1,3}(?:\.\d{1,6})?$/'],
+            'start_date' => ['required', 'date'],
+            'maturity_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'finance_journal_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $this->planning->createFacility($actor, $context, [
+            'idempotency_key' => $data['_operation_key'],
+            ...collect($data)->except('_operation_key')->all(),
+        ]);
+
+        return $this->backTo('financing', $storeId)
+            ->with('status', __('enterprise_treasury.flash.facility_created'));
+    }
+
+    public function storeDrawdown(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            '_operation_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'facility_id' => ['required', 'integer', 'min:1'],
+            'reference' => ['required', 'string', 'max:80'],
+            'principal_amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'scheduled_interest_total' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'drawdown_date' => ['required', 'date'],
+            'maturity_date' => ['required', 'date', 'after:drawdown_date'],
+            'installment_count' => ['required', 'integer', 'between:1,120'],
+            'finance_journal_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $this->planning->createDrawdown($actor, $context, [
+            'idempotency_key' => $data['_operation_key'],
+            ...collect($data)->except('_operation_key')->all(),
+        ]);
+
+        return $this->backTo('financing', $storeId)
+            ->with('status', __('enterprise_treasury.flash.drawdown_created'));
+    }
+
+    public function markRepaymentPaid(Request $request, int $repayment): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            'finance_journal_id' => ['required', 'integer', 'min:1'],
+        ]);
+        $this->planning->markRepaymentPaid(
+            $actor,
+            $context,
+            $repayment,
+            (int) $data['finance_journal_id'],
+        );
+
+        return $this->backTo('financing', $storeId)
+            ->with('status', __('enterprise_treasury.flash.repayment_paid'));
+    }
+
+    public function storeInvestment(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            '_operation_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'code' => ['required', 'string', 'max:64'],
+            'institution' => ['required', 'string', 'max:190'],
+            'instrument_type' => ['required', 'string', 'max:100'],
+            'currency_code' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'principal_amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'annual_yield_rate' => ['required', 'regex:/^\d{1,3}(?:\.\d{1,6})?$/'],
+            'expected_return_amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
+            'placement_date' => ['required', 'date'],
+            'maturity_date' => ['required', 'date', 'after:placement_date'],
+            'finance_journal_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $this->planning->createInvestment($actor, $context, [
+            'idempotency_key' => $data['_operation_key'],
+            ...collect($data)->except('_operation_key')->all(),
+        ]);
+
+        return $this->backTo('investments', $storeId)
+            ->with('status', __('enterprise_treasury.flash.investment_created'));
+    }
+
+    public function settleInvestment(Request $request, int $investment): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            'settlement_reference' => ['required', 'string', 'max:120'],
+            'finance_journal_id' => ['required', 'integer', 'min:1'],
+        ]);
+        $this->planning->settleInvestment(
+            $actor,
+            $context,
+            $investment,
+            (string) $data['settlement_reference'],
+            (int) $data['finance_journal_id'],
+        );
+
+        return $this->backTo('investments', $storeId)
+            ->with('status', __('enterprise_treasury.flash.investment_settled'));
+    }
+
+    public function requestReportExport(
+        Request $request,
+        ReportRegistry $registry,
+        ReportExportManager $exports,
+    ): RedirectResponse {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            '_operation_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'report_code' => ['required', Rule::in(array_keys(TreasuryAnalyticsService::REPORTS))],
+            'from' => ['nullable', 'date', 'required_with:to'],
+            'to' => ['nullable', 'date', 'required_with:from', 'after_or_equal:from'],
+        ]);
+        $definition = $registry->require((string) $data['report_code']);
+        $query = ReportQuery::fromArray($definition, [
+            'from' => $data['from'] ?? null,
+            'to' => $data['to'] ?? null,
+        ]);
+        $rows = $this->analytics->reportRowEstimate($actor, $context, (string) $data['report_code'], $data);
+        $exports->request(
+            $actor,
+            $query,
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+            $rows,
+            (string) $data['_operation_key'],
+        );
+
+        return $this->backTo('reports', $storeId)
+            ->with('status', __('enterprise_treasury.flash.report_export_queued'));
+    }
+
+    public function scheduleReport(
+        Request $request,
+        ReportRegistry $registry,
+        ScheduledReportManager $schedules,
+    ): RedirectResponse {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            '_operation_key' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'report_code' => ['required', Rule::in(array_keys(TreasuryAnalyticsService::REPORTS))],
+            'from' => ['nullable', 'date', 'required_with:to'],
+            'to' => ['nullable', 'date', 'required_with:from', 'after_or_equal:from'],
+            'next_run_at' => ['required', 'date', 'after:now'],
+            'interval_minutes' => ['required', 'integer', 'between:60,525600'],
+        ]);
+        $definition = $registry->require((string) $data['report_code']);
+        $query = ReportQuery::fromArray($definition, [
+            'from' => $data['from'] ?? null,
+            'to' => $data['to'] ?? null,
+        ]);
+        $rows = $this->analytics->reportRowEstimate($actor, $context, (string) $data['report_code'], $data);
+        $schedules->schedule(
+            $actor,
+            $query,
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+            $rows,
+            CarbonImmutable::parse((string) $data['next_run_at']),
+            (int) $data['interval_minutes'],
+            (string) $data['_operation_key'],
+        );
+
+        return $this->backTo('reports', $storeId)
+            ->with('status', __('enterprise_treasury.flash.report_scheduled'));
     }
 
     /** @return array{User,ResolvedTenantContext,int} */
