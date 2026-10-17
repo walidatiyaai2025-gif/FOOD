@@ -58,6 +58,17 @@ final class AdminExecutiveOverviewContractTest extends TestCase
         $this->assertStringNotContainsString('#073c2d', $view);
     }
 
+    public function test_executive_overview_is_in_the_dashboard_visual_evidence_inventory(): void
+    {
+        $script = file_get_contents(base_path('../scripts/capture_web_screenshots.mjs'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString("'executive-command-center'", $script);
+        $this->assertStringContainsString("'/admin'", $script);
+        $this->assertStringContainsString('{ fullMatrix: true }', $script);
+        $this->assertStringContainsString("[data-foodex-executive-overview]", $script);
+    }
+
     public function test_executive_overview_translation_catalogs_have_ar_en_key_parity(): void
     {
         $english = require lang_path('en/admin_overview.php');
