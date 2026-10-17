@@ -13,11 +13,7 @@
             <h2>{{ __('enterprise_bi_ui.overview.title') }}</h2>
             <p class="bi-muted">{{ __('enterprise_bi_ui.overview.help') }}</p>
         </div>
-        <div class="bi-actions">
-            @foreach(($overview['role_labels'] ?? []) as $role)
-                <span class="bi-pill">{{ $role }}</span>
-            @endforeach
-        </div>
+        <div class="bi-actions"><span class="bi-pill">{{ __('enterprise_bi_ui.overview.role_aware') }}</span></div>
     </div>
 
     <form method="get" action="{{ route('admin.erp.bi') }}" class="foodex-module-toolbar bi-overview-filters" data-foodex-module-filters>
