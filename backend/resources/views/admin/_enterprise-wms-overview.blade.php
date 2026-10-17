@@ -140,10 +140,10 @@
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title">{{ __('enterprise_wms.overview.dashboard.expiry_horizon') }}</h3></div><a href="{{ route('admin.erp.wms.index',array_merge($baseQuery,['tab'=>'lots'])) }}">{{ __('enterprise_wms.common.open') }}</a></div>
             <div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_wms.overview.dashboard.expiry_horizon') }}">
                 @foreach($expiryChart as $bucket => $count)
-                    <span class="foodex-viz-bar" style="height:{{ max(3,round(((int)$count/$expiryMax)*100,1)) }}%" title="{{ str_replace('_','–',$bucket) }} · {{ $count }}"></span>
+                    <span class="foodex-viz-bar" style="height:{{ max(3,round(((int)$count/$expiryMax)*100,1)) }}%" title="{{ __('enterprise_wms.overview.dashboard.expiry_buckets.'.$bucket) }} · {{ $count }}"></span>
                 @endforeach
             </div>
-            <div class="foodex-module-chart-summary">@foreach($expiryChart as $bucket => $count)<span>{{ str_replace('_','–',$bucket) }}: <strong>{{ $count }}</strong></span>@endforeach</div>
+            <div class="foodex-module-chart-summary">@foreach($expiryChart as $bucket => $count)<span>{{ __('enterprise_wms.overview.dashboard.expiry_buckets.'.$bucket) }}: <strong>{{ $count }}</strong></span>@endforeach</div>
         </article>
 
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
@@ -164,7 +164,7 @@
             @forelse(($dashboard['exceptions'] ?? []) as $exception)
                 <a href="{{ $exception['url'] }}">
                     <span class="foodex-status-badge" data-tone="{{ $exception['type']==='low_stock' ? 'warning' : ($exception['type']==='expiry' ? 'warning' : 'info') }}">{{ $exception['label'] }}</span>
-                    <span>{{ $exception['detail'] }}</span>
+                    <span>{{ $exception['type']==='transfer' ? __('enterprise_wms.transfers.statuses.'.$exception['detail']) : $exception['detail'] }}</span>
                     @if($exception['value'] !== null)<strong>{{ \App\Support\DisplayNumber::quantity((float)$exception['value']) }}</strong>@endif
                 </a>
             @empty
