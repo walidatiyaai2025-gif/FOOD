@@ -102,6 +102,7 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'kitchen']) }}" @if($tab==='kitchen') aria-current="page" @endif>{{ __('smart_ordering.kitchen_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'workforce']) }}" @if($tab==='workforce') aria-current="page" @endif>{{ __('smart_ordering.workforce_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'reservations']) }}" @if($tab==='reservations') aria-current="page" @endif>{{ __('smart_ordering.reservations_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'waitlist']) }}" @if($tab==='waitlist') aria-current="page" @endif>{{ __('smart_ordering.waitlist_tab') }}</a>
@@ -164,6 +165,8 @@
 {{ $orders->links() }}
 @elseif($tab==='tables')
 @include('admin._smart-ordering-tables')
+@elseif($tab==='kitchen')
+@include('admin._smart-ordering-kitchen')
 @elseif($tab==='workforce')
 @include('admin._smart-ordering-workforce')
 @elseif(in_array($tab,['reservations','waitlist'],true))

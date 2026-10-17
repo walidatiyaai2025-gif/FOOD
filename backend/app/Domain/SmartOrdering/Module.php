@@ -20,6 +20,8 @@ enum Module: string
     case ADVANCED_UPSELL = 'advanced_upsell';
     case MULTI_BRANCH = 'multi_branch';
     case CUSTOM_DOMAIN = 'custom_domain';
+    case KITCHEN_DISPLAY = 'kitchen_display';
+    case KITCHEN_ROUTING = 'kitchen_routing';
     case FOODEX_SUPPLY_INTELLIGENCE = 'foodex_supply_intelligence';
 
     /** @return list<string> */
