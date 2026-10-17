@@ -1333,6 +1333,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'smart-ordering-workforce',
+    '/admin/smart-ordering/operations?tab=workforce',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'smart-ordering-analytics',
     '/admin/smart-ordering/analytics',
   );
