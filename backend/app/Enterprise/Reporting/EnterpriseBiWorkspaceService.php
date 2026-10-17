@@ -8,7 +8,6 @@ use App\Services\EnterpriseSavedViewService;
 use App\Support\EnterpriseGridState;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -118,7 +117,6 @@ final class EnterpriseBiWorkspaceService
             'analytics' => $analytics,
             'forecast' => $this->orderForecast(is_array($store) ? $store['scope'] : null, $to),
             'saved_view' => $this->savedViewState($actor, $selection),
-            'role_labels' => $actor->roles()->where('roles.is_active', true)->orderBy('roles.name')->pluck('roles.name')->all(),
         ];
     }
 
@@ -254,7 +252,7 @@ final class EnterpriseBiWorkspaceService
                     'name' => (string) $view->name,
                     'visibility' => (string) $view->visibility,
                     'owned' => (int) $view->user_id === (int) $actor->id,
-                    'query' => $this->savedViews->queryFor($view),
+                    'query' => $this->savedViewQuery($this->savedViews->queryFor($view)),
                 ])
                 ->values();
 
@@ -268,6 +266,24 @@ final class EnterpriseBiWorkspaceService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** @param array<string,mixed> $query
+     * @return array<string,mixed>
+     */
+    private function savedViewQuery(array $query): array
+    {
+        foreach (['dimensions', 'measures'] as $field) {
+            if (is_string($query[$field] ?? null)) {
+                $query[$field] = collect(explode(',', (string) $query[$field]))
+                    ->map(static fn (string $value): string => trim($value))
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return $query;
     }
 
     private function date(string $value, CarbonImmutable $fallback): CarbonImmutable
