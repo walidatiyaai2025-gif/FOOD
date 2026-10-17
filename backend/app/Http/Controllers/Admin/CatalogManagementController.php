@@ -709,7 +709,7 @@ final class CatalogManagementController extends Controller
                 DB::table('product_lifecycle_transitions')->insert([
                     'product_id' => $product,
                     'user_id' => $this->actor($request)->id,
-                    'from_state' => $beforeProduct?->lifecycle_state,
+                    'from_state' => $beforeProduct->lifecycle_state,
                     'to_state' => $nextLifecycle,
                     'effective_at' => now(),
                     'reason' => __('catalog_completion.lifecycle.legacy_active_toggle_reason'),
