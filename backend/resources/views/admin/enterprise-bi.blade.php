@@ -184,7 +184,7 @@
 
 <article class="foodex-card bi-panel">
     <div class="bi-head"><div><h2>{{ __('enterprise_bi_ui.schedules_title') }}</h2><p class="bi-muted">{{ __('enterprise_bi_ui.schedules_help') }}</p></div></div>
-    @if($selected && $selected['available'] && $selection && $selection['scope'] instanceof \App\Enterprise\Entitlements\EntitlementScope)
+    @if($canSchedule && $selected && $selected['available'] && $selection && $selection['scope'] instanceof \App\Enterprise\Entitlements\EntitlementScope)
     <form method="post" action="{{ route('admin.erp.bi.schedules.store') }}" class="bi-schedule-form">
         @csrf
         <input type="hidden" name="report" value="{{ $selected['code'] }}">
@@ -194,6 +194,8 @@
         <input type="hidden" name="to" value="{{ $selection['to'] }}">
         @foreach($selection['dimensions'] as $field)<input type="hidden" name="dimensions[]" value="{{ $field }}">@endforeach
         @foreach($selection['measures'] as $field)<input type="hidden" name="measures[]" value="{{ $field }}">@endforeach
+        @foreach($selection['filters'] as $key=>$value)<input type="hidden" name="filters[{{ $key }}]" value="{{ $value }}">@endforeach
+        @if(data_get($selection,'sort.0.field'))<input type="hidden" name="sort_field" value="{{ data_get($selection,'sort.0.field') }}"><input type="hidden" name="sort_direction" value="{{ data_get($selection,'sort.0.direction','asc') }}">@endif
         <label>{{ __('enterprise_bi_ui.schedule_next_run') }}<input type="datetime-local" name="next_run_at" required></label>
         <label>{{ __('enterprise_bi_ui.schedule_interval') }}<input type="number" name="interval_minutes" min="15" max="525600" value="1440" required></label>
         <button class="foodex-action-primary" type="submit">{{ __('enterprise_bi_ui.schedule_create') }}</button>
@@ -205,14 +207,16 @@
             <div><strong>{{ $schedule['report'] }}</strong><span class="bi-muted">{{ __('enterprise_bi_ui.interval') }} {{ $schedule['interval_minutes'] }} {{ __('enterprise_bi_ui.minutes') }} · {{ __('enterprise_bi_ui.next_run') }} {{ $schedule['next_run_at']??'—' }} · {{ __('enterprise_bi_ui.last_run') }} {{ $schedule['last_run_at']??'—' }}</span></div>
             <div class="bi-actions">
                 <span class="bi-pill {{ (!$schedule['enabled']||$schedule['failed'])?'off':'' }}">{{ $schedule['enabled']?__('enterprise_bi_ui.statuses.enabled'):__('enterprise_bi_ui.statuses.disabled') }}</span>
+                @if($canSchedule)
                 <details><summary class="foodex-action-secondary button secondary">{{ __('enterprise_bi_ui.schedule_edit') }}</summary>
                     <form method="post" action="{{ route('admin.erp.bi.schedules.update',['schedule'=>$schedule['id']]) }}" class="bi-list" style="margin-top:8px">@csrf @method('patch')
-                        <input type="hidden" name="enabled" value="{{ $schedule['enabled']?0:1 }}">
-                        <label>{{ __('enterprise_bi_ui.schedule_next_run') }}<input type="datetime-local" name="next_run_at" value="{{ optional(\Carbon\CarbonImmutable::parse($schedule['next_run_at']))->format('Y-m-d\\TH:i') }}" required></label>
+                        <label>{{ __('enterprise_bi_ui.schedule_state') }}<select name="enabled"><option value="1" @selected($schedule['enabled'])>{{ __('enterprise_bi_ui.statuses.enabled') }}</option><option value="0" @selected(!$schedule['enabled'])>{{ __('enterprise_bi_ui.statuses.disabled') }}</option></select></label>
+                        <label>{{ __('enterprise_bi_ui.schedule_next_run') }}<input type="datetime-local" name="next_run_at" value="{{ \Carbon\CarbonImmutable::parse($schedule['next_run_at'])->format('Y-m-d\\TH:i') }}" required></label>
                         <label>{{ __('enterprise_bi_ui.schedule_interval') }}<input type="number" name="interval_minutes" min="15" max="525600" value="{{ $schedule['interval_minutes'] }}" required></label>
-                        <button class="foodex-action-primary" type="submit">{{ $schedule['enabled']?__('enterprise_bi_ui.schedule_disable'):__('enterprise_bi_ui.schedule_enable') }}</button>
+                        <button class="foodex-action-primary" type="submit">{{ __('enterprise_bi_ui.schedule_save') }}</button>
                     </form>
                 </details>
+                @endif
             </div>
         </div>
     @empty
