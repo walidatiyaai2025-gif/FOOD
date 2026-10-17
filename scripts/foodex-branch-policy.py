@@ -35,7 +35,7 @@ def is_valid(branch:str, base:str|None=None, allow_main:bool=False)->bool:
     if branch in SPECIAL: return True
     if branch in PROMOTION_BRANCHES: return base=="main"
     if branch=="main":
-        return allow_main or bool(base and (RELEASE_RE.fullmatch(base) or base in PROMOTION_BRANCHES))
+        return allow_main or bool(base and (STANDARD_RE.fullmatch(base) or RELEASE_RE.fullmatch(base) or base in PROMOTION_BRANCHES))
     return bool(STANDARD_RE.fullmatch(branch) or RELEASE_RE.fullmatch(branch))
 
 def main()->int:
