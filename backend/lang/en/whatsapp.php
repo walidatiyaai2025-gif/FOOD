@@ -54,6 +54,7 @@ return [
         'page_title' => 'Customer Service Inbox · FOODEX',
         'subtitle' => 'FOODEX · WhatsApp CRM · Experimental',
         'heading' => 'Shared Customer Service Inbox',
+        'back_to_customer_service' => 'Back to Customer Service',
         'intro' => 'Isolated operational workspace; replies remain transport-pending and are not considered sent until transport confirms them.',
         'my_status' => 'My status',
         'capacity' => 'Capacity',
