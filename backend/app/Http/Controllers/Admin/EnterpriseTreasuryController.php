@@ -10,8 +10,8 @@ use App\Enterprise\Reporting\ReportRegistry;
 use App\Enterprise\Reporting\ScheduledReportManager;
 use App\Enterprise\Treasury\TreasuryAnalyticsService;
 use App\Enterprise\Treasury\TreasuryChequeService;
-use App\Enterprise\Treasury\TreasuryPlanningService;
 use App\Enterprise\Treasury\TreasuryPaymentService;
+use App\Enterprise\Treasury\TreasuryPlanningService;
 use App\Enterprise\Treasury\TreasuryReceiptService;
 use App\Enterprise\Treasury\TreasuryReconciliationService;
 use App\Http\Controllers\Controller;
@@ -482,7 +482,6 @@ final class EnterpriseTreasuryController extends Controller
         return $this->backTo('cash_closing', $storeId)
             ->with('status', __('enterprise_treasury.flash.cash_closing_closed'));
     }
-
 
     public function storeFacility(Request $request): RedirectResponse
     {
