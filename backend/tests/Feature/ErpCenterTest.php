@@ -11,6 +11,7 @@ use App\Services\EnterpriseModuleAdministration;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class ErpCenterTest extends TestCase
@@ -32,8 +33,8 @@ final class ErpCenterTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('ERP Center')
-            ->assertSee('data-erp-key="procurement" data-erp-status="disabled"', false)
-            ->assertSee('Disabled')
+            ->assertSee('data-erp-key="procurement" data-erp-status="setup_required"', false)
+            ->assertSee('Setup required')
             ->assertSee('dir="ltr"', false);
     }
 
@@ -196,6 +197,119 @@ final class ErpCenterTest extends TestCase
             ->assertSee('dir="rtl"', false)
             ->assertDontSee('data-erp-key="procurement"', false)
             ->assertDontSee('data-erp-key="wms"', false);
+    }
+
+    public function test_erp_center_renders_authoritative_snapshot_drilldowns_and_accessible_analytics(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-snapshot@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            true,
+        );
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-kpis', false)
+            ->assertSee('data-erp-kpi="pending_approvals"', false)
+            ->assertSee('data-erp-kpi="overdue_work"', false)
+            ->assertSee('data-erp-kpi="open_exceptions"', false)
+            ->assertSee('data-erp-kpi="failed_reports"', false)
+            ->assertSee('data-erp-kpi="module_health"', false)
+            ->assertSee('data-erp-chart="workload"', false)
+            ->assertSee('data-erp-chart="states"', false)
+            ->assertSee('data-erp-my-work', false)
+            ->assertSee('data-erp-activity', false)
+            ->assertSee('data-erp-work-module="procurement"', false)
+            ->assertSee(route('admin.action-center.index'), false)
+            ->assertSee(route('admin.erp.procurement.index'), false);
+    }
+
+    public function test_failed_report_kpi_is_unavailable_without_bi_and_scope_aware_when_bi_is_operational(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-bi-admin@example.test');
+
+        $unavailable = $this->actingAs($admin)->get(route('admin.erp.index'));
+        $unavailableKpi = collect($unavailable->viewData('kpis'))->firstWhere('key', 'failed_reports');
+
+        $this->assertIsArray($unavailableKpi);
+        $this->assertFalse($unavailableKpi['available']);
+        $this->assertNull($unavailableKpi['value']);
+        $this->assertNull($unavailableKpi['url']);
+
+        app(EnterpriseModuleAdministration::class)->perform('enterprise_bi', 'enable', $admin);
+        app(ModuleEntitlementManager::class)->set(
+            'enterprise_bi',
+            EntitlementScope::platform(),
+            true,
+            null,
+            $admin,
+        );
+
+        $actor = $this->userWithGlobalRole('FINANCE', 'en', 'erp-bi-finance@example.test');
+        $other = $this->userWithGlobalRole('FINANCE', 'en', 'erp-bi-other@example.test');
+
+        foreach ([
+            [$actor->id, 'erp-center-own-failure'],
+            [$other->id, 'erp-center-other-failure'],
+        ] as [$requestedBy, $key]) {
+            DB::table('enterprise_report_exports')->insert([
+                'report_code' => 'orders.summary',
+                'scope_type' => 'platform',
+                'scope_id' => null,
+                'requested_by' => $requestedBy,
+                'scheduled_report_id' => null,
+                'query_payload' => '{}',
+                'row_count' => 0,
+                'execution_mode' => 'queued_chunked',
+                'chunk_size' => 500,
+                'next_offset' => 0,
+                'processed_rows' => 0,
+                'chunks_completed' => 0,
+                'status' => 'failed',
+                'failure_code' => 'source_unavailable',
+                'artifact_metadata' => null,
+                'idempotency_key' => hash('sha256', $key),
+                'completed_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+        $kpi = collect($response->viewData('kpis'))->firstWhere('key', 'failed_reports');
+
+        $this->assertIsArray($kpi);
+        $this->assertTrue($kpi['available']);
+        $this->assertSame(1, $kpi['value']);
+        $this->assertSame(route('admin.erp.bi'), $kpi['url']);
+    }
+
+    public function test_erp_center_state_filter_hides_other_module_cards_without_changing_navigation_authority(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-state-filter@example.test');
+
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            true,
+        );
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index', ['status' => 'available']));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-erp-key="procurement" data-erp-status="available"', false)
+            ->assertDontSee('data-erp-key="wms" data-erp-status="disabled"', false);
+
+        $erpGroup = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'erp');
+        $this->assertNotNull($erpGroup);
+        $this->assertNotNull(collect($erpGroup['children'])->firstWhere('key', 'erp_center'));
     }
 
     private function userWithGlobalRole(string $roleCode, string $locale, string $email): User

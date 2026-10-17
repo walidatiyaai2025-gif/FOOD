@@ -186,6 +186,10 @@ Route::prefix('admin')
             Route::post('/reorder', [EnterpriseWmsController::class, 'saveReorderPolicy'])->middleware('throttle:30,1')->name('reorder.store');
             Route::post('/reorder/{policy}/disable', [EnterpriseWmsController::class, 'disableReorderPolicy'])->whereNumber('policy')->middleware('throttle:30,1')->name('reorder.disable');
             Route::post('/valuation', [EnterpriseWmsController::class, 'saveValuationPolicy'])->middleware('throttle:30,1')->name('valuation.store');
+            Route::post('/locations/zones', [EnterpriseWmsController::class, 'saveZone'])->middleware('throttle:30,1')->name('locations.zones.store');
+            Route::post('/locations/bins', [EnterpriseWmsController::class, 'saveBin'])->middleware('throttle:30,1')->name('locations.bins.store');
+            Route::post('/locations/assignments', [EnterpriseWmsController::class, 'assignInventoryBin'])->middleware('throttle:30,1')->name('locations.assignments.store');
+            Route::post('/planning/approve', [EnterpriseWmsController::class, 'approveDemandPlan'])->middleware('throttle:30,1')->name('planning.approve');
         });
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
@@ -669,13 +673,13 @@ Route::prefix('admin')
             Route::post('/reconciliation/{reconciliation}/close', [EnterpriseTreasuryController::class, 'closeReconciliation'])->whereNumber('reconciliation')->middleware('throttle:30,1')->name('reconciliation.close');
             Route::post('/cash-closing', [EnterpriseTreasuryController::class, 'storeCashClosing'])->middleware('throttle:30,1')->name('cash-closing.store');
             Route::post('/cash-closing/{cashClosing}/close', [EnterpriseTreasuryController::class, 'closeCashClosing'])->whereNumber('cashClosing')->middleware('throttle:30,1')->name('cash-closing.close');
-            Route::post('/facilities', [EnterpriseTreasuryController::class, 'storeFacility'])->middleware('throttle:30,1')->name('facilities.store');
-            Route::post('/drawdowns', [EnterpriseTreasuryController::class, 'storeDrawdown'])->middleware('throttle:30,1')->name('drawdowns.store');
-            Route::post('/repayments/{repayment}/paid', [EnterpriseTreasuryController::class, 'markRepaymentPaid'])->whereNumber('repayment')->middleware('throttle:30,1')->name('repayments.paid');
-            Route::post('/investments', [EnterpriseTreasuryController::class, 'storeInvestment'])->middleware('throttle:30,1')->name('investments.store');
-            Route::post('/investments/{investment}/settle', [EnterpriseTreasuryController::class, 'settleInvestment'])->whereNumber('investment')->middleware('throttle:30,1')->name('investments.settle');
-            Route::post('/reports/export', [EnterpriseTreasuryController::class, 'requestReportExport'])->middleware('throttle:20,1')->name('reports.export');
             Route::post('/reports/schedule', [EnterpriseTreasuryController::class, 'scheduleReport'])->middleware('throttle:20,1')->name('reports.schedule');
+            Route::post('/reports/export', [EnterpriseTreasuryController::class, 'requestReportExport'])->middleware('throttle:20,1')->name('reports.export');
+            Route::post('/investments/{investment}/settle', [EnterpriseTreasuryController::class, 'settleInvestment'])->whereNumber('investment')->middleware('throttle:30,1')->name('investments.settle');
+            Route::post('/investments', [EnterpriseTreasuryController::class, 'storeInvestment'])->middleware('throttle:30,1')->name('investments.store');
+            Route::post('/repayments/{repayment}/paid', [EnterpriseTreasuryController::class, 'markRepaymentPaid'])->whereNumber('repayment')->middleware('throttle:30,1')->name('repayments.paid');
+            Route::post('/drawdowns', [EnterpriseTreasuryController::class, 'storeDrawdown'])->middleware('throttle:30,1')->name('drawdowns.store');
+            Route::post('/facilities', [EnterpriseTreasuryController::class, 'storeFacility'])->middleware('throttle:30,1')->name('facilities.store');
         });
         Route::get('/treasury/master-data', [TreasuryMasterController::class, 'index'])->name('treasury.master.index');
         Route::post('/treasury/cashboxes', [TreasuryMasterController::class, 'storeCashbox'])->middleware('throttle:60,1')->name('treasury.cashboxes.store');
