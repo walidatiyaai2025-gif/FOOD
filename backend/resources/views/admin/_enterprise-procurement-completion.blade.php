@@ -32,6 +32,12 @@ $exceptionLabels=[
 
 @if($activeTab==='overview' && $dashboard)
 <section class="foodex-module-overview" data-foodex-module-overview data-state="{{ $dashboard['state'] }}">
+    <div class="foodex-viz-header">
+        <div>
+            <h2 class="foodex-viz-title">{{ __('enterprise_procurement.dashboard') }}</h2>
+            <p class="foodex-viz-subtitle">{{ __('enterprise_procurement.overview_subtitle') }}</p>
+        </div>
+    </div>
     @php
         $moduleDashboardFilters=[
             'action'=>route('admin.erp.procurement.index'),
