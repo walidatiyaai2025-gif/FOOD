@@ -8,6 +8,7 @@ use App\Models\UpdateHistory;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class SystemUpdateAuthorizationTest extends TestCase
@@ -29,6 +30,9 @@ class SystemUpdateAuthorizationTest extends TestCase
             ->get('/admin/settings/system-update')
             ->assertOk()
             ->assertSee('System Update')
+            ->assertSee('Runtime health & recovery')
+            ->assertSee('Backup Center')
+            ->assertSee('Recent failed jobs')
             ->assertSee('Validated update package');
 
         $this->actingAs($user)
@@ -86,10 +90,25 @@ class SystemUpdateAuthorizationTest extends TestCase
 
     public function test_non_update_admin_cannot_open_system_update_center(): void
     {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         $user = $this->userWithRole('B2B_ADMIN');
 
         $this->actingAs($user)
             ->get('/admin/settings/system-update')
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('admin.system-update.backups.store'), ['reason' => 'unauthorized backup'])
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('admin.system-update.backups.restore', [
+                'backupReference' => '20261017-120000-database-aaaaaaaaaa',
+            ]), [
+                'reason' => 'unauthorized restore',
+                'confirm_reference' => '20261017-120000-database-aaaaaaaaaa',
+            ])
             ->assertForbidden();
 
         $this->actingAs($user)
