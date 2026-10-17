@@ -136,6 +136,8 @@ return [
     'register_document' => 'Register document',
     'document_title' => 'Document title',
     'document_reference' => 'Document reference',
+    'attachment' => 'Attachment',
+    'download' => 'Download',
     'qualification' => 'Qualification',
     'qualification_note' => 'Qualification note',
     'blocked' => 'Blocked',
