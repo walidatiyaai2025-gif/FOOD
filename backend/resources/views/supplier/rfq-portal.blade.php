@@ -28,6 +28,7 @@
 <div><small>{{ __('enterprise_procurement.reference') }}</small><strong>{{ $rfq->rfq_number }}</strong></div>
 <div><small>{{ __('enterprise_procurement.supplier') }}</small><strong>{{ app()->getLocale()==='ar' && $supplier->name_ar ? $supplier->name_ar : $supplier->name_en }}</strong></div>
 <div><small>{{ __('enterprise_procurement.currency') }}</small><strong>{{ $rfq->currency_code }}</strong></div>
+<div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ $existingQuote ? __('enterprise_procurement.statuses.'.$existingQuote->status) : __('enterprise_procurement.statuses.invited') }}</strong></div>
 <div><small>{{ __('enterprise_procurement.portal.response_due') }}</small><strong>{{ $rfq->response_due_at ?: $invitation->expires_at }}</strong></div>
 </div>
 </header>
