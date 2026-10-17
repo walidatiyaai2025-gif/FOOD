@@ -37,6 +37,8 @@
 </div>
 </header>
 
+@include('admin._smart-ordering-workspace-nav')
+
 <div class="so-a-shell">
 <section class="foodex-card so-a-card">
 <form method="get" class="so-a-filters">
