@@ -73,6 +73,7 @@ final class RestaurantWorkforceService
             ->join('users as u', 'u.id', '=', 'rsa.user_id')
             ->where('rsa.branch_id', $branchId)
             ->where('rsa.is_active', true)
+            ->when(! $canManage, fn ($query) => $query->where('rsa.user_id', $actor->getKey()))
             ->orderBy('u.name')
             ->get([
                 'rsa.id',
@@ -96,6 +97,7 @@ final class RestaurantWorkforceService
         $shifts = DB::table('restaurant_shifts as s')
             ->join('users as u', 'u.id', '=', 's.user_id')
             ->where('s.branch_id', $branchId)
+            ->when(! $canManage, fn ($query) => $query->where('s.user_id', $actor->getKey()))
             ->where('s.ends_at', '>=', now()->subDays(30))
             ->orderBy('s.starts_at')
             ->limit(120)
@@ -123,6 +125,7 @@ final class RestaurantWorkforceService
             ->join('users as u', 'u.id', '=', 'tc.user_id')
             ->leftJoin('restaurant_shifts as s', 's.id', '=', 'tc.shift_id')
             ->where('tc.branch_id', $branchId)
+            ->when(! $canManage, fn ($query) => $query->where('tc.user_id', $actor->getKey()))
             ->orderByDesc('tc.clocked_in_at')
             ->limit(100)
             ->get([
@@ -167,10 +170,12 @@ final class RestaurantWorkforceService
             'timezone' => $timezone,
             'can_manage' => $canManage,
             'actor_assigned' => $actorAssigned,
-            'available_staff' => $identities
-                ->reject(fn (array $identity): bool => in_array((int) $identity['user_id'], $assignedUserIds, true))
-                ->values()
-                ->all(),
+            'available_staff' => $canManage
+                ? $identities
+                    ->reject(fn (array $identity): bool => in_array((int) $identity['user_id'], $assignedUserIds, true))
+                    ->values()
+                    ->all()
+                : [],
             'assignments' => $assignments->all(),
             'shifts' => $shifts,
             'sessions' => $sessions,
@@ -347,6 +352,18 @@ final class RestaurantWorkforceService
                     ]);
                 }
 
+                $otherBranchActive = DB::table('restaurant_time_clock_sessions')
+                    ->where('user_id', $actor->getKey())
+                    ->where('branch_id', '!=', (int) $branch->getKey())
+                    ->whereIn('status', ['OPEN', 'ON_BREAK'])
+                    ->lockForUpdate()
+                    ->exists();
+                if ($otherBranchActive) {
+                    throw ValidationException::withMessages([
+                        'action' => [__('smart_ordering.workforce.errors.active_other_branch')],
+                    ]);
+                }
+
                 $shiftId = null;
                 if ($shiftPublicId !== null) {
                     $shift = $this->shift($branch, $shiftPublicId);
@@ -451,6 +468,13 @@ final class RestaurantWorkforceService
             ]);
         }
 
+        $breakSeconds = (int) $data['total_break_minutes'] * 60;
+        if ($breakSeconds > $clockedIn->diffInSeconds($clockedOut)) {
+            throw ValidationException::withMessages([
+                'total_break_minutes' => [__('smart_ordering.workforce.errors.break_exceeds_session')],
+            ]);
+        }
+
         $before = [
             'store_id' => (int) $branch->store_id,
             'branch_id' => (int) $branch->getKey(),
@@ -466,7 +490,7 @@ final class RestaurantWorkforceService
             'user_id' => (int) $session->user_id,
             'clocked_in_at' => $clockedIn,
             'clocked_out_at' => $clockedOut,
-            'total_break_seconds' => (int) $data['total_break_minutes'] * 60,
+            'total_break_seconds' => $breakSeconds,
             'corrected_by_user_id' => (int) $actor->getKey(),
             'correction_note' => trim((string) $data['reason']),
         ];
