@@ -49,14 +49,12 @@ final class CatalogOperationsReadModel
 
         $to = $query->to ?? CarbonImmutable::today();
         $from = $query->from ?? $to->subDays($query->report->maxRangeDays - 1);
-        $offset = ($query->page - 1) * $query->perPage;
-
         $source = $this->catalog->reportForStore(
             $report,
             $scope->id,
             ['from' => $from->toDateString(), 'to' => $to->toDateString()],
-            $query->perPage + 1,
-            $offset,
+            5000,
+            0,
         );
 
         $rows = collect($source['rows']);
@@ -75,10 +73,12 @@ final class CatalogOperationsReadModel
         }
 
         $rows = $rows->values();
-        $hasMore = $rows->count() > $query->perPage;
+        $offset = ($query->page - 1) * $query->perPage;
+        $pageRows = $rows->slice($offset, $query->perPage + 1)->values();
+        $hasMore = $pageRows->count() > $query->perPage;
 
         return [
-            'rows' => $rows->take($query->perPage)->all(),
+            'rows' => $pageRows->take($query->perPage)->all(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'page' => $query->page,
