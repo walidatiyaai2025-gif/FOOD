@@ -666,7 +666,7 @@ return [
         'back' => 'Back to dashboard',
         'validation_failed' => 'Please review the requested security change.',
         'users_title' => 'User access', 'users_description' => 'Search users, review status and role assignments, then make controlled access changes.',
-        'users' => 'users', 'search_users' => 'Search name or email', 'all_statuses' => 'All statuses',
+        'users' => 'users', 'username' => 'Username', 'search_users' => 'Search name or email', 'all_statuses' => 'All statuses',
         'active' => 'Active', 'inactive' => 'Inactive', 'filter' => 'Filter', 'reason' => 'Reason',
         'confirm_deactivate' => 'Deactivate this account and invalidate its API tokens?',
         'confirm_activate' => 'Reactivate this account?', 'optional_reason' => 'Optional deactivation reason',
