@@ -295,7 +295,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_platform_all_filter_unions_only_authorized_wholesale_and_retail_scopes_with_provenance(): void
+    public function test_platform_admin_keeps_wholesale_and_retail_order_workspaces_strictly_isolated(): void
     {
         $retailStore = $this->store('OPS-ALL-RETAIL');
         $retailCustomer = app(B2cCustomerService::class)->create($retailStore, ['name' => 'All Retail Buyer']);
@@ -381,21 +381,42 @@ class OrderOperationsIsolationTest extends TestCase
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all')
+            ->assertForbidden();
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertSee('#'.$retailOrder)
-            ->assertSee('#'.$wholesaleOrder)
+            ->assertViewHas('rows', function (array $rows) use ($retailOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$retailOrder];
+            })
+            ->assertSee('OPS-ALL-RETAIL-1001')
+            ->assertDontSee('OPS-ALL-WHOLESALE-2001')
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Customer checkout')
-            ->assertSee('Dashboard')
             ->assertDontSee('customer_checkout');
 
         $this->actingAs($super)
-            ->get('/admin/operations/orders?channel=all&order='.$retailOrder)
+            ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertSee('data-order-authoritative-context', false)
-            ->assertDontSee('store_id='.$retailStore, false)
-            ->assertSee('Customer checkout')
-            ->assertDontSee('customer_checkout');
+            ->assertViewHas('rows', function (array $rows) use ($wholesaleOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$wholesaleOrder];
+            })
+            ->assertSee('#'.$wholesaleOrder)
+            ->assertDontSee('OPS-ALL-RETAIL-1001')
+            ->assertDontSee('OPS-ALL-ROGUE-3001')
+            ->assertSee('Dashboard');
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
+            ->assertNotFound();
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b&order='.$retailOrder)

@@ -93,7 +93,9 @@ final class SmartOrderingRevisionService
         ?Request $request = null,
     ): SmartOrderingRevision {
         $this->assertManage($actor, $site);
-        $this->ensurePublished($site, $actor, $request);
+        if (! SmartOrderingRevision::query()->where('site_id', $site->id)->exists()) {
+            $this->ensurePublished($site, $actor, $request);
+        }
 
         return DB::transaction(function () use ($actor, $site, $request): SmartOrderingRevision {
             SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
@@ -104,8 +106,15 @@ final class SmartOrderingRevisionService
             }
 
             $published = $this->published($site);
-            abort_unless($published instanceof SmartOrderingRevision, 409);
-            $source = $this->scheduled($site) ?? $published;
+            $archived = $published instanceof SmartOrderingRevision
+                ? null
+                : SmartOrderingRevision::query()
+                    ->where('site_id', $site->id)
+                    ->where('status', 'archived')
+                    ->latest('id')
+                    ->first();
+            $source = $this->scheduled($site) ?? $published ?? $archived;
+            abort_unless($source instanceof SmartOrderingRevision, 409);
 
             $draft = $this->createRevision($site, 'draft', (array) $source->payload, $actor, (int) $source->id, false);
             $this->audit->record('smart_ordering.revision.draft_created', $actor, $draft, null, [
@@ -271,6 +280,43 @@ final class SmartOrderingRevisionService
             abort_if($pendingScheduled, 409);
 
             return $this->publishLocked($actor, $site, $draft, $request);
+        });
+    }
+
+    public function unpublish(
+        User $actor,
+        SmartOrderingSite $site,
+        ?Request $request = null,
+    ): ?SmartOrderingRevision {
+        abort_unless($actor->hasPermission('smart_ordering.publish', (int) $site->store_id), 403);
+
+        return DB::transaction(function () use ($actor, $site, $request): ?SmartOrderingRevision {
+            SmartOrderingSite::query()->whereKey($site->id)->lockForUpdate()->firstOrFail();
+
+            $published = SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'published')
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            if (! $published instanceof SmartOrderingRevision) {
+                return null;
+            }
+
+            $published->forceFill(['status' => 'archived'])->save();
+
+            $this->audit->record('smart_ordering.revision.unpublished', $actor, $published, [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => (string) $published->public_id,
+                'checksum' => (string) $published->checksum,
+            ], [
+                'store_id' => (int) $site->store_id,
+                'revision_public_id' => null,
+                'checksum' => null,
+            ], $request);
+
+            return $published->fresh();
         });
     }
 

@@ -8,20 +8,46 @@ use PHPUnit\Framework\TestCase;
 
 final class SmartOrderingThemeRegistryTest extends TestCase
 {
-    public function test_registry_exposes_five_structurally_distinct_templates(): void
+    public function test_registry_exposes_six_versioned_production_templates_and_preserves_legacy_ids(): void
     {
         $registry = new ThemeRegistry;
 
         $this->assertSame([
-            'quick-bite',
-            'elegant-dining',
-            'cafe-bakery',
-            'visual-market',
-            'signature-brand',
-        ], $registry->ids());
+            'fine-dining-elegant-light',
+            'fine-dining-dark-luxury',
+            'contemporary-bistro',
+            'premium-arabic-dining',
+            'modern-minimal',
+            'chef-tasting',
+        ], $registry->productionIds());
 
-        $this->assertCount(5, array_unique(array_column($registry->all(), 'view')));
-        $this->assertCount(5, array_unique(array_column($registry->all(), 'layout')));
+        $this->assertSame('modern-minimal', $registry->productionDefault());
+        $this->assertSame(2, ThemeRegistry::SCHEMA_VERSION);
+        $this->assertContains('quick-bite', $registry->ids());
+        $this->assertContains('signature-brand', $registry->ids());
+        $this->assertCount(6, array_unique(array_column($registry->production(), 'view')));
+        $this->assertCount(6, array_unique(array_column($registry->production(), 'layout')));
+
+        foreach ($registry->production() as $definition) {
+            $this->assertSame(1, $definition['version']);
+            $this->assertNotEmpty($definition['supports']);
+        }
+    }
+
+    public function test_production_resolution_falls_back_safely_for_unknown_or_unavailable_versions(): void
+    {
+        $registry = new ThemeRegistry;
+
+        $this->assertSame('fine-dining-dark-luxury', $registry->resolveProduction('fine-dining-dark-luxury', 1));
+        $this->assertSame('modern-minimal', $registry->resolveProduction('unknown-template', 1));
+        $this->assertSame('modern-minimal', $registry->resolveProduction('chef-tasting', 99));
+        $this->assertSame('modern-minimal', $registry->resolveProduction('quick-bite', 1));
+
+        $fallback = $registry->productionDefinition('chef-tasting', 99);
+        $this->assertTrue($fallback['fallback']);
+        $this->assertSame('chef-tasting', $fallback['requested_id']);
+        $this->assertSame(99, $fallback['requested_version']);
+        $this->assertSame('modern-minimal', $fallback['id']);
     }
 
     public function test_customization_is_controlled_and_css_injection_is_rejected(): void
@@ -48,22 +74,27 @@ final class SmartOrderingThemeRegistryTest extends TestCase
 
         $quick = $renderer->prepare($snapshot, 'quick-bite', 'light', 'en');
         $market = $renderer->prepare($snapshot, 'visual-market', 'dark', 'en');
+        $minimal = $renderer->prepare($snapshot, 'modern-minimal', 'light', 'en');
 
         $this->assertSame($quick['menu'], $market['menu']);
+        $this->assertSame($quick['menu'], $minimal['menu']);
         $this->assertSame($quick['site']['public_key'], $market['site']['public_key']);
+        $this->assertSame($quick['site']['public_key'], $minimal['site']['public_key']);
         $this->assertSame('quick-bite', $quick['theme']['id']);
         $this->assertSame('visual-market', $market['theme']['id']);
+        $this->assertSame('modern-minimal', $minimal['theme']['id']);
         $this->assertSame('dark', $market['appearance']['mode']);
     }
 
     public function test_renderer_drops_private_fields_and_supports_rtl_translation(): void
     {
         $renderer = new StorefrontThemeRenderer(new ThemeRegistry);
-        $prepared = $renderer->prepare($this->snapshot(), null, null, 'ar');
+        $prepared = $renderer->prepare($this->snapshot(), 'premium-arabic-dining', null, 'ar');
 
         $encoded = json_encode($prepared, JSON_THROW_ON_ERROR);
 
         $this->assertSame('rtl', $prepared['direction']);
+        $this->assertSame('premium-arabic-dining', $prepared['theme']['id']);
         $this->assertSame('مطعم تجريبي', $prepared['site']['name']);
         $this->assertStringNotContainsString('internal_id', $encoded);
         $this->assertStringNotContainsString('secret-token', $encoded);

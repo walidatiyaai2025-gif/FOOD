@@ -24,7 +24,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-panel{display:none}.c360-panel.active{display:block}
 .c360-card{padding:20px}.c360-card h2,.c360-card h3{margin:0}.c360-card p{color:var(--foodex-muted)}
 .c360-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
-.c360-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.c360-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:12px;margin-bottom:14px}
 .c360-kpi{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:#fff;display:grid;gap:6px;min-height:100px}
 .c360-kpi small{color:var(--foodex-muted);font-weight:700}.c360-kpi strong{font-size:1.22rem;word-break:break-word}.c360-kpi.primary{background:linear-gradient(135deg,#f5fff8,#fff)}
 .c360-credit-editor{display:flex;align-items:end;gap:8px;margin-top:4px}.c360-credit-editor label{display:grid;gap:5px;min-width:0;flex:1}.c360-credit-editor input{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:9px;padding:9px 10px;background:#fff;font:inherit}.c360-credit-editor button{white-space:nowrap}
