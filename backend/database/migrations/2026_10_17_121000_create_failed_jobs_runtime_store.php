@@ -7,10 +7,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        if (Schema::hasTable('failed_jobs')) {
-            return;
-        }
-
         Schema::create('failed_jobs', function (Blueprint $table): void {
             $table->id();
             $table->string('uuid')->unique();
