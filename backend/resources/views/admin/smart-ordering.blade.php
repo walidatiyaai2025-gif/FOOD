@@ -37,6 +37,15 @@
                 <a class="primary" href="{{ route('admin.smart-ordering.supply.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
             </div>
         </section>
+        <section class="panel">
+            <div class="so-section-head">
+                <div>
+                    <h2>{{ __('restaurant_integrations.title') }}</h2>
+                    <p>{{ __('restaurant_integrations.subtitle') }}</p>
+                </div>
+                <a class="primary" href="{{ route('admin.smart-ordering.integrations.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('restaurant_integrations.title') }}</a>
+            </div>
+        </section>
         @endif
 
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
