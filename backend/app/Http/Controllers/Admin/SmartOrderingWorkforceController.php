@@ -22,7 +22,7 @@ final class SmartOrderingWorkforceController extends Controller
 
     public function storeAssignment(string $branch, Request $request): RedirectResponse
     {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $data = $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
         $this->workforce->assignStaff($branchModel, (int) $data['user_id'], $actor);
         $this->audit->record('smart_ordering.workforce.staff.assigned', $actor, null, null, [
@@ -36,7 +36,7 @@ final class SmartOrderingWorkforceController extends Controller
 
     public function destroyAssignment(string $branch, int $user, Request $request): RedirectResponse
     {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $this->workforce->removeStaff($branchModel, $user);
         $this->audit->record('smart_ordering.workforce.staff.unassigned', $actor, null, [
             'store_id' => (int) $branchModel->store_id,
@@ -49,7 +49,7 @@ final class SmartOrderingWorkforceController extends Controller
 
     public function storeShift(string $branch, Request $request): RedirectResponse
     {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $data = $this->shiftData($request);
         $publicId = $this->workforce->createShift($branchModel, $data, $actor);
         $this->audit->record('smart_ordering.workforce.shift.created', $actor, null, null, [
@@ -64,7 +64,7 @@ final class SmartOrderingWorkforceController extends Controller
 
     public function updateShift(string $branch, string $shift, Request $request): RedirectResponse
     {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $data = $this->shiftData($request);
         $this->workforce->updateShift($branchModel, $shift, $data, $actor);
         $this->audit->record('smart_ordering.workforce.shift.updated', $actor, null, null, [
@@ -79,7 +79,7 @@ final class SmartOrderingWorkforceController extends Controller
 
     public function transitionShift(string $branch, string $shift, Request $request): RedirectResponse
     {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $data = $request->validate(['action' => ['required', Rule::in(['publish', 'cancel'])]]);
         $this->workforce->transitionShift($branchModel, $shift, (string) $data['action'], $actor);
         $this->audit->record('smart_ordering.workforce.shift.transitioned', $actor, null, null, [
@@ -119,7 +119,7 @@ final class SmartOrderingWorkforceController extends Controller
         string $session,
         Request $request,
     ): RedirectResponse {
-        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'orders.manage');
+        [$actor, $branchModel] = $this->authorizedBranch($branch, $request, 'smart_ordering.manage');
         $data = $request->validate([
             'clocked_in_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'clocked_out_at' => ['required', 'date_format:Y-m-d\TH:i'],
