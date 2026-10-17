@@ -101,6 +101,7 @@
       "enable": [
         "operational_completion_e2e",
         "backend",
+        "dashboard_ui",
         "customer",
         "driver",
         "van",

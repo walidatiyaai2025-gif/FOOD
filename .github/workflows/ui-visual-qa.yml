@@ -157,6 +157,14 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__tablet-768__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-payments__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__desktop-1280__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__compact-1024__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__tablet-768__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-tables__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__desktop-1280__ar.png"
@@ -193,6 +201,14 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/erp-wms-responsive__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/erp-wms-responsive__tablet-768__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/erp-wms-responsive__mobile-390__en.png"
+          for surface in erp-procurement-responsive erp-finance-responsive erp-treasury-responsive erp-customer-service-responsive erp-bi-responsive erp-my-work-responsive; do
+            for locale in ar en; do
+              test -s "ScreenShots/02_Web/Responsive/B2C_Admin/${surface}__desktop-1280__${locale}.png"
+              test -s "ScreenShots/02_Web/Responsive/B2C_Admin/${surface}__compact-1024__${locale}.png"
+              test -s "ScreenShots/02_Web/Responsive/B2C_Admin/${surface}__tablet-768__${locale}.png"
+              test -s "ScreenShots/02_Web/Responsive/B2C_Admin/${surface}__mobile-390__${locale}.png"
+            done
+          done
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/settings-center__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/settings-center__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/whatsapp-chatbot-control__desktop-1280__ar.png"

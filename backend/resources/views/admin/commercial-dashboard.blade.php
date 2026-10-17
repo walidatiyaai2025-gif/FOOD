@@ -34,7 +34,7 @@
         .contract-banner.pending{border-style:dashed;background:#fffaf1}
         .muted{color:var(--foodex-muted)}
         .commercial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-        .control-list{display:grid;gap:10px;margin-top:12px}
+        .control-list{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:10px;margin-top:12px}\n        .control-list>*{min-width:0;max-width:100%}
         .control-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--foodex-border);flex-wrap:wrap}
         .disabled-action{opacity:.55;cursor:not-allowed}
         .commercial-card{padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}

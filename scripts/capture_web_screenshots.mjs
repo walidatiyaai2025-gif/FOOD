@@ -65,6 +65,7 @@ const b2c = [
   ['15_مركز_عمل_المخزون_WMS_ERP', '/admin/erp/wms'],
   ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
   ['15_مركز_ذكاء_الأعمال_ERP', '/admin/erp/bi'],
+  ['15_مساحة_عمل_المحاسب_ERP', '/admin/erp/finance?store_code=FOODEX-DEMO-B2C'],
   ['15_مساحة_عمل_خدمة_العملاء', '/admin/erp/customer-service'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
@@ -687,6 +688,11 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['enterprise-action-center', '/admin/action-center'],
     ['erp-center', '/admin/erp'],
     ['erp-wms', '/admin/erp/wms'],
+    ['erp-procurement', '/admin/erp/procurement'],
+    ['erp-finance', '/admin/erp/finance?store_code=FOODEX-DEMO-B2C'],
+    ['erp-treasury', '/admin/erp/treasury'],
+    ['erp-customer-service', '/admin/erp/customer-service'],
+    ['erp-bi', '/admin/erp/bi'],
     ['enterprise-organizations', '/admin/administration/organizations'],
     ['enterprise-modules', '/admin/administration/modules'],
     ['security', '/admin/security'],
@@ -1332,6 +1338,48 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'erp-procurement-responsive',
+    '/admin/erp/procurement',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-finance-responsive',
+    '/admin/erp/finance?store_code=FOODEX-DEMO-B2C',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-treasury-responsive',
+    '/admin/erp/treasury',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-customer-service-responsive',
+    '/admin/erp/customer-service',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-bi-responsive',
+    '/admin/erp/bi',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'erp-my-work-responsive',
+    '/admin/action-center',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'treasury-master',
     '/admin/treasury/master-data',
   );
@@ -1355,6 +1403,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'smart-ordering-payments',
     '/admin/smart-ordering/operations?tab=payments',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'smart-ordering-tables',
+    '/admin/smart-ordering/operations?tab=tables',
   );
   await captureResponsiveRoute(
     page,
