@@ -151,6 +151,7 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::get('/action-center/export', [EnterpriseActionCenterController::class, 'export'])->middleware('throttle:30,1')->name('action-center.export');
         Route::get('/erp', ErpCenterController::class)->name('erp.index');
         Route::prefix('erp/procurement')->name('erp.procurement.')->group(function (): void {
             Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
