@@ -57,10 +57,18 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                         <div class="wa-customer-name">{{ $customer->name }}</div>
                         <div class="wa-presence">{{ __('whatsapp.inbox.golden.active_customer') }}</div>
                         <div class="wa-customer-contact">
-                            @if($customer->phone)<span><b>☎</b><span dir="ltr">{{ $customer->phone }}</span><b class="wa-whatsapp">◉</b></span>@endif
-                            @if($customer->email)<span><b>✉</b><span dir="ltr">{{ $customer->email }}</span></span>@endif
-                            @if($customer->originStore)<span><b>⌖</b>{{ $customer->originStore->name }}</span>@endif
-                            @if($customer->created_at)<span><b>▣</b>{{ __('whatsapp.inbox.golden.customer_since') }} {{ \Illuminate\Support\Carbon::parse($customer->created_at)->translatedFormat('d M Y') }}</span>@endif
+                            @if($customer->phone)
+                                <span><b>☎</b><span dir="ltr">{{ $customer->phone }}</span><b class="wa-whatsapp">◉</b></span>
+                            @endif
+                            @if($customer->email)
+                                <span><b>✉</b><span dir="ltr">{{ $customer->email }}</span></span>
+                            @endif
+                            @if($customer->originStore)
+                                <span><b>⌖</b>{{ $customer->originStore->name }}</span>
+                            @endif
+                            @if($customer->created_at)
+                                <span><b>▣</b>{{ __('whatsapp.inbox.golden.customer_since') }} {{ \Illuminate\Support\Carbon::parse($customer->created_at)->translatedFormat('d M Y') }}</span>
+                            @endif
                         </div>
                     </section>
 
@@ -244,6 +252,10 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
             </section>
 
             <aside class="wa-pane wa-conversation-rail" data-wa-pane="conversation-list">
+                @php
+                    $stateFilter = (string) ($filters['status'] ?? '');
+                    $mediumFilter = (string) ($filters['channel'] ?? '');
+                @endphp
                 <div class="wa-rail-top">
                     <h1 class="wa-rail-title">{{ __('whatsapp.inbox.heading') }}</h1>
                     <p class="wa-rail-helper">{{ __('whatsapp.inbox.golden.helper') }}</p>
@@ -258,10 +270,10 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                                 <div class="wa-utility-menu">
                                     <form method="get" action="{{ route('admin.whatsapp-inbox.index') }}">
                                         @if(!empty($filters['q']))<input type="hidden" name="q" value="{{ $filters['q'] }}">@endif
-                                        @if(!empty($filters['status']))<input type="hidden" name="status" value="{{ $filters['status'] }}">@endif
+                                        @if($stateFilter !== '')<input type="hidden" name="status" value="{{ $stateFilter }}">@endif
                                         <label>{{ __('whatsapp.inbox.assignment') }}<select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select></label>
                                         <label>{{ __('whatsapp.inbox.store') }}<select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select></label>
-                                        <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $filters['channel']??'' }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
+                                        <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $mediumFilter }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
                                         <button class="wa-secondary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
                                     </form>
                                     <hr style="border:0;border-top:1px solid var(--wa-border);margin:12px 0">
@@ -279,10 +291,10 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
                 </div>
                 @php($statusBase=request()->except('page','conversation','status'))
                 <nav class="wa-filter-tabs" aria-label="{{ __('whatsapp.inbox.status') }}">
-                    <a class="wa-filter-tab primary {{ empty($filters['status'])?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',$statusBase) }}">⌄ {{ __('whatsapp.inbox.golden.all_conversations') }} ({{ $conversations->total() }})</a>
-                    <a class="wa-filter-tab {{ ($filters['status']??'')==='OPEN'?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'OPEN'])) }}">{{ __('whatsapp.inbox.golden.open') }}</a>
-                    <a class="wa-filter-tab {{ ($filters['status']??'')==='WAITING_FOR_CUSTOMER'?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'WAITING_FOR_CUSTOMER'])) }}">{{ __('whatsapp.inbox.golden.waiting_reply') }}</a>
-                    <a class="wa-filter-tab {{ in_array(($filters['status']??''),['RESOLVED','CLOSED'],true)?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'CLOSED'])) }}">{{ __('whatsapp.inbox.golden.closed') }}</a>
+                    <a class="wa-filter-tab primary {{ $stateFilter===''?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',$statusBase) }}">⌄ {{ __('whatsapp.inbox.golden.all_conversations') }} ({{ $conversations->total() }})</a>
+                    <a class="wa-filter-tab {{ $stateFilter==='OPEN'?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'OPEN'])) }}">{{ __('whatsapp.inbox.golden.open') }}</a>
+                    <a class="wa-filter-tab {{ $stateFilter==='WAITING_FOR_CUSTOMER'?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'WAITING_FOR_CUSTOMER'])) }}">{{ __('whatsapp.inbox.golden.waiting_reply') }}</a>
+                    <a class="wa-filter-tab {{ in_array($stateFilter,['RESOLVED','CLOSED'],true)?'active':'' }}" href="{{ route('admin.whatsapp-inbox.index',array_merge($statusBase,['status'=>'CLOSED'])) }}">{{ __('whatsapp.inbox.golden.closed') }}</a>
                 </nav>
                 <div class="wa-list">
                     @forelse($conversations as $row)
