@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenu;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenuCategory;
@@ -896,18 +897,14 @@ final class SmartOrderingMenuAdminController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $storeIds = $tenants->retailStoreIds($actor);
-        abort_if($storeIds === [], 403);
+        $storeIds = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, $permission, $request);
 
         $requested = $request->integer('store_id');
-        $storeId = in_array($requested, $storeIds, true) ? $requested : (int) $storeIds[0];
-        $tenants->retail(
-            $actor,
-            $storeId,
-            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
-            $request,
-        );
-        abort_unless($actor->hasPermission($permission, $storeId), 403);
+        if ($requested > 0 && ! in_array($requested, $storeIds, true)) {
+            abort(404);
+        }
+        $storeId = $requested > 0 ? $requested : (int) $storeIds[0];
 
         $site = $sites->ensureForStore($storeId, $actor, $request);
         $stores = Store::query()->whereIn('id', $storeIds)->orderBy('name')->get();
