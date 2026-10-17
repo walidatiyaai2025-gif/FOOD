@@ -279,8 +279,7 @@ final class ErpCenterController extends Controller
             $status = match ($state) {
                 ModuleState::NOT_INSTALLED, ModuleState::INSTALLED, ModuleState::ENABLING => 'setup_required',
                 ModuleState::DISABLED => 'disabled',
-                ModuleState::SUSPENDED, ModuleState::MAINTENANCE, ModuleState::ERROR => 'degraded',
-                ModuleState::ENABLED => 'available',
+                default => 'degraded',
             };
         }
 
