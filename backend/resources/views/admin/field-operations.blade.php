@@ -1,5 +1,6 @@
 @php
     $ar = app()->getLocale() === 'ar';
+    $fieldOperationsSection = (string) $section;
     $isSuper = $user->hasRole('SUPER_ADMIN');
     $canManageVan = $isSuper || $user->hasPermission('drivers.b2b.manage');
     $canManageTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
@@ -7,9 +8,9 @@
     $overviewVisibility = $overviewVisibility ?? [];
     $canCatalog = $isSuper || $user->hasPermission('catalog.view');
     $canPromotions = $isSuper || $user->hasPermission('promotions.view');
-    $pageTitle = __('field_operations.pages.'.$section.'.title');
-    $pageDescription = __('field_operations.pages.'.$section.'.description');
-    if ($pageTitle === 'field_operations.pages.'.$section.'.title') {
+    $pageTitle = __('field_operations.pages.'.$fieldOperationsSection.'.title');
+    $pageDescription = __('field_operations.pages.'.$fieldOperationsSection.'.description');
+    if ($pageTitle === 'field_operations.pages.'.$fieldOperationsSection.'.title') {
         $pageTitle = __('field_operations.pages.overview.title');
         $pageDescription = __('field_operations.pages.overview.description');
     }
@@ -21,9 +22,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $pageTitle }} · FOODEX</title>
     @include('admin._brand-components')
-    @if(in_array($section, ['fleet','territories'], true))
+    @if(in_array($fieldOperationsSection, ['fleet','territories'], true))
         <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
-        @if($section === 'fleet')<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">@endif
+        @if($fieldOperationsSection === 'fleet')<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">@endif
     @endif
     <style>
         .fieldops-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -51,8 +52,8 @@
         @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}\n    </style>
 </head>
-<body data-fieldops-super="{{ $isSuper ? '1' : '0' }}" data-fieldops-can-manage-van="{{ $canManageVan ? '1' : '0' }}">
-<div class="foodex-admin-layout" data-field-operations-page="{{ $section }}">
+<body>
+<div class="foodex-admin-layout" data-field-operations-page="{{ $fieldOperationsSection }}">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header fieldops-header">
@@ -77,7 +78,7 @@
         @endif
 
         <div class="foodex-ops-shell">
-        @if($section === 'overview')
+        @if($fieldOperationsSection === 'overview')
             @php
                 $s = $summary ?? [];
                 $d = $dashboard ?? ['kpis'=>[],'location_health'=>[],'daily'=>[],'status_breakdown'=>[],'van_workload'=>[],'territory_productivity'=>[],'failed_reasons'=>[],'remittance_trend'=>[],'exceptions'=>[],'period'=>[]];
@@ -240,7 +241,7 @@
                 </article>
             </section>
 
-        @elseif($section === 'fleet')
+        @elseif($fieldOperationsSection === 'fleet')
             @include('admin._driver-live-map', [
                 'feedUrl' => $feedUrl,
                 'liveMapMode' => 'full',
@@ -257,7 +258,7 @@
                 ],
             ])
 
-        @elseif($section === 'vans')
+        @elseif($fieldOperationsSection === 'vans')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.register_van') }}</strong></summary>
@@ -314,7 +315,7 @@
             </tbody></table></div>
             {{ $vans->links() }}
 
-        @elseif($section === 'van-detail')
+        @elseif($fieldOperationsSection === 'van-detail')
             <div class="fieldops-actions"><a href="{{ route('admin.field-operations.vans') }}">← {{ __('field_operations.back_to_vans') }}</a></div>
             <section class="fieldops-grid">
                 <article class="fieldops-card"><h2>{{ __('field_operations.van_identity') }}</h2>
@@ -402,7 +403,7 @@
                 </tbody></table></div>
             </section>
 
-        @elseif($section === 'assignments')
+        @elseif($fieldOperationsSection === 'assignments')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.assign_van') }}</strong></summary>
@@ -482,7 +483,7 @@
                 @empty<tr><td colspan="8">{{ __('field_operations.no_assignments') }}</td></tr>@endforelse
             </tbody></table></div>{{ $assignments->links() }}
 
-        @elseif($section === 'customers')
+        @elseif($fieldOperationsSection === 'customers')
             <div class="fieldops-card">
                 <strong>{{ __('field_operations.relationship_intro_title') }}</strong>
                 <p class="fieldops-muted">{{ __('field_operations.relationship_intro_body') }}</p>
@@ -521,7 +522,7 @@
             </tbody></table></div>{{ $relationships->links() }}
             <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ __('field_operations.plan_visit_relationship') }}</a></div>
 
-        @elseif($section === 'visits')
+        @elseif($fieldOperationsSection === 'visits')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
@@ -561,7 +562,7 @@
             @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $visits->links() }}
 
-        @elseif($section === 'territories')
+        @elseif($fieldOperationsSection === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
                 <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
@@ -633,7 +634,7 @@
                 {{ $territoryRows->links() }}
             </section>
 
-        @elseif($section === 'address-quality')
+        @elseif($fieldOperationsSection === 'address-quality')
             <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ __('field_operations.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>{{ __('field_operations.status') }}<select name="status"><option value="">{{ __('field_operations.all') }}</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ __('field_operations.review_statuses.'.$st) }}</option>@endforeach</select></label><button class="foodex-primary">{{ __('field_operations.apply') }}</button></form>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
             @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
@@ -657,7 +658,7 @@
             </td></tr>@empty<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $reviews->links() }}
 
-        @elseif($section === 'routing')
+        @elseif($fieldOperationsSection === 'routing')
             @if($canManageTerritories)
             <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
@@ -850,7 +851,7 @@
             @if($policies->isEmpty())<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endif
             {{ $policies->links() }}
 
-        @elseif($section === 'finance')
+        @elseif($fieldOperationsSection === 'finance')
             @include('admin._field-operations-finance', [
                 'fieldFinance'=>$fieldFinance,
                 'opsRouteName'=>'admin.field-operations.finance',
@@ -861,7 +862,7 @@
         </div>
     </main>
 </div>
-@if($section === 'visits')
+@if($fieldOperationsSection === 'visits')
 <script>
 (() => {
     const type = document.querySelector('[data-visit-customer-type]');
@@ -883,7 +884,7 @@
 })();
 </script>
 @endif
-@if($section === 'routing')
+@if($fieldOperationsSection === 'routing')
 <script>
 (() => {
     const syncRoutingValue = (keySelect) => {
@@ -1003,9 +1004,9 @@
 })();
 </script>
 @endif
-@if($section === 'fleet')
+@if($fieldOperationsSection === 'fleet')
     @include('admin._driver-live-map-scripts')
-@elseif($section === 'territories')
+@elseif($fieldOperationsSection === 'territories')
     <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
     <script>
     (() => {
