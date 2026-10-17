@@ -26,8 +26,12 @@ final class BuiltInJobRoleCatalog
     /** @return Collection<string,array<string,mixed>> */
     public function definitions(): Collection
     {
-        return collect((array) config('job_roles.roles', []))
+        /** @var array<string,array<string,mixed>> $definitions */
+        $definitions = (array) config('job_roles.roles', []);
+
+        return collect($definitions)
             ->map(function (array $definition, string $code): array {
+                /** @var array<string,mixed> $normalized */
                 $normalized = [
                     'code' => $code,
                     'domain' => (string) ($definition['domain'] ?? 'administration'),
@@ -299,7 +303,7 @@ final class BuiltInJobRoleCatalog
 
     private function permissionSummaryKey(string $permission): string
     {
-        $root = explode('.', $permission)[0] ?? $permission;
+        $root = explode('.', $permission)[0];
 
         return match ($root) {
             'b2b' => 'b2b',
