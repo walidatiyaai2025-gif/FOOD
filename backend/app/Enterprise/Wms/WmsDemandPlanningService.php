@@ -111,7 +111,8 @@ final class WmsDemandPlanningService
 
         $leadTimes = $this->leadTimes($storeId);
 
-        return $rows->map(function (object $row) use ($asOf, $leadTimes): array {
+        /** @var Collection<int, array<string, mixed>> $plan */
+        $plan = $rows->map(function (object $row) use ($asOf, $leadTimes): array {
             $onHand = round((float) $row->quantity, 3);
             $reserved = round((float) $row->reserved_quantity, 3);
             $available = round($onHand - $reserved, 3);
@@ -190,6 +191,8 @@ final class WmsDemandPlanningService
                 },
             ];
         });
+
+        return $plan;
     }
 
     public function approve(
@@ -262,7 +265,7 @@ final class WmsDemandPlanningService
         }, attempts: 3);
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function approvals(User $actor, int $storeId, ?int $warehouseId = null, int $limit = 100): Collection
     {
         $warehouseIds = $this->authorizedWarehouseIds($actor, $storeId, $warehouseId);
