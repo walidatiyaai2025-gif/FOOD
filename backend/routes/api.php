@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PlatformMarketplaceController;
 use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\QuoteController;
+use App\Http\Controllers\Api\V1\RestaurantIntegrationApiController;
 use App\Http\Controllers\Api\V1\RestaurantSaaSControlPlaneController;
 use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
@@ -64,6 +65,15 @@ Route::prefix('v1')->group(function (): void {
         'api' => 'v1',
         'platform_version' => trim((string) @file_get_contents(base_path('../VERSION'))),
     ]));
+
+    Route::prefix('restaurant-app/sites/{site}')
+        ->middleware('throttle:120,1')
+        ->group(function (): void {
+            Route::get('/context', [RestaurantIntegrationApiController::class, 'context']);
+            Route::get('/orders', [RestaurantIntegrationApiController::class, 'orders']);
+            Route::post('/integrations/{integration}/events', [RestaurantIntegrationApiController::class, 'ingest'])
+                ->whereUuid('integration');
+        });
 
     Route::get('/app-version', AppVersionController::class);
     Route::post('/app-preview/resolve', [AppPreviewSessionController::class, 'resolve'])
