@@ -344,7 +344,7 @@ final class EnterpriseProcurementController extends Controller
     {
         [$actor, $context] = $this->mutationContext($request);
         $quoteDocument = $this->completion->quoteDocument($actor, $context, $rfq, $document);
-        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        $disk = Storage::disk('local');
         abort_unless($disk->exists($quoteDocument->storage_path), 404);
 
         return $disk->download($quoteDocument->storage_path, $quoteDocument->original_name);
@@ -411,7 +411,7 @@ final class EnterpriseProcurementController extends Controller
         $contractDocument = $this->completion->contractDocument($actor, $context, $contract, $document);
         abort_if($contractDocument->storage_path === null, 404);
 
-        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        $disk = Storage::disk('local');
         abort_unless($disk->exists($contractDocument->storage_path), 404);
 
         return $disk->download(
