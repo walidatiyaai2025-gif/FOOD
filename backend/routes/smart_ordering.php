@@ -20,6 +20,9 @@ Route::prefix('admin/smart-ordering')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/appearance', [SmartOrderingThemePreviewController::class, 'index'])->name('appearance.index');
+        Route::post('/appearance/apply', [SmartOrderingThemePreviewController::class, 'apply'])
+            ->middleware('throttle:30,1')
+            ->name('appearance.apply');
         Route::get('/appearance/preview', [SmartOrderingThemePreviewController::class, 'preview'])
             ->middleware('throttle:120,1')
             ->name('appearance.preview');
