@@ -99,9 +99,103 @@ final class EnterpriseMyWorkTest extends TestCase
                 'age' => 7,
             ]))
             ->assertOk()
-            ->assertSee('My Work &amp; Follow-up', false)
+            ->assertSee('My Work &amp; Action Center', false)
             ->assertSee('Approval decisions')
             ->assertSee('Action Center');
+    }
+
+    public function test_my_work_dashboard_exposes_authoritative_analytics_and_bounded_export(): void
+    {
+        $store = $this->retailStore('MY-WORK-DASH');
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $actor->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+        $reference = $this->conversation($store->id, $actor->id);
+
+        $this->actingAs($actor)
+            ->get(route('admin.action-center.index', [
+                'module' => 'customer_service',
+                'assignee' => 'me',
+            ]))
+            ->assertOk()
+            ->assertSee('My Work &amp; Action Center', false)
+            ->assertSee('Workload analytics')
+            ->assertSee('Assigned to me')
+            ->assertSee($reference);
+
+        $export = $this->actingAs($actor)
+            ->get(route('admin.action-center.export', [
+                'module' => 'customer_service',
+                'assignee' => 'me',
+            ]));
+
+        $export
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->assertStringContainsString($reference, $export->streamedContent());
+    }
+
+    public function test_effective_delegation_is_visible_without_creating_a_second_task_ledger(): void
+    {
+        $store = $this->retailStore('MY-WORK-DELEGATION');
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $delegator = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'MY_WORK_DELEGATE'],
+            [
+                'name' => 'My Work Delegate',
+                'scope' => 'store',
+                'is_active' => true,
+                'is_system' => false,
+            ],
+        );
+        $permission = Permission::query()->firstOrCreate(
+            ['code' => 'whatsapp.conversations.view'],
+            ['name' => 'View WhatsApp conversations in authorized scope'],
+        );
+        $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+        UserStoreRole::query()->create([
+            'user_id' => $actor->id,
+            'store_id' => $store->id,
+            'role_id' => $role->id,
+        ]);
+
+        DB::table('enterprise_delegations')->insert([
+            'delegator_id' => $delegator->id,
+            'delegate_id' => $actor->id,
+            'permission_code' => 'whatsapp.conversations.view',
+            'scope_type' => 'store',
+            'scope_id' => $store->id,
+            'scope_key' => 'store:'.$store->id,
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addDay(),
+            'revoked_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $reference = $this->conversation($store->id, $delegator->id);
+
+        $result = app(EnterpriseMyWork::class)->page(
+            $actor,
+            '',
+            'customer_service',
+            'all',
+            'all',
+            0,
+            1,
+            '/admin/action-center',
+            ['assignee' => 'me'],
+        );
+
+        $item = $result['items']->getCollection()->firstWhere('reference', $reference);
+        $this->assertNotNull($item);
+        $this->assertSame($delegator->id, $item['delegated_by_id']);
+        $this->assertSame($actor->id, $item['delegated_to_id']);
+        $this->assertSame($actor->id, $item['effective_owner_id']);
+        $this->assertSame(1, $result['summary']['delegated']);
     }
 
     private function retailStore(string $code): Store
