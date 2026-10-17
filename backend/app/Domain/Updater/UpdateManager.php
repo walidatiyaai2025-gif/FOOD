@@ -29,6 +29,7 @@ final class UpdateManager
             'to_version' => $manifest->targetVersion,
             'status' => 'running',
             'environment' => (string) app()->environment(),
+            'operation_reason' => 'system_update',
             'backup_status' => 'pending',
             'rollback_status' => 'not_required',
             'maintenance_mode_remained' => false,
