@@ -107,6 +107,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-tabs" role="tablist" aria-label="{{ __('customer_360.sections') }}">
 <button class="c360-tab" type="button" role="tab" id="tab-finance" aria-controls="panel-finance" aria-selected="true" data-c360-tab="finance"><span class="c360-tab-icon">▣</span>{{ __('customer_360.tabs.finance') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-identity" aria-controls="panel-identity" aria-selected="false" data-c360-tab="identity"><span class="c360-tab-icon">♙</span>{{ __('customer_360.tabs.identity') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-service" aria-controls="panel-service" aria-selected="false" data-c360-tab="service"><span class="c360-tab-icon">✦</span>{{ __('customer_360.tabs.service') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-addresses" aria-controls="panel-addresses" aria-selected="false" data-c360-tab="addresses"><span class="c360-tab-icon">⌖</span>{{ __('customer_360.tabs.addresses') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-stores" aria-controls="panel-stores" aria-selected="false" data-c360-tab="stores"><span class="c360-tab-icon">▦</span>{{ __('customer_360.tabs.stores') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ __('customer_360.tabs.orders') }}</button>
@@ -199,6 +200,59 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div><small>{{ __('customer_360.identity.origin_channel') }}</small><strong>{{ $summary['origin_channel_label'] }}</strong></div>
 <div><small>{{ __('customer_360.identity.registration_source') }}</small><strong>{{ $summary['registration_source_label'] }}</strong></div>
 <div><small>{{ __('customer_360.identity.registration_origin') }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
+</div>
+</div>
+</section>
+
+<section class="c360-panel" id="panel-service" role="tabpanel" aria-labelledby="tab-service" data-c360-panel="service" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head">
+    <div><h2>{{ __('customer_360.service.title') }}</h2><p>{{ __('customer_360.service.description') }}</p></div>
+    @if($canManageServiceCases)<a class="foodex-action-primary" href="{{ route('admin.erp.customer-service',['customer_q'=>$customer->email ?: $customer->phone]) }}">{{ __('customer_360.service.create_case') }}</a>@endif
+</div>
+@if($serviceCases->isEmpty())
+<div class="c360-empty">{{ __('customer_360.service.no_cases') }}</div>
+@else
+<div class="c360-table-wrap"><table class="c360-table" data-pagination-exempt="bounded-customer-service-cases"><thead><tr>
+<th>{{ __('customer_360.service.case') }}</th><th>{{ __('customer_360.service.status') }}</th><th>{{ __('customer_360.service.priority') }}</th><th>{{ __('customer_360.service.queue') }}</th><th>{{ __('customer_360.service.owner') }}</th><th>{{ __('customer_360.service.sla') }}</th><th></th>
+</tr></thead><tbody>
+@foreach($serviceCases as $case)
+<tr>
+<td><strong>#{{ $case->id }}</strong><div>{{ $case->subject ?: __('customer_service_workspace.values.untitled') }}</div></td>
+<td>{{ __('customer_service_workspace.values.'.$case->status) }}</td>
+<td>{{ __('customer_service_workspace.values.'.$case->priority) }}</td>
+<td>{{ __('customer_service_workspace.values.'.($case->queue ?: 'general')) }}</td>
+<td>{{ $case->assigned_agent_name ?: __('customer_service_workspace.values.unassigned') }}</td>
+<td>{{ $case->sla_target_at ?: '—' }}</td>
+<td><a class="foodex-action-secondary button secondary" href="{{ route('admin.erp.customer-service.cases.show',['case'=>$case->id]) }}">{{ __('customer_360.service.open_case') }}</a></td>
+</tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
+<div class="foodex-card c360-card" style="margin-top:16px">
+<div class="c360-section-head"><div><h2>{{ __('customer_360.service.timeline') }}</h2><p>{{ __('customer_360.service.timeline_help') }}</p></div><span class="c360-badge">{{ $serviceTimeline->count() }}</span></div>
+<div style="display:grid;gap:10px">
+@forelse($serviceTimeline as $event)
+    @php($eventUrl = null)
+    @if(($event['kind'] ?? '')==='service_case' && !empty($event['service_case_id']))
+        @php($eventUrl=route('admin.erp.customer-service.cases.show',['case'=>$event['service_case_id']]))
+    @elseif(!empty($event['conversation_id']))
+        @php($eventUrl=route('admin.whatsapp-inbox.index',['conversation'=>$event['conversation_id']]))
+    @elseif(($event['kind'] ?? '')==='order')
+        @php($eventUrl=route('admin.operations.orders.index',['q'=>$event['source_id']]))
+    @elseif(($event['kind'] ?? '')==='invoice')
+        @php($eventUrl=route('admin.invoices.show',['invoice'=>$event['source_id']]))
+    @endif
+    <article style="padding:12px;border:1px solid var(--foodex-border);border-radius:12px;display:grid;gap:4px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>{{ $event['title'] }}</strong><small>{{ $event['occurred_at'] }}</small></div>
+        @if(!empty($event['detail']))<div class="muted">{{ $event['detail'] }}</div>@endif
+        @if($eventUrl)<div><a class="foodex-action-secondary button secondary" href="{{ $eventUrl }}">{{ __('customer_360.service.open_source') }}</a></div>@endif
+    </article>
+@empty
+    <div class="c360-empty">{{ __('customer_360.service.no_timeline') }}</div>
+@endforelse
 </div>
 </div>
 </section>
@@ -824,7 +878,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     });
 
     const requested = location.hash.replace('#','');
-    activate(['finance','identity','addresses','stores','orders','invoices','statement','reports'].includes(requested) ? requested : 'finance');
+    activate(['finance','identity','service','addresses','stores','orders','invoices','statement','reports'].includes(requested) ? requested : 'finance');
 })();
 </script>
 </body>
