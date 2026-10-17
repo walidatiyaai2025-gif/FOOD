@@ -136,6 +136,7 @@ final class ProcurementCompletionManager
 
         $spendTrend = $canInvoices ? $this->spendTrend($storeId, $from, $to) : [];
         $spendBySupplier = $canInvoices ? $this->spendBySupplier($storeId, $from, $to) : [];
+        $spendByCategory = $canInvoices ? $this->spendByCategory($storeId, $from, $to) : [];
         $poStatuses = $canOrders ? $this->purchaseOrderStatusChart($storeId) : [];
         $supplierPerformance = $canOrders ? $this->supplierPerformance($storeId, $from, $to) : [];
         $savings = $canRequests ? $this->savingsChart($storeId, $from, $to) : [];
@@ -149,6 +150,7 @@ final class ProcurementCompletionManager
             'charts' => [
                 'spend_trend' => $spendTrend,
                 'spend_by_supplier' => $spendBySupplier,
+                'spend_by_category' => $spendByCategory,
                 'po_status' => $poStatuses,
                 'supplier_performance' => $supplierPerformance,
                 'savings' => $savings,
@@ -767,6 +769,117 @@ final class ProcurementCompletionManager
             ->withQueryString();
     }
 
+    /** @return list<object> */
+    public function rfqRequestOptions(
+        User $actor,
+        ResolvedTenantContext $context,
+        int $limit = 100,
+    ): array {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_requests.view');
+
+        return DB::table('enterprise_purchase_requests as requests')
+            ->leftJoin('enterprise_procurement_rfqs as rfqs', 'rfqs.purchase_request_id', '=', 'requests.id')
+            ->where('requests.organization_id', $scope->organizationId)
+            ->where('requests.company_id', $scope->companyId)
+            ->where('requests.store_id', $scope->storeId)
+            ->whereIn('requests.status', ['submitted', 'approved'])
+            ->whereNull('rfqs.id')
+            ->orderByDesc('requests.id')
+            ->limit(max(1, min(100, $limit)))
+            ->get([
+                'requests.id',
+                'requests.request_number',
+                'requests.status',
+                'requests.currency_code',
+                'requests.needed_by',
+            ])
+            ->all();
+    }
+
+    /** @return list<object> */
+    public function activeContractOptions(
+        User $actor,
+        ResolvedTenantContext $context,
+        ?int $supplierId = null,
+        int $limit = 100,
+    ): array {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_orders.view');
+
+        return DB::table('enterprise_procurement_contracts as contracts')
+            ->join('enterprise_suppliers as suppliers', 'suppliers.id', '=', 'contracts.supplier_id')
+            ->where('contracts.organization_id', $scope->organizationId)
+            ->where('contracts.company_id', $scope->companyId)
+            ->where('contracts.store_id', $scope->storeId)
+            ->where('contracts.status', 'active')
+            ->whereDate('contracts.starts_on', '<=', now()->toDateString())
+            ->whereDate('contracts.ends_on', '>=', now()->toDateString())
+            ->when($supplierId !== null, fn ($query) => $query->where('contracts.supplier_id', $supplierId))
+            ->orderBy('contracts.ends_on')
+            ->limit(max(1, min(100, $limit)))
+            ->get([
+                'contracts.id',
+                'contracts.contract_number',
+                'contracts.title',
+                'contracts.supplier_id',
+                'contracts.currency_code',
+                'contracts.ends_on',
+                'suppliers.code as supplier_code',
+            ])
+            ->all();
+    }
+
+    /** @return array{contract:object,documents:list<object>} */
+    public function contractDetail(
+        User $actor,
+        ResolvedTenantContext $context,
+        int $contractId,
+    ): array {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_orders.view');
+        $contract = $this->visibleContract($scope, $contractId);
+        $documents = DB::table('enterprise_procurement_contract_documents')
+            ->where('contract_id', $contract->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->all();
+
+        return compact('contract', 'documents');
+    }
+
+    /** @param array<string,mixed> $attributes */
+    public function addContractDocument(
+        User $actor,
+        ResolvedTenantContext $context,
+        int $contractId,
+        array $attributes,
+    ): object {
+        $scope = $this->scope($actor, $context, 'procurement.purchase_orders.manage');
+        $contract = $this->visibleContract($scope, $contractId);
+        $data = Validator::make($attributes, [
+            'title' => ['required', 'string', 'max:190'],
+            'reference' => ['nullable', 'string', 'max:190'],
+        ])->validate();
+
+        $id = DB::table('enterprise_procurement_contract_documents')->insertGetId([
+            'contract_id' => $contract->id,
+            'title' => $data['title'],
+            'reference' => $data['reference'] ?? null,
+            'created_by' => $actor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $document = DB::table('enterprise_procurement_contract_documents')->where('id', $id)->firstOrFail();
+        $this->audit->record('enterprise.procurement.contract.document_registered', $actor, null, null, [
+            'store_id' => $scope->storeId,
+            'contract_id' => $contract->id,
+            'document_id' => $id,
+            'title' => $document->title,
+        ]);
+
+        return $document;
+    }
+
     /** @param array<string,mixed> $attributes */
     public function createContract(
         User $actor,
@@ -1224,9 +1337,23 @@ final class ProcurementCompletionManager
         }
 
         if ($canSuppliers) {
+            $scopeIds = DB::table('enterprise_companies as companies')
+                ->join('enterprise_business_units as units', 'units.company_id', '=', 'companies.id')
+                ->join('enterprise_business_unit_stores as unit_stores', 'unit_stores.business_unit_id', '=', 'units.id')
+                ->where('unit_stores.store_id', $storeId)
+                ->select('companies.id')
+                ->limit(1)
+                ->value('companies.id');
             $blocked = DB::table('enterprise_suppliers')
-                ->where('store_id', $storeId)
                 ->where('status', 'on_hold')
+                ->where(function ($query) use ($storeId, $scopeIds): void {
+                    $query->where('store_id', $storeId);
+                    if ($scopeIds !== null) {
+                        $query->orWhere(function ($company) use ($scopeIds): void {
+                            $company->where('scope_type', 'company')->where('company_id', $scopeIds);
+                        });
+                    }
+                })
                 ->count();
             $exceptions[] = ['key' => 'blocked_suppliers', 'count' => $blocked, 'tab' => 'suppliers'];
         }
@@ -1275,6 +1402,27 @@ final class ProcurementCompletionManager
             ->whereBetween('invoice_date', [$from, $to])
             ->groupBy('supplier_id', 'supplier_code')
             ->selectRaw('supplier_id, supplier_code as label, SUM(total_amount) as value')
+            ->orderByDesc('value')
+            ->limit(8)
+            ->get()
+            ->map(fn ($row): array => ['label' => $row->label, 'value' => (float) $row->value])
+            ->all();
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function spendByCategory(int $storeId, string $from, string $to): array
+    {
+        return DB::table('enterprise_purchase_invoices as invoices')
+            ->join('enterprise_purchase_invoice_lines as invoice_lines', 'invoice_lines.purchase_invoice_id', '=', 'invoices.id')
+            ->leftJoin('products', 'products.sku', '=', 'invoice_lines.item_code')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->where('invoices.store_id', $storeId)
+            ->where('invoices.status', 'handed_off')
+            ->whereBetween('invoices.invoice_date', [$from, $to])
+            ->groupBy('products.category_id', 'categories.name')
+            ->selectRaw(
+                "COALESCE(categories.name, 'Uncategorized') as label, SUM(invoice_lines.line_total) as value",
+            )
             ->orderByDesc('value')
             ->limit(8)
             ->get()
