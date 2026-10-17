@@ -69,6 +69,41 @@ final class EnterpriseBiController extends Controller
                 'product' => ['product_id', 'stock_status'],
             ],
         ],
+        'catalog.availability' => [
+            'key' => 'catalog_availability',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'category', 'brand', 'lifecycle_state', 'availability_state'],
+            ],
+        ],
+        'catalog.category_brand_performance' => [
+            'key' => 'catalog_category_brand_performance',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'category_brand' => ['category_id', 'category', 'brand_id', 'brand'],
+            ],
+        ],
+        'catalog.margin_exceptions' => [
+            'key' => 'catalog_margin_exceptions',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'issue'],
+            ],
+        ],
+        'catalog.lifecycle' => [
+            'key' => 'catalog_lifecycle',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'lifecycle_state', 'lifecycle_effective_at', 'end_of_life_at'],
+            ],
+        ],
+        'catalog.data_quality' => [
+            'key' => 'catalog_data_quality',
+            'scope' => EntitlementScope::STORE,
+            'breakdowns' => [
+                'product' => ['product_id', 'sku', 'name', 'issues'],
+            ],
+        ],
         'procurement.open_orders' => [
             'key' => 'procurement_open_orders',
             'scope' => EntitlementScope::STORE,
