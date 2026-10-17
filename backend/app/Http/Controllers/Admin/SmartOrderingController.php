@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\RestaurantSaaS\RestaurantOperationsOverviewService;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
@@ -33,8 +34,8 @@ final class SmartOrderingController extends Controller
         RestaurantOperationsOverviewService $overview,
     ): View {
         $actor = $this->actor($request);
-        $storeIds = $tenants->retailStoreIds($actor);
-        abort_if($storeIds === [], 403);
+        $storeIds = app(RestaurantSaasStoreAccess::class)
+            ->allowedStoreIds($actor, 'smart_ordering.view', $request);
 
         $stores = Store::query()->whereIn('id', $storeIds)->orderBy('name')->get();
         foreach ($stores as $store) {
@@ -42,8 +43,10 @@ final class SmartOrderingController extends Controller
         }
 
         $requested = $request->integer('store_id');
-        $storeId = in_array($requested, $storeIds, true) ? $requested : (int) $storeIds[0];
-        abort_unless($actor->hasPermission('smart_ordering.view', $storeId), 403);
+        if ($requested > 0 && ! in_array($requested, $storeIds, true)) {
+            abort(404);
+        }
+        $storeId = $requested > 0 ? $requested : (int) $storeIds[0];
 
         $site = SmartOrderingSite::query()->where('store_id', $storeId)->firstOrFail();
         $published = $revisions->ensurePublished($site, $actor);
@@ -224,13 +227,12 @@ final class SmartOrderingController extends Controller
         string $permission,
     ): User {
         $actor = $this->actor($request);
-        $tenants->retail(
+        app(RestaurantSaasStoreAccess::class)->assertStore(
             $actor,
             (int) $site->store_id,
-            $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'),
-            $request,
+            $permission,
+            'b2c',
         );
-        abort_unless($actor->hasPermission($permission, (int) $site->store_id), 403);
 
         return $actor;
     }
