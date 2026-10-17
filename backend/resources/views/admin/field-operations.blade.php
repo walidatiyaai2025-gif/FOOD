@@ -241,7 +241,9 @@
                 </article>
             </section>
 
-        @elseif($fieldOperationsSection === 'fleet')
+        @endif
+
+        @if($fieldOperationsSection === 'fleet')
             @include('admin._driver-live-map', [
                 'feedUrl' => $feedUrl,
                 'liveMapMode' => 'full',
@@ -258,7 +260,9 @@
                 ],
             ])
 
-        @elseif($fieldOperationsSection === 'vans')
+        @endif
+
+        @if($fieldOperationsSection === 'vans')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.register_van') }}</strong></summary>
@@ -315,7 +319,9 @@
             </tbody></table></div>
             {{ $vans->links() }}
 
-        @elseif($fieldOperationsSection === 'van-detail')
+        @endif
+
+        @if($fieldOperationsSection === 'van-detail')
             <div class="fieldops-actions"><a href="{{ route('admin.field-operations.vans') }}">← {{ __('field_operations.back_to_vans') }}</a></div>
             <section class="fieldops-grid">
                 <article class="fieldops-card"><h2>{{ __('field_operations.van_identity') }}</h2>
@@ -403,7 +409,9 @@
                 </tbody></table></div>
             </section>
 
-        @elseif($fieldOperationsSection === 'assignments')
+        @endif
+
+        @if($fieldOperationsSection === 'assignments')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.assign_van') }}</strong></summary>
@@ -483,7 +491,9 @@
                 @empty<tr><td colspan="8">{{ __('field_operations.no_assignments') }}</td></tr>@endforelse
             </tbody></table></div>{{ $assignments->links() }}
 
-        @elseif($fieldOperationsSection === 'customers')
+        @endif
+
+        @if($fieldOperationsSection === 'customers')
             <div class="fieldops-card">
                 <strong>{{ __('field_operations.relationship_intro_title') }}</strong>
                 <p class="fieldops-muted">{{ __('field_operations.relationship_intro_body') }}</p>
@@ -522,7 +532,9 @@
             </tbody></table></div>{{ $relationships->links() }}
             <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ __('field_operations.plan_visit_relationship') }}</a></div>
 
-        @elseif($fieldOperationsSection === 'visits')
+        @endif
+
+        @if($fieldOperationsSection === 'visits')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
@@ -562,7 +574,9 @@
             @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $visits->links() }}
 
-        @elseif($fieldOperationsSection === 'territories')
+        @endif
+
+        @if($fieldOperationsSection === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
                 <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
@@ -634,7 +648,9 @@
                 {{ $territoryRows->links() }}
             </section>
 
-        @elseif($fieldOperationsSection === 'address-quality')
+        @endif
+
+        @if($fieldOperationsSection === 'address-quality')
             <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ __('field_operations.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>{{ __('field_operations.status') }}<select name="status"><option value="">{{ __('field_operations.all') }}</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ __('field_operations.review_statuses.'.$st) }}</option>@endforeach</select></label><button class="foodex-primary">{{ __('field_operations.apply') }}</button></form>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
             @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
@@ -658,7 +674,9 @@
             </td></tr>@empty<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $reviews->links() }}
 
-        @elseif($fieldOperationsSection === 'routing')
+        @endif
+
+        @if($fieldOperationsSection === 'routing')
             @if($canManageTerritories)
             <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
@@ -851,7 +869,9 @@
             @if($policies->isEmpty())<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endif
             {{ $policies->links() }}
 
-        @elseif($fieldOperationsSection === 'finance')
+        @endif
+
+        @if($fieldOperationsSection === 'finance')
             @include('admin._field-operations-finance', [
                 'fieldFinance'=>$fieldFinance,
                 'opsRouteName'=>'admin.field-operations.finance',
