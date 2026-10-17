@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\RestaurantSaaS\RestaurantGrowthScaleService;
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
@@ -264,8 +265,12 @@ final class RestaurantGrowthController extends Controller
     ): array {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        $tenants->retail($actor, (int) $site->store_id, $actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access'), $request);
-        abort_unless($actor->hasPermission($permission, (int) $site->store_id), 403);
+        app(RestaurantSaasStoreAccess::class)->assertStore(
+            $actor,
+            (int) $site->store_id,
+            $permission,
+            'b2c',
+        );
         $store = Store::query()->findOrFail($site->store_id);
 
         return [$actor, $store];

@@ -560,7 +560,7 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
 
     private function store(string $type, string $code): int
     {
-        return (int) DB::table('stores')->insertGetId([
+        $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', $type)->value('id'),
             'code' => $code,
             'name' => $code,
@@ -568,6 +568,12 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($type === 'B2C') {
+            $this->enableRestaurantSaasForTestStore($storeId);
+        }
+
+        return $storeId;
     }
 
     private function product(int $storeId, string $channel, string $sku, float $price, float $quantity): int

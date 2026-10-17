@@ -201,6 +201,14 @@ async function assertVisibleActionsInViewport(page, label) {
   }
 }
 
+function restaurantSupportRoute(route, storeId) {
+  if (!route.startsWith('/admin/smart-ordering') || !storeId) return route;
+  const url = new URL(route, baseUrl);
+  url.searchParams.set('support_access', '1');
+  url.searchParams.set('store_id', storeId);
+  return `${url.pathname}${url.search}`;
+}
+
 async function captureResponsiveRoute(page, locale, channel, name, route, options = {}) {
   const representativeViewports = [
     ['desktop-1280', 1280, 900],
@@ -224,7 +232,8 @@ async function captureResponsiveRoute(page, locale, channel, name, route, option
     : (process.env.FOODEX_RESPONSIVE_PROFILE === 'full' ? fullViewports : representativeViewports);
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
-    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    const effectiveRoute = restaurantSupportRoute(route, page.foodexRestaurantSupportStoreId);
+    const response = await page.goto(`${baseUrl}${effectiveRoute}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
     if (!response || !response.ok()) {
       const body = (await page.locator('body').innerText().catch(() => ''))
@@ -744,7 +753,23 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['whatsapp-chatbot-preview', '/admin/whatsapp/chatbot/preview/home'],
   ];
 
-  const smartOrderingSettings = await page.goto(`${baseUrl}/admin/smart-ordering/settings`, { waitUntil: 'networkidle' });
+  const retailStoresResponse = await page.goto(`${baseUrl}/admin/retail-stores`, { waitUntil: 'networkidle' });
+  if (!retailStoresResponse?.ok() || page.url().includes('/login')) {
+    throw new Error(`Unable to resolve explicit Restaurant SaaS support context (${locale})`);
+  }
+  const evidenceRetailStore = page
+    .locator('[data-store-accordion]')
+    .filter({ hasText: 'FOODEX-DEMO-B2C' })
+    .first();
+  const restaurantSupportStoreId = await evidenceRetailStore.getAttribute('data-store-accordion');
+  if (!restaurantSupportStoreId) {
+    throw new Error(`Restaurant SaaS evidence store is missing from Retail Store Provisioning (${locale})`);
+  }
+  page.foodexRestaurantSupportStoreId = restaurantSupportStoreId;
+  const smartOrderingSettings = await page.goto(
+    `${baseUrl}${restaurantSupportRoute('/admin/smart-ordering/settings', restaurantSupportStoreId)}`,
+    { waitUntil: 'networkidle' },
+  );
   if (smartOrderingSettings?.ok() && !page.url().includes('/login')) {
     const supplyHref = await page
       .locator('a[href*="/admin/smart-ordering/sites/"][href*="/supply"]')
@@ -777,7 +802,10 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
 
   await page.setViewportSize({ width: 1440, height: 1080 });
   for (const [name, route] of shellRoutes) {
-    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    const effectiveRoute = route.startsWith('/admin/smart-ordering')
+      ? restaurantSupportRoute(route, restaurantSupportStoreId)
+      : route;
+    const response = await page.goto(`${baseUrl}${effectiveRoute}`, { waitUntil: 'networkidle' });
     if (!response || !response.ok() || page.url().includes('/login')) {
       const failureBody = (await page.locator('body').innerText().catch(() => ''))
         .replace(/\s+/g, ' ')

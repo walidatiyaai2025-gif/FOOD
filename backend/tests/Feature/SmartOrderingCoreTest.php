@@ -60,6 +60,8 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($this->storeId);
+
         $catalogId = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $this->storeId,
             'channel' => 'b2c',
@@ -513,6 +515,8 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($foreignStore);
+
         $foreignSite = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $foreignStore,
@@ -1467,6 +1471,8 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($foreignStoreId);
+
         $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $foreignStoreId,
@@ -1701,6 +1707,8 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($foreignStoreId);
+
         $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $foreignStoreId,
@@ -2091,6 +2099,8 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($foreignStoreId);
+
         $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $foreignStoreId,
