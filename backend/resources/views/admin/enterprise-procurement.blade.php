@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('enterprise_procurement.title') }} · FOODEX</title>
 @include('admin._brand-components')
+<link rel="stylesheet" href="{{ asset('assets/admin/foodex-visualization.css') }}">
 <style>
 .erp-procurement{display:grid;gap:16px}.erp-context{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}.erp-context form{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.erp-context label,.erp-filters label,.erp-form label{display:grid;gap:5px;font-weight:700;font-size:.82rem}.erp-filters,.erp-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:14px}.erp-form .span-2{grid-column:span 2}.erp-form .span-all{grid-column:1/-1}.erp-table-wrap{overflow:auto}.erp-actions{display:flex;gap:6px;flex-wrap:wrap}.erp-actions form{display:inline}.erp-link{display:inline-flex;min-height:38px;align-items:center;padding:0 10px;border-radius:9px;border:1px solid var(--foodex-border);text-decoration:none;font-weight:800}.erp-danger{color:var(--foodex-danger-text)}.erp-detail{display:grid;gap:12px;padding:16px}.erp-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.erp-detail-grid>div{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-lines{display:grid;gap:8px}.erp-line{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(90px,1fr));gap:8px;padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-aging{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.erp-aging>div{padding:14px}.erp-aging strong{display:block;font-size:1.2rem;margin-top:5px}.erp-inline-note{color:var(--foodex-muted);font-size:.82rem}.erp-create{margin:0}.erp-create summary{cursor:pointer;font-weight:900;color:var(--foodex-green-dark);padding:10px 0}.erp-create[open] summary{margin-bottom:8px}.erp-status{white-space:nowrap}.erp-table td,.erp-table th{vertical-align:top}.erp-ref{white-space:nowrap;font-weight:900}.erp-lookup-hint{margin:0;color:var(--foodex-muted)}
 @media(max-width:767px){.erp-form .span-2{grid-column:1/-1}.erp-line{grid-template-columns:1fr}.erp-actions{min-width:180px}}
@@ -15,9 +16,12 @@ $statusLabel=static fn($status)=>__('enterprise_procurement.statuses.'.($status?
 $statusOptions=match($activeTab){
     'suppliers'=>['active','inactive','on_hold'],
     'requests'=>['draft','submitted','approved','rejected','cancelled'],
+    'sourcing'=>['draft','published','evaluating','awarded','cancelled'],
     'orders'=>['draft','issued','cancelled'],
     'receipts','returns'=>['draft','posted','cancelled'],
     'invoices'=>['draft','handed_off','cancelled'],
+    'matching'=>['pending','matched','exception','approved','rejected'],
+    'contracts'=>['draft','active','terminated'],
     default=>[],
 };
 $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
@@ -50,7 +54,11 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 @endforeach
 </nav>
 
-@if($activeTab!=='statements')
+@if($activeTab==='overview' && $dashboard)
+@include('admin._procurement-overview')
+@endif
+
+@if(!in_array($activeTab,['overview','statements','reports'],true))
 <form method="get" class="foodex-card erp-filters">
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="{{ $activeTab }}">
 <label>{{ __('enterprise_procurement.search') }}<input type="search" name="q" value="{{ request('q') }}" maxlength="120"></label>
@@ -93,6 +101,7 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <div class="erp-detail-grid"><div><small>{{ __('enterprise_procurement.code') }}</small><strong>{{ $detail['supplier']->code }}</strong></div><div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ $statusLabel($detail['supplier']->status) }}</strong></div><div><small>{{ __('enterprise_procurement.payment_terms') }}</small><strong>{{ $detail['supplier']->payment_terms_days ?? '—' }}</strong></div><div><small>{{ __('enterprise_procurement.tax_number') }}</small><strong>{{ $detail['supplier']->tax_registration_number ?: '—' }}</strong></div></div>
 <h3>{{ __('enterprise_procurement.documents') }}</h3><div class="erp-lines">@forelse($detail['documents'] as $document)<div class="erp-line"><strong>{{ $document->title }}</strong><span>{{ $document->category }}</span><span>{{ $document->reference ?: '—' }}</span><span>{{ $document->expires_at ?: '—' }}</span></div>@empty<p class="erp-lookup-hint">{{ __('enterprise_procurement.empty') }}</p>@endforelse</div>
 <h3>{{ __('enterprise_procurement.activity') }}</h3><div class="erp-lines">@forelse($detail['activity'] as $event)<div class="erp-line"><strong>{{ $event->event }}</strong><span>{{ $event->created_at }}</span><span>—</span><span>—</span></div>@empty<p class="erp-lookup-hint">{{ __('enterprise_procurement.empty') }}</p>@endforelse</div>
+@include('admin._procurement-supplier-governance')
 </section>@endif
 @endif
 
@@ -183,6 +192,19 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 </form></section>
 @if($aging)<section class="erp-aging">@foreach(['gross_exposure','invoice_count','not_due','due_0_30','due_31_60','due_61_90','due_over_90','no_due_date'] as $metric)<div class="foodex-card"><span>{{ __('enterprise_procurement.'.$metric) }}</span><strong>{{ in_array($metric,['gross_exposure','invoice_count'],true) ? $aging[$metric] : $aging['buckets'][$metric] }}</strong>@if($metric!=='invoice_count')<small>{{ $aging['currency_code'] }}</small>@endif</div>@endforeach</section>@endif
 @if($statement)<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.invoice_number') }}</th><th>{{ __('enterprise_procurement.invoice_date') }}</th><th>{{ __('enterprise_procurement.due_date') }}</th><th>{{ __('enterprise_procurement.total') }}</th><th>{{ __('enterprise_procurement.status') }}</th></tr></thead><tbody>@forelse($statement as $row)<tr><td class="erp-ref">{{ $row->invoice_number }}</td><td>{{ $row->supplier_invoice_number }}</td><td>{{ $row->invoice_date?->toDateString() }}</td><td>{{ $row->due_date?->toDateString() ?? '—' }}</td><td>{{ $row->total_amount }} {{ $row->currency_code }}</td><td>{{ $statusLabel($row->status) }}</td></tr>@empty<tr><td colspan="6"><div class="foodex-empty-state">{{ __('enterprise_procurement.empty') }}</div></td></tr>@endforelse</tbody></table></section>@endif
+@endif
+
+@if($activeTab==='sourcing')
+@include('admin._procurement-sourcing')
+@endif
+@if($activeTab==='matching')
+@include('admin._procurement-matching')
+@endif
+@if($activeTab==='contracts')
+@include('admin._procurement-contracts')
+@endif
+@if($activeTab==='reports')
+@include('admin._procurement-reports')
 @endif
 
 @if($rows && method_exists($rows,'links'))<div>{{ $rows->links() }}</div>@endif
