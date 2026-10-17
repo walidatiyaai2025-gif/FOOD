@@ -935,6 +935,7 @@ final class EnterpriseProcurementController extends Controller
             'invoice_handoff' => 'procurement.purchase_invoices.handoff',
             'return_manage' => 'procurement.purchase_returns.manage',
             'return_post' => 'procurement.purchase_returns.post',
+            'reports_export' => 'reports.export',
         ];
 
         return collect($permissions)
