@@ -39,6 +39,8 @@ return [
         'sso' => 'Enterprise SSO',
         'sessions' => 'Management sessions',
         'audit' => 'Audit explorer',
+        'stale_privilege_window' => '90-day stale privilege review',
+        'risky_delegation_window' => 'Longer than 30 days',
     ],
     'states' => [
         'healthy' => 'Healthy',
