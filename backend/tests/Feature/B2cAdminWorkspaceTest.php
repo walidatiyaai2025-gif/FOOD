@@ -428,7 +428,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('data-b2c-premium="v1"', false)
             ->assertSee('class="foodex-admin-page"', false)
-            ->assertSee('foodex-page-header', false)
+            ->assertSee('foodex-page-toolbar', false)
             ->assertSee('module-card foodex-card', false)
             ->assertSee('module-panel foodex-card', false)
             ->assertSee('.module-table{min-width:760px}', false)

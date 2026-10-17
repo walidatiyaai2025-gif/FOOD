@@ -12,7 +12,7 @@
     $reportBase = array_filter(['store_id'=>$storeId,'warehouse_id'=>$warehouseId]);
 @endphp
 <div class="foodex-module-overview" data-wms-reports>
-    <div class="foodex-page-header">
+    <div class="foodex-page-toolbar">
         <div><h2>{{ __('enterprise_wms.reports.title') }}</h2><p>{{ __('enterprise_wms.reports.subtitle') }}</p></div>
     </div>
 

@@ -40,13 +40,14 @@
         @include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])
     </aside>
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_supply.title') }}</h1>
                 <p>{{ __('smart_ordering_supply.subtitle') }}</p>
             </div>
             <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.smart_ordering_settings') }}</a>
-        </header>
+        </div>
 
         @include('admin._smart-ordering-workspace-nav')
 

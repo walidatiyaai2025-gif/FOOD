@@ -325,7 +325,7 @@ class DashboardUiComplianceTest extends TestCase
             $this->assertStringContainsString('foodex-admin-layout', $view, $viewName);
             $this->assertStringContainsString('foodex-admin-main', $view, $viewName);
             $this->assertStringContainsString('admin._sidebar', $view, $viewName);
-            $this->assertStringContainsString('foodex-page-header', $view, $viewName);
+            $this->assertStringContainsString('foodex-page-toolbar', $view, $viewName);
         }
     }
 

@@ -14,7 +14,7 @@
         "pagination_if_needed"
       ],
       "preferred_primitives": [
-        "foodex-page-header",
+        "foodex-page-toolbar",
         "foodex-ops-toolbar",
         "foodex-ops-grid",
         "foodex-ops-actions",

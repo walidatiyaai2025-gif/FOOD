@@ -20,11 +20,12 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="launch-reset">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page" data-foodex-reset="true">
+@include('admin._global-header')
         @include('admin._admin-center-switcher',['active'=>'settings'])
-        <header class="foodex-page-header">
+        <div class="foodex-page-toolbar">
             <div><h1>{{ __('foodex_reset.title') }}</h1><p>{{ __('foodex_reset.description') }}</p></div>
             <div class="foodex-header-actions"><a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('foodex_reset.back') }}</a></div>
-        </header>
+        </div>
         @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())
             <div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>

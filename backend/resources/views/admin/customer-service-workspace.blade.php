@@ -9,7 +9,7 @@
 .cs-search,.cs-panel{padding:var(--foodex-space-5)}
 .cs-search form,.cs-filter{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
 .cs-search label,.cs-filter label,.cs-form label{display:grid;gap:6px;font-weight:700}
-.cs-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cs-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:12px}
 .cs-kpi{padding:16px;display:grid;gap:5px;text-decoration:none;color:inherit}
 .cs-kpi strong{font-size:1.55rem}.cs-kpi small{color:var(--foodex-muted)}
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -39,14 +39,14 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+        @include('admin._global-header')
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('customer_service_workspace.eyebrow') }}</span>
                 <h1>{{ __('customer_service_workspace.title') }}</h1>
                 <p>{{ __('customer_service_workspace.subtitle') }}</p>
             </div>
-            @include('admin._live-notifications',['user'=>auth()->user()])
-        </header>
+        </div>
 
         <div class="cs-shell">
             @if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif

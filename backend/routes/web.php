@@ -146,6 +146,20 @@ Route::prefix('admin')
             ->defaults('channel', 'b2b')
             ->middleware('throttle:login')
             ->name('b2b.login.store');
+        Route::get('/b2b/login/whatsapp/{challenge}', [AdminLoginController::class, 'showWhatsapp'])
+            ->defaults('channel', 'b2b')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->name('b2b.login.whatsapp');
+        Route::post('/b2b/login/whatsapp/{challenge}', [AdminLoginController::class, 'verifyWhatsapp'])
+            ->defaults('channel', 'b2b')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->middleware('throttle:30,1')
+            ->name('b2b.login.whatsapp.verify');
+        Route::post('/b2b/login/whatsapp/{challenge}/resend', [AdminLoginController::class, 'resendWhatsapp'])
+            ->defaults('channel', 'b2b')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->middleware('throttle:6,1')
+            ->name('b2b.login.whatsapp.resend');
         Route::get('/b2c/login', [AdminLoginController::class, 'show'])
             ->defaults('channel', 'b2c')
             ->name('b2c.login');
@@ -153,6 +167,20 @@ Route::prefix('admin')
             ->defaults('channel', 'b2c')
             ->middleware('throttle:login')
             ->name('b2c.login.store');
+        Route::get('/b2c/login/whatsapp/{challenge}', [AdminLoginController::class, 'showWhatsapp'])
+            ->defaults('channel', 'b2c')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->name('b2c.login.whatsapp');
+        Route::post('/b2c/login/whatsapp/{challenge}', [AdminLoginController::class, 'verifyWhatsapp'])
+            ->defaults('channel', 'b2c')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->middleware('throttle:30,1')
+            ->name('b2c.login.whatsapp.verify');
+        Route::post('/b2c/login/whatsapp/{challenge}/resend', [AdminLoginController::class, 'resendWhatsapp'])
+            ->defaults('channel', 'b2c')
+            ->where('challenge', '[0-9a-fA-F\\-]{36}')
+            ->middleware('throttle:6,1')
+            ->name('b2c.login.whatsapp.resend');
         Route::get('/sso', [AdminSsoController::class, 'redirect'])
             ->middleware('throttle:20,1')
             ->name('sso.redirect');

@@ -28,6 +28,9 @@ return [
         'B2B_DRIVER' => 'B2B Driver',
     ],
     'profile_surface' => [
+        'eyebrow' => 'FOODEX Account',
+        'title' => 'Profile & Permissions',
+        'description' => 'Review your account, effective roles and permissions, and manage password or administration language.',
         'global_roles' => 'Global roles',
         'no_global_roles' => 'No global roles.',
         'store_assignments' => 'Store assignments',

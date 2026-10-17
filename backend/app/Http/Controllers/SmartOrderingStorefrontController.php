@@ -21,6 +21,25 @@ final class SmartOrderingStorefrontController extends Controller
         StorefrontThemeRenderer $renderer,
         SmartOrderingRevisionService $revisions,
     ): Response {
+        $analyticsSite = null;
+        $published = null;
+        if (Schema::hasTable('smart_ordering_sites')) {
+            $analyticsSite = SmartOrderingSite::query()
+                ->where('master_enabled', true)
+                ->where(function ($query) use ($siteKey): void {
+                    $query->where('slug', $siteKey);
+                    if (preg_match('/^[0-9a-fA-F-]{36}$/', $siteKey) === 1) {
+                        $query->orWhere('public_id', $siteKey);
+                    }
+                })
+                ->first();
+
+            if ($analyticsSite instanceof SmartOrderingSite) {
+                $published = $revisions->published($analyticsSite);
+                abort_if($published === null, 404);
+            }
+        }
+
         $provider = app()->bound(StorefrontSnapshotProvider::class)
             ? app(StorefrontSnapshotProvider::class)
             : app(ConfigStorefrontSnapshotProvider::class);
@@ -49,19 +68,6 @@ final class SmartOrderingStorefrontController extends Controller
             fn (): array => $renderer->prepare($snapshot, null, null, $locale, $canonical),
         );
 
-        $analyticsSite = null;
-        if (Schema::hasTable('smart_ordering_sites')) {
-            $analyticsSite = SmartOrderingSite::query()
-                ->where('master_enabled', true)
-                ->where(function ($query) use ($siteKey): void {
-                    $query->where('slug', $siteKey);
-                    if (preg_match('/^[0-9a-fA-F-]{36}$/', $siteKey) === 1) {
-                        $query->orWhere('public_id', $siteKey);
-                    }
-                })
-                ->first();
-        }
-
         $analyticsBranch = null;
         if ($analyticsSite instanceof SmartOrderingSite) {
             $requestedBranch = trim((string) $request->query('branch', ''));
@@ -86,10 +92,6 @@ final class SmartOrderingStorefrontController extends Controller
         $trustedAttribution = $attributionContext !== null && $analyticsSite instanceof SmartOrderingSite
             ? $attribution->serverContext($attributionContext, (int) $analyticsSite->store_id)
             : null;
-        $published = $analyticsSite instanceof SmartOrderingSite
-            ? $revisions->published($analyticsSite)
-            : null;
-
         $prepared['analytics'] = [
             'site_public_id' => $analyticsSite?->public_id,
             'branch_public_id' => $analyticsBranch?->public_id,
@@ -98,7 +100,6 @@ final class SmartOrderingStorefrontController extends Controller
         $prepared['ordering'] = [
             'enabled' => $analyticsSite instanceof SmartOrderingSite
                 && $analyticsBranch !== null
-                && $published !== null
                 && (bool) ($prepared['is_open'] ?? false),
             'site_slug' => $analyticsSite?->slug,
             'branch_public_id' => $analyticsBranch?->public_id,

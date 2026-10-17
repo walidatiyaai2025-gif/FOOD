@@ -54,7 +54,7 @@
         .date-control input{border:0!important;outline:0!important;background:transparent!important;color:var(--foodex-ink);min-height:32px!important;box-shadow:none!important;padding:0!important;font-family:var(--foodex-font-en)}
         .date-control .foodex-filter-action{min-height:36px}
 
-        .kpis{direction:ltr;display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:var(--foodex-space-3)}
+        .kpis{direction:ltr;display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:var(--foodex-space-3)}
         .kpi{min-width:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:var(--foodex-space-4);min-height:140px;box-shadow:var(--foodex-shadow-sm)}
         html[dir=rtl] .kpi{direction:rtl}
         .kpi-head{display:flex;align-items:center;gap:var(--foodex-space-3)}
@@ -135,7 +135,7 @@
         html[dir=ltr] .module-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .module-layout aside{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
         html[dir=ltr] .module-layout main{grid-column:2;direction:ltr}
-        .module-cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}
+        .module-cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}
         .module-card{position:relative;overflow:hidden;min-height:112px;padding:14px!important;display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:10px;align-items:center;background:linear-gradient(145deg,#fff,#fbfcfd)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
         .module-card:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)!important;border-color:#cfe5d6!important}
         .module-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}
@@ -285,11 +285,12 @@
                 @endif
             </form>
             <div class="top-actions">
-                @include('admin._live-notifications')
+                
             </div>
         </header>
 
         <main class="content">
+@include('admin._global-header')
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
@@ -463,7 +464,7 @@
 <div class="module-layout" data-b2c-premium="v1">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-page">
-        <div class="foodex-page-header">
+        <div class="foodex-page-toolbar">
             <div>
                 <div class="empty"><a href="{{ route('admin.index') }}">{{ __('admin.overview') }}</a> / {{ __('admin.b2c_workspace.modules.'.$module) }}</div>
                 <h1>{{ __('admin.b2c_workspace.modules.'.$module) }}</h1>
@@ -486,7 +487,7 @@
                 </form>
                 @endif
             </div>
-            @include('admin._live-notifications')
+            
         </div>
         @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
@@ -500,7 +501,7 @@
                 'inventory'=>'inventory',
             ];
         @endphp
-        <div class="module-cards" style="--foodex-card-columns:{{ min(8,max(1,count($counts))) }}">
+        <div class="module-cards" style="--foodex-card-columns:{{ min(6,max(1,count($counts))) }}">
             @foreach($counts as $key=>$value)
                 <div class="module-card foodex-card">
                     <div class="module-card-copy">

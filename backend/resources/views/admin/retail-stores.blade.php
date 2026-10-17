@@ -57,14 +57,15 @@ $roleLabel = static function ($role): string {
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <div class="foodex-page-toolbar">
             <div>
                 <span class="foodex-subtitle">{{ __('store_channels.provisioning_label') }} · FOODEX · SUPER_ADMIN</span>
                 <h1>{{ __('store_channels.title') }}</h1>
                 <p>{{ __('store_channels.subtitle') }}</p>
             </div>
-            @include('admin._live-notifications',['user'=>auth()->user()])
-        </header>
+            
+        </div>
 
         <div class="store-shell">
             @include('admin._store-channel-operations',['storeChannelDashboard'=>$storeChannelDashboard])

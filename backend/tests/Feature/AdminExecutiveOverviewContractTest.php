@@ -14,8 +14,9 @@ final class AdminExecutiveOverviewContractTest extends TestCase
         $this->assertStringContainsString('@if($activeChannel === null)', $shell);
         $this->assertStringContainsString("@include('admin._executive-overview')", $shell);
         $this->assertStringContainsString("__('admin.shell_ready')", $shell);
-        $this->assertStringContainsString("@include('admin._global-search'", $shell);
-        $this->assertStringContainsString("@include('admin._live-notifications')", $shell);
+        $this->assertStringContainsString("@include('admin._global-header')", $shell);
+        $this->assertStringNotContainsString("@include('admin._global-search'", $shell);
+        $this->assertStringNotContainsString("@include('admin._live-notifications'", $shell);
         $this->assertStringContainsString("@include('admin._sidebar')", $shell);
     }
 

@@ -24,7 +24,7 @@
         {
           "id": "page-header",
           "any": [
-            "foodex-page-header"
+            "foodex-page-toolbar"
           ]
         },
         {
@@ -39,7 +39,7 @@
         "foodex-admin-layout",
         "foodex-admin-main",
         "foodex-admin-page",
-        "foodex-page-header",
+        "foodex-page-toolbar",
         "foodex-card",
         "foodex-tabs",
         "foodex-table",
@@ -191,7 +191,7 @@
   "drift_sources": {
     "dashboard": {
       "backend/resources/views/admin/_brand-components.blade.php": [
-        "foodex-page-header",
+        "foodex-page-toolbar",
         "foodex-ops-actions",
         "foodex-modal",
         "foodex-form",

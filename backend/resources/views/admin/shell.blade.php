@@ -54,27 +54,7 @@
     </aside>
 
     <main class="main">
-        <header class="header foodex-page-header">
-            <div class="header-copy">
-                <p class="eyebrow">{{ __('admin.management_system') }}</p>
-                <h1>{{ $activeChannel ? __($navigation[$activeChannel]['label']) : __('admin.title') }}</h1>
-            </div>
-
-            <div class="header-search" data-foodex-dashboard-header-search>
-                @include('admin._global-search', ['globalSearchVariant' => 'header'])
-            </div>
-
-            <div class="user-card">
-                @include('admin._live-notifications')
-                <strong>{{ $user->name }}</strong>
-                <span>{{ $user->email }}</span>
-                <div class="roles">
-                    @foreach ($roleCodes as $roleCode)
-                        <span class="role foodex-number">{{ $roleCode }}</span>
-                    @endforeach
-                </div>
-            </div>
-        </header>
+        @include('admin._global-header')
 
         @if($activeChannel === null)
             @include('admin._executive-overview')

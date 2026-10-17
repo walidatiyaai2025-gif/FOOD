@@ -6,14 +6,15 @@
 @include('admin._brand-components')
 @include('admin._settings-page-polish')
 <style>
-.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}.rg-form{display:grid;gap:10px}.rg-form label{display:grid;gap:5px}.rg-table{width:100%;border-collapse:collapse}.rg-table th,.rg-table td{padding:9px;border-bottom:1px solid var(--foodex-border);text-align:start}.rg-wrap{overflow:auto}.rg-code{font-family:ui-monospace,monospace;word-break:break-all}.rg-kpis{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px}.rg-kpi{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.rg-kpi strong{display:block;font-size:1.25rem}@media(max-width:767px){.rg-kpis{grid-template-columns:1fr 1fr}.rg-table{min-width:680px}}
+.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px}.rg-form{display:grid;gap:10px}.rg-form label{display:grid;gap:5px}.rg-table{width:100%;border-collapse:collapse}.rg-table th,.rg-table td{padding:9px;border-bottom:1px solid var(--foodex-border);text-align:start}.rg-wrap{overflow:auto}.rg-code{font-family:ui-monospace,monospace;word-break:break-all}.rg-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(120px,1fr));gap:10px}.rg-kpi{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.rg-kpi strong{display:block;font-size:1.25rem}@media(max-width:767px){.rg-kpis{grid-template-columns:1fr 1fr}.rg-table{min-width:680px}}
 </style>
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="restaurant-growth">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor($user),'navContext'=>'smart_ordering','user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-<header class="foodex-page-header"><div><h1>{{ __('restaurant_growth.title') }}</h1><p>{{ __('restaurant_growth.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('restaurant_growth.back') }}</a></header>
+@include('admin._global-header')
+<div class="foodex-page-toolbar"><div><h1>{{ __('restaurant_growth.title') }}</h1><p>{{ __('restaurant_growth.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('restaurant_growth.back') }}</a></div>
 @include('admin._smart-ordering-workspace-nav')
 @if(session('status'))<div class="foodex-alert success">{{ session('status') }}</div>@endif
 @if(session('restaurant_gift_card_code'))<section class="panel"><strong>{{ __('restaurant_growth.one_time_code') }}</strong><div class="rg-code">{{ session('restaurant_gift_card_code') }}</div></section>@endif

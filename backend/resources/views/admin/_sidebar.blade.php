@@ -60,7 +60,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 .foodex-mobile-web-brand{display:inline-flex;align-items:center;min-height:44px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none}
 .foodex-mobile-nav-launcher{width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);color:var(--foodex-green-dark);font:inherit;font-size:20px;cursor:pointer}
 @media(max-width:767px){
-    .foodex-mobile-web-bar{position:fixed;z-index:10110;inset-block-start:0;inset-inline:0;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--foodex-border);box-shadow:0 4px 16px rgba(16,24,40,.05);backdrop-filter:blur(10px)}
+    .foodex-mobile-web-bar{position:fixed;z-index:10120;inset-block-start:6px;inset-inline-start:8px;inset-inline-end:auto;width:44px;height:44px;display:block;padding:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;pointer-events:none}
+    .foodex-mobile-web-bar>.foodex-mobile-nav-launcher{pointer-events:auto}
+    .foodex-mobile-web-brand{display:none!important}
     .foodex-mobile-nav-backdrop{position:fixed;z-index:10090;inset:56px 0 0;display:none;width:100%;height:auto;border:0;background:rgba(15,23,42,.42);padding:0;cursor:pointer}
     body.foodex-mobile-nav-open{overflow:hidden}
     body.foodex-mobile-nav-open .foodex-mobile-nav-backdrop{display:block}
@@ -200,15 +202,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     launcher.setAttribute('aria-controls', shell.id);
     launcher.textContent = '☰';
 
-    const mobileBrand = document.createElement('a');
-    mobileBrand.className = 'foodex-mobile-web-brand';
-    mobileBrand.href = brand?.getAttribute('href') || '#';
-    mobileBrand.textContent = 'FOODEX';
-
-    const spacer = document.createElement('span');
-    spacer.setAttribute('aria-hidden', 'true');
-    spacer.style.width = '44px';
-    bar.append(launcher, mobileBrand, spacer);
+    bar.append(launcher);
 
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
