@@ -1435,7 +1435,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-reservations',
-    '/admin/smart-ordering/operations?tab=reservations',
+    '/admin/smart-ordering?tab=reservations',
     { fullMatrix: true },
   );
   await captureResponsiveRoute(
@@ -1443,7 +1443,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-waitlist',
-    '/admin/smart-ordering/operations?tab=waitlist',
+    '/admin/smart-ordering?tab=waitlist',
     { fullMatrix: true },
   );
   await captureResponsiveRoute(
@@ -1451,7 +1451,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-guest-book',
-    '/admin/smart-ordering/operations?tab=guest_book',
+    '/admin/smart-ordering?tab=guest_book',
     { fullMatrix: true },
   );
   await captureResponsiveRoute(
