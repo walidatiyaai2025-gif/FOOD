@@ -202,6 +202,8 @@ final class SupplierDirectory
      * @return array{
      *     supplier: EnterpriseSupplier,
      *     documents: list<EnterpriseSupplierDocument>,
+     *     contacts: list<\App\Models\EnterpriseSupplierContact>,
+     *     portal_tokens: list<\App\Models\EnterpriseSupplierPortalToken>,
      *     activity: list<AuditLog>
      * }
      */
@@ -220,6 +222,20 @@ final class SupplierDirectory
             ->get()
             ->all();
 
+        $contacts = $supplier->contacts()
+            ->where('is_active', true)
+            ->orderByDesc('is_primary')
+            ->orderBy('name')
+            ->limit(50)
+            ->get()
+            ->all();
+
+        $portalTokens = $supplier->portalTokens()
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get()
+            ->all();
+
         $activity = AuditLog::query()
             ->where('auditable_type', EnterpriseSupplier::class)
             ->where('auditable_id', $supplier->id)
@@ -231,6 +247,8 @@ final class SupplierDirectory
         return [
             'supplier' => $supplier,
             'documents' => $documents,
+            'contacts' => $contacts,
+            'portal_tokens' => $portalTokens,
             'activity' => $activity,
         ];
     }
