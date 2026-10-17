@@ -6,6 +6,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\GoodsReceiptManager;
+use App\Enterprise\Procurement\ProcurementMatchManager;
 use App\Enterprise\Procurement\PurchaseInvoiceHandoffManager;
 use App\Enterprise\Procurement\PurchaseOrderManager;
 use App\Enterprise\Procurement\PurchaseRequestManager;
@@ -97,6 +98,53 @@ final class EnterprisePurchaseInvoiceHandoffFoundationTest extends TestCase
                 ->where('auditable_id', $invoice->id)
                 ->count(),
         );
+    }
+
+    public function test_three_way_price_exception_blocks_handoff_until_explicit_approval(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'PINV-MATCH');
+        [, $warehouse] = $this->stockTarget($store, 'PINV-MATCH-SKU');
+        $receipt = $this->postedReceipt($actor, $context, $warehouse, 'PINV-MATCH-SUP', 'PINV-MATCH-SKU', 2);
+        $line = $receipt->lines()->firstOrFail();
+        $invoices = app(PurchaseInvoiceHandoffManager::class);
+
+        $invoice = $invoices->createFromPostedReceipt($actor, $context, $receipt->id, [
+            'supplier_invoice_number' => 'SUP-INV-MATCH',
+            'invoice_date' => '2026-10-17',
+            'lines' => [[
+                'goods_receipt_line_id' => $line->id,
+                'quantity' => 2,
+                'unit_price' => 1.500,
+            ]],
+        ]);
+
+        try {
+            $invoices->handoff($actor, $context, $invoice->id);
+            $this->fail('Price variance must block Finance handoff until reviewed.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('match', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('enterprise_procurement_match_reviews', [
+            'purchase_invoice_id' => $invoice->id,
+            'status' => 'exception',
+        ]);
+
+        app(ProcurementMatchManager::class)->decide(
+            $actor,
+            $context,
+            $invoice->id,
+            'approve',
+            'Approved supplier price variance',
+        );
+
+        $handedOff = $invoices->handoff($actor, $context, $invoice->id);
+        $this->assertSame('handed_off', $handedOff->status);
+        $this->assertDatabaseHas('enterprise_procurement_match_reviews', [
+            'purchase_invoice_id' => $invoice->id,
+            'status' => 'approved',
+        ]);
     }
 
     public function test_posted_returns_reduce_net_invoiceable_quantity(): void
