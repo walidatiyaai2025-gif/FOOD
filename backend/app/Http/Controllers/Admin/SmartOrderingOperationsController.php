@@ -190,9 +190,6 @@ final class SmartOrderingOperationsController extends Controller
             })->all();
         }
 
-        $locale = in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar';
-        app()->setLocale($locale);
-
         return view('admin.smart-ordering-operations', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
