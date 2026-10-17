@@ -264,6 +264,9 @@ return [
             'kpis' => [
                 'campaigns' => 'الحملات',
                 'whatsapp_campaigns' => 'حملات واتساب',
+                'active' => 'الحملات النشطة',
+                'scheduled' => 'الحملات المجدولة',
+                'completed' => 'الحملات المكتملة',
                 'recipients' => 'المستلمون',
                 'sent' => 'واتساب: مُرسل',
                 'delivered' => 'واتساب: تم التسليم',
