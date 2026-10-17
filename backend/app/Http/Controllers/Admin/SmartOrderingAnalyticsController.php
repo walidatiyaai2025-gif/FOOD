@@ -63,7 +63,7 @@ final class SmartOrderingAnalyticsController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
-            'navContext' => 'smart_ordering_analytics',
+            'navContext' => 'smart_ordering',
         ]);
     }
 
