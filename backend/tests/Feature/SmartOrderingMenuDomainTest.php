@@ -652,6 +652,13 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->latest('id')
             ->firstOrFail();
         $this->assertSame($published->id, (int) $privateDraft->parent_revision_id);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('Public menu is unpublished');
+
+        $this->assertNull($revisions->published($fixture['site']->fresh()));
     }
 
     /** @return array{draft:SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */
