@@ -35,6 +35,10 @@ final class EnterpriseBiScheduleController extends Controller
             'dimensions.*' => ['string', 'max:80'],
             'measures' => ['required', 'array', 'min:1', 'max:12'],
             'measures.*' => ['string', 'max:80'],
+            'filters' => ['nullable', 'array', 'max:10'],
+            'filters.*' => ['nullable', 'string', 'max:120'],
+            'sort_field' => ['nullable', 'string', 'max:80'],
+            'sort_direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'interval_minutes' => ['required', 'integer', 'min:15', 'max:525600'],
             'next_run_at' => ['required', 'date'],
         ]);
@@ -49,6 +53,13 @@ final class EnterpriseBiScheduleController extends Controller
             'dimensions' => array_values((array) ($validated['dimensions'] ?? [])),
             'measures' => array_values((array) $validated['measures']),
             'group_by' => array_values((array) ($validated['dimensions'] ?? [])),
+            'filters' => array_filter((array) ($validated['filters'] ?? []), static fn (mixed $value): bool => $value !== null && $value !== ''),
+            'sort' => isset($validated['sort_field']) && trim((string) $validated['sort_field']) !== ''
+                ? [[
+                    'field' => (string) $validated['sort_field'],
+                    'direction' => (string) ($validated['sort_direction'] ?? 'asc'),
+                ]]
+                : [],
             'per_page' => min(25, $report->maxPageSize),
         ]);
 
