@@ -55,6 +55,12 @@ return [
         'to' => 'إلى',
         'hours' => 'ساعات',
         'approval' => 'الاعتماد',
+        'view' => 'عرض',
+        'active' => 'نشط',
+        'inactive' => 'غير نشط',
+        'days' => 'أيام',
+        'count' => 'العدد',
+        'not_available' => 'غير متاح',
     ],
     'overview' => [
         'title' => 'المخزون المعتمد',
@@ -213,6 +219,12 @@ return [
         'approval_note' => 'الاعتماد لا ينشئ أمر شراء تلقائيًا؛ يفتح مسار المشتريات المعتمد فقط.',
         'healthy' => 'لا حاجة لإعادة الطلب',
         'reorder' => 'إعادة طلب مقترحة',
+        'confidence_levels' => [
+            'high' => 'مرتفعة',
+            'medium' => 'متوسطة',
+            'low' => 'منخفضة',
+            'policy' => 'حسب السياسة',
+        ],
         'lead_sources' => [
             'product_history' => 'سجل المنتج',
             'store_history' => 'سجل المتجر',
