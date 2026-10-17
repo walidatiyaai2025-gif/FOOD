@@ -1752,6 +1752,15 @@ class SmartOrderingCoreTest extends TestCase
             ->assertRedirect();
 
         $this->actingAs($staff)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'workforce',
+                'branch' => $this->branch->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Clock Team Member')
+            ->assertDontSee('Smart Ordering Admin');
+
+        $this->actingAs($staff)
             ->post(route('admin.smart-ordering.workforce.clock', $this->branch->public_id), [
                 'action' => 'clock_in',
             ])
@@ -1801,6 +1810,18 @@ class SmartOrderingCoreTest extends TestCase
             'id' => $session->id,
             'status' => 'CLOSED',
         ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.workforce.sessions.correct', [
+                $this->branch->public_id,
+                $session->public_id,
+            ]), [
+                'clocked_in_at' => '2026-10-18T10:00',
+                'clocked_out_at' => '2026-10-18T18:00',
+                'total_break_minutes' => 600,
+                'reason' => 'Invalid correction must be rejected.',
+            ])
+            ->assertSessionHasErrors('total_break_minutes');
 
         $this->actingAs($admin)
             ->put(route('admin.smart-ordering.workforce.sessions.correct', [
