@@ -386,8 +386,15 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertSee('#'.$retailOrder)
-            ->assertDontSee('#'.$wholesaleOrder)
+            ->assertViewHas('rows', function (array $rows) use ($retailOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$retailOrder];
+            })
+            ->assertSee('OPS-ALL-RETAIL-1001')
+            ->assertDontSee('OPS-ALL-WHOLESALE-2001')
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Customer checkout')
             ->assertDontSee('customer_checkout');
@@ -395,8 +402,15 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertSee('#'.$wholesaleOrder)
-            ->assertDontSee('#'.$retailOrder)
+            ->assertViewHas('rows', function (array $rows) use ($wholesaleOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$wholesaleOrder];
+            })
+            ->assertSee('OPS-ALL-WHOLESALE-2001')
+            ->assertDontSee('OPS-ALL-RETAIL-1001')
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Dashboard');
 
