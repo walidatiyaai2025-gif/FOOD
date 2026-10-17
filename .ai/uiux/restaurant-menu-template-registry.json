@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "authority": "docs/design-reference/RESTAURANT_MENU_TEMPLATE_LIBRARY.md",
+  "default_template": "modern-minimal",
+  "templates": [
+    {
+      "id": "fine-dining-elegant-light",
+      "version": 1,
+      "tone": "quiet-luxury-light",
+      "dark": false,
+      "layout": "editorial-list",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "chef_note",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    },
+    {
+      "id": "fine-dining-dark-luxury",
+      "version": 1,
+      "tone": "cinematic-luxury-dark",
+      "dark": true,
+      "layout": "featured-editorial",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "chef_note",
+        "tasting",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    },
+    {
+      "id": "contemporary-bistro",
+      "version": 1,
+      "tone": "approachable-energetic",
+      "dark": false,
+      "layout": "thumbnail-grid",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    },
+    {
+      "id": "premium-arabic-dining",
+      "version": 1,
+      "tone": "arabic-premium-hospitality",
+      "dark": false,
+      "layout": "rtl-first-editorial",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "chef_note",
+        "tasting",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    },
+    {
+      "id": "modern-minimal",
+      "version": 1,
+      "tone": "content-first-minimal",
+      "dark": false,
+      "layout": "minimal-list",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    },
+    {
+      "id": "chef-tasting",
+      "version": 1,
+      "tone": "course-led-editorial",
+      "dark": false,
+      "layout": "course-timeline",
+      "supports": [
+        "hero",
+        "categories",
+        "featured",
+        "chef_note",
+        "tasting",
+        "beverages",
+        "desserts",
+        "hours",
+        "contact",
+        "reservation_cta"
+      ]
+    }
+  ],
+  "required_locales": [
+    "ar",
+    "en"
+  ],
+  "required_widths": [
+    320,
+    360,
+    390,
+    412,
+    430,
+    768,
+    1024,
+    1280
+  ],
+  "required_states": [
+    "demo",
+    "draft_preview",
+    "published",
+    "unpublished",
+    "loading",
+    "empty",
+    "sold_out",
+    "media_missing",
+    "error",
+    "stale_safe"
+  ],
+  "shared_content_sections": [
+    "identity",
+    "hero",
+    "category_navigation",
+    "category",
+    "dish",
+    "featured",
+    "chef_note",
+    "tasting",
+    "beverages",
+    "desserts",
+    "hours",
+    "location_contact",
+    "reservation_contact_cta",
+    "allergen_note"
+  ]
+}
