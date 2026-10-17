@@ -526,6 +526,262 @@ final class EnterpriseProcurementController extends Controller
         return $this->backTo('returns', $storeId)->with('status', __('enterprise_procurement.flash.return_cancelled'));
     }
 
+    public function addSupplierContact(Request $request, int $supplier): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->collaboration->addContact($actor, $context, $supplier, $request->only([
+            'name', 'role', 'email', 'phone', 'is_primary',
+        ]));
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.supplier_contact_created'));
+    }
+
+    public function updateSupplierQualification(Request $request, int $supplier): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->collaboration->updateQualification($actor, $context, $supplier, $request->only([
+            'qualification_status', 'default_lead_time_days', 'performance_tier',
+        ]));
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.supplier_qualification_updated'));
+    }
+
+    public function setSupplierBlocked(Request $request, int $supplier): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            'blocked' => ['required', 'boolean'],
+            'reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $this->collaboration->setBlocked(
+            $actor,
+            $context,
+            $supplier,
+            (bool) $data['blocked'],
+            $data['reason'] ?? null,
+        );
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.supplier_state_updated'));
+    }
+
+    public function issueSupplierPortalToken(Request $request, int $supplier): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $issued = $this->collaboration->issuePortalToken($actor, $context, $supplier, $request->only([
+            'expires_at', 'capabilities',
+        ]));
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.portal_token_issued'))
+            ->with('procurement_portal_token', $issued['plain_token']);
+    }
+
+    public function revokeSupplierPortalToken(
+        Request $request,
+        int $supplier,
+        int $portalToken,
+    ): RedirectResponse {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->collaboration->revokePortalToken($actor, $context, $supplier, $portalToken);
+
+        return $this->backTo('suppliers', $storeId, ['supplier' => $supplier])
+            ->with('status', __('enterprise_procurement.flash.portal_token_revoked'));
+    }
+
+    public function createRfq(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $rfq = $this->sourcing->createRfq($actor, $context, $request->only([
+            'purchase_request_id', 'title', 'closes_at', 'notes', 'supplier_ids',
+        ]));
+
+        return $this->backTo('sourcing', $storeId, ['rfq' => $rfq->id])
+            ->with('status', __('enterprise_procurement.flash.rfq_created'));
+    }
+
+    public function publishRfq(Request $request, int $rfq): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->sourcing->publishRfq($actor, $context, $rfq);
+
+        return $this->backTo('sourcing', $storeId, ['rfq' => $rfq])
+            ->with('status', __('enterprise_procurement.flash.rfq_published'));
+    }
+
+    public function cancelRfq(Request $request, int $rfq): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->sourcing->cancelRfq($actor, $context, $rfq);
+
+        return $this->backTo('sourcing', $storeId)
+            ->with('status', __('enterprise_procurement.flash.rfq_cancelled'));
+    }
+
+    public function recordRfqQuote(Request $request, int $rfq): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->sourcing->recordQuote($actor, $context, $rfq, $request->only([
+            'supplier_id', 'supplier_reference', 'lead_time_days', 'valid_until', 'notes', 'lines',
+        ]));
+
+        return $this->backTo('sourcing', $storeId, ['rfq' => $rfq])
+            ->with('status', __('enterprise_procurement.flash.quote_recorded'));
+    }
+
+    public function awardRfq(Request $request, int $rfq, int $quote): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $order = $this->sourcing->awardRfq($actor, $context, $rfq, $quote);
+
+        return $this->backTo('orders', $storeId, ['order' => $order->id])
+            ->with('status', __('enterprise_procurement.flash.rfq_awarded'));
+    }
+
+    public function createContract(Request $request): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $contract = $this->sourcing->createContract($actor, $context, $request->only([
+            'supplier_id', 'title', 'currency_code', 'valid_from', 'valid_to',
+            'ceiling_amount', 'ceiling_quantity', 'notes',
+        ]));
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract->id])
+            ->with('status', __('enterprise_procurement.flash.contract_created'));
+    }
+
+    public function activateContract(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->sourcing->activateContract($actor, $context, $contract);
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_activated'));
+    }
+
+    public function terminateContract(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:2000']]);
+        $this->sourcing->terminateContract($actor, $context, $contract, (string) $data['reason']);
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_terminated'));
+    }
+
+    public function registerContractDocument(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $this->sourcing->registerContractDocument(
+            $actor,
+            $context,
+            $contract,
+            $request->only(['title', 'reference', 'expires_at']),
+        );
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_document_registered'));
+    }
+
+    public function attachContractOrder(Request $request, int $contract): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate(['purchase_order_id' => ['required', 'integer', 'min:1']]);
+        $this->sourcing->attachOrder(
+            $actor,
+            $context,
+            $contract,
+            (int) $data['purchase_order_id'],
+        );
+
+        return $this->backTo('contracts', $storeId, ['contract' => $contract])
+            ->with('status', __('enterprise_procurement.flash.contract_order_attached'));
+    }
+
+    public function refreshMatch(Request $request, int $purchaseInvoice): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            'tolerance_percent' => ['nullable', 'numeric', 'min:0', 'max:25'],
+        ]);
+        $this->matching->refresh(
+            $actor,
+            $context,
+            $purchaseInvoice,
+            (float) ($data['tolerance_percent'] ?? 0.5),
+        );
+
+        return $this->backTo('matching', $storeId, ['invoice' => $purchaseInvoice])
+            ->with('status', __('enterprise_procurement.flash.match_refreshed'));
+    }
+
+    public function decideMatch(Request $request, int $purchaseInvoice): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject'])],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $this->matching->decide(
+            $actor,
+            $context,
+            $purchaseInvoice,
+            (string) $data['decision'],
+            $data['note'] ?? null,
+        );
+
+        return $this->backTo('matching', $storeId, ['invoice' => $purchaseInvoice])
+            ->with('status', __('enterprise_procurement.flash.match_decided'));
+    }
+
+    public function queueReportExport(Request $request, string $report): RedirectResponse
+    {
+        [$actor, $context, $storeId] = $this->mutationContext($request);
+        abort_unless(in_array($report, ProcurementAnalyticsService::REPORT_CODES, true), 404);
+
+        $codes = [
+            'open_po' => 'procurement.open_pos',
+            'spend' => 'procurement.spend',
+            'supplier_performance' => 'procurement.supplier_performance',
+            'savings' => 'procurement.savings',
+            'contract_expiry' => 'procurement.contract_expiry',
+            'match_exceptions' => 'procurement.match_exceptions',
+        ];
+        $reportCode = $codes[$report];
+        $definition = $this->reportRegistry->require($reportCode);
+        $current = $this->analytics->report($actor, $context, $report, [
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+        ]);
+        $from = (string) $current['summary']['from'];
+        $to = (string) $current['summary']['to'];
+        if ($definition->maxRangeDays === 1) {
+            $from = $to = now()->toDateString();
+        }
+
+        $queued = $this->reportExecutor->requestExport(
+            $actor,
+            $reportCode,
+            [
+                'from' => $from,
+                'to' => $to,
+                'dimensions' => $definition->dimensions,
+                'measures' => $definition->measures,
+                'group_by' => $definition->dimensions,
+            ],
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+            (int) $current['summary']['row_count'],
+            $request->input('idempotency_key'),
+        );
+
+        return $this->backTo('reports', $storeId, ['report' => $report, 'from' => $from, 'to' => $to])
+            ->with('status', __('enterprise_procurement.flash.report_export_queued', [
+                'id' => $queued['export_id'],
+            ]));
+    }
+
     /** @return array{User,ResolvedTenantContext,int} */
     private function mutationContext(Request $request): array
     {
