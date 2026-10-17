@@ -42,8 +42,13 @@
         .fieldops-section-nav{display:flex;gap:8px;flex-wrap:wrap}
         .fieldops-section-nav a{padding:8px 11px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;background:#fff}
         .fieldops-coverage-map{height:430px;min-height:320px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);overflow:hidden;background:#eef2f5}
-        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    </style>
+        .fieldops-filterbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;align-items:end}
+        .fieldops-filterbar label{display:grid;gap:6px;font-weight:700;font-size:.82rem}.fieldops-filterbar input,.fieldops-filterbar select{width:100%}
+        .fieldops-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+        .fieldops-chart{display:grid;gap:9px}.fieldops-bar-row{display:grid;grid-template-columns:minmax(92px,1.2fr) 3fr auto;gap:10px;align-items:center}
+        .fieldops-bar-track{height:10px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.fieldops-bar-fill{height:100%;background:var(--foodex-primary,#111827);border-radius:inherit}
+        .fieldops-exception-type{font-weight:800}.fieldops-kpi[data-alert="true"]{border-color:var(--foodex-red)}
+        @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}\n        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}\n    </style>
 </head>
 <body>
 <div class="foodex-admin-layout" data-field-operations-page="{{ $section }}">
@@ -74,33 +79,142 @@
         @if($section === 'overview')
             @php
                 $s = $summary ?? [];
+                $d = $dashboard ?? ['kpis'=>[],'location_health'=>[],'daily'=>[],'status_breakdown'=>[],'van_workload'=>[],'territory_productivity'=>[],'failed_reasons'=>[],'remittance_trend'=>[],'exceptions'=>[],'period'=>[]];
+                $dk = $d['kpis'] ?? [];
+                $maxDaily = max(1, (int) collect($d['daily'] ?? [])->max('deliveries'));
+                $maxStatus = max(1, (int) collect($d['status_breakdown'] ?? [])->max('deliveries'));
+                $maxWorkload = max(1, (int) collect($d['van_workload'] ?? [])->max('deliveries'));
+                $maxTerritory = max(1, (int) collect($d['territory_productivity'] ?? [])->max('deliveries'));
+                $maxFailure = max(1, (int) collect($d['failed_reasons'] ?? [])->max('failures'));
             @endphp
-            <section class="fieldops-kpis">
+            <section class="fieldops-card" data-field-operations-dashboard data-dashboard-generated-at="{{ $d['generated_at'] ?? '' }}">
+                <form method="get" action="{{ route('admin.field-operations.overview') }}" class="fieldops-filterbar" data-field-operations-filters>
+                    <label>{{ __('field_operations.dashboard.from') }}<input type="date" name="from" value="{{ $dashboardFilters['from'] ?? '' }}"></label>
+                    <label>{{ __('field_operations.dashboard.to') }}<input type="date" name="to" value="{{ $dashboardFilters['to'] ?? '' }}"></label>
+                    <label>{{ __('field_operations.dashboard.store') }}
+                        <select name="store_id">
+                            <option value="">{{ __('field_operations.dashboard.all_authorized_stores') }}</option>
+                            @foreach($dashboardStores ?? [] as $dashboardStore)
+                                <option value="{{ $dashboardStore->id }}" @selected((string)($dashboardFilters['store_id'] ?? '') === (string)$dashboardStore->id)>{{ $dashboardStore->name }} · {{ $dashboardStore->code }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <div class="fieldops-actions">
+                        <button class="foodex-primary" type="submit">{{ __('field_operations.dashboard.apply') }}</button>
+                        <a href="{{ route('admin.field-operations.overview') }}">{{ __('field_operations.dashboard.reset') }}</a>
+                        @if($overviewVisibility['reports'] ?? false)
+                            <a href="{{ route('admin.reports.index', array_filter(['report'=>'field_operations','channel'=>'b2b','from'=>$dashboardFilters['from'] ?? null,'to'=>$dashboardFilters['to'] ?? null,'store_id'=>$dashboardFilters['store_id'] ?? null])) }}">{{ __('field_operations.dashboard.open_report') }}</a>
+                        @endif
+                    </div>
+                </form>
+                <p class="fieldops-muted">{{ __('field_operations.dashboard.scope_help') }} · {{ $d['period']['timezone'] ?? 'Asia/Kuwait' }} · {{ __('field_operations.dashboard.generated_at') }} {{ $d['generated_at'] ?? '—' }}</p>
+            </section>
+
+            <section class="fieldops-kpis" data-field-operations-kpis>
                 @foreach([
-                    ['active_vans',__('field_operations.overview.active_vans')],
-                    ['suspended_vans',__('field_operations.overview.suspended_vans')],
-                    ['assigned_vans',__('field_operations.overview.assigned_vans')],
-                    ['unassigned_vans',__('field_operations.overview.unassigned_vans')],
-                    ['operators',__('field_operations.overview.operators')],
-                    ['customers_served',__('field_operations.overview.customers_served')],
-                    ['active_visits',__('field_operations.overview.active_visits')],
-                    ['completed_visits',__('field_operations.overview.completed_visits')],
-                    ['no_order_visits',__('field_operations.overview.no_order_visits')],
-                    ['territories',__('field_operations.overview.territories')],
-                    ['unresolved_addresses',__('field_operations.overview.unresolved_addresses')],
-                    ['pending_remittances',__('field_operations.overview.pending_remittances')],
-                ] as [$key,$label])
-                    <article class="fieldops-card fieldops-kpi"><strong>{{ number_format((int)($s[$key] ?? 0)) }}</strong><small>{{ $label }}</small></article>
+                    ['active_vans', __('field_operations.dashboard.kpis.active_vans'), false],
+                    ['active_drivers', __('field_operations.dashboard.kpis.active_drivers'), false],
+                    ['assigned_deliveries', __('field_operations.dashboard.kpis.assigned_deliveries'), false],
+                    ['in_transit_deliveries', __('field_operations.dashboard.kpis.in_transit_deliveries'), false],
+                    ['late_deliveries', __('field_operations.dashboard.kpis.late_deliveries'), true],
+                    ['unassigned_orders', __('field_operations.dashboard.kpis.unassigned_orders'), true],
+                    ['failed_returned_deliveries', __('field_operations.dashboard.kpis.failed_returned_deliveries'), true],
+                    ['route_sla_percent', __('field_operations.dashboard.kpis.route_sla_percent'), false],
+                    ['fleet_utilization_percent', __('field_operations.dashboard.kpis.fleet_utilization_percent'), false],
+                    ['pending_remittances', __('field_operations.dashboard.kpis.pending_remittances'), true],
+                    ['stale_location_signals', __('field_operations.dashboard.kpis.stale_location_signals'), true],
+                ] as [$key,$label,$alert])
+                    @php($value = $dk[$key] ?? null)
+                    <article class="fieldops-card fieldops-kpi" data-foodex-module-kpi="{{ $key }}" data-alert="{{ $alert && (float)($value ?? 0) > 0 ? 'true' : 'false' }}">
+                        <strong>{{ $value === null ? '—' : (str_ends_with($key, '_percent') ? number_format((float)$value, 1).'%' : number_format((int)$value)) }}</strong>
+                        <small>{{ $label }}</small>
+                    </article>
                 @endforeach
             </section>
-            <section class="fieldops-grid">
+
+            <section class="fieldops-dashboard-grid" data-field-operations-analytics>
                 <article class="fieldops-card">
-                    <h2>{{ __('field_operations.overview.fleet_health') }}</h2>
-                    @foreach(['online'=>__('field_operations.overview.online'),'stale'=>__('field_operations.overview.stale'),'offline'=>__('field_operations.overview.offline')] as $key=>$label)
-                        <div class="control-row"><span>{{ $label }}</span><strong>{{ (int)($s['location_health'][$key] ?? 0) }}</strong></div>
-                    @endforeach
-                    @if($overviewVisibility['tracking'] ?? false)<div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ __('field_operations.overview.open_map') }}</a></div>@endif
+                    <h2>{{ __('field_operations.dashboard.delivery_trend') }}</h2>
+                    <div class="fieldops-chart">
+                        @forelse($d['daily'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['day'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxDaily) * 100, 1)) }}%"></div></div><strong>{{ number_format((int)$row['deliveries']) }}</strong></div>
+                        @empty<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endforelse
+                    </div>
                 </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.delivery_status') }}</h2>
+                    <div class="fieldops-chart">
+                        @forelse($d['status_breakdown'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ __('field_operations.dashboard.statuses.'.$row['status']) }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxStatus) * 100, 1)) }}%"></div></div><strong>{{ number_format((int)$row['deliveries']) }}</strong></div>
+                        @empty<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endforelse
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.van_workload') }}</h2>
+                    <div class="fieldops-chart">
+                        @forelse($d['van_workload'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><a href="{{ route('admin.field-operations.vans.show',$row['van_id']) }}">{{ $row['van'] }}</a><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxWorkload) * 100, 1)) }}%"></div></div><strong>{{ $row['completed'] }}/{{ $row['deliveries'] }}</strong></div>
+                        @empty<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endforelse
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.territory_productivity') }}</h2>
+                    <div class="fieldops-chart">
+                        @forelse($d['territory_productivity'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['territory'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxTerritory) * 100, 1)) }}%"></div></div><strong>{{ $row['deliveries'] }}</strong></div>
+                        @empty<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endforelse
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.failed_reasons') }}</h2>
+                    <div class="fieldops-chart">
+                        @forelse($d['failed_reasons'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['reason'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['failures'] / $maxFailure) * 100, 1)) }}%"></div></div><strong>{{ $row['failures'] }}</strong></div>
+                        @empty<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_failures') }}</div>@endforelse
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.location_health') }}</h2>
+                    @foreach(['online','stale','offline'] as $health)
+                        <div class="control-row"><span>{{ __('field_operations.overview.'.$health) }}</span><strong>{{ number_format((int)($d['location_health'][$health] ?? 0)) }}</strong></div>
+                    @endforeach
+                    <div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ __('field_operations.overview.open_map') }}</a></div>
+                </article>
+            </section>
+
+            <section class="fieldops-card" data-field-operations-exceptions>
+                <div class="fieldops-header">
+                    <div><h2>{{ __('field_operations.dashboard.exception_queue') }}</h2><p>{{ __('field_operations.dashboard.exception_help') }}</p></div>
+                    <div class="fieldops-actions">
+                        <a href="{{ route('admin.field-operations.routing') }}">{{ __('field_operations.dashboard.routing_policies') }}</a>
+                        <a href="{{ route('admin.field-operations.territories') }}">{{ __('field_operations.dashboard.territories') }}</a>
+                        @if($overviewVisibility['address'] ?? false)<a href="{{ route('admin.field-operations.address-quality') }}">{{ __('field_operations.dashboard.address_exceptions') }}</a>@endif
+                    </div>
+                </div>
+                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr>
+                    <th>{{ __('field_operations.dashboard.exception_type') }}</th><th>{{ __('field_operations.dashboard.reference') }}</th><th>{{ __('field_operations.dashboard.detail') }}</th><th>{{ __('field_operations.dashboard.occurred_at') }}</th><th>{{ __('field_operations.action') }}</th>
+                </tr></thead><tbody>
+                @forelse($d['exceptions'] ?? [] as $exception)
+                    <tr data-field-operations-exception="{{ $exception['type'] }}">
+                        <td class="fieldops-exception-type">{{ __('field_operations.dashboard.exceptions.'.$exception['type']) }}</td>
+                        <td>{{ $exception['reference'] }}</td>
+                        <td>{{ $exception['detail'] ?: '—' }}</td>
+                        <td>{{ $exception['occurred_at'] ?: '—' }}</td>
+                        <td>
+                            @if($exception['van_id'])
+                                <a href="{{ route('admin.field-operations.vans.show',$exception['van_id']) }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @elseif($exception['type'] === 'pending_remittance')
+                                <a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @else
+                                <a href="{{ route('admin.operations.orders.index',['channel'=>'b2b']) }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @endif
+                        </td>
+                    </tr>
+                @empty<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.dashboard.no_exceptions') }}</div></td></tr>@endforelse
+                </tbody></table></div>
+            </section>
+
+            <section class="fieldops-grid">
                 <article class="fieldops-card">
                     <h2>{{ __('field_operations.overview.custody') }}</h2>
                     <strong style="font-size:1.8rem">{{ \App\Support\DisplayNumber::money((float)($s['outstanding_collections'] ?? 0), 'EGP') }}</strong>
