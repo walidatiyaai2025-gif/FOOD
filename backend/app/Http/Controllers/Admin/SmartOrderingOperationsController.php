@@ -18,7 +18,6 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -38,11 +37,6 @@ final class SmartOrderingOperationsController extends Controller
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
-        $sessionLocale = (string) $request->session()->get('admin_login_locale', '');
-        $locale = in_array($sessionLocale, ['ar', 'en'], true)
-            ? $sessionLocale
-            : (in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
-        App::setLocale($locale);
 
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'])],
@@ -203,7 +197,7 @@ final class SmartOrderingOperationsController extends Controller
             'paymentPaginator' => $paymentPaginator,
             'paymentRows' => $paymentRows,
             'paymentProviderOptions' => $paymentProviderOptions,
-            'isAr' => $locale === 'ar',
+            'isAr' => app()->getLocale() === 'ar',
             'timezoneOptions' => $this->timezoneOptions(),
         ]);
     }
