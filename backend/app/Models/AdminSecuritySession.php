@@ -22,7 +22,7 @@ final class AdminSecuritySession extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $session): void {
+        self::creating(function (self $session): void {
             $session->public_id ??= (string) Str::uuid();
         });
     }
