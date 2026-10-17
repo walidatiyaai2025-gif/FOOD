@@ -86,6 +86,7 @@ return [
         'failed' => 'فشل',
         'not_required' => 'غير مطلوب',
         'available' => 'متاح',
+        'partial' => 'جزئي',
         'not_created' => 'لم يتم الإنشاء',
         'succeeded' => 'نجح',
         'incomplete' => 'غير مكتمل',
