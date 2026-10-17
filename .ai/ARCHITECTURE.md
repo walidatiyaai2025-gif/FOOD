@@ -90,6 +90,7 @@ Durable invariants:
 - reuse canonical FOODEX tenant/store, menu, order, payment, customer and SmartOrdering truth rather than creating V2 engines;
 - model Organization -> Brand -> Location as a control-plane hierarchy mapped to existing authoritative entities;
 - every optional restaurant module is entitlement-controlled, dependency-declared and safely disableable without deleting data or breaking unrelated modules;
+- Restaurant SaaS is a B2C Retail Store client capability: an explicit `STORE:smart_ordering` enterprise entitlement is the master switch; missing/OFF hides operator navigation and fails closed across admin/public runtime while preserving restaurant data, and Super Admin manages the switch from Retail Store Provisioning rather than using Restaurant SaaS as a platform operating module;
 - public restaurant/menu reads are versioned/cache-friendly and must respect the cPanel performance contract;
 - SaaS commercial lifecycle (plans, subscriptions, trials, billing/dunning, onboarding and offboarding) is a first-class platform concern;
 - restaurant operations modules (tables/reservations/KDS/workforce/inventory/integrations) consume shared Enterprise Core registry/entitlements/events/workflow/health contracts.
