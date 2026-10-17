@@ -160,4 +160,152 @@ class RestaurantSaaSIntegrationHubTest extends TestCase
             $this->assertSame(409, $exception->getStatusCode());
         }
     }
+
+    public function test_observability_read_models_replay_and_revocation_are_site_scoped_and_secret_safe(): void
+    {
+        $actor = User::query()->create([
+            'name' => 'Integration Observer',
+            'email' => 'integration-observer-'.Str::lower(Str::random(8)).'@example.test',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'OBS-'.Str::upper(Str::random(6)),
+            'name' => 'Observability Restaurant',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $site = SmartOrderingSite::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'slug' => 'obs-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+        ]);
+
+        $service = app(RestaurantIntegrationService::class);
+        $connector = $service->install(
+            $actor,
+            $site,
+            null,
+            'generic',
+            'observability_demo',
+            'Observability Demo',
+            ['orders.ingest', 'webhooks'],
+            'vault://restaurants/observability',
+        );
+        $service->setStatus($site, $connector, 'enabled');
+
+        $event = $service->ingest($site, $connector, 'evt-observe-1', 'order.accepted', ['secret_payload' => 'never-render']);
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $service->recordIntegrationEventResult($event['id'], false, 'provider_timeout');
+        }
+        $this->assertDatabaseHas('restaurant_saas_integration_events', [
+            'id' => $event['id'],
+            'status' => 'dead_letter',
+            'attempts' => 5,
+        ]);
+
+        $service->retryIntegrationEvent($site, $event['id']);
+        $this->assertDatabaseHas('restaurant_saas_integration_events', [
+            'id' => $event['id'],
+            'status' => 'retry',
+            'attempts' => 0,
+            'replay_count' => 1,
+        ]);
+
+        $client = $service->createApiClient($actor, $site, 'Observed client', ['restaurant.read']);
+        $service->authorizeCredential($client['credential'], 'restaurant.read');
+        $service->authorizeCredential($client['credential'], 'restaurant.read');
+        $service->recordRateLimitViolation($client['public_id']);
+
+        $clients = $service->apiClients($site);
+        $this->assertSame(2, $clients[0]['request_count']);
+        $this->assertSame(1, $clients[0]['rate_limit_violations']);
+        $this->assertArrayNotHasKey('token_hash', $clients[0]);
+
+        $service->revokeApiClient($site, $client['public_id']);
+        $this->assertSame('revoked', $service->apiClients($site)[0]['state']);
+
+        $hook = $service->createWebhook($actor, $site, 'https://partner.example.test/observe', ['order.created']);
+        $delivery = $service->queueWebhook($site, $hook['public_id'], 'order:observe:1', 'order.created', ['private' => 'never-render']);
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $service->recordDeliveryResult($delivery['id'], 503, 'partner_timeout');
+        }
+
+        $service->replayWebhookDelivery($site, $delivery['id']);
+        $this->assertDatabaseHas('restaurant_saas_webhook_deliveries', [
+            'id' => $delivery['id'],
+            'status' => 'retry',
+            'attempts' => 0,
+            'replay_count' => 1,
+        ]);
+
+        $service->setWebhookActive($site, $hook['public_id'], false);
+        $this->assertFalse($service->webhooks($site)[0]['is_active']);
+
+        $events = $service->integrationEvents($site, ['provider' => 'observability_demo']);
+        $this->assertCount(1, $events);
+        $this->assertSame('evt-observe-1', $events[0]['external_event_key']);
+        $this->assertArrayNotHasKey('payload_ciphertext', $events[0]);
+
+        $deliveries = $service->webhookDeliveries($site);
+        $this->assertCount(1, $deliveries);
+        $this->assertArrayNotHasKey('payload_ciphertext', $deliveries[0]);
+        $this->assertArrayNotHasKey('secret_ciphertext', $deliveries[0]);
+
+        $analytics = $service->analytics($site);
+        $this->assertSame(1, $analytics['health']['installed']);
+        $this->assertSame(2, $analytics['health']['retry_backlog']);
+        $this->assertSame(2, $analytics['health']['api_requests']);
+        $this->assertSame(1, $analytics['health']['rate_limit_violations']);
+
+        foreach (['connector-health', 'sync-failures', 'api-usage', 'webhook-performance', 'exceptions'] as $report) {
+            $rows = $service->reportRows($site, $report);
+            $json = json_encode($rows, JSON_THROW_ON_ERROR);
+            $this->assertStringNotContainsString('secret_payload', $json);
+            $this->assertStringNotContainsString('never-render', $json);
+            $this->assertStringNotContainsString(substr($client['credential'], -20), $json);
+            $this->assertStringNotContainsString($hook['secret'], $json);
+        }
+    }
+
+    public function test_observability_actions_reject_records_owned_by_another_site(): void
+    {
+        $actor = User::query()->create([
+            'name' => 'Cross Site Observer',
+            'email' => 'cross-observer-'.Str::lower(Str::random(8)).'@example.test',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeA = (int) DB::table('stores')->insertGetId(['store_type_id' => $storeTypeId, 'code' => 'OBS-A', 'name' => 'A', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $storeB = (int) DB::table('stores')->insertGetId(['store_type_id' => $storeTypeId, 'code' => 'OBS-B', 'name' => 'B', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $siteA = SmartOrderingSite::query()->create(['public_id' => (string) Str::uuid(), 'store_id' => $storeA, 'slug' => 'obs-a', 'runtime_state' => 'ENABLED', 'master_enabled' => true]);
+        $siteB = SmartOrderingSite::query()->create(['public_id' => (string) Str::uuid(), 'store_id' => $storeB, 'slug' => 'obs-b', 'runtime_state' => 'ENABLED', 'master_enabled' => true]);
+
+        $service = app(RestaurantIntegrationService::class);
+        $client = $service->createApiClient($actor, $siteB, 'Site B', ['restaurant.read']);
+
+        try {
+            $service->revokeApiClient($siteA, $client['public_id']);
+            $this->fail('Cross-site API client revocation must fail closed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        $connector = $service->install($actor, $siteB, null, 'generic', 'site_b', 'Site B', ['orders.ingest']);
+        $service->setStatus($siteB, $connector, 'enabled');
+        $event = $service->ingest($siteB, $connector, 'site-b-event', 'order.accepted', ['x' => 1]);
+        $service->recordIntegrationEventResult($event['id'], false, 'failure');
+
+        try {
+            $service->retryIntegrationEvent($siteA, $event['id']);
+            $this->fail('Cross-site event replay must fail closed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+    }
 }
