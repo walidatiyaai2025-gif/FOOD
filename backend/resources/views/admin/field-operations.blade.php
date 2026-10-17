@@ -271,7 +271,7 @@
             @include('admin._driver-live-map', $fleetMapOptions)
         @endif
 
-        @if($fieldOperationsSection === 'vans')
+        @if($section === 'vans')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.register_van') }}</strong></summary>
@@ -329,9 +329,7 @@
             </tbody></table></div>
             {{ $vans->links() }}
 
-        @endif
-
-        @if($fieldOperationsSection === 'van-detail')
+        @elseif($section === 'van-detail')
             <div class="fieldops-actions"><a href="{{ route('admin.field-operations.vans') }}">← {{ __('field_operations.back_to_vans') }}</a></div>
             <section class="fieldops-grid">
                 <article class="fieldops-card"><h2>{{ __('field_operations.van_identity') }}</h2>
