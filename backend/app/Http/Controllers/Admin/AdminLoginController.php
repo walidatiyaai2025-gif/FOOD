@@ -139,7 +139,7 @@ class AdminLoginController extends Controller
         $row = DB::table('admin_whatsapp_otp_challenges')->where('id', $challenge)->first();
         abort_if($row === null, 404);
 
-        return view('admin.login-whatsapp-otp', [
+        return view('admin.auth.whatsapp-otp', [
             'channel' => $channel,
             'locale' => $locale,
             'challenge' => $challenge,
