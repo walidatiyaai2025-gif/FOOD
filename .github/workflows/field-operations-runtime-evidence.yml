@@ -61,6 +61,13 @@ jobs:
           php artisan migrate:fresh --force
           php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
           php artisan db:seed --class=Database\\Seeders\\FieldOperationsScreenshotEvidenceSeeder --force
+          php artisan view:clear
+          php artisan view:cache
+          compiled_view="$(grep -R -l 'data-fieldops-shell-section' storage/framework/views | head -n 1)"
+          test -n "$compiled_view"
+          php -l "$compiled_view"
+          grep -n -B 3 -A 4 "fieldOperationsSection === 'vans'" "$compiled_view"
+          php artisan view:clear
 
       - name: Start FOODEX runtime
         working-directory: backend

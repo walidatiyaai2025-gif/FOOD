@@ -28,6 +28,7 @@ final class ManagementReportService
             'customers' => 'reports.families.customers',
             'operations' => 'reports.families.operations',
             'sales_exceptions' => 'reports.families.sales_exceptions',
+            'field_operations' => 'reports.families.field_operations',
         ];
     }
 
@@ -50,6 +51,7 @@ final class ManagementReportService
             'customers' => $this->customersReport($filters, $limit, $offset),
             'operations' => $this->operationsReport($filters, $limit, $offset),
             'sales_exceptions' => $this->salesExceptionsReport($filters, $limit, $offset),
+            'field_operations' => $this->fieldOperationsReport($user, $filters, $limit, $offset),
             default => throw ValidationException::withMessages([
                 'report' => __('reports.invalid_report'),
             ]),
@@ -526,6 +528,104 @@ final class ManagementReportService
             $rows->count(),
             $limit,
             ['delivery_breakdown' => $deliveryBreakdown],
+        );
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function fieldOperationsReport(User $user, array $filters, int $limit, int $offset): array
+    {
+        if ($filters['channel'] !== null && $filters['channel'] !== 'b2b') {
+            throw ValidationException::withMessages([
+                'channel' => [__('reports.field_operations_b2b_only')],
+            ]);
+        }
+
+        $filters['channel'] = 'b2b';
+        $query = DB::table('order_van_assignments')
+            ->join('orders', 'orders.id', '=', 'order_van_assignments.order_id')
+            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->join('vans', 'vans.id', '=', 'order_van_assignments.van_id')
+            ->leftJoin(
+                'order_van_execution_states',
+                'order_van_execution_states.order_van_assignment_id',
+                '=',
+                'order_van_assignments.id',
+            );
+
+        $this->applyOrderFilters($query, $filters, false);
+        $totalRows = (clone $query)->count('order_van_assignments.id');
+
+        $rows = $query
+            ->select([
+                'orders.id as order_id',
+                'orders.created_at',
+                'stores.name as store',
+                'vans.code as van',
+                'order_van_assignments.assigned_at',
+                'order_van_execution_states.status as execution_status',
+                'order_van_execution_states.failure_reason_code',
+                'order_van_execution_states.last_transition_at',
+            ])
+            ->latest('order_van_assignments.assigned_at')
+            ->offset(max(0, $offset))
+            ->limit($limit)
+            ->get()
+            ->map(fn (object $row): array => [
+                'order_number' => DisplayNumber::reference($row->order_id),
+                'date' => $this->localDateTime($row->created_at),
+                'store' => (string) $row->store,
+                'van' => (string) $row->van,
+                'status' => $row->execution_status === null ? 'assigned' : (string) $row->execution_status,
+                'failure_reason' => $row->failure_reason_code === null ? '—' : (string) $row->failure_reason_code,
+                'assigned_at' => $row->assigned_at === null ? '—' : $this->localDateTime($row->assigned_at),
+                'last_transition_at' => $row->last_transition_at === null ? '—' : $this->localDateTime($row->last_transition_at),
+            ])
+            ->all();
+
+        $storeIds = $filters['store_id'] === null
+            ? DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.is_active', true)
+                ->where('store_types.code', 'B2B')
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all()
+            : [(int) $filters['store_id']];
+
+        $dashboard = app(FieldOperationsDashboardService::class)->build(
+            $storeIds,
+            $filters['store_id'],
+            (string) $filters['from'],
+            (string) $filters['to'],
+        );
+
+        return $this->reportPayload(
+            'field_operations',
+            $filters,
+            [
+                'active_vans' => (int) $dashboard['kpis']['active_vans'],
+                'active_drivers' => (int) $dashboard['kpis']['active_drivers'],
+                'assigned_deliveries' => (int) $dashboard['kpis']['assigned_deliveries'],
+                'in_transit_deliveries' => (int) $dashboard['kpis']['in_transit_deliveries'],
+                'late_deliveries' => (int) $dashboard['kpis']['late_deliveries'],
+                'unassigned_orders' => (int) $dashboard['kpis']['unassigned_orders'],
+                'failed_returned_deliveries' => (int) $dashboard['kpis']['failed_returned_deliveries'],
+                'route_sla_percent' => $dashboard['kpis']['route_sla_percent'] ?? 0,
+                'fleet_utilization_percent' => $dashboard['kpis']['fleet_utilization_percent'] ?? 0,
+                'pending_remittances' => (int) $dashboard['kpis']['pending_remittances'],
+                'stale_location_signals' => (int) $dashboard['kpis']['stale_location_signals'],
+            ],
+            ['order_number', 'date', 'store', 'van', 'status', 'failure_reason', 'assigned_at', 'last_transition_at'],
+            $rows,
+            $totalRows,
+            $limit,
+            [
+                'status_breakdown' => $dashboard['status_breakdown'],
+                'van_workload' => $dashboard['van_workload'],
+                'territory_productivity' => $dashboard['territory_productivity'],
+                'failed_reasons' => $dashboard['failed_reasons'],
+                'remittance_trend' => $dashboard['remittance_trend'],
+            ],
         );
     }
 

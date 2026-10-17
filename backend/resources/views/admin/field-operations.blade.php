@@ -1,5 +1,6 @@
 @php
     $ar = app()->getLocale() === 'ar';
+    $fieldOperationsSection = (string) $section;
     $isSuper = $user->hasRole('SUPER_ADMIN');
     $canManageVan = $isSuper || $user->hasPermission('drivers.b2b.manage');
     $canManageTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
@@ -7,12 +8,27 @@
     $overviewVisibility = $overviewVisibility ?? [];
     $canCatalog = $isSuper || $user->hasPermission('catalog.view');
     $canPromotions = $isSuper || $user->hasPermission('promotions.view');
-    $pageTitle = __('field_operations.pages.'.$section.'.title');
-    $pageDescription = __('field_operations.pages.'.$section.'.description');
-    if ($pageTitle === 'field_operations.pages.'.$section.'.title') {
+    $pageTitle = __('field_operations.pages.'.$fieldOperationsSection.'.title');
+    $pageDescription = __('field_operations.pages.'.$fieldOperationsSection.'.description');
+    if ($pageTitle === 'field_operations.pages.'.$fieldOperationsSection.'.title') {
         $pageTitle = __('field_operations.pages.overview.title');
         $pageDescription = __('field_operations.pages.overview.description');
     }
+    $fleetMapOptions = $fieldOperationsSection === 'fleet' ? [
+        'feedUrl' => $feedUrl,
+        'liveMapMode' => 'full',
+        'showFilters' => true,
+        'showList' => true,
+        'showSummary' => true,
+        'trackingActor' => 'van',
+        'trackingI18n' => [
+            'noDrivers' => __('field_operations.fleet_i18n.no_vans'),
+            'entitySingular' => __('field_operations.fleet_i18n.entity_singular'),
+            'entities' => __('field_operations.fleet_i18n.entities'),
+            'entityId' => __('field_operations.fleet_i18n.entity_id'),
+            'route' => __('field_operations.fleet_i18n.route'),
+        ],
+    ] : [];
 @endphp
 <!doctype html>
 <html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
@@ -21,9 +37,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $pageTitle }} · FOODEX</title>
     @include('admin._brand-components')
-    @if(in_array($section, ['fleet','territories'], true))
+    @if(in_array($fieldOperationsSection, ['fleet','territories'], true))
         <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
-        @if($section === 'fleet')<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">@endif
+        @if($fieldOperationsSection === 'fleet')<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">@endif
     @endif
     <style>
         .fieldops-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -42,11 +58,18 @@
         .fieldops-section-nav{display:flex;gap:8px;flex-wrap:wrap}
         .fieldops-section-nav a{padding:8px 11px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;background:#fff}
         .fieldops-coverage-map{height:430px;min-height:320px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);overflow:hidden;background:#eef2f5}
-        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        .fieldops-filterbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;align-items:end}
+        .fieldops-filterbar label{display:grid;gap:6px;font-weight:700;font-size:.82rem}.fieldops-filterbar input,.fieldops-filterbar select{width:100%}
+        .fieldops-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+        .fieldops-chart{display:grid;gap:9px}.fieldops-bar-row{display:grid;grid-template-columns:minmax(92px,1.2fr) 3fr auto;gap:10px;align-items:center}
+        .fieldops-bar-track{height:10px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.fieldops-bar-fill{height:100%;background:var(--foodex-green-dark);border-radius:inherit}
+        .fieldops-exception-type{font-weight:800}.fieldops-kpi[data-alert="true"]{border-color:var(--foodex-red)}
+        @media(max-width:900px){.fieldops-dashboard-grid{grid-template-columns:1fr}.fieldops-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:767px){.fieldops-card{padding:13px}.fieldops-header{display:block}.fieldops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldops-filterbar{grid-template-columns:1fr}.fieldops-bar-row{grid-template-columns:90px 1fr auto}}
     </style>
 </head>
 <body>
-<div class="foodex-admin-layout" data-field-operations-page="{{ $section }}">
+<div class="foodex-admin-layout" data-field-operations-page="{{ $fieldOperationsSection }}">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header fieldops-header">
@@ -70,37 +93,154 @@
             </div>
         @endif
 
-        <div class="foodex-ops-shell">
-        @if($section === 'overview')
+        <div class="foodex-ops-shell" data-fieldops-shell-section="{{ $fieldOperationsSection }}" data-fieldops-is-vans="{{ $fieldOperationsSection === 'vans' ? '1' : '0' }}">
+        @if($fieldOperationsSection === 'overview')
             @php
                 $s = $summary ?? [];
+                $d = $dashboard ?? ['kpis'=>[],'location_health'=>[],'daily'=>[],'status_breakdown'=>[],'van_workload'=>[],'territory_productivity'=>[],'failed_reasons'=>[],'remittance_trend'=>[],'exceptions'=>[],'period'=>[]];
+                $dk = $d['kpis'] ?? [];
+                $maxDaily = max(1, (int) collect($d['daily'] ?? [])->max('deliveries'));
+                $maxStatus = max(1, (int) collect($d['status_breakdown'] ?? [])->max('deliveries'));
+                $maxWorkload = max(1, (int) collect($d['van_workload'] ?? [])->max('deliveries'));
+                $maxTerritory = max(1, (int) collect($d['territory_productivity'] ?? [])->max('deliveries'));
+                $maxFailure = max(1, (int) collect($d['failed_reasons'] ?? [])->max('failures'));
             @endphp
-            <section class="fieldops-kpis">
+            <section class="fieldops-card" data-field-operations-dashboard data-dashboard-generated-at="{{ $d['generated_at'] ?? '' }}">
+                <form method="get" action="{{ route('admin.field-operations.overview') }}" class="fieldops-filterbar" data-field-operations-filters>
+                    <label>{{ __('field_operations.dashboard.from') }}<input type="date" name="from" value="{{ $dashboardFilters['from'] ?? '' }}"></label>
+                    <label>{{ __('field_operations.dashboard.to') }}<input type="date" name="to" value="{{ $dashboardFilters['to'] ?? '' }}"></label>
+                    <label>{{ __('field_operations.dashboard.store') }}
+                        <select name="store_id">
+                            <option value="">{{ __('field_operations.dashboard.all_authorized_stores') }}</option>
+                            @foreach($dashboardStores ?? [] as $dashboardStore)
+                                <option value="{{ $dashboardStore->id }}" @selected((string)($dashboardFilters['store_id'] ?? '') === (string)$dashboardStore->id)>{{ $dashboardStore->name }} · {{ $dashboardStore->code }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <div class="fieldops-actions">
+                        <button class="foodex-primary" type="submit">{{ __('field_operations.dashboard.apply') }}</button>
+                        <a href="{{ route('admin.field-operations.overview') }}">{{ __('field_operations.dashboard.reset') }}</a>
+                        @if($overviewVisibility['reports'] ?? false)
+                            <a href="{{ route('admin.reports.index', array_filter(['report'=>'field_operations','channel'=>'b2b','from'=>$dashboardFilters['from'] ?? null,'to'=>$dashboardFilters['to'] ?? null,'store_id'=>$dashboardFilters['store_id'] ?? null])) }}">{{ __('field_operations.dashboard.open_report') }}</a>
+                        @endif
+                    </div>
+                </form>
+                <p class="fieldops-muted">{{ __('field_operations.dashboard.scope_help') }} · {{ $d['period']['timezone'] ?? 'Asia/Kuwait' }} · {{ __('field_operations.dashboard.generated_at') }} {{ $d['generated_at'] ?? '—' }}</p>
+            </section>
+
+            <section class="fieldops-kpis" data-field-operations-kpis>
                 @foreach([
-                    ['active_vans',__('field_operations.overview.active_vans')],
-                    ['suspended_vans',__('field_operations.overview.suspended_vans')],
-                    ['assigned_vans',__('field_operations.overview.assigned_vans')],
-                    ['unassigned_vans',__('field_operations.overview.unassigned_vans')],
-                    ['operators',__('field_operations.overview.operators')],
-                    ['customers_served',__('field_operations.overview.customers_served')],
-                    ['active_visits',__('field_operations.overview.active_visits')],
-                    ['completed_visits',__('field_operations.overview.completed_visits')],
-                    ['no_order_visits',__('field_operations.overview.no_order_visits')],
-                    ['territories',__('field_operations.overview.territories')],
-                    ['unresolved_addresses',__('field_operations.overview.unresolved_addresses')],
-                    ['pending_remittances',__('field_operations.overview.pending_remittances')],
-                ] as [$key,$label])
-                    <article class="fieldops-card fieldops-kpi"><strong>{{ number_format((int)($s[$key] ?? 0)) }}</strong><small>{{ $label }}</small></article>
+                    ['active_vans', __('field_operations.dashboard.kpis.active_vans'), false],
+                    ['active_drivers', __('field_operations.dashboard.kpis.active_drivers'), false],
+                    ['assigned_deliveries', __('field_operations.dashboard.kpis.assigned_deliveries'), false],
+                    ['in_transit_deliveries', __('field_operations.dashboard.kpis.in_transit_deliveries'), false],
+                    ['late_deliveries', __('field_operations.dashboard.kpis.late_deliveries'), true],
+                    ['unassigned_orders', __('field_operations.dashboard.kpis.unassigned_orders'), true],
+                    ['failed_returned_deliveries', __('field_operations.dashboard.kpis.failed_returned_deliveries'), true],
+                    ['route_sla_percent', __('field_operations.dashboard.kpis.route_sla_percent'), false],
+                    ['fleet_utilization_percent', __('field_operations.dashboard.kpis.fleet_utilization_percent'), false],
+                    ['pending_remittances', __('field_operations.dashboard.kpis.pending_remittances'), true],
+                    ['stale_location_signals', __('field_operations.dashboard.kpis.stale_location_signals'), true],
+                ] as [$key,$label,$alert])
+                    @php
+                        $value = $dk[$key] ?? null;
+                    @endphp
+                    <article class="fieldops-card fieldops-kpi" data-foodex-module-kpi="{{ $key }}" data-alert="{{ $alert && (float)($value ?? 0) > 0 ? 'true' : 'false' }}">
+                        <strong>{{ $value === null ? '—' : (str_ends_with($key, '_percent') ? number_format((float)$value, 1).'%' : number_format((int)$value)) }}</strong>
+                        <small>{{ $label }}</small>
+                    </article>
                 @endforeach
             </section>
-            <section class="fieldops-grid">
+
+            <section class="fieldops-dashboard-grid" data-field-operations-analytics>
                 <article class="fieldops-card">
-                    <h2>{{ __('field_operations.overview.fleet_health') }}</h2>
-                    @foreach(['online'=>__('field_operations.overview.online'),'stale'=>__('field_operations.overview.stale'),'offline'=>__('field_operations.overview.offline')] as $key=>$label)
-                        <div class="control-row"><span>{{ $label }}</span><strong>{{ (int)($s['location_health'][$key] ?? 0) }}</strong></div>
-                    @endforeach
-                    @if($overviewVisibility['tracking'] ?? false)<div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ __('field_operations.overview.open_map') }}</a></div>@endif
+                    <h2>{{ __('field_operations.dashboard.delivery_trend') }}</h2>
+                    <div class="fieldops-chart">
+                        @foreach($d['daily'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['day'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxDaily) * 100, 1)) }}%"></div></div><strong>{{ number_format((int)$row['deliveries']) }}</strong></div>
+                        @endforeach
+@if(count($d['daily'] ?? []) === 0)<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endif
+                    </div>
                 </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.delivery_status') }}</h2>
+                    <div class="fieldops-chart">
+                        @foreach($d['status_breakdown'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ __('field_operations.dashboard.statuses.'.$row['status']) }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxStatus) * 100, 1)) }}%"></div></div><strong>{{ number_format((int)$row['deliveries']) }}</strong></div>
+                        @endforeach
+@if(count($d['status_breakdown'] ?? []) === 0)<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endif
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.van_workload') }}</h2>
+                    <div class="fieldops-chart">
+                        @foreach($d['van_workload'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><a href="{{ route('admin.field-operations.vans.show',$row['van_id']) }}">{{ $row['van'] }}</a><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxWorkload) * 100, 1)) }}%"></div></div><strong>{{ $row['completed'] }}/{{ $row['deliveries'] }}</strong></div>
+                        @endforeach
+@if(count($d['van_workload'] ?? []) === 0)<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endif
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.territory_productivity') }}</h2>
+                    <div class="fieldops-chart">
+                        @foreach($d['territory_productivity'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['territory'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['deliveries'] / $maxTerritory) * 100, 1)) }}%"></div></div><strong>{{ $row['deliveries'] }}</strong></div>
+                        @endforeach
+@if(count($d['territory_productivity'] ?? []) === 0)<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_analytics') }}</div>@endif
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.failed_reasons') }}</h2>
+                    <div class="fieldops-chart">
+                        @foreach($d['failed_reasons'] ?? [] as $row)
+                            <div class="fieldops-bar-row"><span>{{ $row['reason'] }}</span><div class="fieldops-bar-track"><div class="fieldops-bar-fill" style="width:{{ min(100, round(((int)$row['failures'] / $maxFailure) * 100, 1)) }}%"></div></div><strong>{{ $row['failures'] }}</strong></div>
+                        @endforeach
+@if(count($d['failed_reasons'] ?? []) === 0)<div class="foodex-ops-state">{{ __('field_operations.dashboard.no_failures') }}</div>@endif
+                    </div>
+                </article>
+                <article class="fieldops-card">
+                    <h2>{{ __('field_operations.dashboard.location_health') }}</h2>
+                    @foreach(['online','stale','offline'] as $health)
+                        <div class="control-row"><span>{{ __('field_operations.overview.'.$health) }}</span><strong>{{ number_format((int)($d['location_health'][$health] ?? 0)) }}</strong></div>
+                    @endforeach
+                    <div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ __('field_operations.overview.open_map') }}</a></div>
+                </article>
+            </section>
+
+            <section class="fieldops-card" data-field-operations-exceptions>
+                <div class="fieldops-header">
+                    <div><h2>{{ __('field_operations.dashboard.exception_queue') }}</h2><p>{{ __('field_operations.dashboard.exception_help') }}</p></div>
+                    <div class="fieldops-actions">
+                        <a href="{{ route('admin.field-operations.routing') }}">{{ __('field_operations.dashboard.routing_policies') }}</a>
+                        <a href="{{ route('admin.field-operations.territories') }}">{{ __('field_operations.dashboard.territories') }}</a>
+                        @if($overviewVisibility['address'] ?? false)<a href="{{ route('admin.field-operations.address-quality') }}">{{ __('field_operations.dashboard.address_exceptions') }}</a>@endif
+                    </div>
+                </div>
+                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr>
+                    <th>{{ __('field_operations.dashboard.exception_type') }}</th><th>{{ __('field_operations.dashboard.reference') }}</th><th>{{ __('field_operations.dashboard.detail') }}</th><th>{{ __('field_operations.dashboard.occurred_at') }}</th><th>{{ __('field_operations.action') }}</th>
+                </tr></thead><tbody>
+                @foreach($d['exceptions'] ?? [] as $exception)
+                    <tr data-field-operations-exception="{{ $exception['type'] }}">
+                        <td class="fieldops-exception-type">{{ __('field_operations.dashboard.exceptions.'.$exception['type']) }}</td>
+                        <td>{{ $exception['reference'] }}</td>
+                        <td>{{ $exception['detail'] ?: '—' }}</td>
+                        <td>{{ $exception['occurred_at'] ?: '—' }}</td>
+                        <td>
+                            @if($exception['van_id'])
+                                <a href="{{ route('admin.field-operations.vans.show',$exception['van_id']) }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @elseif($exception['type'] === 'pending_remittance')
+                                <a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @else
+                                <a href="{{ route('admin.operations.orders.index',['channel'=>'b2b']) }}">{{ __('field_operations.dashboard.open_record') }}</a>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+@if(count($d['exceptions'] ?? []) === 0)<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.dashboard.no_exceptions') }}</div></td></tr>@endif
+                </tbody></table></div>
+            </section>
+
+            <section class="fieldops-grid">
                 <article class="fieldops-card">
                     <h2>{{ __('field_operations.overview.custody') }}</h2>
                     <strong style="font-size:1.8rem">{{ \App\Support\DisplayNumber::money((float)($s['outstanding_collections'] ?? 0), 'EGP') }}</strong>
@@ -125,24 +265,13 @@
                 </article>
             </section>
 
-        @elseif($section === 'fleet')
-            @include('admin._driver-live-map', [
-                'feedUrl' => $feedUrl,
-                'liveMapMode' => 'full',
-                'showFilters' => true,
-                'showList' => true,
-                'showSummary' => true,
-                'trackingActor' => 'van',
-                'trackingI18n' => [
-                    'noDrivers' => __('field_operations.fleet_i18n.no_vans'),
-                    'entitySingular' => __('field_operations.fleet_i18n.entity_singular'),
-                    'entities' => __('field_operations.fleet_i18n.entities'),
-                    'entityId' => __('field_operations.fleet_i18n.entity_id'),
-                    'route' => __('field_operations.fleet_i18n.route'),
-                ],
-            ])
+        @endif
 
-        @elseif($section === 'vans')
+        @if($fieldOperationsSection === 'fleet')
+            @include('admin._driver-live-map', $fleetMapOptions)
+        @endif
+
+        @if($section === 'vans')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.register_van') }}</strong></summary>
@@ -164,7 +293,7 @@
                 <th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.current_assignment') }}</th>
                 <th>{{ __('field_operations.location') }}</th><th>{{ __('field_operations.last_update') }}</th><th>{{ __('field_operations.action') }}</th>
             </tr></thead><tbody>
-            @forelse($vans as $van)
+            @foreach($vans as $van)
                 @php
                     $assignment = $van->assignments->firstWhere('status','active');
                 @endphp
@@ -195,7 +324,8 @@
                         @else—@endif
                     </td>
                 </tr>
-            @empty<tr><td colspan="6"><div class="foodex-ops-state">{{ __('field_operations.no_vans') }}</div></td></tr>@endforelse
+            @endforeach
+@if(count($vans) === 0)<tr><td colspan="6"><div class="foodex-ops-state">{{ __('field_operations.no_vans') }}</div></td></tr>@endif
             </tbody></table></div>
             {{ $vans->links() }}
 
@@ -222,7 +352,7 @@
             </section>
             <section class="fieldops-card"><h2>{{ __('field_operations.assignment_history') }}</h2>
                 <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.driver') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th></tr></thead><tbody>
-                @forelse($van->assignments as $a)
+                @foreach($van->assignments as $a)
                     <tr>
                         <td>{{ $driverNames->get($a->driver_id) ?: '—' }}</td>
                         <td>{{ $representativeNames->get($a->representative_user_id) ?: '—' }}</td>
@@ -233,9 +363,10 @@
                         <td>{{ __('field_operations.statuses.'.$a->status) }}</td>
                         <td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td>
                     </tr>
-                @empty
+                @endforeach
+@if(count($van->assignments) === 0)
                     <tr><td colspan="6">{{ __('field_operations.no_assignment_history') }}</td></tr>
-                @endforelse
+                @endif
                 </tbody></table></div>
             </section>
             <section class="fieldops-card" data-van-b2b-orders>
@@ -246,9 +377,11 @@
                     <th>{{ __('order_operations.dispatch.current_assignment') }}</th>
                     <th>{{ __('order_operations.detail.van_execution_timeline') }}</th>
                     <th>{{ __('order_operations.columns.total') }}</th>
+                    <th>{{ __('field_operations.dashboard.delivery_evidence') }}</th>
+                    <th>{{ __('field_operations.dashboard.finance_links') }}</th>
                     <th>{{ __('order_operations.columns.actions') }}</th>
                 </tr></thead><tbody>
-                @forelse($b2bOrders as $order)
+                @foreach($b2bOrders as $order)
                     <tr data-van-b2b-order="{{ $order->id }}">
                         <td><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
                         <td>{{ __('order_operations.business_labels.'.$order->order_status) }}</td>
@@ -263,15 +396,32 @@
                             @endif
                         </td>
                         <td>{{ \App\Support\DisplayNumber::money((float)$order->grand_total, $order->currency) }} {{ $order->currency }}</td>
+                        <td>
+                            @if($order->latest_proof_id)
+                                <a href="{{ route('admin.operations.orders.van-proofs.show',['assignment'=>$order->van_assignment_id,'proof'=>$order->latest_proof_id]) }}">{{ __('field_operations.dashboard.open_delivery_proof') }}</a>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td>
+                            <div class="fieldops-actions">
+                                @if($canViewFinanceLinks && $order->invoice_id)<a href="{{ route('admin.invoices.show',['invoice'=>$order->invoice_id]) }}">{{ __('field_operations.dashboard.open_invoice') }}</a>@endif
+                                @if($canViewFinanceLinks)<a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.dashboard.collections_remittances') }}</a>@endif
+                                @if((!$canViewFinanceLinks || !$order->invoice_id) && !$canViewFinanceLinks) — @endif
+                            </div>
+                        </td>
                         <td><a href="{{ route('admin.operations.orders.index',['channel'=>'b2b','order'=>$order->id]) }}">{{ __('order_operations.view_order') }}</a></td>
                     </tr>
-                @empty
-                    <tr><td colspan="6"><div class="foodex-ops-state">{{ __('order_operations.empty') }}</div></td></tr>
-                @endforelse
+                @endforeach
+@if(count($b2bOrders) === 0)
+                    <tr><td colspan="8"><div class="foodex-ops-state">{{ __('order_operations.empty') }}</div></td></tr>
+                @endif
                 </tbody></table></div>
             </section>
 
-        @elseif($section === 'assignments')
+        @endif
+
+        @if($fieldOperationsSection === 'assignments')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.assign_van') }}</strong></summary>
@@ -293,7 +443,7 @@
             </details>
             @endif
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th><th>{{ __('field_operations.actions_label') }}</th></tr></thead><tbody>
-                @forelse($assignments as $a)
+                @foreach($assignments as $a)
                     @php
                         $driverLabel = $drivers->firstWhere('id', $a->driver_id)?->name;
                     @endphp
@@ -348,16 +498,19 @@
                             @else—@endif
                         </td>
                     </tr>
-                @empty<tr><td colspan="8">{{ __('field_operations.no_assignments') }}</td></tr>@endforelse
+                @endforeach
+@if(count($assignments) === 0)<tr><td colspan="8">{{ __('field_operations.no_assignments') }}</td></tr>@endif
             </tbody></table></div>{{ $assignments->links() }}
 
-        @elseif($section === 'customers')
+        @endif
+
+        @if($fieldOperationsSection === 'customers')
             <div class="fieldops-card">
                 <strong>{{ __('field_operations.relationship_intro_title') }}</strong>
                 <p class="fieldops-muted">{{ __('field_operations.relationship_intro_body') }}</p>
             </div>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.channel') }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ __('field_operations.collection_context') }}</th><th>{{ __('field_operations.latest_visit') }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
-            @forelse($relationships as $visit)
+            @foreach($relationships as $visit)
                 @php
                     $a = $visit->getRelation('servingAssignment');
                 @endphp
@@ -374,11 +527,12 @@
                     <td>
                         @if(is_array($collectionContext))
                             <div><strong>Store #{{ $collectionContext['store_id'] }}</strong></div>
-                            @forelse($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
+                            @foreach($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
                                 <div class="fieldops-muted">{{ $currency }} {{ \App\Support\DisplayNumber::money((float) $amount, $currency) }}</div>
-                            @empty
+                            @endforeach
+@if(count($collectionContext['outstanding_total_by_currency']) === 0)
                                 <div class="fieldops-muted">{{ __('field_operations.no_open_balance') }}</div>
-                            @endforelse
+                            @endif
                         @else
                             —
                         @endif
@@ -386,11 +540,14 @@
                     <td>#{{ $visit->id }} · {{ $visit->updated_at }}</td>
                     <td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td>
                 </tr>
-            @empty<tr><td colspan="9"><div class="foodex-ops-state">{{ __('field_operations.no_customer_relationships') }}</div></td></tr>@endforelse
+            @endforeach
+@if(count($relationships) === 0)<tr><td colspan="9"><div class="foodex-ops-state">{{ __('field_operations.no_customer_relationships') }}</div></td></tr>@endif
             </tbody></table></div>{{ $relationships->links() }}
             <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ __('field_operations.plan_visit_relationship') }}</a></div>
 
-        @elseif($section === 'visits')
+        @endif
+
+        @if($fieldOperationsSection === 'visits')
             @if($canManageVan)
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
@@ -408,7 +565,7 @@
             </details>
             @endif
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.created') }}</th><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.timestamps') }}</th><th>{{ __('field_operations.result') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
-            @forelse($visits as $visit)
+            @foreach($visits as $visit)
                 @php
                     $allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string) $visit->status);
                 @endphp
@@ -427,10 +584,13 @@
                     </div></details>
                     @else—@endif
                 </td></tr>
-            @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endforelse
+            @endforeach
+@if(count($visits) === 0)<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endif
             </tbody></table></div>{{ $visits->links() }}
 
-        @elseif($section === 'territories')
+        @endif
+
+        @if($fieldOperationsSection === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
                 <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
@@ -459,7 +619,8 @@
                 </details>
             </section>
             @endif
-            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid" data-pagination-required><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.code') }}</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodeRows as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div>{{ $nodeRows->links() }}</section>
+            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid" data-pagination-required><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.code') }}</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@foreach($nodeRows as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@endforeach
+@if(count($nodeRows) === 0)<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endif</tbody></table></div>{{ $nodeRows->links() }}</section>
             <section class="fieldops-card">
                 <h2>{{ __('field_operations.coverage_map') }}</h2>
                 <p class="fieldops-muted">{{ __('field_operations.coverage_map_help') }}</p>
@@ -494,18 +655,21 @@
                 @endif
             </section>
             <section class="fieldops-card" data-pagination-required><h2>{{ __('field_operations.service_territories') }}</h2>
-                @forelse($territoryRows as $territory)
+                @foreach($territoryRows as $territory)
                     <article style="padding:14px 0;border-bottom:1px solid var(--foodex-border)">
                         <div class="fieldops-actions"><strong>{{ $territory->localized_name }} · {{ $territory->code }}</strong><span class="fieldops-status">{{ __('field_operations.statuses.'.$territory->status) }}</span><span>{{ __('field_operations.geometries') }}: {{ $territory->geometries->count() }}</span></div>
                     </article>
-                @empty<div class="foodex-ops-state">{{ __('field_operations.no_service_territories') }}</div>@endforelse
+                @endforeach
+@if(count($territoryRows) === 0)<div class="foodex-ops-state">{{ __('field_operations.no_service_territories') }}</div>@endif
                 {{ $territoryRows->links() }}
             </section>
 
-        @elseif($section === 'address-quality')
+        @endif
+
+        @if($fieldOperationsSection === 'address-quality')
             <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ __('field_operations.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>{{ __('field_operations.status') }}<select name="status"><option value="">{{ __('field_operations.all') }}</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ __('field_operations.review_statuses.'.$st) }}</option>@endforeach</select></label><button class="foodex-primary">{{ __('field_operations.apply') }}</button></form>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
-            @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
+            @foreach($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
                 <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: __('field_operations.no_recorded_reason') }}</div>
                     <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Facades\Lang::has('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) ? __('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) : __('field_operations.resolution_sources.unknown') }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
@@ -523,10 +687,13 @@
                     </form>
                     @endforeach
                 </div></details>@else—@endif
-            </td></tr>@empty<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
+            </td></tr>@endforeach
+@if(count($reviews) === 0)<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endif
             </tbody></table></div>{{ $reviews->links() }}
 
-        @elseif($section === 'routing')
+        @endif
+
+        @if($fieldOperationsSection === 'routing')
             @if($canManageTerritories)
             <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
@@ -719,7 +886,9 @@
             @if($policies->isEmpty())<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endif
             {{ $policies->links() }}
 
-        @elseif($section === 'finance')
+        @endif
+
+        @if($fieldOperationsSection === 'finance')
             @include('admin._field-operations-finance', [
                 'fieldFinance'=>$fieldFinance,
                 'opsRouteName'=>'admin.field-operations.finance',
@@ -730,7 +899,7 @@
         </div>
     </main>
 </div>
-@if($section === 'visits')
+@if($fieldOperationsSection === 'visits')
 <script>
 (() => {
     const type = document.querySelector('[data-visit-customer-type]');
@@ -752,7 +921,7 @@
 })();
 </script>
 @endif
-@if($section === 'routing')
+@if($fieldOperationsSection === 'routing')
 <script>
 (() => {
     const syncRoutingValue = (keySelect) => {
@@ -872,9 +1041,9 @@
 })();
 </script>
 @endif
-@if($section === 'fleet')
+@if($fieldOperationsSection === 'fleet')
     @include('admin._driver-live-map-scripts')
-@elseif($section === 'territories')
+@elseif($fieldOperationsSection === 'territories')
     <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
     <script>
     (() => {

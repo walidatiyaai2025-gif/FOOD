@@ -20,6 +20,7 @@ use App\Services\AddressQualityService;
 use App\Services\AuditLogger;
 use App\Services\CollectionCustodyService;
 use App\Services\CommercialFeatureFlags;
+use App\Services\FieldOperationsDashboardService;
 use App\Services\FieldOperationsFinanceService;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
@@ -58,10 +59,16 @@ final class FieldOperationsController extends Controller
         // Constructor promotion defines the complete immutable service dependencies.
     }
 
-    public function overview(Request $request): View
+    public function overview(Request $request, FieldOperationsDashboardService $dashboardService): View
     {
         $user = $this->actor($request);
         $this->authorizeAny($user, ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'store_id' => ['nullable', 'integer', 'min:1', 'exists:stores,id'],
+        ]);
 
         $isSuper = $user->hasRole('SUPER_ADMIN');
         $canTrack = $isSuper || $user->hasPermission('drivers.tracking.view');
@@ -69,6 +76,27 @@ final class FieldOperationsController extends Controller
         $canVisits = $canDrivers && ($isSuper || $user->hasPermission('customers.view'));
         $canTerritories = $isSuper || $user->hasPermission('territories.manage') || $user->hasPermission('field_ops.manage');
         $canAddress = $isSuper || $user->hasPermission('customers.view');
+        $canFinance = $isSuper || $user->hasPermission('finance.view');
+
+        $storeIds = $this->b2bStoreIds($user);
+        $selectedStoreId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
+        if ($selectedStoreId !== null) {
+            abort_unless(in_array($selectedStoreId, $storeIds, true), 403);
+        }
+
+        $dashboard = $dashboardService->build(
+            $storeIds,
+            $selectedStoreId,
+            isset($filters['from']) ? (string) $filters['from'] : null,
+            isset($filters['to']) ? (string) $filters['to'] : null,
+        );
+        $dashboardStores = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+        $canReports = $isSuper || $user->hasPermission('reports.view')
+            || collect($storeIds)->contains(fn (int $id): bool => $user->hasPermission('reports.view', $id));
+
         $locationHealth = ['online' => 0, 'stale' => 0, 'offline' => 0];
         if ($canTrack) {
             $locations = FleetCurrentLocation::query()->where('actor_type', 'van')->get();
@@ -81,7 +109,6 @@ final class FieldOperationsController extends Controller
             }
         }
 
-        $canFinance = $isSuper || $user->hasPermission('finance.view');
         $outstanding = $canFinance
             ? (float) DB::table('custody_ledger_entries')
                 ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
@@ -118,6 +145,14 @@ final class FieldOperationsController extends Controller
                 'territories' => $canTerritories,
                 'address' => $canAddress,
                 'finance' => $canFinance,
+                'reports' => $canReports,
+            ],
+            'dashboard' => $dashboard,
+            'dashboardStores' => $dashboardStores,
+            'dashboardFilters' => [
+                'from' => $dashboard['period']['from'],
+                'to' => $dashboard['period']['to'],
+                'store_id' => $selectedStoreId,
             ],
         ]);
     }
@@ -151,7 +186,11 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['drivers.b2b.view']);
 
-        $vans = Van::query()->with(['assignments' => fn ($q) => $q->orderByDesc('effective_from')])->orderBy('code')->paginate(25);
+        $vans = Van::query()
+            ->with(['assignments' => fn ($q) => $q->orderByDesc('effective_from')])
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'suspended' THEN 2 ELSE 1 END")
+            ->orderBy('code')
+            ->paginate(25);
         $locations = FleetCurrentLocation::query()
             ->where('actor_type', 'van')
             ->whereIn('actor_id', $vans->getCollection()->pluck('id'))
@@ -214,12 +253,13 @@ final class FieldOperationsController extends Controller
             ->orderByRaw("CASE WHEN order_van_assignments.status = 'active' THEN 0 ELSE 1 END")
             ->orderByDesc('order_van_assignments.assigned_at')
             ->limit(50)
-            ->get([
+            ->select([
                 'orders.id',
                 'orders.order_number',
                 'orders.status as order_status',
                 'orders.currency',
                 'orders.grand_total',
+                'order_van_assignments.id as van_assignment_id',
                 'order_van_assignments.status as assignment_status',
                 'order_van_assignments.source',
                 'order_van_assignments.reason',
@@ -228,7 +268,26 @@ final class FieldOperationsController extends Controller
                 'order_van_execution_states.status as execution_status',
                 'order_van_execution_states.failure_reason_code',
                 'order_van_execution_states.last_transition_at',
-            ]);
+            ])
+            ->selectSub(function ($proof): void {
+                $proof->from('order_van_execution_events')
+                    ->select('order_van_execution_events.id')
+                    ->whereColumn('order_van_execution_events.order_van_assignment_id', 'order_van_assignments.id')
+                    ->whereNotNull('order_van_execution_events.proof_path')
+                    ->orderByDesc('order_van_execution_events.id')
+                    ->limit(1);
+            }, 'latest_proof_id')
+            ->selectSub(function ($invoice): void {
+                $invoice->from('invoices')
+                    ->select('invoices.id')
+                    ->whereColumn('invoices.order_id', 'orders.id')
+                    ->where('invoices.channel', 'b2b')
+                    ->orderByDesc('invoices.id')
+                    ->limit(1);
+            }, 'invoice_id')
+            ->get();
+
+        $canViewFinanceLinks = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
 
         return $this->render($request, 'van-detail', compact(
             'van',
@@ -239,6 +298,7 @@ final class FieldOperationsController extends Controller
             'representativeNames',
             'territoryNames',
             'b2bOrders',
+            'canViewFinanceLinks',
         ));
     }
 

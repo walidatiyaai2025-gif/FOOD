@@ -58,7 +58,7 @@ async function ensureDir(dir) {
 async function login(page, locale) {
   const email =
     locale === 'ar' ? 'screenshots@foodex.test' : 'screenshots.en@foodex.test';
-  await page.goto(`${baseUrl}/admin/b2c/login?locale=${locale}`, {
+  await page.goto(`${baseUrl}/admin/b2b/login?locale=${locale}`, {
     waitUntil: 'networkidle',
   });
   await page.fill('#email', email);
@@ -106,8 +106,26 @@ async function captureCase(page, locale, entry, state, width, height) {
   for (const selector of entry.required) {
     const locator = page.locator(selector);
     if ((await locator.count()) < 1) {
+      const rawBody = await response.text().catch(() => '');
+      const diagnostic = await page.evaluate(() => ({
+        path: window.location.pathname,
+        section: document.querySelector('[data-field-operations-page]')?.getAttribute('data-field-operations-page') ?? null,
+        isSuper: document.body.getAttribute('data-fieldops-super'),
+        canManageVan: document.body.getAttribute('data-fieldops-can-manage-van'),
+        tableRows: document.querySelectorAll('.foodex-ops-grid tbody tr').length,
+        actionMenus: document.querySelectorAll('details.foodex-ops-actions').length,
+        selects: document.querySelectorAll('select').length,
+        mainText: (document.querySelector('main')?.innerText ?? '').replace(/\\s+/g, ' ').slice(0, 900),
+        mainHtmlLength: document.querySelector('main')?.innerHTML.length ?? 0,
+        shellSection: document.querySelector('.foodex-ops-shell')?.getAttribute('data-fieldops-shell-section') ?? null,
+        shellIsVans: document.querySelector('.foodex-ops-shell')?.getAttribute('data-fieldops-is-vans') ?? null,
+        shellHtml: (document.querySelector('.foodex-ops-shell')?.innerHTML ?? '').replace(/\\s+/g, ' ').slice(0, 1800),
+      }));
+      diagnostic.rawHasTransferSelector = rawBody.includes('data-van-transfer-lookup');
+      diagnostic.rawHasRegisterVan = rawBody.includes('register_van');
+      diagnostic.rawLength = rawBody.length;
       throw new Error(
-        `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state})`,
+        `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state}) · ${JSON.stringify(diagnostic)}`,
       );
     }
   }
