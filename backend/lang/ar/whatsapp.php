@@ -36,6 +36,21 @@ return [
     'features' => ['inbound' => 'الرسائل الواردة', 'agent_inbox' => 'صندوق الوكلاء', 'transactional' => 'إشعارات المعاملات', 'campaigns' => 'الحملات التسويقية', 'automation' => 'الرسائل الآلية', 'outbound' => 'الرسائل الصادرة', 'calls' => 'مكالمات واتساب الصوتية'],
 
     'inbox' => [
+        'thread_ui' => [
+            'conversation_classification' => 'تصنيف المحادثة',
+            'responsible' => 'المسؤول',
+            'priority' => 'الأولوية',
+            'priority_normal' => 'عادية',
+            'priority_high' => 'مرتفعة',
+            'tags' => 'الوسوم',
+            'more' => 'المزيد',
+            'manage_assignment' => 'إدارة المسؤول والوسوم',
+            'today' => 'اليوم',
+            'quick_replies' => 'ردود سريعة',
+            'attach_order' => 'إرفاق طلب',
+            'no_quick_replies' => 'اكتب الرد مباشرة؛ لا توجد قوالب ردود سريعة مهيأة.',
+            'write_message' => 'اكتب رسالتك هنا...',
+        ],
         'page_title' => 'صندوق خدمة العملاء · فودكس',
         'subtitle' => 'فودكس · إدارة واتساب · تجريبي',
         'heading' => 'صندوق خدمة العملاء المشترك',
