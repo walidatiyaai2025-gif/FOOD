@@ -146,6 +146,19 @@ class LocalizationQualityGateTest(unittest.TestCase):
             module.ROOT = original_root
 
 
+    def test_blade_inline_count_comparison_is_not_visible_copy(self):
+        errors = []
+        module.scan_added_lines(
+            [(
+                "backend/resources/views/admin/enterprise-action-center.blade.php",
+                145,
+                "@if(($workAnalytics['approval_turnaround']['samples']??0)===0)<div>{{ __('enterprise_my_work.analytics.no_turnaround') }}</div>@endif",
+            )],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+
     def test_blade_control_flow_fragments_are_not_visible_copy(self):
         errors = []
         module.scan_added_lines(

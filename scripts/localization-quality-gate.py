@@ -138,7 +138,7 @@ def looks_like_blade_source_fragment(value: str) -> bool:
         return True
     if re.search(r"\b[A-Za-z][A-Za-z0-9_]*_[A-Za-z0-9_]*\)+$", candidate):
         return True
-    if re.search(r"(?:===|!==|==|!=|>=|<=|&&|\|\||=>)", candidate):
+    if re.search(r"(?:===|!==|==|!=|>=|<=|&&|\|\||=>|\?\?)", candidate):
         return True
     return False
 
