@@ -97,6 +97,10 @@ return [
             'end_of_life' => 'End of life',
         ],
     ],
+    'channels' => [
+        'b2b' => 'B2B',
+        'b2c' => 'B2C',
+    ],
     'product_360' => [
         'title' => 'Product 360',
         'identity' => 'Identity & ownership',
@@ -109,6 +113,7 @@ return [
         'store' => 'Store',
         'channel' => 'Channel',
         'unit' => 'Unit',
+        'unit_code_value' => ':code',
         'category' => 'Category',
         'brand' => 'Brand',
         'price' => 'Price',
