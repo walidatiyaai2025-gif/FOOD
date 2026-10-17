@@ -391,7 +391,7 @@ final class ProcurementCompletionManager
     }
 
     /**
-     * @param list<int> $supplierIds
+     * @param  list<int>  $supplierIds
      * @return list<array{supplier_id:int,token:string}>
      */
     public function publishRfq(
@@ -699,8 +699,7 @@ final class ProcurementCompletionManager
         string $token,
         array $attributes,
         ?UploadedFile $attachment = null,
-    ): object
-    {
+    ): object {
         $invitation = $this->portalInvitation($token, false);
         $rfq = DB::table('enterprise_procurement_rfqs')->where('id', $invitation->rfq_id)->firstOrFail();
         if ($rfq->status !== 'published') {
@@ -1340,7 +1339,7 @@ final class ProcurementCompletionManager
     }
 
     /**
-     * @param array{decision:string,note?:string|null} $attributes
+     * @param  array{decision:string,note?:string|null}  $attributes
      */
     public function reviewMatch(
         User $actor,
@@ -1438,7 +1437,7 @@ final class ProcurementCompletionManager
     }
 
     /**
-     * @param array{from?:string|null,to?:string|null} $filters
+     * @param  array{from?:string|null,to?:string|null}  $filters
      * @return array{columns:list<string>,rows:list<array<string,mixed>>}
      */
     public function report(
@@ -1457,7 +1456,7 @@ final class ProcurementCompletionManager
      * Internal reporting bridge used by Enterprise BI after its own entitlement
      * and store-scope authorization succeeds.
      *
-     * @param array{from?:string|null,to?:string|null} $filters
+     * @param  array{from?:string|null,to?:string|null}  $filters
      * @return array{columns:list<string>,rows:list<array<string,mixed>>}
      */
     public function reportForStore(
@@ -1646,6 +1645,7 @@ final class ProcurementCompletionManager
 
                     if ($anchor->greaterThanOrEqualTo($today)) {
                         $buckets['current']++;
+
                         continue;
                     }
 
