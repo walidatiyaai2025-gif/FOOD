@@ -46,7 +46,7 @@
 <label>{{ __('restaurant_growth.scope') }}<select class="foodex-control" name="scope">@foreach(['brand','location','organization'] as $scope)<option value="{{ $scope }}">{{ __('restaurant_growth.scope_options.'.$scope) }}</option>@endforeach</select></label>
 <label><input type="checkbox" name="consent_required" value="1" checked> {{ __('restaurant_growth.consent_required') }}</label>
 <button class="primary" type="submit">{{ __('restaurant_growth.save_journey') }}</button></form>
-<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-100-journeys"><tbody>@foreach($journeys as $journey)<tr><td>{{ $journey->name }}</td><td>{{ $journey->trigger_event }}</td><td>{{ $journey->channel }}</td></tr>@endforeach</tbody></table></div>
+<div class="rg-wrap"><table class="rg-table" data-pagination-exempt="bounded-100-journeys"><tbody>@foreach($journeys as $journey)<tr><td>{{ $journey->name }}</td><td>{{ $journey->trigger_event }}</td><td>{{ __('restaurant_growth.channels.'.$journey->channel) }}</td></tr>@endforeach</tbody></table></div>
 </section>
 
 <section class="panel"><h2>{{ __('restaurant_growth.franchise') }}</h2>
