@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Reporting\EnterpriseBiWorkspaceService;
 use App\Enterprise\Reporting\ReportAccessResolver;
 use App\Enterprise\Reporting\ReportBuilderExecutor;
 use App\Enterprise\Reporting\ReportDefinition;
@@ -80,6 +81,7 @@ final class EnterpriseBiController extends Controller
         ReportRegistry $registry,
         ReportAccessResolver $access,
         ReportBuilderExecutor $executor,
+        EnterpriseBiWorkspaceService $workspace,
     ): View {
         $actor = $request->user();
         abort_unless($actor instanceof User && $actor->is_active, 403);
@@ -110,9 +112,11 @@ final class EnterpriseBiController extends Controller
                             'to' => $selection['to'],
                             'page' => $selection['page'],
                             'per_page' => $selection['per_page'],
+                            'filters' => $selection['filters'],
                             'dimensions' => $selection['dimensions'],
-                            'measures' => $selected['definition']->measures,
+                            'measures' => $selection['measures'],
                             'group_by' => $selection['dimensions'],
+                            'sort' => $selection['sort'],
                         ],
                         $selection['scope'],
                     );
@@ -136,6 +140,7 @@ final class EnterpriseBiController extends Controller
             'result' => $result,
             'rows' => $rows,
             'runError' => $runError,
+            'overview' => $workspace->overview($actor, $catalog->all(), $request, $selection),
             'exports' => $this->recentExports($actor),
             'schedules' => $this->recentSchedules($actor),
             'exceptions' => $this->exceptionSummary($actor),
@@ -276,11 +281,56 @@ final class EnterpriseBiController extends Controller
 
         $page = max(1, min(10000, (int) $request->query('page', 1)));
 
+        $requestedDimensions = $request->query('dimensions');
+        $dimensions = is_array($requestedDimensions)
+            ? collect($requestedDimensions)
+                ->filter(fn (mixed $value): bool => is_string($value) && in_array($value, $definition->dimensions, true))
+                ->unique()
+                ->values()
+                ->all()
+            : $selected['breakdowns'][$breakdown];
+        if ($dimensions === []) {
+            $dimensions = $selected['breakdowns'][$breakdown];
+        }
+
+        $requestedMeasures = $request->query('measures');
+        $measures = is_array($requestedMeasures)
+            ? collect($requestedMeasures)
+                ->filter(fn (mixed $value): bool => is_string($value) && in_array($value, $definition->measures, true))
+                ->unique()
+                ->values()
+                ->all()
+            : $definition->measures;
+        if ($measures === []) {
+            $measures = $definition->measures;
+        }
+
+        $filters = [];
+        foreach ($definition->allowedFilters as $filter) {
+            $value = $request->query('filter_'.$filter);
+            if (! is_scalar($value) || trim((string) $value) === '') {
+                continue;
+            }
+            $filters[$filter] = mb_substr(trim((string) $value), 0, 120);
+        }
+
+        $sort = [];
+        $sortField = trim((string) $request->query('sort_field', ''));
+        $sortDirection = strtolower(trim((string) $request->query('sort_direction', 'asc')));
+        if (in_array($sortField, [...$dimensions, ...$measures], true)
+            && in_array($sortDirection, ['asc', 'desc'], true)) {
+            $sort[] = ['field' => $sortField, 'direction' => $sortDirection];
+        }
+
         return [
+            'report' => (string) $selected['code'],
             'scope_key' => is_array($scopeOption) ? $scopeOption['key'] : null,
             'scope' => is_array($scopeOption) ? $scopeOption['scope'] : null,
             'breakdown' => $breakdown,
-            'dimensions' => $selected['breakdowns'][$breakdown],
+            'dimensions' => $dimensions,
+            'measures' => $measures,
+            'filters' => $filters,
+            'sort' => $sort,
             'from' => $from,
             'to' => $to,
             'page' => $page,
@@ -434,6 +484,7 @@ final class EnterpriseBiController extends Controller
             ->orderByDesc('id')
             ->limit(12)
             ->get([
+                'id',
                 'report_code',
                 'enabled',
                 'interval_minutes',
@@ -442,6 +493,7 @@ final class EnterpriseBiController extends Controller
                 'last_error',
             ])
             ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
                 'report' => $this->reportTitle((string) $row->report_code),
                 'enabled' => (bool) $row->enabled,
                 'interval_minutes' => (int) $row->interval_minutes,
