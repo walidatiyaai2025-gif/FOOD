@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\BuiltInJobRoleCatalog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -81,12 +82,15 @@ class User extends Authenticatable
             return true;
         }
 
+        $catalog = app(BuiltInJobRoleCatalog::class);
+
         if ($storeId === null) {
             return $this->roles()
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'global')
                 ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
-                ->exists();
+                ->get(['roles.id', 'roles.code'])
+                ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
         }
 
         $channel = $this->storeChannel($storeId);
@@ -94,14 +98,23 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($channel === 'b2c' && $this->storeRoleAssignments()
-            ->where('store_id', $storeId)
-            ->whereHas('role', fn ($query) => $query
-                ->where('is_active', true)
-                ->where('scope', 'store')
-                ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
-            ->exists()) {
-            return true;
+        if ($channel === 'b2c') {
+            $storeGrant = $this->storeRoleAssignments()
+                ->where('store_id', $storeId)
+                ->whereHas('role', fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where('scope', 'store')
+                    ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
+                ->with('role:id,code')
+                ->get()
+                ->contains(fn (UserStoreRole $assignment): bool => $catalog->roleContributesPermissions(
+                    (string) $assignment->role->code,
+                    $storeId,
+                ));
+
+            if ($storeGrant) {
+                return true;
+            }
         }
 
         $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
@@ -111,7 +124,8 @@ class User extends Authenticatable
             ->where('roles.scope', 'global')
             ->whereIn('roles.code', $allowedGlobalRoles)
             ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
-            ->exists();
+            ->get(['roles.id', 'roles.code'])
+            ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
     }
 
     /** @return list<string> */
@@ -134,9 +148,11 @@ class User extends Authenticatable
             $global->whereIn('roles.code', array_values((array) config("admin.channels.{$channel}.global_roles", [])));
         }
 
+        $catalog = app(BuiltInJobRoleCatalog::class);
         $codes = $global
             ->with('permissions:id,code')
             ->get()
+            ->filter(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null))
             ->flatMap(fn (Role $role) => $role->permissions->pluck('code'));
 
         if ($storeId !== null && $this->storeChannel($storeId) === 'b2c') {
@@ -146,7 +162,8 @@ class User extends Authenticatable
                     ->with('role.permissions:id,code')
                     ->get()
                     ->filter(fn (UserStoreRole $assignment): bool => (bool) $assignment->role->is_active
-                        && $assignment->role->scope === 'store')
+                        && $assignment->role->scope === 'store'
+                        && $catalog->roleContributesPermissions((string) $assignment->role->code, $storeId))
                     ->flatMap(fn (UserStoreRole $assignment) => $assignment->role->permissions->pluck('code')),
             );
         }
