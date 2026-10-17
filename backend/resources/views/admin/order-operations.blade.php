@@ -143,7 +143,8 @@ $businessLabel = static function ($value): string {
             'scope_name' => 'store_id',
             'scope_value' => $selectedStoreId ?? '',
             'scope_options' => count($availableStores ?? []) > 1
-                ? collect($availableStores)->mapWithKeys(fn ($store) => [(string) $store['id'] => $store['name']])->all()
+                ? ['' => __('order_operations.filters.all_authorized')]
+                    + collect($availableStores)->mapWithKeys(fn ($store) => [(string) $store['id'] => $store['name']])->all()
                 : [],
             'from_value' => $dashboard['period']['from'],
             'to_value' => $dashboard['period']['to'],
