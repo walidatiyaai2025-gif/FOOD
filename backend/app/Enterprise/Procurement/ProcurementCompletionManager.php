@@ -1304,12 +1304,28 @@ final class ProcurementCompletionManager
             ->where('orders.status', 'issued')
             ->where('receipts.status', 'posted')
             ->whereBetween('orders.created_at', [$from.' 00:00:00', $to.' 23:59:59'])
-            ->groupBy('orders.supplier_id', 'orders.supplier_code')
-            ->selectRaw('orders.supplier_code as label, AVG(TIMESTAMPDIFF(DAY, orders.issued_at, receipts.posted_at)) as value')
-            ->orderBy('value')
-            ->limit(8)
-            ->get()
-            ->map(fn ($row): array => ['label' => $row->label, 'value' => round((float) $row->value, 1)])
+            ->whereNotNull('orders.issued_at')
+            ->whereNotNull('receipts.posted_at')
+            ->get([
+                'orders.supplier_code',
+                'orders.issued_at',
+                'receipts.posted_at',
+            ])
+            ->groupBy('supplier_code')
+            ->map(function ($rows, string $supplierCode): array {
+                $leadDays = $rows->map(
+                    fn ($row): int => CarbonImmutable::parse((string) $row->issued_at)
+                        ->diffInDays(CarbonImmutable::parse((string) $row->posted_at)),
+                );
+
+                return [
+                    'label' => $supplierCode,
+                    'value' => round((float) $leadDays->avg(), 1),
+                ];
+            })
+            ->sortBy('value')
+            ->take(8)
+            ->values()
             ->all();
     }
 
@@ -1397,23 +1413,41 @@ final class ProcurementCompletionManager
     /** @return array{columns:list<string>,rows:list<array<string,mixed>>} */
     private function supplierPerformanceReport(int $storeId, string $from, string $to, int $limit): array
     {
-        $rows = DB::table('enterprise_purchase_orders as orders')
+        $source = DB::table('enterprise_purchase_orders as orders')
             ->leftJoin('enterprise_goods_receipts as receipts', function ($join): void {
                 $join->on('receipts.purchase_order_id', '=', 'orders.id')
                     ->where('receipts.status', '=', 'posted');
             })
             ->where('orders.store_id', $storeId)
             ->whereBetween('orders.created_at', [$from.' 00:00:00', $to.' 23:59:59'])
-            ->groupBy('orders.supplier_id', 'orders.supplier_code')
-            ->selectRaw(
-                'orders.supplier_code, COUNT(DISTINCT orders.id) as order_count, '
-                .'COUNT(DISTINCT receipts.id) as receipt_count, '
-                .'AVG(CASE WHEN receipts.id IS NOT NULL THEN TIMESTAMPDIFF(DAY, orders.issued_at, receipts.posted_at) END) as avg_lead_days',
-            )
-            ->orderByDesc('order_count')
-            ->limit($limit)
-            ->get()
-            ->map(fn ($row): array => (array) $row)
+            ->get([
+                'orders.id as order_id',
+                'orders.supplier_code',
+                'orders.issued_at',
+                'receipts.id as receipt_id',
+                'receipts.posted_at',
+            ]);
+
+        $rows = $source
+            ->groupBy('supplier_code')
+            ->map(function ($supplierRows, string $supplierCode): array {
+                $leadDays = $supplierRows
+                    ->filter(fn ($row): bool => $row->issued_at !== null && $row->posted_at !== null)
+                    ->map(
+                        fn ($row): int => CarbonImmutable::parse((string) $row->issued_at)
+                            ->diffInDays(CarbonImmutable::parse((string) $row->posted_at)),
+                    );
+
+                return [
+                    'supplier_code' => $supplierCode,
+                    'order_count' => $supplierRows->pluck('order_id')->unique()->count(),
+                    'receipt_count' => $supplierRows->pluck('receipt_id')->filter()->unique()->count(),
+                    'avg_lead_days' => $leadDays->isEmpty() ? null : round((float) $leadDays->avg(), 1),
+                ];
+            })
+            ->sortByDesc('order_count')
+            ->take($limit)
+            ->values()
             ->all();
 
         return ['columns' => ['supplier_code', 'order_count', 'receipt_count', 'avg_lead_days'], 'rows' => $rows];
