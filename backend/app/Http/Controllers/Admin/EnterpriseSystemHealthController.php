@@ -17,7 +17,6 @@ use App\Services\ProductionDatasetSnapshot;
 use App\Support\AdminNavigation;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -211,7 +210,7 @@ final class EnterpriseSystemHealthController extends Controller
         }
     }
 
-    private function statusCounts(Builder $query, string $column): array
+    private function statusCounts($query, string $column): array
     {
         return $query
             ->selectRaw($column.', COUNT(*) AS aggregate')
