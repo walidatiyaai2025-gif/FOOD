@@ -91,6 +91,40 @@ final class RestaurantTemplateGalleryPreviewTest extends TestCase
         }
     }
 
+    public function test_apply_template_changes_draft_only_and_gallery_reports_current_selection(): void
+    {
+        $this->actingAs($this->admin)
+            ->post('/admin/smart-ordering/appearance/apply', [
+                'site' => 'template-gallery',
+                'theme' => 'premium-arabic-dining',
+                'lang' => 'ar',
+                'device' => 'tablet',
+            ])
+            ->assertRedirect();
+
+        $siteId = (int) DB::table('smart_ordering_sites')->where('slug', 'template-gallery')->value('id');
+        $draftPayload = json_decode((string) DB::table('smart_ordering_revisions')
+            ->where('site_id', $siteId)
+            ->where('status', 'draft')
+            ->latest('id')
+            ->value('payload'), true, 512, JSON_THROW_ON_ERROR);
+        $publishedPayload = json_decode((string) DB::table('smart_ordering_revisions')
+            ->where('site_id', $siteId)
+            ->where('status', 'published')
+            ->latest('id')
+            ->value('payload'), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('premium-arabic-dining', data_get($draftPayload, 'appearance.template'));
+        $this->assertSame(1, data_get($draftPayload, 'appearance.template_version'));
+        $this->assertNull(data_get($publishedPayload, 'appearance.template'));
+
+        $this->get('/admin/smart-ordering/appearance?site=template-gallery&lang=ar')
+            ->assertOk()
+            ->assertSee('data-theme="premium-arabic-dining"', false)
+            ->assertSee('aria-current="true"', false)
+            ->assertSee('تطبيق القالب على المسودة');
+    }
+
     public function test_demo_preview_rejects_non_production_theme_ids(): void
     {
         $this->actingAs($this->admin)
