@@ -249,6 +249,156 @@ final class RestaurantGuestServiceTest extends TestCase
         ]);
     }
 
+    public function test_disabled_entitlement_preserves_existing_data_and_blocks_mutation(): void
+    {
+        $service = app(RestaurantGuestService::class);
+        $reservation = $service->createReservation($this->branchA, [
+            'guest_name' => 'Preserved Guest',
+            'guest_phone' => '+96550000010',
+            'guest_email' => null,
+            'party_size' => 2,
+            'service_at' => '2026-10-18T19:00',
+            'table_public_id' => null,
+            'notes' => null,
+        ], $this->admin);
+
+        DB::table('smart_ordering_entitlements')
+            ->where('site_id', $this->branchA->site_id)
+            ->where('scope_key', 'site')
+            ->where('module', 'reservations')
+            ->update(['enabled' => false, 'updated_at' => now()]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'reservations',
+                'branch' => $this->branchA->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Reservations and waitlist are disabled for this branch');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.smart-ordering.reservations.store', $this->branchA->public_id), [
+                'guest_name' => 'Blocked Guest',
+                'guest_phone' => null,
+                'guest_email' => null,
+                'party_size' => 2,
+                'service_at' => '2026-10-19T19:00',
+                'table_public_id' => null,
+                'notes' => null,
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('smart_ordering_reservations', [
+            'public_id' => $reservation,
+            'guest_name' => 'Preserved Guest',
+        ]);
+        $this->assertSame(1, DB::table('smart_ordering_reservations')->count());
+    }
+
+    public function test_guest_book_is_derived_from_reservation_and_waitlist_truth_in_both_locales(): void
+    {
+        $service = app(RestaurantGuestService::class);
+        $service->createReservation($this->branchA, [
+            'guest_name' => 'Guest Book Person',
+            'guest_phone' => '+96550000011',
+            'guest_email' => 'guestbook@example.test',
+            'party_size' => 2,
+            'service_at' => '2026-10-18T19:00',
+            'table_public_id' => null,
+            'notes' => null,
+        ], $this->admin);
+        $service->createWaitlist($this->branchA, [
+            'guest_name' => 'Guest Book Person',
+            'guest_phone' => '+96550000011',
+            'guest_email' => 'guestbook@example.test',
+            'party_size' => 2,
+            'quoted_wait_minutes' => 10,
+            'priority' => 0,
+            'priority_reason' => null,
+            'notes' => null,
+        ], $this->admin);
+
+        app()->setLocale('en');
+        $this->actingAs($this->admin)
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'guest_book',
+                'branch' => $this->branchA->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('Guest Book')
+            ->assertSee('Guest Book Person')
+            ->assertSee('guestbook@example.test');
+
+        $this->admin->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('ar');
+        $this->actingAs($this->admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', [
+                'tab' => 'guest_book',
+                'branch' => $this->branchA->public_id,
+            ]))
+            ->assertOk()
+            ->assertSee('سجل الضيوف')
+            ->assertSee('Guest Book Person');
+    }
+
+    public function test_seating_rejects_table_occupied_by_canonical_active_order(): void
+    {
+        $service = app(RestaurantGuestService::class);
+        $reservation = $service->createReservation($this->branchA, [
+            'guest_name' => 'Seating Guest',
+            'guest_phone' => '+96550000012',
+            'guest_email' => null,
+            'party_size' => 2,
+            'service_at' => '2026-10-18T19:00',
+            'table_public_id' => $this->tableA,
+            'notes' => null,
+        ], $this->admin);
+
+        $customerId = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'Active Diner',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $this->storeA,
+            'customer_id' => $customerId,
+            'order_number' => 'RS-GUEST-ACTIVE-1',
+            'channel' => 'smart_ordering',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $tableId = (int) DB::table('smart_ordering_tables')
+            ->where('public_id', $this->tableA)
+            ->value('id');
+        DB::table('smart_ordering_order_contexts')->insert([
+            'order_id' => $orderId,
+            'public_reference' => (string) Str::uuid(),
+            'branch_id' => $this->branchA->id,
+            'fulfillment_mode' => 'dine_in',
+            'table_id' => $tableId,
+            'lifecycle_status' => 'CONFIRMED',
+            'idempotency_key_hash' => hash('sha256', 'rs-guest-active-order'),
+            'request_hash' => hash('sha256', 'rs-guest-active-order-request'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.smart-ordering.reservations.transition', [
+                $this->branchA->public_id,
+                $reservation,
+            ]), ['status' => 'SEATED'])
+            ->assertSessionHasErrors('table_public_id');
+
+        $this->assertDatabaseHas('smart_ordering_reservations', [
+            'public_id' => $reservation,
+            'status' => 'BOOKED',
+        ]);
+    }
+
     private function store(int $type, string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
