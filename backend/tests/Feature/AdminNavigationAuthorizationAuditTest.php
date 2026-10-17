@@ -48,6 +48,32 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         );
     }
 
+    public function test_retail_store_admin_cannot_see_or_open_platform_erp(): void
+    {
+        $user = $this->retailAdmin('nav-retail-no-erp@example.test');
+
+        $groups = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->keyBy('key');
+
+        $this->assertFalse($groups->has('erp'));
+        $this->actingAs($user)
+            ->get(route('admin.erp.index', [], false))
+            ->assertForbidden();
+        $this->actingAs($user)
+            ->get(route('admin.erp.procurement.index', [], false))
+            ->assertForbidden();
+    }
+
+    public function test_global_platform_admin_remains_eligible_for_erp(): void
+    {
+        $user = $this->globalUser('B2B_ADMIN', 'nav-platform-erp@example.test');
+
+        $this->assertTrue(app(AdminNavigation::class)->canAccessPlatformErp($user));
+        $this->assertTrue(
+            collect(app(AdminNavigation::class)->groupsFor($user))->contains('key', 'erp'),
+        );
+    }
+
     private function assertEveryVisibleNavigationTargetOpens(User $user): void
     {
         $items = collect(app(AdminNavigation::class)->groupsFor($user))

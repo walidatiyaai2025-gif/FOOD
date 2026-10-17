@@ -35,6 +35,24 @@ class BranchPolicyTest(unittest.TestCase):
             with self.subTest(branch=branch):
                 self.assertTrue(module.is_valid(branch,"main"))
 
+    def test_accepts_main_sync_to_issue_scoped_branch(self):
+        for branch in [
+            "feat/1978-catalog-product-commercial-completion",
+            "fix/2060-main-to-issue-sync-policy",
+            "ci/2060-main-sync-policy-regression",
+        ]:
+            with self.subTest(branch=branch):
+                self.assertTrue(module.is_valid("main", branch))
+
+    def test_rejects_main_sync_to_non_issue_branch(self):
+        for branch in [
+            "feature/random-unregistered-program",
+            "fix/main-sync-without-issue",
+            "main",
+        ]:
+            with self.subTest(branch=branch):
+                self.assertFalse(module.is_valid("main", branch))
+
     def test_accepts_main_sync_only_to_canonical_integration_branch(self):
         for branch in [
             "feature/enterprise-core-platform",

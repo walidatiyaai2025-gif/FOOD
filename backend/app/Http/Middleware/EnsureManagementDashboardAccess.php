@@ -35,6 +35,12 @@ class EnsureManagementDashboardAccess
         abort_unless($user->is_active, 403);
         abort_unless($this->navigation->canUseDashboard($user), 403);
 
+        $routeName = $request->route()?->getName();
+        if (is_string($routeName)
+            && ($routeName === 'admin.erp.index' || str_starts_with($routeName, 'admin.erp.'))) {
+            abort_unless($this->navigation->canAccessPlatformErp($user), 403);
+        }
+
         try {
             $securitySession = $this->securitySessions->ensure($request, $user);
         } catch (HttpException $exception) {

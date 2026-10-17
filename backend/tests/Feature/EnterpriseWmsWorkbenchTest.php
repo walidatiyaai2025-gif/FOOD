@@ -248,6 +248,7 @@ final class EnterpriseWmsWorkbenchTest extends TestCase
             'locale' => $locale,
             'is_active' => true,
         ]);
+        $this->grantPlatformErpAccess($user);
         $role = Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail();
         UserStoreRole::query()->create([
             'user_id' => $user->id,
