@@ -219,12 +219,10 @@ class StoreChannelOperationsCompletionTest extends TestCase
     private function customerId(int $storeId): int
     {
         return (int) DB::table('customers')->insertGetId([
-            'store_id' => $storeId,
             'type' => 'b2c',
             'name' => 'Store Operations Test Customer',
             'phone' => '+96550000000',
             'email' => 'customer-'.$storeId.'@example.test',
-            'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
