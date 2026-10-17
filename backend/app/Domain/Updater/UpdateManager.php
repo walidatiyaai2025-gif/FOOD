@@ -44,6 +44,7 @@ final class UpdateManager
                 'health_check' => 'pending',
                 'rollback_files' => 'not_required',
                 'rollback_database' => 'not_required',
+                'rollback_health_check' => 'not_required',
             ],
         ]);
 
@@ -167,6 +168,16 @@ final class UpdateManager
                 } catch (Throwable) {
                     $rollbackSucceeded = false;
                     $rollbackEvidence['rollback_database'] = 'failed';
+                }
+            }
+
+            if ($rollbackAttempted && $rollbackSucceeded) {
+                try {
+                    $this->runtime->healthCheck();
+                    $rollbackEvidence['rollback_health_check'] = 'passed';
+                } catch (Throwable) {
+                    $rollbackSucceeded = false;
+                    $rollbackEvidence['rollback_health_check'] = 'failed';
                 }
             }
 
