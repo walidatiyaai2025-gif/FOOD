@@ -205,6 +205,7 @@ return new class extends Migration {
             $table->foreignId('purchase_invoice_id')->unique()
                 ->constrained('enterprise_purchase_invoices')->cascadeOnDelete();
             $table->string('status', 24)->default('pending');
+            $table->string('source_fingerprint', 64);
             $table->decimal('tolerance_percent', 8, 3)->default(0);
             $table->decimal('quantity_variance', 18, 3)->default(0);
             $table->decimal('receipt_variance', 18, 3)->default(0);
