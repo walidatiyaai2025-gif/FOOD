@@ -15,15 +15,15 @@
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .cs-chart{padding:var(--foodex-space-5)}.cs-chart h2{margin:0 0 14px;font-size:1rem}
 .cs-bars{display:grid;gap:10px}.cs-bar-row{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
-.cs-bar-track{height:9px;border-radius:999px;background:#eef2f1;overflow:hidden}.cs-bar{height:100%;background:var(--foodex-green-dark);border-radius:999px}
+.cs-bar-track{height:9px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.cs-bar{height:100%;background:var(--foodex-green-dark);border-radius:999px}
 .cs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .cs-card{padding:var(--foodex-space-5);display:grid;gap:12px;align-content:start;min-height:170px}
 .cs-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .cs-card-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:20px;font-weight:800}
 .cs-card h2{margin:0;font-size:1.05rem}.cs-card p{margin:0;color:var(--foodex-muted);line-height:1.7}
-.cs-table-wrap{overflow:auto}.cs-table{width:100%;border-collapse:collapse}.cs-table th,.cs-table td{padding:12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.cs-table th{font-size:12px;color:var(--foodex-muted);background:#f8fafc}
+.cs-table-wrap{overflow:auto}.cs-table{width:100%;border-collapse:collapse}.cs-table th,.cs-table td{padding:12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.cs-table th{font-size:12px;color:var(--foodex-muted);background:var(--foodex-background)}
 .cs-badge{display:inline-flex;border:1px solid var(--foodex-border);border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800;background:#fff}
-.cs-badge.danger{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.cs-badge.warn{background:#fff7ed;color:#9a3412;border-color:#fed7aa}.cs-badge.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:transparent}
+.cs-badge.danger{background:var(--foodex-danger-soft);color:var(--foodex-danger-text);border-color:var(--foodex-border)}.cs-badge.warn{background:var(--foodex-orange-soft);color:var(--foodex-ink);border-color:var(--foodex-border)}.cs-badge.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:transparent}
 .cs-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.cs-form .wide{grid-column:1/-1}.cs-form textarea{min-height:100px}
 .cs-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.cs-detail-item{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;display:grid;gap:3px}.cs-detail-item small{color:var(--foodex-muted)}
 .cs-notes{display:grid;gap:10px}.cs-note{padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.cs-note p{white-space:pre-wrap}
@@ -196,9 +196,9 @@
                         <label>{{ __('customer_service_workspace.cases.owner') }}<select name="assigned_agent_id"><option value="">{{ __('customer_service_workspace.values.unassigned') }}</option>@foreach($agentOptions as $agent)<option value="{{ $agent->id }}" @selected((string)old('assigned_agent_id')===(string)$agent->id)>{{ $agent->name }}</option>@endforeach</select></label>
                         <label class="wide">{{ __('customer_service_workspace.cases.subject') }}<input name="subject" maxlength="190" required value="{{ old('subject') }}"></label>
                         <label class="wide">{{ __('customer_service_workspace.cases.description') }}<textarea name="description" maxlength="8000">{{ old('description') }}</textarea></label>
-                        <label>{{ __('customer_service_workspace.cases.order_id') }}<input type="number" min="1" name="order_id" value="{{ old('order_id') }}"></label>
-                        <label>{{ __('customer_service_workspace.cases.invoice_id') }}<input type="number" min="1" name="invoice_id" value="{{ old('invoice_id') }}"></label>
-                        <label>{{ __('customer_service_workspace.cases.conversation_id') }}<input type="number" min="1" name="conversation_id" value="{{ old('conversation_id') }}"></label>
+                        <label>{{ __('customer_service_workspace.cases.order_id') }}<select name="order_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($orderOptions as $record)<option value="{{ $record->id }}" @selected((string)old('order_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
+                        <label>{{ __('customer_service_workspace.cases.invoice_id') }}<select name="invoice_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($invoiceOptions as $record)<option value="{{ $record->id }}" @selected((string)old('invoice_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
+                        <label>{{ __('customer_service_workspace.cases.conversation_id') }}<select name="conversation_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($conversationOptions as $record)<option value="{{ $record->id }}" @selected((string)old('conversation_id')===(string)$record->id)>{{ $record->customer_name }} · {{ $record->store_name }} · {{ IlluminateSupportStr::limit($record->reference,18) }}</option>@endforeach</select></label>
                         <label>{{ __('customer_service_workspace.cases.delivery_reference') }}<input name="delivery_reference" maxlength="120" value="{{ old('delivery_reference') }}"></label>
                         <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ old('sla_target_at') }}"></label>
                         <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.cases.create_action') }}</button></div>
