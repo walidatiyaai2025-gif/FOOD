@@ -274,6 +274,7 @@ return [
                 'replied' => 'WhatsApp replied',
                 'failures' => 'Delivery failures',
                 'provider_confirmed' => 'Provider/source confirmed',
+                'opted_out' => 'Opt-outs',
                 'suppressed' => 'Consent / policy blocks',
                 'consent_policy' => 'Consent + send policy',
                 'inbox_unresolved' => 'Unresolved inbox',
@@ -286,6 +287,7 @@ return [
                 'delivery_funnel' => 'WhatsApp delivery funnel',
                 'activity_trend' => '14-day WhatsApp send trend',
                 'activity_hint' => 'Bar height is sent volume; hover for provider-confirmed delivery, read and reply counts.',
+                'response_performance' => 'Response / reply performance',
                 'lifecycle' => 'WhatsApp campaign lifecycle',
                 'consent' => 'Marketing consent distribution',
                 'suppression' => 'Recipient exclusion reasons',
@@ -293,6 +295,12 @@ return [
                 'inbox' => 'Unresolved inbox by status',
                 'provider_health' => 'Provider / connection health',
                 'notification_campaigns' => 'Notification campaign lifecycle',
+            ],
+            'rates' => [
+                'delivery' => 'Delivery rate',
+                'read' => 'Read rate',
+                'reply' => 'Reply rate',
+                'failure' => 'Failure rate',
             ],
             'funnel' => [
                 'selected' => 'Selected',
