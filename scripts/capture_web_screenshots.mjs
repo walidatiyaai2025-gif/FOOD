@@ -1315,6 +1315,7 @@ async function captureLocale(browser, locale) {
   if (await page.locator('[data-foodex-executive-overview]').count() !== 1) {
     throw new Error(`Executive Command Center marker missing after /admin runtime evidence (${locale})`);
   }
+  await page.setViewportSize({ width: 1440, height: 1080 });
   await captureMixedTrackingEvidence(page, locale);
   await captureMobileSettingsParityEvidence(page, locale);
   await context.clearCookies();
