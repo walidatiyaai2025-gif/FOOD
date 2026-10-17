@@ -17,7 +17,15 @@
         'support_access' => $restaurantSupport ? 1 : null,
     ], static fn ($value) => $value !== null);
     $restaurantSupportParams = $restaurantSupport ? ['support_access' => 1] : [];
-    $restaurantSiteParams = isset($site) ? [$site, ...$restaurantSupportParams] : null;
+    $restaurantSiteId = isset($site) ? (int) $site->getKey() : 0;
+    if ($restaurantSiteId <= 0 && $restaurantStoreId > 0) {
+        $restaurantSiteId = (int) (\Illuminate\Support\Facades\DB::table('smart_ordering_sites')
+            ->where('store_id', $restaurantStoreId)
+            ->value('id') ?? 0);
+    }
+    $restaurantSiteParams = $restaurantSiteId > 0
+        ? ['site' => $restaurantSiteId, ...$restaurantSupportParams]
+        : null;
     $restaurantCanView = $restaurantActor
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('smart_ordering.view', $restaurantStoreId)
@@ -29,11 +37,11 @@
         'site' => $restaurantSiteKey !== '' ? $restaurantSiteKey : null,
     ], static fn ($value) => $value !== null);
     $restaurantSupplyEnabled = false;
-    if (isset($site)) {
+    if ($restaurantSiteId > 0) {
         $restaurantSupplyEnabled = isset($entitlements)
             ? (bool) ($entitlements['foodex_supply_intelligence'] ?? false)
             : \Illuminate\Support\Facades\DB::table('smart_ordering_entitlements')
-                ->where('site_id', $site->getKey())
+                ->where('site_id', $restaurantSiteId)
                 ->where('scope_key', 'site')
                 ->where('module', 'foodex_supply_intelligence')
                 ->where('enabled', true)
