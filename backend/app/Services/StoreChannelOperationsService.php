@@ -426,6 +426,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('restaurant_saas_integrations') || ! Schema::hasTable('smart_ordering_sites')) {
             return [];
         }
+
         return DB::table('restaurant_saas_integrations as i')->join('smart_ordering_sites as s', 's.id', '=', 'i.site_id')
             ->whereIn('s.store_id', $ids)->selectRaw('s.store_id, COUNT(*) as total')->groupBy('s.store_id')
             ->pluck('total', 's.store_id')->map(fn ($v): int => (int) $v)->all();
@@ -535,6 +536,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('warehouses') || ! Schema::hasTable('inventories') || ! Schema::hasTable('store_products') || ! Schema::hasTable('products')) {
             return [];
         }
+
         return DB::table('warehouses as w')
             ->join('inventories as i', 'i.warehouse_id', '=', 'w.id')
             ->join('products as p', 'p.id', '=', 'i.product_id')
@@ -555,6 +557,7 @@ final class StoreChannelOperationsService
         if ($ids === [] || ! Schema::hasTable('restaurant_saas_integrations') || ! Schema::hasTable('smart_ordering_sites')) {
             return [];
         }
+
         return DB::table('restaurant_saas_integrations as i')
             ->join('smart_ordering_sites as site', 'site.id', '=', 'i.site_id')
             ->join('stores as s', 's.id', '=', 'site.store_id')
