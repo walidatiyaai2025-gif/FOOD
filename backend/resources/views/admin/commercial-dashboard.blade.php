@@ -20,7 +20,7 @@
         html[dir=ltr] .commercial-admin-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
         html[dir=ltr] .commercial-admin-layout>.sidebar{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
         html[dir=ltr] .commercial-admin-layout>.commercial-shell{grid-column:2;direction:ltr}
-        .commercial-shell{width:100%;max-width:none!important;margin:0;padding:var(--foodex-space-6) clamp(var(--foodex-space-4),2vw,var(--foodex-space-8)) var(--foodex-space-8);display:grid;gap:var(--foodex-space-4)}
+        .commercial-shell{width:100%;max-width:none!important;min-width:0;margin:0;padding:var(--foodex-space-6) clamp(var(--foodex-space-4),2vw,var(--foodex-space-8)) var(--foodex-space-8);display:grid;grid-template-columns:minmax(0,1fr);gap:var(--foodex-space-4)}
         .commercial-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);flex-wrap:wrap}
         .commercial-page-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem);font-weight:800;line-height:1.2}
         .commercial-page-header p{margin:0;color:var(--foodex-muted);max-width:760px}
@@ -34,10 +34,10 @@
         .contract-banner.pending{border-style:dashed;background:#fffaf1}
         .muted{color:var(--foodex-muted)}
         .commercial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-        .control-list{display:grid;gap:10px;margin-top:12px}
+        .control-list{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:10px;margin-top:12px}\n        .control-list>*{min-width:0;max-width:100%}
         .control-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--foodex-border);flex-wrap:wrap}
         .disabled-action{opacity:.55;cursor:not-allowed}
-        .commercial-card{padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
+        .commercial-card{min-width:0;max-width:100%;padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
         .commercial-card h2,.commercial-card h3{margin-top:0}
         .feature-flags-card{display:grid;gap:14px}
         .feature-flags-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
@@ -93,12 +93,12 @@
         .flash-form-section[hidden]{display:none}
         .flash-form-section h3{margin:0;font-size:.92rem}
         .flash-wizard-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 4px}
-        .flash-wizard-progress button{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer}
+        .flash-wizard-progress button{min-width:0;width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer;white-space:normal;line-height:1.35}
         .flash-wizard-progress button[aria-current="step"]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
         .flash-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
         .flash-product-context{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
         .flash-product-context label{display:grid;gap:6px;min-width:min(100%,280px);font-weight:700;font-size:.8rem}
-        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:calc(100vw - 32px);min-width:0;justify-self:start}}@media(max-width:359px){.flash-wizard-progress{grid-template-columns:minmax(0,1fr)}}
         .flash-lookup-field{display:grid;gap:6px;font-weight:700;font-size:.8rem;min-width:0}
         .flash-lookup{position:relative}
         .flash-lookup-toggle{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;cursor:pointer;text-align:start}
@@ -123,7 +123,7 @@
         .commercial-table{width:100%;border-collapse:collapse}.commercial-table th,.commercial-table td{padding:11px;border-bottom:1px solid var(--foodex-border);text-align:start}
         .commercial-policy-form.foodex-premium-auto-form,.feature-flags-card form.foodex-premium-auto-form{display:grid!important;grid-template-columns:1fr!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;gap:12px!important}
         @media(max-width:1100px){.feature-flag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.commercial-form-grid.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media(max-width:1023px){.commercial-admin-layout,.commercial-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr!important}.commercial-admin-layout>.sidebar,.commercial-admin-layout>.commercial-shell{grid-column:1!important;grid-row:auto!important}.commercial-admin-layout>.sidebar{min-height:auto}.commercial-shell{padding:14px}.commercial-product-grid{grid-template-columns:1fr}}
+        @media(max-width:1023px){.commercial-admin-layout,.commercial-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:100vw;min-width:0}.commercial-admin-layout>.sidebar,.commercial-admin-layout>.commercial-shell{grid-column:1!important;grid-row:auto!important;min-width:0;width:100%;max-width:100vw}.commercial-admin-layout>.sidebar{min-height:auto}.commercial-shell{padding:14px}.commercial-product-grid{grid-template-columns:1fr}}
         @media(max-width:820px){.flash-product-row{grid-template-columns:1fr 1fr}.flash-product-row .flash-row-remove{grid-column:1/-1}.structured-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles,.flash-product-row,.structured-grid{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}.flash-product-row .flash-row-remove{grid-column:auto}}
     </style>
