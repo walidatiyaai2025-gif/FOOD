@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
