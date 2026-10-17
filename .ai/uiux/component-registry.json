@@ -22,7 +22,7 @@
       ],
       "primitives": {
         "header": [
-          "foodex-page-header",
+          "foodex-page-toolbar",
           "foodex-header-actions",
           "foodex-subtitle"
         ],

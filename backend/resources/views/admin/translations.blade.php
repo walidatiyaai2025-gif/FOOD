@@ -40,9 +40,10 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="translations">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="translations">
+@include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'settings'])
 <div class="wrap">
-    <div class="top foodex-page-header">
+    <div class="top foodex-page-toolbar">
         <div>
             <h1>{{ __('admin.translations.title') }}</h1>
             <p class="muted">{{ __('admin.translations.description') }}</p>

@@ -43,8 +43,9 @@ $submissionListText = static function ($value): string {
 <div class="layout foodex-admin-layout" data-foodex-utility="mobile-settings">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'administration_hub','user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="main foodex-admin-main foodex-settings-surface">
+@include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="foodex-page-header"><div><h1>{{ __('mobile_settings.title') }}</h1><p class="muted">{{ __('mobile_settings.description') }}</p></div>@include('admin._live-notifications',['user'=>auth()->user()])</header>
+<div class="foodex-page-toolbar"><div><h1>{{ __('mobile_settings.title') }}</h1><p class="muted">{{ __('mobile_settings.description') }}</p></div></div>
 <nav class="mobile-settings-nav" aria-label="{{ __('admin.settings_center.mobile_sections_aria') }}" data-mobile-settings-nav>
 <a href="#runtime" data-mobile-section-link="runtime">{{ __('admin.settings_center.items.mobile') }}</a>
 <a href="#location" data-mobile-section-link="location">{{ __('admin.settings_center.items.driver_location') }}</a>

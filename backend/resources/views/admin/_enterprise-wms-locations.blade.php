@@ -2,7 +2,7 @@
     $activeBins = collect($binRows)->where('is_active', true)->values();
 @endphp
 <div class="foodex-module-overview" data-wms-locations>
-    <div class="foodex-page-header">
+    <div class="foodex-page-toolbar">
         <div><h2>{{ __('enterprise_wms.locations.title') }}</h2><p>{{ __('enterprise_wms.locations.subtitle') }}</p></div>
     </div>
 

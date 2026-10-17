@@ -7,7 +7,7 @@
     @include('admin._brand-components')
     @include('admin._settings-page-polish')
     <style>
-        .system-runtime-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
+        .system-runtime-grid{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
         .system-runtime-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
         .system-runtime-card{padding:var(--foodex-space-4);min-width:0}
         .system-runtime-table-wrap{max-width:100%;overflow:auto;overscroll-behavior-inline:contain}
@@ -67,9 +67,10 @@
     ])
 </aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface foodex-module-overview" data-foodex-utility="system-update" data-foodex-module-overview>
+@include('admin._global-header')
     @include('admin._admin-center-switcher',['active'=>'settings'])
 
-    <header class="foodex-page-header">
+    <div class="foodex-page-toolbar">
         <div>
             <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
             <span class="foodex-subtitle">FOODEX · {{ __('admin.system_update_surface.dashboard_title') }}</span>
@@ -80,7 +81,7 @@
             <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
             <a class="foodex-action-secondary button secondary" href="{{ route('admin.inspector.index') }}">{{ __('admin.system_update_surface.open_inspector') }}</a>
         </div>
-    </header>
+    </div>
 
     @if (session('status'))
         <div class="foodex-alert success foodex-state" role="status">{{ session('status') }}</div>

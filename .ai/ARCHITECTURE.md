@@ -43,7 +43,7 @@ The Management Dashboard is a business application, not a raw admin CRUD surface
 
 Mandatory contract: `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`.
 
-Key implications: business-domain navigation, page-level tabs, direct record actions, FOODEX components, authoritative master-data lookups, map-first geography, explicit loaded/empty/error/stale states, AR/EN and responsive behavior.
+Key implications: business-domain navigation, exactly one shared Admin global header per canonical Dashboard page, page-level title/actions in `foodex-page-toolbar`, page-level tabs, direct record actions, FOODEX components, authoritative master-data lookups, map-first geography, explicit loaded/empty/error/stale states, AR/EN and responsive behavior.
 
 ## Mobile applications
 

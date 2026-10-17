@@ -57,7 +57,8 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-menu">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
-        <header class="foodex-page-header">
+@include('admin._global-header')
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_menu.title') }}</h1>
                 <p>{{ __('smart_ordering_menu.description') }}</p>
@@ -70,7 +71,7 @@
                 @endif
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
             </div>
-        </header>
+        </div>
 
         @include('admin._smart-ordering-workspace-nav')
 
@@ -563,6 +564,27 @@
         <div class="so-sticky">
             <div class="so-actions">
                 <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
+                @if(isset($publishedRevision) && $publishedRevision !== null && !empty($publicMenuUrl))
+                <div class="so-inline" data-public-menu-publishing-actions>
+                    <a class="foodex-secondary" href="{{ $publicMenuUrl }}" target="_blank" rel="noopener noreferrer">{{ __('smart_ordering_menu.public_menu.open') }}</a>
+                    <button class="foodex-secondary" type="button"
+                            data-copy-public-url="{{ $publicMenuUrl }}"
+                            data-default-label="{{ __('smart_ordering_menu.public_menu.copy') }}"
+                            data-copied-label="{{ __('smart_ordering_menu.public_menu.copied') }}">
+                        {{ __('smart_ordering_menu.public_menu.copy') }}
+                    </button>
+                    <a class="foodex-secondary" href="{{ route('admin.smart-ordering.qr.index', ['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_menu.public_menu.qr') }}</a>
+                    <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.unpublish') }}"
+                          data-confirm-unpublish data-confirm-message="{{ __('smart_ordering_menu.unpublish.confirm') }}">
+                        @csrf
+                        <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                        @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <button class="so-danger" type="submit">{{ __('smart_ordering_menu.unpublish.action') }}</button>
+                    </form>
+                </div>
+                @else
+                <span class="foodex-status-badge" data-state="inactive">{{ __('smart_ordering_menu.public_menu.unpublished') }}</span>
+                @endif
                 @if($reviewMode)
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'العودة للمحرر' : 'Back to editor' }}</a>
                 <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
@@ -604,6 +626,44 @@
 <script src="{{ asset('assets/admin/entity-lookup.js') }}"></script>
 <script>
 (() => {
+    document.querySelectorAll('[data-confirm-unpublish]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            const message = form.dataset.confirmMessage || '';
+            if (message && !window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-copy-public-url]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const value = button.dataset.copyPublicUrl || '';
+            if (!value) return;
+
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(value);
+                } else {
+                    const input = document.createElement('textarea');
+                    input.value = value;
+                    input.setAttribute('readonly', '');
+                    input.style.position = 'fixed';
+                    input.style.opacity = '0';
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    input.remove();
+                }
+                button.textContent = button.dataset.copiedLabel || button.textContent;
+                window.setTimeout(() => {
+                    button.textContent = button.dataset.defaultLabel || button.textContent;
+                }, 1800);
+            } catch (_) {
+                window.location.href = value;
+            }
+        });
+    });
+
     document.querySelectorAll('[data-unlink-product]').forEach((button) => {
         button.addEventListener('click', () => {
             const input = document.getElementById(button.dataset.pickerId);

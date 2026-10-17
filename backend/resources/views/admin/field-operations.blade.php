@@ -72,14 +72,15 @@
 <div class="foodex-admin-layout" data-field-operations-page="{{ $fieldOperationsSection }}">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        <header class="foodex-page-header fieldops-header">
+@include('admin._global-header')
+        <div class="foodex-page-toolbar fieldops-header">
             <div>
                 <span class="foodex-subtitle">FOODEX · {{ __('field_operations.subtitle') }}</span>
                 <h1>{{ $pageTitle }}</h1>
                 <p>{{ $pageDescription }}</p>
             </div>
-            @include('admin._live-notifications',['user'=>$user])
-        </header>
+            
+        </div>
 
         @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())

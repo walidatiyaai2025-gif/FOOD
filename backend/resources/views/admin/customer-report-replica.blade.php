@@ -26,8 +26,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
 <div class="replica-viewer">
-<header class="replica-toolbar foodex-page-header">
+<div class="replica-toolbar foodex-page-toolbar">
 <div class="replica-title"><h1>{{ $reportTitle }}</h1><small>{{ $customer->name }} · {{ __('customer_360.reports.rows') }}: {{ $rowCount }}</small></div>
 <form method="get" action="{{ route('admin.customer-360.reports.show',['platformCustomer'=>$customer->id,'report'=>$report]) }}">
 <label><small>{{ __('customer_360.reports.from') }}</small><input type="date" name="from" value="{{ $from }}" required></label>
@@ -37,7 +38,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.reports.pdf',['platformCustomer'=>$customer->id,'report'=>$report,'from'=>$from,'to'=>$to]) }}">{{ __('customer_360.reports.download_pdf') }}</a>
 <button class="foodex-action-secondary button secondary" type="button" data-report-print>{{ __('customer_360.reports.print') }}</button>
 <a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.show',['platformCustomer'=>$customer->id]) }}#reports">{{ __('customer_360.reports.back') }}</a>
-</header>
+</div>
 <iframe class="replica-frame" src="{{ $pdfUrl }}" title="{{ $reportTitle }}" data-report-frame></iframe>
 </div>
 </main>

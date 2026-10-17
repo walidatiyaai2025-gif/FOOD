@@ -7,6 +7,7 @@ use App\Models\AdminMfaCredential;
 use App\Models\User;
 use App\Services\AdminSecurityPolicy;
 use App\Services\AdminSessionRegistry;
+use App\Services\AdminWhatsAppOtpService;
 use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
@@ -28,6 +29,7 @@ class AdminLoginController extends Controller
         private readonly AuditLogger $audit,
         private readonly AdminSecurityPolicy $securityPolicy,
         private readonly AdminSessionRegistry $securitySessions,
+        private readonly AdminWhatsAppOtpService $whatsAppOtp,
     ) {}
 
     public function show(Request $request): View|RedirectResponse
@@ -55,6 +57,7 @@ class AdminLoginController extends Controller
             'channel' => $channel,
             'locale' => $locale,
             'ssoReadiness' => $this->securityPolicy->ssoReadiness(),
+            'whatsAppOtpAvailable' => $this->whatsAppOtp->isAvailable($locale),
         ]);
     }
 
@@ -72,26 +75,139 @@ class AdminLoginController extends Controller
         App::setLocale($locale);
         $request->session()->put('admin_login_locale', $locale);
 
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+        $data = $request->validate([
+            'email' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'string'],
             'locale' => ['nullable', 'in:ar,en'],
         ]);
 
-        $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
+        $identifier = trim((string) $data['email']);
 
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false) {
+            if (! isset($data['password']) || (string) $data['password'] === '') {
+                throw ValidationException::withMessages([
+                    'password' => [__('validation.required', ['attribute' => __('admin_login.password')])],
+                ]);
+            }
+
+            $user = $this->credentials->authenticate($identifier, (string) $data['password']);
+
+            if ($user === null) {
+                Log::notice('Management login denied', [
+                    'channel' => $channel,
+                    'reason' => 'invalid_or_inactive_credentials',
+                ]);
+                $this->recordAuthFailure($request, $channel, 'invalid_or_inactive_credentials');
+
+                throw ValidationException::withMessages([
+                    'email' => [__('admin_login.invalid_credentials')],
+                ]);
+            }
+
+            return $this->completeLogin($request, $user, $channel, $locale, 'password');
+        }
+
+        $phone = $this->whatsAppOtp->normalizePhone($identifier);
+        if ($phone === null) {
+            $errors = ['email' => [__('admin_login.invalid_identifier')]];
+            if (! isset($data['password']) || (string) $data['password'] === '') {
+                $errors['password'] = [__('validation.required', ['attribute' => __('admin_login.password')])];
+            }
+
+            throw ValidationException::withMessages($errors);
+        }
+
+        $challenge = $this->whatsAppOtp->request($phone, $locale, $request);
+
+        return redirect()->route("admin.{$channel}.login.whatsapp", [
+            'challenge' => $challenge,
+            'locale' => $locale,
+        ])->with('status', __('admin_login.otp_generic_sent'));
+    }
+
+    public function showWhatsapp(Request $request, string $challenge): View|RedirectResponse
+    {
+        $channel = $this->channel($request);
+        $locale = $this->locale($request);
+        App::setLocale($locale);
+        $request->session()->put('admin_login_locale', $locale);
+
+        if ($request->user() instanceof User) {
+            return $this->show($request);
+        }
+
+        $row = DB::table('admin_whatsapp_otp_challenges')->where('id', $challenge)->first();
+        abort_if($row === null, 404);
+
+        return view('admin.auth.whatsapp-otp', [
+            'channel' => $channel,
+            'locale' => $locale,
+            'challenge' => $challenge,
+            'resendAvailableAt' => $row->resend_available_at,
+            'expired' => now()->greaterThanOrEqualTo($row->expires_at) || $row->consumed_at !== null,
+        ]);
+    }
+
+    public function verifyWhatsapp(Request $request, string $challenge): RedirectResponse
+    {
+        $channel = $this->channel($request);
+        $locale = $this->locale($request);
+        App::setLocale($locale);
+
+        $data = $request->validate([
+            'code' => ['required', 'regex:/^[0-9]{6}$/D'],
+            'locale' => ['nullable', 'in:ar,en'],
+        ]);
+
+        $user = $this->whatsAppOtp->verify($challenge, (string) $data['code'], $request);
         if ($user === null) {
-            Log::notice('Management login denied', [
-                'channel' => $channel,
-                'reason' => 'invalid_or_inactive_credentials',
-            ]);
-            $this->recordAuthFailure($request, $channel, 'invalid_or_inactive_credentials');
-
             throw ValidationException::withMessages([
-                'email' => [__('admin_login.invalid_credentials')],
+                'code' => [__('admin_login.otp_invalid')],
             ]);
         }
 
+        return $this->completeLogin($request, $user, $channel, $locale, 'whatsapp_otp');
+    }
+
+    public function resendWhatsapp(Request $request, string $challenge): RedirectResponse
+    {
+        $channel = $this->channel($request);
+        $locale = $this->locale($request);
+        App::setLocale($locale);
+
+        $request->validate(['locale' => ['nullable', 'in:ar,en']]);
+        $this->whatsAppOtp->resend($challenge, $locale, $request);
+
+        return redirect()->route("admin.{$channel}.login.whatsapp", [
+            'challenge' => $challenge,
+            'locale' => $locale,
+        ])->with('status', __('admin_login.otp_generic_sent'));
+    }
+
+    public function destroy(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            $this->audit->record('management.logout', $user, $user, null, null, $request);
+        }
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        Log::info('Management logout', ['user_id' => $user?->getKey()]);
+
+        return redirect()->route('admin.b2c.login');
+    }
+
+    private function completeLogin(
+        Request $request,
+        User $user,
+        string $channel,
+        string $locale,
+        string $method,
+    ): RedirectResponse {
         $target = $this->targetChannel($user, 'b2b');
 
         if ($target === null) {
@@ -99,13 +215,14 @@ class AdminLoginController extends Controller
                 'channel' => $channel,
                 'user_id' => $user->getKey(),
                 'reason' => 'no_management_channel',
+                'method' => $method,
             ]);
             $this->audit->record(
                 'management.login.failed',
                 $user,
                 $user,
                 null,
-                ['requested_channel' => $channel, 'reason' => 'no_management_channel'],
+                ['requested_channel' => $channel, 'reason' => 'no_management_channel', 'method' => $method],
                 $request,
             );
 
@@ -126,7 +243,7 @@ class AdminLoginController extends Controller
             $user,
             $user,
             null,
-            ['requested_channel' => $channel, 'granted_channel' => $target],
+            ['requested_channel' => $channel, 'granted_channel' => $target, 'method' => $method],
             $request,
         );
 
@@ -134,6 +251,7 @@ class AdminLoginController extends Controller
             'channel_requested' => $channel,
             'channel_granted' => $target,
             'user_id' => $user->getKey(),
+            'method' => $method,
         ]);
 
         $intended = $this->authorizedIntendedUrl($request, $user);
@@ -155,23 +273,6 @@ class AdminLoginController extends Controller
         }
 
         return redirect()->to($defaultTarget);
-    }
-
-    public function destroy(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        if ($user instanceof User) {
-            $this->audit->record('management.logout', $user, $user, null, null, $request);
-        }
-
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        Log::info('Management logout', ['user_id' => $user?->getKey()]);
-
-        return redirect()->route('admin.b2c.login');
     }
 
     private function recordAuthFailure(Request $request, string $channel, string $reason): void

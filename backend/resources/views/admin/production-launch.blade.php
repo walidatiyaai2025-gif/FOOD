@@ -29,9 +29,10 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="production-launch">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page" data-foodex-production-launch="true">
+@include('admin._global-header')
         @include('admin._admin-center-switcher',['active'=>'settings'])
 
-        <header class="foodex-page-header">
+        <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('production_launch.title') }}</h1>
                 <p>{{ __('production_launch.description') }}</p>
@@ -40,7 +41,7 @@
                 <a class="foodex-action-secondary" href="{{ route('admin.production-launch.report') }}">{{ __('production_launch.report.download') }}</a>
                 <a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('production_launch.back') }}</a>
             </div>
-        </header>
+        </div>
 
         @if(session('status'))
             <div class="foodex-state" role="status">{{ session('status') }}</div>

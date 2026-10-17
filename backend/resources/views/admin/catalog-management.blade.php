@@ -87,7 +87,8 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="catalog-layout">
 <aside class="sidebar">@include('admin._sidebar',['navContext'=>$navContext])</aside>
 <main>
-<div class="header foodex-page-header"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div><div class="foodex-header-actions">@include('admin._live-notifications',['user'=>auth()->user()])</div></div>
+@include('admin._global-header')
+<div class="header foodex-page-toolbar"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div></div>
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">

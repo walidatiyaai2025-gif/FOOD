@@ -87,6 +87,62 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $this->assertStringNotContainsString('service-recovery.index', $source);
     }
 
+    public function test_restaurant_management_launcher_covers_authorized_capabilities_and_declares_real_gaps(): void
+    {
+        $workspace = file_get_contents(resource_path('views/admin/_smart-ordering-workspace-nav.blade.php'));
+        $launcher = file_get_contents(resource_path('views/admin/_restaurant-management-launcher.blade.php'));
+        $english = file_get_contents(lang_path('en/smart_ordering.php'));
+        $arabic = file_get_contents(lang_path('ar/smart_ordering.php'));
+        $audit = json_decode(
+            (string) file_get_contents(base_path('../docs/execution/RESTAURANT_WEB_WORKSPACE_AUDIT.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertStringContainsString('admin._restaurant-management-launcher', $workspace);
+        foreach (['inventory.view', 'customers.view', 'promotions.view', 'finance.view', 'reports.view'] as $permission) {
+            $this->assertStringContainsString($permission, $workspace);
+        }
+
+        foreach ([
+            'admin.smart-ordering.operations.index',
+            'admin.smart-ordering.menu.index',
+            'admin.smart-ordering.appearance.index',
+            'admin.smart-ordering.qr.index',
+            'admin.smart-ordering.analytics.index',
+            'admin.smart-ordering.supply.index',
+            'admin.smart-ordering.integrations.index',
+            'admin.smart-ordering.growth.index',
+            'admin.b2c.module',
+            'admin.reports.index',
+        ] as $route) {
+            $this->assertStringContainsString($route, $launcher);
+        }
+
+        $this->assertStringContainsString('restaurant-kds-live', $launcher);
+        $this->assertStringContainsString('restaurant-kitchen-config', $launcher);
+        $this->assertStringContainsString("'pos'", $launcher);
+        $this->assertStringContainsString("'partial'", $launcher);
+        $this->assertStringNotContainsString('admin.erp.', $launcher);
+        $this->assertStringContainsString("'Restaurant Management workspace'", $english);
+        $this->assertStringContainsString("'مساحة إدارة المطعم'", $arabic);
+
+        $rows = collect($audit['capabilities'])->keyBy('id');
+        foreach ([
+            'overview', 'orders', 'kds', 'kitchen_config', 'floor', 'reservations', 'waitlist',
+            'pos', 'dispatch', 'menu', 'qr', 'customers_crm', 'offers_loyalty', 'staff_shifts',
+            'inventory', 'recipes_food_cost', 'purchasing', 'payments', 'finance', 'analytics',
+            'reports', 'integrations', 'settings',
+        ] as $capability) {
+            $this->assertTrue($rows->has($capability), 'Missing restaurant workspace capability '.$capability);
+        }
+
+        $this->assertSame('PARTIAL_GAP', $rows['pos']['state']);
+        $this->assertSame('PARTIAL_GAP', $rows['dispatch']['state']);
+        $this->assertSame('PARTIAL_GAP', $rows['purchasing']['state']);
+        $this->assertFalse($audit['exit_contract']['platform_erp_linked_from_restaurant_workspace']);
+    }
+
     public function test_all_canonical_restaurant_operator_pages_mount_the_shared_workspace_navigation(): void
     {
         foreach ([

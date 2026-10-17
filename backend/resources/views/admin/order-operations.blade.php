@@ -29,7 +29,8 @@ $businessLabel = static function ($value): string {
 @endphp
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header"><div><h1>{{ __('order_operations.title') }}</h1><p>{{ __('order_operations.description') }}</p></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:1rem;padding:12px 18px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</header>
+@include('admin._global-header')
+<div class="foodex-page-toolbar"><div><h1>{{ __('order_operations.title') }}</h1><p>{{ __('order_operations.description') }}</p></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:1rem;padding:12px 18px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</div>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
@@ -42,9 +43,7 @@ $businessLabel = static function ($value): string {
     $visibleStore = $selectedStore
         ?? (count($availableStores ?? []) === 1 ? ($availableStores[0] ?? null) : null);
     $selectedChannelOption = collect($availableChannels ?? [])->firstWhere('code', $selectedChannel);
-    $selectedChannelLabel = $selectedChannel === 'all'
-        ? __('order_operations.filters.all_authorized')
-        : ($selectedChannelOption['label'] ?? $businessLabel($selectedChannel));
+    $selectedChannelLabel = $selectedChannelOption['label'] ?? $businessLabel($selectedChannel);
     $workspaceContextQuery = ['channel' => $selectedChannel];
     if ($selectedStoreId !== null) {
         $workspaceContextQuery['store_id'] = $selectedStoreId;
@@ -292,7 +291,6 @@ $businessLabel = static function ($value): string {
 @foreach($availableChannels as $channelOption)
 <a class="status-tab" data-order-channel-tab="{{ $channelOption['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>$channelOption['code']])) }}" @if($selectedChannel===$channelOption['code']) aria-current="page" @endif><span>{{ $channelOption['label'] }}</span></a>
 @endforeach
-<a class="status-tab" data-order-channel-tab="all" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>'all'])) }}" @if($selectedChannel==='all') aria-current="page" @endif><span>{{ $isAr ? 'كل القنوات' : 'All channels' }}</span></a>
 </nav>
 @endif
 

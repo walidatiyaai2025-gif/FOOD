@@ -306,23 +306,25 @@ A Dashboard page is not complete merely because desktop works.
 
 ---
 
-## 13B. Compact Admin Header System
+## 13B. Single Global Admin Header System
 
-The Laravel Admin/Dashboard uses one compact shared header strategy. Oversized page chrome is a functional density regression.
+The Laravel Admin/Dashboard renders **one platform header only**. Search, notifications and account access are global chrome and must not be recreated by individual business pages.
 
-Shared header rules:
+Shared global-header rules:
 
-- desktop header chrome targets **32 px** height;
-- compact/tablet header chrome targets **34 px** height;
-- mobile web uses **44 px** so interactive controls continue to satisfy the mandatory touch-target contract;
-- header titles use compact single-line typography and ellipsis instead of growing the header vertically;
-- optional subtitle/description text must remain secondary, single-line and truncated when necessary; verbose explanatory copy belongs in the page body, not permanent chrome;
-- header action groups stay on one horizontal rail and may scroll horizontally instead of wrapping into a tall button wall;
-- header search, notifications and account controls use compact visual sizing on desktop/tablet while mobile controls retain 44 px touch targets;
-- the canonical Admin shell must keep search, notifications, account identity/access and permission-aware actions; compactness must not remove authorization or navigation truth;
-- page-local CSS must not restore oversized padding, title typography, wrapped action stacks or a competing header-height strategy.
+- every canonical Dashboard page using the shared Sidebar/Main shell renders one shared `admin._global-header` and no second platform header;
+- desktop global header chrome targets **32 px** height;
+- compact/tablet global header chrome targets **34 px** height;
+- mobile web keeps **44 px** touch-safe controls inside the shared 56 px top rail used by the off-canvas navigation launcher;
+- global search, live notifications and account access belong only to the shared global header;
+- page content uses `.foodex-page-toolbar` for the page title, subtitle and page-specific actions below global chrome;
+- `.foodex-page-toolbar` is content structure, not a second platform header: it must not repeat global search, notification or account controls;
+- page action groups remain on one horizontal rail where practical and may scroll horizontally rather than becoming a tall action wall;
+- the mobile navigation launcher may overlay the shared top rail, but it must not create a second branded mobile header;
+- AR/RTL and EN/LTR preserve the same single-header information hierarchy;
+- page-local CSS must not restore `.foodex-page-header`, a second top bar, or a competing global-header geometry.
 
-The shared tokens in `admin._brand` and shared rules in `admin._brand-components` are authoritative. A page may extend header content, but it must not override the compact platform geometry without an explicit repository-owner exception.
+The shared tokens in `admin._brand`, global chrome in `admin._global-header`, shared rules in `admin._brand-components`, and regression coverage in `AdminSingleGlobalHeaderContractTest` are authoritative.
 
 ## 14. Compact mobile layout contract - Customer / Driver / Van
 

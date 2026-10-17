@@ -88,12 +88,13 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page">
-<header class="foodex-page-header">
+@include('admin._global-header')
+<div class="foodex-page-toolbar">
 <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
 @if($tab==='branches' && ($user->hasPermission('orders.manage') || $stores->contains(fn($store) => $user->hasPermission('orders.manage',(int)$store->id))))
 <button type="button" class="foodex-primary" onclick="document.getElementById('so-create-branch').showModal()">+ {{ __('smart_ordering.add_branch') }}</button>
 @endif
-</header>
+</div>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

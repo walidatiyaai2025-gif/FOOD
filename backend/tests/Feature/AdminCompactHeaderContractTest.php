@@ -20,19 +20,20 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertStringNotContainsString('--foodex-header-height:76px', $brand);
     }
 
-    public function test_shared_page_header_contract_is_dense_without_wrapped_action_walls(): void
+    public function test_shared_global_header_and_page_toolbar_contract_are_distinct(): void
     {
         $components = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
 
         $this->assertIsString($components);
-        $this->assertStringContainsString('height:var(--foodex-header-height)!important', $components);
-        $this->assertStringContainsString('font-size:var(--foodex-header-title-size)!important', $components);
-        $this->assertStringContainsString('white-space:nowrap', $components);
-        $this->assertStringContainsString('text-overflow:ellipsis', $components);
+        $this->assertStringContainsString('.foodex-global-header{', $components);
+        $this->assertStringContainsString('height:var(--foodex-header-height)', $components);
+        $this->assertStringContainsString('.foodex-page-toolbar{', $components);
+        $this->assertStringContainsString('font-size:var(--foodex-text-lg)!important', $components);
         $this->assertStringContainsString('flex-wrap:nowrap', $components);
-        $this->assertStringContainsString('height:var(--foodex-header-height-mobile)!important', $components);
+        $this->assertStringContainsString('position:fixed;z-index:10110', $components);
+        $this->assertStringContainsString('height:56px;min-height:56px;max-height:56px', $components);
         $this->assertStringContainsString('min-height:var(--foodex-touch-target)!important', $components);
-        $this->assertStringContainsString('flex-direction:row!important', $components);
+        $this->assertStringNotContainsString('foodex-page-header', $components);
     }
 
     public function test_header_search_notifications_and_account_controls_use_compact_tokens(): void
@@ -51,32 +52,35 @@ final class AdminCompactHeaderContractTest extends TestCase
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $notifications);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $notifications);
+        $this->assertStringContainsString("@include('admin._account-menu'", $notifications);
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $account);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $account);
     }
 
-    public function test_canonical_admin_shell_uses_single_row_compact_header_strategy(): void
+    public function test_canonical_admin_shell_uses_shared_global_header_partial(): void
     {
         $shell = file_get_contents(resource_path('views/admin/shell.blade.php'));
+        $header = file_get_contents(resource_path('views/admin/_global-header.blade.php'));
 
         $this->assertIsString($shell);
-        $this->assertStringContainsString('height:var(--foodex-header-height)!important', $shell);
-        $this->assertStringContainsString('height:var(--foodex-header-height-tablet)!important', $shell);
-        $this->assertStringContainsString('height:var(--foodex-header-height-mobile)!important', $shell);
-        $this->assertStringContainsString('grid-template-columns:minmax(70px,.72fr) minmax(105px,1fr) auto', $shell);
-        $this->assertStringContainsString('.user-card>strong,.user-card>span,.roles{display:none}', $shell);
-        $this->assertStringContainsString('data-foodex-dashboard-header-search', $shell);
-        $this->assertStringContainsString("@include('admin._live-notifications')", $shell);
+        $this->assertIsString($header);
+        $this->assertSame(1, substr_count($shell, "@include('admin._global-header')"));
+        $this->assertStringNotContainsString("@include('admin._global-search'", $shell);
+        $this->assertStringNotContainsString("@include('admin._live-notifications'", $shell);
+        $this->assertStringContainsString('data-foodex-global-header', $header);
+        $this->assertStringContainsString("@include('admin._global-search'", $header);
+        $this->assertStringContainsString("@include('admin._live-notifications'", $header);
     }
 
-    public function test_dashboard_contract_documents_compact_header_strategy(): void
+    public function test_dashboard_contract_documents_single_global_header_strategy(): void
     {
         $contract = file_get_contents(base_path('../docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md'));
 
         $this->assertIsString($contract);
-        $this->assertStringContainsString('## 13B. Compact Admin Header System', $contract);
-        $this->assertStringContainsString('desktop header chrome targets **32 px** height', $contract);
-        $this->assertStringContainsString('mobile web uses **44 px**', $contract);
+        $this->assertStringContainsString('## 13B. Single Global Admin Header System', $contract);
+        $this->assertStringContainsString('desktop global header chrome targets **32 px** height', $contract);
+        $this->assertStringContainsString('one shared `admin._global-header`', $contract);
+        $this->assertStringContainsString('page content uses `.foodex-page-toolbar`', $contract);
     }
 }

@@ -61,6 +61,7 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="invoice">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'order_operations', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main">
+@include('admin._global-header')
 <div class="wrap foodex-admin-page">
     <div style="margin-bottom:12px"><a href="javascript:history.back()">← {{ $isAr?'رجوع':'Back' }}</a></div>
     <section class="invoice-card foodex-card">
