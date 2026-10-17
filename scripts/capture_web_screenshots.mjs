@@ -1442,7 +1442,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'smart-ordering-supply',
-    '/admin/smart-ordering/supply',
+    '/admin/smart-ordering/supply?support_access=1',
   );
   await captureResponsiveRoute(
     page,
