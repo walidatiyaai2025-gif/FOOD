@@ -551,7 +551,7 @@ final class SystemAdministrationRuntime
     }
 
     /**
-     * @param array<string, mixed> $databaseMetadata
+     * @param  array<string, mixed>  $databaseMetadata
      */
     private function backupAvailable(string $directory, string $kind, array $databaseMetadata): bool
     {
