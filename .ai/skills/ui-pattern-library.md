@@ -75,6 +75,34 @@ Prefer/reuse:
 
 A dynamic page must distinguish loading/current/empty/error and stale/offline where the domain can retain old data.
 
+### Status / priority language
+Prefer/reuse:
+- `.foodex-status-badge` with an explicit `data-state` or `data-tone`;
+- `.foodex-priority-badge` with `data-priority`.
+
+The label remains the authoritative meaning; tone reinforces it and never replaces text. Do not create a page-local status color vocabulary.
+
+### Wizard / sequential workflows
+Prefer/reuse:
+- `.foodex-stepper`
+- `.foodex-step`
+
+Use native buttons/links, `aria-current="step"` for the active step, normal text wrapping and the shared 44px touch target. Tabs are not a substitute for ordered dependent steps.
+
+### Record 360 / exact-record drawer
+Prefer/reuse:
+- `.foodex-record-drawer`
+- `.foodex-record-drawer-shell`
+- `.foodex-record-drawer-header`
+- `.foodex-record-drawer-close`
+- `.foodex-record-grid`
+- `.foodex-record-section`
+
+Use the drawer when an exact record needs focused inspection/actions without losing the owning workbench. On phone widths it becomes a full-width touch-safe surface; do not maintain page-local drawer geometry.
+
+### Semantic icon actions
+The authoritative semantic vocabulary remains `UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. `.ai/uiux/component-registry.json` records the machine-readable action mapping for the existing `.foodex-icon` primitive. Reuse that mapping; do not add a competing icon library.
+
 ### Modal / focused workflows
 Prefer/reuse:
 - `.foodex-modal-backdrop`
