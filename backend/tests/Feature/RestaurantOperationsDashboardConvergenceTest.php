@@ -13,7 +13,7 @@ class RestaurantOperationsDashboardConvergenceTest extends TestCase
         $view = file_get_contents(resource_path('views/admin/smart-ordering.blade.php'));
 
         $this->assertStringContainsString('RestaurantOperationsOverviewService', $controller);
-        $this->assertStringContainsString("$overview->snapshot($site, $actor, $overviewFilters)", $controller);
+        $this->assertStringContainsString('$overview->snapshot($site, $actor, $overviewFilters)', $controller);
 
         foreach ([
             'smart_ordering_order_contexts',
@@ -59,8 +59,8 @@ class RestaurantOperationsDashboardConvergenceTest extends TestCase
             $this->assertStringContainsString($validation, file_get_contents(app_path('Http/Controllers/Admin/SmartOrderingController.php')));
         }
 
-        $this->assertStringContainsString("->where('b.site_id', $site->getKey())", $service);
-        $this->assertStringContainsString("abort_if($requestedBranch !== '' && $branch === null, 404)", $service);
+        $this->assertStringContainsString('->where(\'b.site_id\', $site->getKey())', $service);
+        $this->assertStringContainsString('abort_if($requestedBranch !== \'\' && $branch === null, 404)', $service);
         $this->assertStringContainsString("'kitchen_late'", $service);
         $this->assertStringContainsString("'attendance'", $service);
         $this->assertStringContainsString("'reorder'", $service);
