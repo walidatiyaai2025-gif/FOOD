@@ -32,6 +32,26 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $this->assertFalse($items->contains('key', 'smart_ordering_analytics'));
     }
 
+    public function test_wholesale_only_admin_does_not_receive_restaurant_saas_navigation(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $user = User::query()->create([
+            'name' => 'Wholesale Navigation Admin',
+            'email' => 'wholesale-navigation@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        $items = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->flatMap(fn (array $group) => $group['children'])
+            ->values();
+
+        $this->assertFalse($items->contains('key', 'smart_ordering'));
+    }
+
     public function test_shared_restaurant_workspace_exposes_canonical_surfaces_and_permission_gates(): void
     {
         $source = file_get_contents(resource_path('views/admin/_smart-ordering-workspace-nav.blade.php'));
