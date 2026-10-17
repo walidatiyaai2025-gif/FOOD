@@ -13,6 +13,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Models\UserStoreRole;
 use App\Services\AdminSecurityPolicy;
 use App\Services\AdminSessionRegistry;
 use App\Services\AuditLogger;
@@ -795,7 +796,7 @@ final class SecurityController extends Controller
                     'active' => $user->is_active ? 'yes' : 'no',
                     'global_roles' => $user->roles->pluck('code')->join('|'),
                     'store_roles' => $user->storeRoleAssignments->map(
-                        fn ($assignment): string => $assignment->store->code.':'.$assignment->role->code,
+                        fn (UserStoreRole $assignment): string => $assignment->store->code.':'.$assignment->role->code,
                     )->join('|'),
                     'effective_permissions' => implode('|', $user->effectivePermissionCodes()),
                 ])->all(),
