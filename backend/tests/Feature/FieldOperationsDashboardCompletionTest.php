@@ -39,18 +39,14 @@ class FieldOperationsDashboardCompletionTest extends TestCase
         $catalog = app(ManagementReportService::class)->catalog();
 
         $this->assertSame('reports.families.field_operations', $catalog['field_operations'] ?? null);
-        $this->assertSame(
-            'field_operations',
-            config('enterprise_reporting.reports.field_operations.delivery_performance.read_model'),
-        );
+        $definition = config('enterprise_reporting.reports')['field_operations.delivery_performance'] ?? [];
+
+        $this->assertSame('field_operations', $definition['read_model'] ?? null);
         $this->assertSame(
             ['deliveries', 'completed', 'failed', 'on_time', 'late'],
-            config('enterprise_reporting.reports.field_operations.delivery_performance.measures'),
+            $definition['measures'] ?? null,
         );
-        $this->assertSame(
-            'reports.export',
-            config('enterprise_reporting.reports.field_operations.delivery_performance.export_permission'),
-        );
+        $this->assertSame('reports.export', $definition['export_permission'] ?? null);
     }
 
     private function superAdmin(string $email): User
