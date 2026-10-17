@@ -36,7 +36,7 @@
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 <section class="foodex-card">
-<form method="post" action="{{ route('supplier.rfq.submit',['token'=>$token]) }}" class="supplier-rfq__form" data-procurement-supplier-quote>
+<form method="post" action="{{ route('supplier.rfq.submit',['token'=>$token]) }}" class="supplier-rfq__form" data-procurement-supplier-quote enctype="multipart/form-data">
 @csrf
 <div>
 @foreach($lines as $index=>$line)
@@ -54,7 +54,9 @@
 <label>{{ __('enterprise_procurement.portal.valid_until') }}<input type="date" name="valid_until" value="{{ old('valid_until',$existingQuote?->valid_until) }}"></label>
 <label>{{ __('enterprise_procurement.portal.lead_time_days') }}<input type="number" name="lead_time_days" min="0" max="3650" value="{{ old('lead_time_days',$existingQuote?->lead_time_days) }}"></label>
 <label style="grid-column:1/-1">{{ __('enterprise_procurement.notes') }}<textarea name="notes" maxlength="4000">{{ old('notes',$existingQuote?->notes) }}</textarea></label>
+<label style="grid-column:1/-1">{{ __('enterprise_procurement.attachment') }}<input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.doc,.docx"></label>
 </div>
+@if($quoteDocuments->isNotEmpty())<div class="foodex-state"><strong>{{ __('enterprise_procurement.documents') }}</strong><ul>@foreach($quoteDocuments as $document)<li>{{ $document->original_name }}</li>@endforeach</ul></div>@endif
 <button class="foodex-primary" type="submit">{{ __('enterprise_procurement.portal.submit_quote') }}</button>
 </form>
 </section>
