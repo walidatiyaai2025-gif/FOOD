@@ -249,7 +249,7 @@ class ScreenshotEvidenceSeeder extends Seeder
             throw new RuntimeException('Treasury screenshot fixture could not resolve company scope.');
         }
 
-        EnterpriseCashbox::query()->create([
+        $treasuryEvidenceCashbox = EnterpriseCashbox::query()->create([
             'company_id' => $hierarchy['company_id'],
             'store_id' => $storeId,
             'code' => 'EVID-CASH-01',
@@ -259,7 +259,7 @@ class ScreenshotEvidenceSeeder extends Seeder
             'approval_visibility' => EnterpriseCashbox::VISIBILITY_STORE,
             'is_active' => true,
         ]);
-        EnterpriseBankAccount::query()->create([
+        $treasuryEvidenceBank = EnterpriseBankAccount::query()->create([
             'company_id' => $hierarchy['company_id'],
             'store_id' => $storeId,
             'code' => 'EVID-BANK-01',
@@ -272,6 +272,179 @@ class ScreenshotEvidenceSeeder extends Seeder
             'operator_visibility' => EnterpriseBankAccount::VISIBILITY_STORE,
             'approval_visibility' => EnterpriseBankAccount::VISIBILITY_STORE,
             'is_active' => true,
+        ]);
+
+
+        foreach ([
+            [
+                'receipt_number' => 'EVID-RCPT-CASH',
+                'idempotency_key' => 'evidence-treasury-receipt-cash',
+                'target_type' => 'cashbox',
+                'target_id' => $treasuryEvidenceCashbox->id,
+                'amount' => '1850.000',
+                'reference' => 'EVID-CASH-SALES',
+                'description' => 'Evidence cash collections',
+                'value_date' => $now->toDateString(),
+            ],
+            [
+                'receipt_number' => 'EVID-RCPT-BANK',
+                'idempotency_key' => 'evidence-treasury-receipt-bank',
+                'target_type' => 'bank_account',
+                'target_id' => $treasuryEvidenceBank->id,
+                'amount' => '6200.000',
+                'reference' => 'EVID-BANK-COLLECTION',
+                'description' => 'Evidence bank collection',
+                'value_date' => $now->toDateString(),
+            ],
+            [
+                'receipt_number' => 'EVID-RCPT-FUTURE',
+                'idempotency_key' => 'evidence-treasury-receipt-future',
+                'target_type' => 'bank_account',
+                'target_id' => $treasuryEvidenceBank->id,
+                'amount' => '2400.000',
+                'reference' => 'EVID-FUTURE-INFLOW',
+                'description' => 'Evidence forward committed receipt',
+                'value_date' => $now->copy()->addDays(7)->toDateString(),
+            ],
+        ] as $receiptFixture) {
+            DB::table('enterprise_treasury_receipts')->insert([
+                'organization_id' => $treasuryScope->organizationId,
+                'company_id' => $treasuryScope->companyId,
+                'store_id' => $storeId,
+                ...$receiptFixture,
+                'request_hash' => hash('sha256', $receiptFixture['idempotency_key']),
+                'currency_code' => 'KWD',
+                'status' => 'posted',
+                'requested_by' => $treasuryActor->id,
+                'posted_at' => $now,
+                'posted_by' => $treasuryActor->id,
+                'cancelled_at' => null,
+                'cancelled_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        foreach ([
+            [
+                'payment_number' => 'EVID-PAY-BANK',
+                'idempotency_key' => 'evidence-treasury-payment-bank',
+                'target_type' => 'bank_account',
+                'target_id' => $treasuryEvidenceBank->id,
+                'amount' => '1725.000',
+                'reference' => 'EVID-SUPPLIER-PAY',
+                'beneficiary' => 'Evidence Supplier',
+                'description' => 'Evidence supplier settlement',
+                'value_date' => $now->toDateString(),
+            ],
+            [
+                'payment_number' => 'EVID-PAY-FUTURE',
+                'idempotency_key' => 'evidence-treasury-payment-future',
+                'target_type' => 'bank_account',
+                'target_id' => $treasuryEvidenceBank->id,
+                'amount' => '1300.000',
+                'reference' => 'EVID-FUTURE-OUTFLOW',
+                'beneficiary' => 'Evidence Landlord',
+                'description' => 'Evidence scheduled forward payment',
+                'value_date' => $now->copy()->addDays(14)->toDateString(),
+            ],
+        ] as $paymentFixture) {
+            DB::table('enterprise_treasury_payments')->insert([
+                'organization_id' => $treasuryScope->organizationId,
+                'company_id' => $treasuryScope->companyId,
+                'store_id' => $storeId,
+                ...$paymentFixture,
+                'request_hash' => hash('sha256', $paymentFixture['idempotency_key']),
+                'currency_code' => 'KWD',
+                'status' => 'posted',
+                'requested_by' => $treasuryActor->id,
+                'workflow_request_id' => null,
+                'posted_at' => $now,
+                'posted_by' => $treasuryActor->id,
+                'cancelled_at' => null,
+                'cancelled_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $evidenceFacilityId = (int) DB::table('enterprise_treasury_facilities')->insertGetId([
+            'organization_id' => $treasuryScope->organizationId,
+            'company_id' => $treasuryScope->companyId,
+            'legal_entity_id' => $treasuryScope->legalEntityId,
+            'store_id' => $storeId,
+            'code' => 'EVID-FAC-01',
+            'lender_name' => 'FOODEX Evidence Bank',
+            'currency_code' => 'KWD',
+            'facility_limit' => '25000.000',
+            'annual_rate' => '4.250000',
+            'margin_rate' => '1.000000',
+            'start_date' => $now->copy()->subMonths(2)->toDateString(),
+            'maturity_date' => $now->copy()->addYear()->toDateString(),
+            'status' => 'active',
+            'idempotency_key' => 'evidence-facility-01',
+            'request_hash' => hash('sha256', 'evidence-facility-01'),
+            'finance_journal_id' => null,
+            'created_by' => $treasuryActor->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $evidenceDrawdownId = (int) DB::table('enterprise_treasury_drawdowns')->insertGetId([
+            'facility_id' => $evidenceFacilityId,
+            'reference' => 'EVID-DD-01',
+            'idempotency_key' => 'evidence-drawdown-01',
+            'request_hash' => hash('sha256', 'evidence-drawdown-01'),
+            'principal_amount' => '12000.000',
+            'scheduled_interest_total' => '600.000',
+            'drawdown_date' => $now->copy()->subMonth()->toDateString(),
+            'maturity_date' => $now->copy()->addMonths(11)->toDateString(),
+            'installment_count' => 4,
+            'status' => 'active',
+            'finance_journal_id' => null,
+            'created_by' => $treasuryActor->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        foreach ([30, 120, 210, 300] as $index => $days) {
+            DB::table('enterprise_treasury_repayments')->insert([
+                'drawdown_id' => $evidenceDrawdownId,
+                'installment_number' => $index + 1,
+                'due_date' => $now->copy()->addDays($days)->toDateString(),
+                'principal_amount' => '3000.000',
+                'interest_amount' => '150.000',
+                'status' => 'scheduled',
+                'finance_journal_id' => null,
+                'created_by' => $treasuryActor->id,
+                'paid_at' => null,
+                'paid_by' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+        DB::table('enterprise_treasury_investments')->insert([
+            'organization_id' => $treasuryScope->organizationId,
+            'company_id' => $treasuryScope->companyId,
+            'legal_entity_id' => $treasuryScope->legalEntityId,
+            'store_id' => $storeId,
+            'code' => 'EVID-INV-01',
+            'institution' => 'FOODEX Evidence Bank',
+            'instrument_type' => 'Term Deposit',
+            'currency_code' => 'KWD',
+            'principal_amount' => '5000.000',
+            'annual_yield_rate' => '3.750000',
+            'expected_return_amount' => '187.500',
+            'placement_date' => $now->copy()->subDays(45)->toDateString(),
+            'maturity_date' => $now->copy()->addDays(45)->toDateString(),
+            'status' => 'active',
+            'idempotency_key' => 'evidence-investment-01',
+            'request_hash' => hash('sha256', 'evidence-investment-01'),
+            'settlement_reference' => null,
+            'finance_journal_id' => null,
+            'created_by' => $treasuryActor->id,
+            'settled_at' => null,
+            'settled_by' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         $retailStoreId = (int) DB::table('stores')

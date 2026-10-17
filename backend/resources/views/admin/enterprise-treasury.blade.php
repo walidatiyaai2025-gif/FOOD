@@ -5,7 +5,8 @@
 <title>{{ __('enterprise_treasury.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-.erp-treasury{display:grid;gap:16px}.erp-context{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap;padding:14px}.erp-context form,.erp-filter,.erp-form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.erp-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));padding:14px}.erp-context label,.erp-filter label,.erp-form label{display:grid;gap:5px;font-weight:700;font-size:.82rem}.erp-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.erp-actions form{display:inline-flex;gap:6px}.erp-link{display:inline-flex;min-height:38px;align-items:center;padding:0 10px;border-radius:9px;border:1px solid var(--foodex-border);text-decoration:none;font-weight:800;background:transparent}.erp-danger{color:var(--foodex-danger-text)}.erp-table-wrap{overflow:auto}.erp-table td,.erp-table th{vertical-align:top}.erp-ref{white-space:nowrap;font-weight:900}.erp-create summary{cursor:pointer;font-weight:900;color:var(--foodex-green-dark);padding:12px 14px}.erp-create[open] summary{border-bottom:1px solid var(--foodex-border)}.erp-note{padding:12px 14px;color:var(--foodex-muted)}.erp-badge{white-space:nowrap}.erp-match{display:grid;gap:8px;min-width:260px}.erp-match select{max-width:280px}.erp-numeric{font-variant-numeric:tabular-nums;white-space:nowrap}
+.erp-treasury{display:grid;gap:16px}.erp-context{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap;padding:14px}.erp-context form,.erp-filter,.erp-form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.erp-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));padding:14px}.erp-context label,.erp-filter label,.erp-form label{display:grid;gap:5px;font-weight:700;font-size:.82rem}.erp-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.erp-actions form{display:inline-flex;gap:6px}.erp-link{display:inline-flex;min-height:38px;align-items:center;padding:0 10px;border-radius:9px;border:1px solid var(--foodex-border);text-decoration:none;font-weight:800;background:transparent}.erp-danger{color:var(--foodex-danger-text)}.erp-table-wrap{overflow:auto}.erp-table td,.erp-table th{vertical-align:top}.erp-ref{white-space:nowrap;font-weight:900}.erp-create summary{cursor:pointer;font-weight:900;color:var(--foodex-green-dark);padding:12px 14px}.erp-create[open] summary{border-bottom:1px solid var(--foodex-border)}.erp-note{padding:12px 14px;color:var(--foodex-muted)}.erp-badge{white-space:nowrap}.erp-match{display:grid;gap:8px;min-width:260px}.erp-match select{max-width:280px}.erp-numeric{font-variant-numeric:tabular-nums;white-space:nowrap}.erp-dashboard-grid,.erp-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.erp-chart-card{padding:14px;min-width:0}.erp-chart-card h2,.erp-chart-card h3{margin:0 0 4px}.erp-chart-card .foodex-viz-bars{min-height:120px;height:150px}.erp-chart-legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--foodex-muted);font-size:.78rem}.erp-report-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.erp-report-actions form{display:grid;gap:8px;padding:14px}.erp-report-actions label{display:grid;gap:5px;font-weight:700}.erp-provenance{font-size:.78rem;color:var(--foodex-muted)}.erp-section-title{margin:0}.erp-section-copy{margin:4px 0 0;color:var(--foodex-muted)}.erp-positive{color:var(--foodex-green-dark)}.erp-negative{color:var(--foodex-danger-text)}
+@media(max-width:1023px){.erp-dashboard-grid,.erp-report-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:767px){.erp-context,.erp-filter{align-items:stretch}.erp-context form,.erp-filter{width:100%}.erp-table{min-width:820px}.erp-actions{min-width:220px}}
 </style>
 </head>
@@ -48,6 +49,7 @@ $targetOptions=[
 @endforeach
 </nav>
 
+@if(in_array($activeTab,['receipts','payments','cheques','reconciliation','cash_closing'],true))
 <form method="get" class="foodex-card erp-filter">
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="{{ $activeTab }}">
 @if(in_array($activeTab,['receipts','payments'],true))
@@ -70,6 +72,254 @@ $targetOptions=[
 <label>{{ __('enterprise_treasury.date_to') }}<input type="date" name="date_to" value="{{ request('date_to') }}"></label>
 <button class="foodex-filter-action">{{ __('enterprise_treasury.apply') }}</button>
 </form>
+@endif
+
+@if(in_array($activeTab,['overview','forecast','reports'],true))
+@php
+$moduleDashboardFilters=[
+    'action'=>route('admin.erp.treasury.index'),
+    'from_name'=>'from',
+    'to_name'=>'to',
+    'from_value'=>request('from'),
+    'to_value'=>request('to'),
+    'hidden'=>['store_id'=>$selectedStoreId,'tab'=>$activeTab],
+    'reset_url'=>route('admin.erp.treasury.index',['store_id'=>$selectedStoreId,'tab'=>$activeTab]),
+];
+@endphp
+@include('admin._module-dashboard-filters',['moduleDashboardFilters'=>$moduleDashboardFilters])
+@endif
+
+@if($activeTab==='financing')
+<form method="get" class="foodex-card erp-filter">
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="financing">
+<label>{{ __('enterprise_treasury.search') }}<input type="search" name="q" maxlength="120" value="{{ request('q') }}"></label>
+<label>{{ __('enterprise_treasury.status') }}<select name="status"><option value="">{{ __('enterprise_treasury.all') }}</option>@foreach(['active','closed','cancelled'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $statusLabel($status) }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.financing.facility') }}<select name="facility_id"><option value="">{{ __('enterprise_treasury.all') }}</option>@foreach($facilityOptions as $facility)<option value="{{ $facility->id }}" @selected((int)request('facility_id')===(int)$facility->id)>{{ $facility->code }} · {{ $facility->lender_name }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.financing.repayment_schedule') }}<select name="repayment_status"><option value="">{{ __('enterprise_treasury.all') }}</option>@foreach(['scheduled','paid','cancelled'] as $status)<option value="{{ $status }}" @selected(request('repayment_status')===$status)>{{ $statusLabel($status) }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.date_from') }}<input type="date" name="date_from" value="{{ request('date_from') }}"></label>
+<label>{{ __('enterprise_treasury.date_to') }}<input type="date" name="date_to" value="{{ request('date_to') }}"></label>
+<button class="foodex-filter-action">{{ __('enterprise_treasury.apply') }}</button>
+</form>
+@endif
+
+@if($activeTab==='investments')
+<form method="get" class="foodex-card erp-filter">
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="investments">
+<label>{{ __('enterprise_treasury.search') }}<input type="search" name="q" maxlength="120" value="{{ request('q') }}"></label>
+<label>{{ __('enterprise_treasury.status') }}<select name="status"><option value="">{{ __('enterprise_treasury.all') }}</option>@foreach(['active','matured','settled','cancelled'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $statusLabel($status) }}</option>@endforeach</select></label>
+<button class="foodex-filter-action">{{ __('enterprise_treasury.apply') }}</button>
+</form>
+@endif
+
+@if($activeTab==='overview')
+<section class="foodex-module-overview" data-foodex-module-overview data-state="{{ $dashboard['state'] ?? 'current' }}">
+<div class="foodex-card erp-note">
+<strong>{{ __('enterprise_treasury.dashboard.fx_policy') }}</strong>
+<span class="erp-provenance">{{ __('enterprise_treasury.dashboard.as_of') }} {{ $dashboard['as_of'] ?? '—' }}</span>
+</div>
+<div class="foodex-module-kpis">
+@foreach(($dashboard['kpis'] ?? []) as $kpi)
+@include('admin._module-dashboard-kpi',['metric'=>$kpi])
+@endforeach
+</div>
+
+<div class="erp-dashboard-grid">
+@php
+$positionRows=collect($dashboard['cash_position'] ?? []);
+$maxPosition=max(1,$positionRows->map(fn($row)=>abs((int)($row['balance_mills'] ?? 0)))->max() ?? 1);
+@endphp
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-cash-position-title">
+<h2 id="treasury-cash-position-title">{{ __('enterprise_treasury.dashboard.cash_position') }}</h2>
+<p class="foodex-module-chart-summary">{{ __('enterprise_treasury.dashboard.cash_position_summary') }}</p>
+@if($positionRows->isNotEmpty())
+<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.cash_position') }}">
+@foreach($positionRows->take(12) as $row)<span class="foodex-viz-bar" data-series="{{ (int)$row['balance_mills']<0?4:1 }}" style="height:{{ max(8,(int)round(abs((int)$row['balance_mills'])/$maxPosition*100)) }}%" title="{{ $row['target'] }} · {{ $row['balance'] }} {{ $row['currency'] }}"></span>@endforeach
+</div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('enterprise_treasury.target') }}</th><th>{{ __('enterprise_treasury.currency') }}</th><th>{{ __('enterprise_treasury.amount') }}</th></tr></thead><tbody>@foreach($positionRows as $row)<tr><td>{{ $row['target'] }}</td><td>{{ $row['currency'] }}</td><td class="erp-numeric {{ (int)$row['balance_mills']<0?'erp-negative':'erp-positive' }}">{{ $row['balance'] }}</td></tr>@endforeach</tbody></table></div>
+@else
+@include('admin._module-dashboard-state',['state'=>'empty'])
+@endif
+</section>
+
+@php
+$trendRows=collect($dashboard['actual_trend'] ?? [])->take(-14);
+$maxTrend=max(1,$trendRows->map(fn($row)=>max((float)$row['inflow'],(float)$row['outflow']))->max() ?? 1);
+@endphp
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-trend-title">
+<h2 id="treasury-trend-title">{{ __('enterprise_treasury.dashboard.inflow_outflow') }}</h2>
+@if($trendRows->isNotEmpty())
+<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.inflow_outflow') }}">@foreach($trendRows as $row)<span class="foodex-viz-bar" data-series="1" style="height:{{ max(6,(int)round(((float)$row['inflow'])/$maxTrend*100)) }}%" title="{{ $row['date'] }} · {{ $row['inflow'] }} {{ $row['currency'] }}"></span><span class="foodex-viz-bar" data-series="2" style="height:{{ max(6,(int)round(((float)$row['outflow'])/$maxTrend*100)) }}%" title="{{ $row['date'] }} · {{ $row['outflow'] }} {{ $row['currency'] }}"></span>@endforeach</div>
+<div class="erp-chart-legend"><span>● {{ __('enterprise_treasury.forecast.inflow') }}</span><span>● {{ __('enterprise_treasury.forecast.outflow') }}</span></div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('enterprise_treasury.value_date') }}</th><th>{{ __('enterprise_treasury.currency') }}</th><th>{{ __('enterprise_treasury.forecast.inflow') }}</th><th>{{ __('enterprise_treasury.forecast.outflow') }}</th></tr></thead><tbody>@foreach($trendRows as $row)<tr><td>{{ $row['date'] }}</td><td>{{ $row['currency'] }}</td><td>{{ $row['inflow'] }}</td><td>{{ $row['outflow'] }}</td></tr>@endforeach</tbody></table></div>
+@else @include('admin._module-dashboard-state',['state'=>'empty']) @endif
+</section>
+
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-rec-title">
+<h2 id="treasury-rec-title">{{ __('enterprise_treasury.dashboard.reconciliation') }}</h2>
+@php $recRows=collect($dashboard['reconciliation_status'] ?? []); $maxRec=max(1,(int)($recRows->max('records') ?? 1)); @endphp
+@if($recRows->isNotEmpty())<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.reconciliation') }}">@foreach($recRows as $row)<span class="foodex-viz-bar" data-series="{{ $row['status']==='closed'?1:3 }}" style="height:{{ max(8,(int)round(((int)$row['records'])/$maxRec*100)) }}%" title="{{ $statusLabel($row['status']) }} · {{ $row['records'] }}"></span>@endforeach</div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('enterprise_treasury.status') }}</th><th>{{ __('enterprise_treasury.currency') }}</th><th>#</th></tr></thead><tbody>@foreach($recRows as $row)<tr><td>{{ $statusLabel($row['status']) }}</td><td>{{ $row['currency'] }}</td><td>{{ $row['records'] }}</td></tr>@endforeach</tbody></table></div>
+@else @include('admin._module-dashboard-state',['state'=>'empty']) @endif
+</section>
+
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-cheque-title">
+<h2 id="treasury-cheque-title">{{ __('enterprise_treasury.dashboard.cheque_maturity') }}</h2>
+@php $chequeRows=collect($dashboard['cheque_maturity'] ?? []); $maxCheque=max(1,(int)($chequeRows->max('count') ?? 1)); @endphp
+<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.cheque_maturity') }}">@foreach($chequeRows as $row)<span class="foodex-viz-bar" data-series="{{ $row['bucket']==='overdue'?4:($row['bucket']==='next_7_days'?3:1) }}" style="height:{{ max(8,(int)round(((int)$row['count'])/$maxCheque*100)) }}%" title="{{ $row['bucket'] }} · {{ $row['count'] }}"></span>@endforeach</div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><tbody>@foreach($chequeRows as $row)<tr><th>{{ __('enterprise_treasury.dashboard.maturity_buckets.'.$row['bucket']) }}</th><td>{{ $row['count'] }}</td></tr>@endforeach</tbody></table></div>
+</section>
+
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-forecast-title">
+<h2 id="treasury-forecast-title">{{ __('enterprise_treasury.dashboard.forecast') }}</h2>
+@php $forecastChart=collect($dashboard['forecast'] ?? [])->take(20); $maxForecast=max(1,$forecastChart->map(fn($row)=>max((float)$row['inflow'],(float)$row['outflow']))->max() ?? 1); @endphp
+@if($forecastChart->isNotEmpty())<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.forecast') }}">@foreach($forecastChart as $row)<span class="foodex-viz-bar" data-series="1" style="height:{{ max(6,(int)round(((float)$row['inflow'])/$maxForecast*100)) }}%" title="{{ $row['date'] }} · {{ $row['inflow'] }} {{ $row['currency'] }}"></span><span class="foodex-viz-bar" data-series="2" style="height:{{ max(6,(int)round(((float)$row['outflow'])/$maxForecast*100)) }}%" title="{{ $row['date'] }} · {{ $row['outflow'] }} {{ $row['currency'] }}"></span>@endforeach</div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('enterprise_treasury.value_date') }}</th><th>{{ __('enterprise_treasury.currency') }}</th><th>{{ __('enterprise_treasury.forecast.net') }}</th></tr></thead><tbody>@foreach($forecastChart as $row)<tr><td>{{ $row['date'] }}</td><td>{{ $row['currency'] }}</td><td>{{ $row['net'] }}</td></tr>@endforeach</tbody></table></div>
+@else @include('admin._module-dashboard-state',['state'=>'empty']) @endif
+</section>
+
+<section class="foodex-card foodex-module-chart erp-chart-card" data-foodex-module-chart aria-labelledby="treasury-repayment-title">
+<h2 id="treasury-repayment-title">{{ __('enterprise_treasury.dashboard.repayment') }}</h2>
+@php $repaymentChart=collect($dashboard['repayment_profile'] ?? [])->take(20); $maxRepayment=max(1,$repaymentChart->map(fn($row)=>(float)$row['principal']+(float)$row['interest'])->max() ?? 1); @endphp
+@if($repaymentChart->isNotEmpty())<div class="foodex-viz-bars" role="img" aria-label="{{ __('enterprise_treasury.dashboard.repayment') }}">@foreach($repaymentChart as $row)<span class="foodex-viz-bar" data-series="3" style="height:{{ max(8,(int)round((((float)$row['principal']+(float)$row['interest'])/$maxRepayment)*100)) }}%" title="{{ $row['facility'] }} · {{ $row['date'] }}"></span>@endforeach</div>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('enterprise_treasury.financing.facility') }}</th><th>{{ __('enterprise_treasury.financing.due_date') }}</th><th>{{ __('enterprise_treasury.financing.principal') }}</th><th>{{ __('enterprise_treasury.financing.interest') }}</th></tr></thead><tbody>@foreach($repaymentChart as $row)<tr><td>{{ $row['facility'] }}</td><td>{{ $row['date'] }}</td><td>{{ $row['principal'] }} {{ $row['currency'] }}</td><td>{{ $row['interest'] }} {{ $row['currency'] }}</td></tr>@endforeach</tbody></table></div>
+@else @include('admin._module-dashboard-state',['state'=>'empty']) @endif
+</section>
+</div>
+</section>
+@endif
+
+@if($activeTab==='financing')
+@if($canManage)
+<details class="foodex-card erp-create"><summary>+ {{ __('enterprise_treasury.financing.new_facility') }}</summary>
+<form method="post" action="{{ route('admin.erp.treasury.facilities.store') }}" class="erp-form">@csrf
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $facilityToken }}">
+<label>{{ __('enterprise_treasury.financing.facility_code') }}<input name="code" maxlength="64" required></label>
+<label>{{ __('enterprise_treasury.financing.lender') }}<input name="lender_name" maxlength="190" required></label>
+<label>{{ __('enterprise_treasury.currency') }}<input name="currency_code" maxlength="3" minlength="3" required></label>
+<label>{{ __('enterprise_treasury.financing.facility_limit') }}<input type="number" name="facility_limit" min="0.001" step="0.001" required></label>
+<label>{{ __('enterprise_treasury.financing.annual_rate') }}<input type="number" name="annual_rate" min="0" max="100" step="0.000001" value="0" required></label>
+<label>{{ __('enterprise_treasury.financing.margin_rate') }}<input type="number" name="margin_rate" min="0" max="100" step="0.000001" value="0" required></label>
+<label>{{ __('enterprise_treasury.financing.start_date') }}<input type="date" name="start_date" value="{{ now()->toDateString() }}" required></label>
+<label>{{ __('enterprise_treasury.financing.maturity_date') }}<input type="date" name="maturity_date" required></label>
+<label>{{ __('enterprise_treasury.finance_journal') }} <span class="erp-provenance">({{ __('enterprise_treasury.optional') }})</span><select name="finance_journal_id"><option value="">—</option>@foreach($financeJournals as $journal)<option value="{{ $journal->id }}">{{ $journal->journal_number }} · {{ $journal->entry_date }} · {{ $journal->description ?: '—' }}</option>@endforeach</select></label>
+<div><button class="foodex-primary">{{ __('enterprise_treasury.financing.new_facility') }}</button></div>
+</form></details>
+
+<details class="foodex-card erp-create"><summary>+ {{ __('enterprise_treasury.financing.new_drawdown') }}</summary>
+<form method="post" action="{{ route('admin.erp.treasury.drawdowns.store') }}" class="erp-form">@csrf
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $drawdownToken }}">
+<label>{{ __('enterprise_treasury.financing.facility') }}<select name="facility_id" required>@foreach($facilityOptions as $facility)<option value="{{ $facility->id }}">{{ $facility->code }} · {{ $facility->lender_name }} · {{ $facility->currency_code }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.financing.drawdown_reference') }}<input name="reference" maxlength="80" required></label>
+<label>{{ __('enterprise_treasury.financing.principal') }}<input type="number" name="principal_amount" min="0.001" step="0.001" required></label>
+<label>{{ __('enterprise_treasury.financing.scheduled_interest') }}<input type="number" name="scheduled_interest_total" min="0" step="0.001" value="0" required></label>
+<label>{{ __('enterprise_treasury.financing.start_date') }}<input type="date" name="drawdown_date" value="{{ now()->toDateString() }}" required></label>
+<label>{{ __('enterprise_treasury.financing.maturity_date') }}<input type="date" name="maturity_date" required></label>
+<label>{{ __('enterprise_treasury.financing.installments') }}<input type="number" name="installment_count" min="1" max="120" value="12" required></label>
+<label>{{ __('enterprise_treasury.finance_journal') }} <span class="erp-provenance">({{ __('enterprise_treasury.optional') }})</span><select name="finance_journal_id"><option value="">—</option>@foreach($financeJournals as $journal)<option value="{{ $journal->id }}">{{ $journal->journal_number }} · {{ $journal->entry_date }}</option>@endforeach</select></label>
+<div><button class="foodex-primary">{{ __('enterprise_treasury.financing.new_drawdown') }}</button></div>
+</form></details>
+@endif
+
+<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_treasury.financing.facility_code') }}</th><th>{{ __('enterprise_treasury.financing.lender') }}</th><th>{{ __('enterprise_treasury.financing.facility_limit') }}</th><th>{{ __('enterprise_treasury.financing.drawn') }}</th><th>{{ __('enterprise_treasury.financing.available') }}</th><th>{{ __('enterprise_treasury.financing.annual_rate') }}</th><th>{{ __('enterprise_treasury.financing.margin_rate') }}</th><th>{{ __('enterprise_treasury.financing.maturity_date') }}</th><th>{{ __('enterprise_treasury.status') }}</th></tr></thead><tbody>
+@forelse($rows as $row)
+@php $available=(float)$row->facility_limit-(float)$row->drawn_principal; @endphp
+<tr><td class="erp-ref">{{ $row->code }}</td><td>{{ $row->lender_name }}</td><td class="erp-numeric">{{ $row->facility_limit }} {{ $row->currency_code }}</td><td class="erp-numeric">{{ $row->drawn_principal }} {{ $row->currency_code }}</td><td class="erp-numeric">{{ number_format($available,3,'.','') }} {{ $row->currency_code }}</td><td>{{ $row->annual_rate }}%</td><td>{{ $row->margin_rate }}%</td><td>{{ $row->maturity_date }}</td><td><span class="badge">{{ $statusLabel($row->status) }}</span></td></tr>
+@empty<tr><td colspan="9"><div class="foodex-empty-state">{{ __('enterprise_treasury.empty') }}</div></td></tr>@endforelse
+</tbody></table></section>
+{{ $rows->links() }}
+
+<section class="foodex-card"><div class="erp-note"><h2 class="erp-section-title">{{ __('enterprise_treasury.financing.repayment_schedule') }}</h2><p class="erp-section-copy">{{ __('enterprise_treasury.financing.journal_required') }}</p></div>
+<div class="erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_treasury.financing.facility') }}</th><th>{{ __('enterprise_treasury.financing.drawdown_reference') }}</th><th>{{ __('enterprise_treasury.financing.installment') }}</th><th>{{ __('enterprise_treasury.financing.due_date') }}</th><th>{{ __('enterprise_treasury.financing.principal') }}</th><th>{{ __('enterprise_treasury.financing.interest') }}</th><th>{{ __('enterprise_treasury.status') }}</th><th>{{ __('enterprise_treasury.actions') }}</th></tr></thead><tbody>
+@forelse($repayments as $row)<tr><td>{{ $row->facility_code }} · {{ $row->lender_name }}</td><td>{{ $row->drawdown_reference }}</td><td>{{ $row->installment_number }}</td><td>{{ $row->due_date }}</td><td class="erp-numeric">{{ $row->principal_amount }} {{ $row->currency_code }}</td><td class="erp-numeric">{{ $row->interest_amount }} {{ $row->currency_code }}</td><td><span class="badge">{{ $statusLabel($row->status) }}</span></td><td>@if($canManage && $row->status==='scheduled')<form method="post" action="{{ route('admin.erp.treasury.repayments.paid',$row->id) }}" class="erp-actions">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><select name="finance_journal_id" required><option value="">{{ __('enterprise_treasury.finance_journal') }}</option>@foreach($financeJournals as $journal)<option value="{{ $journal->id }}">{{ $journal->journal_number }} · {{ $journal->entry_date }}</option>@endforeach</select><button class="foodex-primary">{{ __('enterprise_treasury.financing.mark_paid') }}</button></form>@endif</td></tr>
+@empty<tr><td colspan="8"><div class="foodex-empty-state">{{ __('enterprise_treasury.empty') }}</div></td></tr>@endforelse
+</tbody></table></div></section>
+{{ $repayments->links() }}
+@endif
+
+@if($activeTab==='investments')
+@if($canManage)
+<details class="foodex-card erp-create"><summary>+ {{ __('enterprise_treasury.investments.new') }}</summary>
+<form method="post" action="{{ route('admin.erp.treasury.investments.store') }}" class="erp-form">@csrf
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $investmentToken }}">
+<label>{{ __('enterprise_treasury.investments.code') }}<input name="code" maxlength="64" required></label>
+<label>{{ __('enterprise_treasury.investments.institution') }}<input name="institution" maxlength="190" required></label>
+<label>{{ __('enterprise_treasury.investments.instrument_type') }}<input name="instrument_type" maxlength="100" required></label>
+<label>{{ __('enterprise_treasury.currency') }}<input name="currency_code" minlength="3" maxlength="3" required></label>
+<label>{{ __('enterprise_treasury.investments.principal') }}<input type="number" name="principal_amount" min="0.001" step="0.001" required></label>
+<label>{{ __('enterprise_treasury.investments.annual_yield_rate') }}<input type="number" name="annual_yield_rate" min="0" max="100" step="0.000001" value="0" required></label>
+<label>{{ __('enterprise_treasury.investments.expected_return') }}<input type="number" name="expected_return_amount" min="0" step="0.001" value="0" required></label>
+<label>{{ __('enterprise_treasury.investments.placement_date') }}<input type="date" name="placement_date" value="{{ now()->toDateString() }}" required></label>
+<label>{{ __('enterprise_treasury.investments.maturity_date') }}<input type="date" name="maturity_date" required></label>
+<label>{{ __('enterprise_treasury.finance_journal') }} <span class="erp-provenance">({{ __('enterprise_treasury.optional') }})</span><select name="finance_journal_id"><option value="">—</option>@foreach($financeJournals as $journal)<option value="{{ $journal->id }}">{{ $journal->journal_number }} · {{ $journal->entry_date }}</option>@endforeach</select></label>
+<div><button class="foodex-primary">{{ __('enterprise_treasury.investments.new') }}</button></div>
+</form></details>
+@endif
+<div class="foodex-card erp-note">{{ __('enterprise_treasury.investments.journal_required') }}</div>
+<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_treasury.investments.code') }}</th><th>{{ __('enterprise_treasury.investments.institution') }}</th><th>{{ __('enterprise_treasury.investments.instrument_type') }}</th><th>{{ __('enterprise_treasury.investments.principal') }}</th><th>{{ __('enterprise_treasury.investments.expected_return') }}</th><th>{{ __('enterprise_treasury.investments.maturity_date') }}</th><th>{{ __('enterprise_treasury.status') }}</th><th>{{ __('enterprise_treasury.actions') }}</th></tr></thead><tbody>
+@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->code }}</td><td>{{ $row->institution }}</td><td>{{ $row->instrument_type }}</td><td class="erp-numeric">{{ $row->principal_amount }} {{ $row->currency_code }}</td><td class="erp-numeric">{{ $row->expected_return_amount }} {{ $row->currency_code }}</td><td>{{ $row->maturity_date }}</td><td><span class="badge">{{ $statusLabel($row->status) }}</span></td><td>@if($canManage && $row->status==='active')<form method="post" action="{{ route('admin.erp.treasury.investments.settle',$row->id) }}" class="erp-match">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><label>{{ __('enterprise_treasury.investments.settlement_reference') }}<input name="settlement_reference" maxlength="120" required></label><label>{{ __('enterprise_treasury.finance_journal') }}<select name="finance_journal_id" required>@foreach($financeJournals as $journal)<option value="{{ $journal->id }}">{{ $journal->journal_number }} · {{ $journal->entry_date }}</option>@endforeach</select></label><button class="foodex-primary">{{ __('enterprise_treasury.investments.settle') }}</button></form>@endif</td></tr>
+@empty<tr><td colspan="8"><div class="foodex-empty-state">{{ __('enterprise_treasury.empty') }}</div></td></tr>@endforelse
+</tbody></table></section>
+{{ $rows->links() }}
+@endif
+
+@if($activeTab==='forecast')
+<section class="foodex-module-overview" data-foodex-module-overview data-state="{{ $forecast['state'] ?? 'current' }}">
+<div class="foodex-card erp-note"><strong>{{ __('enterprise_treasury.forecast.title') }}</strong><p>{{ __('enterprise_treasury.forecast.description') }}</p><span>{{ __('enterprise_treasury.forecast.opening') }}: {{ $forecast['opening_by_currency'] ?? '—' }}</span><br><span class="erp-provenance">{{ __('enterprise_treasury.dashboard.fx_policy') }}</span></div>
+<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_treasury.value_date') }}</th><th>{{ __('enterprise_treasury.forecast.source') }}</th><th>{{ __('enterprise_treasury.currency') }}</th><th>{{ __('enterprise_treasury.forecast.inflow') }}</th><th>{{ __('enterprise_treasury.forecast.outflow') }}</th><th>{{ __('enterprise_treasury.forecast.net') }}</th><th>{{ __('enterprise_treasury.forecast.running_balance') }}</th></tr></thead><tbody>
+@forelse(($forecast['rows'] ?? []) as $row)<tr><td>{{ $row['date'] }}</td><td>{{ __('enterprise_treasury.forecast.sources.'.$row['source']) }}</td><td>{{ $row['currency'] }}</td><td class="erp-numeric">{{ $row['inflow'] }}</td><td class="erp-numeric">{{ $row['outflow'] }}</td><td class="erp-numeric">{{ $row['net'] }}</td><td class="erp-numeric">{{ $row['running_balance'] }}</td></tr>
+@empty<tr><td colspan="7"><div class="foodex-empty-state">{{ __('enterprise_treasury.empty') }}</div></td></tr>@endforelse
+</tbody></table></section>
+</section>
+@endif
+
+@if($activeTab==='reports')
+<section class="foodex-module-overview" data-foodex-module-overview data-state="current">
+<div class="foodex-card erp-note"><h2 class="erp-section-title">{{ __('enterprise_treasury.reports.title') }}</h2><p class="erp-section-copy">{{ __('enterprise_treasury.reports.description') }}</p></div>
+@if($canManage)
+<div class="erp-report-actions">
+<form method="post" action="{{ route('admin.erp.treasury.reports.export') }}" class="foodex-card">@csrf
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $reportToken }}-export">
+<label>{{ __('enterprise_treasury.reports.title') }}<select name="report_code" required>@foreach(\App\Enterprise\Treasury\TreasuryAnalyticsService::REPORTS as $code=>$key)<option value="{{ $code }}">{{ __('enterprise_treasury.reports.'.$key) }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.date_from') }}<input type="date" name="from" value="{{ request('from') }}"></label><label>{{ __('enterprise_treasury.date_to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
+<button class="foodex-primary">{{ __('enterprise_treasury.reports.export') }}</button>
+</form>
+<form method="post" action="{{ route('admin.erp.treasury.reports.schedule') }}" class="foodex-card">@csrf
+<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $reportToken }}-schedule">
+<label>{{ __('enterprise_treasury.reports.title') }}<select name="report_code" required>@foreach(\App\Enterprise\Treasury\TreasuryAnalyticsService::REPORTS as $code=>$key)<option value="{{ $code }}">{{ __('enterprise_treasury.reports.'.$key) }}</option>@endforeach</select></label>
+<label>{{ __('enterprise_treasury.reports.next_run_at') }}<input type="datetime-local" name="next_run_at" required></label>
+<label>{{ __('enterprise_treasury.reports.interval_minutes') }}<input type="number" name="interval_minutes" min="60" max="525600" value="1440" required></label>
+<button class="foodex-primary">{{ __('enterprise_treasury.reports.schedule') }}</button>
+</form>
+</div>
+@endif
+
+<div class="erp-report-grid">
+@foreach([
+'daily_position'=>['target','currency','balance'],
+'forecast'=>['date','source','currency','inflow','outflow','net'],
+'bank_reconciliation'=>['reference','bank_name','period_from','period_to','currency','status'],
+'cheque_maturity'=>['reference','bank_name','direction','due_date','amount','currency','status'],
+'facility_repayment'=>['facility_code','drawdown_reference','due_date','principal_amount','interest_amount','currency','status'],
+'investment_maturity'=>['code','institution','instrument_type','maturity_date','principal_amount','expected_return_amount','currency','status'],
+'exceptions'=>['exception','count','severity'],
+] as $reportKey=>$columns)
+<section class="foodex-card erp-chart-card">
+<h3>{{ __('enterprise_treasury.reports.'.$reportKey) }}</h3>
+<div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr>@foreach($columns as $column)<th>{{ __('enterprise_treasury.reports.columns.'.$column) }}</th>@endforeach</tr></thead><tbody>
+@forelse(collect($reports[$reportKey] ?? [])->take(20) as $row)<tr>@foreach($columns as $column)@php
+$cell=$row[$column] ?? null;
+if($column==='status' && is_string($cell)){$cell=$statusLabel($cell);}
+elseif($column==='source' && is_string($cell)){$cell=__('enterprise_treasury.forecast.sources.'.$cell);}
+elseif($column==='direction' && is_string($cell)){$cell=__('enterprise_treasury.cheques.'.$cell);}
+elseif($column==='severity' && is_string($cell)){$cell=__('enterprise_treasury.reports.severity.'.$cell);}
+elseif($column==='basis' && $cell==='posted_treasury_ledger'){$cell=__('enterprise_treasury.reports.posted_ledger');}
+@endphp<td>{{ is_scalar($cell)?$cell:'—' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ count($columns) }}">{{ __('enterprise_treasury.empty') }}</td></tr>@endforelse
+</tbody></table></div>
+</section>
+@endforeach
+</div>
+</section>
+@endif
 
 @if($activeTab==='receipts')
 @if($canManage)
