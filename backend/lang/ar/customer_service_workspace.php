@@ -107,6 +107,7 @@ return [
     'values' => [
         'all' => 'الكل',
         'choose' => 'اختر',
+        'none' => 'بدون',
         'open' => 'مفتوحة',
         'pending' => 'قيد المتابعة',
         'resolved' => 'تم الحل',
