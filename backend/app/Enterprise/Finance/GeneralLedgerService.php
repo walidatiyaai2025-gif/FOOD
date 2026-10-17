@@ -183,6 +183,7 @@ final class GeneralLedgerService
 
         $period = $this->openPeriodForDate($scope, $entryDate);
         $this->assertPostingAccounts($scope, $lines);
+        $this->assertAccountingDimensions($scope, $lines);
 
         return DB::transaction(function () use (
             $actor,
@@ -229,6 +230,8 @@ final class GeneralLedgerService
                     'journal_id' => $journal->id,
                     'line_number' => $index + 1,
                     'account_id' => $line['account_id'],
+                    'cost_center_id' => $line['cost_center_id'],
+                    'profit_center_id' => $line['profit_center_id'],
                     'debit' => $this->formatMills($line['debit_mills']),
                     'credit' => $this->formatMills($line['credit_mills']),
                     'memo' => $line['memo'],
@@ -303,6 +306,8 @@ final class GeneralLedgerService
             $normalizedLines = $journalLines
                 ->map(fn (EnterpriseFinanceJournalLine $line): array => [
                     'account_id' => (int) $line->account_id,
+                    'cost_center_id' => $line->cost_center_id !== null ? (int) $line->cost_center_id : null,
+                    'profit_center_id' => $line->profit_center_id !== null ? (int) $line->profit_center_id : null,
                     'debit_mills' => $this->toMills($line->debit, 'lines'),
                     'credit_mills' => $this->toMills($line->credit, 'lines'),
                     'memo' => $line->memo,
@@ -470,6 +475,8 @@ final class GeneralLedgerService
             'description' => ['nullable', 'string', 'max:255'],
             'lines' => ['required', 'array', 'min:2', 'max:'.self::MAX_LINES],
             'lines.*.account_id' => ['required', 'integer', 'min:1'],
+            'lines.*.cost_center_id' => ['nullable', 'integer', 'min:1'],
+            'lines.*.profit_center_id' => ['nullable', 'integer', 'min:1'],
             'lines.*.debit' => ['nullable', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
             'lines.*.credit' => ['nullable', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
             'lines.*.memo' => ['nullable', 'string', 'max:255'],
@@ -478,7 +485,7 @@ final class GeneralLedgerService
 
     /**
      * @param  array<int, array<string, mixed>>  $lines
-     * @return array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>
+     * @return array<int, array{account_id:int,cost_center_id:?int,profit_center_id:?int,debit_mills:int,credit_mills:int,memo:?string}>
      */
     private function normalizeLines(array $lines): array
     {
@@ -496,6 +503,12 @@ final class GeneralLedgerService
 
             $normalized[] = [
                 'account_id' => (int) $line['account_id'],
+                'cost_center_id' => isset($line['cost_center_id']) && $line['cost_center_id'] !== ''
+                    ? (int) $line['cost_center_id']
+                    : null,
+                'profit_center_id' => isset($line['profit_center_id']) && $line['profit_center_id'] !== ''
+                    ? (int) $line['profit_center_id']
+                    : null,
                 'debit_mills' => $debitMills,
                 'credit_mills' => $creditMills,
                 'memo' => $this->trimNullable($line['memo'] ?? null),
@@ -506,7 +519,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param  array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
+     * @param  array<int, array{account_id:int,cost_center_id:?int,profit_center_id:?int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
      */
     private function assertPostingAccounts(EnterpriseDataScope $scope, array $lines): void
     {
@@ -523,6 +536,54 @@ final class GeneralLedgerService
             if (! $accounts->has($id)) {
                 throw ValidationException::withMessages([
                     'lines' => ['Every journal account must be an active posting account in the same legal entity.'],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, array{account_id:int,cost_center_id:?int,profit_center_id:?int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
+     */
+    private function assertAccountingDimensions(EnterpriseDataScope $scope, array $lines): void
+    {
+        $costCenterIds = array_values(array_unique(array_filter(
+            array_column($lines, 'cost_center_id'),
+            static fn (mixed $id): bool => $id !== null,
+        )));
+        if ($costCenterIds !== []) {
+            $visible = DB::table('enterprise_cost_centers')
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('legal_entity_id', $scope->legalEntityId)
+                ->where('status', 'active')
+                ->whereIn('id', $costCenterIds)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            if (count($visible) !== count($costCenterIds)) {
+                throw ValidationException::withMessages([
+                    'lines' => ['Every cost center must be active in the same legal entity.'],
+                ]);
+            }
+        }
+
+        $profitCenterIds = array_values(array_unique(array_filter(
+            array_column($lines, 'profit_center_id'),
+            static fn (mixed $id): bool => $id !== null,
+        )));
+        if ($profitCenterIds !== []) {
+            $visible = DB::table('enterprise_profit_centers')
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('legal_entity_id', $scope->legalEntityId)
+                ->where('status', 'active')
+                ->whereIn('id', $profitCenterIds)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            if (count($visible) !== count($profitCenterIds)) {
+                throw ValidationException::withMessages([
+                    'lines' => ['Every profit center must be active in the same legal entity.'],
                 ]);
             }
         }
@@ -550,7 +611,7 @@ final class GeneralLedgerService
     }
 
     /**
-     * @param  array<int, array{account_id:int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
+     * @param  array<int, array{account_id:int,cost_center_id:?int,profit_center_id:?int,debit_mills:int,credit_mills:int,memo:?string}>  $lines
      */
     private function requestHash(
         string $entryDate,
@@ -560,6 +621,8 @@ final class GeneralLedgerService
         $normalizedLines = array_map(
             fn (array $line): array => [
                 'account_id' => $line['account_id'],
+                'cost_center_id' => $line['cost_center_id'],
+                'profit_center_id' => $line['profit_center_id'],
                 'debit' => $this->formatMills($line['debit_mills']),
                 'credit' => $this->formatMills($line['credit_mills']),
                 'memo' => $line['memo'],

@@ -6,9 +6,13 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Finance\AccountsPayableService;
 use App\Enterprise\Finance\AccountsReceivableService;
+use App\Enterprise\Finance\FinanceAnalyticsService;
 use App\Enterprise\Finance\FinanceApprovalService;
+use App\Enterprise\Finance\FinanceAssetService;
 use App\Enterprise\Finance\FinanceCreditTermsService;
 use App\Enterprise\Finance\FinanceFoundationService;
+use App\Enterprise\Finance\FinancePeriodCloseService;
+use App\Enterprise\Finance\FinancePlanningService;
 use App\Enterprise\Finance\FinancialStatementService;
 use App\Enterprise\Finance\GeneralLedgerService;
 use App\Enterprise\Finance\OpeningBalanceService;
@@ -38,13 +42,19 @@ final class FinanceWorkbenchController extends Controller
         'overview',
         'accounts',
         'cost_centers',
+        'profit_centers',
         'periods',
         'journals',
         'opening_balances',
         'receivables',
         'payables',
         'credit_terms',
+        'budgets',
+        'tax',
+        'allocations',
+        'assets',
         'statements',
+        'reports',
     ];
 
     public function __construct(
@@ -60,6 +70,10 @@ final class FinanceWorkbenchController extends Controller
         private readonly FinanceCreditTermsService $creditTerms,
         private readonly FinancialStatementService $statements,
         private readonly FinanceApprovalService $approvals,
+        private readonly FinancePlanningService $planning,
+        private readonly FinanceAssetService $assets,
+        private readonly FinancePeriodCloseService $periodClose,
+        private readonly FinanceAnalyticsService $analytics,
     ) {}
 
     public function index(Request $request): View
@@ -108,13 +122,19 @@ final class FinanceWorkbenchController extends Controller
             'overview' => $this->overviewData($actor, $context, $access),
             'accounts' => $this->accountData($request, $actor, $context),
             'cost_centers' => $this->costCenterData($request, $actor, $context),
+            'profit_centers' => $this->profitCenterData($request, $actor, $context),
             'periods' => $this->periodData($request, $actor, $context),
             'journals' => $this->journalData($request, $actor, $context),
             'opening_balances' => $this->openingBalanceData($request, $actor, $context),
             'receivables' => $this->receivableData($request, $actor, $context),
             'payables' => $this->payableData($request, $actor, $context),
             'credit_terms' => $this->creditTermData($request, $actor, $context),
+            'budgets' => $this->budgetData($request, $actor, $context),
+            'tax' => $this->taxData($actor, $context),
+            'allocations' => $this->allocationData($actor, $context),
+            'assets' => $this->assetData($request, $actor, $context),
             'statements' => $this->statementData($request, $actor, $context),
+            'reports' => $this->reportData($request, $actor, $context),
         };
 
         return view('admin.finance-workbench', [
@@ -374,30 +394,224 @@ final class FinanceWorkbenchController extends Controller
         return $this->redirectTo($request, 'credit_terms', 'credit_term_status_updated');
     }
 
+    public function storeProfitCenter(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->planning->createProfitCenter($actor, $context, $request->only(['parent_id', 'code', 'name']));
+
+        return $this->redirectTo($request, 'profit_centers', 'profit_center_created');
+    }
+
+    public function updateProfitCenterStatus(Request $request, int $profitCenter): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $status = (string) $request->validate([
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+        ])['status'];
+        $this->planning->setProfitCenterStatus($actor, $context, $profitCenter, $status);
+
+        return $this->redirectTo($request, 'profit_centers', 'profit_center_status_updated');
+    }
+
+    public function updateCashFlowClassification(Request $request, int $account): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $classification = $request->validate([
+            'classification' => ['nullable', Rule::in(['operating', 'investing', 'financing'])],
+        ])['classification'] ?? null;
+        $this->planning->setCashFlowClassification($actor, $context, $account, $classification);
+
+        return $this->redirectTo($request, 'accounts', 'cash_flow_classification_updated');
+    }
+
+    public function storeBudget(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $budget = $this->planning->createBudget(
+            $actor,
+            $context,
+            $request->only(['fiscal_year_id', 'name', 'currency_code', 'revision_note']),
+        );
+
+        return $this->redirectTo($request, 'budgets', 'budget_created', ['budget' => $budget->id]);
+    }
+
+    public function storeBudgetLine(Request $request, int $budget): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->planning->saveBudgetLine(
+            $actor,
+            $context,
+            $budget,
+            $request->only(['fiscal_period_id', 'account_id', 'cost_center_id', 'profit_center_id', 'amount', 'notes']),
+        );
+
+        return $this->redirectTo($request, 'budgets', 'budget_line_saved', ['budget' => $budget]);
+    }
+
+    public function transitionBudget(Request $request, int $budget): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $action = (string) $request->validate([
+            'action' => ['required', Rule::in(['submit', 'approve', 'lock'])],
+        ])['action'];
+        $this->planning->transitionBudget($actor, $context, $budget, $action);
+
+        return $this->redirectTo($request, 'budgets', 'budget_transitioned', ['budget' => $budget]);
+    }
+
+    public function reviseBudget(Request $request, int $budget): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $data = $request->validate(['revision_note' => ['required', 'string', 'max:2000']]);
+        $revision = $this->planning->reviseBudget($actor, $context, $budget, (string) $data['revision_note']);
+
+        return $this->redirectTo($request, 'budgets', 'budget_revised', ['budget' => $revision->id]);
+    }
+
+    public function storeTaxCode(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->planning->createTaxCode(
+            $actor,
+            $context,
+            $request->only([
+                'code', 'name', 'rate_percent', 'direction', 'recoverable_percent',
+                'input_account_id', 'output_account_id', 'effective_from', 'effective_to',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'tax', 'tax_code_created');
+    }
+
+    public function storeAllocationRule(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->planning->createAllocationRule(
+            $actor,
+            $context,
+            $request->only([
+                'code', 'name', 'account_id', 'source_cost_center_id', 'source_profit_center_id',
+                'target_cost_center_id', 'target_profit_center_id', 'allocation_percent', 'basis_description',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'allocations', 'allocation_rule_created');
+    }
+
+    public function applyAllocationRule(Request $request, int $allocationRule): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $journalId = $this->planning->applyAllocationRule(
+            $actor,
+            $context,
+            $allocationRule,
+            $request->only(['entry_date', 'base_amount', 'idempotency_key']),
+        );
+
+        return $this->redirectTo($request, 'journals', 'allocation_journal_created', ['journal' => $journalId]);
+    }
+
+    public function storeConsolidationElimination(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->planning->createElimination(
+            $actor,
+            $context,
+            $request->only([
+                'fiscal_year_code', 'period_code', 'account_type',
+                'debit', 'credit', 'description',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'reports', 'consolidation_elimination_created', [
+            'report' => 'consolidated',
+        ]);
+    }
+
+    public function storeAssetCategory(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->assets->createCategory(
+            $actor,
+            $context,
+            $request->only([
+                'code', 'name', 'depreciation_method', 'default_useful_life_months',
+                'default_declining_rate_percent', 'asset_account_id',
+                'accumulated_depreciation_account_id', 'depreciation_expense_account_id',
+                'disposal_gain_account_id', 'disposal_loss_account_id',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'assets', 'asset_category_created');
+    }
+
+    public function storeAsset(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $asset = $this->assets->createAsset(
+            $actor,
+            $context,
+            $request->only([
+                'category_id', 'asset_code', 'name', 'acquisition_date', 'capitalization_date',
+                'acquisition_amount', 'salvage_value', 'useful_life_months', 'declining_rate_percent',
+                'cost_center_id', 'profit_center_id', 'acquisition_offset_account_id', 'idempotency_key',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'assets', 'asset_created', ['asset' => $asset->id]);
+    }
+
+    public function createAssetDepreciation(Request $request, int $asset): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $data = $request->validate([
+            'fiscal_period_id' => ['required', 'integer', 'min:1'],
+            'idempotency_key' => ['required', 'string', 'max:128'],
+        ]);
+        $run = $this->assets->createDepreciationJournal(
+            $actor,
+            $context,
+            $asset,
+            (int) $data['fiscal_period_id'],
+            (string) $data['idempotency_key'],
+        );
+
+        return $this->redirectTo($request, 'journals', 'asset_depreciation_created', ['journal' => $run->journal_id]);
+    }
+
+    public function prepareAssetDisposal(Request $request, int $asset): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $model = $this->assets->prepareDisposal(
+            $actor,
+            $context,
+            $asset,
+            $request->only(['disposal_date', 'disposal_proceeds', 'settlement_account_id', 'idempotency_key']),
+        );
+
+        return $this->redirectTo($request, 'assets', 'asset_disposal_prepared', ['asset' => $model->id]);
+    }
+
+    public function evaluatePeriodClose(Request $request, int $fiscalPeriod): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->periodClose->evaluate($actor, $context, $fiscalPeriod);
+
+        return $this->redirectTo($request, 'periods', 'period_close_evaluated', ['period_id' => $fiscalPeriod]);
+    }
+
     /** @return array<string, mixed> */
     private function overviewData(User $actor, ResolvedTenantContext $context, array $access): array
     {
-        $metrics = [
-            'accounts' => null,
-            'journals' => null,
-            'receivables_open' => null,
-            'payables_open' => null,
-        ];
-
-        if ($access['foundation_read']) {
-            $metrics['accounts'] = $this->finance->paginateAccounts($actor, $context, [], 10)->total();
-        }
-        if ($access['gl_read']) {
-            $metrics['journals'] = $this->ledger->paginateJournals($actor, $context, [], 10)->total();
-        }
-        if ($access['ar_read']) {
-            $metrics['receivables_open'] = $this->receivables->aging($actor, $context, null, 100)->count();
-        }
-        if ($access['ap_read']) {
-            $metrics['payables_open'] = $this->payables->aging($actor, $context, null, 100)->count();
+        if (! $access['foundation_read']) {
+            return ['state' => 'permission', 'period' => null, 'metrics' => [], 'trend' => [], 'aging' => ['ar' => [], 'ap' => []], 'expenses' => [], 'exceptions' => []];
         }
 
-        return ['metrics' => $metrics];
+        $overview = $this->analytics->overview($actor, $context, request()->integer('period_id') ?: null);
+        $overview['periods'] = $this->finance->paginateFiscalPeriods($actor, $context, [], 100)->getCollection();
+
+        return $overview;
     }
 
     /** @return array<string, mixed> */
@@ -428,6 +642,16 @@ final class FinanceWorkbenchController extends Controller
         )->getCollection();
 
         return compact('costCenters', 'parents', 'filters');
+    }
+
+    /** @return array<string, mixed> */
+    private function profitCenterData(Request $request, User $actor, ResolvedTenantContext $context): array
+    {
+        $filters = $request->only(['q', 'status']);
+        $profitCenters = $this->planning->paginateProfitCenters($actor, $context, $filters, 25);
+        $parents = $this->planning->paginateProfitCenters($actor, $context, ['status' => 'active'], 100)->getCollection();
+
+        return compact('profitCenters', 'parents', 'filters');
     }
 
     /** @return array<string, mixed> */
@@ -591,6 +815,76 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /** @return array<string, mixed> */
+    private function budgetData(Request $request, User $actor, ResolvedTenantContext $context): array
+    {
+        $budgets = $this->planning->paginateBudgets($actor, $context, 25);
+        $selectedBudget = null;
+        $budgetId = $request->integer('budget');
+        if ($budgetId > 0) {
+            $selectedBudget = $this->planning->budgetDetail($actor, $context, $budgetId);
+        }
+
+        return [
+            'budgets' => $budgets,
+            'selectedBudget' => $selectedBudget,
+            'years' => $this->finance->paginateFiscalYears($actor, $context, [], 100)->getCollection(),
+            'periods' => $this->finance->paginateFiscalPeriods($actor, $context, [], 100)->getCollection(),
+            'accounts' => $this->postingAccounts($actor, $context),
+            'costCenters' => $this->finance->paginateCostCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+            'profitCenters' => $this->planning->paginateProfitCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function taxData(User $actor, ResolvedTenantContext $context): array
+    {
+        return [
+            'taxCodes' => $this->planning->paginateTaxCodes($actor, $context, 25),
+            'accounts' => $this->postingAccounts($actor, $context),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function allocationData(User $actor, ResolvedTenantContext $context): array
+    {
+        return [
+            'rules' => $this->planning->paginateAllocationRules($actor, $context, 25),
+            'accounts' => $this->postingAccounts($actor, $context),
+            'costCenters' => $this->finance->paginateCostCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+            'profitCenters' => $this->planning->paginateProfitCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function assetData(Request $request, User $actor, ResolvedTenantContext $context): array
+    {
+        $filters = $request->only(['q', 'status', 'category_id']);
+
+        return [
+            'assets' => $this->assets->paginateAssets($actor, $context, $filters, 25),
+            'categories' => $this->assets->categories($actor, $context),
+            'accounts' => $this->postingAccounts($actor, $context),
+            'costCenters' => $this->finance->paginateCostCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+            'profitCenters' => $this->planning->paginateProfitCenters($actor, $context, ['status' => 'active'], 100)->getCollection(),
+            'periods' => $this->finance->paginateFiscalPeriods($actor, $context, [], 100)->getCollection(),
+            'filters' => $filters,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function reportData(Request $request, User $actor, ResolvedTenantContext $context): array
+    {
+        $periods = $this->finance->paginateFiscalPeriods($actor, $context, [], 100)->getCollection();
+        $reportType = (string) $request->query('report', 'cash_flow');
+        $periodId = $request->integer('period_id');
+        $report = $periodId > 0
+            ? $this->analytics->report($actor, $context, $reportType, $periodId)
+            : null;
+
+        return compact('periods', 'reportType', 'periodId', 'report');
+    }
+
+    /** @return array<string, mixed> */
     private function statementData(Request $request, User $actor, ResolvedTenantContext $context): array
     {
         $periods = $this->finance->paginateFiscalPeriods($actor, $context, [], 100)->getCollection();
@@ -695,13 +989,19 @@ final class FinanceWorkbenchController extends Controller
             ['key' => 'overview', 'label' => 'finance_workbench.tabs.overview', 'available' => $access !== []],
             ['key' => 'accounts', 'label' => 'finance_workbench.tabs.accounts', 'available' => $available('foundation_read')],
             ['key' => 'cost_centers', 'label' => 'finance_workbench.tabs.cost_centers', 'available' => $available('foundation_read')],
+            ['key' => 'profit_centers', 'label' => 'finance_workbench.tabs.profit_centers', 'available' => $available('foundation_read')],
             ['key' => 'periods', 'label' => 'finance_workbench.tabs.periods', 'available' => $available('foundation_read')],
             ['key' => 'journals', 'label' => 'finance_workbench.tabs.journals', 'available' => $available('gl_read')],
             ['key' => 'opening_balances', 'label' => 'finance_workbench.tabs.opening_balances', 'available' => $available('opening_read')],
             ['key' => 'receivables', 'label' => 'finance_workbench.tabs.receivables', 'available' => $available('ar_read')],
             ['key' => 'payables', 'label' => 'finance_workbench.tabs.payables', 'available' => $available('ap_read')],
             ['key' => 'credit_terms', 'label' => 'finance_workbench.tabs.credit_terms', 'available' => $available('credit_read')],
+            ['key' => 'budgets', 'label' => 'finance_workbench.tabs.budgets', 'available' => $available('foundation_read')],
+            ['key' => 'tax', 'label' => 'finance_workbench.tabs.tax', 'available' => $available('foundation_read')],
+            ['key' => 'allocations', 'label' => 'finance_workbench.tabs.allocations', 'available' => $available('foundation_read')],
+            ['key' => 'assets', 'label' => 'finance_workbench.tabs.assets', 'available' => $available('foundation_read')],
             ['key' => 'statements', 'label' => 'finance_workbench.tabs.statements', 'available' => $available('gl_read')],
+            ['key' => 'reports', 'label' => 'finance_workbench.tabs.reports', 'available' => $available('foundation_read')],
         ];
     }
 

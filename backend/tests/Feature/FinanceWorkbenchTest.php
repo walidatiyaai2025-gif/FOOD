@@ -49,13 +49,19 @@ final class FinanceWorkbenchTest extends TestCase
             'overview',
             'accounts',
             'cost_centers',
+            'profit_centers',
             'periods',
             'journals',
             'opening_balances',
             'receivables',
             'payables',
             'credit_terms',
+            'budgets',
+            'tax',
+            'allocations',
+            'assets',
             'statements',
+            'reports',
         ];
 
         foreach ($tabs as $tab) {
@@ -112,9 +118,70 @@ final class FinanceWorkbenchTest extends TestCase
             'admin.erp.finance.opening-balances.cancel',
             'admin.erp.finance.credit-terms.store',
             'admin.erp.finance.credit-terms.status',
+            'admin.erp.finance.profit-centers.store',
+            'admin.erp.finance.profit-centers.status',
+            'admin.erp.finance.accounts.cash-flow',
+            'admin.erp.finance.budgets.store',
+            'admin.erp.finance.budgets.lines.store',
+            'admin.erp.finance.budgets.transition',
+            'admin.erp.finance.budgets.revise',
+            'admin.erp.finance.tax-codes.store',
+            'admin.erp.finance.allocation-rules.store',
+            'admin.erp.finance.allocation-rules.apply',
+            'admin.erp.finance.consolidation-eliminations.store',
+            'admin.erp.finance.asset-categories.store',
+            'admin.erp.finance.assets.store',
+            'admin.erp.finance.assets.depreciation',
+            'admin.erp.finance.assets.disposal',
+            'admin.erp.finance.fiscal-periods.close-evaluation',
         ] as $name) {
             $this->assertTrue(Route::has($name), 'Missing Finance UI route: '.$name);
         }
+    }
+
+    public function test_finance_completion_reuses_shared_dashboard_and_preserves_localization_parity(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/finance-workbench.blade.php'));
+        $en = require lang_path('en/finance_workbench.php');
+        $ar = require lang_path('ar/finance_workbench.php');
+
+        foreach ([
+            'data-foodex-module-overview="finance"',
+            'foodex-module-kpis',
+            'foodex-module-chart',
+            "tab==='profit_centers'",
+            "tab==='budgets'",
+            "tab==='tax'",
+            "tab==='allocations'",
+            "tab==='assets'",
+            "tab==='reports'",
+            "route('admin.erp.bi')",
+            'admin.erp.finance.accounts.cash-flow',
+            'admin.erp.finance.fiscal-periods.close-evaluation',
+            'admin.erp.finance.assets.disposal',
+            'admin.erp.finance.consolidation-eliminations.store',
+        ] as $required) {
+            $this->assertStringContainsString($required, $view);
+        }
+
+        $flatten = static function (array $values, string $prefix = '') use (&$flatten): array {
+            $keys = [];
+            foreach ($values as $key => $value) {
+                $path = $prefix === '' ? (string) $key : $prefix.'.'.$key;
+                if (is_array($value)) {
+                    array_push($keys, ...$flatten($value, $path));
+                } else {
+                    $keys[] = $path;
+                }
+            }
+            sort($keys);
+
+            return $keys;
+        };
+
+        $this->assertSame($flatten($en), $flatten($ar));
+        $this->assertStringNotContainsString('name="legal_entity_id"', $view);
+        $this->assertStringNotContainsString('name="company_id"', $view);
     }
 
     /** @param list<string> $permissions

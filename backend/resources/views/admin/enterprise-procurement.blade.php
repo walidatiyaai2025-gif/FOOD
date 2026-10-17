@@ -5,7 +5,7 @@
 <title>{{ __('enterprise_procurement.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-.erp-procurement{display:grid;gap:16px}.erp-context{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}.erp-context form{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.erp-context label,.erp-filters label,.erp-form label{display:grid;gap:5px;font-weight:700;font-size:.82rem}.erp-filters,.erp-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:14px}.erp-form .span-2{grid-column:span 2}.erp-form .span-all{grid-column:1/-1}.erp-table-wrap{overflow:auto}.erp-actions{display:flex;gap:6px;flex-wrap:wrap}.erp-actions form{display:inline}.erp-link{display:inline-flex;min-height:38px;align-items:center;padding:0 10px;border-radius:9px;border:1px solid var(--foodex-border);text-decoration:none;font-weight:800}.erp-danger{color:var(--foodex-danger-text)}.erp-detail{display:grid;gap:12px;padding:16px}.erp-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.erp-detail-grid>div{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-lines{display:grid;gap:8px}.erp-line{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(90px,1fr));gap:8px;padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-aging{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.erp-aging>div{padding:14px}.erp-aging strong{display:block;font-size:1.2rem;margin-top:5px}.erp-inline-note{color:var(--foodex-muted);font-size:.82rem}.erp-create{margin:0}.erp-create summary{cursor:pointer;font-weight:900;color:var(--foodex-green-dark);padding:10px 0}.erp-create[open] summary{margin-bottom:8px}.erp-status{white-space:nowrap}.erp-table td,.erp-table th{vertical-align:top}.erp-ref{white-space:nowrap;font-weight:900}.erp-lookup-hint{margin:0;color:var(--foodex-muted)}
+.erp-procurement{display:grid;gap:16px}.erp-context{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}.erp-context form{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.erp-context label,.erp-filters label,.erp-form label{display:grid;gap:5px;font-weight:700;font-size:.82rem}.erp-filters,.erp-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:14px}.erp-form .span-2{grid-column:span 2}.erp-form .span-all{grid-column:1/-1}.erp-table-wrap{overflow:auto}.erp-actions{display:flex;gap:6px;flex-wrap:wrap}.erp-actions form{display:inline}.erp-link{display:inline-flex;min-height:38px;align-items:center;padding:0 10px;border-radius:9px;border:1px solid var(--foodex-border);text-decoration:none;font-weight:800}.erp-danger{color:var(--foodex-danger-text)}.erp-detail{display:grid;gap:12px;padding:16px}.erp-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.erp-detail-grid>div{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-lines{display:grid;gap:8px}.erp-line{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(90px,1fr));gap:8px;padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.erp-line--five{grid-template-columns:minmax(160px,2fr) repeat(4,minmax(90px,1fr))}.erp-aging{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.erp-aging>div{padding:14px}.erp-aging strong{display:block;font-size:1.2rem;margin-top:5px}.erp-inline-note{color:var(--foodex-muted);font-size:.82rem}.erp-create{margin:0}.erp-create summary{cursor:pointer;font-weight:900;color:var(--foodex-green-dark);padding:10px 0}.erp-create[open] summary{margin-bottom:8px}.erp-status{white-space:nowrap}.erp-table td,.erp-table th{vertical-align:top}.erp-ref{white-space:nowrap;font-weight:900}.erp-lookup-hint{margin:0;color:var(--foodex-muted)}
 @media(max-width:767px){.erp-form .span-2{grid-column:1/-1}.erp-line{grid-template-columns:1fr}.erp-actions{min-width:180px}}
 </style>
 </head>
@@ -16,8 +16,11 @@ $statusOptions=match($activeTab){
     'suppliers'=>['active','inactive','on_hold'],
     'requests'=>['draft','submitted','approved','rejected','cancelled'],
     'orders'=>['draft','issued','cancelled'],
+    'rfqs'=>['draft','published','awarded','cancelled'],
+    'contracts'=>['draft','active','terminated','expired'],
     'receipts','returns'=>['draft','posted','cancelled'],
     'invoices'=>['draft','handed_off','cancelled'],
+    'matches'=>['auto_approved','pending','approved','rejected'],
     default=>[],
 };
 $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
@@ -50,7 +53,7 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 @endforeach
 </nav>
 
-@if($activeTab!=='statements')
+@if(!in_array($activeTab,['overview','statements','reports'],true))
 <form method="get" class="foodex-card erp-filters">
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="tab" value="{{ $activeTab }}">
 <label>{{ __('enterprise_procurement.search') }}<input type="search" name="q" value="{{ request('q') }}" maxlength="120"></label>
@@ -63,6 +66,8 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <div class="erp-actions"><button class="foodex-filter-action">{{ __('enterprise_procurement.apply') }}</button><a class="erp-link" href="{{ route('admin.erp.procurement.index',$base) }}">{{ __('enterprise_procurement.clear') }}</a></div>
 </form>
 @endif
+
+@include('admin._enterprise-procurement-completion')
 
 @if($activeTab==='suppliers')
 @if($can['supplier_manage'])
@@ -154,7 +159,7 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <section class="foodex-card erp-detail"><h2>{{ __('enterprise_procurement.invoice_from_receipt') }} · {{ $sourceReceipt->receipt_number }}</h2>
 <form method="post" action="{{ route('admin.erp.procurement.invoices.store',$sourceReceipt) }}" class="erp-form">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
 <label>{{ __('enterprise_procurement.invoice_number') }}<input name="supplier_invoice_number" required maxlength="96"></label><label>{{ __('enterprise_procurement.invoice_date') }}<input type="date" name="invoice_date" value="{{ now()->toDateString() }}" required></label><label>{{ __('enterprise_procurement.due_date') }}<input type="date" name="due_date"></label>
-<div class="span-all erp-lines">@foreach($sourceReceipt->lines as $index=>$line)<div class="erp-line"><strong>{{ $line->description }}</strong><span>{{ $line->received_quantity }} {{ $line->unit }}</span><input type="hidden" name="lines[{{ $index }}][goods_receipt_line_id]" value="{{ $line->id }}"><label>{{ __('enterprise_procurement.quantity') }}<input type="number" name="lines[{{ $index }}][quantity]" step="0.001" min="0.001" max="{{ $line->received_quantity }}" value="{{ $line->received_quantity }}" required></label><span>{{ $line->item_code ?: '—' }}</span></div>@endforeach</div>
+<div class="span-all erp-lines">@foreach($sourceReceipt->lines as $index=>$line)<div class="erp-line erp-line--five"><strong>{{ $line->description }}</strong><span>{{ $line->received_quantity }} {{ $line->unit }}</span><input type="hidden" name="lines[{{ $index }}][goods_receipt_line_id]" value="{{ $line->id }}"><label>{{ __('enterprise_procurement.quantity') }}<input type="number" name="lines[{{ $index }}][quantity]" step="0.001" min="0.001" max="{{ $line->received_quantity }}" value="{{ $line->received_quantity }}" required></label><label>{{ __('enterprise_procurement.unit_cost') }}<input type="number" name="lines[{{ $index }}][unit_price]" step="0.001" min="0" value="{{ $line->unit_price }}" required></label><span>{{ $line->item_code ?: '—' }}</span></div>@endforeach</div>
 <div><button class="foodex-primary">{{ __('enterprise_procurement.create') }}</button></div></form></section>
 @endif
 <section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.invoice_number') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.total') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>

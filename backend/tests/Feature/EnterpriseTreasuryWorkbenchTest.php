@@ -8,6 +8,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enterprise\Reporting\ReportRegistry;
 use App\Enterprise\Treasury\TreasuryReceiptService;
 use App\Models\EnterpriseBankAccount;
 use App\Models\EnterpriseCashbox;
@@ -19,6 +20,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -127,9 +129,174 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
             'admin.erp.treasury.reconciliation.close',
             'admin.erp.treasury.cash-closing.store',
             'admin.erp.treasury.cash-closing.close',
+            'admin.erp.treasury.facilities.store',
+            'admin.erp.treasury.drawdowns.store',
+            'admin.erp.treasury.repayments.paid',
+            'admin.erp.treasury.investments.store',
+            'admin.erp.treasury.investments.settle',
+            'admin.erp.treasury.reports.export',
+            'admin.erp.treasury.reports.schedule',
         ] as $name) {
             $this->assertTrue(Route::has($name), 'Missing Treasury UI route: '.$name);
         }
+    }
+
+    public function test_complete_treasury_surface_composes_dashboard_financing_forecast_and_shared_reports(): void
+    {
+        Queue::fake();
+
+        [$user, $store] = $this->operator('ERP-TREASURY-W5', 'treasury-w5@example.test', 'en');
+        $context = app(TenantContextResolver::class)->retail($user, $store->id);
+        $this->enableTreasury($user, $context);
+        $this->cashbox($store);
+        $this->bankAccount($store);
+
+        $this->actingAs($user)
+            ->get(route('admin.erp.treasury.index', [
+                'store_id' => $store->id,
+                'tab' => 'overview',
+            ]))
+            ->assertOk()
+            ->assertSee('data-foodex-module-overview', false)
+            ->assertSee('data-foodex-module-kpi', false)
+            ->assertSee('data-foodex-module-chart', false)
+            ->assertSee('Cash on hand')
+            ->assertSee('Forecast liquidity gap')
+            ->assertSee('No silent FX conversion');
+
+        $this->actingAs($user)
+            ->post(route('admin.erp.treasury.facilities.store'), [
+                'store_id' => $store->id,
+                '_operation_key' => 'facility-http-001',
+                'code' => 'FAC-001',
+                'lender_name' => 'Treasury Test Bank',
+                'currency_code' => 'KWD',
+                'facility_limit' => '100.000',
+                'annual_rate' => '4.500000',
+                'margin_rate' => '1.250000',
+                'start_date' => now()->toDateString(),
+                'maturity_date' => now()->addYear()->toDateString(),
+            ])
+            ->assertRedirect(route('admin.erp.treasury.index', [
+                'tab' => 'financing',
+                'store_id' => $store->id,
+            ]));
+
+        $facilityId = (int) DB::table('enterprise_treasury_facilities')
+            ->where('store_id', $store->id)
+            ->where('code', 'FAC-001')
+            ->value('id');
+        $this->assertGreaterThan(0, $facilityId);
+
+        $this->actingAs($user)
+            ->post(route('admin.erp.treasury.drawdowns.store'), [
+                'store_id' => $store->id,
+                '_operation_key' => 'drawdown-http-001',
+                'facility_id' => $facilityId,
+                'reference' => 'DD-001',
+                'principal_amount' => '30.000',
+                'scheduled_interest_total' => '3.000',
+                'drawdown_date' => now()->toDateString(),
+                'maturity_date' => now()->addMonths(6)->toDateString(),
+                'installment_count' => 3,
+            ])
+            ->assertRedirect(route('admin.erp.treasury.index', [
+                'tab' => 'financing',
+                'store_id' => $store->id,
+            ]));
+
+        $drawdownId = (int) DB::table('enterprise_treasury_drawdowns')
+            ->where('facility_id', $facilityId)
+            ->where('reference', 'DD-001')
+            ->value('id');
+
+        $this->assertGreaterThan(0, $drawdownId);
+        $this->assertSame(
+            3,
+            DB::table('enterprise_treasury_repayments')->where('drawdown_id', $drawdownId)->count(),
+        );
+        $this->assertSame(
+            '30.000',
+            number_format(
+                (float) DB::table('enterprise_treasury_repayments')
+                    ->where('drawdown_id', $drawdownId)
+                    ->sum('principal_amount'),
+                3,
+                '.',
+                '',
+            ),
+        );
+        $this->assertSame(
+            '3.000',
+            number_format(
+                (float) DB::table('enterprise_treasury_repayments')
+                    ->where('drawdown_id', $drawdownId)
+                    ->sum('interest_amount'),
+                3,
+                '.',
+                '',
+            ),
+        );
+
+        $this->actingAs($user)
+            ->get(route('admin.erp.treasury.index', [
+                'store_id' => $store->id,
+                'tab' => 'forecast',
+            ]))
+            ->assertOk()
+            ->assertSee('Forward cash-flow forecast')
+            ->assertSee('No silent FX conversion');
+
+        $this->actingAs($user)
+            ->get(route('admin.erp.treasury.index', [
+                'store_id' => $store->id,
+                'tab' => 'reports',
+            ]))
+            ->assertOk()
+            ->assertSee('Daily cash position')
+            ->assertSee('Loan / facility repayment')
+            ->assertSee('Investment maturity / return')
+            ->assertSee('Treasury exceptions');
+
+        $report = app(ReportRegistry::class)->require('treasury.daily_position');
+        $this->assertSame('treasury', $report->moduleCode);
+        $this->assertSame('treasury_native', $report->readModel);
+
+        $this->actingAs($user)
+            ->post(route('admin.erp.treasury.reports.export'), [
+                'store_id' => $store->id,
+                '_operation_key' => 'treasury-report-export-001',
+                'report_code' => 'treasury.daily_position',
+            ])
+            ->assertRedirect(route('admin.erp.treasury.index', [
+                'tab' => 'reports',
+                'store_id' => $store->id,
+            ]));
+        $this->assertDatabaseHas('enterprise_report_exports', [
+            'report_code' => 'treasury.daily_position',
+            'scope_type' => EntitlementScope::STORE,
+            'scope_id' => $store->id,
+            'status' => 'queued',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.erp.treasury.reports.schedule'), [
+                'store_id' => $store->id,
+                '_operation_key' => 'treasury-report-schedule-001',
+                'report_code' => 'treasury.cash_forecast',
+                'next_run_at' => now()->addHour()->format('Y-m-d H:i:s'),
+                'interval_minutes' => 1440,
+            ])
+            ->assertRedirect(route('admin.erp.treasury.index', [
+                'tab' => 'reports',
+                'store_id' => $store->id,
+            ]));
+        $this->assertDatabaseHas('enterprise_scheduled_reports', [
+            'report_code' => 'treasury.cash_forecast',
+            'scope_type' => EntitlementScope::STORE,
+            'scope_id' => $store->id,
+            'enabled' => 1,
+        ]);
     }
 
     /** @return array{User,Store} */

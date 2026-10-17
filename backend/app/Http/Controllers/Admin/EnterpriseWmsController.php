@@ -8,8 +8,11 @@ use App\Enterprise\Wms\InventoryLotService;
 use App\Enterprise\Wms\InventoryValuationService;
 use App\Enterprise\Wms\ReorderPolicyService;
 use App\Enterprise\Wms\StockReservationService;
+use App\Enterprise\Wms\WarehouseLocationService;
 use App\Enterprise\Wms\WarehouseScope;
 use App\Enterprise\Wms\WarehouseTransferService;
+use App\Enterprise\Wms\WmsDashboardService;
+use App\Enterprise\Wms\WmsDemandPlanningService;
 use App\Enterprise\Wms\WmsReportingService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -34,6 +37,9 @@ final class EnterpriseWmsController extends Controller
         'reorder',
         'valuation',
         'aging',
+        'locations',
+        'planning',
+        'reports',
     ];
 
     public function __construct(
@@ -45,6 +51,9 @@ final class EnterpriseWmsController extends Controller
         private readonly StockReservationService $reservations,
         private readonly ReorderPolicyService $reorder,
         private readonly InventoryValuationService $valuation,
+        private readonly WarehouseLocationService $locations,
+        private readonly WmsDashboardService $dashboard,
+        private readonly WmsDemandPlanningService $demand,
         private readonly WmsReportingService $reports,
         private readonly OperationalTenantScope $tenantScope,
         private readonly AdminNavigation $navigation,
@@ -58,6 +67,7 @@ final class EnterpriseWmsController extends Controller
             'store_id' => ['nullable', 'integer', 'min:1'],
             'warehouse_id' => ['nullable', 'integer', 'min:1'],
             'count_id' => ['nullable', 'integer', 'min:1'],
+            'inventory_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $storeIds = $this->tenantScope->allowedStoreIds($actor, 'inventory.view');
@@ -113,6 +123,9 @@ final class EnterpriseWmsController extends Controller
             $warehouseId,
             isset($validated['count_id']) ? (int) $validated['count_id'] : null,
         );
+        $data['record360'] = isset($validated['inventory_id'])
+            ? $this->dashboard->inventory360($actor, (int) $validated['inventory_id'])
+            : null;
 
         return view('admin.enterprise-wms', array_merge($data, [
             'user' => $actor,
@@ -125,6 +138,10 @@ final class EnterpriseWmsController extends Controller
             'warehouses' => $warehouses,
             'warehouseId' => $warehouseId,
             'inventoryLookup' => $inventoryLookup,
+            'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
+                $actor,
+                'procurement.purchase_requests.view',
+            ),
         ]));
     }
 
@@ -141,13 +158,14 @@ final class EnterpriseWmsController extends Controller
         ]);
 
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
-        $this->transfers->create(
+        $transfer = $this->transfers->create(
             $actor,
             (int) $data['source_warehouse_id'],
             (int) $data['target_warehouse_id'],
             [['product_id' => (int) $data['product_id'], 'quantity' => (float) $data['quantity']]],
             (string) $data['request_key'],
         );
+        $this->locations->captureTransfer($actor, (int) $transfer->getKey());
 
         return $this->backTo('transfers', $data, __('enterprise_wms.messages.transfer_created'));
     }
@@ -158,6 +176,8 @@ final class EnterpriseWmsController extends Controller
         $data = $request->validate(['store_id' => ['required', 'integer', 'min:1']]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
         $this->transfers->dispatch($actor, $transfer);
+        $this->locations->captureTransfer($actor, $transfer);
+        $this->captureReferenceMovements($actor, 'enterprise_warehouse_transfer', $transfer, 'warehouse_transfer_out');
 
         return $this->backTo('transfers', $data, __('enterprise_wms.messages.transfer_dispatched'));
     }
@@ -168,6 +188,8 @@ final class EnterpriseWmsController extends Controller
         $data = $request->validate(['store_id' => ['required', 'integer', 'min:1']]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
         $this->transfers->receive($actor, $transfer);
+        $this->locations->captureTransfer($actor, $transfer);
+        $this->captureReferenceMovements($actor, 'enterprise_warehouse_transfer', $transfer, 'warehouse_transfer_in');
 
         return $this->backTo('transfers', $data, __('enterprise_wms.messages.transfer_received'));
     }
@@ -190,6 +212,7 @@ final class EnterpriseWmsController extends Controller
             array_map('intval', $data['inventory_ids']),
             (string) $data['request_key'],
         );
+        $this->locations->captureCount($actor, (int) $count->getKey());
 
         return $this->backTo('counts', $data, __('enterprise_wms.messages.count_started'), [
             'count_id' => $count->getKey(),
@@ -207,6 +230,8 @@ final class EnterpriseWmsController extends Controller
         ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
         $this->counts->complete($actor, $count, $data['counts']);
+        $this->locations->captureCount($actor, $count);
+        $this->captureReferenceMovements($actor, 'enterprise_inventory_count', $count, 'cycle_count_adjustment');
 
         return $this->backTo('counts', $data, __('enterprise_wms.messages.count_completed'));
     }
@@ -226,7 +251,7 @@ final class EnterpriseWmsController extends Controller
         ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
 
-        $this->adjustments->post(
+        $movement = $this->adjustments->post(
             $actor,
             (int) $data['warehouse_id'],
             (int) $data['product_id'],
@@ -237,6 +262,7 @@ final class EnterpriseWmsController extends Controller
             (string) $data['reason'],
             isset($data['notes']) ? (string) $data['notes'] : null,
         );
+        $this->locations->captureMovement($actor, (int) $movement->getKey(), 'adjustment');
 
         return $this->backTo('adjustments', $data, __('enterprise_wms.messages.adjustment_posted'));
     }
@@ -255,12 +281,13 @@ final class EnterpriseWmsController extends Controller
         ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
 
-        $this->lots->upsert($actor, (int) $data['warehouse_id'], (int) $data['product_id'], [
+        $lot = $this->lots->upsert($actor, (int) $data['warehouse_id'], (int) $data['product_id'], [
             'identifier' => $data['identifier'],
             'manufactured_on' => $data['manufactured_on'] ?? null,
             'received_on' => $data['received_on'] ?? null,
             'expires_on' => $data['expires_on'] ?? null,
         ]);
+        $this->locations->captureLot($actor, (int) $lot->getKey());
 
         return $this->backTo('lots', $data, __('enterprise_wms.messages.lot_saved'));
     }
@@ -291,17 +318,29 @@ final class EnterpriseWmsController extends Controller
         ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
 
+        $referenceId = $this->referenceId(
+            (int) $data['warehouse_id'].'|'.(int) $data['product_id'].'|'.trim((string) $data['business_reference']),
+        );
         $this->reservations->ensureReservation(
             $actor,
             (int) $data['warehouse_id'],
             (int) $data['product_id'],
             (float) $data['quantity'],
             'wms_workbench',
-            $this->referenceId(
-                (int) $data['warehouse_id'].'|'.(int) $data['product_id'].'|'.trim((string) $data['business_reference']),
-            ),
+            $referenceId,
             trim((string) $data['business_reference']),
         );
+        $movementId = DB::table('stock_movements as movement')
+            ->join('inventories as inventory', 'inventory.id', '=', 'movement.inventory_id')
+            ->where('inventory.warehouse_id', (int) $data['warehouse_id'])
+            ->where('inventory.product_id', (int) $data['product_id'])
+            ->where('movement.reference_type', 'wms_workbench')
+            ->where('movement.reference_id', $referenceId)
+            ->orderByDesc('movement.id')
+            ->value('movement.id');
+        if ($movementId !== null) {
+            $this->locations->captureMovement($actor, (int) $movementId, 'reservation');
+        }
 
         return $this->backTo('reservations', $data, __('enterprise_wms.messages.reservation_saved'));
     }
@@ -340,6 +379,84 @@ final class EnterpriseWmsController extends Controller
         $this->reorder->disable($actor, $policy);
 
         return $this->backTo('reorder', $data, __('enterprise_wms.messages.reorder_disabled'));
+    }
+
+    public function saveZone(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+            'warehouse_id' => ['required', 'integer', 'min:1'],
+            'code' => ['required', 'string', 'max:64'],
+            'name' => ['required', 'string', 'max:160'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->locations->saveZone($actor, (int) $data['warehouse_id'], (string) $data['code'], (string) $data['name'], (bool) ($data['is_active'] ?? true));
+
+        return $this->backTo('locations', $data, __('enterprise_wms.messages.zone_saved'));
+    }
+
+    public function saveBin(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+            'warehouse_id' => ['required', 'integer', 'min:1'],
+            'zone_id' => ['nullable', 'integer', 'min:1'],
+            'code' => ['required', 'string', 'max:64'],
+            'name' => ['required', 'string', 'max:160'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->locations->saveBin(
+            $actor,
+            (int) $data['warehouse_id'],
+            isset($data['zone_id']) ? (int) $data['zone_id'] : null,
+            (string) $data['code'],
+            (string) $data['name'],
+            (bool) ($data['is_active'] ?? true),
+        );
+
+        return $this->backTo('locations', $data, __('enterprise_wms.messages.bin_saved'));
+    }
+
+    public function assignInventoryBin(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+            'warehouse_id' => ['required', 'integer', 'min:1'],
+            'inventory_id' => ['required', 'integer', 'min:1'],
+            'bin_id' => ['required', 'integer', 'min:1'],
+        ]);
+        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->locations->assignInventory($actor, (int) $data['inventory_id'], (int) $data['bin_id']);
+
+        return $this->backTo('locations', $data, __('enterprise_wms.messages.inventory_bin_saved'), [
+            'inventory_id' => (int) $data['inventory_id'],
+        ]);
+    }
+
+    public function approveDemandPlan(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+            'warehouse_id' => ['required', 'integer', 'min:1'],
+            'product_id' => ['required', 'integer', 'min:1'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->demand->approve(
+            $actor,
+            (int) $data['store_id'],
+            (int) $data['warehouse_id'],
+            (int) $data['product_id'],
+            isset($data['notes']) ? (string) $data['notes'] : null,
+        );
+
+        return $this->backTo('planning', $data, __('enterprise_wms.messages.demand_approved'));
     }
 
     public function saveValuationPolicy(Request $request): RedirectResponse
@@ -381,9 +498,21 @@ final class EnterpriseWmsController extends Controller
             'valuationRows' => $empty,
             'agingRows' => $empty,
             'slowStockRows' => $empty,
+            'dashboard' => null,
+            'zoneRows' => $empty,
+            'binRows' => $empty,
+            'binAssignmentRows' => $empty,
+            'demandRows' => $empty,
+            'demandApprovalRows' => $empty,
+            'reportCatalog' => [],
+            'lowStockReportRows' => $empty,
+            'agingReportRows' => $empty,
+            'countVarianceReportRows' => $empty,
+            'transferPerformanceRows' => $empty,
         ];
 
         if ($tab === 'overview') {
+            $data['dashboard'] = $this->dashboard->overview($actor, $storeId, $warehouseId);
             $data['inventoryRows'] = $this->reports->inventorySummary($actor, $storeId, $warehouseId, null, null, 50);
             $data['lowStockRows'] = $this->reorder->lowStock($actor, $storeId, $warehouseId, 10);
 
@@ -488,7 +617,53 @@ final class EnterpriseWmsController extends Controller
             return $data;
         }
 
+        if ($tab === 'locations' && $warehouseId !== null) {
+            $data['zoneRows'] = $this->locations->zones($actor, $warehouseId);
+            $data['binRows'] = $this->locations->bins($actor, $warehouseId);
+            $data['binAssignmentRows'] = $this->locations->assignments($actor, $warehouseId, 250);
+            $data['inventoryRows'] = $this->reports->inventorySummary($actor, $storeId, $warehouseId, null, null, 100);
+
+            return $data;
+        }
+
+        if ($tab === 'planning') {
+            $data['demandRows'] = $this->demand->plan($actor, $storeId, $warehouseId, 100);
+            $data['demandApprovalRows'] = $this->demand->approvals($actor, $storeId, $warehouseId, 100);
+
+            return $data;
+        }
+
+        if ($tab === 'reports') {
+            $from = now()->subDays(29)->toDateString();
+            $to = now()->toDateString();
+            $data['reportCatalog'] = $this->reports->reportCatalog();
+            $data['lowStockReportRows'] = $this->reports->lowStock($actor, $storeId, $warehouseId, null, null, 100);
+            $data['agingReportRows'] = $this->reports->stockAging($actor, $storeId, $warehouseId, null, null, 100);
+            $data['countVarianceReportRows'] = $this->reports->countVariance($actor, $storeId, $from, $to, $warehouseId, null, null, 100);
+            $data['transferPerformanceRows'] = $this->reports->transferPerformance($actor, $storeId, $from, $to, $warehouseId, null, 100);
+            $data['demandRows'] = $this->demand->plan($actor, $storeId, $warehouseId, 100);
+
+            return $data;
+        }
+
         return $data;
+    }
+
+    private function captureReferenceMovements(
+        User $actor,
+        string $referenceType,
+        int $referenceId,
+        string $movementType,
+    ): void {
+        $ids = DB::table('stock_movements')
+            ->where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->where('type', $movementType)
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            $this->locations->captureMovement($actor, (int) $id, $movementType);
+        }
     }
 
     private function actor(Request $request): User

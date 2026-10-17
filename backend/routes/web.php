@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseBiController;
+use App\Http\Controllers\Admin\EnterpriseBiScheduleController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseProcurementController;
@@ -70,6 +71,7 @@ use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use App\Http\Controllers\PublicInformationController;
 use App\Http\Controllers\SmartOrderingQrPublicController;
+use App\Http\Controllers\SupplierRfqPortalController;
 use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -119,6 +121,17 @@ Route::get('/q/{token}', SmartOrderingQrPublicController::class)
     ->where('token', '[A-Za-z0-9_-]{32,96}')
     ->middleware('throttle:120,1')
     ->name('smart-ordering.qr.resolve');
+
+Route::prefix('supplier/rfq')->name('supplier.rfq.')->group(function (): void {
+    Route::get('/{token}', [SupplierRfqPortalController::class, 'show'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:120,1')
+        ->name('show');
+    Route::post('/{token}', [SupplierRfqPortalController::class, 'submit'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:30,1')
+        ->name('submit');
+});
 
 Route::prefix('admin')
     ->name('admin.')
@@ -170,10 +183,25 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::get('/action-center/export', [EnterpriseActionCenterController::class, 'export'])->middleware('throttle:30,1')->name('action-center.export');
         Route::get('/erp', ErpCenterController::class)->name('erp.index');
         Route::prefix('erp/procurement')->name('erp.procurement.')->group(function (): void {
             Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
             Route::post('/suppliers', [EnterpriseProcurementController::class, 'storeSupplier'])->middleware('throttle:30,1')->name('suppliers.store');
+            Route::post('/suppliers/{supplier}/governance', [EnterpriseProcurementController::class, 'updateSupplierGovernance'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.governance');
+            Route::post('/rfqs', [EnterpriseProcurementController::class, 'storeRfq'])->middleware('throttle:30,1')->name('rfqs.store');
+            Route::post('/rfqs/{rfq}/publish', [EnterpriseProcurementController::class, 'publishRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.publish');
+            Route::post('/rfqs/{rfq}/cancel', [EnterpriseProcurementController::class, 'cancelRfq'])->whereNumber('rfq')->middleware('throttle:30,1')->name('rfqs.cancel');
+            Route::post('/rfqs/{rfq}/quotes/{quote}/award', [EnterpriseProcurementController::class, 'awardRfq'])->whereNumber('rfq')->whereNumber('quote')->middleware('throttle:30,1')->name('rfqs.award');
+            Route::get('/rfqs/{rfq}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadQuoteDocument'])->whereNumber('rfq')->whereNumber('document')->middleware('throttle:60,1')->name('rfqs.documents.download');
+            Route::post('/contracts', [EnterpriseProcurementController::class, 'createContract'])->middleware('throttle:30,1')->name('contracts.store');
+            Route::post('/contracts/{contract}/activate', [EnterpriseProcurementController::class, 'activateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.activate');
+            Route::post('/contracts/{contract}/terminate', [EnterpriseProcurementController::class, 'terminateContract'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.terminate');
+            Route::post('/contracts/{contract}/documents', [EnterpriseProcurementController::class, 'registerContractDocument'])->whereNumber('contract')->middleware('throttle:30,1')->name('contracts.documents.store');
+            Route::get('/contracts/{contract}/documents/{document}/download', [EnterpriseProcurementController::class, 'downloadContractDocument'])->whereNumber('contract')->whereNumber('document')->middleware('throttle:60,1')->name('contracts.documents.download');
+            Route::post('/orders/{purchaseOrder}/contract', [EnterpriseProcurementController::class, 'assignContract'])->whereNumber('purchaseOrder')->middleware('throttle:30,1')->name('orders.contract');
+            Route::post('/invoices/{purchaseInvoice}/match-review', [EnterpriseProcurementController::class, 'reviewMatch'])->whereNumber('purchaseInvoice')->middleware('throttle:30,1')->name('matches.review');
+            Route::get('/reports/export', [EnterpriseProcurementController::class, 'exportReport'])->middleware('throttle:30,1')->name('reports.export');
             Route::post('/suppliers/{supplier}/archive', [EnterpriseProcurementController::class, 'archiveSupplier'])->whereNumber('supplier')->middleware('throttle:30,1')->name('suppliers.archive');
             Route::post('/requests', [EnterpriseProcurementController::class, 'storeRequest'])->middleware('throttle:30,1')->name('requests.store');
             Route::post('/requests/{purchaseRequest}/submit', [EnterpriseProcurementController::class, 'submitRequest'])->whereNumber('purchaseRequest')->middleware('throttle:30,1')->name('requests.submit');
@@ -206,6 +234,10 @@ Route::prefix('admin')
             Route::post('/reorder', [EnterpriseWmsController::class, 'saveReorderPolicy'])->middleware('throttle:30,1')->name('reorder.store');
             Route::post('/reorder/{policy}/disable', [EnterpriseWmsController::class, 'disableReorderPolicy'])->whereNumber('policy')->middleware('throttle:30,1')->name('reorder.disable');
             Route::post('/valuation', [EnterpriseWmsController::class, 'saveValuationPolicy'])->middleware('throttle:30,1')->name('valuation.store');
+            Route::post('/locations/zones', [EnterpriseWmsController::class, 'saveZone'])->middleware('throttle:30,1')->name('locations.zones.store');
+            Route::post('/locations/bins', [EnterpriseWmsController::class, 'saveBin'])->middleware('throttle:30,1')->name('locations.bins.store');
+            Route::post('/locations/assignments', [EnterpriseWmsController::class, 'assignInventoryBin'])->middleware('throttle:30,1')->name('locations.assignments.store');
+            Route::post('/planning/approve', [EnterpriseWmsController::class, 'approveDemandPlan'])->middleware('throttle:30,1')->name('planning.approve');
         });
         Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
@@ -228,6 +260,22 @@ Route::prefix('admin')
         Route::post('/erp/finance/opening-balances/{batch}/cancel', [FinanceWorkbenchController::class, 'cancelOpeningBalance'])->whereNumber('batch')->middleware('throttle:30,1')->name('erp.finance.opening-balances.cancel');
         Route::post('/erp/finance/credit-terms', [FinanceWorkbenchController::class, 'storeCreditTerm'])->middleware('throttle:30,1')->name('erp.finance.credit-terms.store');
         Route::patch('/erp/finance/credit-terms/{creditTerm}/status', [FinanceWorkbenchController::class, 'updateCreditTermStatus'])->whereNumber('creditTerm')->middleware('throttle:30,1')->name('erp.finance.credit-terms.status');
+        Route::post('/erp/finance/profit-centers', [FinanceWorkbenchController::class, 'storeProfitCenter'])->middleware('throttle:30,1')->name('erp.finance.profit-centers.store');
+        Route::patch('/erp/finance/profit-centers/{profitCenter}/status', [FinanceWorkbenchController::class, 'updateProfitCenterStatus'])->whereNumber('profitCenter')->middleware('throttle:30,1')->name('erp.finance.profit-centers.status');
+        Route::patch('/erp/finance/accounts/{account}/cash-flow', [FinanceWorkbenchController::class, 'updateCashFlowClassification'])->whereNumber('account')->middleware('throttle:30,1')->name('erp.finance.accounts.cash-flow');
+        Route::post('/erp/finance/budgets', [FinanceWorkbenchController::class, 'storeBudget'])->middleware('throttle:30,1')->name('erp.finance.budgets.store');
+        Route::post('/erp/finance/budgets/{budget}/lines', [FinanceWorkbenchController::class, 'storeBudgetLine'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.lines.store');
+        Route::post('/erp/finance/budgets/{budget}/transition', [FinanceWorkbenchController::class, 'transitionBudget'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.transition');
+        Route::post('/erp/finance/budgets/{budget}/revise', [FinanceWorkbenchController::class, 'reviseBudget'])->whereNumber('budget')->middleware('throttle:30,1')->name('erp.finance.budgets.revise');
+        Route::post('/erp/finance/tax-codes', [FinanceWorkbenchController::class, 'storeTaxCode'])->middleware('throttle:30,1')->name('erp.finance.tax-codes.store');
+        Route::post('/erp/finance/allocation-rules', [FinanceWorkbenchController::class, 'storeAllocationRule'])->middleware('throttle:30,1')->name('erp.finance.allocation-rules.store');
+        Route::post('/erp/finance/allocation-rules/{allocationRule}/apply', [FinanceWorkbenchController::class, 'applyAllocationRule'])->whereNumber('allocationRule')->middleware('throttle:30,1')->name('erp.finance.allocation-rules.apply');
+        Route::post('/erp/finance/consolidation-eliminations', [FinanceWorkbenchController::class, 'storeConsolidationElimination'])->middleware('throttle:30,1')->name('erp.finance.consolidation-eliminations.store');
+        Route::post('/erp/finance/asset-categories', [FinanceWorkbenchController::class, 'storeAssetCategory'])->middleware('throttle:30,1')->name('erp.finance.asset-categories.store');
+        Route::post('/erp/finance/assets', [FinanceWorkbenchController::class, 'storeAsset'])->middleware('throttle:30,1')->name('erp.finance.assets.store');
+        Route::post('/erp/finance/assets/{asset}/depreciation', [FinanceWorkbenchController::class, 'createAssetDepreciation'])->whereNumber('asset')->middleware('throttle:30,1')->name('erp.finance.assets.depreciation');
+        Route::post('/erp/finance/assets/{asset}/disposal', [FinanceWorkbenchController::class, 'prepareAssetDisposal'])->whereNumber('asset')->middleware('throttle:30,1')->name('erp.finance.assets.disposal');
+        Route::post('/erp/finance/fiscal-periods/{fiscalPeriod}/close-evaluation', [FinanceWorkbenchController::class, 'evaluatePeriodClose'])->whereNumber('fiscalPeriod')->middleware('throttle:30,1')->name('erp.finance.fiscal-periods.close-evaluation');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
             ->where('stepCode', '[A-Za-z0-9._-]+')
@@ -498,6 +546,8 @@ Route::prefix('admin')
             ->whereNumber('proof')
             ->name('driver-live-tracking.proofs.show');
         Route::get('/erp/bi', [EnterpriseBiController::class, 'index'])->name('erp.bi');
+        Route::post('/erp/bi/schedules', [EnterpriseBiScheduleController::class, 'store'])->middleware('throttle:30,1')->name('erp.bi.schedules.store');
+        Route::patch('/erp/bi/schedules/{schedule}', [EnterpriseBiScheduleController::class, 'update'])->whereNumber('schedule')->middleware('throttle:30,1')->name('erp.bi.schedules.update');
         Route::get('/erp/customer-service', [CustomerServiceWorkspaceController::class, 'index'])->name('erp.customer-service');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
@@ -689,6 +739,13 @@ Route::prefix('admin')
             Route::post('/reconciliation/{reconciliation}/close', [EnterpriseTreasuryController::class, 'closeReconciliation'])->whereNumber('reconciliation')->middleware('throttle:30,1')->name('reconciliation.close');
             Route::post('/cash-closing', [EnterpriseTreasuryController::class, 'storeCashClosing'])->middleware('throttle:30,1')->name('cash-closing.store');
             Route::post('/cash-closing/{cashClosing}/close', [EnterpriseTreasuryController::class, 'closeCashClosing'])->whereNumber('cashClosing')->middleware('throttle:30,1')->name('cash-closing.close');
+            Route::post('/reports/schedule', [EnterpriseTreasuryController::class, 'scheduleReport'])->middleware('throttle:20,1')->name('reports.schedule');
+            Route::post('/reports/export', [EnterpriseTreasuryController::class, 'requestReportExport'])->middleware('throttle:20,1')->name('reports.export');
+            Route::post('/investments/{investment}/settle', [EnterpriseTreasuryController::class, 'settleInvestment'])->whereNumber('investment')->middleware('throttle:30,1')->name('investments.settle');
+            Route::post('/investments', [EnterpriseTreasuryController::class, 'storeInvestment'])->middleware('throttle:30,1')->name('investments.store');
+            Route::post('/repayments/{repayment}/paid', [EnterpriseTreasuryController::class, 'markRepaymentPaid'])->whereNumber('repayment')->middleware('throttle:30,1')->name('repayments.paid');
+            Route::post('/drawdowns', [EnterpriseTreasuryController::class, 'storeDrawdown'])->middleware('throttle:30,1')->name('drawdowns.store');
+            Route::post('/facilities', [EnterpriseTreasuryController::class, 'storeFacility'])->middleware('throttle:30,1')->name('facilities.store');
         });
         Route::get('/treasury/master-data', [TreasuryMasterController::class, 'index'])->name('treasury.master.index');
         Route::post('/treasury/cashboxes', [TreasuryMasterController::class, 'storeCashbox'])->middleware('throttle:60,1')->name('treasury.cashboxes.store');
@@ -769,6 +826,13 @@ Route::prefix('admin')
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
+        Route::post('/settings/system-update/backups', [SystemUpdateController::class, 'backup'])
+            ->middleware('throttle:3,1')
+            ->name('system-update.backups.store');
+        Route::post('/settings/system-update/backups/{backupReference}/restore', [SystemUpdateController::class, 'restore'])
+            ->where('backupReference', '\\d{8}-\\d{6}-database-[a-f0-9]{10}')
+            ->middleware('throttle:1,1')
+            ->name('system-update.backups.restore');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');

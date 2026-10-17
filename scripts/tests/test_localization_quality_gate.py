@@ -146,6 +146,19 @@ class LocalizationQualityGateTest(unittest.TestCase):
             module.ROOT = original_root
 
 
+    def test_blade_inline_count_comparison_is_not_visible_copy(self):
+        errors = []
+        module.scan_added_lines(
+            [(
+                "backend/resources/views/admin/enterprise-action-center.blade.php",
+                145,
+                "@if(($workAnalytics['approval_turnaround']['samples']??0)===0)<div>{{ __('enterprise_my_work.analytics.no_turnaround') }}</div>@endif",
+            )],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+
     def test_blade_control_flow_fragments_are_not_visible_copy(self):
         errors = []
         module.scan_added_lines(
@@ -164,6 +177,45 @@ class LocalizationQualityGateTest(unittest.TestCase):
             errors,
         )
         self.assertEqual([], errors)
+
+
+    def test_blade_enum_resolvers_data_attributes_and_inline_conditions_are_not_false_positives(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    115,
+                    "<section data-state=\"{{ $dashboard['state'] ?? 'current' }}\">",
+                ),
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    226,
+                    "<td><span class=\"badge\">{{ $statusLabel($row->status) }}</span></td>",
+                ),
+                (
+                    "backend/resources/views/admin/enterprise-treasury.blade.php",
+                    233,
+                    "<td>@if($canManage && $row->status==='scheduled')<form method=\"post\"></form>@endif</td>",
+                ),
+            ],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+    def test_blade_direct_dynamic_enum_render_still_fails(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/orders.blade.php",
+                    42,
+                    "<td>{{ $row->status }}</td>",
+                ),
+            ],
+            errors,
+        )
+        self.assertTrue(any("status/type/channel" in error for error in errors))
 
 
 if __name__ == "__main__":

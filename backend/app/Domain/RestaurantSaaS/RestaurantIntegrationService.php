@@ -4,6 +4,8 @@ namespace App\Domain\RestaurantSaaS;
 
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -218,6 +220,7 @@ final class RestaurantIntegrationService
 
         DB::table('restaurant_saas_api_clients')->where('id', $client->id)->update([
             'last_used_at' => now(),
+            'request_count' => DB::raw('request_count + 1'),
             'updated_at' => now(),
         ]);
 
@@ -374,23 +377,453 @@ final class RestaurantIntegrationService
         }, 3);
     }
 
+    /** @return list<array<string,mixed>> */
+    public function apiClients(SmartOrderingSite $site): array
+    {
+        return DB::table('restaurant_saas_api_clients')
+            ->where('site_id', $site->getKey())
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get([
+                'public_id', 'name', 'scopes', 'is_active', 'expires_at', 'last_used_at',
+                'request_count', 'rate_limit_violations', 'last_rate_limit_at', 'created_at',
+            ])
+            ->map(function (object $row): array {
+                $expired = $row->expires_at !== null && now()->gte($row->expires_at);
+
+                return [
+                    'public_id' => (string) $row->public_id,
+                    'name' => (string) $row->name,
+                    'scopes' => $this->decodeList($row->scopes),
+                    'state' => ! (bool) $row->is_active ? 'revoked' : ($expired ? 'expired' : 'active'),
+                    'expires_at' => $row->expires_at === null ? null : (string) $row->expires_at,
+                    'last_used_at' => $row->last_used_at === null ? null : (string) $row->last_used_at,
+                    'request_count' => (int) $row->request_count,
+                    'rate_limit_violations' => (int) $row->rate_limit_violations,
+                    'last_rate_limit_at' => $row->last_rate_limit_at === null ? null : (string) $row->last_rate_limit_at,
+                    'created_at' => (string) $row->created_at,
+                ];
+            })
+            ->all();
+    }
+
+    /** @param array<string,mixed> $filters
+     * @return list<array<string,mixed>>
+     */
+    public function integrationEvents(SmartOrderingSite $site, array $filters = [], int $limit = 200): array
+    {
+        $query = DB::table('restaurant_saas_integration_events as e')
+            ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
+            ->leftJoin('smart_ordering_branches as b', 'b.id', '=', 'i.branch_id')
+            ->where('i.site_id', $site->getKey());
+
+        $this->applyEventFilters($query, $filters);
+
+        $rows = $query
+            ->orderByDesc('e.id')
+            ->limit(max(1, min(1000, $limit)))
+            ->get([
+                'e.id', 'e.direction', 'e.event_type', 'e.external_event_key', 'e.status',
+                'e.attempts', 'e.replay_count', 'e.last_replayed_at', 'e.last_error_code',
+                'e.occurred_at', 'e.created_at', 'i.public_id as integration_public_id',
+                'i.provider_key', 'i.display_name', 'i.capabilities',
+                'b.id as branch_id', 'b.name_ar as branch_name_ar', 'b.name_en as branch_name_en',
+            ]);
+
+        $capability = trim((string) ($filters['capability'] ?? ''));
+        if ($capability !== '') {
+            $rows = $rows->filter(
+                fn (object $row): bool => in_array($capability, $this->decodeList($row->capabilities), true),
+            );
+        }
+
+        return $rows->map(fn (object $row): array => [
+            'id' => (int) $row->id,
+            'direction' => (string) $row->direction,
+            'event_type' => (string) $row->event_type,
+            'external_event_key' => (string) $row->external_event_key,
+            'status' => (string) $row->status,
+            'attempts' => (int) $row->attempts,
+            'replay_count' => (int) $row->replay_count,
+            'last_replayed_at' => $row->last_replayed_at === null ? null : (string) $row->last_replayed_at,
+            'last_error_code' => $row->last_error_code === null ? null : (string) $row->last_error_code,
+            'occurred_at' => $row->occurred_at === null ? null : (string) $row->occurred_at,
+            'created_at' => (string) $row->created_at,
+            'integration_public_id' => (string) $row->integration_public_id,
+            'provider_key' => (string) $row->provider_key,
+            'display_name' => (string) $row->display_name,
+            'capabilities' => $this->decodeList($row->capabilities),
+            'branch_id' => $row->branch_id === null ? null : (int) $row->branch_id,
+            'branch_name_ar' => $row->branch_name_ar === null ? null : (string) $row->branch_name_ar,
+            'branch_name_en' => $row->branch_name_en === null ? null : (string) $row->branch_name_en,
+        ])->values()->all();
+    }
+
+    /** @param array<string,mixed> $filters
+     * @return list<array<string,mixed>>
+     */
+    public function webhookDeliveries(SmartOrderingSite $site, array $filters = [], int $limit = 200): array
+    {
+        $query = DB::table('restaurant_saas_webhook_deliveries as d')
+            ->join('restaurant_saas_webhook_subscriptions as s', 's.id', '=', 'd.subscription_id')
+            ->where('s.site_id', $site->getKey());
+
+        if (($filters['webhook_status'] ?? '') !== '') {
+            $query->where('d.status', (string) $filters['webhook_status']);
+        }
+        if (($filters['event_type'] ?? '') !== '') {
+            $query->where('d.event_type', (string) $filters['event_type']);
+        }
+        if (($filters['from'] ?? '') !== '') {
+            $query->where('d.created_at', '>=', (string) $filters['from'].' 00:00:00');
+        }
+        if (($filters['to'] ?? '') !== '') {
+            $query->where('d.created_at', '<=', (string) $filters['to'].' 23:59:59');
+        }
+        if (($filters['q'] ?? '') !== '') {
+            $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $filters['q'])).'%';
+            $query->where(function ($nested) use ($needle): void {
+                $nested->where('d.event_key', 'like', $needle)
+                    ->orWhere('d.event_type', 'like', $needle)
+                    ->orWhere('s.target_url', 'like', $needle);
+            });
+        }
+
+        return $query
+            ->orderByDesc('d.id')
+            ->limit(max(1, min(1000, $limit)))
+            ->get([
+                'd.id', 'd.event_key', 'd.event_type', 'd.status', 'd.attempts', 'd.http_status',
+                'd.last_error_code', 'd.scheduled_at', 'd.delivered_at', 'd.created_at',
+                'd.replay_count', 'd.last_replayed_at',
+                's.public_id as subscription_public_id', 's.target_url', 's.is_active',
+            ])
+            ->map(function (object $row): array {
+                $latencyMs = null;
+                if ($row->delivered_at !== null) {
+                    $latencyMs = CarbonImmutable::parse((string) $row->created_at)
+                        ->diffInMilliseconds(CarbonImmutable::parse((string) $row->delivered_at));
+                }
+
+                return [
+                    'id' => (int) $row->id,
+                    'event_key' => (string) $row->event_key,
+                    'event_type' => (string) $row->event_type,
+                    'status' => (string) $row->status,
+                    'attempts' => (int) $row->attempts,
+                    'http_status' => $row->http_status === null ? null : (int) $row->http_status,
+                    'last_error_code' => $row->last_error_code === null ? null : (string) $row->last_error_code,
+                    'scheduled_at' => $row->scheduled_at === null ? null : (string) $row->scheduled_at,
+                    'delivered_at' => $row->delivered_at === null ? null : (string) $row->delivered_at,
+                    'created_at' => (string) $row->created_at,
+                    'replay_count' => (int) $row->replay_count,
+                    'last_replayed_at' => $row->last_replayed_at === null ? null : (string) $row->last_replayed_at,
+                    'subscription_public_id' => (string) $row->subscription_public_id,
+                    'target_url' => (string) $row->target_url,
+                    'subscription_active' => (bool) $row->is_active,
+                    'latency_ms' => $latencyMs,
+                ];
+            })
+            ->all();
+    }
+
+    public function revokeApiClient(SmartOrderingSite $site, string $publicId): void
+    {
+        $updated = DB::table('restaurant_saas_api_clients')
+            ->where('site_id', $site->getKey())
+            ->where('public_id', $publicId)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'updated_at' => now()]);
+
+        abort_unless($updated === 1, 404);
+    }
+
+    public function setWebhookActive(SmartOrderingSite $site, string $publicId, bool $active): void
+    {
+        $updated = DB::table('restaurant_saas_webhook_subscriptions')
+            ->where('site_id', $site->getKey())
+            ->where('public_id', $publicId)
+            ->update(['is_active' => $active, 'updated_at' => now()]);
+
+        abort_unless($updated === 1, 404);
+    }
+
+    public function retryIntegrationEvent(SmartOrderingSite $site, int $eventId): void
+    {
+        DB::transaction(function () use ($site, $eventId): void {
+            $event = DB::table('restaurant_saas_integration_events as e')
+                ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
+                ->where('i.site_id', $site->getKey())
+                ->where('e.id', $eventId)
+                ->lockForUpdate()
+                ->first(['e.id', 'e.status']);
+
+            abort_unless($event !== null, 404);
+            abort_unless(in_array((string) $event->status, ['retry', 'dead_letter'], true), 409);
+
+            DB::table('restaurant_saas_integration_events')->where('id', $eventId)->update([
+                'status' => 'retry',
+                'attempts' => 0,
+                'replay_count' => DB::raw('replay_count + 1'),
+                'last_replayed_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function replayWebhookDelivery(SmartOrderingSite $site, int $deliveryId): void
+    {
+        DB::transaction(function () use ($site, $deliveryId): void {
+            $delivery = DB::table('restaurant_saas_webhook_deliveries as d')
+                ->join('restaurant_saas_webhook_subscriptions as s', 's.id', '=', 'd.subscription_id')
+                ->where('s.site_id', $site->getKey())
+                ->where('d.id', $deliveryId)
+                ->lockForUpdate()
+                ->first(['d.id', 'd.status']);
+
+            abort_unless($delivery !== null, 404);
+            abort_unless(in_array((string) $delivery->status, ['retry', 'dead_letter'], true), 409);
+
+            DB::table('restaurant_saas_webhook_deliveries')->where('id', $deliveryId)->update([
+                'status' => 'retry',
+                'attempts' => 0,
+                'http_status' => null,
+                'scheduled_at' => now(),
+                'delivered_at' => null,
+                'replay_count' => DB::raw('replay_count + 1'),
+                'last_replayed_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function recordRateLimitViolation(string $publicId): void
+    {
+        if (! Str::isUuid($publicId)) {
+            return;
+        }
+
+        DB::table('restaurant_saas_api_clients')
+            ->where('public_id', $publicId)
+            ->update([
+                'rate_limit_violations' => DB::raw('rate_limit_violations + 1'),
+                'last_rate_limit_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    /** @return array<string,mixed> */
+    public function analytics(SmartOrderingSite $site): array
+    {
+        $health = $this->health($site);
+        $connectorRows = DB::table('restaurant_saas_integrations')
+            ->where('site_id', $site->getKey())
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+
+        $syncRows = DB::table('restaurant_saas_integration_events as e')
+            ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
+            ->where('i.site_id', $site->getKey())
+            ->selectRaw('e.status, COUNT(*) as aggregate')
+            ->groupBy('e.status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+
+        $failureRows = DB::table('restaurant_saas_integration_events as e')
+            ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
+            ->where('i.site_id', $site->getKey())
+            ->whereIn('e.status', ['retry', 'dead_letter'])
+            ->selectRaw("COALESCE(e.last_error_code, 'unknown') as reason, COUNT(*) as aggregate")
+            ->groupBy('reason')
+            ->orderByDesc('aggregate')
+            ->limit(10)
+            ->pluck('aggregate', 'reason')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+
+        $webhookRows = DB::table('restaurant_saas_webhook_deliveries as d')
+            ->join('restaurant_saas_webhook_subscriptions as s', 's.id', '=', 'd.subscription_id')
+            ->where('s.site_id', $site->getKey())
+            ->selectRaw('d.status, COUNT(*) as aggregate')
+            ->groupBy('d.status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+
+        return [
+            'health' => $health,
+            'connector_status' => $connectorRows,
+            'sync_status' => $syncRows,
+            'failure_reasons' => $failureRows,
+            'webhook_status' => $webhookRows,
+            'api_clients' => $this->apiClients($site),
+        ];
+    }
+
+    /** @return list<array<string,scalar|null>> */
+    public function reportRows(SmartOrderingSite $site, string $report): array
+    {
+        return match ($report) {
+            'connector-health' => array_map(
+                fn (array $row): array => [
+                    'provider' => (string) $row['provider_key'],
+                    'name' => (string) $row['display_name'],
+                    'status' => (string) $row['status'],
+                    'last_success_at' => $row['last_success_at'] ?? null,
+                    'last_failure_at' => $row['last_failure_at'] ?? null,
+                    'last_error_code' => $row['last_error_code'] ?? null,
+                ],
+                $this->integrations($site),
+            ),
+            'sync-failures' => array_map(
+                fn (array $row): array => [
+                    'provider' => (string) $row['provider_key'],
+                    'event' => (string) $row['event_type'],
+                    'external_key' => (string) $row['external_event_key'],
+                    'status' => (string) $row['status'],
+                    'attempts' => (int) $row['attempts'],
+                    'error' => $row['last_error_code'],
+                    'occurred_at' => $row['occurred_at'],
+                ],
+                array_values(array_filter(
+                    $this->integrationEvents($site, [], 1000),
+                    fn (array $row): bool => in_array($row['status'], ['retry', 'dead_letter'], true),
+                )),
+            ),
+            'api-usage' => array_map(
+                fn (array $row): array => [
+                    'client' => (string) $row['name'],
+                    'state' => (string) $row['state'],
+                    'requests' => (int) $row['request_count'],
+                    'rate_limit_violations' => (int) $row['rate_limit_violations'],
+                    'last_used_at' => $row['last_used_at'],
+                    'last_rate_limit_at' => $row['last_rate_limit_at'],
+                ],
+                $this->apiClients($site),
+            ),
+            'webhook-performance' => array_map(
+                fn (array $row): array => [
+                    'event' => (string) $row['event_type'],
+                    'status' => (string) $row['status'],
+                    'attempts' => (int) $row['attempts'],
+                    'http_status' => $row['http_status'],
+                    'latency_ms' => $row['latency_ms'],
+                    'error' => $row['last_error_code'],
+                    'created_at' => $row['created_at'],
+                ],
+                $this->webhookDeliveries($site, [], 1000),
+            ),
+            'exceptions' => [
+                ...array_map(
+                    fn (array $row): array => [
+                        'source' => 'sync',
+                        'key' => (string) $row['external_event_key'],
+                        'status' => (string) $row['status'],
+                        'attempts' => (int) $row['attempts'],
+                        'error' => $row['last_error_code'],
+                        'created_at' => $row['created_at'],
+                    ],
+                    array_values(array_filter(
+                        $this->integrationEvents($site, [], 1000),
+                        fn (array $row): bool => in_array($row['status'], ['retry', 'dead_letter'], true),
+                    )),
+                ),
+                ...array_map(
+                    fn (array $row): array => [
+                        'source' => 'webhook',
+                        'key' => (string) $row['event_key'],
+                        'status' => (string) $row['status'],
+                        'attempts' => (int) $row['attempts'],
+                        'error' => $row['last_error_code'],
+                        'created_at' => $row['created_at'],
+                    ],
+                    array_values(array_filter(
+                        $this->webhookDeliveries($site, [], 1000),
+                        fn (array $row): bool => in_array($row['status'], ['retry', 'dead_letter'], true),
+                    )),
+                ),
+            ],
+            default => abort(404),
+        };
+    }
+
     /** @return array<string,mixed> */
     public function health(SmartOrderingSite $site): array
     {
         $rows = DB::table('restaurant_saas_integrations')
             ->where('site_id', $site->getKey())
-            ->get(['status', 'last_failure_at']);
+            ->get(['status', 'last_success_at', 'last_failure_at']);
+
+        $events = DB::table('restaurant_saas_integration_events as e')
+            ->join('restaurant_saas_integrations as i', 'i.id', '=', 'e.integration_id')
+            ->where('i.site_id', $site->getKey())
+            ->selectRaw('e.status, COUNT(*) as aggregate')
+            ->groupBy('e.status')
+            ->pluck('aggregate', 'status');
+
+        $deliveries = DB::table('restaurant_saas_webhook_deliveries as d')
+            ->join('restaurant_saas_webhook_subscriptions as s', 's.id', '=', 'd.subscription_id')
+            ->where('s.site_id', $site->getKey())
+            ->selectRaw('d.status, COUNT(*) as aggregate')
+            ->groupBy('d.status')
+            ->pluck('aggregate', 'status');
+
+        $clients = $this->apiClients($site);
 
         return [
             'installed' => $rows->count(),
             'enabled' => $rows->where('status', 'enabled')->count(),
             'degraded' => $rows->whereIn('status', ['degraded', 'suspended'])->count(),
-            'dead_letters' => DB::table('restaurant_saas_webhook_deliveries as d')
-                ->join('restaurant_saas_webhook_subscriptions as s', 's.id', '=', 'd.subscription_id')
-                ->where('s.site_id', $site->getKey())
-                ->where('d.status', 'dead_letter')
-                ->count(),
+            'sync_success' => (int) ($events['processed'] ?? 0),
+            'sync_failure' => (int) ($events['retry'] ?? 0) + (int) ($events['dead_letter'] ?? 0),
+            'retry_backlog' => (int) ($events['retry'] ?? 0) + (int) ($deliveries['retry'] ?? 0),
+            'dead_letters' => (int) ($events['dead_letter'] ?? 0) + (int) ($deliveries['dead_letter'] ?? 0),
+            'webhook_success' => (int) ($deliveries['delivered'] ?? 0),
+            'webhook_failure' => (int) ($deliveries['retry'] ?? 0) + (int) ($deliveries['dead_letter'] ?? 0),
+            'active_api_clients' => count(array_filter($clients, fn (array $client): bool => $client['state'] === 'active')),
+            'revoked_api_clients' => count(array_filter($clients, fn (array $client): bool => $client['state'] === 'revoked')),
+            'expired_api_clients' => count(array_filter($clients, fn (array $client): bool => $client['state'] === 'expired')),
+            'api_requests' => array_sum(array_column($clients, 'request_count')),
+            'rate_limit_violations' => array_sum(array_column($clients, 'rate_limit_violations')),
+            'last_success_at' => $rows->pluck('last_success_at')->filter()->sortDesc()->first(),
         ];
+    }
+
+    /** @param Builder $query
+     * @param  array<string,mixed>  $filters
+     */
+    private function applyEventFilters($query, array $filters): void
+    {
+        if (($filters['provider'] ?? '') !== '') {
+            $query->where('i.provider_key', (string) $filters['provider']);
+        }
+        if (($filters['direction'] ?? '') !== '') {
+            $query->where('e.direction', (string) $filters['direction']);
+        }
+        if (($filters['status'] ?? '') !== '') {
+            $query->where('e.status', (string) $filters['status']);
+        }
+        if (($filters['branch_id'] ?? '') !== '') {
+            $query->where('i.branch_id', (int) $filters['branch_id']);
+        }
+        if (($filters['from'] ?? '') !== '') {
+            $query->where('e.created_at', '>=', (string) $filters['from'].' 00:00:00');
+        }
+        if (($filters['to'] ?? '') !== '') {
+            $query->where('e.created_at', '<=', (string) $filters['to'].' 23:59:59');
+        }
+        if (($filters['q'] ?? '') !== '') {
+            $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) $filters['q'])).'%';
+            $query->where(function ($nested) use ($needle): void {
+                $nested->where('e.external_event_key', 'like', $needle)
+                    ->orWhere('e.event_type', 'like', $needle)
+                    ->orWhere('i.provider_key', 'like', $needle);
+            });
+        }
     }
 
     private function assertBranch(SmartOrderingSite $site, int $branchId): void

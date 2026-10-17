@@ -43,6 +43,8 @@
             @if(session('status'))<div class="foodex-card wa-status" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="foodex-card wa-status" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
+            @include('admin.whatsapp-campaigns._operations-overview', ['overview' => $operationsOverview])
+
             @if($canManage)
             <section class="foodex-card wa-campaign-card wa-builder" id="wa-campaign-builder">
                 <header>
@@ -202,7 +204,7 @@
             </section>
             @endif
 
-            <section class="foodex-card wa-campaign-card">
+            <section class="foodex-card wa-campaign-card" id="wa-campaign-list">
                 <header><strong>{{ __('whatsapp.campaigns.campaigns') }}</strong></header>
                 <div class="wa-campaign-table-wrap">
                     <table class="wa-campaign-table" data-pagination-exempt="bounded-100">

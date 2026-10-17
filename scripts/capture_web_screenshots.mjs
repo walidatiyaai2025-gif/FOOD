@@ -967,6 +967,31 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     `02_Web/B2C_Admin/16_administration_runtime_contract__populated__${locale}.png`,
   );
 
+  for (const [surface, route, requiredSelector] of [
+    ['system-inspector', '/admin/inspector', '[data-system-runtime-health]'],
+    ['system-update', '/admin/settings/system-update', '[data-system-backup-center]'],
+  ]) {
+    const runtimeResponse = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    if (!runtimeResponse || !runtimeResponse.ok() || page.url().includes('/login')) {
+      const status = runtimeResponse?.status() ?? 'no-response';
+      const body = (await page.locator('body').innerText().catch(() => ''))
+        .replace(/\\s+/g, ' ')
+        .slice(0, 600);
+      throw new Error(
+        `System administration evidence route failed: ${surface}/${locale}; HTTP ${status}; url=${page.url()}; body=${body}`,
+      );
+    }
+    if (await page.locator(requiredSelector).count() !== 1) {
+      throw new Error(`System administration runtime contract missing: ${surface}/${locale}`);
+    }
+    await assertNoPageOverflow(page, `${surface}/runtime/${locale}`);
+    await assertLocaleDirection(page, locale, `${surface}/runtime/${locale}`);
+    await snap(
+      page,
+      `02_Web/B2C_Admin/16_${surface}__populated__${locale}.png`,
+    );
+  }
+
 }
 
 async function captureMixedTrackingEvidence(page, locale) {
@@ -1304,6 +1329,18 @@ async function captureLocale(browser, locale) {
   await snap(page, `02_Web/B2C_Admin/01_تسجيل_الدخول_B2C__default__${locale}.png`);
 
   await login(page, 'b2b', locale, email);
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2B_SuperAdmin',
+    'executive-command-center',
+    '/admin',
+    { fullMatrix: true },
+  );
+  if (await page.locator('[data-foodex-executive-overview]').count() !== 1) {
+    throw new Error(`Executive Command Center marker missing after /admin runtime evidence (${locale})`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1080 });
   await captureMixedTrackingEvidence(page, locale);
   await captureMobileSettingsParityEvidence(page, locale);
   await context.clearCookies();
@@ -1358,6 +1395,22 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'administration-hub',
     '/admin/administration',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'system-inspector',
+    '/admin/inspector',
+    { fullMatrix: true },
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'system-update',
+    '/admin/settings/system-update',
+    { fullMatrix: true },
   );
   await captureResponsiveRoute(
     page,

@@ -45,6 +45,7 @@ final class FinanceFoundationService
         private readonly EnterpriseScopeAuthorizer $authorizer,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly AuditLogger $audit,
+        private readonly FinancePeriodCloseService $periodClose,
     ) {}
 
     /**
@@ -642,6 +643,9 @@ final class FinanceFoundationService
         string $targetStatus,
     ): EnterpriseFiscalPeriod {
         $scope = $this->authorizedScope($actor, $context, self::MANAGE_PERMISSION, self::MANAGE_CAPABILITY);
+        if ($targetStatus === 'closed') {
+            $this->periodClose->assertReady($actor, $context, $periodId);
+        }
 
         return DB::transaction(function () use ($actor, $context, $scope, $periodId, $targetStatus): EnterpriseFiscalPeriod {
             /** @var EnterpriseFiscalPeriod $period */

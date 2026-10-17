@@ -7,6 +7,7 @@ use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Conversation\DeterministicBrain;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
+use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
 use App\Domain\SmartOrdering\SmartOrderingLoyaltyOrderObserver;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
@@ -84,6 +85,22 @@ class AppServiceProvider extends ServiceProvider
             $key = $userId === null ? 'assistant:ip:'.$request->ip() : 'assistant:user:'.$userId;
 
             return Limit::perMinute(max(1, (int) config('assistant.rate_limit', 30)))->by($key);
+        });
+
+        RateLimiter::for('restaurant-integration-api', function (Request $request): Limit {
+            $credential = (string) $request->header('X-Restaurant-App-Key', '');
+            $publicId = Str::before($credential, '.');
+            $key = Str::isUuid($publicId) ? $publicId : $request->ip();
+
+            return Limit::perMinute(120)
+                ->by('restaurant-integration:'.$key)
+                ->response(function (Request $request, array $headers) use ($publicId) {
+                    if (Str::isUuid($publicId)) {
+                        app(RestaurantIntegrationService::class)->recordRateLimitViolation($publicId);
+                    }
+
+                    return response()->json(['message' => 'Too Many Requests.'], 429, $headers);
+                });
         });
 
         foreach (array_keys((array) config('permissions.abilities', [])) as $ability) {
