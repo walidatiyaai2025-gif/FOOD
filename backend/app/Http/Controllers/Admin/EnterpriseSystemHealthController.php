@@ -440,7 +440,10 @@ final class EnterpriseSystemHealthController extends Controller
                 'status' => ($snapshot['verified'] ?? false) === true
                     ? __('system_admin.states.verified')
                     : __('system_admin.states.not_verified'),
-                'origin' => __('system_admin.labels.snapshot'),
+                'scope' => __('system_admin.labels.database_scope'),
+                'retention' => __('system_admin.retention.snapshot'),
+                'reason' => (string) ($snapshot['restore_reason'] ?? $snapshot['snapshot_reason'] ?? 'prelaunch_protection'),
+                'origin' => trim(((string) ($snapshot['source_release'] ?? '')).' → '.((string) ($snapshot['target_release'] ?? ''))) ?: __('system_admin.labels.snapshot'),
                 'url' => route('admin.production-dataset-switch.index'),
             ];
         }
@@ -462,6 +465,11 @@ final class EnterpriseSystemHealthController extends Controller
                 'size' => $this->formatBytes($size > 0 ? $size : null),
                 'reference' => $hash !== '' ? substr($hash, 0, 16) : '#'.$update->id,
                 'status' => __('system_admin.evidence.'.($update->backup_status ?: 'unknown')),
+                'scope' => $update->database_backup_reference !== null
+                    ? __('system_admin.labels.files_database_scope')
+                    : __('system_admin.labels.files_scope'),
+                'retention' => __('system_admin.retention.update'),
+                'reason' => $update->operation_reason ?: 'system_update',
                 'origin' => ($update->from_version ?: '—').' → '.$update->to_version,
                 'url' => route('admin.system-update.index', ['page' => 1]),
             ];
