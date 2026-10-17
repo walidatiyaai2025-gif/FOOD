@@ -30,6 +30,10 @@ final class AdminWhatsAppOtpLoginTest extends TestCase
         config()->set('whatsapp_auth.resend_cooldown_seconds', 60);
         config()->set('whatsapp_auth.max_attempts', 5);
         config()->set('whatsapp_auth.max_resends', 3);
+        config()->set('whatsapp_auth.request_window_seconds', 3600);
+        config()->set('whatsapp_auth.max_requests_per_phone', 5);
+        config()->set('whatsapp_auth.max_requests_per_ip', 20);
+        config()->set('whatsapp_auth.max_requests_per_device', 10);
     }
 
     public function test_verified_management_phone_can_sign_in_with_single_use_hashed_whatsapp_otp(): void
@@ -99,6 +103,31 @@ final class AdminWhatsAppOtpLoginTest extends TestCase
         $response->assertSessionHas('status', __('admin_login.otp_generic_sent'));
         $this->assertDatabaseCount('admin_whatsapp_otp_challenges', 1);
         $this->assertNull(DB::table('admin_whatsapp_otp_challenges')->value('user_id'));
+        $this->assertDatabaseCount('users', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_request_rate_limit_is_account_independent_and_applies_to_phone_across_ip_and_device_changes(): void
+    {
+        $phone = '+96550007777';
+        $this->enableWhatsAppAuth($phone);
+        config()->set('whatsapp_auth.max_requests_per_phone', 2);
+        config()->set('whatsapp_auth.max_requests_per_ip', 50);
+        config()->set('whatsapp_auth.max_requests_per_device', 50);
+        Http::fake();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.10.0.1', 'HTTP_USER_AGENT' => 'otp-device-a'])
+            ->post('/admin/b2b/login', ['email' => $phone, 'locale' => 'en'])
+            ->assertRedirect();
+        $this->withServerVariables(['REMOTE_ADDR' => '10.10.0.2', 'HTTP_USER_AGENT' => 'otp-device-b'])
+            ->post('/admin/b2b/login', ['email' => $phone, 'locale' => 'en'])
+            ->assertRedirect();
+        $this->withServerVariables(['REMOTE_ADDR' => '10.10.0.3', 'HTTP_USER_AGENT' => 'otp-device-c'])
+            ->post('/admin/b2b/login', ['email' => $phone, 'locale' => 'en'])
+            ->assertSessionHasErrors('email');
+
+        $this->assertDatabaseCount('admin_whatsapp_otp_challenges', 2);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'management.whatsapp_otp.rate_limited']);
         $this->assertDatabaseCount('users', 0);
         Http::assertNothingSent();
     }
