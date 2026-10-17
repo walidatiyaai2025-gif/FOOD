@@ -62,7 +62,10 @@ final class UpdateManager
 
             $stage = 'backup_files';
             $fileBackup = $this->runtime->backupFiles($packagePath);
-            $this->checkpoint($history, ['backup_files' => 'passed'], [
+            $this->checkpoint($history, [
+                'backup_files' => 'passed',
+                'file_backup' => $this->backupDescriptor($fileBackup),
+            ], [
                 'file_backup_reference' => $fileBackup,
                 'backup_status' => 'partial',
             ]);
@@ -76,6 +79,7 @@ final class UpdateManager
             $this->checkpoint($history, [
                 'backup_database' => $databaseBackup !== null ? 'passed' : 'not_required',
                 'backup_verification' => $databaseBackup !== null ? 'passed' : 'not_required',
+                'database_backup' => $this->backupDescriptor($databaseBackup),
             ], [
                 'database_backup_reference' => $databaseBackup,
                 'backup_status' => 'available',
@@ -225,6 +229,67 @@ final class UpdateManager
 
             throw new RuntimeException($reason, 0, $exception);
         }
+    }
+
+
+    /**
+     * Persist only non-secret evidence. Filesystem paths remain private in the
+     * protected recovery reference columns and are never rendered directly.
+     *
+     * @return array{reference:string,size_bytes:?int,sha256:?string}|null
+     */
+    private function backupDescriptor(?string $reference): ?array
+    {
+        if ($reference === null || $reference === '') {
+            return null;
+        }
+
+        $safeReference = basename(rtrim($reference, '/\\'));
+        if (! is_dir($reference)) {
+            return [
+                'reference' => $safeReference !== '' ? $safeReference : 'runtime-backup',
+                'size_bytes' => null,
+                'sha256' => null,
+            ];
+        }
+
+        $size = 0;
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($reference, \FilesystemIterator::SKIP_DOTS),
+            );
+            foreach ($iterator as $file) {
+                if ($file instanceof \SplFileInfo && $file->isFile()) {
+                    $size += max(0, (int) $file->getSize());
+                }
+            }
+        } catch (Throwable) {
+            $size = 0;
+        }
+
+        $hash = null;
+        $databaseMetadata = rtrim($reference, '/\\').'/database.json';
+        $filesManifest = rtrim($reference, '/\\').'/files.json';
+
+        if (is_file($databaseMetadata)) {
+            try {
+                $metadata = json_decode((string) file_get_contents($databaseMetadata), true, flags: JSON_THROW_ON_ERROR);
+                $snapshot = is_array($metadata) ? ($metadata['snapshot'] ?? null) : null;
+                if (is_string($snapshot) && is_file($snapshot)) {
+                    $hash = hash_file('sha256', $snapshot) ?: null;
+                }
+            } catch (Throwable) {
+                $hash = null;
+            }
+        } elseif (is_file($filesManifest)) {
+            $hash = hash_file('sha256', $filesManifest) ?: null;
+        }
+
+        return [
+            'reference' => $safeReference !== '' ? $safeReference : 'runtime-backup',
+            'size_bytes' => $size > 0 ? $size : null,
+            'sha256' => $hash,
+        ];
     }
 
     /**
