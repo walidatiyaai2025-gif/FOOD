@@ -16,7 +16,7 @@ $isAr=app()->getLocale()==='ar';
 $localized=static fn($ar,$en)=>trim((string)($isAr?$ar:$en))!==''?(string)($isAr?$ar:$en):(string)($isAr?$en:$ar);
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="restaurant-integrations">
-<aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(AppSupportAdminNavigation::class)->groupsFor($user),'navContext'=>'smart_ordering','user'=>$user])</aside>
+<aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor($user),'navContext'=>'smart_ordering','user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 <header class="foodex-page-header"><div><h1>{{ __('restaurant_integrations.title') }}</h1><p>{{ __('restaurant_integrations.subtitle') }}</p></div><a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ __('restaurant_integrations.back') }}</a></header>
 @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
@@ -38,7 +38,7 @@ $localized=static fn($ar,$en)=>trim((string)($isAr?$ar:$en))!==''?(string)($isAr
 <label>{{ __('restaurant_integrations.type') }}<select class="foodex-control" name="connector_type" required>@foreach($connectorTypes as $type)<option value="{{ $type }}">{{ __('restaurant_integrations.connector_types.'.$type) }}</option>@endforeach</select></label>
 <label>{{ __('restaurant_integrations.provider_key') }}<input class="foodex-control" name="provider_key" pattern="[A-Za-z0-9_-]+" required></label>
 <label>{{ __('restaurant_integrations.display_name') }}<input class="foodex-control" name="display_name" required></label>
-<label>{{ __('restaurant_integrations.credential_reference') }}<input class="foodex-control" name="credential_reference" placeholder="vault://restaurant/provider"><small>{{ __('restaurant_integrations.credential_reference_help') }}</small></label>
+<label>{{ __('restaurant_integrations.credential_reference') }}<input class="foodex-control" name="credential_reference" placeholder="{{ __('restaurant_integrations.credential_reference_placeholder') }}"><small>{{ __('restaurant_integrations.credential_reference_help') }}</small></label>
 <fieldset><legend>{{ __('restaurant_integrations.capabilities') }}</legend><div class="ri-checks">@foreach($capabilities as $capability)<label><input type="checkbox" name="capabilities[]" value="{{ $capability }}"> {{ $capability }}</label>@endforeach</div></fieldset>
 <button class="primary" type="submit">{{ __('restaurant_integrations.save_connector') }}</button>
 </form></section>
@@ -53,7 +53,7 @@ $localized=static fn($ar,$en)=>trim((string)($isAr?$ar:$en))!==''?(string)($isAr
 
 <section class="panel"><h2>{{ __('restaurant_integrations.webhooks') }}</h2>
 <form class="ri-form" method="post" action="{{ route('admin.smart-ordering.integrations.webhooks.store',$site) }}">@csrf
-<label>{{ __('restaurant_integrations.target_url') }}<input class="foodex-control" type="url" name="target_url" placeholder="https://example.com/webhooks/foodex" required></label>
+<label>{{ __('restaurant_integrations.target_url') }}<input class="foodex-control" type="url" name="target_url" placeholder="{{ __('restaurant_integrations.target_url_placeholder') }}" required></label>
 <fieldset><legend>{{ __('restaurant_integrations.event_types') }}</legend><small>{{ __('restaurant_integrations.event_types_help') }}</small><div class="ri-checks">@foreach(['order.created','order.status_changed','payment.updated','menu.published','*'] as $event)<label><input type="checkbox" name="event_types[]" value="{{ $event }}"> {{ $event }}</label>@endforeach</div></fieldset>
 <button class="primary" type="submit">{{ __('restaurant_integrations.create_webhook') }}</button>
 </form>
