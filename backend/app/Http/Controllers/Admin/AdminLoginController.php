@@ -53,6 +53,7 @@ class AdminLoginController extends Controller
         return view('admin.login', [
             'channel' => $channel,
             'locale' => $locale,
+            'ssoReadiness' => $this->securityPolicy->ssoReadiness(),
         ]);
     }
 
