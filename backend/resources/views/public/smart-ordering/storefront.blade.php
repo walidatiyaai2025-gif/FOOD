@@ -16,7 +16,7 @@
     @if(($site['seo']['structured_json'] ?? '') !== '')<script type="application/ld+json">{!! $site['seo']['structured_json'] !!}</script>@endif
     <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="/css/smart-ordering-storefront.css">
-    <link rel="stylesheet" href="/css/restaurant-menu-templates-v2.css">
+    <link rel="stylesheet" href="/css/restaurant-menu-templates-v2.css"> {{-- localization-gate: allow technical stylesheet asset --}}
     <style>:root{ @foreach($appearance['css_variables'] as $name => $value) {{ $name }}: {{ $value }}; @endforeach }</style>
 </head>
 <body class="so-page so-font-{{ $appearance['customization']['font'] }} so-card-{{ $appearance['customization']['card_style'] }} so-button-{{ $appearance['customization']['button_style'] }}"
