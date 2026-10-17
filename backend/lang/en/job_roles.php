@@ -99,5 +99,8 @@ return [
     'domain'=>'Business domain',
     'scope'=>'Scope',
     'level'=>'Role level',
-    'errors' => ['module_unavailable'=>'The role ":role" cannot be newly assigned because its required module is disabled or not entitled for this scope.'],
+    'errors' => [
+        'module_unavailable'=>'The role ":role" cannot be newly assigned because its required module is disabled or not entitled for this scope.',
+        'canonical_locked'=>'Built-in job roles are governed by the canonical FOODEX role catalog. Clone the role to create an advanced custom variant.',
+    ],
 ];
