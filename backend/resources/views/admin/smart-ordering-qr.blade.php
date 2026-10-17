@@ -69,6 +69,8 @@
             </div>
         </header>
 
+        @include('admin._smart-ordering-workspace-nav')
+
         <div class="so-qr-shell">
             @if(session('status'))<div class="foodex-card so-qr-status" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())
