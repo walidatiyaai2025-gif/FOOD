@@ -9,9 +9,17 @@
             ->orWhere('slug', $restaurantSiteKey)
             ->value('store_id') ?? 0);
     }
+    if ($restaurantStoreId <= 0 && $restaurantActor) {
+        $restaurantStoreId = (int) (app(\App\Support\TenantContextResolver::class)->retailStoreIds($restaurantActor)[0] ?? 0);
+    }
+    if ($restaurantSiteKey === '' && $restaurantStoreId > 0) {
+        $restaurantSiteKey = (string) (\Illuminate\Support\Facades\DB::table('smart_ordering_sites')
+            ->where('store_id', $restaurantStoreId)
+            ->value('public_id') ?? '');
+    }
     $restaurantSupport = isset($supportAccess)
         ? (bool) $supportAccess
-        : (bool) ($restaurantActor?->hasRole('SUPER_ADMIN') && request()->boolean('support_access'));
+        : (bool) $restaurantActor?->hasRole('SUPER_ADMIN');
     $restaurantStoreParams = array_filter([
         'store_id' => $restaurantStoreId > 0 ? $restaurantStoreId : null,
         'support_access' => $restaurantSupport ? 1 : null,
@@ -30,6 +38,10 @@
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('smart_ordering.view', $restaurantStoreId)
             : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.view'));
+    $restaurantCanManage = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('smart_ordering.manage', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.manage'));
     $restaurantCanOrders = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'orders.view');
     $restaurantCanQr = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view');
     $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
@@ -60,10 +72,12 @@
             {{ __('smart_ordering.operations_tab') }}
         </a>
     @endif
-    @if($restaurantCanView)
+    @if($restaurantCanManage)
         <a class="foodex-tab" href="{{ route('admin.smart-ordering.menu.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.menu.*')) aria-current="page" @endif>
             {{ __('smart_ordering_menu.nav_title') }}
         </a>
+    @endif
+    @if($restaurantCanView)
         <a class="foodex-tab" href="{{ route('admin.smart-ordering.appearance.index', $restaurantAppearanceParams) }}" @if(request()->routeIs('admin.smart-ordering.appearance.*')) aria-current="page" @endif>
             {{ __('smart_ordering.appearance.heading') }}
         </a>
