@@ -4,125 +4,283 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('admin.system_update_surface.title') }} · FOODEX</title>
-    <style>
-        :root { color: #17202a; background: #f5f7fa; }
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; }
-        main { max-width: 980px; margin: 0 auto; }
-        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        h1, h2 { margin-top: 0; }
-        .badge { border: 1px solid #cbd5e1; border-radius: 999px; padding: 6px 10px; }
-        .notice, .error { padding: 12px 14px; border-radius: 10px; margin: 12px 0; }
-        .notice { background: #f0fdf4; border: 1px solid #86efac; }
-        .error { background: #fff7ed; border: 1px solid #fdba74; }
-        form { display: grid; gap: 16px; }
-        label { display: grid; gap: 7px; font-weight: 700; }
-        input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
-        .checkbox { display: flex; align-items: center; gap: 8px; }
-        .checkbox input { width: auto; }
-        button { justify-self: start; border: 0; border-radius: 8px; padding: 11px 18px; background: #111827; color: #fff; font-weight: 700; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
-        code { direction: ltr; unicode-bidi: embed; }
-        @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
-    </style>
     @include('admin._brand-components')
-@include('admin._settings-page-polish')
+    @include('admin._settings-page-polish')
+    <style>
+        .system-runtime-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
+        .system-runtime-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
+        .system-runtime-card{padding:var(--foodex-space-4);min-width:0}
+        .system-runtime-table-wrap{max-width:100%;overflow:auto;overscroll-behavior-inline:contain}
+        .system-runtime-table{min-width:980px;width:100%;border-collapse:collapse}
+        .system-runtime-table th,.system-runtime-table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}
+        .system-runtime-form{display:grid;gap:var(--foodex-space-3);min-width:0}
+        .system-runtime-form label{display:grid;gap:6px;font-weight:700;min-width:0}
+        .system-runtime-form input,.system-runtime-form textarea{width:100%;min-width:0}
+        .system-runtime-actions{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}
+        .system-runtime-code{font:var(--foodex-text-xs) ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+        .system-runtime-chart-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,3fr) auto;gap:10px;align-items:center;margin-block:10px}
+        .system-runtime-warning{margin-block:var(--foodex-space-3)}
+        details.system-runtime-restore{min-width:260px}
+        details.system-runtime-restore summary{cursor:pointer;font-weight:700}
+        @media(max-width:1023px){.system-runtime-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-runtime-panels{grid-template-columns:minmax(0,1fr)}}
+        @media(max-width:767px){.system-runtime-grid{grid-template-columns:minmax(0,1fr)}.system-runtime-card{padding:var(--foodex-space-3)}.system-runtime-chart-row{grid-template-columns:minmax(0,1fr)}.system-runtime-actions>*{width:100%}}
+    </style>
 </head>
 <body>
+@php
+    $statusLabel = static fn(string $state): string => match($state) {
+        'healthy', 'success', 'succeeded', 'completed' => __('admin.system_update_surface.healthy'),
+        'warning', 'pending', 'queued', 'running', 'in_progress' => __('admin.system_update_surface.warning'),
+        'error', 'failed' => __('admin.system_update_surface.error'),
+        'disabled' => __('admin.system_update_surface.disabled'),
+        default => __('admin.system_update_surface.unknown'),
+    };
+    $lastBackup = $runtimeHealth['last_backup'] ?? null;
+    $backupAgeDays = null;
+    if (is_array($lastBackup) && !empty($lastBackup['created_at'])) {
+        try { $backupAgeDays = max(0, (int) now()->diffInDays(\Carbon\CarbonImmutable::parse($lastBackup['created_at']))); } catch (\Throwable) { $backupAgeDays = null; }
+    }
+    $statusTotal = max(1, array_sum($updateStatusCounts));
+    $databaseBackups = count(array_filter($backupRows, static fn(array $row): bool => $row['kind'] === 'database'));
+    $fileBackups = count(array_filter($backupRows, static fn(array $row): bool => $row['kind'] === 'files'));
+    $availableBackups = count(array_filter($backupRows, static fn(array $row): bool => $row['status'] === 'available'));
+    $backupTotal = max(1, count($backupRows));
+@endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="system-update">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface foodex-module-overview" data-foodex-utility="system-update" data-foodex-module-overview>
     @include('admin._admin-center-switcher',['active'=>'settings'])
-<div class="header foodex-page-header">
+
+    <header class="foodex-page-header">
         <div>
             <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
+            <span class="foodex-subtitle">FOODEX · Runtime & Recovery</span>
             <h1>{{ __('admin.system_update_surface.title') }}</h1>
+            <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
         </div>
-        <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
-    </div>
+        <div class="system-runtime-actions">
+            <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
+            <a class="foodex-action-secondary button secondary" href="{{ route('admin.inspector.index') }}">{{ __('admin.system_update_surface.open_inspector') }}</a>
+        </div>
+    </header>
 
     @if (session('status'))
-        <div class="notice foodex-state" role="status">{{ session('status') }}</div>
+        <div class="foodex-alert success foodex-state" role="status">{{ session('status') }}</div>
     @endif
-
     @if ($errors->any())
-        <div class="error foodex-state" role="alert">
+        <div class="foodex-alert error foodex-state" role="alert">
             <strong>{{ __('admin.system_update_surface.not_applied') }}</strong>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
         </div>
     @endif
 
-    <section class="card">
+    <section aria-labelledby="runtime-health-title">
+        <div class="foodex-viz-header">
+            <div>
+                <h2 id="runtime-health-title" class="foodex-viz-title">{{ __('admin.system_update_surface.dashboard_title') }}</h2>
+                <p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.observed_at') }}: {{ $runtimeHealth['observed_at'] ?? '—' }}</p>
+            </div>
+            <span class="foodex-status-badge" data-state="{{ $runtimeHealth['state'] === 'healthy' ? 'success' : ($runtimeHealth['state'] === 'warning' ? 'warning' : 'error') }}">{{ $statusLabel((string)($runtimeHealth['state'] ?? 'unknown')) }}</span>
+        </div>
+        <div class="system-runtime-grid foodex-module-kpis">
+            @php($runtimeMetrics = [
+                ['label'=>__('admin.system_update_surface.database_health'),'value'=>$statusLabel((string)($runtimeHealth['database']['state'] ?? 'unknown'))],
+                ['label'=>__('admin.system_update_surface.cache_health'),'value'=>$statusLabel((string)($runtimeHealth['cache']['state'] ?? 'unknown'))],
+                ['label'=>__('admin.system_update_surface.failed_jobs'),'value'=>$runtimeHealth['queue']['failed_jobs'] ?? '—'],
+                ['label'=>__('admin.system_update_surface.scheduler_health'),'value'=>$statusLabel((string)($runtimeHealth['scheduler']['state'] ?? 'unknown'))],
+                ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtimeHealth['pending_migrations'] ?? '—'],
+                ['label'=>__('admin.system_update_surface.storage_health'),'value'=>$statusLabel((string)($runtimeHealth['storage']['state'] ?? 'unknown'))],
+                ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtimeHealth['configuration_warnings'] ?? [])],
+                ['label'=>__('admin.system_update_surface.backup_age'),'value'=>$backupAgeDays === null ? __('admin.system_update_surface.not_available') : $backupAgeDays.' '.__('admin.system_update_surface.days')],
+            ])
+            @foreach($runtimeMetrics as $metric)
+                <article class="foodex-viz-card foodex-module-kpi" data-foodex-module-kpi data-interactive="false">
+                    <span class="foodex-module-kpi-label">{{ $metric['label'] }}</span>
+                    <strong class="foodex-module-kpi-value foodex-number">{{ $metric['value'] }}</strong>
+                </article>
+            @endforeach
+        </div>
+    </section>
+
+    <section class="system-runtime-panels foodex-module-panels">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
+            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.status_distribution') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.status_distribution_description') }}</p></div></div>
+            @forelse($updateStatusCounts as $status => $count)
+                @php($percent = max(2, min(100, (int) round(($count / $statusTotal) * 100))))
+                <div class="system-runtime-chart-row">
+                    <span>{{ $statusLabel((string)$status) }}</span>
+                    <div class="foodex-viz-progress" role="img" aria-label="{{ $statusLabel((string)$status) }} {{ $count }}"><span style="width:{{ $percent }}%"></span></div>
+                    <strong class="foodex-number">{{ $count }}</strong>
+                </div>
+            @empty
+                @include('admin._module-dashboard-state',['state'=>'empty'])
+            @endforelse
+            <div class="foodex-module-chart-summary">{{ __('admin.system_update_surface.history') }}</div>
+        </article>
+
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
+            <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.backup_distribution') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.backup_distribution_description') }}</p></div></div>
+            @foreach([
+                __('admin.system_update_surface.database') => $databaseBackups,
+                __('admin.system_update_surface.release_files') => $fileBackups,
+                __('admin.system_update_surface.available') => $availableBackups,
+            ] as $label => $count)
+                @php($percent = max(2, min(100, (int) round(($count / $backupTotal) * 100))))
+                <div class="system-runtime-chart-row">
+                    <span>{{ $label }}</span>
+                    <div class="foodex-viz-progress" role="img" aria-label="{{ $label }} {{ $count }}"><span style="width:{{ $percent }}%"></span></div>
+                    <strong class="foodex-number">{{ $count }}</strong>
+                </div>
+            @endforeach
+            <div class="foodex-module-chart-summary">{{ __('admin.system_update_surface.backup_center') }}</div>
+        </article>
+    </section>
+
+    <section class="foodex-card system-runtime-card" data-system-backup-center>
+        <div class="foodex-viz-header">
+            <div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.backup_center') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.backup_description') }}</p></div>
+        </div>
+        <form class="system-runtime-form" method="post" action="{{ route('admin.system-update.backups.store') }}" data-mutation-lock>
+            @csrf
+            <label>{{ __('admin.system_update_surface.backup_reason') }}
+                <textarea name="reason" rows="2" minlength="5" maxlength="500" required placeholder="{{ __('admin.system_update_surface.backup_reason_placeholder') }}"></textarea>
+            </label>
+            <button class="foodex-primary" type="submit">{{ __('admin.system_update_surface.create_backup') }}</button>
+        </form>
+
+        <div class="system-runtime-table-wrap" style="margin-top:var(--foodex-space-4)">
+            <table class="foodex-table system-runtime-table" data-pagination-exempt="bounded-50-recovery-inventory">
+                <thead><tr>
+                    <th>{{ __('admin.system_update_surface.backup_reference') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_type') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_scope') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_created_at') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_size') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_integrity') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_status') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_retention') }}</th>
+                    <th>{{ __('admin.system_update_surface.backup_origin') }}</th>
+                    <th>{{ __('admin.system_update_surface.restore') }}</th>
+                </tr></thead>
+                <tbody>
+                @forelse($backupRows as $backup)
+                    <tr>
+                        <td><code class="system-runtime-code">{{ $backup['reference'] }}</code></td>
+                        <td>{{ $backup['kind']==='database' ? __('admin.system_update_surface.database') : __('admin.system_update_surface.release_files') }}</td>
+                        <td><code>{{ $backup['scope'] }}</code></td>
+                        <td>{{ $backup['created_at'] ?: '—' }}</td>
+                        <td class="foodex-number">{{ number_format((int)$backup['size_bytes']) }} {{ __('admin.system_update_surface.bytes') }}</td>
+                        <td><code class="system-runtime-code">{{ $backup['integrity_reference'] ? substr($backup['integrity_reference'],0,16).'…' : '—' }}</code></td>
+                        <td>{{ $backup['status']==='available' ? __('admin.system_update_surface.available') : __('admin.system_update_surface.incomplete') }}</td>
+                        <td>{{ $backup['retention_until'] ?: '—' }}</td>
+                        <td>{{ $backup['origin']==='manual_backup' ? __('admin.system_update_surface.manual_backup') : __('admin.system_update_surface.system_update_origin') }}</td>
+                        <td>
+                            @if($backup['kind']==='database' && $backup['status']==='available')
+                            <details class="system-runtime-restore">
+                                <summary>{{ __('admin.system_update_surface.restore') }}</summary>
+                                <div class="foodex-alert warning system-runtime-warning">{{ __('admin.system_update_surface.restore_warning') }}</div>
+                                <form class="system-runtime-form" method="post" action="{{ route('admin.system-update.backups.restore',['backupReference'=>$backup['reference']]) }}" data-mutation-lock>
+                                    @csrf
+                                    <label>{{ __('admin.system_update_surface.restore_reason') }}<textarea name="reason" rows="2" minlength="5" maxlength="500" required></textarea></label>
+                                    <label>{{ __('admin.system_update_surface.confirm_reference') }}<input name="confirm_reference" autocomplete="off" required></label>
+                                    @if($isProduction)
+                                    <label>{{ __('admin.system_update_surface.production_confirmation') }}
+                                        <input name="production_confirmation" autocomplete="off" required>
+                                        <small>{{ __('admin.system_update_surface.production_phrase_help') }}</small>
+                                    </label>
+                                    @endif
+                                    <button class="foodex-danger" type="submit">{{ __('admin.system_update_surface.restore') }}</button>
+                                </form>
+                            </details>
+                            @else
+                                —
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="10">@include('admin._module-dashboard-state',['state'=>'empty','message'=>__('admin.system_update_surface.no_backups')])</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="foodex-card system-runtime-card">
         <h2>{{ __('admin.system_update_surface.package_title') }}</h2>
         <p>{{ __('admin.system_update_surface.package_description') }}</p>
-
-        <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
+        <form class="system-runtime-form" method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}" data-mutation-lock>
             @csrf
-            <label>{{ __('admin.system_update_surface.zip_package') }}
-                <input type="file" name="package" accept=".zip,application/zip" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.target_version') }}
-                <input name="target_version" placeholder="1.2.0" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.minimum_current_version') }}
-                <input name="minimum_current_version" value="{{ $currentVersion }}" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.sha256') }}
-                <input name="sha256" maxlength="64" minlength="64" required>
-            </label>
-            <label>{{ __('admin.system_update_surface.release_notes') }}
-                <textarea name="release_notes" rows="4"></textarea>
-            </label>
-            <div class="notice">
-                {{ __('admin.system_update_surface.migration_notice') }}
-            </div>
+            <label>{{ __('admin.system_update_surface.zip_package') }}<input type="file" name="package" accept=".zip,application/zip" required></label>
+            <label>{{ __('admin.system_update_surface.target_version') }}<input name="target_version" placeholder="1.2.0" required></label>
+            <label>{{ __('admin.system_update_surface.minimum_current_version') }}<input name="minimum_current_version" value="{{ $currentVersion }}" required></label>
+            <label>{{ __('admin.system_update_surface.sha256') }}<input name="sha256" maxlength="64" minlength="64" required></label>
+            <label>{{ __('admin.system_update_surface.release_notes') }}<textarea name="release_notes" rows="4"></textarea></label>
+            <div class="foodex-alert info">{{ __('admin.system_update_surface.migration_notice') }}</div>
             <button class="foodex-primary" type="submit">{{ __('admin.system_update_surface.install') }}</button>
         </form>
     </section>
 
-    <section class="card">
+    <section class="foodex-card system-runtime-card">
         <h2>{{ __('admin.system_update_surface.history') }}</h2>
-        <table data-pagination-required>
-            <thead>
-            <tr><th>{{ __('admin.system_update_surface.from') }}</th><th>{{ __('admin.system_update_surface.to') }}</th><th>{{ __('admin.system_update_surface.status') }}</th><th>{{ __('admin.system_update_surface.started') }}</th><th>{{ __('admin.system_update_surface.failure') }}</th></tr>
-            </thead>
-            <tbody>
-            @forelse ($historyRows as $row)
-                @php
-                    $updateStatusCode = strtolower((string)$row->status);
-                    $updateStatusLabel = match($updateStatusCode) {
-                        'pending', 'queued' => app()->getLocale()==='ar' ? 'قيد الانتظار' : 'Pending',
-                        'running', 'in_progress' => app()->getLocale()==='ar' ? 'قيد التنفيذ' : 'Running',
-                        'completed', 'success', 'succeeded' => app()->getLocale()==='ar' ? 'مكتمل' : 'Completed',
-                        'failed', 'error' => app()->getLocale()==='ar' ? 'فشل' : 'Failed',
-                        'rolled_back' => app()->getLocale()==='ar' ? 'تم التراجع' : 'Rolled back',
-                        default => app()->getLocale()==='ar' ? 'حالة التحديث' : 'Update status',
-                    };
-                @endphp
-                <tr>
-                    <td>{{ $row->from_version ?: '—' }}</td>
-                    <td>{{ $row->to_version }}</td>
-                    <td>{{ $updateStatusLabel }}</td>
-                    <td>{{ $row->started_at ?: '—' }}</td>
-                    <td>{{ $row->failure_reason ?: '—' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+        <div class="system-runtime-table-wrap">
+            <table class="foodex-table system-runtime-table" data-pagination-required>
+                <thead><tr><th>{{ __('admin.system_update_surface.from') }}</th><th>{{ __('admin.system_update_surface.to') }}</th><th>{{ __('admin.system_update_surface.status') }}</th><th>{{ __('admin.system_update_surface.started') }}</th><th>{{ __('admin.system_update_surface.failure') }}</th></tr></thead>
+                <tbody>
+                @forelse ($historyRows as $row)
+                    <tr>
+                        <td>{{ $row->from_version ?: '—' }}</td>
+                        <td>{{ $row->to_version }}</td>
+                        <td>{{ $statusLabel(strtolower((string)$row->status)) }}</td>
+                        <td>{{ $row->started_at ?: '—' }}</td>
+                        <td>{{ $row->failure_reason ?: '—' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
         {{ $historyRows->links() }}
+    </section>
+
+    <section class="foodex-card system-runtime-card">
+        <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('admin.system_update_surface.recovery_log') }}</h2><p class="foodex-viz-subtitle">{{ __('admin.system_update_surface.recovery_log_description') }}</p></div></div>
+        <div class="system-runtime-table-wrap">
+            <table class="foodex-table system-runtime-table" data-pagination-exempt="bounded-50-runtime-audit">
+                <thead><tr><th>{{ __('admin.system_update_surface.operation') }}</th><th>{{ __('admin.system_update_surface.actor') }}</th><th>{{ __('admin.system_update_surface.environment') }}</th><th>{{ __('admin.system_update_surface.source_target') }}</th><th>{{ __('admin.system_update_surface.reason') }}</th><th>{{ __('admin.system_update_surface.stage') }}</th><th>{{ __('admin.system_update_surface.outcome') }}</th><th>{{ __('admin.system_update_surface.started') }}</th></tr></thead>
+                <tbody>
+                @forelse($recoveryOperations as $operation)
+                    @php($evidence = array_merge($operation['before'] ?? [], $operation['after'] ?? []))
+                    <tr>
+                        <td><code>{{ $operation['event'] }}</code></td>
+                        <td>{{ $operation['actor'] ?: '—' }}</td>
+                        <td>{{ $evidence['environment'] ?? '—' }}</td>
+                        <td><code>{{ $evidence['source_version'] ?? '—' }} → {{ $evidence['target_version'] ?? '—' }}</code></td>
+                        <td>{{ $evidence['reason'] ?? '—' }}</td>
+                        <td><code>{{ $evidence['stage'] ?? '—' }}</code></td>
+                        <td>{{ $evidence['outcome'] ?? '—' }}</td>
+                        <td>{{ $operation['created_at'] ?? '—' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="8">{{ __('admin.system_update_surface.no_recovery_operations') }}</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
     </section>
 </main>
 </div>
 <script>
 (() => {
+    document.querySelectorAll('form[data-mutation-lock]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            form.querySelectorAll('button[type="submit"],input[type="submit"]').forEach((control) => {
+                control.disabled = true;
+                control.setAttribute('aria-busy', 'true');
+            });
+        });
+    });
+
     const form = document.querySelector('form[data-csrf-refresh-url]');
     if (!form) return;
     form.addEventListener('submit', async (event) => {
