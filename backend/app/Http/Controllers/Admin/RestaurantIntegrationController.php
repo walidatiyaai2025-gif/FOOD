@@ -119,7 +119,7 @@ final class RestaurantIntegrationController extends Controller
     ): RedirectResponse {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
         $data = $request->validate([
-            'target_url' => ['required', 'url:https', 'max:1000'],
+            'target_url' => ['required', 'url', 'max:1000'],
             'event_types' => ['required', 'array', 'min:1'],
             'event_types.*' => ['required', 'string', 'max:120'],
         ]);
