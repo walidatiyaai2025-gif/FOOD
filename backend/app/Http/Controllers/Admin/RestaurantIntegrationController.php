@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
-use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
