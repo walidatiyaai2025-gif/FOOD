@@ -72,6 +72,55 @@
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
         </section>
 
+        @php
+            $runtimeStateLabel = match((string)($runtime['state'] ?? 'unknown')) {
+                'healthy' => __('admin.system_update_surface.healthy'),
+                'warning' => __('admin.system_update_surface.warning'),
+                'error' => __('admin.system_update_surface.error'),
+                default => __('admin.system_update_surface.unknown'),
+            };
+            $runtimeMetrics = [
+                ['label'=>__('admin.system_update_surface.application_health'),'value'=>$runtimeStateLabel],
+                ['label'=>__('admin.system_update_surface.database_health'),'value'=>match((string)($runtime['database']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
+                ['label'=>__('admin.system_update_surface.cache_health'),'value'=>match((string)($runtime['cache']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
+                ['label'=>__('admin.system_update_surface.failed_jobs'),'value'=>$runtime['queue']['failed_jobs'] ?? '—'],
+                ['label'=>__('admin.system_update_surface.scheduler_health'),'value'=>match((string)($runtime['scheduler']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'warning'=>__('admin.system_update_surface.warning'),'disabled'=>__('admin.system_update_surface.disabled'),default=>__('admin.system_update_surface.unknown')}],
+                ['label'=>__('admin.system_update_surface.pending_migrations'),'value'=>$runtime['pending_migrations'] ?? '—'],
+                ['label'=>__('admin.system_update_surface.storage_health'),'value'=>match((string)($runtime['storage']['state'] ?? 'unknown')){'healthy'=>__('admin.system_update_surface.healthy'),'error'=>__('admin.system_update_surface.error'),default=>__('admin.system_update_surface.unknown')}],
+                ['label'=>__('admin.system_update_surface.config_warnings'),'value'=>count($runtime['configuration_warnings'] ?? [])],
+            ];
+        @endphp
+        <section class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
+            <div class="inspector-enterprise-heading">
+                <div>
+                    <span class="foodex-subtitle">FOODEX · Runtime Health</span>
+                    <h2>{{ __('admin.system_update_surface.dashboard_title') }}</h2>
+                    <p>{{ __('admin.system_update_surface.dashboard_description') }}</p>
+                </div>
+                <div class="inspector-actions">
+                    <span class="foodex-status-badge" data-state="{{ ($runtime['state'] ?? '')==='healthy'?'success':((($runtime['state'] ?? '')==='warning')?'warning':'error') }}">{{ $runtimeStateLabel }}</span>
+                    <a class="foodex-action-secondary button secondary" href="{{ route('admin.system-update.index') }}">{{ __('admin.system_update_surface.backup_center') }}</a>
+                </div>
+            </div>
+            <div class="foodex-module-kpis inspector-grid">
+                @foreach($runtimeMetrics as $metric)
+                    <article class="foodex-viz-card foodex-module-kpi" data-foodex-module-kpi data-interactive="false">
+                        <span class="foodex-module-kpi-label">{{ $metric['label'] }}</span>
+                        <strong class="foodex-module-kpi-value foodex-number">{{ $metric['value'] }}</strong>
+                    </article>
+                @endforeach
+            </div>
+            @if(($runtime['configuration_warnings'] ?? []) !== [])
+                <div class="foodex-alert warning" role="status">
+                    <strong>{{ __('admin.system_update_surface.config_warnings') }}</strong>
+                    <ul>
+                        @foreach($runtime['configuration_warnings'] as $warning)
+                            <li><code>{{ $warning }}</code></li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        </section>
 
         @php($enterpriseLabels = __('admin.system_inspector_enterprise.states'))
         @php($enterpriseData = $enterprise['data'] ?? $enterprise)
