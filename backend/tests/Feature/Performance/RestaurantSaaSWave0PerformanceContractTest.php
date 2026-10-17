@@ -25,7 +25,7 @@ final class RestaurantSaaSWave0PerformanceContractTest extends TestCase
         config()->set('smart_ordering.enterprise_entitlement_bridge', false);
     }
 
-    public function test_disabled_enterprise_bridge_adds_zero_enterprise_queries_to_repeated_runtime_checks(): void
+    public function test_store_master_entitlement_remains_authoritative_when_child_bridge_is_disabled(): void
     {
         $typeId = (int) DB::table('store_types')
             ->where('code', 'B2C')
@@ -37,6 +37,8 @@ final class RestaurantSaaSWave0PerformanceContractTest extends TestCase
             'name' => 'Restaurant SaaS Wave 0 Performance',
             'is_active' => true,
         ]);
+
+        $this->enableRestaurantSaasForTestStore((int) $store->id);
 
         $admin = User::query()->create([
             'name' => 'Restaurant SaaS Performance Admin',
@@ -69,23 +71,18 @@ final class RestaurantSaaSWave0PerformanceContractTest extends TestCase
             true,
         );
 
-        $enterpriseQueries = 0;
-        DB::listen(static function ($query) use (&$enterpriseQueries): void {
-            if (str_contains((string) $query->sql, 'enterprise_')) {
-                $enterpriseQueries++;
-            }
-        });
-
         $policy = app(SmartOrderingRuntimePolicy::class);
 
         for ($iteration = 0; $iteration < 20; $iteration++) {
             $this->assertTrue($policy->entitled($site, Module::PUBLIC_MENU));
         }
 
-        $this->assertSame(
-            0,
-            $enterpriseQueries,
-            'A disabled Restaurant SaaS Enterprise bridge must add zero Enterprise queries.',
-        );
+        DB::table('enterprise_module_entitlements')
+            ->where('module_code', 'smart_ordering')
+            ->where('scope_type', 'store')
+            ->where('scope_id', $store->id)
+            ->update(['is_enabled' => false, 'updated_at' => now()]);
+
+        $this->assertFalse($policy->entitled($site->fresh(), Module::PUBLIC_MENU));
     }
 }

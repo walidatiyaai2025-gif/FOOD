@@ -168,7 +168,7 @@ final class RestaurantSaaSControlPlaneTest extends TestCase
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        return (int) DB::table('stores')->insertGetId([
+        $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
             'code' => $code,
             'name' => $code,
@@ -176,6 +176,9 @@ final class RestaurantSaaSControlPlaneTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->enableRestaurantSaasForTestStore($storeId);
+
+        return $storeId;
     }
 
     private function storeAdmin(int $storeId): User

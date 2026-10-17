@@ -36,7 +36,7 @@ class SmartOrderingFoundationTest extends TestCase
 
     public function test_new_restaurant_is_provisioned_fail_closed_with_every_module_off(): void
     {
-        $storeId = $this->retailStore('SO-OFF');
+        $storeId = $this->retailStore('SO-OFF', false);
         $site = app(SmartOrderingSiteService::class)->ensureForStore($storeId);
         $runtime = app(SmartOrderingRuntimePolicy::class);
 
@@ -189,7 +189,7 @@ class SmartOrderingFoundationTest extends TestCase
             ->put(route('admin.smart-ordering.runtime', $siteB), [
                 'runtime_state' => RuntimeState::ENABLED->value,
                 'master_enabled' => 1,
-            ])->assertForbidden();
+            ])->assertNotFound();
 
         $this->assertSame(RuntimeState::DISABLED->value, $siteB->fresh()->runtime_state);
     }
@@ -316,11 +316,11 @@ class SmartOrderingFoundationTest extends TestCase
         ]);
     }
 
-    private function retailStore(string $code): int
+    private function retailStore(string $code, bool $enableRestaurantSaas = true): int
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
-        return (int) DB::table('stores')->insertGetId([
+        $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
             'code' => $code,
             'name' => $code,
@@ -328,6 +328,12 @@ class SmartOrderingFoundationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($enableRestaurantSaas) {
+            $this->enableRestaurantSaasForTestStore($storeId);
+        }
+
+        return $storeId;
     }
 
     private function storeAdmin(int $storeId): User

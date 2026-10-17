@@ -39,7 +39,7 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
 
     public function test_clean_tenant_billing_suspend_restore_and_smart_ordering_compatibility_are_coherent(): void
     {
-        [$store, $admin] = $this->restaurant('RS-W0-CERT-A');
+        [$store, $admin] = $this->restaurant('RS-W0-CERT-A', false);
 
         $controlPlane = app(RestaurantControlPlaneService::class);
         $first = $controlPlane->provision($store, $admin);
@@ -61,15 +61,8 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
             true,
         );
 
-        $queries = [];
-        DB::listen(static function ($query) use (&$queries): void {
-            $queries[] = (string) $query->sql;
-        });
-
-        $this->assertTrue(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
-        $this->assertFalse(collect($queries)->contains(
-            static fn (string $sql): bool => str_contains($sql, 'enterprise_'),
-        ));
+        // Legacy child entitlements cannot bypass the explicit Retail Store master switch.
+        $this->assertFalse(app(SmartOrderingRuntimePolicy::class)->entitled($site, Module::PUBLIC_MENU));
 
         $plan = RestaurantSaasPlan::query()->create([
             'code' => 'W0-CERT-PRO',
@@ -217,7 +210,7 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
     }
 
     /** @return array{Store,User} */
-    private function restaurant(string $code): array
+    private function restaurant(string $code, bool $enableRestaurantSaas = true): array
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $store = Store::query()->create([
@@ -226,6 +219,10 @@ final class RestaurantSaaSWave0CertificationTest extends TestCase
             'name' => $code,
             'is_active' => true,
         ]);
+
+        if ($enableRestaurantSaas) {
+            $this->enableRestaurantSaasForTestStore((int) $store->id);
+        }
 
         $admin = User::query()->create([
             'name' => 'Restaurant Wave 0 Certification Admin',
