@@ -58,6 +58,14 @@ final class SystemAdministrationRuntime
             $failedJobs = null;
         }
 
+        $failedJobRows = $this->failedJobs(50);
+        $failedJobs24h = count(array_filter(
+            $failedJobRows,
+            static fn (array $row): bool => is_string($row['failed_at'])
+                && strtotime($row['failed_at']) !== false
+                && strtotime($row['failed_at']) >= now()->subDay()->getTimestamp(),
+        ));
+
         $pendingMigrations = $this->pendingMigrationCount();
         $scheduler = $this->schedulerHealth();
         $storageWritable = is_dir(storage_path()) && is_writable(storage_path());
@@ -108,6 +116,8 @@ final class SystemAdministrationRuntime
             'queue' => [
                 'connection' => (string) config('queue.default'),
                 'failed_jobs' => $failedJobs,
+                'failed_jobs_24h' => $failedJobs24h,
+                'recent_failures' => $failedJobRows,
                 'state' => $failedJobs === null ? 'unknown' : ($failedJobs > 0 ? 'warning' : 'healthy'),
             ],
             'scheduler' => $scheduler,
@@ -173,6 +183,36 @@ final class SystemAdministrationRuntime
         }
 
         return $rows;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function failedJobs(int $limit = 50): array
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            return [];
+        }
+
+        return DB::table('failed_jobs')
+            ->select(['id', 'uuid', 'connection', 'queue', 'exception', 'failed_at'])
+            ->orderByDesc('failed_at')
+            ->orderByDesc('id')
+            ->limit(max(1, min($limit, 100)))
+            ->get()
+            ->map(static function ($row): array {
+                $exception = is_string($row->exception ?? null) ? (string) $row->exception : '';
+
+                return [
+                    'id' => (int) $row->id,
+                    'uuid' => is_string($row->uuid ?? null) ? (string) $row->uuid : null,
+                    'connection' => (string) ($row->connection ?? ''),
+                    'queue' => (string) ($row->queue ?? ''),
+                    'failure_fingerprint' => $exception === '' ? null : substr(hash('sha256', $exception), 0, 16),
+                    'failed_at' => is_string($row->failed_at ?? null) ? (string) $row->failed_at : null,
+                ];
+            })
+            ->all();
     }
 
     /**
