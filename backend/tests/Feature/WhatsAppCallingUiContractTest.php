@@ -6,25 +6,30 @@ use Tests\TestCase;
 
 final class WhatsAppCallingUiContractTest extends TestCase
 {
-    public function test_status_and_search_cards_render_below_conversation_workspace_in_one_desktop_row(): void
+    public function test_search_filters_live_in_conversation_rail_while_agent_status_remains_below_workspace(): void
     {
         $inbox = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
 
         $this->assertIsString($inbox);
         $workspace = strpos($inbox, '<div class="wa-workspace">');
+        $filters = strpos($inbox, '<div class="wa-conversation-filters">');
         $controls = strpos($inbox, '<div class="wa-controls-row">');
 
         $this->assertNotFalse($workspace);
+        $this->assertNotFalse($filters);
         $this->assertNotFalse($controls);
-        $this->assertLessThan($controls, $workspace);
+        $this->assertLessThan($filters, $workspace);
+        $this->assertLessThan($controls, $filters);
         $this->assertStringContainsString(
-            '.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)',
+            '.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr);gap:',
             $inbox,
         );
-        $this->assertStringContainsString(
-            '@media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}',
-            $inbox,
-        );
+        $this->assertStringContainsString('name="q"', $inbox);
+        $this->assertStringContainsString('name="status"', $inbox);
+        $this->assertStringContainsString('name="assignment"', $inbox);
+        $this->assertStringContainsString('name="store_id"', $inbox);
+        $this->assertStringContainsString('name="channel"', $inbox);
+        $this->assertStringNotContainsString('foodex-card wa-toolbar', $inbox);
     }
 
     public function test_calling_ui_uses_chromium_unsigned_ssrc_compatibility_wrapper(): void
