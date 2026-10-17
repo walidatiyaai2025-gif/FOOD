@@ -53,10 +53,10 @@
 
 <style>
 .foodex-account-menu{position:relative;display:inline-flex;align-items:center}
-.foodex-account-trigger{width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;padding:0;border:1px solid var(--foodex-border);border-radius:50%;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer}
+.foodex-account-trigger{width:var(--foodex-header-control-height);height:var(--foodex-header-control-height);min-width:var(--foodex-header-control-height);min-height:var(--foodex-header-control-height);display:grid;place-items:center;padding:0;border:1px solid var(--foodex-border);border-radius:50%;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer}
 .foodex-account-trigger:hover,.foodex-account-trigger[aria-expanded="true"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#b7dfc4}
-.foodex-account-avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-.foodex-account-avatar .foodex-svg-icon{width:20px;height:20px}
+.foodex-account-avatar{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-account-avatar .foodex-svg-icon{width:13px;height:13px}
 .foodex-account-avatar-lg{width:40px;height:40px;flex:0 0 40px}
 .foodex-account-avatar-lg .foodex-svg-icon{width:24px;height:24px}
 .foodex-account-panel{position:absolute;z-index:90;inset-block-start:calc(100% + 10px);inset-inline-end:0;width:min(300px,calc(100vw - 28px));padding:8px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-raised);text-align:start}
@@ -71,7 +71,8 @@
 .foodex-account-logout{color:#b42318}
 .foodex-account-logout:hover,.foodex-account-logout:focus-visible{background:#fff1f0;color:#b42318}
 .foodex-account-signout{font-size:19px;line-height:1;text-align:center}
-@media(max-width:767px){.foodex-account-panel{position:fixed;inset-inline:14px;inset-block-start:70px;width:auto}}
+@media(max-width:1023px) and (min-width:768px){.foodex-account-trigger{width:var(--foodex-header-control-height-tablet);height:var(--foodex-header-control-height-tablet);min-width:var(--foodex-header-control-height-tablet);min-height:var(--foodex-header-control-height-tablet)}}
+@media(max-width:767px){.foodex-account-trigger{width:var(--foodex-touch-target);height:var(--foodex-touch-target);min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target)}.foodex-account-avatar{width:30px;height:30px}.foodex-account-avatar .foodex-svg-icon{width:20px;height:20px}.foodex-account-panel{position:fixed;inset-inline:14px;inset-block-start:52px;width:auto}}
 </style>
 
 <script>
