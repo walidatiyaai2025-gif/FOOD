@@ -224,6 +224,7 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             'locale' => 'ar',
             'is_active' => true,
         ]);
+        $this->grantPlatformErpAccess($user);
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $store->id,

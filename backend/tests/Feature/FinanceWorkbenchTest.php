@@ -209,6 +209,7 @@ final class FinanceWorkbenchTest extends TestCase
             'locale' => $locale,
             'is_active' => true,
         ]);
+        $this->grantPlatformErpAccess($actor);
 
         DB::table('user_store_roles')->insert([
             'user_id' => $actor->id,
