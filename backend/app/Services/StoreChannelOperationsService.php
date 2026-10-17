@@ -375,7 +375,7 @@ final class StoreChannelOperationsService
 
     private function storeSnapshotRow(Store $store): \stdClass
     {
-        $row = new \stdClass();
+        $row = new \stdClass;
         $row->id = (int) $store->id;
         $row->name = (string) $store->name;
         $row->code = (string) $store->code;
