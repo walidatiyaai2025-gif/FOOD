@@ -98,6 +98,28 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             ->assertSee('مُصدر');
     }
 
+    public function test_completed_procurement_tabs_render_inside_one_canonical_workbench(): void
+    {
+        $this->enableProcurement();
+        [$user, $store] = $this->operator('ERP-UI-COMPLETE');
+
+        foreach ([
+            'overview' => 'نظرة عامة على المشتريات',
+            'rfqs' => 'طلبات العروض والمناقصات',
+            'contracts' => 'العقود',
+            'matches' => 'المطابقة الثلاثية',
+            'reports' => 'تقارير المشتريات',
+        ] as $tab => $expected) {
+            $this->actingAs($user)
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $store->id,
+                    'tab' => $tab,
+                ]))
+                ->assertOk()
+                ->assertSee($expected);
+        }
+    }
+
     public function test_store_selector_rejects_cross_store_scope(): void
     {
         $this->enableProcurement();
@@ -127,12 +149,27 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             'admin.erp.procurement.requests.store',
             'admin.erp.procurement.requests.submit',
             'admin.erp.procurement.requests.decision',
+            'admin.erp.procurement.rfqs.store',
+            'admin.erp.procurement.rfqs.publish',
+            'admin.erp.procurement.rfqs.cancel',
+            'admin.erp.procurement.rfqs.award',
+            'admin.erp.procurement.rfqs.documents.download',
             'admin.erp.procurement.orders.create',
             'admin.erp.procurement.orders.issue',
+            'admin.erp.procurement.orders.contract',
+            'admin.erp.procurement.contracts.store',
+            'admin.erp.procurement.contracts.activate',
+            'admin.erp.procurement.contracts.terminate',
+            'admin.erp.procurement.contracts.documents.store',
+            'admin.erp.procurement.contracts.documents.download',
             'admin.erp.procurement.receipts.store',
             'admin.erp.procurement.receipts.post',
             'admin.erp.procurement.invoices.store',
             'admin.erp.procurement.invoices.handoff',
+            'admin.erp.procurement.matches.review',
+            'admin.erp.procurement.reports.export',
+            'supplier.rfq.show',
+            'supplier.rfq.submit',
             'admin.erp.procurement.returns.store',
             'admin.erp.procurement.returns.post',
         ] as $name) {
@@ -220,6 +257,8 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             'procurement.purchase_returns.manage',
             'procurement.purchase_returns.post',
             'procurement.supplier_statements.view',
+            'reports.view',
+            'reports.export',
         ];
     }
 }
