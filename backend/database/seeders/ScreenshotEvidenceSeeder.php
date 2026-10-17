@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
@@ -453,11 +454,9 @@ class ScreenshotEvidenceSeeder extends Seeder
 
         $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
-        app(ModuleEntitlementManager::class)->set(
-            'smart_ordering',
-            new EntitlementScope(EntitlementScope::STORE, $retailStoreId),
+        app(RestaurantSaasStoreFeatureService::class)->setEnabled(
+            $retailEvidenceStore,
             true,
-            null,
             $procurementActor,
         );
         $retailFinanceHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($retailStoreId);
