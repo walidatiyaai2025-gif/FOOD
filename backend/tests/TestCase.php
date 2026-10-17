@@ -39,6 +39,7 @@ abstract class TestCase extends BaseTestCase
             ],
         );
     }
+
     protected function grantPlatformErpAccess(User $user): User
     {
         $role = Role::query()->firstOrCreate(
@@ -55,5 +56,4 @@ abstract class TestCase extends BaseTestCase
 
         return $user;
     }
-
 }
