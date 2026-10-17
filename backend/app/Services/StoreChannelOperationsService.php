@@ -87,6 +87,7 @@ final class StoreChannelOperationsService
             return $stores;
         }
 
+        /** @var Collection<int, \stdClass> $plain */
         $plain = collect($stores->map(fn (Store $store): object => (object) [
             'id' => (int) $store->id,
             'name' => (string) $store->name,
@@ -380,12 +381,15 @@ final class StoreChannelOperationsService
     /** @return array<string,mixed> */
     private function snapshotForStore(Store $store): array
     {
+        /** @var \stdClass $row */
         $row = (object) [
             'id' => (int) $store->id, 'name' => (string) $store->name, 'code' => (string) $store->code,
             'is_active' => (bool) $store->is_active, 'created_at' => $store->created_at,
         ];
+        /** @var Collection<int, \stdClass> $rows */
+        $rows = collect([$row]);
 
-        return $this->snapshotMap(collect([$row]))[(int) $store->id] ?? [];
+        return $this->snapshotMap($rows)[(int) $store->id] ?? [];
     }
 
     /** @param list<int> $ids @return array<int,int> */
@@ -432,7 +436,7 @@ final class StoreChannelOperationsService
             ->pluck('total', 's.store_id')->map(fn ($v): int => (int) $v)->all();
     }
 
-    /** @param Collection<int,object> $stores @return list<array<string,mixed>> */
+    /** @param Collection<int, \stdClass> $stores @return list<array<string,mixed>> */
     private function storePerformance(Collection $stores, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $ids = $stores->pluck('id')->map(fn ($id): int => (int) $id)->all();
@@ -484,7 +488,7 @@ final class StoreChannelOperationsService
         return $groups->map(fn (Collection $rows, string $label): array => ['label' => $label, 'value' => $rows->count()])->values()->all();
     }
 
-    /** @param Collection<int,object> $stores @return list<array{label:string,value:int}> */
+    /** @param Collection<int, \stdClass> $stores @return list<array{label:string,value:int}> */
     private function storeGrowth(Collection $stores): array
     {
         return $stores->filter(fn (object $store): bool => $store->created_at !== null)
@@ -512,7 +516,7 @@ final class StoreChannelOperationsService
             ->values()->all();
     }
 
-    /** @param Collection<int,object> $stores @param list<int> $ids @return list<array<string,mixed>> */
+    /** @param Collection<int, \stdClass> $stores @param list<int> $ids @return list<array<string,mixed>> */
     private function channelState(Collection $stores, array $ids): array
     {
         $b2b = (Schema::hasTable('retail_wholesale_accounts') && Schema::hasTable('b2b_accounts'))
