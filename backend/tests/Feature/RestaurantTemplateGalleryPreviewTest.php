@@ -122,7 +122,7 @@ final class RestaurantTemplateGalleryPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('data-theme="premium-arabic-dining"', false)
             ->assertSee('aria-current="true"', false)
-            ->assertSee('تطبيق القالب على المسودة');
+            ->assertSee(__('smart_ordering.appearance.apply_to_draft'));
     }
 
     public function test_demo_preview_rejects_non_production_theme_ids(): void
