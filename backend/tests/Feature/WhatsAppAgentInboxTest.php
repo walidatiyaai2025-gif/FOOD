@@ -540,7 +540,6 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
-
     public function test_inbox_center_thread_composer_has_golden_structure_and_locale_parity(): void
     {
         $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
