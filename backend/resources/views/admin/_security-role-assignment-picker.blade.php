@@ -23,6 +23,10 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
         'built_in' => false,
     ];
 };
+$roleRiskPairs = (array) config('job_roles.risk_pairs', []);
+$roleRiskMessages = collect(array_keys($roleRiskPairs))
+    ->mapWithKeys(fn (string $key): array => [$key => __('job_roles.risk_warnings.'.$key)])
+    ->all();
 @endphp
 
 @if($assignmentLocked)
@@ -32,7 +36,9 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
       data-impact-added="{{ __('security_permissions.impact_added') }}"
       data-impact-removed="{{ __('security_permissions.impact_removed') }}"
       data-impact-none="{{ __('security_permissions.impact_none') }}"
-      data-impact-empty="{{ __('security_permissions.impact_empty') }}">
+      data-impact-empty="{{ __('security_permissions.impact_empty') }}"
+      data-role-risk-pairs="{{ e(json_encode($roleRiskPairs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}"
+      data-role-risk-messages="{{ e(json_encode($roleRiskMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
     @csrf
     @method('put')
 
@@ -64,7 +70,10 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
                                @checked($isChecked)
                                @disabled(!$isAvailable)
                                data-original-checked="{{ $isChecked ? '1' : '0' }}"
-                               data-impact-label="{{ __('security_permissions.global_scope') }} · {{ $meta['name'] }}">
+                               data-impact-label="{{ __('security_permissions.global_scope') }} · {{ $meta['name'] }}"
+                               data-role-code="{{ $role->code }}"
+                               data-role-name="{{ $meta['name'] }}"
+                               data-role-permission-summary="{{ e(json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
                         <span class="job-role-meta">
                             <strong>{{ $meta['name'] }}</strong>
                             <span class="job-role-tags">
@@ -115,7 +124,10 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
                                        @checked($isChecked)
                                        @disabled(!$isAvailable)
                                        data-original-checked="{{ $isChecked ? '1' : '0' }}"
-                                       data-impact-label="{{ __('security_permissions.store_scope') }} · {{ $store->name }} · {{ $meta['name'] }}">
+                                       data-impact-label="{{ __('security_permissions.store_scope') }} · {{ $store->name }} · {{ $meta['name'] }}"
+                                       data-role-code="{{ $role->code }}"
+                                       data-role-name="{{ $store->name }} · {{ $meta['name'] }}"
+                                       data-role-permission-summary="{{ e(json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
                                 <span class="job-role-meta">
                                     <strong>{{ $meta['name'] }}</strong>
                                     <span class="job-role-tags">
@@ -137,6 +149,17 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
     <div class="note permission-impact" data-impact-summary role="status" aria-live="polite">
         <strong>{{ __('security_permissions.impact_title') }}</strong>
         <span>{{ __('security_permissions.impact_none') }}</span>
+    </div>
+
+    <div class="note role-effective-preview" data-role-effective-preview role="status" aria-live="polite">
+        <strong>{{ __('job_roles.effective_access_title') }}</strong>
+        <div><span class="muted">{{ __('job_roles.effective_roles') }}:</span> <span data-role-effective-roles>{{ __('job_roles.effective_empty') }}</span></div>
+        <div><span class="muted">{{ __('job_roles.effective_permissions') }}:</span> <span data-role-effective-permissions></span></div>
+    </div>
+
+    <div class="note role-risk-warning" data-role-risk-warning role="alert" hidden>
+        <strong>{{ __('job_roles.risk_warning_title') }}</strong>
+        <span></span>
     </div>
 
     <button class="btn primary">{{ __('admin.security.save_assignments') }}</button>
