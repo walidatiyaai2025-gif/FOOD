@@ -46,7 +46,7 @@
 
             <div class="so-workforce-list">
                 @forelse($workforce['assignments'] as $assignment)
-                    <article class="so-workforce-item">
+                    <article class="so-workforce-item" data-workforce-user-id="{{ $assignment['user_id'] }}">
                         <div>
                             <strong>{{ $assignment['name'] }}</strong>
                             <div class="so-workforce-muted">{{ $assignment['email'] }}</div>
@@ -115,7 +115,7 @@
 
         <div class="so-workforce-list">
             @forelse($workforce['shifts'] as $shift)
-                <article class="so-workforce-item so-workforce-shift">
+                <article class="so-workforce-item so-workforce-shift" data-workforce-user-id="{{ $shift['user_id'] }}">
                     <div>
                         <strong>{{ $shift['user_name'] }}</strong>
                         <div>{{ $shift['starts_local'] }} → {{ $shift['ends_local'] }}</div>
@@ -158,7 +158,7 @@
         </div>
         <div class="so-workforce-list">
             @forelse($workforce['sessions'] as $session)
-                <article class="so-workforce-item so-workforce-session">
+                <article class="so-workforce-item so-workforce-session" data-workforce-user-id="{{ $session['user_id'] }}">
                     <div>
                         <strong>{{ $session['user_name'] }}</strong>
                         <div>{{ $session['clocked_in_local'] }} → {{ $session['clocked_out_local'] ?: __('smart_ordering.workforce.open_session') }}</div>
