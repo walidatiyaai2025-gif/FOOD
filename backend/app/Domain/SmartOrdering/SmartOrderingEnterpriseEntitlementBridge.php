@@ -39,7 +39,7 @@ final class SmartOrderingEnterpriseEntitlementBridge
     }
 
     /** @param list<int> $storeIds
-     *  @return list<int>
+     * @return list<int>
      */
     public function enabledStoreIds(array $storeIds): array
     {
