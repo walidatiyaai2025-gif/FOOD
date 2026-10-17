@@ -13,6 +13,7 @@ use App\Domain\WhatsApp\MetaTemplateService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Http\JsonResponse;
@@ -427,6 +428,7 @@ final class WhatsAppCampaignController extends Controller
         CampaignService $campaigns,
         CampaignAudienceService $audience,
         CampaignReportService $reports,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
@@ -478,6 +480,14 @@ final class WhatsAppCampaignController extends Controller
         }
 
         $reports->assertVisible($actor, $id);
+        $audit->record(
+            'whatsapp.campaign.created',
+            $actor,
+            null,
+            null,
+            $this->campaignAuditSnapshot($id),
+            $request,
+        );
 
         return $this->mutationResponse(
             $request,
@@ -491,11 +501,21 @@ final class WhatsAppCampaignController extends Controller
         int $campaign,
         CampaignService $campaigns,
         CampaignReportService $reports,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.manage');
         $reports->assertVisible($actor, $campaign, 'whatsapp.campaigns.manage');
+        $before = $this->campaignAuditSnapshot($campaign);
         $result = $campaigns->snapshot($campaign);
+        $audit->record(
+            'whatsapp.campaign.snapshot_rebuilt',
+            $actor,
+            null,
+            $before,
+            $this->campaignAuditSnapshot($campaign) + ['snapshot_result' => $result],
+            $request,
+        );
 
         return $this->mutationResponse($request, $result, 'Recipient snapshot rebuilt.');
     }
@@ -505,12 +525,22 @@ final class WhatsAppCampaignController extends Controller
         int $campaign,
         CampaignService $campaigns,
         CampaignReportService $reports,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.send');
         $reports->assertVisible($actor, $campaign, 'whatsapp.campaigns.send');
         $data = $request->validate(['scheduled_at' => ['nullable', 'date']]);
+        $before = $this->campaignAuditSnapshot($campaign);
         $campaigns->schedule($campaign, $data['scheduled_at'] ?? null);
+        $audit->record(
+            'whatsapp.campaign.scheduled',
+            $actor,
+            null,
+            $before,
+            $this->campaignAuditSnapshot($campaign),
+            $request,
+        );
 
         return $this->mutationResponse($request, ['campaign_id' => $campaign], 'Campaign scheduled.');
     }
@@ -520,11 +550,21 @@ final class WhatsAppCampaignController extends Controller
         int $campaign,
         CampaignService $campaigns,
         CampaignReportService $reports,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.send');
         $reports->assertVisible($actor, $campaign, 'whatsapp.campaigns.send');
+        $before = $this->campaignAuditSnapshot($campaign);
         $campaigns->pause($campaign);
+        $audit->record(
+            'whatsapp.campaign.paused',
+            $actor,
+            null,
+            $before,
+            $this->campaignAuditSnapshot($campaign),
+            $request,
+        );
 
         return $this->mutationResponse($request, ['campaign_id' => $campaign], 'Campaign paused.');
     }
@@ -534,11 +574,21 @@ final class WhatsAppCampaignController extends Controller
         int $campaign,
         CampaignService $campaigns,
         CampaignReportService $reports,
+        AuditLogger $audit,
     ): JsonResponse|RedirectResponse {
         $actor = $this->actor($request);
         $this->authorizePermission($request, 'whatsapp.campaigns.send');
         $reports->assertVisible($actor, $campaign, 'whatsapp.campaigns.send');
+        $before = $this->campaignAuditSnapshot($campaign);
         $campaigns->cancel($campaign);
+        $audit->record(
+            'whatsapp.campaign.cancelled',
+            $actor,
+            null,
+            $before,
+            $this->campaignAuditSnapshot($campaign),
+            $request,
+        );
 
         return $this->mutationResponse($request, ['campaign_id' => $campaign], 'Campaign cancelled.');
     }
@@ -665,6 +715,44 @@ final class WhatsAppCampaignController extends Controller
                 ],
             )
             ->deleteFileAfterSend(true);
+    }
+
+    /** @return array<string,mixed> */
+    private function campaignAuditSnapshot(int $campaignId): array
+    {
+        $row = DB::table('whats_app_campaigns')
+            ->where('id', $campaignId)
+            ->first([
+                'id',
+                'name',
+                'template_id',
+                'status',
+                'audience_source',
+                'test_mode',
+                'scheduled_at',
+                'started_at',
+                'completed_at',
+                'paused_at',
+                'cancelled_at',
+            ]);
+
+        if ($row === null) {
+            return ['campaign_id' => $campaignId, 'missing' => true];
+        }
+
+        return (array) $row + [
+            'recipient_total' => DB::table('whats_app_campaign_recipients')
+                ->where('campaign_id', $campaignId)
+                ->count(),
+            'recipient_eligible' => DB::table('whats_app_campaign_recipients')
+                ->where('campaign_id', $campaignId)
+                ->where('eligibility_status', 'eligible')
+                ->count(),
+            'recipient_suppressed' => DB::table('whats_app_campaign_recipients')
+                ->where('campaign_id', $campaignId)
+                ->where('eligibility_status', 'suppressed')
+                ->count(),
+        ];
     }
 
     private function authorizePermission(Request $request, string $permission): void
