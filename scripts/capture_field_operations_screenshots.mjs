@@ -106,6 +106,7 @@ async function captureCase(page, locale, entry, state, width, height) {
   for (const selector of entry.required) {
     const locator = page.locator(selector);
     if ((await locator.count()) < 1) {
+      const rawBody = await response.text().catch(() => '');
       const diagnostic = await page.evaluate(() => ({
         path: window.location.pathname,
         section: document.querySelector('[data-field-operations-page]')?.getAttribute('data-field-operations-page') ?? null,
@@ -120,6 +121,9 @@ async function captureCase(page, locale, entry, state, width, height) {
         shellIsVans: document.querySelector('.foodex-ops-shell')?.getAttribute('data-fieldops-is-vans') ?? null,
         shellHtml: (document.querySelector('.foodex-ops-shell')?.innerHTML ?? '').replace(/\\s+/g, ' ').slice(0, 1800),
       }));
+      diagnostic.rawHasTransferSelector = rawBody.includes('data-van-transfer-lookup');
+      diagnostic.rawHasRegisterVan = rawBody.includes('register_van');
+      diagnostic.rawLength = rawBody.length;
       throw new Error(
         `Missing FieldOps runtime selector ${selector} on ${entry.route} (${locale}/${state}) · ${JSON.stringify(diagnostic)}`,
       );
