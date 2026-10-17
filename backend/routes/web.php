@@ -804,6 +804,13 @@ Route::prefix('admin')
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
+        Route::post('/settings/system-update/backups', [SystemUpdateController::class, 'backup'])
+            ->middleware('throttle:3,1')
+            ->name('system-update.backups.store');
+        Route::post('/settings/system-update/backups/{backupReference}/restore', [SystemUpdateController::class, 'restore'])
+            ->where('backupReference', '\\d{8}-\\d{6}-database-[a-f0-9]{10}')
+            ->middleware('throttle:1,1')
+            ->name('system-update.backups.restore');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
