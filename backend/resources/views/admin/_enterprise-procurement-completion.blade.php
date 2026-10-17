@@ -25,7 +25,7 @@ $exceptionLabels=[
     'match_variance'=>__('enterprise_procurement.match_variance'),
     'blocked_suppliers'=>__('enterprise_procurement.blocked_suppliers'),
     'expiring_contracts'=>__('enterprise_procurement.expiring_contracts'),
-    'finance_handoff_pending'=>__('enterprise_procurement.finance_handoff_pending'),
+    'finance_handoff_failed'=>__('enterprise_procurement.finance_handoff_failed'),
 ];
 @endphp
 
@@ -172,9 +172,9 @@ $exceptionLabels=[
 @if($activeTab==='rfqs')
 @if($can['request_manage'] && $rfqRequestOptions!==[])
 <details class="foodex-card erp-create"><summary>+ {{ __('enterprise_procurement.new_rfq') }}</summary>
-<form method="post" class="erp-form" data-rfq-create>
+<form method="post" action="{{ route('admin.erp.procurement.rfqs.store') }}" class="erp-form">
 @csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
-<label>{{ __('enterprise_procurement.reference') }}<select name="_request" data-rfq-request required>
+<label>{{ __('enterprise_procurement.reference') }}<select name="purchase_request_id" required>
 <option value="">—</option>
 @foreach($rfqRequestOptions as $requestOption)<option value="{{ $requestOption->id }}">{{ $requestOption->request_number }} · {{ __('enterprise_procurement.statuses.'.$requestOption->status) }}</option>@endforeach
 </select></label>
@@ -182,15 +182,6 @@ $exceptionLabels=[
 <label>{{ __('enterprise_procurement.response_due') }}<input type="datetime-local" name="response_due_at"></label>
 <button class="foodex-primary" type="submit">{{ __('enterprise_procurement.create') }}</button>
 </form>
-<script>
-document.querySelectorAll('[data-rfq-create]').forEach((form)=>{
- const select=form.querySelector('[data-rfq-request]');
- form.addEventListener('submit',(event)=>{
-   if(!select?.value){event.preventDefault();return;}
-   form.action=@json(route('admin.erp.procurement.index')).replace(/\/$/,'')+'/requests/'+select.value+'/rfq';
- });
-});
-</script>
 </details>
 @endif
 
@@ -204,7 +195,7 @@ document.querySelectorAll('[data-rfq-create]').forEach((form)=>{
 
 @if(session('procurement_portal_links'))
 <section class="foodex-card erp-detail"><h2>{{ __('enterprise_procurement.portal_links') }}</h2><p>{{ __('enterprise_procurement.copy_securely') }}</p>
-<div class="erp-lines">@foreach(session('procurement_portal_links') as $link)<div class="erp-line"><strong>#{{ $link['supplier_id'] }}</strong><input readonly value="{{ $link['url'] }}" aria-label="{{ __('enterprise_procurement.portal_links') }}"><span></span><span></span></div>@endforeach</div>
+<div class="erp-lines">@foreach(session('procurement_portal_links') as $link)<div class="erp-line"><strong>{{ $link['supplier_code'] }}</strong><span>{{ app()->getLocale()==='ar' && $link['supplier_name_ar'] ? $link['supplier_name_ar'] : $link['supplier_name_en'] }}</span><input readonly value="{{ $link['url'] }}" aria-label="{{ __('enterprise_procurement.portal_links') }}"><span></span></div>@endforeach</div>
 </section>
 @endif
 
@@ -267,7 +258,7 @@ document.querySelectorAll('[data-rfq-create]').forEach((form)=>{
 </form></details>
 @endif
 <section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.ends_on') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$row->status) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
+@forelse($rows as $row)@php($contractStatus=$row->status==='active' && (string)$row->ends_on < now()->toDateString() ? 'expired' : $row->status)<tr><td class="erp-ref">{{ $row->contract_number }}</td><td>{{ $row->supplier_code }}</td><td>{{ __('enterprise_procurement.statuses.'.$contractStatus) }}</td><td>{{ $row->ends_on }}</td><td><a class="erp-link" href="{{ route('admin.erp.procurement.index',['tab'=>'contracts','store_id'=>$selectedStoreId,'contract'=>$row->id]) }}">{{ __('enterprise_procurement.view') }}</a></td></tr>
 @empty<tr><td colspan="5">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table></section>
 @if($contractDetail)
@@ -275,7 +266,8 @@ document.querySelectorAll('[data-rfq-create]').forEach((form)=>{
 <section class="foodex-card erp-detail">
 <h2>{{ $contract->contract_number }} · {{ $contract->title }}</h2>
 <div class="erp-detail-grid">
-<div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ __('enterprise_procurement.statuses.'.$contract->status) }}</strong></div>
+@php($contractEffectiveStatus=$contract->status==='active' && (string)$contract->ends_on < now()->toDateString() ? 'expired' : $contract->status)
+<div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ __('enterprise_procurement.statuses.'.$contractEffectiveStatus) }}</strong></div>
 <div><small>{{ __('enterprise_procurement.starts_on') }}</small><strong>{{ $contract->starts_on }}</strong></div>
 <div><small>{{ __('enterprise_procurement.ends_on') }}</small><strong>{{ $contract->ends_on }}</strong></div>
 <div><small>{{ __('enterprise_procurement.value_ceiling') }}</small><strong>{{ $contract->value_ceiling ?? '—' }}</strong></div>
@@ -328,8 +320,8 @@ document.querySelectorAll('[data-rfq-create]').forEach((form)=>{
 @if($can['report_export'])<a class="erp-link foodex-module-export" href="{{ route('admin.erp.procurement.reports.export',['store_id'=>$selectedStoreId,'report'=>$reportName,'from'=>request('from'),'to'=>request('to')]) }}">{{ __('enterprise_procurement.export_csv') }}</a>@endif
 <a class="erp-link" href="{{ route('admin.erp.bi') }}">{{ __('enterprise_procurement.scheduled_reporting') }}</a>
 </div>
-<table class="foodex-table erp-table"><thead><tr>@foreach($reportData['columns'] as $column)<th>{{ str_replace('_',' ',$column) }}</th>@endforeach</tr></thead><tbody>
-@forelse($reportData['rows'] as $reportRow)<tr>@foreach($reportData['columns'] as $column)<td>{{ $reportRow[$column] ?? '—' }}</td>@endforeach</tr>@empty<tr><td colspan="{{ max(1,count($reportData['columns'])) }}">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
+<table class="foodex-table erp-table"><thead><tr>@foreach($reportData['columns'] as $column)<th>{{ __('enterprise_procurement.report_columns.'.$column) }}</th>@endforeach</tr></thead><tbody>
+@forelse($reportData['rows'] as $reportRow)<tr>@foreach($reportData['columns'] as $column)@php($reportValue=$reportRow[$column] ?? null)<td>{{ $column==='status' && $reportValue ? __('enterprise_procurement.statuses.'.$reportValue) : ($reportValue ?? '—') }}</td>@endforeach</tr>@empty<tr><td colspan="{{ max(1,count($reportData['columns'])) }}">{{ __('enterprise_procurement.empty') }}</td></tr>@endforelse
 </tbody></table>
 </section>
 @endif
