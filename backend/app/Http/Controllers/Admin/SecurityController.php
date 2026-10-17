@@ -238,7 +238,7 @@ final class SecurityController extends Controller
             'ssoByUser' => $ssoByUser,
             'effectivePermissionsByUser' => $effectivePermissionsByUser,
             'securitySessions' => $securitySessions,
-            'currentSecuritySessionHash' => hash('sha256', $request->session()->getId()),
+            'currentSecuritySessionHash' => hash('sha256', $request->session()->getId().'|'.$actor->id),
             'auditRows' => $audit['rows'],
             'auditFilters' => $audit['filters'],
         ]);
