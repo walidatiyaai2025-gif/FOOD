@@ -30,7 +30,7 @@ $roleLabel = static function ($role): string {
 <main class="foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
-<div class="foodex-page-toolbar"><div><span class="foodex-subtitle">FOODEX Account</span><h1>{{ $ar?'الملف الشخصي والصلاحيات':'Profile & Permissions' }}</h1><p>{{ $ar?'راجع حسابك والأدوار والصلاحيات الفعلية وغير كلمة المرور أو لغة لوحة الإدارة.':'Review your account, effective roles and permissions, and manage password or administration language.' }}</p></div></div>
+<div class="foodex-page-toolbar"><div><span class="foodex-subtitle">{{ __('admin.profile_surface.eyebrow') }}</span><h1>{{ __('admin.profile_surface.title') }}</h1><p>{{ __('admin.profile_surface.description') }}</p></div></div>
 <div class="profile-grid">
 <section class="foodex-card profile-card">
     <div class="profile-identity"><div class="profile-avatar">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</div><div><h2>{{ $user->name }}</h2><p>{{ $user->email }}</p><span class="badge active">{{ $user->is_active?($ar?'حساب نشط':'Active account'):($ar?'غير نشط':'Inactive') }}</span></div></div>
