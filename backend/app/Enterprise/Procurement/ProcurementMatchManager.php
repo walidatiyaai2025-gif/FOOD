@@ -229,8 +229,8 @@ final class ProcurementMatchManager
             $priceTolerance = max(0.001, abs($poPrice) * ($tolerancePercent / 100));
             $lineExceptions = [];
 
-            if (abs($quantityDelta) > $quantityTolerance) {
-                $lineExceptions[] = 'invoice_vs_receipt_quantity';
+            if ($quantityDelta > $quantityTolerance) {
+                $lineExceptions[] = 'invoice_exceeds_receipt_quantity';
             }
             if ($receiptDelta > $quantityTolerance) {
                 $lineExceptions[] = 'receipt_vs_order_quantity';
