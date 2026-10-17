@@ -28,6 +28,9 @@ class ModuleDashboardContractTest extends TestCase
             $this->assertStringContainsString($primitive, $css);
         }
 
+        $this->assertStringContainsString('.foodex-module-date-range{grid-template-columns:minmax(0,1fr);width:100%;max-width:100%}', $css);
+        $this->assertStringContainsString('.foodex-module-date-range .foodex-filter-action{width:100%}', $css);
+
         $this->assertStringContainsString('data-foodex-module-kpi', $kpi);
         $this->assertStringContainsString("['up', 'down', 'neutral']", $kpi);
         $this->assertStringContainsString('drilldown_url', $kpi);
