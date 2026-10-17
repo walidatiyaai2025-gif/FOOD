@@ -4,6 +4,7 @@ namespace App\Enterprise\Reporting;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Reporting\ReadModels\CommercialProfitabilityReadModel;
+use App\Enterprise\Reporting\ReadModels\CustomerServiceOperationsReadModel;
 use App\Enterprise\Reporting\ReadModels\FinanceExposureReadModel;
 use App\Enterprise\Reporting\ReadModels\OrdersSummaryReadModel;
 use App\Enterprise\Reporting\ReadModels\ProcurementOperationsReadModel;
@@ -19,6 +20,7 @@ final class ReportBuilderExecutor
         private readonly ReportAccessResolver $access,
         private readonly OrdersSummaryReadModel $ordersSummary,
         private readonly CommercialProfitabilityReadModel $commercialProfitability,
+        private readonly CustomerServiceOperationsReadModel $customerServiceOperations,
         private readonly FinanceExposureReadModel $financeExposure,
         private readonly StockExposureReadModel $stockExposure,
         private readonly ProcurementOperationsReadModel $procurementOperations,
@@ -112,6 +114,7 @@ final class ReportBuilderExecutor
         return match ($query->report->readModel) {
             'orders_summary_daily' => $this->ordersSummary->read($query, $scope),
             'commercial_profitability' => $this->commercialProfitability->read($query, $scope),
+            'customer_service_operations' => $this->customerServiceOperations->read($query, $scope),
             'finance_ar_exposure', 'finance_ap_exposure' => $this->financeExposure->read($query, $scope),
             'wms_stock_exposure' => $this->stockExposure->read($query, $scope),
             'procurement_operations' => $this->procurementOperations->read($query, $scope),
