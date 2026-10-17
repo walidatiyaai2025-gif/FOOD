@@ -250,11 +250,34 @@ final class EnterpriseOpeningBalanceFoundationTest extends TestCase
             $this->payload($fixture, 'close-after-draft'),
         );
 
-        app(FinanceFoundationService::class)->closeFiscalPeriod(
-            $fixture['maker'],
-            $fixture['maker_context'],
-            $fixture['period_id'],
+        try {
+            app(FinanceFoundationService::class)->closeFiscalPeriod(
+                $fixture['maker'],
+                $fixture['maker_context'],
+                $fixture['period_id'],
+            );
+            $this->fail('Period close must be blocked while an opening-balance draft is unposted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('fiscal_period', $exception->errors());
+            $this->assertStringContainsString(
+                'draft_opening_balances',
+                implode(' ', $exception->errors()['fiscal_period']),
+            );
+        }
+
+        $this->assertSame(
+            'open',
+            DB::table('enterprise_fiscal_periods')->where('id', $fixture['period_id'])->value('status'),
         );
+
+        // Simulate an external/concurrent period-state change to prove posting still revalidates
+        // the authoritative fiscal period rather than trusting the state captured at draft time.
+        DB::table('enterprise_fiscal_periods')->where('id', $fixture['period_id'])->update([
+            'status' => 'closed',
+            'closed_at' => now(),
+            'closed_by' => $fixture['maker']->id,
+            'updated_at' => now(),
+        ]);
 
         try {
             $service->post(
