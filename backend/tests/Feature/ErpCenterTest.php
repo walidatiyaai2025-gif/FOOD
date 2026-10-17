@@ -152,11 +152,36 @@ final class ErpCenterTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('data-erp-key="procurement" data-erp-status="available"', false)
-            ->assertSee(route('admin.action-center.index', ['module' => 'procurement']), false);
+            ->assertSee(route('admin.erp.procurement.index'), false);
 
         $erpGroup = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'erp');
         $this->assertNotNull($erpGroup);
-        $this->assertContains('erp_procurement', array_column($erpGroup['children'], 'key'));
+
+        $procurement = collect($erpGroup['children'])->firstWhere('key', 'erp_procurement');
+        $this->assertNotNull($procurement);
+        $this->assertSame('admin.erp.procurement.index', $procurement['route']);
+        $this->assertSame([], $procurement['params']);
+    }
+
+    public function test_erp_navigation_source_uses_canonical_workbench_routes(): void
+    {
+        $navigation = file_get_contents(app_path('Support/AdminNavigation.php'));
+        $center = file_get_contents(app_path('Http/Controllers/Admin/ErpCenterController.php'));
+
+        $this->assertIsString($navigation);
+        $this->assertIsString($center);
+
+        foreach ([
+            'admin.erp.procurement.index',
+            'admin.erp.wms.index',
+            'admin.erp.finance.index',
+            'admin.erp.treasury.index',
+            'admin.erp.customer-service',
+            'admin.erp.bi',
+        ] as $route) {
+            $this->assertStringContainsString("'".$route."'", $navigation);
+            $this->assertStringContainsString("'".$route."'", $center);
+        }
     }
 
     public function test_finance_actor_does_not_receive_procurement_or_wms_actions(): void
