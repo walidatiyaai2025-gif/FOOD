@@ -158,6 +158,7 @@ final class ProcurementCompletionManager
             ],
             'exceptions' => $this->exceptions(
                 $storeId,
+                $scope->companyId,
                 $canOrders,
                 $canInvoices,
                 $canSuppliers,
@@ -1297,7 +1298,7 @@ final class ProcurementCompletionManager
     }
 
     /** @return list<array<string,mixed>> */
-    private function exceptions(int $storeId, bool $canOrders, bool $canInvoices, bool $canSuppliers): array
+    private function exceptions(int $storeId, int $companyId, bool $canOrders, bool $canInvoices, bool $canSuppliers): array
     {
         $exceptions = [];
 
@@ -1337,22 +1338,14 @@ final class ProcurementCompletionManager
         }
 
         if ($canSuppliers) {
-            $scopeIds = DB::table('enterprise_companies as companies')
-                ->join('enterprise_business_units as units', 'units.company_id', '=', 'companies.id')
-                ->join('enterprise_business_unit_stores as unit_stores', 'unit_stores.business_unit_id', '=', 'units.id')
-                ->where('unit_stores.store_id', $storeId)
-                ->select('companies.id')
-                ->limit(1)
-                ->value('companies.id');
             $blocked = DB::table('enterprise_suppliers')
+                ->where('company_id', $companyId)
                 ->where('status', 'on_hold')
-                ->where(function ($query) use ($storeId, $scopeIds): void {
-                    $query->where('store_id', $storeId);
-                    if ($scopeIds !== null) {
-                        $query->orWhere(function ($company) use ($scopeIds): void {
-                            $company->where('scope_type', 'company')->where('company_id', $scopeIds);
+                ->where(function ($query) use ($storeId): void {
+                    $query->where('scope_type', 'company')
+                        ->orWhere(function ($store) use ($storeId): void {
+                            $store->where('scope_type', 'store')->where('store_id', $storeId);
                         });
-                    }
                 })
                 ->count();
             $exceptions[] = ['key' => 'blocked_suppliers', 'count' => $blocked, 'tab' => 'suppliers'];
