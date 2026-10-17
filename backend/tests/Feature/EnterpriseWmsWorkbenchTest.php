@@ -256,17 +256,6 @@ final class EnterpriseWmsWorkbenchTest extends TestCase
             'role_id' => $role->id,
         ]);
 
-        $platformRole = Role::query()->firstOrCreate(
-            ['code' => 'ERP_PLATFORM_TEST'],
-            [
-                'name' => 'ERP Platform Test',
-                'scope' => 'global',
-                'is_system' => false,
-                'is_active' => true,
-            ],
-        );
-        $user->roles()->syncWithoutDetaching([$platformRole->id]);
-
         return $user;
     }
 }

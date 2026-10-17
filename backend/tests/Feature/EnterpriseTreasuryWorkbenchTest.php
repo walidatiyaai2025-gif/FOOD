@@ -326,17 +326,6 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $platformRole = Role::query()->firstOrCreate(
-            ['code' => 'ERP_PLATFORM_TEST'],
-            [
-                'name' => 'ERP Platform Test',
-                'scope' => 'global',
-                'is_system' => false,
-                'is_active' => true,
-            ],
-        );
-        $user->roles()->syncWithoutDetaching([$platformRole->id]);
-
         return [$user, $store];
     }
 
