@@ -1864,7 +1864,17 @@ class SmartOrderingCoreTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'TEST_RESTAURANT_STAFF'],
+            [
+                'name' => 'Test Restaurant Staff',
+                'scope' => 'store',
+                'is_system' => false,
+                'is_active' => true,
+            ],
+        );
+        $ordersView = (int) DB::table('permissions')->where('code', 'orders.view')->value('id');
+        $role->permissions()->syncWithoutDetaching([$ordersView]);
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $storeId,
