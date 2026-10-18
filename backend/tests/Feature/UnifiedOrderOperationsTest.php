@@ -122,8 +122,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $response->assertOk()
             ->assertViewHas('selectedChannel', 'b2c')
             ->assertViewHas('selectedStoreId', $selectedStore)
-            ->assertSee('data-order-header-controls', false)
-            ->assertSee('data-order-header-filter', false)
+            ->assertSee('data-order-grid-filter-controls', false)
+            ->assertSee('data-order-grid-filter', false)
             ->assertDontSee('data-order-workspace-context', false)
             ->assertSee('name="channel" value="b2c"', false)
             ->assertSee('<option value="'.$selectedStore.'" selected>', false)
@@ -261,8 +261,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("'action_required' => ['nullable', 'boolean']", $controller);
         $this->assertStringContainsString('usesCustomerServiceDashboardProfile($actor)', $controller);
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
-        $this->assertStringContainsString("'actionRequiredCount' => $actionRequiredCount", $controller);
-        $this->assertStringContainsString("'selectedActionRequired' => $selectedActionRequired", $controller);
+        $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
+        $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
 
         $headerFilter = file_get_contents(resource_path('views/admin/_order-operations-header-filters.blade.php'));
         $this->assertIsString($headerFilter);
