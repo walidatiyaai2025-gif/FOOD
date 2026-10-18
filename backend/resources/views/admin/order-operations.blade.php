@@ -53,7 +53,15 @@ $businessLabel = static function ($value): string {
 
 @include('admin._order-new-wizard')
 
-<?php if ($dashboardVisible): ?>
+<?php
+$dashboardKpis = $dashboardKpis ?? [];
+$dashboardBaseQuery = $dashboardBaseQuery ?? [];
+$dashboardMoney = $dashboardMoney ?? static fn ($value): string => '—';
+$dailyMax = isset($dailyMax) ? max(1, (int) $dailyMax) : 1;
+$statusMax = isset($statusMax) ? max(1, (int) $statusMax) : 1;
+$dashboardVisible = (bool) ($dashboardVisible ?? false);
+?>
+<?php if ($dashboardVisible && is_array($dashboard ?? null)): ?>
 <section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-label="{{ __('order_operations.dashboard.title') }}">
     <div class="order-kpi-card" data-order-kpi-card aria-label="{{ __('order_operations.dashboard.title') }}">
         @foreach($dashboardKpis as $metric)
