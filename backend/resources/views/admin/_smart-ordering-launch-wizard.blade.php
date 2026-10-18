@@ -78,6 +78,7 @@
             <div class="rl-stat"><small>{{ $launchIsAr ? 'العملة' : 'Currency' }}</small><strong>{{ $checkoutCurrency }}</strong></div>
         </div>
 
+        @php($quickMenuReturnTo = 'menu_setup')
         @include('admin._smart-ordering-quick-menu-wizard')
 
         <div class="rl-menu-list">
@@ -232,6 +233,7 @@
     <section class="rl-panel" data-launch-step="review">
         <div class="rl-panel-title"><div><h2>{{ $launchIsAr?'4. مراجعة كل شيء قبل النشر':'4. Review before publishing' }}</h2><p>{{ $launchIsAr?'راجع الجاهزية والواجهة الفعلية قبل الخطوة الأخيرة.':'Review readiness and the real storefront before the final step.' }}</p></div></div>
 
+        @php($quickMenuReturnTo = 'menu_setup')
         @include('admin._smart-ordering-quick-menu-wizard')
 
         <details class="rl-form-card" open>
