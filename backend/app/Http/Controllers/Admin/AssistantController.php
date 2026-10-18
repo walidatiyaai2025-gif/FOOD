@@ -14,6 +14,7 @@ use App\Domain\Assistant\Security\AiPrincipalContextResolver;
 use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AssistantObservability;
 use App\Services\AssistantRuntimeSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -43,6 +44,7 @@ final class AssistantController extends Controller
         private readonly AssistantPageContext $pageContext,
         private readonly AiPrincipalContextResolver $principalContext,
         private readonly AssistantRuntimeSettings $runtimeSettings,
+        private readonly AssistantObservability $observability,
     ) {}
 
     public function bootstrap(Request $request): JsonResponse
@@ -141,6 +143,18 @@ final class AssistantController extends Controller
         );
         $context = $this->pageContext->resolve($user, (array) ($data['context'] ?? []));
         $correlationId = (string) Str::uuid();
+        $turnStartedAt = hrtime(true);
+        $traceStoreId = $this->positiveInt(
+            $context['store_id']
+                ?? data_get($context, 'authorized_entities.store_id'),
+        );
+
+        $this->observability->record($correlationId, 'turn.started', [
+            'actor_user_id' => $user->getKey(),
+            'store_id' => $traceStoreId,
+            'phase' => 'turn',
+            'outcome' => 'started',
+        ]);
 
         try {
             $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
@@ -212,16 +226,56 @@ final class AssistantController extends Controller
                     'conversation' => $this->conversationPayload($locked->fresh()),
                     'assistant_message' => $this->messagePayload($assistantMessage),
                     'suggested_prompts' => $suggested,
+                    '_trace_outcome' => $agentResult->status,
                 ];
             });
+
+            $this->observability->record($correlationId, 'turn.completed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $principal->activeStoreId ?? $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => (string) ($payload['_trace_outcome'] ?? 'COMPLETE'),
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+            unset($payload['_trace_outcome']);
         } catch (HttpExceptionInterface|ValidationException $exception) {
+            $status = $exception instanceof HttpExceptionInterface
+                ? 'HTTP_'.$exception->getStatusCode()
+                : 'VALIDATION_FAILED';
+
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => $status,
+                'status_code' => $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 422,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+
             throw $exception;
         } catch (InvalidArgumentException $exception) {
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => 'REQUEST_INVALID',
+                'status_code' => 422,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+
             return response()->json(['error' => [
                 'code' => 'ASSISTANT_REQUEST_INVALID',
                 'message' => $locale === 'ar' ? 'تعذر تنفيذ هذا الطلب بالمدخلات الحالية.' : 'This request cannot be completed with the current inputs.',
             ]], 422);
         } catch (Throwable $exception) {
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => 'UNAVAILABLE',
+                'status_code' => 503,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
             report($exception);
 
             return response()->json(['error' => [
