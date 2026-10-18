@@ -135,6 +135,24 @@ class AssistantSecurityBoundaryTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'assistant.sellout.consent.revoked']);
     }
 
+    public function test_only_retail_consent_authority_can_grant_sellout_sharing(): void
+    {
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+        $retailStore = $this->store('b2c', 'AI-SEC-R-PERM');
+        $this->linkRetailWholesaleAccount($retailStore);
+
+        $operator = $this->storeUser($retailStore, 'RETAIL_OPERATIONS');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        app(RetailerSellOutAccessPolicy::class)->grant(
+            $operator,
+            $retailStore,
+            $wholesaleStore,
+            RetailerSellOutAccessPolicy::BASIS_OPT_IN,
+        );
+    }
+
     public function test_cross_retailer_aggregation_requires_consent_for_every_retailer(): void
     {
         $wholesaleStore = app(WholesalePrincipal::class)->storeId();
