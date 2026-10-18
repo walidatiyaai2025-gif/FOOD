@@ -195,7 +195,7 @@ $moduleDashboardFilters=[
 <div class="system-admin-table-wrap"><table class="system-admin-table" data-pagination-required>
 <thead><tr><th>{{ __('system_admin.labels.type') }}</th><th>{{ __('system_admin.labels.scope') }}</th><th>{{ __('system_admin.labels.created_at') }}</th><th>{{ __('system_admin.labels.size') }}</th><th>{{ __('system_admin.labels.hash') }}</th><th>{{ __('system_admin.labels.status') }}</th><th>{{ __('system_admin.labels.retention') }}</th><th>{{ __('system_admin.labels.reason') }}</th><th>{{ __('system_admin.labels.origin') }}</th><th></th></tr></thead>
 <tbody>@foreach($backupRows as $row)<tr>
-<td>{{ $row['type'] }}</td><td>{{ $row['scope'] }}</td><td dir="ltr">{{ $row['created_at']??'—' }}</td><td>{{ $row['size'] }}</td><td><code>{{ $row['reference'] }}</code></td><td>{{ $row['status'] }}</td><td>{{ $row['retention'] }}</td><td><code>{{ $row['reason'] }}</code></td><td>{{ $row['origin'] }}</td>
+<td>{{ $row['type'] }}</td><td>{{ $row['scope'] }}</td><td dir="ltr">{{ $row['created_at']??'—' }}</td><td>{{ $row['size'] }}</td><td><code>{{ $row['reference'] }}</code></td><td>{{ $row['status'] }}</td><td>{{ $row['retention'] }}</td><td><code>{{ $row['reason'] }}</code></td><td>{{ $row['origin'] }}</td> {{-- localization-gate: allow — backup type/status/scope/retention labels are localized server-side in EnterpriseSystemHealthController. --}}
 <td><a class="foodex-action-secondary" href="{{ $row['url'] }}">{{ __('system_admin.actions.update') }}</a></td>
 </tr>@endforeach</tbody></table></div>
 @endif
