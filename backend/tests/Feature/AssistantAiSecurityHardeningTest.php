@@ -153,15 +153,19 @@ class AssistantAiSecurityHardeningTest extends TestCase
         $guardrails = app(AssistantAiSecurityGuardrails::class);
 
         $small = $guardrails->sanitizeToolResult(
-            new AssistantToolResult(data: [
-                'benchmark' => 10,
-                '_privacy' => [
-                    'cohort_size' => 4,
-                    'cohort_key' => 'retailers-kuwait',
-                    'metric_key' => 'revenue',
-                    'member_ids' => [1, 2, 3, 4],
+            new AssistantToolResult(
+                data: [
+                    'benchmark' => 10,
+                    '_privacy' => [
+                        'cohort_size' => 4,
+                        'cohort_key' => 'retailers-kuwait',
+                        'metric_key' => 'revenue',
+                        'member_ids' => [1, 2, 3, 4],
+                    ],
                 ],
-            ]),
+                cards: [['title' => 'Leaky benchmark', 'value' => 10]],
+                references: [['label' => 'Leaky cohort detail']],
+            ),
             $actor,
             'retailers.benchmark',
             'security-cohort-small',
@@ -169,6 +173,9 @@ class AssistantAiSecurityHardeningTest extends TestCase
 
         $this->assertFalse($small->data['answerable']);
         $this->assertSame('COHORT_TOO_SMALL', $small->data['reason']);
+        $this->assertSame([], $small->cards);
+        $this->assertSame([], $small->actions);
+        $this->assertSame([], $small->references);
 
         $first = $guardrails->sanitizeToolResult(
             new AssistantToolResult(data: [
