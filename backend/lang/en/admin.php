@@ -248,7 +248,7 @@ return [
             'sms' => 'SMS settings',
             'sms_description' => 'Provider connection, sender identity, tests and delivery history.',
             'assistant' => 'Assistant settings',
-            'assistant_description' => 'Assistant availability and related runtime policy.',
+            'assistant_description' => 'Assistant availability, AI API URL, model, encrypted key and connection test.',
             'translations' => 'Translations & languages',
             'translations_description' => 'Arabic and English copy for the dashboard and applications.',
             'lookups' => 'Brands, units & business lookups',
