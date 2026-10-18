@@ -46,8 +46,8 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertIsString($notifications);
         $this->assertIsString($account);
 
-        $this->assertStringContainsString('height:var(--foodex-header-control-height)', $search);
-        $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)', $search);
+        $this->assertStringContainsString('input.foodex-global-search-input{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important', $search);
+        $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)!important;min-height:var(--foodex-header-control-height-mobile)!important', $search);
         $this->assertStringContainsString('font-size:16px', $search);
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $notifications);
