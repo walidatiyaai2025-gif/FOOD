@@ -7,6 +7,7 @@
 - Ship compact Retail/B2B/Admin dashboard and header convergence, platform-only Retail navigation isolation, audited user onboarding, and bilingual task-focused Security administration.
 - Add configurable FOODEX Assistant external AI settings for OpenAI-compatible API URL, model, encrypted API key, timeout and connection testing while keeping deterministic read-only FOODEX tools and RBAC/store/channel authority.
 - Synchronize Customer, Driver and Van release identities at 1.0.89+89; generate release artifacts only from exact-head green release validation.
+- Keep the Dashboard package cumulative through the canonical updater boundary and independently deployable from installed mobile binaries.
 
 ## 1.0.86 - 2026-10-15
 - Promote the complete post-1.0.79 Dashboard lineage after the final #1560 P0 Smart Ordering blocker closed on main.
