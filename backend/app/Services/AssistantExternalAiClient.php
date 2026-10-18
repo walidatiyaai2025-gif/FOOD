@@ -35,6 +35,13 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         'drivers.assignments',
         'inventory.alerts',
         'brief.daily',
+        'analytics.summary',
+        'inventory.snapshot',
+        'refunds.summary',
+        'retailers.performance',
+        'wholesale.purchases',
+        'margin.summary',
+        'support.summary',
     ];
 
     public function __construct(
@@ -863,7 +870,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
         $result = [];
 
-        foreach (['order_id', 'customer_id', 'product_id', 'driver_id', 'store_id', 'threshold'] as $key) {
+        foreach (['order_id', 'customer_id', 'product_id', 'driver_id', 'store_id', 'threshold', 'wholesale_store_id', 'limit'] as $key) {
             $value = filter_var($entities[$key] ?? null, FILTER_VALIDATE_INT);
             if (is_int($value) && $value > 0) {
                 $result[$key] = $value;
@@ -875,10 +882,28 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             $result['channel'] = $channel;
         }
 
-        foreach (['query', 'status', 'from', 'to'] as $key) {
+        foreach (['query', 'status', 'from', 'to', 'sort'] as $key) {
             $value = trim((string) ($entities[$key] ?? ''));
             if ($value !== '' && mb_strlen($value) <= 160) {
                 $result[$key] = $value;
+            }
+        }
+
+        foreach (['store_ids' => 10, 'retailer_store_ids' => 25] as $key => $maximum) {
+            $values = $entities[$key] ?? null;
+            if (! is_array($values) || ! array_is_list($values) || count($values) > $maximum) {
+                continue;
+            }
+
+            $ids = collect($values)
+                ->map(static fn ($value): mixed => filter_var($value, FILTER_VALIDATE_INT))
+                ->filter(static fn ($value): bool => is_int($value) && $value > 0)
+                ->unique()
+                ->values()
+                ->all();
+
+            if (count($ids) === count($values)) {
+                $result[$key] = $ids;
             }
         }
 
@@ -916,7 +941,8 @@ Rules:
 - For general conversation or anything outside the allowed intents, set intent to null and answer briefly in {$language} in message.
 - Never invent business facts, totals, prices, inventory, customer data or order states.
 - Never request or perform write actions.
-- entities may only contain obvious values explicitly stated by the user, such as order_id, customer_id, product_id, driver_id, store_id, channel, threshold, query, status, from or to.
+- entities may only contain obvious values explicitly stated by the user and required by the selected tool, such as ids, bounded id lists, channel, status, dates, sort or limit.
+- Never place SQL, database names, credentials, permission codes, role codes or server scope claims in entities.
 - If unsure, use intent null.
 PROMPT;
     }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Analytics\AssistantAnalyticsToolSet;
 use App\Domain\Assistant\Business\AssistantBusinessToolSet;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
@@ -55,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AssistantToolRegistry::class, function ($app): AssistantToolRegistry {
             return new AssistantToolRegistry([
                 ...$app->make(AssistantBusinessToolSet::class)->all(),
+                ...$app->make(AssistantAnalyticsToolSet::class)->all(),
                 ...$app->make(AssistantOperationsToolSet::class)->all(),
             ]);
         });
