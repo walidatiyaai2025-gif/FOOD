@@ -94,11 +94,23 @@
 .cs-case-modal-close{position:sticky;top:10px;inset-inline-start:10px;z-index:4;margin:10px 10px -44px auto;width:34px;height:34px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.2rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
 .cs-case-modal-loading{padding:44px;text-align:center;color:var(--foodex-muted)}
 body.cs-case-modal-open{overflow:hidden}
+.cs-inbox-modal{position:fixed;z-index:13060;inset:0;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.54);backdrop-filter:blur(6px)}
+.cs-inbox-modal[hidden]{display:none!important}
+.cs-inbox-modal-dialog{width:min(1560px,97vw);height:min(940px,95dvh);min-height:0;display:grid;grid-template-rows:48px minmax(0,1fr);overflow:hidden;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:20px;box-shadow:0 30px 90px rgba(15,23,42,.34);animation:csCaseModalEnter .2s cubic-bezier(.2,.8,.2,1) both}
+.cs-inbox-modal-toolbar{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px 0 16px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-surface),var(--foodex-green-soft))}
+[dir="rtl"] .cs-inbox-modal-toolbar{padding:0 16px 0 10px}
+.cs-inbox-modal-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foodex-ink);font-size:.9rem;font-weight:900}
+.cs-inbox-modal-close{width:34px;height:34px;flex:0 0 34px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.2rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
+.cs-inbox-modal-close:hover{background:var(--foodex-background);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-inbox-modal-frame-wrap{min-width:0;min-height:0;overflow:hidden;background:var(--foodex-background)}
+.cs-inbox-modal-frame{display:block;width:100%;height:100%;border:0;background:var(--foodex-background)}
+body.cs-inbox-modal-open{overflow:hidden}
 @keyframes csCaseModalEnter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
 @media(max-width:1100px){.cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(max-width:850px){.cs-inbox-modal{padding:8px}.cs-inbox-modal-dialog{width:100%;height:calc(100dvh - 16px);border-radius:14px;grid-template-rows:44px minmax(0,1fr)}.cs-inbox-modal-toolbar{padding-inline:10px}}
 @media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before,.cs-bar,.cs-case-modal-dialog{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}.cs-bar{transform:scaleX(1)!important}}
 </style>
 </head>
@@ -247,14 +259,14 @@ body.cs-case-modal-open{overflow:hidden}
                             <h2>{{ __('customer_service_workspace.inbox.title') }}</h2>
                             <p>{{ __('customer_service_workspace.inbox.help') }}</p>
                         </div>
-                        <a class="foodex-action-secondary button secondary" href="{{ route('admin.whatsapp-inbox.index') }}">{{ __('customer_service_workspace.inbox.open_full') }}</a>
+                        <a class="foodex-action-secondary button secondary" href="{{ route('admin.whatsapp-inbox.index') }}" data-cs-inbox-modal-open aria-haspopup="dialog">{{ __('customer_service_workspace.inbox.open_full') }}</a>
                     </div>
                     @if(($inboxSummary['items'] ?? collect())->isEmpty())
                         <div class="foodex-state cs-state">{{ __('customer_service_workspace.inbox.empty') }}</div>
                     @else
                         <div class="cs-inbox-list">
                             @foreach($inboxSummary['items'] as $conversation)
-                                <a class="cs-inbox-item" href="{{ route('admin.whatsapp-inbox.index',['conversation'=>$conversation->id]) }}">
+                                <a class="cs-inbox-item" href="{{ route('admin.whatsapp-inbox.index',['conversation'=>$conversation->id]) }}" data-cs-inbox-modal-open aria-haspopup="dialog">
                                     <span class="cs-inbox-main">
                                         <span class="cs-inbox-title">
                                             <strong>{{ $conversation->customer_name ?: __('whatsapp.inbox.unknown_customer') }}</strong>
@@ -268,6 +280,25 @@ body.cs-case-modal-open{overflow:hidden}
                         </div>
                     @endif
                 </section>
+            </div>
+
+            <div class="cs-inbox-modal"
+                 data-cs-inbox-modal
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="cs-inbox-modal-title"
+                 hidden>
+                <div class="cs-inbox-modal-dialog" data-cs-inbox-modal-dialog>
+                    <div class="cs-inbox-modal-toolbar">
+                        <strong class="cs-inbox-modal-title" id="cs-inbox-modal-title">{{ __('customer_service_workspace.inbox.title') }}</strong>
+                        <button class="cs-inbox-modal-close" type="button" data-cs-inbox-modal-close aria-label="{{ __('customer_service_workspace.cases.close') }}">×</button>
+                    </div>
+                    <div class="cs-inbox-modal-frame-wrap">
+                        <iframe class="cs-inbox-modal-frame"
+                                data-cs-inbox-frame
+                                title="{{ __('customer_service_workspace.inbox.title') }}"></iframe>
+                    </div>
+                </div>
             </div>
             @endif
 
@@ -526,6 +557,53 @@ body.cs-case-modal-open{overflow:hidden}
     </main>
 </div>
 <script>
+(() => {
+    const modal = document.querySelector('[data-cs-inbox-modal]');
+    const frame = modal?.querySelector('[data-cs-inbox-frame]');
+    const closeButton = modal?.querySelector('[data-cs-inbox-modal-close]');
+    if (!modal || !frame || !closeButton) return;
+
+    let lastTrigger = null;
+
+    const openInbox = (url) => {
+        const nextUrl = new URL(url, window.location.href).toString();
+        if (frame.dataset.currentUrl !== nextUrl) {
+            frame.dataset.currentUrl = nextUrl;
+            frame.src = nextUrl;
+        }
+        modal.hidden = false;
+        document.body.classList.add('cs-inbox-modal-open');
+        closeButton.focus({preventScroll:true});
+    };
+
+    const closeInbox = () => {
+        modal.hidden = true;
+        document.body.classList.remove('cs-inbox-modal-open');
+        if (lastTrigger instanceof HTMLElement) lastTrigger.focus({preventScroll:true});
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('[data-cs-inbox-modal-open]');
+        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        event.preventDefault();
+        lastTrigger = link;
+        openInbox(link.href);
+    });
+
+    closeButton.addEventListener('click', closeInbox);
+    modal.addEventListener('pointerdown', (event) => {
+        if (event.target === modal) closeInbox();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closeInbox();
+    });
+    window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
+        if (event.data?.type === 'foodex:close-customer-service-inbox') closeInbox();
+    });
+})();
+
 (() => {
     const modal = document.querySelector('[data-case-modal]');
     const body = modal?.querySelector('[data-case-modal-body]');
