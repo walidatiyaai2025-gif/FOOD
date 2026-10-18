@@ -6,7 +6,7 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(118px,1fr));min-width:0;margin:12px 0 16px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
+.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(132px,1fr));min-width:0;margin:12px 0 16px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
 .order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,#158A3A 0%,#2563EB 18%,#7C3AED 34%,#EA580C 50%,#DC2626 66%,#0891B2 82%,#BE123C 100%);background-size:180% 100%;animation:orderKpiEdge 4.8s linear infinite}
 .order-kpi-item{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF;position:relative;min-width:132px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 12px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
 .order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
@@ -783,7 +783,7 @@ $businessLabel = static function ($value): string {
     const formatLikeTarget = (element, value) => {
         const target = element.dataset.counterTarget || String(value);
         const decimals = Number.parseInt(element.dataset.counterDecimals || '0', 10);
-        const formatted = new Intl.NumberFormat(document.documentElement.lang || undefined, {
+        const formatted = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
         }).format(value);
