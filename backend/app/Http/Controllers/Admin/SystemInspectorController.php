@@ -493,7 +493,7 @@ final class SystemInspectorController extends Controller
     }
 
     /** @param array<string,mixed> $evidence
-     *  @return array<string,mixed>
+     * @return array<string,mixed>
      */
     private function safeUpdateEvidence(array $evidence): array
     {
