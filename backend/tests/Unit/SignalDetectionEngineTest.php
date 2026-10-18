@@ -66,6 +66,7 @@ final class SignalDetectionEngineTest extends TestCase
         $medium = $this->diagnostic(-18, 0);
         $first = $engine->detect($medium, evaluatedAt: '2026-10-18T20:00:00+00:00');
         $signal = $this->firstSignal($first['signals'], 'revenue_drop');
+        $this->assertIsArray($signal);
         $this->assertSame('medium', $signal['severity']);
 
         $prior = [[
@@ -81,6 +82,7 @@ final class SignalDetectionEngineTest extends TestCase
 
         $escalated = $engine->detect($this->diagnostic(-45, 0), priorSignals: $prior, evaluatedAt: '2026-10-18T21:00:00+00:00');
         $revenue = $this->firstSignal($escalated['signals'], 'revenue_drop');
+        $this->assertIsArray($revenue);
         $this->assertTrue($revenue['escalated']);
         $this->assertSame('critical', $revenue['severity']);
     }
