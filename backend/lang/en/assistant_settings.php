@@ -91,6 +91,8 @@ return [
         'tool_errors' => 'Tool errors',
         'fallback_rate' => 'Fallback rate',
         'tokens' => 'Tokens',
+        'execution_budgets' => 'Execution budgets',
+        'execution_budgets_help' => 'Max :tools tool calls · :bytes KB per tool result · :seconds s whole-turn budget.',
         'last_provider' => 'Last provider event',
         'no_provider_events' => 'No provider event has been recorded in this window.',
         'registered_tools' => 'Registered read tools',
