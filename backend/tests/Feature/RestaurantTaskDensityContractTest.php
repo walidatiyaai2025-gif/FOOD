@@ -20,7 +20,7 @@ class RestaurantTaskDensityContractTest extends TestCase
         }
 
         $this->assertStringContainsString('admin.restaurant.wholesale-purchases.index', $launcher);
-        $this->assertStringContainsString("$restaurantOperationsUrl('orders')", $launcher);
+        $this->assertStringContainsString("\$restaurantOperationsUrl('orders')", $launcher);
         $this->assertStringContainsString('data-restaurant-primary-kpis', $dashboard);
         $this->assertStringContainsString('data-restaurant-analytics-drilldown', $dashboard);
         $this->assertStringNotContainsString("['key'=>'aov'", $dashboard);
