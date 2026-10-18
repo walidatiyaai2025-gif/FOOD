@@ -30,7 +30,18 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .assistant-capability span{display:block;color:var(--foodex-muted);font-size:.72rem;margin-bottom:4px}
 .assistant-capability strong{font-size:.9rem}
 .foodex-state{margin-bottom:16px}
-@media(max-width:767px){.assistant-settings-card{padding:16px}.assistant-provider-fields{grid-template-columns:1fr}.assistant-provider-fields .wide{grid-column:auto}.assistant-provider-head{flex-direction:column}.assistant-capabilities{grid-template-columns:1fr 1fr}}
+.assistant-ops-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.assistant-tool-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.assistant-tool-list code{padding:6px 8px;border:1px solid var(--foodex-border);border-radius:8px;background:var(--foodex-background);font-size:.72rem}
+.assistant-ops-table-wrap{max-width:100%;overflow:auto;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}
+.assistant-ops-table{width:100%;min-width:840px;border-collapse:collapse;font-size:.78rem}
+.assistant-ops-table th,.assistant-ops-table td{padding:10px 12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top;white-space:nowrap}
+.assistant-ops-table th{background:var(--foodex-background);font-weight:800}
+.assistant-ops-table tbody tr:last-child td{border-bottom:0}
+.assistant-trace-link{font-weight:800}
+.assistant-trace-detail{display:grid;gap:12px;padding-top:6px}
+@media(max-width:900px){.assistant-ops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.assistant-settings-card{padding:16px}.assistant-provider-fields{grid-template-columns:1fr}.assistant-provider-fields .wide{grid-column:auto}.assistant-provider-head{flex-direction:column}.assistant-capabilities{grid-template-columns:1fr 1fr}.assistant-ops-kpis{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -208,6 +219,158 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <p><strong>{{ __('assistant_settings.model') }}:</strong> {{ $providerSettings['model'] ?: __('assistant_settings.not_available') }}</p>
 <p><strong>{{ __('assistant_settings.api_key') }}:</strong> {{ $providerSettings['api_key_configured'] ? __('assistant_settings.configured_encrypted') : __('assistant_settings.not_configured') }}</p>
 </div>
+@endif
+</div>
+</section>
+
+<section class="assistant-settings-card" data-assistant-operations-center>
+@php($lastProvider = $observabilitySummary['last_provider'] ?? null)
+<div class="assistant-settings-grid">
+<div class="assistant-provider-head">
+<div>
+<h2>{{ __('assistant_settings.operations.title') }}</h2>
+<p>{{ __('assistant_settings.operations.description') }}</p>
+</div>
+<span class="foodex-badge">{{ __('assistant_settings.operations.window', ['hours' => $observabilitySummary['window_hours']]) }}</span>
+</div>
+
+<div class="assistant-note">
+<strong>{{ __('assistant_settings.operations.privacy_title') }}</strong>
+<p>{{ __('assistant_settings.operations.privacy_description', ['days' => $observabilitySummary['retention_days']]) }}</p>
+</div>
+
+@if(!$observabilitySummary['available'])
+<div class="foodex-state" role="status">{{ __('assistant_settings.operations.storage_unavailable') }}</div>
+@endif
+
+<div class="assistant-ops-kpis">
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.requests') }}</span><strong>{{ number_format($observabilitySummary['request_count']) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.provider_requests') }}</span><strong>{{ number_format($observabilitySummary['provider_requests']) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.provider_errors') }}</span><strong>{{ number_format($observabilitySummary['provider_errors']) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.provider_latency') }}</span><strong>{{ number_format($observabilitySummary['avg_provider_latency_ms']) }} ms</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.tool_calls') }}</span><strong>{{ number_format($observabilitySummary['tool_calls']) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.tool_errors') }}</span><strong>{{ number_format($observabilitySummary['tool_errors']) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.fallback_rate') }}</span><strong>{{ number_format($observabilitySummary['fallback_rate_percent'], 1) }}%</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.operations.tokens') }}</span><strong>{{ number_format($observabilitySummary['total_tokens']) }}</strong></div>
+</div>
+
+<div class="assistant-note">
+<strong>{{ __('assistant_settings.operations.last_provider') }}</strong>
+@if($lastProvider)
+<p>{{ $lastProvider['provider'] ?? '—' }} · {{ $lastProvider['model'] ?? '—' }} · {{ $lastProvider['outcome'] ?? '—' }} · {{ $lastProvider['latency_ms'] === null ? '—' : number_format($lastProvider['latency_ms']).' ms' }}</p>
+<small class="assistant-secret-state">{{ $lastProvider['created_at'] ?? '' }}</small>
+@else
+<p>{{ __('assistant_settings.operations.no_provider_events') }}</p>
+@endif
+</div>
+
+<div class="assistant-note">
+<strong>{{ __('assistant_settings.operations.registered_tools') }}</strong>
+<p>{{ __('assistant_settings.operations.registered_tools_help', ['count' => count($assistantToolKeys)]) }}</p>
+<details>
+<summary>{{ __('assistant_settings.operations.show_tools') }}</summary>
+<div class="assistant-tool-list">
+@foreach($assistantToolKeys as $toolKey)
+<code>{{ $toolKey }}</code>
+@endforeach
+</div>
+</details>
+</div>
+
+@if($canManage)
+<div class="assistant-provider-head">
+<div>
+<h2>{{ __('assistant_settings.operations.recent_traces') }}</h2>
+<p>{{ __('assistant_settings.operations.recent_traces_help') }}</p>
+</div>
+<a href="{{ route('admin.assistant-settings.diagnostics.export') }}" class="secondary">{{ __('assistant_settings.operations.export') }}</a>
+</div>
+<p class="assistant-secret-state">{{ __('assistant_settings.operations.export_help') }}</p>
+
+@if($recentTraces === [])
+<div class="foodex-state" role="status">{{ __('assistant_settings.operations.no_traces') }}</div>
+@else
+<div class="assistant-ops-table-wrap" role="region" aria-label="{{ __('assistant_settings.operations.recent_traces') }}" tabindex="0">
+<table class="assistant-ops-table">
+<thead>
+<tr>
+<th>{{ __('assistant_settings.operations.trace') }}</th>
+<th>{{ __('assistant_settings.operations.outcome') }}</th>
+<th>{{ __('assistant_settings.operations.provider_model') }}</th>
+<th>{{ __('assistant_settings.operations.tools') }}</th>
+<th>{{ __('assistant_settings.operations.latency') }}</th>
+<th>{{ __('assistant_settings.operations.tokens') }}</th>
+<th>{{ __('assistant_settings.operations.fallback') }}</th>
+<th>{{ __('assistant_settings.operations.time') }}</th>
+</tr>
+</thead>
+<tbody>
+@foreach($recentTraces as $trace)
+<tr>
+<td><a class="assistant-trace-link" href="{{ route('admin.assistant-settings.index', ['trace' => $trace['trace_id']]).'#assistant-trace-detail' }}"><code>{{ Str::limit($trace['trace_id'], 18) }}</code></a></td>
+<td>{{ $trace['outcome'] ?? '—' }}</td>
+<td>{{ $trace['provider'] ?? '—' }} / {{ $trace['model'] ?? '—' }}</td>
+<td>{{ $trace['tools'] === [] ? '—' : implode(', ', array_slice($trace['tools'], 0, 3)) }}</td>
+<td>{{ $trace['latency_ms'] === null ? '—' : number_format($trace['latency_ms']).' ms' }}</td>
+<td>{{ number_format($trace['total_tokens']) }}</td>
+<td>{{ $trace['fallback'] ? __('assistant_settings.operations.yes') : __('assistant_settings.operations.no') }}</td>
+<td>{{ $trace['last_event_at'] }}</td>
+</tr>
+@endforeach
+</tbody>
+</table>
+</div>
+@endif
+
+@if($selectedTraceId !== '')
+<div id="assistant-trace-detail" class="assistant-trace-detail">
+<div class="assistant-provider-head">
+<div>
+<h2>{{ __('assistant_settings.operations.trace_detail') }}</h2>
+<p>{{ __('assistant_settings.operations.trace_detail_help') }}</p>
+</div>
+<code>{{ $selectedTraceId }}</code>
+</div>
+@if($selectedTrace === [])
+<div class="foodex-state" role="status">{{ __('assistant_settings.operations.no_traces') }}</div>
+@else
+<div class="assistant-ops-table-wrap" role="region" aria-label="{{ __('assistant_settings.operations.trace_detail') }}" tabindex="0">
+<table class="assistant-ops-table">
+<thead>
+<tr>
+<th>{{ __('assistant_settings.operations.time') }}</th>
+<th>{{ __('assistant_settings.operations.phase_event') }}</th>
+<th>{{ __('assistant_settings.operations.provider_model') }}</th>
+<th>{{ __('assistant_settings.operations.tool') }}</th>
+<th>{{ __('assistant_settings.operations.outcome') }}</th>
+<th>{{ __('assistant_settings.operations.status') }}</th>
+<th>{{ __('assistant_settings.operations.latency') }}</th>
+<th>{{ __('assistant_settings.operations.tokens') }}</th>
+<th>{{ __('assistant_settings.operations.fallback') }}</th>
+</tr>
+</thead>
+<tbody>
+@foreach($selectedTrace as $event)
+<tr>
+<td>{{ $event['created_at'] }}</td>
+<td>{{ $event['phase'] ?? '—' }} / {{ $event['event_name'] }}</td>
+<td>{{ $event['provider'] ?? '—' }} / {{ $event['model'] ?? '—' }}</td>
+<td>{{ $event['tool_key'] ?? '—' }}</td>
+<td>{{ $event['outcome'] ?? '—' }}</td>
+<td>{{ $event['status_code'] ?? '—' }}</td>
+<td>{{ $event['latency_ms'] === null ? '—' : number_format($event['latency_ms']).' ms' }}</td>
+<td>{{ $event['total_tokens'] ?? '—' }}</td>
+<td>{{ $event['fallback'] ? __('assistant_settings.operations.yes') : __('assistant_settings.operations.no') }}</td>
+</tr>
+@endforeach
+</tbody>
+</table>
+</div>
+@endif
+</div>
+@endif
+@else
+<div class="assistant-note">{{ __('assistant_settings.operations.manage_required') }}</div>
 @endif
 </div>
 </section>
