@@ -9,7 +9,7 @@
         *{box-sizing:border-box}
         body{margin:0;background:var(--foodex-background);color:var(--foodex-ink);font-family:inherit}
         a{color:inherit;text-decoration:none}
-        .rw-shell{max-width:1440px;margin:0 auto;padding:18px clamp(14px,2.4vw,34px) 34px}
+        .rw-shell{max-width:none;margin:0}
         .rw-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
         .rw-title h1{margin:0;font-size:clamp(1.35rem,2.4vw,2rem)}
         .rw-title p{margin:7px 0 0;color:var(--foodex-muted);max-width:780px}
@@ -58,13 +58,15 @@
     </style>
 </head>
 <body>
-<div class="foodex-admin-layout">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="restaurant-wholesale-purchases">
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 @php
     $restaurantStoreId = (int) $context['restaurant_store_id'];
     $baseQuery = ['retail_store_id' => $restaurantStoreId];
-    $restaurantBack = route('admin.smart-ordering.index', ['store_id' => $restaurantStoreId]);
+    $restaurantBack = route('admin.smart-ordering.index', ['store_id' => $restaurantStoreId] + (request()->boolean('support_access') ? ['support_access' => 1] : []));
 @endphp
-<main class="foodex-admin-main rw-shell" data-restaurant-wholesale-purchases>
+<main class="foodex-admin-main foodex-admin-page rw-shell" data-restaurant-wholesale-purchases>
+    @include('admin._global-header')
     <header class="foodex-page-toolbar rw-header">
         <div class="rw-title">
             <h1>{{ __('restaurant_wholesale.title') }}</h1>
