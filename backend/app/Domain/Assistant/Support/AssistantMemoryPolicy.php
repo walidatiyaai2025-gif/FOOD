@@ -41,14 +41,16 @@ final class AssistantMemoryPolicy
             'pending_clarification_slots' => [],
         ])->save();
 
-        return $state->fresh();
+        $state->refresh();
+
+        return $state;
     }
 
     /**
      * Durable Assistant memory is deliberately tiny: presentation preferences only.
      * Business values, tool results, permissions and provider/model settings are never accepted.
      *
-     * @param array<string,mixed> $input
+     * @param  array<string,mixed>  $input
      * @return array<string,string>
      */
     public function safePreferences(array $input, string $locale): array
