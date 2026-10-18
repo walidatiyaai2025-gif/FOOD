@@ -1,6 +1,6 @@
 # B2C Retail / Restaurant final convergence — #2175
 
-Certification branch: `cert/2175-final-main`
+Certification branch: `test/2175-final-certification`
 
 Base main at certification start: `922855bb45c7da95e776248912d1a05e75e5a54b`.
 
