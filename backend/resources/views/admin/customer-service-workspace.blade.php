@@ -298,7 +298,7 @@
                         <label>{{ __('customer_service_workspace.team.email') }}<input type="email" name="email" required maxlength="190" autocomplete="off" value="{{ old('email') }}"></label>
                         <label>{{ __('customer_service_workspace.team.password') }}<input type="password" name="password" required minlength="10" maxlength="100" autocomplete="new-password"></label>
                         <label>{{ __('customer_service_workspace.team.locale') }}
-                            <select name="locale" required><option value="ar" @selected(old('locale','ar')==='ar')>العربية</option><option value="en" @selected(old('locale')==='en')>English</option></select>
+                            <select name="locale" required><option value="ar" @selected(old('locale','ar')==='ar')>{{ __('customer_service_workspace.team.language_ar') }}</option><option value="en" @selected(old('locale')==='en')>{{ __('customer_service_workspace.team.language_en') }}</option></select>
                         </label>
                         <label>{{ __('customer_service_workspace.team.role') }}
                             <select name="role_code" required>
