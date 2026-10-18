@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
