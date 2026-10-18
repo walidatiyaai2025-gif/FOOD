@@ -282,7 +282,13 @@ body.cs-case-modal-open{overflow:hidden}
             </section>
             @endif
 
-            <div class="cs-case-modal" data-case-modal role="dialog" aria-modal="true" aria-label="{{ __('customer_service_workspace.cases.modal_title') }}" @if(!$selectedCase) hidden @endif>
+            <div class="cs-case-modal"
+                 data-case-modal
+                 data-case-list-url="{{ route('admin.erp.customer-service', request()->except(['case_id'])) }}"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="{{ __('customer_service_workspace.cases.modal_title') }}"
+                 @if(!$selectedCase) hidden @endif>
                 <div class="cs-case-modal-dialog" data-case-modal-dialog>
                     <button class="cs-case-modal-close" type="button" data-case-modal-close aria-label="{{ __('customer_service_workspace.cases.close') }}">×</button>
                     <div class="cs-case-modal-body" data-case-modal-body>
@@ -475,9 +481,8 @@ body.cs-case-modal-open{overflow:hidden}
         modal.hidden = true;
         document.body.classList.remove('cs-case-modal-open');
         if (lastTrigger instanceof HTMLElement) lastTrigger.focus({preventScroll:true});
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = 'cs-tab-cases';
-        history.replaceState(null, '', cleanUrl);
+        const listUrl = modal.dataset.caseListUrl || window.location.pathname;
+        history.replaceState(null, '', listUrl + '#cs-tab-cases');
     };
 
     closeButton.addEventListener('click', closeModal);
