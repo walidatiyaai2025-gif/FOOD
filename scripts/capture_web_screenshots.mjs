@@ -26,6 +26,25 @@ function refreshTimeSensitiveEvidence() {
   );
 }
 
+function prepareRestaurantWholesaleEvidence() {
+  execFileSync(
+    'php',
+    ['artisan', 'db:seed', '--class=Database\\Seeders\\RestaurantWholesaleScreenshotEvidenceSeeder', '--force'],
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DB_CONNECTION: 'sqlite',
+        DB_DATABASE: path.join(process.cwd(), 'database/database.sqlite'),
+        CACHE_STORE: 'array',
+        QUEUE_CONNECTION: 'sync',
+        SESSION_DRIVER: 'file',
+      },
+    },
+  );
+}
+
 const b2b = [
   ['12_whatsapp_foundation', '/admin/settings/whatsapp'],
   ['13_whatsapp_connections', '/admin/settings/whatsapp/connections'],
@@ -1971,8 +1990,10 @@ async function captureLocale(browser, locale) {
 const browser = await chromium.launch({ headless: true });
 try {
   refreshTimeSensitiveEvidence();
+  prepareRestaurantWholesaleEvidence();
   await captureLocale(browser, 'ar');
   refreshTimeSensitiveEvidence();
+  prepareRestaurantWholesaleEvidence();
   await captureLocale(browser, 'en');
 } finally {
   await browser.close();
