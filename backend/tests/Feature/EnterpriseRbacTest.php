@@ -141,7 +141,7 @@ class EnterpriseRbacTest extends TestCase
         $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
 
         $this->actingAs($admin)
-            ->get('/admin/security')
+            ->get('/admin/security?section=roles')
             ->assertOk()
             ->assertSee('Roles — Manage')
             ->assertSee('roles.manage')
@@ -153,7 +153,7 @@ class EnterpriseRbacTest extends TestCase
         $admin->forceFill(['locale' => 'ar'])->save();
 
         $this->actingAs($admin->fresh())
-            ->get('/admin/security')
+            ->get('/admin/security?section=roles')
             ->assertOk()
             ->assertSee('الأدوار — إدارة')
             ->assertSee('ابحث عن صلاحية بالاسم التجاري أو الكود التقني')
@@ -178,7 +178,7 @@ class EnterpriseRbacTest extends TestCase
         $operator->roles()->attach($operatorRole);
 
         $this->actingAs($operator)
-            ->get('/admin/security')
+            ->get('/admin/security?section=roles')
             ->assertOk()
             ->assertSee('Roles — Manage')
             ->assertSee('User role assignments — Manage')
