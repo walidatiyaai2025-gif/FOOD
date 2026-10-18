@@ -182,6 +182,14 @@ return [
     'workspace' => [
         'title' => 'Restaurant Management workspace',
         'help' => 'All authorized restaurant tools in one place',
+        'tasks_label' => 'Primary restaurant tasks',
+        'tasks' => [
+            'customer_orders' => 'Customer Orders',
+            'menu' => 'Menu',
+            'operations' => 'Operations',
+            'wholesale_purchases' => 'Wholesale Purchases',
+            'settings' => 'Settings',
+        ],
         'groups' => [
             'service' => 'Service & operations',
             'menu_growth' => 'Menu & guest growth',
@@ -219,7 +227,7 @@ return [
         'states' => [
             'partial' => 'Partial',
         ],
-        'partial_note' => 'POS staff order entry, full first-party delivery dispatch and full purchasing remain explicit roadmap gaps. FOODEX does not relabel generic Orders or platform ERP as those restaurant capabilities.',
+        'partial_note' => 'POS staff order entry and full first-party delivery dispatch remain explicit roadmap gaps. Wholesale Purchases now uses the canonical B2B purchasing identity and ledger.',
     ],
     'settings_tab' => 'Overview & settings',
     'operations_tab' => 'Orders & branches',
