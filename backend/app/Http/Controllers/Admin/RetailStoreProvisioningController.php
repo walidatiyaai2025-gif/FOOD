@@ -169,6 +169,7 @@ final class RetailStoreProvisioningController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:stores,code'],
             'name' => ['required', 'string', 'max:255'],
+            'business_profile' => ['nullable', Rule::in(Store::businessProfiles())],
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
             'default_customer_wholesale_price_tier_id' => ['nullable', 'integer', 'exists:b2b_price_tiers,id'],
@@ -182,6 +183,7 @@ final class RetailStoreProvisioningController extends Controller
             'manager_email' => ['nullable', 'required_if:manager_mode,new', 'email', 'max:255', 'unique:users,email'],
             'manager_password' => ['nullable', 'required_if:manager_mode,new', 'string', 'min:8', 'max:255'],
         ]);
+        $data['business_profile'] = $data['business_profile'] ?? Store::BUSINESS_PROFILE_RETAIL_STORE;
 
         $store = DB::transaction(function () use ($request, $data, $actor): Store {
             $storeTypeId = DB::table('store_types')->where('code', 'B2C')->value('id');
@@ -189,6 +191,7 @@ final class RetailStoreProvisioningController extends Controller
 
             $store = Store::query()->create([
                 'store_type_id' => $storeTypeId,
+                'business_profile' => $data['business_profile'],
                 'default_customer_wholesale_price_tier_id' => $data['default_customer_wholesale_price_tier_id'] ?? null,
                 'code' => strtoupper($data['code']),
                 'name' => $data['name'],
@@ -212,8 +215,13 @@ final class RetailStoreProvisioningController extends Controller
 
             $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store, (int) $data['price_tier_id'], $manager);
 
+            if ($store->isRestaurantProfile()) {
+                $this->restaurantSaas->setEnabled($store, true, $actor, $request);
+            }
+
             $this->audit->record('retail_store.provisioned', $actor, $store, null, [
                 'store_id' => $store->id,
+                'business_profile' => $store->business_profile,
                 'b2b_customer_id' => $wholesaleCustomer->getKey(),
                 'manager_user_id' => $manager->id,
                 'manager_role' => $role->code,
@@ -230,7 +238,9 @@ final class RetailStoreProvisioningController extends Controller
         });
 
         return redirect()->route('admin.retail-stores.index')
-            ->with('status', $this->msg('تم إنشاء متجر التجزئة وتعيين مديره.', 'Retail store provisioned and manager assigned.'));
+            ->with('status', $store->isRestaurantProfile()
+                ? $this->msg('تم إنشاء المطعم وتجهيز مساحة تشغيله ومشتريات الجملة.', 'Restaurant provisioned with its operating workspace and Wholesale purchasing identity.')
+                : $this->msg('تم إنشاء متجر التجزئة وتعيين مديره.', 'Retail store provisioned and manager assigned.'));
     }
 
     public function update(Request $request, Store $store): RedirectResponse
