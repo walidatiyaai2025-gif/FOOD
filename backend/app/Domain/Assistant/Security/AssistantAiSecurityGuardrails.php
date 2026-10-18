@@ -64,6 +64,8 @@ final class AssistantAiSecurityGuardrails
         '/\b(?:call|invoke|execute)\b.{0,40}\b(?:tool|function)\b.{0,60}\b(?:without|bypass|ignore|override)\b/iu',
         '/\b(?:bypass|override|disable)\b.{0,60}\b(?:authorization|permission|rbac|tenant|store|consent|approval)\b/iu',
         '/\b(?:exfiltrate|export|send)\b.{0,80}\b(?:all|every)\b.{0,40}\b(?:customer|retailer|tenant|secret|credential|token|key)\b/iu',
+        '/(?:تجاهل|تخط(?:ى|ي)|جاوز).{0,50}(?:التعليمات|التوجيهات|الأوامر|الصلاحيات|التصاريح)/u',
+        '/(?:اكشف|اظهر|أظهر|اعرض|سرّب|سرب).{0,70}(?:البرومبت|التعليمات\s+الداخلية|مفتاح\s*(?:api|API)|التوكن|الرمز\s+السري|كلمة\s+المرور)/u',
     ];
 
     public function __construct(
@@ -499,8 +501,12 @@ final class AssistantAiSecurityGuardrails
 
     private function containsEncodedInjection(string $value): bool
     {
-        if (preg_match_all('/\b[A-Za-z0-9+\/]{24,}={0,2}\b/', $value, $matches) !== 1
-            && ($matches[0] ?? []) === []) {
+        $count = preg_match_all(
+            '/(?<![A-Za-z0-9+\/=])[A-Za-z0-9+\/]{24,}={0,2}(?![A-Za-z0-9+\/=])/',
+            $value,
+            $matches,
+        );
+        if (! is_int($count) || $count < 1) {
             return false;
         }
 
