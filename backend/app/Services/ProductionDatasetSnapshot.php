@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use JsonException;
 use RuntimeException;
@@ -39,11 +40,23 @@ final class ProductionDatasetSnapshot
             'state' => $metadata['state'] ?? self::NO_SNAPSHOT,
             'snapshot_id' => $metadata['snapshot_id'] ?? null,
             'verified' => ($metadata['verified'] ?? false) === true,
+            'source_release' => $metadata['source_release'] ?? null,
+            'source_sha' => $metadata['source_sha'] ?? null,
+            'environment' => $metadata['environment'] ?? null,
+            'snapshot_reason' => $metadata['snapshot_reason'] ?? null,
+            'restore_reason' => $metadata['restore_reason'] ?? null,
+            'target_release' => $metadata['target_release'] ?? null,
+            'last_outcome' => $metadata['last_outcome'] ?? null,
+            'size' => is_numeric($metadata['size'] ?? null) ? (int) $metadata['size'] : null,
+            'checksum_sha256' => $metadata['checksum_sha256'] ?? null,
+            'migration_fingerprint' => $metadata['migration_fingerprint'] ?? null,
             'created_at' => $metadata['created_at'] ?? null,
             'verified_at' => $metadata['verified_at'] ?? null,
             'launch_activated_at' => $metadata['launch_activated_at'] ?? null,
             'restore_started_at' => $metadata['restore_started_at'] ?? null,
             'restored_at' => $metadata['restored_at'] ?? null,
+            'restore_compatibility_verified_at' => $metadata['restore_compatibility_verified_at'] ?? null,
+            'restore_health_verified_at' => $metadata['restore_health_verified_at'] ?? null,
             'failed_at' => $metadata['failed_at'] ?? null,
         ];
     }
@@ -78,10 +91,16 @@ final class ProductionDatasetSnapshot
                 'connection' => (string) config('database.default'),
                 'source_release' => trim((string) @file_get_contents(base_path('../VERSION'))),
                 'source_sha' => (string) (config('foodex.release_source_sha') ?: 'unknown'),
+                'environment' => (string) app()->environment(),
+                'snapshot_reason' => 'prelaunch_protection',
+                'restore_reason' => null,
+                'target_release' => null,
+                'last_outcome' => 'snapshot_created',
                 'backup_reference' => $reference,
                 'snapshot_file' => $snapshot,
                 'size' => $size,
                 'checksum_sha256' => $checksum,
+                'migration_fingerprint' => $this->migrationFingerprint(),
                 'created_at' => now()->toIso8601String(),
                 'verified' => false,
                 'verified_at' => null,
@@ -115,6 +134,7 @@ final class ProductionDatasetSnapshot
             throw new RuntimeException('Snapshot is not ready to enter launch-active state.');
         }
         $metadata['state'] = self::LAUNCH_ACTIVE;
+        $metadata['last_outcome'] = 'launch_active';
         $metadata['launch_activated_at'] = now()->toIso8601String();
         $this->writeMetadata($metadata);
         $this->audit->record('system.production_snapshot.launch_active', $actor, null, null, $this->safeAudit($metadata), $request);
@@ -133,6 +153,11 @@ final class ProductionDatasetSnapshot
                 throw new RuntimeException('Legacy restore is only allowed from launch-active state.');
             }
             $this->verify($metadata);
+            $this->assertRestoreCompatibility($metadata);
+            $metadata['restore_compatibility_verified_at'] = now()->toIso8601String();
+            $metadata['restore_reason'] = 'production_dataset_legacy_restore';
+            $metadata['target_release'] = trim((string) @file_get_contents(base_path('../VERSION')));
+            $metadata['last_outcome'] = 'restore_started';
             $metadata['state'] = self::RESTORING;
             $metadata['restore_started_at'] = now()->toIso8601String();
             $this->writeMetadata($metadata);
@@ -145,6 +170,10 @@ final class ProductionDatasetSnapshot
                 }
                 $this->runtime->rollbackDatabase((string) $metadata['backup_reference']);
                 $this->verify($metadata);
+                $this->assertRestoreCompatibility($metadata);
+                $this->runtime->healthCheck();
+                $metadata['restore_health_verified_at'] = now()->toIso8601String();
+                $metadata['last_outcome'] = 'restored';
                 $metadata['state'] = self::LEGACY_RESTORED;
                 $metadata['restored_at'] = now()->toIso8601String();
                 $this->writeMetadata($metadata);
@@ -158,6 +187,7 @@ final class ProductionDatasetSnapshot
                 $metadata['state'] = self::FAILED;
                 $metadata['failed_at'] = now()->toIso8601String();
                 $metadata['failure'] = 'restore_failed';
+                $metadata['last_outcome'] = 'restore_failed';
                 $this->writeMetadata($metadata);
                 $this->audit->record('system.production_snapshot.restore_failed', $actor, null, null, $this->safeAudit($metadata), $request);
                 throw $exception;
@@ -183,6 +213,44 @@ final class ProductionDatasetSnapshot
         $rollbackMetadata = rtrim((string) $metadata['backup_reference'], '/\\').'/database.json';
         if (! is_file($rollbackMetadata)) {
             throw new RuntimeException('Snapshot restore metadata is missing.');
+        }
+    }
+
+    private function assertRestoreCompatibility(array $metadata): void
+    {
+        $snapshotRelease = trim((string) ($metadata['source_release'] ?? ''));
+        $currentRelease = trim((string) @file_get_contents(base_path('../VERSION')));
+
+        if ($snapshotRelease !== '' && $currentRelease !== '' && ! hash_equals($snapshotRelease, $currentRelease)) {
+            throw new RuntimeException('Snapshot release is incompatible with the currently deployed release.');
+        }
+
+        $expectedMigrations = $metadata['migration_fingerprint'] ?? null;
+        $currentMigrations = $this->migrationFingerprint();
+        if (is_string($expectedMigrations)
+            && $expectedMigrations !== ''
+            && is_string($currentMigrations)
+            && ! hash_equals($expectedMigrations, $currentMigrations)) {
+            throw new RuntimeException('Snapshot migration state is incompatible with the current schema.');
+        }
+    }
+
+    private function migrationFingerprint(): ?string
+    {
+        if (! Schema::hasTable('migrations')) {
+            return null;
+        }
+
+        try {
+            $migrations = DB::table('migrations')
+                ->orderBy('migration')
+                ->pluck('migration')
+                ->map(static fn (mixed $value): string => (string) $value)
+                ->all();
+
+            return hash('sha256', json_encode($migrations, JSON_THROW_ON_ERROR));
+        } catch (Throwable) {
+            return null;
         }
     }
 
@@ -241,8 +309,10 @@ final class ProductionDatasetSnapshot
     {
         return array_intersect_key($metadata, array_flip([
             'state', 'snapshot_id', 'database', 'connection', 'source_release', 'source_sha',
-            'size', 'checksum_sha256', 'created_at', 'verified', 'verified_at',
-            'launch_activated_at', 'restore_started_at', 'restored_at', 'failed_at', 'failure',
+            'environment', 'snapshot_reason', 'restore_reason', 'target_release', 'last_outcome',
+            'size', 'checksum_sha256', 'migration_fingerprint', 'created_at', 'verified', 'verified_at',
+            'launch_activated_at', 'restore_started_at', 'restored_at',
+            'restore_compatibility_verified_at', 'restore_health_verified_at', 'failed_at', 'failure',
         ]));
     }
 }

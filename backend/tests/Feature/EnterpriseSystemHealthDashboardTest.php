@@ -60,7 +60,12 @@ final class EnterpriseSystemHealthDashboardTest extends TestCase
         $this->actingAs($admin)->get(route('admin.enterprise-system-health.index'))
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('Module &amp; System Health', false)
+            ->assertSee('System Administration')
+            ->assertSee('data-foodex-module-overview', false)
+            ->assertSee('foodex-module-kpis', false)
+            ->assertSee(route('admin.inspector.index'), false)
+            ->assertSee(route('admin.system-update.index'), false)
+            ->assertSee(route('admin.production-dataset-switch.index'), false)
             ->assertSee('Sample Optional')
             ->assertSee('Degraded')
             ->assertSee('Stale checks')
@@ -70,7 +75,7 @@ final class EnterpriseSystemHealthDashboardTest extends TestCase
         $this->actingAs($admin->fresh())->get(route('admin.enterprise-system-health.index'))
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('صحة الوحدات والنظام');
+            ->assertSee('إدارة النظام');
     }
 
     public function test_non_platform_admin_is_denied_health_dashboard(): void
