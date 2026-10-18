@@ -108,9 +108,8 @@ jobs:
   scheduled-garbage-collection:
     name: Scheduled safe branch garbage collection
     if: >-
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push'
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Sweep obsolete branches
@@ -298,19 +297,9 @@ jobs:
                 continue;
               }
 
-              const committedAt =
-                commit.commit?.committer?.date ||
-                commit.commit?.author?.date ||
-                null;
-              const ageMs = committedAt ? now - Date.parse(committedAt) : 0;
-
-              if (!safeReason && (!committedAt || ageMs < graceMs)) {
-                kept.push([name, `grace-period(<${GRACE_HOURS}h)`]);
-                continue;
-              }
-
               // Fast path: branch has no commits that are not already reachable
-              // from the default branch.
+              // from the default branch. This is safe to delete immediately and
+              // does not need the grace period because no unique work can be lost.
               try {
                 const { data: comparison } = await github.rest.repos.compareCommits({
                   owner,
@@ -323,6 +312,17 @@ jobs:
                 }
               } catch (error) {
                 core.warning(`Compare failed for ${name}: ${error.message}`);
+              }
+
+              const committedAt =
+                commit.commit?.committer?.date ||
+                commit.commit?.author?.date ||
+                null;
+              const ageMs = committedAt ? now - Date.parse(committedAt) : 0;
+
+              if (!safeReason && (!committedAt || ageMs < graceMs)) {
+                kept.push([name, `grace-period(<${GRACE_HOURS}h)`]);
+                continue;
               }
 
               // A closed-unmerged branch is also obsolete when its exact PR head
