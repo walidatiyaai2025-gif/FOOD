@@ -10,6 +10,38 @@
         .so-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
         .so-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;direction:ltr}
         textarea.so-json{min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;direction:ltr}
+        .so-settings-page{display:grid;gap:8px}
+        .so-settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface);box-shadow:0 5px 18px rgba(15,23,42,.04)}
+        .so-settings-head-main{display:flex;align-items:center;gap:10px;min-width:0}
+        .so-settings-head-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:12px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900}
+        .so-settings-head h1{margin:0;font-size:1.03rem}.so-settings-head p{margin:2px 0 0;color:var(--foodex-muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:680px}
+        .so-settings-head-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+        .so-settings-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+        .so-settings-summary-item{min-width:0;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:13px;background:var(--foodex-surface);display:grid;gap:4px}
+        .so-settings-summary-item span{color:var(--foodex-muted);font-size:.61rem;font-weight:800}.so-settings-summary-item strong{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .so-settings-summary-item[data-tone="green"]{border-top:3px solid #16a34a}.so-settings-summary-item[data-tone="orange"]{border-top:3px solid #f97316}.so-settings-summary-item[data-tone="blue"]{border-top:3px solid #2563eb}.so-settings-summary-item[data-tone="violet"]{border-top:3px solid #7c3aed}
+        .so-settings-tabs{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 0 3px;scrollbar-width:thin}
+        .so-settings-tab{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.73rem;font-weight:900;white-space:nowrap;cursor:pointer;transition:.18s ease}
+        .so-settings-tab:hover{border-color:#b9d8c1;color:var(--foodex-green-dark);transform:translateY(-1px)}
+        .so-settings-tab[aria-selected="true"]{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff;box-shadow:0 6px 18px rgba(21,138,58,.14)}
+        .so-settings-panel{display:grid;gap:7px;min-width:0}.so-settings-panel[hidden]{display:none!important}
+        .so-settings-panel>.panel,.so-settings-panel>.foodex-card,.so-settings-panel>.foodex-module-overview{margin:0!important}
+        .so-settings-panel .panel{padding:12px!important}
+        .so-quick-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+        .so-quick-link{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:13px;background:var(--foodex-surface);text-decoration:none;color:inherit}
+        .so-quick-link:hover{background:var(--foodex-green-soft);border-color:#bedbc5}.so-quick-link strong{font-size:.74rem}.so-quick-link span{font-size:.63rem;color:var(--foodex-muted)}
+        .so-settings-panel .foodex-page-toolbar{margin:0!important;padding-block:6px!important}
+        .so-settings-panel .foodex-page-toolbar h2,.so-settings-panel .foodex-page-toolbar h3{margin-block:0 3px!important}
+        .so-settings-panel .foodex-page-toolbar p{margin:0!important}
+        .so-settings-panel .foodex-module-toolbar{margin-block:4px 6px!important;padding:8px!important}
+        .so-settings-panel .foodex-module-kpis{gap:6px!important;margin-block:4px!important}
+        .so-settings-panel .foodex-module-kpi{padding:10px!important;min-height:84px!important}
+        .so-settings-panel fieldset{border:1px solid var(--foodex-border);border-radius:12px;padding:10px;margin:0 0 8px}
+        .so-settings-panel legend{font-weight:900;padding-inline:5px}
+        @media(max-width:1100px){.so-settings-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.so-quick-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:700px){.so-settings-head{align-items:flex-start}.so-settings-head p{white-space:normal}.so-settings-head-actions{display:none}.so-settings-summary{grid-template-columns:1fr 1fr}.so-settings-tab{min-height:35px;padding-inline:11px}.so-quick-links{grid-template-columns:1fr}}
+        @media(prefers-reduced-motion:reduce){.so-settings-tab{transition:none}.so-settings-tab:hover{transform:none}}
+
     </style>
 </head>
 <body>
@@ -17,11 +49,52 @@
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
-        <div class="foodex-page-toolbar">
-            <div><h1>{{ __('smart_ordering.title') }}</h1><p>{{ __('smart_ordering.description') }}</p></div>
-            <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index') }}">{{ __('smart_ordering.operations_tab') }}</a>
-        </div>
-        @include('admin._smart-ordering-workspace-nav')
+        @php($isAr = app()->getLocale() === 'ar')
+        @php($restaurantManagementCompact = true)
+        <div class="so-settings-page" data-so-settings-page>
+            <header class="so-settings-head">
+                <div class="so-settings-head-main">
+                    <span class="so-settings-head-icon" aria-hidden="true">⚙</span>
+                    <div>
+                        <h1>{{ $isAr ? 'إعدادات المطعم' : 'Restaurant settings' }}</h1>
+                        <p>{{ $isAr ? 'إدارة التشغيل والهوية والمحتوى والصلاحيات والنشر من مكان منظم.' : 'Manage operations, identity, content, permissions and publishing from one organized workspace.' }}</p>
+                    </div>
+                </div>
+                <div class="so-settings-head-actions">
+                    <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'فتح التشغيل' : 'Open operations' }}</a>
+                </div>
+            </header>
+            @include('admin._smart-ordering-workspace-nav')
+
+            <div class="so-settings-summary" aria-label="{{ $isAr ? 'ملخص إعدادات المطعم' : 'Restaurant settings summary' }}">
+                <div class="so-settings-summary-item" data-tone="green">
+                    <span>{{ $isAr ? 'المطعم' : 'Restaurant' }}</span>
+                    <strong>{{ optional($site->store)->name ?: ('#'.$site->store_id) }}</strong>
+                </div>
+                <div class="so-settings-summary-item" data-tone="{{ ($site->master_enabled ?? false) ? 'green' : 'orange' }}">
+                    <span>{{ $isAr ? 'حالة التشغيل' : 'Runtime' }}</span>
+                    <strong>{{ __('smart_ordering.states.'.$site->runtime_state) }}</strong>
+                </div>
+                <div class="so-settings-summary-item" data-tone="blue">
+                    <span>{{ $isAr ? 'جاهزية الإطلاق' : 'Launch readiness' }}</span>
+                    <strong>{{ (int)($onboardingStatus['completion_percent'] ?? 0) }}%</strong>
+                </div>
+                <div class="so-settings-summary-item" data-tone="violet">
+                    <span>{{ $isAr ? 'النشر' : 'Publishing' }}</span>
+                    <strong>{{ $published ? ($isAr ? 'منشور' : 'Published') : ($isAr ? 'غير منشور' : 'Unpublished') }}</strong>
+                </div>
+            </div>
+
+            <nav class="so-settings-tabs" role="tablist" aria-label="{{ $isAr ? 'أقسام الإعدادات' : 'Settings sections' }}" data-so-settings-tabs data-default-tab="overview">
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="true" data-so-settings-tab="overview">{{ $isAr ? 'الملخص' : 'Overview' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="launch">{{ $isAr ? 'التجهيز والإطلاق' : 'Setup & launch' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="site">{{ $isAr ? 'التشغيل والموقع' : 'Runtime & site' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="content">{{ $isAr ? 'المحتوى' : 'Content' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="modules">{{ $isAr ? 'الصلاحيات والنشر' : 'Modules & publish' }}</button>
+            </nav>
+
+            @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
+            @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
         @php
             $ov = $restaurantOverview;
