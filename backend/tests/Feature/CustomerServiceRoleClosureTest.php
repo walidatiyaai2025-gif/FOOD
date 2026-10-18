@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
+use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class CustomerServiceRoleClosureTest extends TestCase
@@ -142,6 +144,32 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ->assertRedirect(route('admin.erp.customer-service'));
     }
 
+    public function test_customer_service_inbox_unread_count_respects_manager_supervisor_and_agent_visibility(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        $supervisor = $this->userWithRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $otherAgent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $storeId = app(WholesalePrincipal::class)->storeId();
+
+        $unassignedId = $this->whatsAppConversation($storeId, null, 2);
+        $mineId = $this->whatsAppConversation($storeId, $agent->id, 4);
+        $otherId = $this->whatsAppConversation($storeId, $otherAgent->id, 7);
+
+        $managerSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($manager);
+        $supervisorSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($supervisor);
+        $agentSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($agent);
+
+        $this->assertSame(13, $managerSummary['unread_count']);
+        $this->assertSame(13, $supervisorSummary['unread_count']);
+        $this->assertSame(6, $agentSummary['unread_count']);
+
+        $agentIds = $agentSummary['items']->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $this->assertContains($unassignedId, $agentIds);
+        $this->assertContains($mineId, $agentIds);
+        $this->assertNotContains($otherId, $agentIds);
+    }
+
     public function test_customer_service_roles_can_open_customer_360_in_wholesale_scope(): void
     {
         foreach ([
@@ -263,6 +291,23 @@ final class CustomerServiceRoleClosureTest extends TestCase
                 'role_code' => 'CUSTOMER_SERVICE_AGENT',
             ])
             ->assertForbidden();
+    }
+
+    private function whatsAppConversation(int $storeId, ?int $agentId, int $unreadCount): int
+    {
+        return (int) DB::table('whats_app_conversations')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'channel' => 'whatsapp',
+            'status' => $agentId === null ? 'WAITING_FOR_AGENT' : 'OPEN',
+            'primary_agent_id' => $agentId,
+            'priority' => 0,
+            'unread_count' => $unreadCount,
+            'waiting_since' => $agentId === null ? now() : null,
+            'lock_version' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function userWithRole(string $code): User
