@@ -5,8 +5,8 @@ namespace App\Domain\Assistant\Data;
 final readonly class AgentTurnRequest
 {
     /**
-     * @param array<string,mixed> $context
-     * @param array<string,mixed> $state
+     * @param  array<string,mixed>  $context
+     * @param  array<string,mixed>  $state
      */
     public function __construct(
         public int $actorUserId,
