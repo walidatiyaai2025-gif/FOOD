@@ -2,6 +2,8 @@
 
 namespace App\Domain\Assistant\Business;
 
+use App\Domain\Analytics\Semantic\MetricDictionary;
+use App\Domain\Analytics\Semantic\SemanticMetricService;
 use App\Domain\Assistant\Data\AssistantAction;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
@@ -17,7 +19,10 @@ final class AssistantBusinessReadService
 
     private const NON_REVENUE_STATUSES = ['cancelled', 'refunded'];
 
-    public function __construct(private readonly OperationalTenantScope $scope) {}
+    public function __construct(
+        private readonly OperationalTenantScope $scope,
+        private readonly SemanticMetricService $semanticMetrics,
+    ) {}
 
     public function execute(string $tool, AssistantToolRequest $request): AssistantToolResult
     {
@@ -42,19 +47,60 @@ final class AssistantBusinessReadService
         [$fromUtc, $toUtc, $from, $to] = $this->dateWindow($request);
         $query = $this->ordersQuery($storeIds, $request, $fromUtc, $toUtc);
         $recognized = (clone $query)->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+        $channel = $this->channel($request);
+
+        $data = [
+            'from' => $from,
+            'to' => $to,
+            'orders' => (int) (clone $query)->count('orders.id'),
+            'recognized_orders' => (int) (clone $recognized)->count('orders.id'),
+            'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
+            'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
+            'average_order_value' => round((float) ((clone $recognized)->avg('orders.grand_total') ?? 0), 3),
+            'currency' => 'EGP',
+            'store_ids' => $storeIds,
+        ];
+
+        if ($channel !== null) {
+            $metrics = $this->semanticMetrics->orderSnapshot(
+                $query,
+                $channel === 'b2b' ? MetricDictionary::FLOW_SELL_IN : MetricDictionary::FLOW_SELL_OUT,
+                $from,
+                $to,
+                ['store_ids' => $storeIds],
+                'EGP',
+                $request->locale,
+            );
+
+            $data = [
+                ...$data,
+                'recognized_orders' => (int) $metrics['values']['recognized_orders'],
+                'gross_revenue' => (float) $metrics['values']['gross_revenue'],
+                'discounts' => (float) $metrics['values']['discounts'],
+                'recognized_revenue' => (float) $metrics['values']['net_revenue'],
+                'average_order_value' => (float) $metrics['values']['average_order_value'],
+                'units' => (float) $metrics['values']['units'],
+                'refunded_orders' => (int) $metrics['values']['refunded_orders'],
+                'refunded_value' => (float) $metrics['values']['refunded_value'],
+                'cancelled_orders' => (int) $metrics['values']['cancelled_orders'],
+                'cancelled_value' => (float) $metrics['values']['cancelled_value'],
+                'metric_provenance' => $metrics['provenance'],
+                'metric_definitions' => $metrics['definitions'],
+            ];
+        } else {
+            $data['metric_provenance'] = [
+                'dictionary_version' => MetricDictionary::VERSION,
+                'flow' => 'mixed',
+                'window' => ['from' => $from, 'to' => $to],
+                'timezone' => MetricDictionary::TIMEZONE,
+                'scope' => ['store_ids' => $storeIds],
+                'warning' => 'Explicit channel is required to interpret totals as sell-in or sell-out.',
+                'model_arithmetic_allowed' => false,
+            ];
+        }
 
         return new AssistantToolResult(
-            data: [
-                'from' => $from,
-                'to' => $to,
-                'orders' => (clone $query)->count('orders.id'),
-                'recognized_orders' => (clone $recognized)->count('orders.id'),
-                'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
-                'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
-                'average_order_value' => round((float) ((clone $recognized)->avg('orders.grand_total') ?? 0), 3),
-                'currency' => 'EGP',
-                'store_ids' => $storeIds,
-            ],
+            data: $data,
             actions: [$this->reportsAction($request)],
         );
     }
@@ -431,14 +477,24 @@ final class AssistantBusinessReadService
             ->when($request->channel !== null, fn (Builder $query) => $query->where('orders.channel', strtolower($request->channel)))
             ->when($productId !== null, fn (Builder $query) => $query->where('products.id', $productId));
 
+        $sort = strtolower($this->stringValue($request->entities['sort'] ?? null) ?? 'top');
+        if (! in_array($sort, ['top', 'slow'], true)) {
+            throw new \InvalidArgumentException('products.performance sort must be top or slow.');
+        }
+        $limit = min(25, max(1, $this->positiveInt($request->entities['limit'] ?? null) ?? 25));
+
         $rows = (clone $sales)
             ->selectRaw(
                 'products.id, products.sku, products.name, COALESCE(SUM(order_items.quantity), 0) as quantity, '.
                 'COALESCE(SUM(order_items.line_total), 0) as revenue',
             )
             ->groupBy('products.id', 'products.sku', 'products.name')
-            ->orderByDesc('revenue')
-            ->limit(25)
+            ->when(
+                $sort === 'slow',
+                fn (Builder $query) => $query->orderBy('revenue')->orderBy('products.id'),
+                fn (Builder $query) => $query->orderByDesc('revenue')->orderBy('products.id'),
+            )
+            ->limit($limit)
             ->get()
             ->map(static fn (object $row): array => [
                 'product_id' => (int) $row->id,
@@ -454,6 +510,8 @@ final class AssistantBusinessReadService
                 'from' => $from,
                 'to' => $to,
                 'products' => $rows,
+                'sort' => $sort,
+                'limit' => $limit,
                 'selling_products' => count($rows),
                 'quantity_sold' => round((float) (clone $sales)->sum('order_items.quantity'), 3),
                 'product_revenue' => round((float) (clone $sales)->sum('order_items.line_total'), 3),

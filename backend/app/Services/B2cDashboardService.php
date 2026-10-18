@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Domain\Analytics\Semantic\MetricDictionary;
+use App\Domain\Analytics\Semantic\SemanticMetricService;
 use App\Models\User;
 use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
@@ -14,6 +16,7 @@ final class B2cDashboardService
 
     public function __construct(
         private readonly RetailMerchantDashboardService $merchantIntelligence,
+        private readonly SemanticMetricService $semanticMetrics,
     ) {}
 
     /** @param list<int> $storeIds */
@@ -37,36 +40,29 @@ final class B2cDashboardService
         $orders = $this->orders($storeIds, $from, $to);
         $previousOrders = $this->orders($storeIds, $previousFrom, $previousTo);
 
-        $orderCount = (clone $orders)->count('orders.id');
-        $previousOrderCount = (clone $previousOrders)->count('orders.id');
-        $revenueOrders = (clone $orders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
-        $previousRevenueOrders = (clone $previousOrders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
-        $revenueOrderCount = (clone $revenueOrders)->count('orders.id');
-        $previousRevenueOrderCount = (clone $previousRevenueOrders)->count('orders.id');
-        $revenue = (float) (clone $revenueOrders)->sum('orders.grand_total');
-        $previousRevenue = (float) (clone $previousRevenueOrders)->sum('orders.grand_total');
-        $averageOrderValue = $revenueOrderCount > 0 ? $revenue / $revenueOrderCount : 0.0;
-        $previousAverageOrderValue = $previousRevenueOrderCount > 0
-            ? $previousRevenue / $previousRevenueOrderCount
-            : 0.0;
+        $metrics = $this->semanticMetrics->orderSnapshot(
+            $orders,
+            MetricDictionary::FLOW_SELL_OUT,
+            $rangeFrom->toDateString(),
+            $rangeTo->toDateString(),
+            ['store_ids' => $storeIds],
+        );
+        $previousMetrics = $this->semanticMetrics->orderSnapshot(
+            $previousOrders,
+            MetricDictionary::FLOW_SELL_OUT,
+            $previousRangeFrom->toDateString(),
+            $previousRangeTo->toDateString(),
+            ['store_ids' => $storeIds],
+        );
 
-        $sold = (float) DB::table('order_items')
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.store_id', $storeIds)
-            ->where('orders.channel', 'b2c')
-            ->whereBetween('orders.created_at', [$from, $to])
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('order_items.quantity');
-
-        $previousSold = (float) DB::table('order_items')
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.store_id', $storeIds)
-            ->where('orders.channel', 'b2c')
-            ->whereBetween('orders.created_at', [$previousFrom, $previousTo])
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('order_items.quantity');
+        $orderCount = (int) $metrics['values']['orders'];
+        $previousOrderCount = (int) $previousMetrics['values']['orders'];
+        $revenue = (float) $metrics['values']['net_revenue'];
+        $previousRevenue = (float) $previousMetrics['values']['net_revenue'];
+        $averageOrderValue = (float) $metrics['values']['average_order_value'];
+        $previousAverageOrderValue = (float) $previousMetrics['values']['average_order_value'];
+        $sold = (float) $metrics['values']['units'];
+        $previousSold = (float) $previousMetrics['values']['units'];
 
         $activeWindow = max(1, (int) config('admin.active_user_window_minutes', 15));
         $activeSince = now()->subMinutes($activeWindow);
@@ -87,6 +83,8 @@ final class B2cDashboardService
             'timezone' => self::TIMEZONE,
             'currency' => 'EGP',
             'scope_store_ids' => $storeIds,
+            'metric_provenance' => $metrics['provenance'],
+            'metric_definitions' => $metrics['definitions'],
             'kpis' => [
                 'active_users' => [
                     'value' => $activeUsers,
@@ -150,14 +148,19 @@ final class B2cDashboardService
         for ($day = $rangeFrom; $day->lte($rangeTo); $day = $day->addDay()) {
             [$from, $to] = $this->utcBounds($day);
             $query = $this->orders($storeIds, $from, $to);
+            $metrics = $this->semanticMetrics->orderSnapshot(
+                $query,
+                MetricDictionary::FLOW_SELL_OUT,
+                $day->toDateString(),
+                $day->toDateString(),
+                ['store_ids' => $storeIds],
+            );
 
             $rows[] = [
                 'date' => $day->toDateString(),
                 'label' => $day->format('d/m'),
-                'orders' => (int) (clone $query)->count('orders.id'),
-                'revenue' => round((float) (clone $query)
-                    ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-                    ->sum('orders.grand_total'), 3),
+                'orders' => (int) $metrics['values']['orders'],
+                'revenue' => (float) $metrics['values']['net_revenue'],
             ];
         }
 
