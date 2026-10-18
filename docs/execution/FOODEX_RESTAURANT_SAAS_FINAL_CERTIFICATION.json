@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "program": "FOODEX Restaurant SaaS 2.0",
+  "program_issue": 1572,
+  "blueprint_issue": 1573,
+  "certification_issue": 2122,
+  "status": "REPOSITORY_GA_READY_ON_GREEN_MERGE",
+  "production_activation": "NOT_PERFORMED",
+  "unresolved_repository_p0_p1": 0,
+  "waves": {
+    "0_1": {
+      "status": "COMPLETE",
+      "promotion_issue": 1899,
+      "promotion_pr": 1900
+    },
+    "2": {
+      "status": "COMPLETE",
+      "issues": [1915, 1919],
+      "prs": [1916, 1926]
+    },
+    "3": {
+      "status": "COMPLETE",
+      "issues": [1927, 1949, 1950, 1951],
+      "prs": [1934, 1954, 1952, 1953]
+    },
+    "4": {
+      "status": "COMPLETE",
+      "issue": 1956,
+      "pr": 1957
+    },
+    "5": {
+      "status": "COMPLETE",
+      "issue": 1958,
+      "pr": 1959
+    },
+    "6": {
+      "status": "COMPLETE",
+      "issue": 1960,
+      "pr": 1961
+    },
+    "7": {
+      "status": "CERTIFICATION_GATE",
+      "issue": 2122
+    }
+  },
+  "certified_authorities": [
+    "restaurant_control_plane",
+    "restaurant_billing_and_entitlements",
+    "restaurant_onboarding",
+    "smart_ordering_menu_and_storefront",
+    "payments_and_reconciliation",
+    "floor_tables_and_table_service",
+    "reservations_waitlist_guest_book",
+    "kds_kitchen_routing_and_capacity",
+    "restaurant_workforce_shifts_time_clock",
+    "inventory_recipe_costing_waste_and_supply",
+    "integration_hub_public_api_and_signed_webhooks",
+    "growth_stored_value_franchise_analytics_and_data_portability"
+  ],
+  "required_repository_gates": [
+    "repository_policy",
+    "required_ci",
+    "backend_full",
+    "mysql_redis_deployment_acceptance",
+    "localization",
+    "dashboard_runtime_visual_evidence",
+    "performance"
+  ],
+  "evidence_tests": [
+    "backend/tests/Feature/RestaurantSaaSWave0CertificationTest.php",
+    "backend/tests/Feature/RestaurantSaaSGrowthScaleTest.php",
+    "backend/tests/Feature/RestaurantSaaSIntegrationHubTest.php",
+    "backend/tests/Feature/RestaurantOperationsDashboardConvergenceTest.php",
+    "backend/tests/Feature/SmartOrderingProgramCertificationTest.php",
+    "backend/tests/Deployment/ProductionServicesTest.php",
+    "backend/tests/Feature/RestaurantSaaSFinalCertificationTest.php",
+    "backend/tests/Feature/Performance/RestaurantSaaSFinalPerformanceContractTest.php"
+  ],
+  "production_gate": {
+    "required_before_production_activation": true,
+    "pilot_canary": "NOT_CLAIMED",
+    "real_environment_evidence": "NOT_CLAIMED",
+    "repository_merge_may_proceed_when_repository_gates_are_green": true,
+    "production_activation_must_remain_blocked_without_real_environment_evidence": true
+  }
+}
