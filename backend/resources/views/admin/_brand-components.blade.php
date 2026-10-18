@@ -16,7 +16,7 @@
     aside.sidebar,.sidebar{background:var(--foodex-surface)!important;color:var(--foodex-ink)!important;border-color:var(--foodex-border)!important}
     .foodex-card,.panel,.card,.filters,.back{background:var(--foodex-surface)!important;border:1px solid var(--foodex-border)!important;border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm)}
     /* #2078 Single Global Admin Header: platform chrome renders once; page identity/actions stay in content toolbars. */
-    .foodex-global-header{position:relative;z-index:60;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,560px) minmax(0,1fr);align-items:center;gap:var(--foodex-header-gap);width:100%;max-width:100%;min-width:0;height:var(--foodex-header-height);min-height:var(--foodex-header-height);max-height:var(--foodex-header-height);margin-bottom:12px;padding:2px 6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px;box-shadow:var(--foodex-shadow-sm)}
+    .foodex-global-header{position:relative;z-index:60;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,560px) minmax(0,1fr);align-items:center;gap:var(--foodex-header-gap);width:100%;max-width:100%;min-width:0;height:var(--foodex-header-height);min-height:var(--foodex-header-height);max-height:var(--foodex-header-height);margin-bottom:12px;padding:5px 8px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px;box-shadow:var(--foodex-shadow-sm)}
     .foodex-global-header>*{min-width:0}
     .foodex-global-header-spacer{display:block;width:100%;min-width:0}
     .foodex-global-header-search{min-width:0;width:100%;justify-self:center}
@@ -203,12 +203,12 @@
 
     @media(max-width:767px){
         html{scroll-padding-top:64px}
-        body.foodex-mobile-web{min-width:0;padding:56px 0 0!important}
+        body.foodex-mobile-web{min-width:0;padding:var(--foodex-header-height-mobile) 0 0!important}
         .foodex-mobile-only{display:initial}
         .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr)!important}
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:100%!important;min-width:0!important;padding:12px!important}
         .foodex-admin-page{width:100%!important;max-width:100%!important;min-width:0!important;padding:12px!important}
-        .foodex-global-header{position:fixed;z-index:10110;inset-block-start:0;inset-inline:0;grid-template-columns:minmax(0,1fr) auto;height:56px;min-height:56px;max-height:56px;margin:0;padding:6px 12px;padding-inline-start:64px;border-inline:0;border-top:0;border-radius:0}
+        .foodex-global-header{position:fixed;z-index:10110;inset-block-start:0;inset-inline:0;grid-template-columns:minmax(0,1fr) auto;height:var(--foodex-header-height-mobile);min-height:var(--foodex-header-height-mobile);max-height:var(--foodex-header-height-mobile);margin:0;padding:6px 12px;padding-inline-start:64px;border-inline:0;border-top:0;border-radius:0}
         .foodex-global-header-spacer{display:none}
         .foodex-global-header-search{grid-column:1;grid-row:1}
         .foodex-global-header-utilities{grid-column:2;grid-row:1}
