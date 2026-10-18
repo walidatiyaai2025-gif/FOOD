@@ -126,6 +126,7 @@ final class AssistantToolDefinitionCatalog
                 'channel' => ['type' => 'string', 'enum' => ['b2b', 'b2c', 'B2B', 'B2C']],
                 'store_id' => self::integer(),
                 'store_name' => self::string(160),
+                'query' => self::string(160),
                 ...$extra,
             ],
             'additionalProperties' => false,
