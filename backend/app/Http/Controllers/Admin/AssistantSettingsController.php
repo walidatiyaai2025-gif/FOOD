@@ -56,9 +56,7 @@ final class AssistantSettingsController extends Controller
         if ($requestedEnabled && ! $this->settings->readOnly()) {
             throw ValidationException::withMessages([
                 'enabled' => [
-                    app()->getLocale() === 'ar'
-                        ? 'لا يمكن تفعيل المساعد لأن سياج القراءة فقط غير مفعل على الخادم.'
-                        : 'Assistant cannot be enabled while the server read-only safety fence is disabled.',
+                    __('assistant_settings.errors.read_only_blocked'),
                 ],
             ]);
         }
@@ -80,9 +78,7 @@ final class AssistantSettingsController extends Controller
             ->route('admin.assistant-settings.index')
             ->with(
                 'status',
-                app()->getLocale() === 'ar'
-                    ? 'تم حفظ إعدادات مساعد FOODEX.'
-                    : 'FOODEX Assistant settings saved.',
+                __('assistant_settings.assistant_saved'),
             );
     }
 
@@ -131,9 +127,7 @@ final class AssistantSettingsController extends Controller
             ->route('admin.assistant-settings.index')
             ->with(
                 'status',
-                app()->getLocale() === 'ar'
-                    ? 'تم حفظ إعدادات مزود الذكاء الاصطناعي.'
-                    : 'AI provider settings saved.',
+                __('assistant_settings.provider_saved'),
             );
     }
 
@@ -147,9 +141,7 @@ final class AssistantSettingsController extends Controller
         if ($config['api_url'] === '' || $config['model'] === '') {
             throw ValidationException::withMessages([
                 'provider' => [
-                    app()->getLocale() === 'ar'
-                        ? 'احفظ رابط API والموديل أولاً ثم اختبر الاتصال.'
-                        : 'Save the API URL and model before testing the connection.',
+                    __('assistant_settings.errors.save_before_test'),
                 ],
             ]);
         }
@@ -169,9 +161,7 @@ final class AssistantSettingsController extends Controller
             ->route('admin.assistant-settings.index')
             ->with(
                 $result['ok'] ? 'provider_test_success' : 'provider_test_error',
-                app()->getLocale() === 'ar'
-                    ? ($result['ok'] ? 'تم الاتصال بمزود الذكاء الاصطناعي بنجاح.' : 'فشل اختبار الاتصال. '.$result['message'])
-                    : $result['message'],
+                $result['ok'] ? __('assistant_settings.test_success') : $result['message'],
             );
     }
 
