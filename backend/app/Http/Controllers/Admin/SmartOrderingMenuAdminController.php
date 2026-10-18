@@ -14,6 +14,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\SmartOrdering\Themes\RestaurantTemplateSelectionService;
 use App\Domain\SmartOrdering\Themes\ThemeRegistry;
@@ -29,6 +30,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -482,6 +484,81 @@ final class SmartOrderingMenuAdminController extends Controller
                 'revision' => 'draft',
             ]).'#menu-builder'
         )->with('status', app()->getLocale() === 'ar' ? 'تم حفظ المنيو كمسودة.' : 'Menu saved as draft.');
+    }
+
+    public function setupIdentity(
+        Request $request,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+        SmartOrderingMenuRevisionService $menuRevisions,
+        SmartOrderingRevisionService $revisions,
+    ): RedirectResponse {
+        [$actor, $site] = $this->context($request, $tenants, $sites);
+        $draft = $menuRevisions->draft($actor, $site, $request);
+
+        $data = $request->validate([
+            'name_en' => ['required', 'string', 'max:160'],
+            'name_ar' => ['nullable', 'string', 'max:160'],
+            'tagline_en' => ['nullable', 'string', 'max:240'],
+            'tagline_ar' => ['nullable', 'string', 'max:240'],
+            'description_en' => ['nullable', 'string', 'max:1000'],
+            'description_ar' => ['nullable', 'string', 'max:1000'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'whatsapp_url' => ['nullable', 'url', 'max:500'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'slug' => ['required', 'string', 'max:64'],
+            'runtime_state' => ['required', 'string', Rule::in((array) config('smart_ordering.runtime_states', []))],
+            'master_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $payload = (array) $draft->payload;
+        $content = is_array($payload['content'] ?? null) ? $payload['content'] : [];
+        $identity = is_array($content['identity'] ?? null) ? $content['identity'] : [];
+
+        foreach ([
+            'name_en', 'name_ar', 'tagline_en', 'tagline_ar',
+            'description_en', 'description_ar', 'phone', 'whatsapp_url',
+        ] as $field) {
+            $identity[$field] = trim((string) ($data[$field] ?? ''));
+        }
+
+        foreach (['logo', 'cover'] as $asset) {
+            $file = $request->file($asset);
+            if ($file === null) {
+                continue;
+            }
+
+            $key = $asset.'_url';
+            $previous = trim((string) ($identity[$key] ?? ''));
+            if ($previous !== '' && ! str_starts_with($previous, '/') && ! str_contains($previous, '://')) {
+                Storage::disk('public')->delete($previous);
+            }
+
+            $identity[$key] = $file->store('smart-ordering/branding/'.$site->public_id, 'public');
+        }
+
+        $content['identity'] = $identity;
+        $payload['content'] = $content;
+
+        DB::transaction(function () use ($actor, $site, $sites, $revisions, $draft, $payload, $data, $request): void {
+            $sites->renameSlug($actor, $site, (string) $data['slug'], $request);
+            $sites->updateRuntime(
+                $actor,
+                $site->fresh(),
+                (string) $data['runtime_state'],
+                $request->boolean('master_enabled'),
+                $request,
+            );
+            $revisions->updateDraft($actor, $draft->fresh(), $payload, $request);
+        });
+
+        return redirect()->route('admin.smart-ordering.menu.index', [
+            'store_id' => $site->store_id,
+            'setup' => 'review',
+        ])->with('status', app()->getLocale() === 'ar'
+            ? 'تم حفظ بيانات المطعم. راجع الواجهة قبل النشر.'
+            : 'Restaurant details saved. Review the storefront before publishing.');
     }
 
     public function updateMenu(
