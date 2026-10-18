@@ -178,7 +178,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-kpi-card', $view);
         $this->assertStringContainsString('class="order-kpi-item"', $view);
         $this->assertStringContainsString('class="order-kpi-icon"', $view);
-        $this->assertStringContainsString("data-tone="{{ \$metric['tone'] }}"", $view);
+        $this->assertStringContainsString('data-tone="{{ $metric[\'tone\'] }}"', $view);
         $this->assertStringContainsString('.order-kpi-card::before{content:""', $view);
         $this->assertStringContainsString('@keyframes orderKpiEdge', $view);
         $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$metric['icon']])", $view);
@@ -186,8 +186,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringNotContainsString("__('order_operations.description')", $view);
         $this->assertStringNotContainsString("__('order_operations.dashboard.subtitle')", $view);
         $this->assertStringNotContainsString("__('order_operations.dashboard.generated_at'", $view);
-        $this->assertStringContainsString("title="{{ __('order_operations.filters.channel') }}"", $view);
-        $this->assertStringContainsString("title="{{ __('order_operations.filters.store') }}"", $view);
+        $this->assertStringContainsString('title="{{ __(\'order_operations.filters.channel\') }}"', $view);
+        $this->assertStringContainsString('title="{{ __(\'order_operations.filters.store\') }}"', $view);
     }
 
     private function retailStore(string $code): int
