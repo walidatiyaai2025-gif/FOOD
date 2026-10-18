@@ -225,7 +225,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed', $view);
         $this->assertStringContainsString('@media(max-width:1500px) and (min-width:1001px)', $view);
         $this->assertStringContainsString('.table-wrap{overflow:visible}', $view);
-        $this->assertStringContainsString('colspan="10"', $view);
+        $this->assertStringContainsString('colspan="11"', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.store\') }}</th>', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.channel\') }}</th>', $view);
     }
