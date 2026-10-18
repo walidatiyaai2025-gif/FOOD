@@ -4,8 +4,10 @@
     $orderFilterStores = $availableStores ?? [];
     $orderFilterReset = [
         'channel' => $orderFilterChannel,
-        'action_required' => ($customerServiceProfile ?? false) ? 1 : 0,
     ];
+    if ($customerServiceProfile ?? false) {
+        $orderFilterReset['action_required'] = 1;
+    }
     if ($orderFilterStoreId !== null) {
         $orderFilterReset['store_id'] = $orderFilterStoreId;
     }
@@ -93,6 +95,7 @@
 
         <button class="foodex-filter-action" type="submit">{{ __('order_operations.filters.apply') }}</button>
         <a class="foodex-action-secondary button secondary"
+           data-order-filter-reset-context
            href="{{ route('admin.operations.orders.index', $orderFilterReset) }}#order-tab-orders"
            aria-label="{{ __('order_operations.filters.reset') }}"
            title="{{ __('order_operations.filters.reset') }}">×</a>
