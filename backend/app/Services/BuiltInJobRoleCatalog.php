@@ -17,10 +17,13 @@ use Throwable;
 
 final class BuiltInJobRoleCatalog
 {
+    private const BUSINESS_PROFILES = ['RETAIL_STORE', 'RESTAURANT'];
+
     public function __construct(
         private readonly ModuleManifestCatalog $modules,
         private readonly ModuleRegistry $registry,
         private readonly ModuleEntitlementResolver $entitlements,
+        private readonly StoreBusinessProfileService $businessProfiles,
     ) {}
 
     /** @return Collection<string,array<string,mixed>> */
@@ -39,6 +42,10 @@ final class BuiltInJobRoleCatalog
                 'scope' => (string) ($definition['scope'] ?? 'global'),
                 'business_scope' => (string) ($definition['business_scope'] ?? ($definition['scope'] ?? 'global')),
                 'level' => (string) ($definition['level'] ?? 'specialist'),
+                'business_profiles' => array_values(array_unique(array_map(
+                    static fn ($profile): string => strtoupper(trim((string) $profile)),
+                    (array) ($definition['business_profiles'] ?? []),
+                ))),
                 'required_modules' => array_values(array_unique(array_map('strval', (array) ($definition['required_modules'] ?? [])))),
                 'optional_modules' => array_values(array_unique(array_map('strval', (array) ($definition['optional_modules'] ?? [])))),
                 'permissions' => $this->defaultPermissions($code, $definition),
@@ -83,6 +90,9 @@ final class BuiltInJobRoleCatalog
         if ($definition['scope'] === 'global' && $storeId !== null) {
             return false;
         }
+        if ($storeId !== null && ! $this->isBusinessProfileCompatible($code, $storeId)) {
+            return false;
+        }
 
         try {
             foreach ($definition['required_modules'] as $moduleCode) {
@@ -102,6 +112,32 @@ final class BuiltInJobRoleCatalog
         }
 
         return true;
+    }
+
+    public function isBusinessProfileCompatible(string $code, int $storeId): bool
+    {
+        $definition = $this->definition($code);
+        if ($definition === null || $definition['scope'] !== 'store') {
+            return true;
+        }
+
+        $profile = $this->businessProfileForStore($storeId);
+
+        return $profile !== null
+            && in_array($profile, $definition['business_profiles'], true);
+    }
+
+    public function businessProfileForStore(int $storeId): ?string
+    {
+        if ($storeId <= 0) {
+            return null;
+        }
+
+        try {
+            return $this->businessProfiles->resolve($storeId)?->value;
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -135,12 +171,24 @@ final class BuiltInJobRoleCatalog
         foreach ($storeRoles as $assignment) {
             $role = $assignment['role'] ?? null;
             $storeId = (int) ($assignment['store_id'] ?? 0);
-            if (! $role instanceof Role || $this->isAvailable((string) $role->code, $storeId)) {
+            if (! $role instanceof Role) {
                 continue;
             }
 
             $pair = ((int) $role->id).':'.$storeId;
             if (in_array($pair, $currentStorePairs, true)) {
+                continue;
+            }
+
+            if (! $this->isBusinessProfileCompatible((string) $role->code, $storeId)) {
+                throw ValidationException::withMessages([
+                    'store_roles' => [__('job_roles.errors.profile_mismatch', [
+                        'role' => $this->presentation((string) $role->code)['name'],
+                    ])],
+                ]);
+            }
+
+            if ($this->isAvailable((string) $role->code, $storeId)) {
                 continue;
             }
 
@@ -176,6 +224,7 @@ final class BuiltInJobRoleCatalog
                 'domain' => __('job_roles.domains.custom'),
                 'scope' => '',
                 'level' => '',
+                'business_profiles' => [],
                 'required_modules' => [],
                 'built_in' => false,
             ];
@@ -288,6 +337,18 @@ final class BuiltInJobRoleCatalog
         if (! in_array($definition['scope'], ['global', 'store'], true)) {
             throw new RuntimeException('Unsupported built-in role assignment scope ['.$definition['code'].'].');
         }
+
+        $unknownProfiles = array_values(array_diff($definition['business_profiles'], self::BUSINESS_PROFILES));
+        if ($unknownProfiles !== []) {
+            throw new RuntimeException('Built-in role ['.$definition['code'].'] references unsupported business profiles: '.implode(', ', $unknownProfiles));
+        }
+        if ($definition['scope'] === 'global' && $definition['business_profiles'] !== []) {
+            throw new RuntimeException('Global built-in role ['.$definition['code'].'] cannot be restricted to a store business profile.');
+        }
+        if ($definition['scope'] === 'store' && $definition['business_profiles'] === []) {
+            throw new RuntimeException('Store built-in role ['.$definition['code'].'] must declare at least one business profile.');
+        }
+
         if (! in_array($definition['level'], ['manager', 'supervisor', 'operator', 'specialist', 'viewer'], true)) {
             throw new RuntimeException('Unsupported built-in role level ['.$definition['code'].'].');
         }
