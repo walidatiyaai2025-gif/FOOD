@@ -240,6 +240,36 @@ class SmartOrderingMenuDomainTest extends TestCase
         Storage::disk('public')->assertExists((string) $identity['cover_url']);
     }
 
+    public function test_guided_final_publish_activates_public_storefront_and_publishes_draft(): void
+    {
+        $fixture = $this->fixture('GUIDEDPUBLISH', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Launch Item',
+            'price_override' => 5.000,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.publish', $draft), [
+                'store_id' => $fixture['store_id'],
+                'guided' => '1',
+            ])
+            ->assertRedirect(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'publish',
+            ]));
+
+        $site = $fixture['site']->fresh();
+        $this->assertTrue((bool) $site->master_enabled);
+        $this->assertSame('ENABLED', $site->runtime_state);
+        $this->assertTrue((bool) DB::table('smart_ordering_entitlements')
+            ->where('site_id', $site->id)
+            ->where('scope_key', 'site')
+            ->where('module', 'public_menu')
+            ->value('enabled'));
+        $this->assertNotNull(app(SmartOrderingMenuRevisionService::class)->published($site));
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
