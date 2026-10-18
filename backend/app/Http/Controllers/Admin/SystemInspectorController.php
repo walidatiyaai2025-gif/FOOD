@@ -437,35 +437,36 @@ final class SystemInspectorController extends Controller
     /** @return array<string,mixed> */
     private function systemAdministrationEvidence(ProductionDatasetSnapshot $productionSnapshot): array
     {
-        $updates = UpdateHistory::query()
+        $updateRows = UpdateHistory::query()
             ->latest('id')
             ->limit(100)
-            ->get()
-            ->map(function (UpdateHistory $row): array {
-                $rawEvidence = $row->getAttribute('execution_evidence');
-                /** @var array<string,mixed> $evidence */
-                $evidence = is_array($rawEvidence) ? $rawEvidence : [];
+            ->get();
+        $updates = [];
 
-                return [
-                    'id' => $row->id,
-                    'actor_id' => $row->actor_id,
-                    'from_version' => $row->from_version,
-                    'to_version' => $row->to_version,
-                    'status' => $row->status,
-                    'environment' => $row->environment,
-                    'operation_reason' => $row->operation_reason,
-                    'backup_status' => $row->backup_status,
-                    'failed_stage' => $row->failed_stage,
-                    'rollback_status' => $row->rollback_status,
-                    'maintenance_mode_remained' => (bool) $row->maintenance_mode_remained,
-                    'health_verified_at' => $row->health_verified_at?->toIso8601String(),
-                    'started_at' => $row->started_at?->toIso8601String(),
-                    'finished_at' => $row->finished_at?->toIso8601String(),
-                    'failure_reason' => $row->failure_reason,
-                    'execution_evidence' => $this->safeUpdateEvidence($evidence),
-                ];
-            })
-            ->all();
+        foreach ($updateRows as $row) {
+            $rawEvidence = $row->getAttribute('execution_evidence');
+            /** @var array<string,mixed> $evidence */
+            $evidence = is_array($rawEvidence) ? $rawEvidence : [];
+
+            $updates[] = [
+                'id' => $row->id,
+                'actor_id' => $row->actor_id,
+                'from_version' => $row->from_version,
+                'to_version' => $row->to_version,
+                'status' => $row->status,
+                'environment' => $row->environment,
+                'operation_reason' => $row->operation_reason,
+                'backup_status' => $row->backup_status,
+                'failed_stage' => $row->failed_stage,
+                'rollback_status' => $row->rollback_status,
+                'maintenance_mode_remained' => (bool) $row->maintenance_mode_remained,
+                'health_verified_at' => $row->getRawOriginal('health_verified_at'),
+                'started_at' => $row->getRawOriginal('started_at'),
+                'finished_at' => $row->getRawOriginal('finished_at'),
+                'failure_reason' => $row->failure_reason,
+                'execution_evidence' => $this->safeUpdateEvidence($evidence),
+            ];
+        }
 
         try {
             $snapshot = $productionSnapshot->status();
