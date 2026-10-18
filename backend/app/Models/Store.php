@@ -71,6 +71,19 @@ class Store extends Model
         ];
     }
 
+    public static function effectiveB2cBusinessProfile(mixed $profile): ?string
+    {
+        if ($profile === null) {
+            return self::BUSINESS_PROFILE_RETAIL_STORE;
+        }
+
+        if (! is_string($profile) || ! in_array($profile, self::businessProfiles(), true)) {
+            return null;
+        }
+
+        return $profile;
+    }
+
     public function storeType(): BelongsTo
     {
         return $this->belongsTo(StoreType::class, 'store_type_id');
@@ -104,12 +117,12 @@ class Store extends Model
 
     public function isRetailStoreProfile(): bool
     {
-        return $this->business_profile === self::BUSINESS_PROFILE_RETAIL_STORE;
+        return $this->resolvedBusinessProfile() === StoreBusinessProfile::RETAIL_STORE;
     }
 
     public function isRestaurantProfile(): bool
     {
-        return $this->business_profile === self::BUSINESS_PROFILE_RESTAURANT;
+        return $this->resolvedBusinessProfile() === StoreBusinessProfile::RESTAURANT;
     }
 
     /**
@@ -129,7 +142,13 @@ class Store extends Model
         }
 
         return $query
-            ->where('stores.business_profile', $resolved->value)
+            ->where(function (Builder $profileQuery) use ($resolved): void {
+                $profileQuery->where('stores.business_profile', $resolved->value);
+
+                if ($resolved === StoreBusinessProfile::RETAIL_STORE) {
+                    $profileQuery->orWhereNull('stores.business_profile');
+                }
+            })
             ->whereHas('storeType', static fn (Builder $typeQuery) => $typeQuery->where('code', 'B2C'));
     }
 

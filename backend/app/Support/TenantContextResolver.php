@@ -112,7 +112,13 @@ final class TenantContextResolver
 
         return Store::query()
             ->whereIn('id', $ids)
-            ->where('business_profile', $profile)
+            ->where(function ($query) use ($profile): void {
+                $query->where('business_profile', $profile);
+
+                if ($profile === Store::BUSINESS_PROFILE_RETAIL_STORE) {
+                    $query->orWhereNull('business_profile');
+                }
+            })
             ->where('is_active', true)
             ->orderBy('id')
             ->pluck('id')
@@ -124,8 +130,8 @@ final class TenantContextResolver
     public function businessProfileForStore(int $storeId): string
     {
         $store = $this->storeForChannel($storeId, 'B2C');
-        $profile = (string) ($store->business_profile ?? '');
-        abort_unless(in_array($profile, Store::businessProfiles(), true), 404);
+        $profile = Store::effectiveB2cBusinessProfile($store->business_profile);
+        abort_unless($profile !== null, 404);
 
         return $profile;
     }
@@ -134,7 +140,7 @@ final class TenantContextResolver
     {
         abort_unless(in_array($profile, Store::businessProfiles(), true), 404);
         $store = $this->storeForChannel($storeId, 'B2C');
-        abort_unless($store->business_profile === $profile, 404);
+        abort_unless(Store::effectiveB2cBusinessProfile($store->business_profile) === $profile, 404);
 
         return $store;
     }

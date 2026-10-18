@@ -25,11 +25,13 @@ final class StoreBusinessProfileService
                 'stores.business_profile',
             ]);
 
-        if ($row === null || $row->channel !== 'B2C' || ! is_string($row->business_profile)) {
+        if ($row === null || $row->channel !== 'B2C') {
             return null;
         }
 
-        return StoreBusinessProfile::tryFrom($row->business_profile);
+        $profile = Store::effectiveB2cBusinessProfile($row->business_profile);
+
+        return $profile === null ? null : StoreBusinessProfile::tryFrom($profile);
     }
 
     public function matches(Store|int $store, StoreBusinessProfile $profile): bool

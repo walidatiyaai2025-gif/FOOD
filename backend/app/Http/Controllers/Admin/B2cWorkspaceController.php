@@ -58,7 +58,8 @@ class B2cWorkspaceController extends Controller
     /** @var array<string,list<string>> */
     private const PROFILE_MODULES = [
         Store::BUSINESS_PROFILE_RETAIL_STORE => [
-            'dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'reports', 'settings',
+            'dashboard', 'products', 'inventory', 'orders', 'finance', 'customers', 'promotions',
+            'drivers', 'storefront', 'content', 'reports', 'settings',
         ],
         Store::BUSINESS_PROFILE_RESTAURANT => [
             'customers', 'promotions', 'reports', 'settings', 'wholesale_purchases',
@@ -1839,7 +1840,13 @@ class B2cWorkspaceController extends Controller
             'selected_store_id' => $selectedStoreId,
             'stores' => DB::table('stores')
                 ->whereIn('id', $storeIds)
-                ->where('business_profile', $selectedProfile)
+                ->where(function ($query) use ($selectedProfile): void {
+                    $query->where('business_profile', $selectedProfile);
+
+                    if ($selectedProfile === Store::BUSINESS_PROFILE_RETAIL_STORE) {
+                        $query->orWhereNull('business_profile');
+                    }
+                })
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'business_profile'])
                 ->all(),
