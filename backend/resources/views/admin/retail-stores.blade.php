@@ -308,7 +308,7 @@ $roleLabel = static function ($role): string {
 
                         @include('admin._store-channel-360',['store'=>$store])
 
-                        <section class="store-service" data-business-profile="{{ $store->business_profile }}">
+                        <section class="store-service" data-business-profile-summary="{{ $store->id }}" data-business-profile="{{ $store->business_profile }}">
                             <div class="store-service-copy">
                                 <div class="store-meta">
                                     <h4>{{ __('retail_stores.profile.operating_profile') }}</h4>
