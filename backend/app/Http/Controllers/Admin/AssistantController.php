@@ -176,8 +176,7 @@ final class AssistantController extends Controller
                     ->first();
 
                 if ($state !== null && ! $this->memoryPolicy->stateFresh($state)) {
-                    $state->delete();
-                    $state = null;
+                    $state = $this->memoryPolicy->expireTransientState($state);
                 }
 
                 $effectivePreferences = array_merge(
