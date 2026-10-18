@@ -95,7 +95,7 @@
         </a>
     @endif
     @if($restaurantCanManage)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.menu.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.menu.*')) aria-current="page" @endif>
+        <a class="foodex-tab" href="{{ route('admin.smart-ordering.menu.index', [...$restaurantStoreParams, 'setup' => 'menu']) }}" @if(request()->routeIs('admin.smart-ordering.menu.*')) aria-current="page" @endif>
             {{ __('smart_ordering_menu.nav_title') }}
         </a>
     @endif
