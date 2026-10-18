@@ -844,6 +844,8 @@ Route::prefix('admin')
         Route::post('/apps/downloads/retry', [MobileAppDownloadController::class, 'retry'])->name('mobile-apps.retry');
         Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
+        Route::put('/settings/assistant/provider', [AssistantSettingsController::class, 'updateProvider'])->name('assistant-settings.provider.update');
+        Route::post('/settings/assistant/provider/test', [AssistantSettingsController::class, 'testProvider'])->middleware('throttle:10,1')->name('assistant-settings.provider.test');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
         Route::get('/settings/sms', [SmsSettingsController::class, 'index'])->name('sms-settings.index');
