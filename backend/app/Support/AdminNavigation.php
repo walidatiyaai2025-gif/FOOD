@@ -274,8 +274,8 @@ class AdminNavigation
                         ->where('roles.scope', 'store'))
                     ->with('role:id,code')
                     ->get()
-                    ->map(fn ($assignment) => $assignment->role?->code)
-                    ->filter(fn ($code) => is_string($code) && $code !== '')
+                    ->map(fn ($assignment): string => $assignment->role->code)
+                    ->filter()
                     ->values()
                     ->all();
             }
