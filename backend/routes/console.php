@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
 use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
@@ -21,6 +22,39 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('foodex:version', function (): void {
     $this->info(trim((string) @file_get_contents(base_path('../VERSION'))));
 });
+
+Artisan::command(
+    'foodex:analytics-refresh {--from= : Backfill start date, YYYY-MM-DD} {--to= : Backfill end date, YYYY-MM-DD} {--store=* : Restrict to one or more store IDs}',
+    function (AnalyticsFactMaterializer $materializer): int {
+        $storeIds = collect((array) $this->option('store'))
+            ->map(static fn ($id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+        $from = trim((string) ($this->option('from') ?? ''));
+        $to = trim((string) ($this->option('to') ?? ''));
+
+        if (($from === '') !== ($to === '')) {
+            $this->error('Provide both --from and --to for an analytics backfill.');
+
+            return 2;
+        }
+
+        $result = $from !== ''
+            ? $materializer->backfill($from, $to, $storeIds)
+            : $materializer->refreshIncremental($storeIds);
+
+        $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return 0;
+    },
+)->purpose('Materialize bounded canonical AI analytics facts without granting the model SQL access.');
+
+Schedule::command('foodex:analytics-refresh')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(10);
+
 
 Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
     $count = app(NotificationCampaignDispatcher::class)->dispatchDue();
