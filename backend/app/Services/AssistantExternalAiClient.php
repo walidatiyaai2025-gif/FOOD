@@ -681,7 +681,15 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             'correlation_id' => $correlationId,
         ]);
 
-        $this->observability->record($correlationId, 'provider.transport', [
+        $eventName = match (true) {
+            str_starts_with($outcome, 'health_') => 'provider.health',
+            str_starts_with($outcome, 'probe_') => 'provider.probe',
+            in_array($outcome, ['malformed', 'malformed_schema'], true) => 'provider.validation',
+            $outcome === 'circuit_open' => 'provider.circuit',
+            default => 'provider.transport',
+        };
+
+        $this->observability->record($correlationId, $eventName, [
             'phase' => 'provider',
             'provider' => 'openai_compatible',
             'model' => $model,
