@@ -291,7 +291,7 @@ class AdminWebLoginTest extends TestCase
             'password' => 'correct-password',
         ])
             ->assertRedirect(route('admin.mfa.enroll'))
-            ->assertSessionHas('mfa_intended', route('admin.b2b.dashboard'));
+            ->assertSessionHas('mfa_intended', route('admin.erp.customer-service'));
 
         $this->assertAuthenticatedAs($user);
     }
