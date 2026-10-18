@@ -45,18 +45,15 @@ class AdminLoginController extends Controller
         $user = $request->user();
 
         if ($user instanceof User && $user->is_active) {
-            if ($user->hasRole('SUPER_ADMIN')) {
-                return redirect()->route('admin.index');
-            }
-
-            $target = $this->targetChannel($user, $channel);
+            $preferredChannel = $user->hasRole('SUPER_ADMIN') ? 'b2b' : $channel;
+            $target = $this->targetChannel($user, $preferredChannel);
 
             if ($target !== null) {
                 $profileTarget = $target === 'b2c' ? $this->workspaceLanding->urlFor($user) : null;
 
-                return $profileTarget !== null
-                    ? redirect()->to($profileTarget)
-                    : redirect()->route("admin.{$target}.dashboard");
+                return redirect()->to(
+                    $profileTarget ?? $this->navigation->defaultWorkspaceUrl($user, $target),
+                );
             }
         }
 
@@ -266,8 +263,8 @@ class AdminLoginController extends Controller
 
             $intended = $this->authorizedIntendedUrl($request, $user);
             $defaultTarget = $target === 'b2c'
-                ? ($this->workspaceLanding->urlFor($user) ?? route('admin.b2c.dashboard'))
-                : route("admin.{$target}.dashboard");
+                ? ($this->workspaceLanding->urlFor($user) ?? $this->navigation->defaultWorkspaceUrl($user, $target))
+                : $this->navigation->defaultWorkspaceUrl($user, $target);
 
             if ($this->securityPolicy->requiresMfa($user)) {
                 $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
