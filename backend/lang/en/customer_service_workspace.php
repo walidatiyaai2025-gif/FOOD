@@ -13,6 +13,14 @@ return [
     'no_access' => 'No customer-service capability is available for your current permissions.',
     'truth_title' => 'Canonical records only',
     'truth_help' => 'Cases and SLA are owned here. Customer, order, payment, delivery and conversation truth stays in its existing FOODEX authority; this workspace links to those records instead of duplicating them.',
+    'tabs' => [
+        'label' => 'Customer Service workspace',
+        'cases' => 'Cases',
+        'analytics' => 'Analytics',
+        'customers' => 'Customers',
+        'team' => 'Team',
+        'tools' => 'Tools',
+    ],
     'dashboard' => [
         'title' => 'Service operations snapshot',
         'help' => 'Current workload, customer risk and service outcomes inside your authorized store scope.',
