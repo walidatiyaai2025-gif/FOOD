@@ -13,7 +13,7 @@
 
     $restaurantPrimaryTasks = [
         ['key'=>'customer_orders','href'=>$restaurantOperationsUrl('orders'),'visible'=>$restaurantCanOrders],
-        ['key'=>'menu','href'=>route('admin.smart-ordering.menu.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanManage],
+        ['key'=>'menu','href'=>route('admin.smart-ordering.menu.index',[...$restaurantWorkspaceQuery,'setup'=>'menu']),'visible'=>$restaurantCanManage],
         ['key'=>'operations','href'=>route('admin.smart-ordering.operations.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanOrders],
         ['key'=>'wholesale_purchases','href'=>$restaurantWholesalePurchasesUrl,'visible'=>$restaurantCanOrders && $restaurantWholesalePurchasesUrl],
         ['key'=>'settings','href'=>route('admin.smart-ordering.index',$restaurantWorkspaceQuery),'visible'=>true],
@@ -33,7 +33,7 @@
             ['key' => 'dispatch', 'href' => $restaurantOperationsUrl('orders'), 'visible' => $restaurantCanOrders, 'state' => 'partial'],
         ],
         'menu_growth' => [
-            ['key' => 'menu', 'href' => route('admin.smart-ordering.menu.index', $restaurantWorkspaceQuery), 'visible' => $restaurantCanManage],
+            ['key' => 'menu', 'href' => route('admin.smart-ordering.menu.index', [...$restaurantWorkspaceQuery, 'setup' => 'menu']), 'visible' => $restaurantCanManage],
             ['key' => 'appearance', 'href' => route('admin.smart-ordering.appearance.index', $restaurantAppearanceParams), 'visible' => true],
             ['key' => 'qr', 'href' => route('admin.smart-ordering.qr.index', $restaurantWorkspaceQuery), 'visible' => $restaurantCanQr],
             ['key' => 'customers', 'href' => $restaurantSiteParams ? route('admin.smart-ordering.growth.index', $restaurantSiteParams) : null, 'visible' => $restaurantCanCustomers && $restaurantSiteParams],
