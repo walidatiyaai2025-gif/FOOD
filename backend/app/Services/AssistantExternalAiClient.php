@@ -288,6 +288,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                     $index > 0,
                     correlationId: $request->correlationId,
                 );
+
                 continue;
             }
 
@@ -309,6 +310,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                     $index > 0,
                     correlationId: $request->correlationId,
                 );
+
                 continue;
             }
 
