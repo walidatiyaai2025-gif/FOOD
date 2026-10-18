@@ -271,7 +271,7 @@ final class RetailerSellOutAccessPolicy
             ->values()
             ->all();
 
-        if ($ids === [] || count($ids) !== count(array_unique($retailerStoreIds)) || count($ids) > 100) {
+        if ($ids === [] || count($ids) !== count($retailerStoreIds) || count($ids) > 100) {
             throw ValidationException::withMessages([
                 'retailer_store_ids' => ['Provide between 1 and 100 unique positive retailer store ids.'],
             ]);
@@ -318,9 +318,14 @@ final class RetailerSellOutAccessPolicy
     {
         $assistant = $this->scope->allowedStoreIds($actor, 'assistant.use', 'b2b');
         $reports = $this->scope->allowedStoreIds($actor, 'reports.view', 'b2b');
+        $candidateIds = array_values(array_intersect($assistant, $reports));
+
+        if ($candidateIds === []) {
+            return [];
+        }
+
         $ids = array_values(array_intersect(
-            $assistant,
-            $reports,
+            $candidateIds,
             [$this->principal->storeId()],
         ));
         sort($ids);
