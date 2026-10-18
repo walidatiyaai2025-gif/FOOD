@@ -17,7 +17,7 @@ Unknown tools, raw SQL fields, scope injection and malformed arguments never rea
 
 The orchestrator has explicit server-owned budgets:
 
-- planning steps: default 2, hard maximum 4;
+- planning steps: default 2, hard maximum 4 (the current implementation uses one planning response per turn);
 - tool calls: default 4, hard maximum 8;
 - provider/result context: default 64 KiB;
 - wall-clock budget: default 12 seconds, hard maximum 30 seconds;
@@ -41,7 +41,7 @@ Planning receives only:
 
 Planner text is never stored as reasoning and is never exposed as chain-of-thought. The only durable orchestration state is operational metadata such as tool keys, counts, correlation id, references and the final grounded answer.
 
-Tool results become numbered evidence `E1..En`. Failed non-authorization reads are represented as unavailable evidence and produce a partial answer. Authorization, consent and schema failures remain fail-closed and are propagated instead of being converted into model-readable errors.
+Tool results become server-numbered evidence such as `ev-call-1`. Failed non-authorization reads are represented as unavailable evidence and produce a partial answer. Authorization, consent and schema failures remain fail-closed and are propagated instead of being converted into model-readable errors.
 
 ## Grounded synthesis
 
