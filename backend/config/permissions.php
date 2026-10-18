@@ -108,6 +108,7 @@ return [
         'inventory.manage' => 'Manage inventory',
         'inventory.replenishment_mapping.manage' => 'Map wholesale products into retail inventory units',
         'orders.view' => 'View orders',
+        'orders.create' => 'Create customer orders within authorized business scope',
         'orders.edit' => 'Edit order details where business rules allow',
         'orders.approve' => 'Approve controlled order transitions',
         'orders.manage' => 'Manage orders',
@@ -127,6 +128,7 @@ return [
         'reports.export' => 'Export authorized reports',
         'support.view' => 'View customer support operations',
         'support.manage' => 'Manage customer support operations',
+        'customer_service.team.manage' => 'Create and manage Customer Service agents and supervisors',
         'notifications.view' => 'View notification administration',
         'notifications.manage' => 'Manage notification content and targeting',
         'coupons.view' => 'View coupon administration',
@@ -151,7 +153,7 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
@@ -165,7 +167,7 @@ return [
             'chatbot.ai.view', 'chatbot.ai.manage',
             'chatbot.segments.view', 'chatbot.segments.manage',
             'chatbot.analytics.view', 'chatbot.sessions.view', 'chatbot.sessions.takeover', 'chatbot.audit.view',
-            'stores.view', 'customers.view', 'orders.view',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create',
         ],
         'B2B_ADMIN' => [
             'stores.view',
