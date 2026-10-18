@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -137,18 +138,16 @@ final class RestaurantWholesalePurchasesTest extends TestCase
 
     private function enableRestaurant(Store $store): void
     {
-        DB::table('enterprise_module_entitlements')->updateOrInsert(
-            [
-                'module_code' => 'smart_ordering',
-                'scope_type' => 'store',
-                'scope_id' => $store->id,
-            ],
-            [
-                'is_enabled' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        $actor = User::query()->create([
+            'name' => 'restaurant-saas-owner-'.$store->id,
+            'email' => 'restaurant-saas-owner-'.$store->id.'@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $actor->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        app(RestaurantSaasStoreFeatureService::class)->setEnabled($store, true, $actor);
     }
 
     private function wholesaleProduct(int $storeId, string $sku): int
