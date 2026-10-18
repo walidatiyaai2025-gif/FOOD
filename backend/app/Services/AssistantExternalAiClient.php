@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Domain\Assistant\Data\AssistantBrainRequest;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -29,7 +32,10 @@ final class AssistantExternalAiClient
         'brief.daily',
     ];
 
-    public function __construct(private readonly AssistantProviderSettings $settings) {}
+    public function __construct(
+        private readonly AssistantProviderSettings $settings,
+        private readonly AssistantModelRegistry $models,
+    ) {}
 
     /**
      * @return array{intent:?string,confidence:float,message:string,entities:array<string,mixed>}|null
@@ -41,40 +47,53 @@ final class AssistantExternalAiClient
         }
 
         $config = $this->settings->snapshot();
+        $apiKey = $this->settings->apiKey();
 
         try {
             $this->assertSafeEndpoint($config['api_url']);
 
-            $response = $this->request(
-                apiKey: $this->settings->apiKey(),
-                timeoutSeconds: $config['timeout_seconds'],
-            )->post($config['api_url'], [
-                'model' => $config['model'],
-                'temperature' => 0.1,
-                'max_tokens' => 512,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => $this->routingPrompt($request->locale),
+            foreach ($this->models->routingOrder('intent_routing') as $index => $model) {
+                $response = $this->sendWithResilience(
+                    config: $config,
+                    apiKey: $apiKey,
+                    model: $model,
+                    payload: [
+                        'model' => $model,
+                        'temperature' => $config['temperature'],
+                        'max_tokens' => $config['max_tokens'],
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => $this->routingPrompt($request->locale),
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $request->message,
+                            ],
+                        ],
                     ],
-                    [
-                        'role' => 'user',
-                        'content' => $request->message,
-                    ],
-                ],
-            ]);
+                    fallback: $index > 0,
+                );
 
-            if (! $response->successful()) {
-                return null;
+                if (! $response instanceof Response) {
+                    continue;
+                }
+
+                $content = data_get($response->json(), 'choices.0.message.content');
+
+                if (! is_string($content) || trim($content) === '') {
+                    $this->providerTelemetry($config, $model, 'malformed', $response->status(), 0, $index > 0);
+                    continue;
+                }
+
+                $parsed = $this->parseRoutingResponse($content);
+
+                if ($parsed !== null) {
+                    return $parsed;
+                }
             }
 
-            $content = data_get($response->json(), 'choices.0.message.content');
-
-            if (! is_string($content) || trim($content) === '') {
-                return null;
-            }
-
-            return $this->parseRoutingResponse($content);
+            return null;
         } catch (Throwable $exception) {
             report($exception);
 
@@ -83,60 +102,163 @@ final class AssistantExternalAiClient
     }
 
     /**
-     * @param  array{api_url:string,model:string,timeout_seconds:int}  $config
-     * @return array{ok:bool,message:string}
+     * @param  array{
+     *   api_url:string,
+     *   model:string,
+     *   timeout_seconds:int,
+     *   context_window_tokens?:int,
+     *   max_tokens?:int
+     * }  $config
+     * @return array{
+     *   ok:bool,
+     *   reachable:bool,
+     *   agent_capable:bool,
+     *   message:string,
+     *   latency_ms:int,
+     *   capabilities:array<string,mixed>
+     * }
      */
     public function probe(array $config, ?string $apiKey): array
     {
+        $snapshot = $this->settings->snapshot();
+        $config = array_merge($snapshot, $config);
+        $started = microtime(true);
+
         try {
             $this->assertSafeEndpoint($config['api_url']);
 
-            $response = $this->request(
+            $chat = $this->request(
                 apiKey: $apiKey,
                 timeoutSeconds: $config['timeout_seconds'],
             )->post($config['api_url'], [
                 'model' => $config['model'],
                 'temperature' => 0,
-                'max_tokens' => 128,
+                'max_tokens' => min(128, $config['max_tokens']),
                 'messages' => [
                     ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
                 ],
             ]);
 
-            if (! $response->successful()) {
-                return [
-                    'ok' => false,
-                    'message' => __('assistant_settings.errors.provider_http', ['status' => $response->status()]),
-                ];
+            $latency = (int) round((microtime(true) - $started) * 1000);
+
+            if (! $chat->successful()) {
+                return $this->probeResult(
+                    reachable: false,
+                    chat: false,
+                    structuredJson: false,
+                    toolCalls: false,
+                    config: $config,
+                    latencyMs: $latency,
+                    message: __('assistant_settings.errors.provider_http', ['status' => $chat->status()]),
+                );
             }
 
-            $content = data_get($response->json(), 'choices.0.message.content');
+            $content = data_get($chat->json(), 'choices.0.message.content');
+            $chatContract = is_string($content) && $this->normalizeModelContent($content) === 'FOODEX_OK';
 
-            if (! is_string($content) || trim($content) === '') {
-                return [
-                    'ok' => false,
-                    'message' => __('assistant_settings.errors.malformed_response'),
-                ];
+            if (! $chatContract) {
+                return $this->probeResult(
+                    reachable: true,
+                    chat: false,
+                    structuredJson: false,
+                    toolCalls: false,
+                    config: $config,
+                    latencyMs: $latency,
+                    message: __('assistant_settings.errors.unexpected_probe_response'),
+                );
             }
 
-            if ($this->normalizeModelContent($content) !== 'FOODEX_OK') {
-                return [
-                    'ok' => false,
-                    'message' => __('assistant_settings.errors.unexpected_probe_response'),
-                ];
+            $jsonResponse = $this->request(
+                apiKey: $apiKey,
+                timeoutSeconds: $config['timeout_seconds'],
+            )->post($config['api_url'], [
+                'model' => $config['model'],
+                'temperature' => 0,
+                'max_tokens' => min(128, $config['max_tokens']),
+                'messages' => [
+                    ['role' => 'user', 'content' => 'Return JSON only: {"ok":true,"contract":"foodex"}'],
+                ],
+            ]);
+
+            $jsonContent = data_get($jsonResponse->json(), 'choices.0.message.content');
+            $jsonDecoded = is_string($jsonContent)
+                ? json_decode($this->normalizeModelContent($jsonContent), true)
+                : null;
+            $structuredJson = $jsonResponse->successful()
+                && is_array($jsonDecoded)
+                && ($jsonDecoded['ok'] ?? null) === true
+                && ($jsonDecoded['contract'] ?? null) === 'foodex';
+
+            $toolResponse = $this->request(
+                apiKey: $apiKey,
+                timeoutSeconds: $config['timeout_seconds'],
+            )->post($config['api_url'], [
+                'model' => $config['model'],
+                'temperature' => 0,
+                'max_tokens' => min(128, $config['max_tokens']),
+                'messages' => [
+                    ['role' => 'user', 'content' => 'Call the foodex_capability_probe tool with {"ok":true}.'],
+                ],
+                'tools' => [[
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'foodex_capability_probe',
+                        'description' => 'FOODEX capability probe only.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'ok' => ['type' => 'boolean'],
+                            ],
+                            'required' => ['ok'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ]],
+                'tool_choice' => [
+                    'type' => 'function',
+                    'function' => ['name' => 'foodex_capability_probe'],
+                ],
+            ]);
+
+            $toolCalls = data_get($toolResponse->json(), 'choices.0.message.tool_calls', []);
+            $toolContract = false;
+
+            if ($toolResponse->successful() && is_array($toolCalls)) {
+                foreach ($toolCalls as $call) {
+                    if (data_get($call, 'function.name') === 'foodex_capability_probe') {
+                        $arguments = json_decode((string) data_get($call, 'function.arguments', ''), true);
+                        $toolContract = is_array($arguments) && ($arguments['ok'] ?? null) === true;
+                        break;
+                    }
+                }
             }
 
-            return [
-                'ok' => true,
-                'message' => __('assistant_settings.test_success'),
-            ];
+            $latency = (int) round((microtime(true) - $started) * 1000);
+
+            return $this->probeResult(
+                reachable: true,
+                chat: true,
+                structuredJson: $structuredJson,
+                toolCalls: $toolContract,
+                config: $config,
+                latencyMs: $latency,
+                message: __('assistant_settings.test_success'),
+            );
         } catch (ValidationException $exception) {
             throw $exception;
-        } catch (Throwable) {
-            return [
-                'ok' => false,
-                'message' => __('assistant_settings.errors.connection_failed'),
-            ];
+        } catch (Throwable $exception) {
+            $this->providerTelemetry($config, (string) ($config['model'] ?? ''), 'probe_exception', null, 0, false);
+            report($exception);
+
+            return $this->probeResult(
+                reachable: false,
+                chat: false,
+                structuredJson: false,
+                toolCalls: false,
+                config: $config,
+                latencyMs: (int) round((microtime(true) - $started) * 1000),
+                message: __('assistant_settings.errors.connection_failed'),
+            );
         }
     }
 
@@ -181,6 +303,182 @@ final class AssistantExternalAiClient
         }
 
         return $request;
+    }
+
+    /**
+     * @param  array<string,mixed>  $config
+     * @param  array<string,mixed>  $payload
+     */
+    private function sendWithResilience(
+        array $config,
+        ?string $apiKey,
+        string $model,
+        array $payload,
+        bool $fallback,
+    ): ?Response {
+        $circuitKey = $this->circuitKey($config['api_url'], $model);
+
+        if (Cache::get($circuitKey.'.open', false) === true) {
+            $this->providerTelemetry($config, $model, 'circuit_open', null, 0, $fallback);
+
+            return null;
+        }
+
+        $attempts = 1 + min(2, max(0, (int) $config['retry_attempts']));
+        $lastStatus = null;
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            $started = microtime(true);
+
+            try {
+                $response = $this->request($apiKey, (int) $config['timeout_seconds'])
+                    ->post($config['api_url'], array_merge($payload, ['model' => $model]));
+
+                $latency = (int) round((microtime(true) - $started) * 1000);
+                $lastStatus = $response->status();
+
+                if ($response->successful()) {
+                    $this->resetCircuit($circuitKey);
+                    $this->providerTelemetry($config, $model, 'success', $lastStatus, $latency, $fallback, $attempt);
+
+                    return $response;
+                }
+
+                $this->providerTelemetry($config, $model, 'http_error', $lastStatus, $latency, $fallback, $attempt);
+
+                if ($lastStatus !== 429 && $lastStatus < 500) {
+                    break;
+                }
+            } catch (Throwable $exception) {
+                $this->providerTelemetry(
+                    $config,
+                    $model,
+                    'transport_error',
+                    null,
+                    (int) round((microtime(true) - $started) * 1000),
+                    $fallback,
+                    $attempt,
+                );
+
+                if ($attempt >= $attempts) {
+                    report($exception);
+                }
+            }
+        }
+
+        $this->markCircuitFailure($circuitKey, $config);
+
+        return null;
+    }
+
+    /**
+     * @param  array<string,mixed>  $config
+     */
+    private function markCircuitFailure(string $circuitKey, array $config): void
+    {
+        $failuresKey = $circuitKey.'.failures';
+        $failures = (int) Cache::get($failuresKey, 0) + 1;
+        Cache::put($failuresKey, $failures, 600);
+
+        if ($failures >= (int) $config['circuit_breaker_failures']) {
+            Cache::put($circuitKey.'.open', true, (int) $config['circuit_breaker_seconds']);
+        }
+    }
+
+    private function resetCircuit(string $circuitKey): void
+    {
+        Cache::forget($circuitKey.'.failures');
+        Cache::forget($circuitKey.'.open');
+    }
+
+    private function circuitKey(string $apiUrl, string $model): string
+    {
+        return 'assistant:provider:circuit:'.hash('sha256', $apiUrl.'|'.$model);
+    }
+
+    /**
+     * @param  array<string,mixed>  $config
+     */
+    private function providerTelemetry(
+        array $config,
+        string $model,
+        string $outcome,
+        ?int $status,
+        int $latencyMs,
+        bool $fallback,
+        int $attempt = 1,
+    ): void {
+        Log::info('assistant.provider.request', [
+            'provider' => 'openai_compatible',
+            'endpoint' => $this->redactedEndpoint((string) ($config['api_url'] ?? '')),
+            'model' => $model,
+            'outcome' => $outcome,
+            'status' => $status,
+            'latency_ms' => $latencyMs,
+            'attempt' => $attempt,
+            'fallback' => $fallback,
+        ]);
+    }
+
+    private function redactedEndpoint(string $apiUrl): string
+    {
+        $parts = parse_url(trim($apiUrl));
+
+        if (! is_array($parts)) {
+            return '[invalid-endpoint]';
+        }
+
+        $scheme = (string) ($parts['scheme'] ?? '');
+        $host = (string) ($parts['host'] ?? '');
+        $port = isset($parts['port']) ? ':'.(int) $parts['port'] : '';
+        $path = (string) ($parts['path'] ?? '');
+
+        return $scheme !== '' && $host !== ''
+            ? $scheme.'://'.$host.$port.$path
+            : '[invalid-endpoint]';
+    }
+
+    /**
+     * @param  array<string,mixed>  $config
+     * @return array{
+     *   ok:bool,
+     *   reachable:bool,
+     *   agent_capable:bool,
+     *   message:string,
+     *   latency_ms:int,
+     *   capabilities:array<string,mixed>
+     * }
+     */
+    private function probeResult(
+        bool $reachable,
+        bool $chat,
+        bool $structuredJson,
+        bool $toolCalls,
+        array $config,
+        int $latencyMs,
+        string $message,
+    ): array {
+        $contextWindow = (int) ($config['context_window_tokens'] ?? 8192);
+        $maxTokens = (int) ($config['max_tokens'] ?? 512);
+        $budgetContract = $contextWindow >= 8192 && $maxTokens >= 256;
+        $agentCapable = $chat && $structuredJson && $toolCalls && $budgetContract;
+
+        return [
+            'ok' => $chat,
+            'reachable' => $reachable,
+            'agent_capable' => $agentCapable,
+            'message' => $message,
+            'latency_ms' => $latencyMs,
+            'capabilities' => [
+                'chat' => $chat,
+                'structured_json' => $structuredJson,
+                'tool_calls' => $toolCalls,
+                'budget_contract' => $budgetContract,
+                'context_window_tokens' => $contextWindow,
+                'max_output_tokens' => $maxTokens,
+                'timeout_seconds' => (int) ($config['timeout_seconds'] ?? 20),
+            ],
+        ];
     }
 
     /**
