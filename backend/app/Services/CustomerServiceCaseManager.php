@@ -122,6 +122,20 @@ final class CustomerServiceCaseManager
         $customerQuery = $this->visibleCustomersQuery($storeIds);
 
         $totalCustomers = (clone $customerQuery)->distinct()->count('pc.id');
+        $hasWholesaleScope = DB::table('stores as scoped_stores')
+            ->join('store_types as scoped_types', 'scoped_types.id', '=', 'scoped_stores.store_type_id')
+            ->whereIn('scoped_stores.id', $storeIds)
+            ->where('scoped_types.code', 'B2B')
+            ->exists();
+        if ($hasWholesaleScope) {
+            $wholesaleCustomers = DB::table('b2b_customers')->count();
+            $wholesaleCustomersAlreadyRepresented = (clone $customerQuery)
+                ->join('b2b_customers as counted_b2b', 'counted_b2b.legacy_customer_id', '=', 'pc.legacy_customer_id')
+                ->distinct()
+                ->count('counted_b2b.id');
+            $totalCustomers += max(0, $wholesaleCustomers - $wholesaleCustomersAlreadyRepresented);
+        }
+
         $activeCustomers = (clone $customerQuery)->where('pc.is_active', true)->distinct()->count('pc.id');
         $newCustomers = (clone $customerQuery)
             ->where('pc.is_active', true)
