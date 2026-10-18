@@ -366,7 +366,7 @@ $roleLabel = static function ($role): string {
                         <form method="post" action="{{ route('admin.retail-stores.roles.assign',$store) }}" class="store-form-grid">
                             @csrf
                             <label>{{ $ar?'المستخدم':'User' }}<select name="user_id" required><option value="">{{ $ar?'اختر المستخدم':'Select user' }}</option>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select></label>
-                            <label>{{ $ar?'الدور داخل المتجر':'Store role' }}<select name="role_id" required><option value="">{{ $ar?'اختر الدور':'Select role' }}</option>@foreach($storeRoles as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
+                            <label>{{ $ar?'الدور داخل المتجر':'Store role' }}<select name="role_id" required><option value="">{{ $ar?'اختر الدور':'Select role' }}</option>@foreach(($storeRolesByProfile[$store->business_profile] ?? collect()) as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
                             <button class="foodex-action-secondary button secondary" type="submit">＋ {{ $ar?'إسناد الدور':'Assign role' }}</button>
                         </form>
                         </div>
