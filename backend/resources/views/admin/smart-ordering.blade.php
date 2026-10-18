@@ -400,12 +400,17 @@
             const buttons = [...tabs.querySelectorAll('[data-so-settings-tab]')];
             const panels = [...root.querySelectorAll('[data-so-settings-panel]')];
             const available = new Set(buttons.map((button) => button.dataset.soSettingsTab));
+            const storageKey = 'foodex:restaurant-settings-tab:{{ (int)$site->store_id }}';
             const hashValue = window.location.hash.startsWith('#settings-')
                 ? window.location.hash.slice('#settings-'.length)
                 : null;
+            let storedValue = null;
+            try { storedValue = sessionStorage.getItem(storageKey); } catch (_) {}
             const defaultTab = available.has(hashValue)
                 ? hashValue
-                : (available.has(tabs.dataset.defaultTab) ? tabs.dataset.defaultTab : buttons[0]?.dataset.soSettingsTab);
+                : (available.has(storedValue)
+                    ? storedValue
+                    : (available.has(tabs.dataset.defaultTab) ? tabs.dataset.defaultTab : buttons[0]?.dataset.soSettingsTab));
 
             const activate = (name, updateHistory = true) => {
                 if (!available.has(name)) name = defaultTab;
@@ -417,6 +422,7 @@
                 panels.forEach((panel) => {
                     panel.hidden = panel.dataset.soSettingsPanel !== name;
                 });
+                try { sessionStorage.setItem(storageKey, name); } catch (_) {}
                 if (updateHistory) {
                     history.replaceState(null, '', '#settings-' + name);
                 }
