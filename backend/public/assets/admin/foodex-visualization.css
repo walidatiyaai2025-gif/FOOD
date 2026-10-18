@@ -78,3 +78,116 @@
 @media(max-width:1023px){.foodex-module-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.foodex-module-panels{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:767px){.foodex-viz-card{padding:12px}.foodex-viz-canvas,.foodex-viz-bars{min-height:132px}.foodex-viz-donut{--foodex-viz-donut-size:124px}.foodex-module-toolbar{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:100%}.foodex-module-scope{min-width:0}.foodex-module-date-range{grid-template-columns:minmax(0,1fr);width:100%;max-width:100%}.foodex-module-date-range input,.foodex-module-date-range select{font-size:16px}.foodex-module-date-range .foodex-filter-action{width:100%}.foodex-module-toolbar-actions{margin-inline-start:0}.foodex-module-kpis{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.foodex-viz-card *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* #2177 platform-wide KPI Summary Bar responsive normalization. */
+:root{
+  --foodex-kpi-summary-min:200px;
+  --foodex-kpi-summary-gap:var(--foodex-space-3,12px);
+}
+:root .foodex-module-kpis,
+:root .erp-kpis,
+:root .wa-report-kpis,
+:root .rg-kpis,
+:root .security-kpis,
+:root .b2b-ref-kpis,
+:root .so-a-kpis,
+:root .ri-kpis,
+:root .rc-kpis,
+:root .fieldops-kpis,
+:root .kpis,
+:root .c360-kpis,
+:root .cs-kpis,
+:root .si-kpis,
+:root .wa-kpis,
+:root .store-ops-kpis,
+:root .merchant-summary,
+:root .wa-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,var(--foodex-kpi-summary-min)),1fr))!important;
+  gap:var(--foodex-kpi-summary-gap)!important;
+  align-items:stretch;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+:root .foodex-module-kpis>*,
+:root .erp-kpis>*,
+:root .wa-report-kpis>*,
+:root .rg-kpis>*,
+:root .security-kpis>*,
+:root .b2b-ref-kpis>*,
+:root .so-a-kpis>*,
+:root .ri-kpis>*,
+:root .rc-kpis>*,
+:root .fieldops-kpis>*,
+:root .kpis>*,
+:root .c360-kpis>*,
+:root .cs-kpis>*,
+:root .si-kpis>*,
+:root .wa-kpis>*,
+:root .store-ops-kpis>*,
+:root .merchant-summary>*,
+:root .wa-kpi-grid>*{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+:root .foodex-module-kpi,
+:root .erp-kpi-link,
+:root .wa-report-kpi,
+:root .rg-kpi,
+:root .security-kpi,
+:root .b2b-ref-kpi,
+:root .so-a-kpi,
+:root .rc-kpi,
+:root .fieldops-kpi,
+:root .kpi,
+:root .c360-kpi,
+:root .cs-kpi,
+:root .si-kpi,
+:root .wa-kpi,
+:root .merchant-kpi{
+  min-width:0;
+  max-width:100%;
+  height:100%;
+  overflow:visible;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+:root .foodex-module-kpi *,
+:root .erp-kpi-link *,
+:root .wa-report-kpi *,
+:root .rg-kpi *,
+:root .security-kpi *,
+:root .b2b-ref-kpi *,
+:root .so-a-kpi *,
+:root .rc-kpi *,
+:root .fieldops-kpi *,
+:root .kpi *,
+:root .c360-kpi *,
+:root .cs-kpi *,
+:root .si-kpi *,
+:root .wa-kpi *,
+:root .merchant-kpi *{
+  min-width:0;
+  max-width:100%;
+}
+:root .foodex-module-kpi-label,
+:root .foodex-module-kpi-value,
+:root .foodex-module-kpi-comparison,
+:root .foodex-module-updated,
+:root .foodex-module-kpi .foodex-status-badge{
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+:root .foodex-module-kpi-label{line-height:1.35}
+:root .foodex-module-kpi-value{font-size:clamp(1.25rem,2vw,1.8rem);line-height:1.15}
+:root .foodex-module-kpi-meta{align-items:flex-start;max-width:100%}
+:root .foodex-module-kpi-comparison{flex-wrap:wrap;max-width:100%}
+:root .foodex-module-kpi .foodex-status-badge{max-width:100%;text-align:start}
+[dir="rtl"] :is(.foodex-module-kpis,.erp-kpis,.wa-report-kpis,.rg-kpis,.security-kpis,.b2b-ref-kpis,.so-a-kpis,.ri-kpis,.rc-kpis,.fieldops-kpis,.kpis,.c360-kpis,.cs-kpis,.si-kpis,.wa-kpis,.store-ops-kpis,.merchant-summary,.wa-kpi-grid){direction:rtl}
+[dir="ltr"] :is(.foodex-module-kpis,.erp-kpis,.wa-report-kpis,.rg-kpis,.security-kpis,.b2b-ref-kpis,.so-a-kpis,.ri-kpis,.rc-kpis,.fieldops-kpis,.kpis,.c360-kpis,.cs-kpis,.si-kpis,.wa-kpis,.store-ops-kpis,.merchant-summary,.wa-kpi-grid){direction:ltr}
+@media(max-width:1023px){:root{--foodex-kpi-summary-min:180px}}
+@media(max-width:767px){:root{--foodex-kpi-summary-min:160px;--foodex-kpi-summary-gap:var(--foodex-space-2,8px)}}
+@media(max-width:340px){:root{--foodex-kpi-summary-min:100%}}
