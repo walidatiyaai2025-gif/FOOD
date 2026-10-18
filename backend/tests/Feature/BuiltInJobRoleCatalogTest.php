@@ -324,16 +324,21 @@ final class BuiltInJobRoleCatalogTest extends TestCase
 
         App::setLocale('en');
         $this->actingAs($admin)
-            ->get(route('admin.security.index'))
+            ->get(route('admin.security.index', ['section' => 'users']))
             ->assertOk()
             ->assertSee('Procurement Manager')
-            ->assertSee(__('job_roles.availability.retained'))
+            ->assertSee(__('job_roles.availability.retained'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->assertOk()
+            ->assertSee('Procurement Manager')
             ->assertSee(__('job_roles.errors.canonical_locked'));
 
         $target->roles()->detach($procurement->id);
 
         $this->actingAs($admin)
-            ->get(route('admin.security.index'))
+            ->get(route('admin.security.index', ['section' => 'roles']))
             ->assertOk()
             ->assertSee('Procurement Manager'); // role governance card remains visible/auditable
     }
