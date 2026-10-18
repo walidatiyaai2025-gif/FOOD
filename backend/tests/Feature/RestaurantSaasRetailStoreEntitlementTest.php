@@ -6,9 +6,11 @@ use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\StoreBusinessProfileService;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,10 +27,10 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_retail_restaurant_saas_is_fail_closed_until_super_admin_enables_store_master(): void
+    public function test_restaurant_saas_is_fail_closed_until_super_admin_enables_store_master(): void
     {
         $superAdmin = $this->globalUser('SUPER_ADMIN', 'restaurant-owner@example.test');
-        $store = $this->store('B2C', 'REST-CLIENT-A');
+        $store = $this->restaurant($this->store('B2C', 'REST-CLIENT-A'));
         $manager = $this->storeAdmin($store, 'restaurant-manager@example.test');
 
         $this->assertFalse(app(RestaurantSaasStoreFeatureService::class)->isEnabled($store));
@@ -66,7 +68,7 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
     public function test_disable_preserves_restaurant_state_blocks_routes_and_reenable_restores_same_site(): void
     {
         $superAdmin = $this->globalUser('SUPER_ADMIN', 'restaurant-toggle-owner@example.test');
-        $store = $this->store('B2C', 'REST-CLIENT-STATE');
+        $store = $this->restaurant($this->store('B2C', 'REST-CLIENT-STATE'));
         $manager = $this->storeAdmin($store, 'restaurant-toggle-manager@example.test');
 
         $this->actingAs($superAdmin)
@@ -125,8 +127,8 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
     public function test_b2b_store_cannot_receive_restaurant_saas_and_cross_store_access_is_denied(): void
     {
         $superAdmin = $this->globalUser('SUPER_ADMIN', 'restaurant-scope-owner@example.test');
-        $storeA = $this->store('B2C', 'REST-SCOPE-A');
-        $storeB = $this->store('B2C', 'REST-SCOPE-B');
+        $storeA = $this->restaurant($this->store('B2C', 'REST-SCOPE-A'));
+        $storeB = $this->restaurant($this->store('B2C', 'REST-SCOPE-B'));
         $wholesale = $this->store('B2B', 'REST-SCOPE-WHOLESALE');
         $managerA = $this->storeAdmin($storeA, 'restaurant-scope-manager@example.test');
 
@@ -147,6 +149,11 @@ final class RestaurantSaasRetailStoreEntitlementTest extends TestCase
         $this->actingAs($managerA)
             ->get(route('admin.smart-ordering.index', ['store_id' => $storeA->id]))
             ->assertOk();
+    }
+
+    private function restaurant(Store $store): Store
+    {
+        return app(StoreBusinessProfileService::class)->assign($store, StoreBusinessProfile::RESTAURANT);
     }
 
     /** @return list<string> */

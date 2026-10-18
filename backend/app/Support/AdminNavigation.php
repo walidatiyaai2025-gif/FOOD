@@ -7,6 +7,8 @@ use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enums\StoreBusinessProfile;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -157,6 +159,41 @@ class AdminNavigation
                 $canAccessPlatformNavigation ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index') : null,
             ]),
         ];
+
+        if (! $isSuperAdmin) {
+            $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+            $hasRetailWorkspace = $retailStoreIds !== []
+                && Store::query()
+                    ->whereIn('stores.id', $retailStoreIds)
+                    ->businessProfile(StoreBusinessProfile::RETAIL_STORE)
+                    ->exists();
+
+            $retailB2cKeys = [
+                'b2c_dashboard',
+                'b2c_products',
+                'b2c_inventory',
+                'b2c_orders',
+                'b2c_customers',
+                'b2c_promotions',
+                'b2c_reports',
+                'b2c_settings',
+            ];
+
+            foreach ($groups as &$group) {
+                $group['children'] = array_values(array_filter(
+                    $group['children'],
+                    static function (array $item) use ($hasRetailWorkspace, $retailB2cKeys): bool {
+                        $key = (string) $item['key'];
+                        if (! str_starts_with($key, 'b2c_')) {
+                            return true;
+                        }
+
+                        return $hasRetailWorkspace && in_array($key, $retailB2cKeys, true);
+                    },
+                ));
+            }
+            unset($group);
+        }
 
         return array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
     }
@@ -490,7 +527,17 @@ class AdminNavigation
             return null;
         }
 
-        if ($this->restaurantSaasAccess->enabledStoreIds($this->tenantContext->retailStoreIds($user)) === []) {
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+        $restaurantStoreIds = $retailStoreIds === []
+            ? []
+            : Store::query()
+                ->whereIn('stores.id', $retailStoreIds)
+                ->businessProfile(StoreBusinessProfile::RESTAURANT)
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+        if ($restaurantStoreIds === [] || $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds) === []) {
             return null;
         }
 
