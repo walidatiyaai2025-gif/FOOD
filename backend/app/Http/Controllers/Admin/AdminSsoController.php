@@ -11,6 +11,7 @@ use App\Services\AdminSessionRegistry;
 use App\Services\AuditLogger;
 use App\Services\EnterpriseOidcService;
 use App\Support\AdminNavigation;
+use App\Support\B2cWorkspaceLandingResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,7 @@ final class AdminSsoController extends Controller
         private readonly AdminSecurityPolicy $policy,
         private readonly AdminSessionRegistry $sessions,
         private readonly AdminNavigation $navigation,
+        private readonly B2cWorkspaceLandingResolver $workspaceLanding,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -85,8 +87,10 @@ final class AdminSsoController extends Controller
             $request,
         );
 
+        $defaultTarget = $this->workspaceLanding->urlFor($user) ?? route('admin.index');
+
         if ($this->policy->requiresMfa($user)) {
-            $request->session()->put('mfa_intended', route('admin.index'));
+            $request->session()->put('mfa_intended', $defaultTarget);
 
             return redirect()->route(
                 AdminMfaCredential::query()
@@ -99,6 +103,6 @@ final class AdminSsoController extends Controller
             );
         }
 
-        return redirect()->route('admin.index');
+        return redirect()->to($defaultTarget);
     }
 }
