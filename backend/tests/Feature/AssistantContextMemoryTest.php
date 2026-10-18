@@ -54,7 +54,7 @@ class AssistantContextMemoryTest extends TestCase
         ])->assertCreated();
 
         $created
-            ->assertJsonPath('data.context.route', 'admin.b2c')
+            ->assertJsonPath('data.context.route', 'admin.b2c.dashboard')
             ->assertJsonPath('data.context.domain', 'retail')
             ->assertJsonPath('data.context.store_id', $store)
             ->assertJsonPath('data.context.locale', 'ar')
@@ -82,6 +82,30 @@ class AssistantContextMemoryTest extends TestCase
             'message' => 'Sales today',
             'context_token' => $token,
         ])->assertUnprocessable();
+    }
+
+    public function test_registered_page_route_resolves_store_server_side_without_browser_store_id(): void
+    {
+        $store = $this->store('AI-ROUTE-SCOPE');
+        $admin = $this->globalUser('SUPER_ADMIN', 'en');
+
+        $this->app['router']
+            ->get('/admin/b2c/context-probe/{store}', static fn () => 'ok')
+            ->whereNumber('store')
+            ->name('admin.b2c.context-probe');
+
+        $response = $this->actingAs($admin)->postJson('/admin/assistant/conversations', [
+            'locale' => 'en',
+            'context' => [
+                'path' => "/admin/b2c/context-probe/{$store}",
+                'channel' => 'b2c',
+            ],
+        ])->assertCreated();
+
+        $response
+            ->assertJsonPath('data.context.route', 'admin.b2c.context-probe')
+            ->assertJsonPath('data.context.domain', 'retail')
+            ->assertJsonPath('data.context.store_id', $store);
     }
 
     public function test_signed_context_transports_entity_hints_for_server_revalidation(): void
