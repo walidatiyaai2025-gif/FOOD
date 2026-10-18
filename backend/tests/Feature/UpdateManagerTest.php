@@ -6,6 +6,7 @@ use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateRuntime;
+use App\Models\UpdateHistory;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -125,7 +126,7 @@ class UpdateManagerTest extends TestCase
             'maintenance_mode_remained' => false,
             'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
         ]);
-        $failedHistory = \App\Models\UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
+        $failedHistory = UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
         $this->assertSame('failed', $failedHistory->execution_evidence['health_check'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_files'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_database'] ?? null);
