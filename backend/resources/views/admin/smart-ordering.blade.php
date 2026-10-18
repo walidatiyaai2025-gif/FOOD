@@ -257,23 +257,25 @@
             <div class="foodex-module-panels">
                 <article class="foodex-viz-card">
                     <div class="foodex-viz-header"><h3 class="foodex-viz-title">{{ __('smart_ordering.overview.exceptions') }}</h3></div>
-                    @forelse(($ov['exceptions'] ?? []) as $exception)
-                        @php
-                            $exceptionHref = match($exception['key']) {
-                                'kitchen_late' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'kitchen']),
-                                'attendance' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'workforce']),
-                                'waitlist' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'waitlist']),
-                                'reorder' => route('admin.smart-ordering.supply.index',[$site]+($supportAccess?['support_access'=>1]:[])),
-                                default => route('admin.smart-ordering.integrations.index',[$site]+($supportAccess?['support_access'=>1]:[])),
-                            };
-                        @endphp
-                        <a class="foodex-card" style="display:flex;justify-content:space-between;gap:12px;padding:12px;margin-block:8px;text-decoration:none" href="{{ $exceptionHref }}">
-                            <span>{{ __('smart_ordering.overview.exceptions_labels.'.$exception['key']) }}</span>
-                            <span class="foodex-status-badge" data-tone="warning">{{ number_format($exception['count']) }}</span>
-                        </a>
-                    @empty
+                    <?php if (($ov['exceptions'] ?? []) === []): ?>
                         <div class="foodex-module-state" data-foodex-module-state="current" role="status"><strong>{{ __('smart_ordering.overview.no_exceptions') }}</strong></div>
-                    @endforelse
+                    <?php else: ?>
+                        <?php foreach (($ov['exceptions'] ?? []) as $exception): ?>
+                            <?php
+                                $exceptionHref = match($exception['key']) {
+                                    'kitchen_late' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'kitchen']),
+                                    'attendance' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'workforce']),
+                                    'waitlist' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'waitlist']),
+                                    'reorder' => route('admin.smart-ordering.supply.index',[$site]+($supportAccess?['support_access'=>1]:[])),
+                                    default => route('admin.smart-ordering.integrations.index',[$site]+($supportAccess?['support_access'=>1]:[])),
+                                };
+                            ?>
+                            <a class="foodex-card" style="display:flex;justify-content:space-between;gap:12px;padding:12px;margin-block:8px;text-decoration:none" href="{{ $exceptionHref }}">
+                                <span>{{ __('smart_ordering.overview.exceptions_labels.'.$exception['key']) }}</span>
+                                <span class="foodex-status-badge" data-tone="warning">{{ number_format($exception['count']) }}</span>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </article>
 
                 <article class="foodex-viz-card">
