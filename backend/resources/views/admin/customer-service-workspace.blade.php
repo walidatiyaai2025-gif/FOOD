@@ -25,7 +25,7 @@
 .cs-workspace-tab{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:0 16px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
 .cs-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
 .cs-workspace-tab[aria-selected="true"]{background:var(--foodex-green-dark);border-color:var(--foodex-green-dark);color:#fff}
-.cs-tab-panel{display:grid;gap:16px;min-width:0}
+.cs-tab-panel{display:grid;gap:16px;min-width:0;width:80%;max-width:80%;justify-self:start}
 .cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
 .cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:3px solid var(--cs-accent)!important;transition:transform .18s ease,box-shadow .18s ease}
@@ -63,7 +63,7 @@
 .cs-state{padding:28px;text-align:center}
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
 @media(max-width:1100px){.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
+@media(max-width:850px){.cs-tab-panel{width:100%;max-width:100%}.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
 </style>
 </head>
