@@ -316,7 +316,7 @@ final class BuiltInJobRoleCatalog
             'reports' => 'reports',
             'orders' => 'orders',
             'customers' => 'customers',
-            'support', 'whatsapp', 'chatbot' => 'customer_service',
+            'support', 'whatsapp', 'chatbot', 'customer_service' => 'customer_service',
             'catalog', 'lookups' => 'catalog',
             'drivers', 'deliveries', 'field_ops', 'territories', 'van' => 'field_operations',
             'promotions', 'notifications', 'coupons', 'live_ads' => 'marketing',
