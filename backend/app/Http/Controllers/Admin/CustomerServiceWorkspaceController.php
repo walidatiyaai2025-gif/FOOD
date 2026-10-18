@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CustomerServiceCaseManager;
 use App\Services\CustomerServiceTeamManager;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -21,6 +23,7 @@ final class CustomerServiceWorkspaceController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly CustomerServiceCaseManager $cases,
         private readonly CustomerServiceTeamManager $team,
+        private readonly OperationalTenantScope $operationalScope,
     ) {}
 
     public function index(Request $request): View
@@ -230,6 +233,28 @@ final class CustomerServiceWorkspaceController extends Controller
             ? $this->cases->whatsAppInboxSummary($actor)
             : ['unread_count' => 0, 'items' => collect()];
 
+        $customerServiceTrackingProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
+        $trackingStoreIds = $customerServiceTrackingProfile
+            ? $this->operationalScope->allowedStoreIds($actor, 'drivers.tracking.view', 'b2b')
+            : [];
+        $canViewDriverTracking = $trackingStoreIds !== []
+            && Route::has('admin.driver-live-tracking.feed')
+            && Route::has('admin.driver-live-tracking.index')
+            && Route::has('admin.field-operations.fleet.feed');
+        $trackingStores = $canViewDriverTracking
+            ? DB::table('stores')
+                ->whereIn('id', $trackingStoreIds)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code'])
+                ->map(static fn (object $store): array => [
+                    'id' => (int) $store->id,
+                    'name' => (string) $store->name,
+                    'code' => (string) ($store->code ?? ''),
+                ])
+                ->all()
+            : [];
+
         return view('admin.customer-service-workspace', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -238,6 +263,17 @@ final class CustomerServiceWorkspaceController extends Controller
             'canCustomers' => $canCustomers && Route::has('admin.customer-360.index'),
             'canWhatsAppInbox' => $canWhatsAppInbox,
             'inboxSummary' => $inboxSummary,
+            'canViewDriverTracking' => $canViewDriverTracking,
+            'driverTrackingFeedUrl' => $canViewDriverTracking
+                ? route('admin.driver-live-tracking.feed', ['channel' => 'b2b'])
+                : null,
+            'vanTrackingFeedUrl' => $canViewDriverTracking
+                ? route('admin.field-operations.fleet.feed', ['channel' => 'b2b'])
+                : null,
+            'driverTrackingPageUrl' => $canViewDriverTracking
+                ? route('admin.driver-live-tracking.index')
+                : null,
+            'trackingStores' => $trackingStores,
             'dashboard' => $this->cases->dashboard($actor, $filters),
             'cases' => $this->cases->paginateCases($actor, $filters),
             'selectedCase' => $selectedCaseId === null ? null : $this->cases->caseDetail($actor, $selectedCaseId),
