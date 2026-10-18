@@ -477,14 +477,24 @@ final class AssistantBusinessReadService
             ->when($request->channel !== null, fn (Builder $query) => $query->where('orders.channel', strtolower($request->channel)))
             ->when($productId !== null, fn (Builder $query) => $query->where('products.id', $productId));
 
+        $sort = strtolower($this->stringValue($request->entities['sort'] ?? null) ?? 'top');
+        if (! in_array($sort, ['top', 'slow'], true)) {
+            throw new \InvalidArgumentException('products.performance sort must be top or slow.');
+        }
+        $limit = min(25, max(1, $this->positiveInt($request->entities['limit'] ?? null) ?? 25));
+
         $rows = (clone $sales)
             ->selectRaw(
                 'products.id, products.sku, products.name, COALESCE(SUM(order_items.quantity), 0) as quantity, '.
                 'COALESCE(SUM(order_items.line_total), 0) as revenue',
             )
             ->groupBy('products.id', 'products.sku', 'products.name')
-            ->orderByDesc('revenue')
-            ->limit(25)
+            ->when(
+                $sort === 'slow',
+                fn (Builder $query) => $query->orderBy('revenue')->orderBy('products.id'),
+                fn (Builder $query) => $query->orderByDesc('revenue')->orderBy('products.id'),
+            )
+            ->limit($limit)
             ->get()
             ->map(static fn (object $row): array => [
                 'product_id' => (int) $row->id,
@@ -500,6 +510,8 @@ final class AssistantBusinessReadService
                 'from' => $from,
                 'to' => $to,
                 'products' => $rows,
+                'sort' => $sort,
+                'limit' => $limit,
                 'selling_products' => count($rows),
                 'quantity_sold' => round((float) (clone $sales)->sum('order_items.quantity'), 3),
                 'product_revenue' => round((float) (clone $sales)->sum('order_items.line_total'), 3),
