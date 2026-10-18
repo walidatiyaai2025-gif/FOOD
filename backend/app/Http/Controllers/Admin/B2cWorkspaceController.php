@@ -42,6 +42,7 @@ class B2cWorkspaceController extends Controller
         'products' => 'catalog.view',
         'inventory' => 'inventory.view',
         'incoming_orders' => 'orders.view',
+        'wholesale_purchases' => 'orders.view',
         'orders' => 'orders.view',
         'finance' => 'finance.view',
         'customers' => 'customers.view',
@@ -59,7 +60,7 @@ class B2cWorkspaceController extends Controller
             'dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'reports', 'settings',
         ],
         Store::BUSINESS_PROFILE_RESTAURANT => [
-            'customers', 'promotions', 'reports', 'settings',
+            'customers', 'promotions', 'reports', 'settings', 'wholesale_purchases',
         ],
     ];
 
@@ -767,7 +768,7 @@ class B2cWorkspaceController extends Controller
                 $storeIds,
                 $request->integer('focus_product') > 0 ? $request->integer('focus_product') : null,
             ),
-            'incoming_orders' => $this->wholesalePurchaseModuleData($selectedStoreId),
+            'incoming_orders', 'wholesale_purchases' => $this->wholesalePurchaseModuleData($selectedStoreId),
             'orders' => $this->orderModuleData($storeIds),
             'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
