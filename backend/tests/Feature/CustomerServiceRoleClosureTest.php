@@ -120,6 +120,25 @@ final class CustomerServiceRoleClosureTest extends TestCase
         $this->assertTrue($privileged->fresh()->hasRole('B2B_ADMIN'));
     }
 
+    public function test_customer_service_roles_can_open_customer_360_in_wholesale_scope(): void
+    {
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            $user = $this->userWithRole($roleCode);
+
+            $this->assertTrue($user->hasPermission('customers.view'));
+            $this->assertFalse($user->hasPermission('b2b.accounts.view'));
+
+            $this->actingAs($user)
+                ->get(route('admin.customer-360.index', ['q' => '']))
+                ->assertOk()
+                ->assertViewIs('admin.customer-360-index');
+        }
+    }
+
     public function test_agent_can_reach_new_order_workflow_without_receiving_order_management(): void
     {
         $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
