@@ -9,20 +9,20 @@
 <link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
 @endif
 <style>
-.cs-shell{display:grid;gap:var(--foodex-space-5)}
+.cs-shell{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--foodex-space-5);width:100%;max-width:100%;min-width:0}
 .cs-search,.cs-panel{padding:var(--foodex-space-5)}
 .cs-search form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
 .cs-search label,.cs-form label{display:grid;gap:6px;font-weight:700}
 .cs-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.cs-filter-strip{padding:6px 8px}
+.cs-filter-strip{padding:6px 8px;min-width:0;max-width:100%;overflow:hidden}
 .cs-kpis + .cs-filter-strip{margin-top:calc(-1 * var(--foodex-space-5) + 4px)}
-.cs-filter{display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.cs-filter{display:flex;align-items:center;flex-wrap:wrap;gap:6px;width:100%;max-width:100%;min-width:0;overflow:visible}
 .cs-filter label{display:block;flex:0 0 auto;min-width:0}
-.cs-filter :is(input,select){width:auto;min-width:0;max-width:180px;min-height:34px;height:34px;padding-block:0!important}
+.cs-filter :is(input,select){width:auto;min-width:0;max-width:118px;min-height:34px;height:34px;padding-block:0!important}
 .cs-filter select{field-sizing:content}
-.cs-filter input[type="date"]{width:138px}
+.cs-filter input[type="date"]{width:110px}
 .cs-filter .cs-filter-search{flex:0 0 auto;min-width:0}
-.cs-filter .cs-filter-search input{width:205px;max-width:205px}
+.cs-filter .cs-filter-search input{width:150px;max-width:150px}
 .cs-filter .cs-filter-submit{flex:0 0 auto;min-width:0}
 .cs-filter .cs-filter-submit button{width:auto;min-height:34px;height:34px;padding-inline:14px;white-space:nowrap}
 .cs-workspace-tabs{display:flex;align-items:center;gap:8px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:thin}
