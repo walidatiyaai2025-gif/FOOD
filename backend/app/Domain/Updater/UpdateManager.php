@@ -24,12 +24,29 @@ final class UpdateManager
         ?User $actor = null,
     ): UpdateHistory {
         $history = UpdateHistory::query()->create([
+            'actor_id' => $actor?->getKey(),
             'from_version' => $currentVersion,
             'to_version' => $manifest->targetVersion,
             'status' => 'running',
+            'environment' => (string) app()->environment(),
+            'operation_reason' => 'system_update',
+            'backup_status' => 'pending',
+            'rollback_status' => 'not_required',
+            'maintenance_mode_remained' => false,
             'package_hash' => strtolower($manifest->sha256),
             'release_notes' => $manifest->releaseNotes,
             'started_at' => now(),
+            'execution_evidence' => [
+                'package_integrity' => 'pending',
+                'preflight' => 'pending',
+                'backup_files' => 'pending',
+                'backup_database' => $manifest->containsMigrations ? 'pending' : 'not_required',
+                'migrations' => $manifest->containsMigrations ? 'pending' : 'not_required',
+                'health_check' => 'pending',
+                'rollback_files' => 'not_required',
+                'rollback_database' => 'not_required',
+                'rollback_health_check' => 'not_required',
+            ],
         ]);
 
         $stage = 'validate_package';
