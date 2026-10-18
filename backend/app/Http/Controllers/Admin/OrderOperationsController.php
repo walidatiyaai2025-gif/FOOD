@@ -105,7 +105,7 @@ final class OrderOperationsController extends Controller
             : $this->defaultOperationalChannel($actor);
         $this->assertOperationalChannelAllowed($availableChannels, $operationalChannel);
         $data['channel'] = $operationalChannel;
-        $perPage = 10;
+        $perPage = (int) ($data['per_page'] ?? 25);
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
