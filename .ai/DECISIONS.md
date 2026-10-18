@@ -112,3 +112,13 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** unknown/malformed tools fail closed; authorization/consent/schema failures are never converted into permissive fallbacks; provider/tool outages may yield explicit partial answers; AI-disabled/no-tool/provider-failure paths fall back to the existing Assistant; no chain-of-thought is stored; no public API contract changes are introduced by orchestration.
 
 **Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
+
+
+## D-018 — Assistant memory carries context, never transactional truth
+**Decision (#2216 / AI-08, 2026-10-18):** FOODEX reuses the existing Assistant conversation/state tables and adds a bounded session policy. Server-resolved page context may travel in a short-lived HMAC-authenticated envelope bound to the authenticated user, but the envelope is not authorization: every turn re-runs page visibility and AI principal/RBAC/tenant/channel/retailer-consent resolution. Durable Assistant memory is limited to allowlisted presentation preferences; short conversation state contains identifiers/windows needed for follow-ups only.
+
+**Reason:** browser IDs and chat history are stale and attacker-controlled inputs if treated as authority. Keeping business values or permission snapshots in memory could answer from obsolete revenue/stock/sell-out facts or survive access revocation.
+
+**Consequences:** forged or cross-user context tokens fail closed; expired session state is discarded; secrets are redacted before message persistence; follow-ups may reuse only still-authorized entity/window identifiers; transactional facts are freshly read from typed tools/read models; provider-disabled FOODEX keeps its deterministic Assistant path; no second chat database and no public `/api/v1` contract are introduced.
+
+**Authority:** `docs/architecture/FOODEX_AI_CONTEXT_MEMORY.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2216.
