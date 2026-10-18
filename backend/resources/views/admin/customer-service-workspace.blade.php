@@ -29,6 +29,14 @@
 .cs-tab-count.ok{background:#DCFCE7;color:#166534;border-color:#86EFAC}
 .cs-tab-count.danger{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5}
 .cs-tab-count.info{background:#DBEAFE;color:#1D4ED8;border-color:#93C5FD}
+.cs-tab-count.unread{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5;box-shadow:0 0 0 2px rgba(220,38,38,.08)}
+.cs-inbox-list{display:grid;gap:8px}
+.cs-inbox-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;color:inherit;background:var(--foodex-surface);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.cs-inbox-item:hover{transform:translateY(-1px);border-color:#b8d9c2;box-shadow:var(--foodex-shadow-sm)}
+.cs-inbox-main{min-width:0;display:grid;gap:4px}
+.cs-inbox-title{display:flex;align-items:center;gap:8px;min-width:0}.cs-inbox-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-inbox-meta{color:var(--foodex-muted);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-inbox-unread{min-width:28px;height:28px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#FEE2E2;color:#B91C1C;font-size:.72rem;font-weight:900;font-variant-numeric:tabular-nums}
 .cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}
 .cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
@@ -162,9 +170,11 @@ body.cs-case-modal-open{overflow:hidden}
             @php($defaultWorkspaceTab = ($selectedCase || old('platform_customer_id')) ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'analytics'))
             @php($caseCount = (int) $cases->total())
             @php($customerCount = (int) ($dashboard['total_customers'] ?? 0))
+            @php($inboxUnreadCount = (int) ($inboxSummary['unread_count'] ?? 0))
             <nav class="cs-workspace-tabs" role="tablist" aria-label="{{ __('customer_service_workspace.tabs.label') }}" data-cs-tabs data-default-tab="{{ $defaultWorkspaceTab }}">
                 <button class="cs-workspace-tab" type="button" role="tab" aria-selected="true" data-cs-tab="analytics">{{ __('customer_service_workspace.tabs.analytics') }}</button>
                 <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }} <span class="cs-tab-count {{ $caseCount === 0 ? 'ok' : 'danger' }}">{{ $caseCount }}</span></button>
+                @if($canWhatsAppInbox)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="inbox">{{ __('customer_service_workspace.tabs.inbox') }} @if($inboxUnreadCount > 0)<span class="cs-tab-count unread">{{ $inboxUnreadCount }}</span>@endif</button>@endif
                 @if($canCustomers)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="customers">{{ __('customer_service_workspace.tabs.customers') }} <span class="cs-tab-count info">{{ $customerCount }}</span></button>@endif
                 @if($canManageTeam)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="team">{{ __('customer_service_workspace.tabs.team') }}</button>@endif
                 @if($capabilities->isNotEmpty())<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="tools">{{ __('customer_service_workspace.tabs.tools') }}</button>@endif
@@ -207,6 +217,38 @@ body.cs-case-modal-open{overflow:hidden}
             </section>
             @endif
             </div>
+
+            @if($canWhatsAppInbox)
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="inbox" hidden>
+                <section class="foodex-card cs-panel">
+                    <div class="cs-section-head">
+                        <div>
+                            <h2>{{ __('customer_service_workspace.inbox.title') }}</h2>
+                            <p>{{ __('customer_service_workspace.inbox.help') }}</p>
+                        </div>
+                        <a class="foodex-action-secondary button secondary" href="{{ route('admin.whatsapp-inbox.index') }}">{{ __('customer_service_workspace.inbox.open_full') }}</a>
+                    </div>
+                    @if(($inboxSummary['items'] ?? collect())->isEmpty())
+                        <div class="foodex-state cs-state">{{ __('customer_service_workspace.inbox.empty') }}</div>
+                    @else
+                        <div class="cs-inbox-list">
+                            @foreach($inboxSummary['items'] as $conversation)
+                                <a class="cs-inbox-item" href="{{ route('admin.whatsapp-inbox.index',['conversation'=>$conversation->id]) }}">
+                                    <span class="cs-inbox-main">
+                                        <span class="cs-inbox-title">
+                                            <strong>{{ $conversation->customer_name ?: __('whatsapp.inbox.unknown_customer') }}</strong>
+                                            <span class="cs-badge">{{ __('whatsapp.inbox.conversation_statuses.'.$conversation->status) }}</span>
+                                        </span>
+                                        <span class="cs-inbox-meta">{{ $conversation->store_name ?: '—' }} · {{ $conversation->agent_name ?: __('whatsapp.inbox.unassigned') }} · {{ $conversation->updated_at }}</span>
+                                    </span>
+                                    <span class="cs-inbox-unread">{{ (int) $conversation->unread_count }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
+            </div>
+            @endif
 
             @if($canCustomers)
             <div class="cs-tab-panel" role="tabpanel" data-cs-panel="customers" hidden>
