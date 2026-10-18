@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.60",
-  "build_number": 60,
-  "source_commit": "289f6c5573521baa5b0800fd29197df918de7151",
+  "version": "1.0.86",
+  "build_number": 86,
+  "source_commit": "12f148cc14e4dd66051f8bf062bdf20ef2f473a9",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,30 +11,34 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.60",
-      "build_number": 60,
-      "file": "FOODEX-Customer-1.0.60.apk",
+      "version": "1.0.86",
+      "build_number": 86,
+      "file": "FOODEX-Customer-1.0.86.apk",
       "latest_alias": "FOODEX-Customer.apk",
-      "bytes": 79492447,
-      "sha256": "4b0e02a88ada320f677b3ad2a39ca4a3ac3dfb537b9aa15661d3e69f298e52c9"
+      "bytes": 80624031,
+      "sha256": "4b06e178ea567107354be95ff48d791b5003e220f12561620aabfb49482e3c39",
+      "release_version": "1.0.86",
+      "lineage_mode": "synchronized",
+      "source_commit": "12f148cc14e4dd66051f8bf062bdf20ef2f473a9",
+      "tree_sha": "c78af32e19335da5a53d8ff44db211e149941f18"
     },
     {
       "app": "driver",
-      "version": "1.0.60",
-      "build_number": 60,
-      "file": "FOODEX-Driver-1.0.60.apk",
+      "version": "1.0.86",
+      "build_number": 86,
+      "file": "FOODEX-Driver-1.0.86.apk",
       "latest_alias": "FOODEX-Driver.apk",
-      "bytes": 58703644,
-      "sha256": "7d16dcd70ff57396a4186c58ec84f813c08ccfc82ce982ee040d0c31e5f22d1f"
+      "bytes": 58720308,
+      "sha256": "7349cbab179be5684eca7830a3b7c31b06cae546d289ab6039952941d15c328a"
     },
     {
       "app": "van",
-      "version": "1.0.60",
-      "build_number": 60,
-      "file": "FOODEX-Van-1.0.60.apk",
+      "version": "1.0.86",
+      "build_number": 86,
+      "file": "FOODEX-Van-1.0.86.apk",
       "latest_alias": "FOODEX-Van.apk",
-      "bytes": 55470907,
-      "sha256": "1edc732deb10a3591d79b9bdde319b0178d94f2321b6236bcb8cc59673866c2c"
+      "bytes": 57995911,
+      "sha256": "72f41430b92d832204c6a3993d0d67239d04e8b4100b92e9415da8ef44767747"
     }
   ]
 }
