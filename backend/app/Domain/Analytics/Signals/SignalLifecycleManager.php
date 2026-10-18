@@ -22,7 +22,7 @@ final class SignalLifecycleManager
     ) {}
 
     /**
-     * @param array<string,mixed> $signal
+     * @param  array<string,mixed>  $signal
      * @return array<string,mixed>
      */
     public function transition(
