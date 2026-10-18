@@ -45,7 +45,7 @@ final class RetailerSellOutAccessPolicy
         int $retentionDays = 30,
         ?DateTimeInterface $expiresAt = null,
     ): array {
-        $this->scope->assertStore($actor, $retailerStoreId, 'settings.manage', 'b2c');
+        $this->scope->assertStore($actor, $retailerStoreId, 'assistant.sellout.share', 'b2c');
         abort_unless($wholesaleStoreId === $this->principal->storeId(), 404);
         abort_unless($this->scope->storeChannel($wholesaleStoreId) === 'b2b', 404);
 
@@ -143,7 +143,7 @@ final class RetailerSellOutAccessPolicy
         int $wholesaleStoreId,
         string $purpose = self::PURPOSE_ASSISTANT_ANALYTICS,
     ): void {
-        $this->scope->assertStore($actor, $retailerStoreId, 'settings.manage', 'b2c');
+        $this->scope->assertStore($actor, $retailerStoreId, 'assistant.sellout.share', 'b2c');
         abort_unless($wholesaleStoreId === $this->principal->storeId(), 404);
         $purpose = $this->purpose($purpose);
 
