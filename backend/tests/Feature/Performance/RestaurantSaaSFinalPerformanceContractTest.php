@@ -13,10 +13,10 @@ final class RestaurantSaaSFinalPerformanceContractTest extends TestCase
         $menuRead = (string) file_get_contents(app_path('Domain/SmartOrdering/SmartOrderingMenuReadService.php'));
         $apiRoutes = (string) file_get_contents(base_path('routes/api.php'));
 
-        $this->assertStringContainsString("if (\$from->diffInDays(\$to) > 90)", $overview);
-        $this->assertStringContainsString("\$from = \$to->subDays(90)->startOfDay();", $overview);
-        $this->assertStringContainsString("abort_if(\$seconds > 366 * 86400, 422", $growth);
-        $this->assertStringContainsString("min(50, \$perPage)", $menuRead);
+        $this->assertStringContainsString('if ($from->diffInDays($to) > 90)', $overview);
+        $this->assertStringContainsString('$from = $to->subDays(90)->startOfDay();', $overview);
+        $this->assertStringContainsString('abort_if($seconds > 366 * 86400, 422', $growth);
+        $this->assertStringContainsString('min(50, $perPage)', $menuRead);
         $this->assertStringContainsString("middleware('throttle:restaurant-integration-api')", $apiRoutes);
     }
 
