@@ -1724,6 +1724,39 @@
       "remediation_owner": null,
       "remediation_scope": null,
       "notes": null
+    },
+    {
+      "id": "restaurant.wholesale_purchases",
+      "domain": "Restaurant SaaS / Procurement",
+      "capability": "Restaurant wholesale buyer purchasing workspace",
+      "route": [
+        "admin.restaurant.wholesale-purchases.index"
+      ],
+      "route_path": [
+        "/admin/restaurant/wholesale-purchases"
+      ],
+      "controller_view": "RestaurantWholesalePurchasesController / admin.restaurant-wholesale-purchases",
+      "role_persona": "restaurant owner/operator",
+      "permission_entitlement": "Restaurant profile + linked wholesale buyer account",
+      "navigation_owner": "Restaurant SaaS",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "Restaurant management launcher → Wholesale Purchases",
+      "parent_context": "Restaurant workspace",
+      "ar_label": "مشتريات الجملة",
+      "en_label": "Wholesale Purchases",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Restaurant SaaS context remains active; purchase tabs own local state",
+      "back_path": "Return to Restaurant workspace",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "backend/resources/views/admin/_restaurant-management-launcher.blade.php",
+        "backend/resources/views/admin/restaurant-wholesale-purchases.blade.php",
+        "backend/app/Http/Controllers/Admin/RestaurantWholesalePurchasesController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Buyer-only procurement context; intentionally separate from restaurant Customer Orders and from wholesale seller administration."
     }
   ],
   "route_level_overrides": [
