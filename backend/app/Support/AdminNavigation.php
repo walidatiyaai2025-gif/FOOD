@@ -161,6 +161,200 @@ class AdminNavigation
         return array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
     }
 
+    /**
+     * Resolve the user's default management destination from the canonical RBAC
+     * navigation and built-in job-role catalog. Explicit intended URLs are handled
+     * by AdminLoginController before this default is used.
+     */
+    public function defaultWorkspaceUrl(User $user, string $channel): string
+    {
+        $channels = $this->for($user);
+        $channelDefinition = $channels[$channel] ?? null;
+
+        if (! is_array($channelDefinition) || ! is_string($channelDefinition['route'] ?? null)) {
+            return route('admin.index');
+        }
+
+        $visibleItems = [];
+        foreach ($this->groupsFor($user) as $group) {
+            foreach ($group['children'] as $item) {
+                $visibleItems[$item['key']] = $item;
+            }
+        }
+
+        foreach ($this->workspaceRoleDefinitions($user, $channel) as $role) {
+            $resolved = $this->workspaceUrlForRole($user, $channel, $role, $visibleItems);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        return route($channelDefinition['route']);
+    }
+
+    /**
+     * @param  array{code:string,domain:string,level:string,sort:int}  $role
+     * @param  array<string,array{key:string,label:string,route:string,params:array<string,string>,permission:?string}>  $visibleItems
+     */
+    private function workspaceUrlForRole(User $user, string $channel, array $role, array $visibleItems): ?string
+    {
+        if ($channel === 'b2c') {
+            $module = match ($role['code']) {
+                'RETAIL_OPERATIONS' => 'orders',
+                'RETAIL_INVENTORY' => 'inventory',
+                'RETAIL_FINANCE' => 'finance',
+                'RETAIL_CUSTOMER_SUPPORT' => 'customers',
+                default => null,
+            };
+
+            if ($module !== null) {
+                return $this->channelModuleWorkspaceUrl($user, $channel, $module);
+            }
+
+            if ($role['domain'] === 'restaurant') {
+                return $this->firstVisibleWorkspaceUrl($visibleItems, ['smart_ordering']);
+            }
+
+            // General Retail management intentionally lands on its concise control center.
+            if ($role['domain'] === 'retail') {
+                return null;
+            }
+        }
+
+        $keys = match ($role['domain']) {
+            'customer_service' => ['erp_customer_service', 'whatsapp_inbox', 'customer_360'],
+            'operations' => ['order_operations', 'field_ops_overview'],
+            'procurement' => ['erp_procurement'],
+            'inventory' => ['erp_wms'],
+            'finance' => ['erp_finance'],
+            'treasury' => ['erp_treasury', 'treasury_master'],
+            'catalog' => ['catalog_management'],
+            'sales' => ['commercial_'.'sales_control', 'order_operations'],
+            'field_operations' => ['field_ops_overview', 'driver_live_tracking'],
+            'marketing' => ['whatsapp_campaigns', 'notification_campaigns'],
+            'analytics' => ['reports_center', 'erp_bi'],
+            default => [],
+        };
+
+        $visible = $this->firstVisibleWorkspaceUrl($visibleItems, $keys);
+        if ($visible !== null) {
+            return $visible;
+        }
+
+        if ($channel !== 'b2b') {
+            return null;
+        }
+
+        $module = match ($role['domain']) {
+            'operations', 'sales' => 'orders',
+            'inventory' => 'inventory',
+            'finance', 'treasury' => 'finance',
+            'catalog' => 'products',
+            default => null,
+        };
+
+        return $module === null ? null : $this->channelModuleWorkspaceUrl($user, $channel, $module);
+    }
+
+    /**
+     * @return list<array{code:string,domain:string,level:string,sort:int}>
+     */
+    private function workspaceRoleDefinitions(User $user, string $channel): array
+    {
+        $codes = [];
+
+        if ($channel === 'b2c') {
+            $storeIds = $this->tenantContext->retailStoreIds($user);
+            if ($storeIds !== []) {
+                $codes = $user->storeRoleAssignments()
+                    ->whereIn('store_id', $storeIds)
+                    ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
+                    ->whereHas('role', fn ($query) => $query
+                        ->where('roles.is_active', true)
+                        ->where('roles.scope', 'store'))
+                    ->with('role:id,code')
+                    ->get()
+                    ->map(fn ($assignment): string => $assignment->role->code)
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+        } else {
+            $codes = $user->roles()
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->pluck('roles.code')
+                ->filter(fn ($code) => is_string($code) && $code !== '')
+                ->values()
+                ->all();
+        }
+
+        $catalog = (array) config('job_roles.roles', []);
+        $definitions = [];
+
+        foreach (array_values(array_unique($codes)) as $code) {
+            $definition = $catalog[$code] ?? null;
+            if (! is_array($definition) || ! is_string($definition['domain'] ?? null)) {
+                continue;
+            }
+
+            $definitions[] = [
+                'code' => $code,
+                'domain' => $definition['domain'],
+                'level' => is_string($definition['level'] ?? null) ? $definition['level'] : 'operator',
+                'sort' => (int) ($definition['sort'] ?? PHP_INT_MAX),
+            ];
+        }
+
+        $levelRank = ['manager' => 5, 'supervisor' => 4, 'specialist' => 3, 'operator' => 2, 'viewer' => 1];
+
+        usort($definitions, static function (array $left, array $right) use ($levelRank): int {
+            $rankComparison = ($levelRank[$right['level']] ?? 0) <=> ($levelRank[$left['level']] ?? 0);
+
+            return $rankComparison !== 0
+                ? $rankComparison
+                : ($left['sort'] <=> $right['sort']);
+        });
+
+        return $definitions;
+    }
+
+    /**
+     * @param  array<string,array{key:string,label:string,route:string,params:array<string,string>,permission:?string}>  $visibleItems
+     * @param  list<string>  $keys
+     */
+    private function firstVisibleWorkspaceUrl(array $visibleItems, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            $item = $visibleItems[$key] ?? null;
+            if ($item !== null) {
+                return route($item['route'], $item['params']);
+            }
+        }
+
+        return null;
+    }
+
+    private function channelModuleWorkspaceUrl(User $user, string $channel, string $module): ?string
+    {
+        $permissions = [
+            'products' => 'catalog.view',
+            'inventory' => 'inventory.view',
+            'orders' => 'orders.view',
+            'finance' => 'finance.view',
+            'customers' => 'customers.view',
+        ];
+        $permission = $permissions[$module] ?? null;
+
+        if ($permission === null
+            || ! Route::has("admin.{$channel}.module")
+            || ! $this->hasChannelPermission($user, $channel, $permission)) {
+            return null;
+        }
+
+        return route("admin.{$channel}.module", ['module' => $module]);
+    }
+
     public function canAccess(User $user, string $channel): bool
     {
         $definition = config("admin.channels.{$channel}");

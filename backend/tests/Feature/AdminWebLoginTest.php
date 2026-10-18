@@ -196,6 +196,73 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_customer_service_management_login_lands_on_customer_service_workspace(): void
+    {
+        $user = $this->userWithGlobalRole('CUSTOMER_SERVICE_MANAGER');
+
+        $this->post('/admin/b2b/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertRedirect(route('admin.erp.customer-service'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_operations_login_lands_on_order_operations_workspace(): void
+    {
+        $user = $this->userWithGlobalRole('OPERATIONS');
+
+        $this->post('/admin/b2b/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertRedirect(route('admin.operations.orders.index'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_retail_inventory_login_lands_on_inventory_workspace(): void
+    {
+        $storeId = $this->createB2cStore();
+        $user = User::query()->create([
+            'name' => 'Retail Inventory',
+            'email' => 'retail-inventory-'.uniqid().'@example.test',
+            'password' => 'correct-password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $this->assignStoreRole($user, $storeId, 'RETAIL_INVENTORY');
+
+        $this->post('/admin/b2c/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertRedirect(route('admin.b2c.module', ['module' => 'inventory']));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_mfa_preserves_the_role_aware_workspace_as_the_post_challenge_target(): void
+    {
+        config()->set('security.mfa.enforce_privileged', true);
+
+        $role = Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail();
+        $permissionId = (int) DB::table('permissions')->where('code', 'platform.manage')->value('id');
+        DB::table('permission_role')->insertOrIgnore([
+            'permission_id' => $permissionId,
+            'role_id' => $role->id,
+        ]);
+
+        $user = $this->userWithGlobalRole('CUSTOMER_SERVICE_MANAGER');
+
+        $this->post('/admin/b2b/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])
+            ->assertRedirect(route('admin.mfa.enroll'))
+            ->assertSessionHas('mfa_intended', route('admin.erp.customer-service'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_super_admin_normal_login_defaults_to_b2b_dashboard(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
