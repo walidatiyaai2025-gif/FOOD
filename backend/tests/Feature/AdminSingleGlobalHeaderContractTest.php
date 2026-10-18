@@ -71,6 +71,23 @@ final class AdminSingleGlobalHeaderContractTest extends TestCase
         $this->assertStringContainsString("@include('admin._account-menu'", $notifications);
     }
 
+    public function test_desktop_global_header_keeps_search_geometrically_centered_without_duplicate_brand(): void
+    {
+        $header = file_get_contents(resource_path('views/admin/_global-header.blade.php'));
+        $components = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+
+        $this->assertIsString($header);
+        $this->assertIsString($components);
+        $this->assertStringContainsString('class="foodex-global-header-spacer" aria-hidden="true"', $header);
+        $this->assertStringNotContainsString('class="foodex-global-header-brand"', $header);
+        $this->assertStringContainsString(
+            'grid-template-columns:minmax(0,1fr) minmax(220px,560px) minmax(0,1fr)',
+            $components
+        );
+        $this->assertStringContainsString('.foodex-global-header-spacer{display:block;width:100%;min-width:0}', $components);
+        $this->assertStringContainsString('.foodex-global-header-spacer{display:none}', $components);
+    }
+
     public function test_mobile_navigation_launcher_does_not_create_a_second_brand_header(): void
     {
         $sidebar = file_get_contents(resource_path('views/admin/_sidebar.blade.php'));
