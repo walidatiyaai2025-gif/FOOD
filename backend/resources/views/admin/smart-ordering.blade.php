@@ -102,43 +102,58 @@
             @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
             @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
-        <section class="so-settings-panel" data-so-settings-panel="overview">
-        @php
-            $ov = $restaurantOverview;
-            $ovFilters = $ov['filters'];
+        <?php
+            $ov = is_array($restaurantOverview ?? null) ? $restaurantOverview : [];
+            $ovFilters = is_array($ov['filters'] ?? null) ? $ov['filters'] : [];
+            $ovKpis = is_array($ov['kpis'] ?? null) ? $ov['kpis'] : [];
+            $ovTrend = is_array($ovTrend ?? null) ? $ovTrend : [];
+            $ovOrderStatus = is_array($ovOrderStatus ?? null) ? $ovOrderStatus : [];
+            $ovBranches = $ovBranches ?? collect();
+
             $ovQuery = array_filter([
                 'branch' => $ovFilters['branch'] ?? null,
                 'from' => $ovFilters['from'] ?? null,
                 'to' => $ovFilters['to'] ?? null,
                 'channel' => $ovFilters['channel'] ?? null,
-                'support_access' => $supportAccess ? 1 : null,
-            ], fn($value) => $value !== null && $value !== '');
+                'support_access' => ($supportAccess ?? false) ? 1 : null,
+            ], static fn($value) => $value !== null && $value !== '');
+
             $operationsQuery = array_filter([
+                'store_id' => (int) $site->store_id,
                 'branch' => $ovFilters['branch'] ?? null,
                 'from' => $ovFilters['from'] ?? null,
                 'to' => $ovFilters['to'] ?? null,
                 'fulfillment_mode' => $ovFilters['channel'] ?? null,
-            ], fn($value) => $value !== null && $value !== '');
+                'support_access' => ($supportAccess ?? false) ? 1 : null,
+            ], static fn($value) => $value !== null && $value !== '');
+
             $analyticsQuery = array_filter([
-                'store_id' => $site->store_id,
+                'store_id' => (int) $site->store_id,
                 'branch_id' => $ovFilters['branch_id'] ?? null,
                 'from' => $ovFilters['from'] ?? null,
                 'to' => $ovFilters['to'] ?? null,
                 'fulfillment' => $ovFilters['channel'] ?? null,
-            ], fn($value) => $value !== null && $value !== '');
-            $overviewCurrency = $ov['currency'] ?? 'KWD';
-            $money = fn($value) => $value === null ? '—' : $overviewCurrency.' '.\App\Support\DisplayNumber::money((float)$value, $overviewCurrency);
-            $number = fn($value) => $value === null ? '—' : number_format((int)$value);
+                'support_access' => ($supportAccess ?? false) ? 1 : null,
+            ], static fn($value) => $value !== null && $value !== '');
+
+            $overviewCurrency = (string) ($ov['currency'] ?? 'KWD');
+            $money = static fn($value): string => $value === null
+                ? '—'
+                : $overviewCurrency.' '.\App\Support\DisplayNumber::money((float)$value, $overviewCurrency);
+            $number = static fn($value): string => $value === null ? '—' : number_format((int)$value);
+
             $kpis = [
-                ['key'=>'orders_today','value'=>$number($ov['kpis']['orders_today']),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'orders'])],
-                ['key'=>'revenue','value'=>$money($ov['kpis']['revenue']),'href'=>route('admin.smart-ordering.analytics.index',$analyticsQuery)],
-                ['key'=>'reservations','value'=>$number($ov['kpis']['reservations']),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'reservations'])],
-                ['key'=>'kitchen_backlog','value'=>$number($ov['kpis']['kitchen_backlog']),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'kitchen'])],
-                ['key'=>'attendance_exceptions','value'=>$number($ov['kpis']['attendance_exceptions']),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'workforce'])],
+                ['key'=>'orders_today','value'=>$number($ovKpis['orders_today'] ?? null),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'orders'])],
+                ['key'=>'revenue','value'=>$money($ovKpis['revenue'] ?? null),'href'=>route('admin.smart-ordering.analytics.index',$analyticsQuery)],
+                ['key'=>'reservations','value'=>$number($ovKpis['reservations'] ?? null),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'reservations'])],
+                ['key'=>'kitchen_backlog','value'=>$number($ovKpis['kitchen_backlog'] ?? null),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'kitchen'])],
+                ['key'=>'attendance_exceptions','value'=>$number($ovKpis['attendance_exceptions'] ?? null),'href'=>route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'workforce'])],
             ];
-            $maxTrendOrders = max(1, collect($ov['trend'])->max('orders') ?? 1);
-            $statusTotal = max(1, array_sum($ov['order_status']));
-        @endphp
+
+            $maxTrendOrders = max(1, (int) collect($ovTrend)->max('orders'));
+            $statusTotal = max(1, array_sum(array_map('intval', $ovOrderStatus)));
+        ?>
+        <section class="so-settings-panel" data-so-settings-panel="overview">
 
         <section class="foodex-module-overview" data-foodex-module-overview data-restaurant-operations-overview>
             <div class="foodex-page-toolbar">
@@ -161,7 +176,7 @@
                     <span>{{ __('smart_ordering.overview.filters.branch') }}</span>
                     <select name="branch">
                         <option value="">{{ __('smart_ordering.overview.filters.all_branches') }}</option>
-                        @foreach($ov['branches'] as $branchOption)
+                        @foreach($ovBranches as $branchOption)
                             <option value="{{ $branchOption->public_id }}" @selected(($ovFilters['branch'] ?? null)===$branchOption->public_id)>{{ app()->getLocale()==='ar' && $branchOption->name_ar ? $branchOption->name_ar : $branchOption->name_en }}</option>
                         @endforeach
                     </select>
@@ -190,7 +205,7 @@
                     <a class="foodex-module-kpi foodex-viz-card" data-foodex-module-kpi data-interactive="true" href="{{ $metric['href'] }}">
                         <span class="foodex-module-kpi-label">{{ __('smart_ordering.overview.kpis.'.$metric['key']) }}</span>
                         <strong class="foodex-module-kpi-value foodex-number">{{ $metric['value'] }}</strong>
-                        <small class="foodex-module-updated">{{ __('module_dashboard.updated_at',['time'=>\Carbon\Carbon::parse($ov['last_refresh'])->timezone('Asia/Kuwait')->format('Y-m-d H:i')]) }}</small>
+                        <small class="foodex-module-updated">{{ __('module_dashboard.updated_at',['time'=>\Carbon\Carbon::parse(($ov['last_refresh'] ?? now()))->timezone('Asia/Kuwait')->format('Y-m-d H:i')]) }}</small>
                     </a>
                 @endforeach
             </div>
@@ -203,16 +218,16 @@
                         <div><h3 class="foodex-viz-title">{{ __('smart_ordering.overview.orders_trend') }}</h3><p class="foodex-viz-subtitle">{{ __('smart_ordering.overview.orders_trend_help') }}</p></div>
                         <a href="{{ route('admin.smart-ordering.analytics.index',$analyticsQuery) }}">{{ __('smart_ordering.analytics.title') }}</a>
                     </div>
-                    @if(count($ov['trend']))
+                    @if(count($ovTrend))
                         <div class="foodex-viz-bars" role="img" aria-label="{{ __('smart_ordering.overview.orders_trend') }}">
-                            @foreach($ov['trend'] as $point)
+                            @foreach($ovTrend as $point)
                                 <span class="foodex-viz-bar" title="{{ $point['date'] }} · {{ $point['orders'] }}" style="height:{{ max(5,round(($point['orders']/$maxTrendOrders)*100)) }}%"></span>
                             @endforeach
                         </div>
                         <div class="foodex-module-chart-table-wrap">
                             <table class="foodex-module-chart-table" data-pagination-exempt="bounded-90-day-overview-trend">
                                 <thead><tr><th>{{ __('smart_ordering.overview.filters.from') }}</th><th>{{ __('smart_ordering.overview.kpis.orders_period') }}</th><th>{{ __('smart_ordering.overview.kpis.revenue') }}</th></tr></thead>
-                                <tbody>@foreach($ov['trend'] as $point)<tr><td class="foodex-number">{{ $point['date'] }}</td><td class="foodex-number">{{ number_format($point['orders']) }}</td><td class="foodex-number">{{ $money($point['revenue']) }}</td></tr>@endforeach</tbody>
+                                <tbody>@foreach($ovTrend as $point)<tr><td class="foodex-number">{{ $point['date'] }}</td><td class="foodex-number">{{ number_format($point['orders']) }}</td><td class="foodex-number">{{ $money($point['revenue']) }}</td></tr>@endforeach</tbody>
                             </table>
                         </div>
                     @else
@@ -222,9 +237,9 @@
 
                 <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart>
                     <div class="foodex-viz-header"><div><h3 class="foodex-viz-title">{{ __('smart_ordering.overview.status_mix') }}</h3><p class="foodex-viz-subtitle">{{ __('smart_ordering.overview.status_mix_help') }}</p></div></div>
-                    @if(count($ov['order_status']))
+                    @if(count($ovOrderStatus))
                         <div class="foodex-viz-legend">
-                            @foreach($ov['order_status'] as $status=>$count)
+                            @foreach($ovOrderStatus as $status=>$count)
                                 <a class="foodex-viz-legend-item" href="{{ route('admin.smart-ordering.operations.index',$operationsQuery+['status'=>$status]) }}">
                                     <span class="foodex-viz-swatch"></span>
                                     <span>{{ __('smart_ordering.statuses.'.$status) }}</span>
@@ -242,7 +257,7 @@
             <div class="foodex-module-panels">
                 <article class="foodex-viz-card">
                     <div class="foodex-viz-header"><h3 class="foodex-viz-title">{{ __('smart_ordering.overview.exceptions') }}</h3></div>
-                    @forelse($ov['exceptions'] as $exception)
+                    @forelse(($ov['exceptions'] ?? []) as $exception)
                         @php
                             $exceptionHref = match($exception['key']) {
                                 'kitchen_late' => route('admin.smart-ordering.operations.index',$operationsQuery+['tab'=>'kitchen']),
@@ -264,7 +279,7 @@
                 <article class="foodex-viz-card">
                     <div class="foodex-viz-header"><h3 class="foodex-viz-title">{{ __('smart_ordering.overview.branch_health') }}</h3></div>
                     <div class="so-list">
-                        @foreach($ov['branch_health'] as $branchState)
+                        @foreach(($ov['branch_health'] ?? []) as $branchState)
                             <a class="foodex-card" style="padding:12px;text-decoration:none" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id,'branch'=>$branchState['public_id']]+($supportAccess?['support_access'=>1]:[])) }}">
                                 <strong>{{ $branchState['label'] }}</strong>
                                 <div><span class="foodex-status-badge" data-state="{{ $branchState['state']==='healthy'?'active':($branchState['state']==='disabled'?'inactive':'warning') }}">{{ __('smart_ordering.overview.health.'.$branchState['state']) }}</span></div>
