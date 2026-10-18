@@ -181,6 +181,10 @@ final class OrderOperationsController extends Controller
             })
             ->count();
 
+        if ($selectedActionRequired && ! $actionRequiredExplicit && $actionRequiredCount === 0) {
+            $selectedActionRequired = false;
+        }
+
         $statusCounts = (clone $statusBaseQuery)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
