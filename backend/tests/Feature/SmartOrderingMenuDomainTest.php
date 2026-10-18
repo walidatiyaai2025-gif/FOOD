@@ -186,8 +186,8 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('data-launch-step="identity"', false)
-            ->assertSee(route('admin.smart-ordering.slug', $fixture['site']), false)
-            ->assertSee(route('admin.smart-ordering.runtime', $fixture['site']), false);
+            ->assertSee(route('admin.smart-ordering.menu.setup.identity'), false)
+            ->assertSee('Save and continue to review');
 
         $this->actingAs($fixture['admin'])
             ->get(route('admin.smart-ordering.menu.index', [
