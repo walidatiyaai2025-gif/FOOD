@@ -127,7 +127,9 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 reachable: false,
                 healthy: false,
                 latencyMs: 0,
-                failureReason: $config['enabled'] ? 'provider_unconfigured' : 'provider_disabled',
+                failureReason: $config['enabled']
+                    ? AssistantProviderResult::FAILURE_UNAVAILABLE
+                    : AssistantProviderResult::FAILURE_DISABLED,
             );
         }
 
@@ -171,7 +173,11 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 healthy: $healthy,
                 latencyMs: $latency,
                 statusCode: $response->status(),
-                failureReason: $healthy ? null : 'provider_unhealthy',
+                failureReason: $healthy
+                    ? null
+                    : ($response->successful()
+                        ? AssistantProviderResult::FAILURE_MALFORMED
+                        : AssistantProviderResult::FAILURE_UNAVAILABLE),
             );
         } catch (Throwable $exception) {
             $latency = (int) round((microtime(true) - $started) * 1000);
@@ -185,7 +191,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 reachable: false,
                 healthy: false,
                 latencyMs: $latency,
-                failureReason: 'provider_unavailable',
+                failureReason: AssistantProviderResult::FAILURE_UNAVAILABLE,
             );
         }
     }
@@ -197,14 +203,16 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         if (! $this->settings->usable()) {
             return $this->failedResult(
                 $config['model'],
-                $config['enabled'] ? 'provider_unconfigured' : 'provider_disabled',
+                $config['enabled']
+                    ? AssistantProviderResult::FAILURE_UNAVAILABLE
+                    : AssistantProviderResult::FAILURE_DISABLED,
             );
         }
 
         $models = $this->models->routingOrder($request->useCase);
 
         if ($models === []) {
-            return $this->failedResult($config['model'], 'provider_incapable');
+            return $this->failedResult($config['model'], AssistantProviderResult::FAILURE_INCAPABLE);
         }
 
         try {
@@ -212,7 +220,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->failedResult($config['model'], 'provider_invalid_endpoint');
+            return $this->failedResult($config['model'], AssistantProviderResult::FAILURE_UNAVAILABLE);
         }
 
         $apiKey = $this->settings->apiKey();
@@ -231,6 +239,8 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         if ($request->allowedTools !== []) {
             $payload['tools'] = array_values($request->allowedTools);
         }
+
+        $sawMalformedResponse = false;
 
         foreach ($models as $index => $model) {
             $started = microtime(true);
@@ -256,6 +266,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 : null;
 
             if ($text === null && $toolCalls === []) {
+                $sawMalformedResponse = true;
                 $this->providerTelemetry(
                     $config,
                     $model,
@@ -292,7 +303,12 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             );
         }
 
-        return $this->failedResult($config['model'], 'provider_unavailable');
+        return $this->failedResult(
+            $config['model'],
+            $sawMalformedResponse
+                ? AssistantProviderResult::FAILURE_MALFORMED
+                : AssistantProviderResult::FAILURE_UNAVAILABLE,
+        );
     }
 
     /**
