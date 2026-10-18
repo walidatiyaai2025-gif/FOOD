@@ -112,14 +112,24 @@ class UpdateManagerTest extends TestCase
             'health_check',
             'rollback_files',
             'rollback_database',
+            'health_check',
             'exit_maintenance_mode',
         ], $runtime->calls);
 
         $this->assertDatabaseHas('update_history', [
             'to_version' => '1.1.0',
             'status' => 'failed',
+            'failed_stage' => 'health_check',
+            'backup_status' => 'available',
+            'rollback_status' => 'succeeded',
+            'maintenance_mode_remained' => false,
             'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
         ]);
+        $failedHistory = \App\Models\UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
+        $this->assertSame('failed', $failedHistory->execution_evidence['health_check'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_files'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_database'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_health_check'] ?? null);
         $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
     }
