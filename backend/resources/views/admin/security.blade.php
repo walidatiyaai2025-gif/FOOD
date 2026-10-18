@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.security.title') }} · FOODEX</title>
 <style>
-:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1500px;margin:auto;padding:28px}.top,.head,.row{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:var(--foodex-muted);line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px;margin-top:12px}.filters,.checks,.actions{display:flex;flex-wrap:wrap;gap:9px}.filters{margin:16px 0}.checks{margin:10px 0}.actions{align-items:center}input,select,textarea,button{font:inherit}input[type=text],select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px;background:#fff}textarea{width:100%;min-height:65px}.grow{flex:1;min-width:240px}.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:750;cursor:pointer}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.secondary{background:#eef2ff;color:#3730a3}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.75rem;background:#e2e8f0;margin:3px}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.system{background:#e0e7ff;color:#3730a3}details{margin-top:12px}summary{cursor:pointer;font-weight:800}.store{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;margin:8px 0}.permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.permission-group{border:0;border-top:1px solid #e2e8f0;padding:10px 0 0;min-width:0}.permission-group legend{font-weight:800;padding:0}.permission-group-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.permission-group-tools .btn{padding:6px 9px}.permission-search{display:grid;gap:5px;margin:12px 0}.permission-search input{width:100%}.permission-option{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-radius:8px}.permission-option input{margin-top:4px}.permission-code{display:block;color:#64748b;margin-top:2px;overflow-wrap:anywhere}.permission-impact{display:grid;gap:4px;margin:12px 0}.assignment-store>summary{padding:4px 0}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}.note{background:#f8fafc;padding:12px;border-radius:12px;color:#475569}.pager{margin-top:14px}@media(max-width:760px){.page{padding:12px}.top,.head,.row{flex-direction:column}.role-grid{grid-template-columns:1fr}.panel{padding:14px}.card{padding:12px}.filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.grow{min-width:0;width:100%}.checks{display:grid;grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch}.actions form{max-width:100%}.permissions{grid-template-columns:1fr}}
+:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1500px;margin:auto;padding:28px}.top,.head,.row{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:var(--foodex-muted);line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px;margin-top:12px}.filters,.checks,.actions{display:flex;flex-wrap:wrap;gap:9px}.filters{margin:16px 0}.checks{margin:10px 0}.actions{align-items:center}input,select,textarea,button{font:inherit}input[type=text],select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px;background:#fff}textarea{width:100%;min-height:65px}.grow{flex:1;min-width:240px}.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:750;cursor:pointer}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.secondary{background:#eef2ff;color:#3730a3}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.75rem;background:#e2e8f0;margin:3px}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.system{background:#e0e7ff;color:#3730a3}details{margin-top:12px}summary{cursor:pointer;font-weight:800}.store{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;margin:8px 0}.permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.permission-group{border:0;border-top:1px solid #e2e8f0;padding:10px 0 0;min-width:0}.permission-group legend{font-weight:800;padding:0}.permission-group-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.permission-group-tools .btn{padding:6px 9px}.permission-search{display:grid;gap:5px;margin:12px 0}.permission-search input{width:100%}.permission-option{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-radius:8px}.permission-option input{margin-top:4px}.permission-code{display:block;color:#64748b;margin-top:2px;overflow-wrap:anywhere}.permission-impact{display:grid;gap:4px;margin:12px 0}.assignment-store>summary{padding:4px 0}.job-role-meta{display:grid;gap:5px;margin-top:6px}.job-role-tags{display:flex;flex-wrap:wrap;gap:5px}.job-role-responsibilities{margin:8px 0 0;padding-inline-start:20px}.role-unavailable{opacity:.72}.role-unavailable .badge{background:var(--foodex-orange-soft);color:var(--foodex-ink)}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}.note{background:#f8fafc;padding:12px;border-radius:12px;color:#475569}.pager{margin-top:14px}@media(max-width:760px){.page{padding:12px}.top,.head,.row{flex-direction:column}.role-grid{grid-template-columns:1fr}.panel{padding:14px}.card{padding:12px}.filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.grow{min-width:0;width:100%}.checks{display:grid;grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch}.actions form{max-width:100%}.permissions{grid-template-columns:1fr}}
 </style>
     @include('admin._brand-components')
 </head>
@@ -89,6 +89,9 @@ $roleLabel = static function ($role): string {
     'globalRoles' => $globalRoles,
     'stores' => $stores,
     'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
+    'jobRoleMeta' => $jobRoleMeta,
+    'globalRoleAvailability' => $globalRoleAvailability,
+    'storeRoleAvailabilityByStore' => $storeRoleAvailabilityByStore,
 ])
 </details>
 @endcan
@@ -133,8 +136,40 @@ $roleLabel = static function ($role): string {
 <button class="btn primary">{{ __('admin.security.create_role') }}</button></form></details>
 @endcan
 
-<div class="role-grid">@foreach($roles as $role)@php $pids=$role->permissions->pluck('id')->map(fn($id)=>(int)$id)->all(); @endphp
-<details class="card" data-foodex-operational-modal><summary>{{ $role->name }} · {{ str_ireplace('B2C','RETAIL',$role->code) }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif</summary><p class="muted">{{ $role->description?:__('admin.security.no_description') }}</p><div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
+<div class="role-grid">@foreach($roles as $role)@php
+    $pids=$role->permissions->pluck('id')->map(fn($id)=>(int)$id)->all();
+    $roleMeta=$jobRoleMeta[$role->code] ?? null;
+    $roleAvailable=(bool)$roleAvailabilitySummary->get((int)$role->id, true);
+    $displayRoleName=is_array($roleMeta) ? $roleMeta['name'] : $role->name;
+    $displayRoleDescription=is_array($roleMeta) ? $roleMeta['description'] : ($role->description?:__('admin.security.no_description'));
+@endphp
+<details class="card {{ $roleAvailable ? '' : 'role-unavailable' }}" data-foodex-operational-modal>
+<summary>{{ $displayRoleName }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif @if(is_array($roleMeta))<span class="badge">{{ $roleAvailable?__('job_roles.availability.available'):__('job_roles.availability.unavailable') }}</span>@endif</summary>
+<div class="job-role-meta">
+<p class="muted">{{ $displayRoleDescription }}</p>
+@if(is_array($roleMeta))
+<div class="job-role-tags">
+    <span class="badge">{{ __('job_roles.domain') }}: {{ $roleMeta['domain_label'] }}</span>
+    <span class="badge">{{ __('job_roles.scope') }}: {{ $roleMeta['scope_label'] }}</span>
+    <span class="badge">{{ __('job_roles.level') }}: {{ $roleMeta['level_label'] }}</span>
+    <span class="badge system">{{ __('job_roles.built_in') }}</span>
+</div>
+@if(($roleMeta['required_modules'] ?? []) !== [])
+<p class="muted">{{ __('job_roles.module_required', ['modules'=>implode(', ', $roleMeta['required_modules'])]) }}</p>
+@endif
+@if(($roleMeta['responsibilities'] ?? []) !== [])
+<strong>{{ __('job_roles.responsibilities') }}</strong>
+<ul class="job-role-responsibilities">@foreach($roleMeta['responsibilities'] as $responsibility)<li>{{ $responsibility }}</li>@endforeach</ul>
+@endif
+@if(($roleMeta['permission_summary'] ?? []) !== [])
+<strong>{{ __('job_roles.permission_summary') }}</strong>
+<div class="job-role-tags">@foreach($roleMeta['permission_summary'] as $summary)<span class="badge">{{ $summary }}</span>@endforeach</div>
+@endif
+@else
+<div class="job-role-tags"><span class="badge">{{ __('job_roles.custom') }}</span></div>
+@endif
+<div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
+</div>
 @can('roles.manage')
 @if(in_array((int) $role->id, $editableRoleIds, true))
 <form method="post" action="{{ route('admin.security.roles.update',$role) }}">@csrf @method('patch')<div class="filters"><input class="grow" name="name" value="{{ $role->name }}" required>@if($role->is_system)<input type="hidden" name="scope" value="{{ $role->scope }}"><span class="note">{{ __('admin.security.scope') }}: {{ $role->scope === 'global' ? __('admin.security.scope_global') : __('admin.security.scope_store') }}</span>@else<select name="scope"><option value="global" @selected($role->scope==='global')>{{ __('admin.security.scope_global') }}</option><option value="store" @selected($role->scope==='store')>{{ __('admin.security.scope_store') }}</option></select>@endif @if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}<input type="hidden" name="is_active" value="1"><span class="note">{{ __('admin.security.super_admin_protected') }}</span>@else<label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($role->is_active)> {{ __('admin.security.active') }}</label>@endif</div><textarea name="description">{{ $role->description }}</textarea>
@@ -151,7 +186,14 @@ $roleLabel = static function ($role): string {
 @endif
 <button class="btn primary">{{ __('admin.security.save_role') }}</button></form>
 @else
+@if(is_array($roleMeta))
+<div class="note">{{ __('job_roles.errors.canonical_locked') }}</div>
+@if(in_array((int) $role->id, $roleOutsideGrantAuthorityIds, true))
 <div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
+@endif
+@else
+<div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
+@endif
 @endif
 <div class="actions"><form method="post" action="{{ route('admin.security.roles.clone',$role) }}">@csrf <input name="code" required pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="{{ str_ireplace('B2C','RETAIL',$role->code) }}_COPY"><input name="name" required value="{{ $role->name }} Copy"><button class="btn secondary">{{ __('admin.security.clone') }}</button></form>@if(!$role->is_system)<form method="post" action="{{ route('admin.security.roles.destroy',$role) }}" onsubmit="return confirm('{{ __('admin.security.confirm_delete_role') }}')">@csrf @method('delete')<button class="btn danger">{{ __('admin.security.delete_role') }}</button></form>@endif</div>
 @endcan</details>@endforeach</div>

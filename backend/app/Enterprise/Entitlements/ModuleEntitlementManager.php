@@ -13,6 +13,7 @@ final class ModuleEntitlementManager
     public function __construct(
         private readonly ModuleRegistry $registry,
         private readonly EntitlementScopeResolver $scopes,
+        private readonly ModuleEntitlementResolver $resolver,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -71,6 +72,10 @@ final class ModuleEntitlementManager
             $before,
             $this->snapshot($entitlement),
         );
+
+        // Entitlement changes are immediately visible to every consumer that
+        // shares the request-scoped resolver, including built-in role availability.
+        $this->resolver->forgetModule($moduleCode);
 
         return $entitlement->refresh();
     }

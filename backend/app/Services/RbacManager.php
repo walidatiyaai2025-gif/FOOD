@@ -11,7 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 final class RbacManager
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly BuiltInJobRoleCatalog $jobRoles,
+    ) {}
 
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
@@ -114,6 +117,28 @@ final class RbacManager
             $this->assertActorCanGrantRole($actor, $storeModels[(int) $assignment['role_id']], (int) $assignment['store_id']);
         }
 
+        $currentGlobalRoleIds = $target->roles()
+            ->pluck('roles.id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $currentStorePairs = $target->storeRoleAssignments()
+            ->get(['store_id', 'role_id'])
+            ->map(static fn ($assignment): string => ((int) $assignment->role_id).':'.((int) $assignment->store_id))
+            ->all();
+
+        $this->jobRoles->assertAssignmentsAvailable(
+            $globalRoles->values(),
+            array_map(
+                fn (array $assignment): array => [
+                    'store_id' => (int) $assignment['store_id'],
+                    'role' => $storeModels[(int) $assignment['role_id']],
+                ],
+                $storeRoles,
+            ),
+            $currentGlobalRoleIds,
+            $currentStorePairs,
+        );
+
         $targetHasSuperAdmin = $target->roles()
             ->where('roles.code', 'SUPER_ADMIN')
             ->where('roles.is_active', true)
@@ -181,6 +206,12 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
+        if ($this->jobRoles->isBuiltIn((string) $role->code)) {
+            throw ValidationException::withMessages([
+                'role' => [__('job_roles.errors.canonical_locked')],
+            ]);
+        }
+
         if ($role->code === 'SUPER_ADMIN') {
             $values['is_active'] = true;
             $values['scope'] = 'global';
