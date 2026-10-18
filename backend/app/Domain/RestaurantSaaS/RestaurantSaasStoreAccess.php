@@ -3,6 +3,7 @@
 namespace App\Domain\RestaurantSaaS;
 
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use App\Support\TenantContextResolver;
@@ -28,6 +29,7 @@ final class RestaurantSaasStoreAccess
 
             $this->tenants->retail($actor, $storeId, true, $request);
             abort_unless($actor->hasPermission($permission, $storeId), 403);
+            $this->tenants->assertBusinessProfile($storeId, Store::BUSINESS_PROFILE_RESTAURANT);
             $this->entitlements->assertStoreEnabled($storeId);
 
             return [$storeId];
@@ -35,6 +37,10 @@ final class RestaurantSaasStoreAccess
 
         $storeIds = $this->scope->allowedStoreIds($actor, $permission, 'b2c');
         $storeIds = $this->entitlements->enabledStoreIds($storeIds);
+        $storeIds = array_values(array_intersect(
+            $storeIds,
+            $this->tenants->retailStoreIdsByProfile($actor, Store::BUSINESS_PROFILE_RESTAURANT),
+        ));
         abort_if($storeIds === [], 403);
 
         return $storeIds;
@@ -62,6 +68,7 @@ final class RestaurantSaasStoreAccess
             $this->scope->assertStore($actor, $storeId, $permission, $expectedChannel ?? 'b2c');
         }
 
+        $this->tenants->assertBusinessProfile($storeId, Store::BUSINESS_PROFILE_RESTAURANT);
         $this->entitlements->assertStoreEnabled($storeId);
 
         return 'b2c';
