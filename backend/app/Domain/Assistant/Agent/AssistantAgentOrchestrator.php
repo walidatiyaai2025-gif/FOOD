@@ -229,6 +229,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $base,
                 $startedAt,
                 $plan['provider'] + ['failure' => $failed > 0 ? 'TOOL_UNAVAILABLE' : 'DATA_UNAVAILABLE'],
+                $toolExecutions,
             );
         }
 
@@ -394,6 +395,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         AssistantBrainResult $base,
         int $startedAt,
         array $provider,
+        array $priorExecutions = [],
     ): AgentTurnResult {
         $pending = (bool) ($base->state['pending_clarification'] ?? false);
 
@@ -404,6 +406,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 brainResult: $base,
                 toolResult: null,
                 toolRequest: null,
+                toolExecutions: $priorExecutions,
                 scopeSummary: $this->scopeSummary($request),
                 providerMetadata: $provider,
             );
@@ -445,17 +448,20 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             state: $base->state + ['agent_orchestrated' => false],
         );
 
+        $fallbackExecution = [
+            'call_id' => $callId,
+            'tool' => $base->intent,
+            'status' => $status === AgentTurnResult::COMPLETE ? 'COMPLETE' : 'PARTIAL',
+            'evidence_id' => $evidence['evidence_id'],
+        ];
+        $allExecutions = [...$priorExecutions, $fallbackExecution];
+
         $toolResult = new AssistantToolResult(
             data: [
                 ...$result->data,
                 '_agent' => [
                     'status' => $status,
-                    'tool_executions' => [[
-                        'call_id' => $callId,
-                        'tool' => $base->intent,
-                        'status' => $status === AgentTurnResult::COMPLETE ? 'COMPLETE' : 'PARTIAL',
-                        'evidence_id' => $evidence['evidence_id'],
-                    ]],
+                    'tool_executions' => $allExecutions,
                     'evidence' => [$evidence],
                     'scope' => $this->scopeSummary($request),
                     'provider' => $provider,
@@ -474,7 +480,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             brainResult: $brain,
             toolResult: $toolResult,
             toolRequest: $toolRequest,
-            toolExecutions: $toolResult->data['_agent']['tool_executions'],
+            toolExecutions: $allExecutions,
             evidence: [$evidence],
             scopeSummary: $this->scopeSummary($request),
             providerMetadata: $provider,
