@@ -93,6 +93,7 @@ final class AssistantContextToken
             'authorized_entities' => is_array($page['authorized_entities'] ?? null) ? $page['authorized_entities'] : [],
             'role_codes' => $principal->roleCodes,
             'locale' => $principal->locale,
+            'direction' => $principal->locale === 'ar' ? 'rtl' : 'ltr',
             'business_scope' => $principal->businessScope,
         ];
     }
