@@ -51,7 +51,7 @@ final class AssistantExternalAiClient
             )->post($config['api_url'], [
                 'model' => $config['model'],
                 'temperature' => 0.1,
-                'max_tokens' => 350,
+                'max_tokens' => 512,
                 'messages' => [
                     [
                         'role' => 'system',
@@ -97,7 +97,7 @@ final class AssistantExternalAiClient
             )->post($config['api_url'], [
                 'model' => $config['model'],
                 'temperature' => 0,
-                'max_tokens' => 24,
+                'max_tokens' => 128,
                 'messages' => [
                     ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
                 ],
@@ -248,7 +248,7 @@ final class AssistantExternalAiClient
     private function normalizeModelContent(string $content): string
     {
         $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content;
-        $normalized = preg_replace('/<think\b[^>]*>.*?<\/think>\s*/is', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/^\s*(?:<think\b[^>]*>.*?<\/think>\s*)+/is', '', $normalized) ?? $normalized;
         $normalized = trim($normalized);
 
         if (preg_match('/^```(?:json|text)?\s*(.*?)\s*```$/is', $normalized, $matches) === 1) {
