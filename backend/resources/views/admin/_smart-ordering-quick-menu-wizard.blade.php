@@ -114,6 +114,9 @@ body.qm-open{overflow:hidden}
     @csrf
     <input type="hidden" name="store_id" value="{{ $site->store_id }}">
     <input type="hidden" name="_quick_menu" value="1">
+    @if(($quickMenuReturnTo ?? null) === 'menu_setup')
+        <input type="hidden" name="return_to" value="menu_setup">
+    @endif
 
     <header class="qm-head">
         <div>
