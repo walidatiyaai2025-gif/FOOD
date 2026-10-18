@@ -13,7 +13,7 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
         $this->assertStringContainsString('grid-auto-flow:column', $view);
-        $this->assertStringContainsString('grid-auto-columns:minmax(165px,1fr)', $view);
+        $this->assertStringContainsString('grid-auto-columns:minmax(132px,165px)', $view);
         $this->assertStringContainsString('class="cs-kpi-icon"', $view);
         $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$presentation['icon']])", $view);
         $this->assertStringContainsString('data-tone="{{ $presentation[\'tone\'] }}"', $view);
