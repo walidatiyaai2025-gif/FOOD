@@ -122,9 +122,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $response->assertOk()
             ->assertViewHas('selectedChannel', 'b2c')
             ->assertViewHas('selectedStoreId', $selectedStore)
-            ->assertSee('data-order-workspace-context', false)
-            ->assertSee('data-channel="b2c"', false)
-            ->assertSee('data-store-id="'.$selectedStore.'"', false)
+            ->assertSee('data-order-header-controls', false)
+            ->assertSee('data-order-header-filter', false)
+            ->assertDontSee('data-order-workspace-context', false)
             ->assertSee('name="channel" value="b2c"', false)
             ->assertSee('<option value="'.$selectedStore.'" selected>', false)
             ->assertSee(
@@ -176,6 +176,14 @@ class UnifiedOrderOperationsTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('data-order-kpi-card', $view);
+        $this->assertStringContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
+        $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
+        $this->assertStringNotContainsString('data-order-workspace-context', $view);
+        $this->assertStringNotContainsString("@include('admin._module-dashboard-filters'", $view);
+        $this->assertStringContainsString('data-order-counter', $view);
+        $this->assertStringContainsString('data-counter-target', $view);
+        $this->assertStringContainsString("window.requestAnimationFrame(tick)", $view);
+        $this->assertStringContainsString('white-space:nowrap', $view);
         $this->assertStringContainsString('class="order-kpi-item"', $view);
         $this->assertStringContainsString('class="order-kpi-icon"', $view);
         $this->assertStringContainsString('data-tone="{{ $metric[\'tone\'] }}"', $view);
