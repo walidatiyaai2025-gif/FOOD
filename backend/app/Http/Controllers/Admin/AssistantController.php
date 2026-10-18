@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Assistant\Agent\AssistantAgentOrchestrator;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Data\AssistantBrainRequest;
+use App\Domain\Assistant\Data\AssistantBrainResult;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
@@ -40,6 +42,7 @@ final class AssistantController extends Controller
 
     public function __construct(
         private readonly AssistantBrainInterface $brain,
+        private readonly AssistantAgentOrchestrator $agentOrchestrator,
         private readonly AssistantPageContext $pageContext,
         private readonly AiPrincipalContextResolver $principalContext,
         private readonly AssistantToolExecutor $toolExecutor,
@@ -163,38 +166,71 @@ final class AssistantController extends Controller
                     'correlation_id' => $correlationId,
                 ]);
 
-                $brainResult = $this->brain->respond(new AssistantBrainRequest(
+                $brainRequest = new AssistantBrainRequest(
                     message: $message,
                     locale: $locale,
                     context: $context,
                     state: $this->brainState($state),
-                ));
+                );
+                $agentResult = $this->agentOrchestrator->run($user, $brainRequest, $correlationId);
 
                 $toolResult = null;
                 $toolRequest = null;
-                $pendingClarification = (bool) ($brainResult->state['pending_clarification'] ?? false);
 
-                if ($brainResult->intent !== null && ! $pendingClarification) {
-                    $entities = $this->toolEntities($brainResult->state);
+                if ($agentResult !== null) {
+                    $lastTool = $agentResult->toolKeys === []
+                        ? null
+                        : $agentResult->toolKeys[array_key_last($agentResult->toolKeys)];
+
+                    $brainResult = new AssistantBrainResult(
+                        message: $agentResult->message,
+                        intent: 'agent.multi_tool',
+                        confidence: 1.0,
+                        state: [
+                            'last_intent' => 'agent.multi_tool',
+                            'last_tool' => $lastTool,
+                            'pending_clarification' => false,
+                            'external_ai_routed' => true,
+                            'agent_orchestrated' => true,
+                        ],
+                    );
+                    $toolResult = $agentResult->toolResult;
                     $toolRequest = new AssistantToolRequest(
                         actorUserId: (int) $user->getKey(),
                         locale: $locale,
-                        channel: $this->channel($entities['channel'] ?? $context['channel'] ?? null),
-                        storeId: $this->positiveInt($entities['store_id'] ?? $context['store_id'] ?? null),
-                        entities: $entities,
+                        channel: $this->channel($context['channel'] ?? null),
+                        storeId: $this->positiveInt($context['store_id'] ?? null),
+                        entities: [],
                         context: $context,
                     );
-                    $toolResult = $this->toolExecutor->execute(
-                        $brainResult->intent,
-                        $toolRequest,
-                        $correlationId,
-                    );
+                } else {
+                    $brainResult = $this->brain->respond($brainRequest);
+                    $pendingClarification = (bool) ($brainResult->state['pending_clarification'] ?? false);
+
+                    if ($brainResult->intent !== null && ! $pendingClarification) {
+                        $entities = $this->toolEntities($brainResult->state);
+                        $toolRequest = new AssistantToolRequest(
+                            actorUserId: (int) $user->getKey(),
+                            locale: $locale,
+                            channel: $this->channel($entities['channel'] ?? $context['channel'] ?? null),
+                            storeId: $this->positiveInt($entities['store_id'] ?? $context['store_id'] ?? null),
+                            entities: $entities,
+                            context: $context,
+                        );
+                        $toolResult = $this->toolExecutor->execute(
+                            $brainResult->intent,
+                            $toolRequest,
+                            $correlationId,
+                        );
+                    }
                 }
 
                 $cards = $toolResult === null ? $brainResult->cards : $this->cards($brainResult->intent, $locale, $toolResult);
                 $actions = $toolResult === null ? $this->actions($brainResult->actions) : $this->actions($toolResult->actions);
                 $suggested = $brainResult->suggestedPrompts === [] ? $this->suggestedPrompts($locale) : $brainResult->suggestedPrompts;
-                $content = $toolResult === null ? $brainResult->message : $this->resultMessage($brainResult->intent, $locale);
+                $content = $agentResult !== null
+                    ? $agentResult->message
+                    : ($toolResult === null ? $brainResult->message : $this->resultMessage($brainResult->intent, $locale));
                 $assistantPayload = [
                     'cards' => $cards,
                     'actions' => $actions,
@@ -473,6 +509,7 @@ final class AssistantController extends Controller
             'drivers.assignments' => ['en' => 'Driver assignments', 'ar' => 'تكليفات السائقين'],
             'inventory.alerts' => ['en' => 'Inventory alerts', 'ar' => 'تنبيهات المخزون'],
             'brief.daily' => ['en' => 'Daily brief', 'ar' => 'ملخص اليوم'],
+            'agent.multi_tool' => ['en' => 'Grounded analysis', 'ar' => 'تحليل موثق'],
         ];
 
         return $labels[$intent][$locale] ?? ($intent ?? ($locale === 'ar' ? 'النتيجة' : 'Result'));
