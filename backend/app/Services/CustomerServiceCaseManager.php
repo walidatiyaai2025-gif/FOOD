@@ -59,6 +59,7 @@ final class CustomerServiceCaseManager
         [$from, $to] = $this->dateWindow($filters['from'] ?? null, $filters['to'] ?? null);
         $customerQuery = $this->visibleCustomersQuery($storeIds);
 
+        $totalCustomers = (clone $customerQuery)->distinct()->count('pc.id');
         $activeCustomers = (clone $customerQuery)->where('pc.is_active', true)->distinct()->count('pc.id');
         $newCustomers = (clone $customerQuery)
             ->where('pc.is_active', true)
@@ -132,6 +133,7 @@ final class CustomerServiceCaseManager
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'last_refresh' => $lastRefresh,
+            'total_customers' => $totalCustomers,
             'kpis' => [
                 $this->metric('active_customers', $activeCustomers, route('admin.customer-360.index', ['active' => 1]), $lastRefresh),
                 $this->metric('new_customers', $newCustomers, route('admin.customer-360.index', ['date_from' => $from->toDateString(), 'date_to' => $to->toDateString()]), $lastRefresh),
