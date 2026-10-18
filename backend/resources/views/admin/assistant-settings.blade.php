@@ -25,8 +25,12 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .assistant-provider-fields input{width:100%}
 .assistant-secret-state{font-size:.74rem;color:var(--foodex-muted)}
 .assistant-provider-test{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.assistant-capabilities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.assistant-capability{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}
+.assistant-capability span{display:block;color:var(--foodex-muted);font-size:.72rem;margin-bottom:4px}
+.assistant-capability strong{font-size:.9rem}
 .foodex-state{margin-bottom:16px}
-@media(max-width:767px){.assistant-settings-card{padding:16px}.assistant-provider-fields{grid-template-columns:1fr}.assistant-provider-fields .wide{grid-column:auto}.assistant-provider-head{flex-direction:column}}
+@media(max-width:767px){.assistant-settings-card{padding:16px}.assistant-provider-fields{grid-template-columns:1fr}.assistant-provider-fields .wide{grid-column:auto}.assistant-provider-head{flex-direction:column}.assistant-capabilities{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -46,6 +50,31 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if(session('provider_test_success'))<div class="foodex-state" role="status">{{ session('provider_test_success') }}</div>@endif
 @if(session('provider_test_error'))<div class="foodex-state" role="alert">{{ session('provider_test_error') }}</div>@endif
+@if(session('provider_probe'))
+@php($probe = session('provider_probe'))
+<div class="assistant-settings-card" data-provider-capability-probe>
+<div class="assistant-settings-grid">
+<div class="assistant-provider-head">
+<div>
+<h2>{{ __('assistant_settings.capability_title') }}</h2>
+<p>{{ __('assistant_settings.capability_description') }}</p>
+</div>
+<span class="foodex-badge">{{ $probe['agent_capable'] ? __('assistant_settings.agent_capable') : __('assistant_settings.agent_not_capable') }}</span>
+</div>
+<div class="assistant-capabilities">
+<div class="assistant-capability"><span>{{ __('assistant_settings.reachable') }}</span><strong>{{ $probe['reachable'] ? __('assistant_settings.yes') : __('assistant_settings.no') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.chat_contract') }}</span><strong>{{ data_get($probe,'capabilities.chat') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.structured_json') }}</span><strong>{{ data_get($probe,'capabilities.structured_json') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.tool_calls') }}</span><strong>{{ data_get($probe,'capabilities.tool_calls') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.context_budget') }}</span><strong>{{ number_format((int) data_get($probe,'capabilities.context_window_tokens',0)) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.output_budget') }}</span><strong>{{ number_format((int) data_get($probe,'capabilities.max_output_tokens',0)) }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.timeout') }}</span><strong>{{ (int) data_get($probe,'capabilities.timeout_seconds',0) }}s</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.latency') }}</span><strong>{{ (int) ($probe['latency_ms'] ?? 0) }}ms</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.budget_contract') }}</span><strong>{{ data_get($probe,'capabilities.budget_contract') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
+</div>
+</div>
+</div>
+@endif
 @if($errors->any())
 <div class="foodex-state" role="alert">
 <strong>{{ __('assistant_settings.save_error') }}</strong>
@@ -113,6 +142,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <p>{{ __('assistant_settings.safety_description') }}</p>
 </div>
 
+<div class="assistant-note" data-assistant-model-policy>
+<strong>{{ __('assistant_settings.model_policy_title') }}</strong>
+<p>{{ __('assistant_settings.model_policy_description') }}</p>
+<p><strong>{{ __('assistant_settings.model') }}:</strong> {{ $providerSettings['model'] ?: __('assistant_settings.not_available') }}</p>
+<p><strong>{{ __('assistant_settings.fallback_models') }}:</strong> {{ $providerSettings['fallback_models'] === [] ? __('assistant_settings.none') : implode(', ', $providerSettings['fallback_models']) }}</p>
+<p><strong>{{ __('assistant_settings.context_budget') }}:</strong> {{ number_format($providerSettings['context_window_tokens']) }} · <strong>{{ __('assistant_settings.output_budget') }}:</strong> {{ number_format($providerSettings['max_tokens']) }}</p>
+<p><strong>{{ __('assistant_settings.resilience_policy') }}:</strong> {{ __('assistant_settings.resilience_summary', ['retries'=>$providerSettings['retry_attempts'],'failures'=>$providerSettings['circuit_breaker_failures'],'seconds'=>$providerSettings['circuit_breaker_seconds']]) }}</p>
+</div>
+
 @if($canManage)
 <form method="post" action="{{ route('admin.assistant-settings.provider.update') }}" class="assistant-settings-grid" autocomplete="off">
 @csrf
@@ -160,7 +198,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 <form method="post" action="{{ route('admin.assistant-settings.provider.test') }}" class="assistant-provider-test">
 @csrf
-<button type="submit" class="secondary">{{ __('assistant_settings.test_connection') }}</button>
+<button type="submit" class="secondary">{{ __('assistant_settings.test_capabilities') }}</button>
 <span>{{ __('assistant_settings.test_help') }}</span>
 </form>
 @else
