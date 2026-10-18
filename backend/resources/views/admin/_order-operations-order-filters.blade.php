@@ -95,8 +95,7 @@
 
         <button class="foodex-filter-action" type="submit">{{ __('order_operations.filters.apply') }}</button>
         <a class="foodex-action-secondary button secondary"
-           data-order-filter-reset-context
-           href="{{ route('admin.operations.orders.index', $orderFilterReset) }}#order-tab-orders"
+           data-order-filter-reset-context href="{{ route('admin.operations.orders.index', $orderFilterReset) }}#order-tab-orders"
            aria-label="{{ __('order_operations.filters.reset') }}"
            title="{{ __('order_operations.filters.reset') }}">×</a>
 
