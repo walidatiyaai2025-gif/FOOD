@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Domain\Assistant\Business\AssistantBusinessToolSet;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
-use App\Domain\Assistant\Conversation\DeterministicBrain;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
