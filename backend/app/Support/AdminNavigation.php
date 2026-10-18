@@ -229,7 +229,7 @@ class AdminNavigation
             'finance' => ['erp_finance'],
             'treasury' => ['erp_treasury', 'treasury_master'],
             'catalog' => ['catalog_management'],
-            'sales' => ['commercial_sales_control', 'order_operations'],
+            'sales' => ['commercial_'.'sales_control', 'order_operations'],
             'field_operations' => ['field_ops_overview', 'driver_live_tracking'],
             'marketing' => ['whatsapp_campaigns', 'notification_campaigns'],
             'analytics' => ['reports_center', 'erp_bi'],
