@@ -206,6 +206,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('data-smart-ordering-draft-review', false)
@@ -273,6 +274,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('Review menu before publishing')
