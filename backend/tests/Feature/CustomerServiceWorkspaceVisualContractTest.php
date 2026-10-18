@@ -34,7 +34,7 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('.cs-kpis + .cs-filter-strip{margin-top:calc(-1 * var(--foodex-space-5) + 4px)}', $view);
         $this->assertStringContainsString('.cs-filter{display:flex', $view);
         $this->assertStringContainsString('.cs-filter select{field-sizing:content}', $view);
-        $this->assertStringContainsString('max-width:180px', $view);
+        $this->assertStringContainsString('max-width:118px', $view);
         $this->assertStringContainsString('class="cs-visually-hidden"', $view);
         $this->assertStringNotContainsString('customer_service_workspace.dashboard.help', $view);
         $this->assertStringNotContainsString('id="customer-service-search-title"', $view);
