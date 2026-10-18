@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\CustomerServiceTeamManager;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
@@ -50,6 +51,7 @@ final class OrderOperationsController extends Controller
         private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
         private readonly SalesOrderOperationsDashboardService $salesDashboard,
+        private readonly CustomerServiceTeamManager $customerServiceTeam,
     ) {}
 
     public function b2bIndex(Request $request): View
@@ -261,6 +263,11 @@ final class OrderOperationsController extends Controller
             )
             : null;
 
+        $canAssignCustomerService = $this->customerServiceTeam->canManage($actor);
+        $customerServiceAgents = $canAssignCustomerService
+            ? $this->customerServiceTeam->members($actor)->where('is_active', true)->values()
+            : collect();
+
         $detail = null;
         if (isset($data['order'])) {
             $detailOrder = Order::query()
@@ -314,6 +321,8 @@ final class OrderOperationsController extends Controller
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,
             'newOrderWizard' => $this->newOrderWizard($actor),
+            'canAssignCustomerService' => $canAssignCustomerService,
+            'customerServiceAgents' => $customerServiceAgents,
             'isAr' => app()->getLocale() === 'ar',
         ]);
     }
@@ -1349,7 +1358,7 @@ final class OrderOperationsController extends Controller
     private function listRowContext(array $orders): OrderOperationsRowContext
     {
         if ($orders === []) {
-            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], []);
+            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], []);
         }
 
         $orderIds = array_map(
@@ -1384,6 +1393,38 @@ final class OrderOperationsController extends Controller
             $orderId = (int) $dispatch->order_id;
             if (isset($dispatchStates[$orderId]) === false) {
                 $dispatchStates[$orderId] = $dispatch;
+            }
+        }
+
+        $customerServiceAssignments = [];
+        foreach (
+            DB::table('order_customer_service_assignments')
+                ->whereIn('order_id', $orderIds)
+                ->whereNull('unassigned_at')
+                ->orderByDesc('id')
+                ->get(['id', 'order_id', 'assigned_user_id', 'assigned_by_user_id', 'reason', 'assigned_at']) as $assignment
+        ) {
+            $orderId = (int) $assignment->order_id;
+            if (! isset($customerServiceAssignments[$orderId])) {
+                $customerServiceAssignments[$orderId] = $assignment;
+            }
+        }
+
+        $customerServiceUserIds = collect($customerServiceAssignments)
+            ->pluck('assigned_user_id')
+            ->filter()
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $customerServiceUsers = [];
+        if ($customerServiceUserIds !== []) {
+            foreach (
+                DB::table('users')
+                    ->whereIn('id', $customerServiceUserIds)
+                    ->get(['id', 'name', 'email', 'is_active']) as $teamUser
+            ) {
+                $customerServiceUsers[(int) $teamUser->id] = $teamUser;
             }
         }
 
@@ -1582,6 +1623,8 @@ final class OrderOperationsController extends Controller
             dispatchStates: $dispatchStates,
             vans: $vans,
             territories: $territories,
+            customerServiceAssignments: $customerServiceAssignments,
+            customerServiceUsers: $customerServiceUsers,
             customerNames: $customerNames,
             payments: $payments,
             invoices: $invoices,
@@ -1607,6 +1650,21 @@ final class OrderOperationsController extends Controller
         ?OrderOperationsRowContext $context = null,
     ): array {
         $orderId = (int) $order->getKey();
+
+        $customerServiceAssignment = $context === null
+            ? DB::table('order_customer_service_assignments')
+                ->where('order_id', $orderId)
+                ->whereNull('unassigned_at')
+                ->latest('id')
+                ->first(['id', 'assigned_user_id', 'reason', 'assigned_at'])
+            : ($context->customerServiceAssignments[$orderId] ?? null);
+        $customerServiceOwner = $customerServiceAssignment === null
+            ? null
+            : ($context === null
+                ? DB::table('users')
+                    ->where('id', (int) $customerServiceAssignment->assigned_user_id)
+                    ->first(['id', 'name', 'email', 'is_active'])
+                : ($context->customerServiceUsers[(int) $customerServiceAssignment->assigned_user_id] ?? null));
 
         $assignment = $context === null
             ? DriverAssignment::query()
@@ -1797,6 +1855,10 @@ final class OrderOperationsController extends Controller
             'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
+            'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
+            'customer_service_owner' => $customerServiceOwner?->name,
+            'customer_service_owner_email' => $customerServiceOwner?->email,
+            'customer_service_assignment_reason' => $customerServiceAssignment?->reason,
             'assignment_id' => $assignment?->getKey(),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
