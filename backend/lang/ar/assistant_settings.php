@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'brand' => 'FOODEX',
+    'not_available' => '—',
     'title' => 'إعدادات مساعد FOODEX',
     'subtitle' => 'مساعد FOODEX',
     'description' => 'فعّل المساعد واضبط مزود AI اختياريًا مع بقاء الصلاحيات والقراءة فقط وأدوات FOODEX المعتمدة مفروضة من الخادم.',
