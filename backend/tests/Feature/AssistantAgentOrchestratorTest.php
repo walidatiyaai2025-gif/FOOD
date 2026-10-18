@@ -477,8 +477,8 @@ class AssistantAgentOrchestratorTest extends TestCase
     }
 
     /**
-     * @param list<array{name:string,arguments:array<string,mixed>,id:?string}> $toolCalls
-     * @param array<string,mixed>|null $structured
+     * @param  list<array{name:string,arguments:array<string,mixed>,id:?string}>  $toolCalls
+     * @param  array<string,mixed>|null  $structured
      */
     private function providerResult(
         ?string $text = null,
