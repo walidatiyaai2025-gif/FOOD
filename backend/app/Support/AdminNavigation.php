@@ -228,7 +228,7 @@ class AdminNavigation
         }
 
         if ($this->usesCustomerServiceDashboardProfile($user)) {
-            return route($channelDefinition['route']);
+            return route('admin.erp.customer-service');
         }
 
         $visibleItems = [];
