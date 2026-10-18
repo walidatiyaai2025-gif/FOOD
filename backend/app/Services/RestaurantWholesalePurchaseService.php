@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\TenantContextResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Schema;
 final class RestaurantWholesalePurchaseService
 {
     public function __construct(
+        private readonly TenantContextResolver $tenants,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantAccess,
         private readonly CustomerDomainResolver $customers,
         private readonly WholesalePrincipal $principal,
@@ -42,6 +44,10 @@ final class RestaurantWholesalePurchaseService
      */
     public function context(Request $request, User $user): array
     {
+        if ($user->hasRole('SUPER_ADMIN') && $request->boolean('support_access')) {
+            return $this->supportContext($request, $user);
+        }
+
         $restaurants = $this->restaurantStores($user);
         abort_if($restaurants->isEmpty(), 404, 'Restaurant Wholesale Purchases is not available.');
 
@@ -75,6 +81,71 @@ final class RestaurantWholesalePurchaseService
             'restaurant' => $restaurant,
             'restaurant_store_id' => $restaurantStoreId,
             'restaurant_stores' => $restaurants,
+            'customer' => $customer,
+            'account' => $account,
+            'wholesale_store_id' => $this->principal->storeId(),
+        ];
+    }
+
+    /**
+     * Explicit SUPER_ADMIN support access is isolated from ordinary Restaurant buyer authority.
+     * It requires a named Retail Store, audits the support entry through TenantContextResolver,
+     * and still resolves only that store's existing linked Wholesale buyer account.
+     *
+     * @return array{
+     *   restaurant:Store,
+     *   restaurant_store_id:int,
+     *   restaurant_stores:Collection<int,Store>,
+     *   customer:B2bCustomer,
+     *   account:B2bAccount,
+     *   wholesale_store_id:int
+     * }
+     */
+    private function supportContext(Request $request, User $user): array
+    {
+        $storeId = (int) ($request->input('retail_store_id') ?? $request->query('retail_store_id') ?? 0);
+        if ($storeId < 1) {
+            $storeCode = trim((string) $request->query('retail_store_code', ''));
+            if ($storeCode !== '') {
+                $storeId = (int) Store::query()->where('code', $storeCode)->value('id');
+            }
+        }
+
+        abort_unless($storeId > 0, 404);
+        $this->tenants->retail($user, $storeId, true, $request);
+
+        $restaurant = Store::query()
+            ->select('stores.*')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->first();
+        abort_unless($restaurant instanceof Store, 404);
+
+        if (Schema::hasColumn('stores', 'business_profile')) {
+            abort_unless((string) $restaurant->business_profile === 'RESTAURANT', 404);
+        } else {
+            abort_unless($this->restaurantAccess->storeEnabled($storeId), 404);
+        }
+
+        $link = DB::table('retail_wholesale_accounts')
+            ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'retail_wholesale_accounts.b2b_customer_id')
+            ->where('retail_wholesale_accounts.retail_store_id', $storeId)
+            ->where('b2b_accounts.status', 'active')
+            ->first([
+                'retail_wholesale_accounts.b2b_customer_id',
+                'b2b_accounts.id as b2b_account_id',
+            ]);
+        abort_unless($link !== null, 404, 'Restaurant Wholesale buyer account is not linked.');
+
+        $customer = B2bCustomer::query()->findOrFail((int) $link->b2b_customer_id);
+        $account = B2bAccount::query()->findOrFail((int) $link->b2b_account_id);
+
+        return [
+            'restaurant' => $restaurant,
+            'restaurant_store_id' => $storeId,
+            'restaurant_stores' => collect([$restaurant]),
             'customer' => $customer,
             'account' => $account,
             'wholesale_store_id' => $this->principal->storeId(),
