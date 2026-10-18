@@ -47,7 +47,7 @@
           method="get"
           action="{{ route('admin.operations.orders.index') }}">
         <input type="hidden" name="channel" value="{{ $orderFilterChannel }}">
-        @if($orderFilterStoreId !== null)
+        @if(count($orderFilterStores) <= 1 && $orderFilterStoreId !== null)
             <input type="hidden" name="store_id" value="{{ $orderFilterStoreId }}">
         @endif
         <input type="hidden" name="action_required" value="{{ ($selectedActionRequired ?? false) ? 1 : 0 }}">
