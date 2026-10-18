@@ -43,6 +43,74 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_appearance_builder_creates_a_starter_menu_in_three_simple_steps(): void
+    {
+        $fixture = $this->fixture('QUICKMENU', 5.000);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.appearance.index', [
+                'site' => $fixture['site']->public_id,
+                'store_id' => $fixture['store_id'],
+            ]))
+            ->assertOk()
+            ->assertSee('data-quick-menu-card', false)
+            ->assertSee('data-quick-menu-open', false)
+            ->assertSee('data-quick-menu-modal', false)
+            ->assertSee(route('admin.smart-ordering.menu.quick-create'), false);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.quick-create'), [
+                'store_id' => $fixture['store_id'],
+                '_quick_menu' => '1',
+                'menu_name_ar' => 'المنيو الرئيسية',
+                'menu_name_en' => 'Main Menu',
+                'category_name_ar' => 'الأطباق الرئيسية',
+                'category_name_en' => 'Main Dishes',
+                'items' => [
+                    [
+                        'name_ar' => 'برجر لحم',
+                        'name_en' => 'Beef Burger',
+                        'price' => '7.500',
+                        'featured' => '1',
+                    ],
+                    [
+                        'name_ar' => 'بطاطا',
+                        'name_en' => 'Fries',
+                        'price' => '2.250',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $draft = app(SmartOrderingMenuRevisionService::class)
+            ->draft($fixture['admin'], $fixture['site']->fresh());
+
+        $menu = SmartOrderingMenu::query()
+            ->where('revision_id', $draft->id)
+            ->where('name_en', 'Main Menu')
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $menu->is_default);
+        $this->assertTrue((bool) $menu->is_visible);
+
+        $category = SmartOrderingMenuCategory::query()
+            ->where('menu_id', $menu->id)
+            ->where('name_en', 'Main Dishes')
+            ->firstOrFail();
+
+        $items = SmartOrderingMenuItem::query()
+            ->where('category_id', $category->id)
+            ->orderBy('sort_order')
+            ->get();
+
+        $this->assertCount(2, $items);
+        $this->assertSame('Beef Burger', $items[0]->name_en);
+        $this->assertSame(7.5, (float) $items[0]->price_override);
+        $this->assertTrue((bool) $items[0]->featured);
+        $this->assertSame('Fries', $items[1]->name_en);
+        $this->assertSame(2.25, (float) $items[1]->price_override);
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
