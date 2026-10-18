@@ -3,6 +3,7 @@
 namespace App\Domain\Analytics\ReadModel;
 
 use App\Domain\Analytics\Semantic\MetricDictionary;
+use App\Domain\Analytics\SellOut\RetailSellOutIngestionService;
 use App\Domain\Assistant\Security\RetailerSellOutAccessPolicy;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
@@ -21,6 +22,7 @@ final readonly class AnalyticsReadModelService
     public function __construct(
         private OperationalTenantScope $scope,
         private RetailerSellOutAccessPolicy $sellOutPolicy,
+        private RetailSellOutIngestionService $sellOutIngestion,
     ) {}
 
     /**
@@ -157,6 +159,10 @@ final readonly class AnalyticsReadModelService
 
         $state = ! $complete ? 'incomplete' : ($stale ? 'stale' : 'fresh');
 
+        $sellOutFeed = $channel === 'b2c'
+            ? $this->sellOutIngestion->feedMetadata($actor, $requestedStoreIds, $wholesaleStoreId, $locale)
+            : [];
+
         return [
             'metric_dictionary_version' => MetricDictionary::VERSION,
             'channel' => $channel,
@@ -168,6 +174,7 @@ final readonly class AnalyticsReadModelService
                 'days' => $days,
             ],
             'store_ids' => $requestedStoreIds,
+            'sellout_feed' => $sellOutFeed,
             'facts' => $rows,
             'inventory_snapshots' => $inventory,
             'freshness' => [
