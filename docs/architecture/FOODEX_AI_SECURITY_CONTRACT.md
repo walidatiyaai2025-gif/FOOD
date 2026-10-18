@@ -54,7 +54,7 @@ Retail sell-out is protected retailer data. Wholesale sell-in does not imply per
 Sharing state is persisted in `assistant_retailer_data_grants`. A grant is exact and contains:
 
 - retailer store;
-- grantee Wholesale store;
+- grantee Wholesale store, which must be the canonical `WholesalePrincipal` store;
 - basis: `INTERNAL`, `OPT_IN`, or `CONTRACT`;
 - purpose, default `assistant_analytics`;
 - active/revoked status;
@@ -66,8 +66,8 @@ A grant can exist only for an active Retail/B2C store with the existing authorit
 
 Retail users with current `assistant.use` + `reports.view` scope may read their own store sell-out without a wholesale-sharing grant. A wholesale principal must satisfy all of the following on every read:
 
-- current `assistant.use` access to the exact Wholesale store;
-- current `reports.view` access to the exact Wholesale store;
+- current `assistant.use` access to the canonical FOODEX Wholesale Principal store;
+- current `reports.view` access to that same canonical Wholesale Principal store;
 - existing Retail-to-Wholesale account relationship;
 - active grant for the exact retailer, Wholesale store and purpose;
 - grant start already effective;
