@@ -12,7 +12,6 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\User;
-use App\Support\TenantContextResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,6 @@ use Illuminate\Support\Facades\Schema;
 final class RestaurantWholesalePurchaseService
 {
     public function __construct(
-        private readonly TenantContextResolver $tenants,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantAccess,
         private readonly CustomerDomainResolver $customers,
         private readonly WholesalePrincipal $principal,
