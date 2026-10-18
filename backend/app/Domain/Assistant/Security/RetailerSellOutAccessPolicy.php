@@ -5,6 +5,7 @@ namespace App\Domain\Assistant\Security;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use DateTimeInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ final class RetailerSellOutAccessPolicy
     public function __construct(
         private readonly OperationalTenantScope $scope,
         private readonly AuditLogger $audit,
+        private readonly WholesalePrincipal $principal,
     ) {}
 
     /**
@@ -44,6 +46,7 @@ final class RetailerSellOutAccessPolicy
         ?DateTimeInterface $expiresAt = null,
     ): array {
         $this->scope->assertStore($actor, $retailerStoreId, 'settings.manage', 'b2c');
+        abort_unless($wholesaleStoreId === $this->principal->storeId(), 404);
         abort_unless($this->scope->storeChannel($wholesaleStoreId) === 'b2b', 404);
 
         abort_unless(
@@ -141,6 +144,7 @@ final class RetailerSellOutAccessPolicy
         string $purpose = self::PURPOSE_ASSISTANT_ANALYTICS,
     ): void {
         $this->scope->assertStore($actor, $retailerStoreId, 'settings.manage', 'b2c');
+        abort_unless($wholesaleStoreId === $this->principal->storeId(), 404);
         $purpose = $this->purpose($purpose);
 
         DB::transaction(function () use ($actor, $retailerStoreId, $wholesaleStoreId, $purpose): void {
@@ -216,6 +220,9 @@ final class RetailerSellOutAccessPolicy
 
         $wholesaleIds = $this->permittedWholesaleStoreIds($actor);
         if ($wholesaleStoreId !== null) {
+            if ($wholesaleStoreId !== $this->principal->storeId()) {
+                $this->deny($locale);
+            }
             if (! in_array($wholesaleStoreId, $wholesaleIds, true)) {
                 $this->deny($locale);
             }
@@ -311,7 +318,11 @@ final class RetailerSellOutAccessPolicy
     {
         $assistant = $this->scope->allowedStoreIds($actor, 'assistant.use', 'b2b');
         $reports = $this->scope->allowedStoreIds($actor, 'reports.view', 'b2b');
-        $ids = array_values(array_intersect($assistant, $reports));
+        $ids = array_values(array_intersect(
+            $assistant,
+            $reports,
+            [$this->principal->storeId()],
+        ));
         sort($ids);
 
         return $ids;
