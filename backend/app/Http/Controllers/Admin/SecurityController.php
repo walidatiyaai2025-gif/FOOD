@@ -50,9 +50,13 @@ final class SecurityController extends Controller
         }
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
+        $section = (string) $request->query('section', 'users');
 
         if (! in_array($status, ['all', 'active', 'inactive'], true)) {
             $status = 'all';
+        }
+        if (! in_array($section, ['users', 'roles', 'governance', 'sessions', 'audit'], true)) {
+            $section = 'users';
         }
 
         $users = User::query()
@@ -284,6 +288,7 @@ final class SecurityController extends Controller
             ],
             'search' => $search,
             'statusFilter' => $status,
+            'securitySection' => $section,
             'demoSummary' => $demoData->summary(),
             'governance' => $governance,
             'mfaByUser' => $mfaByUser,
@@ -364,6 +369,62 @@ final class SecurityController extends Controller
         $demoData->clear();
 
         return back()->with('status', __('admin.security.demo_data.cleared'));
+    }
+
+    public function storeUser(
+        Request $request,
+        RbacManager $rbac,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        Gate::authorize('users.roles.manage');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'username' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')],
+            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:10', 'max:100', 'confirmed'],
+            'locale' => ['required', Rule::in(['ar', 'en'])],
+            'role_id' => ['required', 'integer', 'exists:roles,id'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $actor = $this->actor($request);
+        $roleId = (int) $validated['role_id'];
+
+        DB::transaction(function () use ($validated, $actor, $roleId, $request, $rbac, $audit): void {
+            $username = trim((string) ($validated['username'] ?? ''));
+            $user = User::query()->create([
+                'name' => trim((string) $validated['name']),
+                'username' => $username === '' ? null : strtolower($username),
+                'email' => strtolower(trim((string) $validated['email'])),
+                'password' => (string) $validated['password'],
+                'locale' => (string) $validated['locale'],
+                'is_active' => (bool) $validated['is_active'],
+                'is_platform_customer' => false,
+            ]);
+
+            $rbac->replaceUserRoles($actor, $user, [$roleId], [], $request);
+            $fresh = $user->refresh()->load('roles:id,code,name');
+
+            $audit->record(
+                'user.created',
+                $actor,
+                $fresh,
+                null,
+                [
+                    'username' => (string) $fresh->username,
+                    'email' => (string) $fresh->email,
+                    'locale' => (string) $fresh->locale,
+                    'is_active' => (bool) $fresh->is_active,
+                    'global_roles' => $fresh->roles->pluck('code')->sort()->values()->all(),
+                ],
+                $request,
+            );
+        }, 3);
+
+        return redirect()
+            ->route('admin.security.index', ['section' => 'users'])
+            ->with('status', __('admin.security.user_created'));
     }
 
     public function updateUserStatus(Request $request, User $user, RbacManager $rbac): RedirectResponse
