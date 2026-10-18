@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
@@ -180,6 +181,47 @@ final class BuiltInJobRoleCatalogTest extends TestCase
             'user_id' => $target->id,
             'store_id' => $store->id,
             'role_id' => $role->id,
+        ]);
+    }
+
+    public function test_explicit_business_profiles_filter_store_roles_while_legacy_b2c_remains_compatible(): void
+    {
+        $catalog = app(BuiltInJobRoleCatalog::class);
+        $legacy = $this->retailStore('ROLE-LEGACY');
+        $retail = $this->profiledStore('ROLE-RETAIL', StoreBusinessProfile::RETAIL_STORE);
+        $restaurant = $this->profiledStore('ROLE-RESTAURANT', StoreBusinessProfile::RESTAURANT);
+
+        $this->assertTrue($catalog->isAvailable('STORE_STAFF', $legacy->id));
+        $this->assertTrue($catalog->isAvailable('STORE_STAFF', $retail->id));
+        $this->assertFalse($catalog->isAvailable('STORE_STAFF', $restaurant->id));
+        $this->assertTrue($catalog->isAvailable('B2C_STORE_ADMIN', $retail->id));
+        $this->assertTrue($catalog->isAvailable('B2C_STORE_ADMIN', $restaurant->id));
+    }
+
+    public function test_cross_profile_store_role_assignment_is_rejected_server_side(): void
+    {
+        $actor = $this->superAdmin();
+        $target = User::factory()->create(['is_active' => true]);
+        $restaurant = $this->profiledStore('ROLE-RESTAURANT-GRANT', StoreBusinessProfile::RESTAURANT);
+        $retailRole = Role::query()->where('code', 'STORE_STAFF')->firstOrFail();
+
+        try {
+            app(RbacManager::class)->replaceUserRoles(
+                $actor,
+                $target,
+                [],
+                [['store_id' => $restaurant->id, 'role_id' => $retailRole->id]],
+                Request::create('/admin/security', 'PUT'),
+            );
+            $this->fail('Cross-profile store role assignment should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('store_roles', $exception->errors());
+        }
+
+        $this->assertDatabaseMissing('user_store_roles', [
+            'user_id' => $target->id,
+            'store_id' => $restaurant->id,
+            'role_id' => $retailRole->id,
         ]);
     }
 
@@ -367,6 +409,23 @@ final class BuiltInJobRoleCatalogTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         return $user;
+    }
+
+    private function profiledStore(string $code, StoreBusinessProfile $profile): Store
+    {
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        $store = Store::query()->create([
+            'store_type_id' => $typeId,
+            'code' => $code,
+            'name' => $code,
+            'business_profile' => $profile->value,
+            'is_active' => true,
+        ]);
+
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        return $store;
     }
 
     private function retailStore(string $code): Store
