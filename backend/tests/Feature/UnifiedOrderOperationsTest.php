@@ -184,6 +184,14 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('class="order-workspace-tab-count"', $view);
         $this->assertStringContainsString("history.replaceState(null, '', '#order-tab-' + name)", $view);
         $this->assertStringContainsString('.order-tab-panel[hidden]{display:none!important}', $view);
+        $dashboardStart = strpos($view, '<?php if ($dashboardVisible && is_array($dashboard ?? null)): ?>');
+        $dashboardEnd = strpos($view, '<?php endif; ?>', $dashboardStart + 1);
+        $this->assertNotFalse($dashboardStart);
+        $this->assertNotFalse($dashboardEnd);
+        $dashboardBlock = substr($view, $dashboardStart, $dashboardEnd - $dashboardStart);
+        $this->assertStringNotContainsString('@if(', $dashboardBlock);
+        $this->assertStringNotContainsString('@foreach(', $dashboardBlock);
+        $this->assertStringNotContainsString('@forelse(', $dashboardBlock);
         $this->assertStringContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
         $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
         $this->assertStringNotContainsString('data-order-workspace-context', $view);
