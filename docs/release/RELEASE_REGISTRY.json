@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.77",
+  "current_version": "1.0.90",
   "releases": [
     {
       "version": "1.0.40",
@@ -290,6 +290,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
       "note": "FOODEX 1.0.77 synchronized release automatically registered by Release Factory from source a679bdf5054e322c3278ffeb5ab8b534ff0b4354. Dashboard update is directly deployable over 1.0.75; Customer 1.0.76+76 is frozen/carried forward; Driver/Van are synchronized at 1.0.77+77."
+    },
+    {
+      "version": "1.0.90",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.90.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "184a0128da6221c07cd4ac56a60c56ea10372208ea1003c44c1c2500c9705df7",
+      "note": "FOODEX 1.0.90 Dashboard update publication from the current authoritative main lineage. The cumulative Dashboard package is generated from source c1342f8f747fb64ddf9a27686d677b89bebfe477 and is deployable from the canonical updater boundary; mobile source identities remain synchronized at 1.0.90+90."
     }
   ]
 }
