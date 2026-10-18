@@ -111,6 +111,7 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
                 'enterprise_action_center',
                 'enterprise_workspaces',
                 'erp_center',
+                'erp_my_work',
                 'administration_hub',
             ] as $hiddenKey) {
                 $this->assertFalse(
