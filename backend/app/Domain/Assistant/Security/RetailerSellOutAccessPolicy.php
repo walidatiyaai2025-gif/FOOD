@@ -254,7 +254,7 @@ final class RetailerSellOutAccessPolicy
     }
 
     /**
-     * @param list<int> $retailerStoreIds
+     * @param  list<int>  $retailerStoreIds
      * @return list<array<string, mixed>>
      */
     public function assertCanReadMany(
