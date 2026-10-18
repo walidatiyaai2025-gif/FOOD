@@ -3,8 +3,8 @@
 Status: **Authoritative execution charter**
 Track: **AI-V1**
 Runtime target: **existing Laravel management dashboard on cPanel**
-LLM usage in V1: **none**
-External AI API cost in V1: **zero**
+Deterministic core: **mandatory and fully functional without external AI**
+Optional external AI adapter: **off by default; OpenAI-compatible intent routing only**
 Production release blocker while under development: **no**
 
 ---
@@ -13,9 +13,9 @@ Production release blocker while under development: **no**
 
 Build a persistent conversational assistant inside the FOODEX management dashboard that looks and behaves like normal chat while using deterministic intent/entity/dialogue logic and authoritative FOODEX data.
 
-V1 must provide useful business and operational answers without OpenAI, Gemini, Claude, local LLMs, paid AI APIs, GPU services, or any other model dependency.
+V1 must remain fully useful without OpenAI, Gemini, Claude, local LLMs, paid AI APIs, GPU services, or any other model dependency.
 
-The architecture must make a future LLM an optional replaceable brain, not a rewrite of the assistant UI, tools, security, context, conversation history, or business-data layer.
+An optional external AI adapter may be configured from the Dashboard. It is only a replaceable intent-routing/conversation layer: the existing Assistant tools, RBAC, tenant/store/channel scope, read-only enforcement and authoritative business-data layer remain mandatory and server-controlled. Provider failure must fall back to the deterministic brain.
 
 ---
 
@@ -53,9 +53,11 @@ Assistant HTTP API
        v
 AssistantBrainInterface
        |
-       +-- DeterministicBrain  <-- V1
-       |
-       +-- LlmBrain            <-- future only
+       +-- AssistantHybridBrain
+             |
+             +-- DeterministicBrain  <-- always available
+             |
+             +-- External AI router  <-- optional, off by default
        |
        v
 Intent + Entity + Dialogue Engine
@@ -73,7 +75,7 @@ Existing FOODEX domain/services/repositories
 Authoritative database
 ```
 
-The current Laravel application remains the authority. No separate Python or Node service is required for V1.
+The current Laravel application remains the authority. No separate Python or Node service is required. An optional OpenAI-compatible HTTP endpoint may be configured, but it never becomes the authority for FOODEX data or write actions.
 
 ---
 

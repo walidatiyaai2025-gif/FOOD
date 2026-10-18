@@ -6,9 +6,12 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AssistantProviderSettings;
 use App\Services\AssistantRuntimeSettings;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AssistantSettingsTest extends TestCase
@@ -84,6 +87,96 @@ class AssistantSettingsTest extends TestCase
         $this->assertFalse(app(AssistantRuntimeSettings::class)->enabled());
     }
 
+    public function test_assistant_settings_page_exposes_fillable_external_ai_configuration(): void
+    {
+        $user = $this->settingsManager();
+
+        $this->actingAs($user)
+            ->get('/admin/settings/assistant')
+            ->assertOk()
+            ->assertSee('data-assistant-provider-settings', false)
+            ->assertSee('name="api_url"', false)
+            ->assertSee('name="model"', false)
+            ->assertSee('name="api_key"', false)
+            ->assertSee('name="timeout_seconds"', false)
+            ->assertSee(route('admin.assistant-settings.provider.update'), false)
+            ->assertSee(route('admin.assistant-settings.provider.test'), false);
+    }
+
+    public function test_settings_manager_can_save_provider_and_api_key_is_encrypted_at_rest(): void
+    {
+        $user = $this->settingsManager();
+
+        $this->actingAs($user)
+            ->put('/admin/settings/assistant/provider', [
+                'provider_enabled' => 1,
+                'api_url' => 'https://ai.example.test/v1/chat/completions',
+                'model' => 'foodex-model',
+                'api_key' => 'secret-provider-key',
+                'timeout_seconds' => 25,
+            ])
+            ->assertRedirect(route('admin.assistant-settings.index'));
+
+        $settings = app(AssistantProviderSettings::class)->snapshot();
+
+        $this->assertTrue($settings['enabled']);
+        $this->assertSame('https://ai.example.test/v1/chat/completions', $settings['api_url']);
+        $this->assertSame('foodex-model', $settings['model']);
+        $this->assertTrue($settings['api_key_configured']);
+
+        $secret = Setting::query()
+            ->whereNull('store_id')
+            ->where('key', AssistantProviderSettings::API_KEY_KEY)
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $secret->is_secret);
+        $this->assertNotSame('secret-provider-key', $secret->value);
+        $this->assertSame('secret-provider-key', Crypt::decryptString((string) $secret->value));
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $user->id,
+            'event' => 'assistant.provider.updated',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/settings/assistant')
+            ->assertOk()
+            ->assertSee('A key is already saved encrypted. Leave this blank to keep it.')
+            ->assertDontSee('secret-provider-key');
+    }
+
+    public function test_saved_provider_connection_can_be_tested_without_resubmitting_secret(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'FOODEX_OK'],
+                ]],
+            ], 200),
+        ]);
+
+        $user = $this->settingsManager();
+        app(AssistantProviderSettings::class)->persist(
+            [
+                'enabled' => true,
+                'api_url' => 'https://ai.example.test/v1/chat/completions',
+                'model' => 'foodex-model',
+                'timeout_seconds' => 20,
+            ],
+            'saved-secret',
+        );
+
+        $this->actingAs($user)
+            ->post('/admin/settings/assistant/provider/test')
+            ->assertRedirect(route('admin.assistant-settings.index'))
+            ->assertSessionHas('provider_test_success');
+
+        Http::assertSent(function ($request): bool {
+            return $request->url() === 'https://ai.example.test/v1/chat/completions'
+                && $request->hasHeader('Authorization', 'Bearer saved-secret')
+                && $request['model'] === 'foodex-model';
+        });
+    }
+
     public function test_dashboard_cannot_enable_assistant_when_read_only_fence_is_off(): void
     {
         config(['assistant.enabled' => false, 'assistant.read_only' => false]);
@@ -113,6 +206,13 @@ class AssistantSettingsTest extends TestCase
 
         $this->actingAs($user)->get('/admin/settings/assistant')->assertForbidden();
         $this->actingAs($user)->put('/admin/settings/assistant', ['enabled' => 1])->assertForbidden();
+        $this->actingAs($user)->put('/admin/settings/assistant/provider', [
+            'provider_enabled' => 0,
+            'api_url' => '',
+            'model' => '',
+            'timeout_seconds' => 20,
+        ])->assertForbidden();
+        $this->actingAs($user)->post('/admin/settings/assistant/provider/test')->assertForbidden();
     }
 
     public function test_global_enable_does_not_grant_assistant_use_permission(): void
