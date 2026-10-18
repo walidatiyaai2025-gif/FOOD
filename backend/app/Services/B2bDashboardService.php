@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Domain\Analytics\Semantic\MetricDictionary;
+use App\Domain\Analytics\Semantic\SemanticMetricService;
 use App\Models\User;
 use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 final class B2bDashboardService
 {
     private const TIMEZONE = 'Asia/Kuwait';
+
+    public function __construct(private readonly SemanticMetricService $semanticMetrics) {}
 
     /** @param list<int> $storeIds */
     public function build(User $user, array $storeIds, ?string $fromDate = null, ?string $toDate = null): array
@@ -28,25 +32,27 @@ final class B2bDashboardService
         $orders = $this->orders($storeIds, $from, $to);
         $previousOrders = $this->orders($storeIds, $previousFrom, $previousTo);
 
-        $orderCount = (clone $orders)->count('orders.id');
-        $previousOrderCount = (clone $previousOrders)->count('orders.id');
+        $metrics = $this->semanticMetrics->orderSnapshot(
+            $orders,
+            MetricDictionary::FLOW_SELL_IN,
+            $rangeFrom->toDateString(),
+            $rangeTo->toDateString(),
+            ['store_ids' => $storeIds],
+        );
+        $previousMetrics = $this->semanticMetrics->orderSnapshot(
+            $previousOrders,
+            MetricDictionary::FLOW_SELL_IN,
+            $previousRangeFrom->toDateString(),
+            $previousRangeTo->toDateString(),
+            ['store_ids' => $storeIds],
+        );
 
-        $revenue = (float) (clone $orders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('orders.grand_total');
-        $previousRevenue = (float) (clone $previousOrders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('orders.grand_total');
-
-        $validOrderCount = (int) (clone $orders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->count('orders.id');
-        $previousValidOrderCount = (int) (clone $previousOrders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->count('orders.id');
-
-        $average = $validOrderCount > 0 ? $revenue / $validOrderCount : 0.0;
-        $previousAverage = $previousValidOrderCount > 0 ? $previousRevenue / $previousValidOrderCount : 0.0;
+        $orderCount = (int) $metrics['values']['orders'];
+        $previousOrderCount = (int) $previousMetrics['values']['orders'];
+        $revenue = (float) $metrics['values']['net_revenue'];
+        $previousRevenue = (float) $previousMetrics['values']['net_revenue'];
+        $average = (float) $metrics['values']['average_order_value'];
+        $previousAverage = (float) $previousMetrics['values']['average_order_value'];
 
         $customerCount = DB::table('b2b_customers')
             ->where('created_at', '<=', $to)
@@ -67,6 +73,8 @@ final class B2bDashboardService
             'timezone' => self::TIMEZONE,
             'currency' => 'EGP',
             'scope_store_ids' => $storeIds,
+            'metric_provenance' => $metrics['provenance'],
+            'metric_definitions' => $metrics['definitions'],
             'kpis' => [
                 'sales' => [
                     'value' => round($revenue, 3),
@@ -111,14 +119,19 @@ final class B2bDashboardService
         for ($day = $rangeFrom; $day->lte($rangeTo); $day = $day->addDay()) {
             [$from, $to] = $this->utcBounds($day);
             $query = $this->orders($storeIds, $from, $to);
+            $metrics = $this->semanticMetrics->orderSnapshot(
+                $query,
+                MetricDictionary::FLOW_SELL_IN,
+                $day->toDateString(),
+                $day->toDateString(),
+                ['store_ids' => $storeIds],
+            );
 
             $rows[] = [
                 'date' => $day->toDateString(),
                 'label' => $day->format('d/m'),
-                'orders' => (int) (clone $query)->count('orders.id'),
-                'revenue' => round((float) (clone $query)
-                    ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-                    ->sum('orders.grand_total'), 3),
+                'orders' => (int) $metrics['values']['orders'],
+                'revenue' => (float) $metrics['values']['net_revenue'],
             ];
         }
 
