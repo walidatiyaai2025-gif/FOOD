@@ -66,7 +66,6 @@ class SystemInspectorTest extends TestCase
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
     }
 
-
     public function test_system_administration_export_is_bounded_and_secret_free(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'system-admin-export@example.test');
