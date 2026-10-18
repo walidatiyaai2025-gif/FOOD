@@ -6,7 +6,7 @@
     $restaurantOperationsUrl = static fn (string $tab, ?string $anchor = null): string =>
         route('admin.smart-ordering.operations.index', [...$restaurantWorkspaceQuery, 'tab' => $tab]).($anchor ? '#'.$anchor : '');
     $restaurantWholesalePurchasesUrl = $restaurantStoreId > 0
-        ? route('admin.b2c.module', [...$restaurantWorkspaceQuery, 'module' => 'wholesale_purchases'])
+        ? route('admin.restaurant.wholesale-purchases.index', array_filter(['retail_store_id' => $restaurantStoreId, 'support_access' => $restaurantSupport ? 1 : null], static fn ($value) => $value !== null))
         : null;
 
     $restaurantPrimaryTasks = [
@@ -40,8 +40,9 @@
         'people_supply' => [
             ['key' => 'staff', 'href' => $restaurantOperationsUrl('workforce'), 'visible' => $restaurantCanOrders],
             ['key' => 'inventory', 'href' => $restaurantSupplyEnabled && $restaurantSiteParams ? route('admin.smart-ordering.supply.index', $restaurantSiteParams) : null, 'visible' => $restaurantSupplyEnabled && $restaurantSiteParams],
+            ['key' => 'wholesale_purchases', 'href' => $restaurantWholesalePurchasesUrl, 'visible' => $restaurantCanOrders && $restaurantWholesalePurchasesUrl],
             ['key' => 'recipes_cost', 'href' => $restaurantSupplyEnabled && $restaurantSiteParams ? route('admin.smart-ordering.supply.index', $restaurantSiteParams) : null, 'visible' => $restaurantSupplyEnabled && $restaurantSiteParams],
-            ['key' => 'purchasing', 'href' => $restaurantWholesalePurchasesUrl, 'visible' => $restaurantCanOrders && $restaurantWholesalePurchasesUrl],
+            ['key' => 'purchasing', 'href' => $restaurantSupplyEnabled && $restaurantSiteParams ? route('admin.smart-ordering.supply.index', $restaurantSiteParams) : null, 'visible' => $restaurantSupplyEnabled && $restaurantSiteParams, 'state' => 'partial'],
         ],
         'finance_insights' => [
             ['key' => 'payments', 'href' => $restaurantOperationsUrl('payments'), 'visible' => $restaurantCanFinance],

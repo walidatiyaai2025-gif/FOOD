@@ -19,7 +19,7 @@ class RestaurantTaskDensityContractTest extends TestCase
             $this->assertStringContainsString("'".$task."'", $launcher);
         }
 
-        $this->assertStringContainsString("module' => 'wholesale_purchases", $launcher);
+        $this->assertStringContainsString('admin.restaurant.wholesale-purchases.index', $launcher);
         $this->assertStringContainsString("operationsUrl('orders')", $launcher);
         $this->assertStringContainsString('data-restaurant-primary-kpis', $dashboard);
         $this->assertStringContainsString('data-restaurant-analytics-drilldown', $dashboard);

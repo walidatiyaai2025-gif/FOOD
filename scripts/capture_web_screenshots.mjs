@@ -26,6 +26,25 @@ function refreshTimeSensitiveEvidence() {
   );
 }
 
+function prepareRestaurantWholesaleEvidence() {
+  execFileSync(
+    'php',
+    ['artisan', 'db:seed', '--class=Database\\Seeders\\RestaurantWholesaleScreenshotEvidenceSeeder', '--force'],
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DB_CONNECTION: 'sqlite',
+        DB_DATABASE: path.join(process.cwd(), 'database/database.sqlite'),
+        CACHE_STORE: 'array',
+        QUEUE_CONNECTION: 'sync',
+        SESSION_DRIVER: 'file',
+      },
+    },
+  );
+}
+
 const b2b = [
   ['12_whatsapp_foundation', '/admin/settings/whatsapp'],
   ['13_whatsapp_connections', '/admin/settings/whatsapp/connections'],
@@ -77,6 +96,7 @@ const b2c = [
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
   ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
+  ['23_مشتريات_الجملة_للمطعم', '/admin/restaurant/wholesale-purchases?tab=orders&support_access=1&retail_store_code=FOODEX-DEMO-B2C'],
 ];
 
 async function ensureDir(dir) {
@@ -1970,8 +1990,10 @@ async function captureLocale(browser, locale) {
 const browser = await chromium.launch({ headless: true });
 try {
   refreshTimeSensitiveEvidence();
+  prepareRestaurantWholesaleEvidence();
   await captureLocale(browser, 'ar');
   refreshTimeSensitiveEvidence();
+  prepareRestaurantWholesaleEvidence();
   await captureLocale(browser, 'en');
 } finally {
   await browser.close();

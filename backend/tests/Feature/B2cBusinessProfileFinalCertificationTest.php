@@ -44,12 +44,12 @@ class B2cBusinessProfileFinalCertificationTest extends TestCase
         $this->assertStringContainsString("'business_profiles'=>['RETAIL_STORE']", $roles);
         $this->assertStringContainsString("'business_profiles'=>['RESTAURANT']", $roles);
         $this->assertStringContainsString('PROFILE_MODULES', $workspace);
-        $this->assertStringContainsString("'wholesale_purchases' => 'orders.view'", $workspace);
+        $this->assertStringNotContainsString("'wholesale_purchases' => 'orders.view'", $workspace);
         $this->assertStringContainsString('BUSINESS_PROFILE_RESTAURANT', $restaurantAccess);
         $this->assertStringContainsString('BUSINESS_PROFILE_RETAIL_STORE', $landing);
         $this->assertStringContainsString('BUSINESS_PROFILE_RESTAURANT', $landing);
         $this->assertStringContainsString('data-restaurant-task-first-nav', $launcher);
-        $this->assertStringContainsString("module' => 'wholesale_purchases", $launcher);
+        $this->assertStringContainsString('admin.restaurant.wholesale-purchases.index', $launcher);
 
         foreach (['1200', '1024', '768', '430', '390', '360'] as $width) {
             $this->assertStringContainsString('max-width:'.$width.'px', $launcher);

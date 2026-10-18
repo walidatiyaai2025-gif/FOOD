@@ -489,56 +489,6 @@
                 @include('admin._commercial-dashboard-contract')
             @endif
 
-            @if($module==='wholesale_purchases')
-                <div class="module-links module-actions" data-restaurant-wholesale-sections>
-                    <span>{{ app()->getLocale()==='ar'?'كتالوج الجملة':'Wholesale Catalog' }}</span>
-                    <span>{{ app()->getLocale()==='ar'?'سلة الشراء':'Purchase Cart' }}</span>
-                    <span>{{ app()->getLocale()==='ar'?'طلبات الشراء':'Purchase Orders' }}</span>
-                    <span>{{ app()->getLocale()==='ar'?'فواتير المورد':'Supplier Invoices' }}</span>
-                    <span>{{ app()->getLocale()==='ar'?'حالة التوريد والتسليم':'Supply / Delivery Status' }}</span>
-                </div>
-                <div class="module-cards" style="--foodex-card-columns:2;margin-bottom:14px">
-                    <article class="module-card foodex-card" data-wholesale-catalog-summary>
-                        <div class="module-card-copy">
-                            <strong>{{ app()->getLocale()==='ar'?'كتالوج الجملة الرئيسي':'Principal Wholesale Catalog' }}</strong>
-                            <p>{{ count($moduleData['catalog'] ?? []) }}</p>
-                            <small>{{ app()->getLocale()==='ar'?'منتج متاح في اللقطة الحالية':'products in the current catalog snapshot' }}</small>
-                        </div>
-                    </article>
-                    <article class="module-card foodex-card" data-wholesale-cart-summary>
-                        <div class="module-card-copy">
-                            <strong>{{ app()->getLocale()==='ar'?'سلة الشراء الحالية':'Current Purchase Cart' }}</strong>
-                            <p>{{ count($moduleData['cart'] ?? []) }}</p>
-                            <small>{{ app()->getLocale()==='ar'?'سطر شراء مرتبط بنفس حساب الجملة':'line(s) bound to the same Wholesale account' }}</small>
-                        </div>
-                    </article>
-                </div>
-                @if(!empty($moduleData['catalog']))
-                    <div class="table-wrap" style="margin-bottom:14px" data-wholesale-catalog>
-                        <table>
-                            <thead><tr><th>SKU</th><th>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</th><th>{{ app()->getLocale()==='ar'?'السعر الأساسي':'Base price' }}</th></tr></thead>
-                            <tbody>
-                            @foreach($moduleData['catalog'] as $catalogRow)
-                                <tr><td>{{ $catalogRow['sku'] }}</td><td>{{ $catalogRow['name'] }}</td><td>{{ $catalogRow['price']===null?'—':number_format((float)$catalogRow['price'],3) }}</td></tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-                @if(!empty($moduleData['cart']))
-                    <div class="table-wrap" style="margin-bottom:14px" data-wholesale-cart>
-                        <table>
-                            <thead><tr><th>SKU</th><th>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</th><th>{{ app()->getLocale()==='ar'?'الكمية':'Quantity' }}</th><th>{{ app()->getLocale()==='ar'?'سعر الوحدة':'Unit price' }}</th></tr></thead>
-                            <tbody>
-                            @foreach($moduleData['cart'] as $cartRow)
-                                <tr><td>{{ $cartRow['sku'] }}</td><td>{{ $cartRow['name'] }}</td><td>{{ number_format((float)$cartRow['quantity'],3) }}</td><td>{{ $cartRow['unit_price']===null?'—':number_format((float)$cartRow['unit_price'],3) }}</td></tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            @endif
-
             @if(!empty($moduleData['actions']))
                 <div class="module-links module-actions">
                     @foreach($moduleData['actions'] as $action)
@@ -874,7 +824,7 @@
                                             </form>
                                             <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر من المسودة؟':'Delete this banner from Draft?' }}')">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                                         </div>
-                                    @elseif($column==='actions' && in_array($module,['incoming_orders','wholesale_purchases'],true))
+                                    @elseif($column==='actions' && $module==='incoming_orders')
                                         <div class="module-links">
                                             @foreach(($row[$column] ?? []) as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
                                             @if(!empty($row['_can_make_available']) && ($user->hasPermission('inventory.manage',$storeId) || $user->hasPermission('inventory.manage')))
