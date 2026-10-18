@@ -25,7 +25,15 @@ final class StoreBusinessProfileService
                 'stores.business_profile',
             ]);
 
-        if ($row === null || $row->channel !== 'B2C' || ! is_string($row->business_profile)) {
+        if ($row === null || $row->channel !== 'B2C') {
+            return null;
+        }
+
+        if ($row->business_profile === null) {
+            return StoreBusinessProfile::RETAIL_STORE;
+        }
+
+        if (! is_string($row->business_profile)) {
             return null;
         }
 
