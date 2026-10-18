@@ -11,6 +11,7 @@ use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 final class RestaurantWholesalePurchasesTest extends TestCase
@@ -148,6 +149,13 @@ final class RestaurantWholesalePurchasesTest extends TestCase
         $actor->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         app(RestaurantSaasStoreFeatureService::class)->setEnabled($store, true, $actor);
+
+        if (Schema::hasColumn('stores', 'business_profile')) {
+            DB::table('stores')->where('id', $store->id)->update([
+                'business_profile' => 'RESTAURANT',
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function wholesaleProduct(int $storeId, string $sku): int
