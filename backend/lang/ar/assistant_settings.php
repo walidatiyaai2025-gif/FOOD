@@ -91,6 +91,8 @@ return [
         'tool_errors' => 'أخطاء الأدوات',
         'fallback_rate' => 'نسبة fallback',
         'tokens' => 'التوكنات',
+        'execution_budgets' => 'حدود التنفيذ',
+        'execution_budgets_help' => 'حد أقصى :tools لاستدعاءات الأدوات · :bytes كيلوبايت لكل نتيجة أداة · :seconds ثانية للطلب بالكامل.',
         'last_provider' => 'آخر حدث للمزود',
         'no_provider_events' => 'لا توجد أحداث مزود مسجلة خلال هذه الفترة.',
         'registered_tools' => 'أدوات القراءة المسجلة',
