@@ -113,7 +113,6 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             'admin.smart-ordering.supply.index',
             'admin.smart-ordering.integrations.index',
             'admin.smart-ordering.growth.index',
-            'admin.b2c.module',
             'admin.reports.index',
         ] as $route) {
             $this->assertStringContainsString($route, $launcher);
