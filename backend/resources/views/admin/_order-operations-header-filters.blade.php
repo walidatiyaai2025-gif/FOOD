@@ -46,8 +46,9 @@
     <form class="order-header-filter"
           data-order-header-filter
           method="get"
-          action="{{ route('admin.operations.orders.index') }}">
+          action="{{ route('admin.operations.orders.index') }}#order-tab-analytics">
         <input type="hidden" name="channel" value="{{ $headerSelectedChannel }}">
+        <input type="hidden" name="action_required" value="0">
         @if(count($headerStores) > 1)
             <label>
                 <span class="order-header-filter-label">{{ __('order_operations.filters.store') }}</span>
@@ -71,15 +72,16 @@
         </label>
         <button class="foodex-filter-action" type="submit">{{ __('module_dashboard.filters.apply') }}</button>
         <a class="foodex-action-secondary button secondary"
-           href="{{ route('admin.operations.orders.index', ['channel' => $headerSelectedChannel] + ($headerSelectedStoreId ? ['store_id'=>$headerSelectedStoreId] : [])) }}"
+           href="{{ route('admin.operations.orders.index', ['channel' => $headerSelectedChannel, 'action_required' => 0] + ($headerSelectedStoreId ? ['store_id'=>$headerSelectedStoreId] : [])) }}#order-tab-analytics"
            aria-label="{{ __('module_dashboard.filters.reset') }}"
            title="{{ __('module_dashboard.filters.reset') }}">×</a>
     </form>
 
     <details class="order-header-mobile-filter">
         <summary aria-label="{{ __('module_dashboard.filters.apply') }}" title="{{ __('module_dashboard.filters.apply') }}">⌕</summary>
-        <form class="order-header-mobile-filter-panel" method="get" action="{{ route('admin.operations.orders.index') }}">
+        <form class="order-header-mobile-filter-panel" method="get" action="{{ route('admin.operations.orders.index') }}#order-tab-analytics">
             <input type="hidden" name="channel" value="{{ $headerSelectedChannel }}">
+            <input type="hidden" name="action_required" value="0">
             @if(count($headerStores) > 1)
                 <label>{{ __('order_operations.filters.store') }}
                     <select name="store_id">
@@ -96,7 +98,7 @@
             <label>{{ __('order_operations.filters.to') }}<input type="date" name="to" value="{{ $headerTo }}"></label>
             <div class="order-header-mobile-filter-actions">
                 <button class="foodex-filter-action" type="submit">{{ __('module_dashboard.filters.apply') }}</button>
-                <a class="foodex-action-secondary button secondary" href="{{ route('admin.operations.orders.index', ['channel' => $headerSelectedChannel] + ($headerSelectedStoreId ? ['store_id'=>$headerSelectedStoreId] : [])) }}">{{ __('module_dashboard.filters.reset') }}</a>
+                <a class="foodex-action-secondary button secondary" href="{{ route('admin.operations.orders.index', ['channel' => $headerSelectedChannel, 'action_required' => 0] + ($headerSelectedStoreId ? ['store_id'=>$headerSelectedStoreId] : [])) }}#order-tab-analytics">{{ __('module_dashboard.filters.reset') }}</a>
             </div>
         </form>
     </details>
