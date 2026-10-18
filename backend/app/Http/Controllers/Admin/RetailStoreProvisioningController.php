@@ -389,7 +389,26 @@ final class RetailStoreProvisioningController extends Controller
         ]);
 
         $enabled = (bool) $data['enabled'];
-        $this->restaurantSaas->setEnabled($store, $enabled, $actor, $request);
+
+        DB::transaction(function () use ($store, $enabled, $actor, $request): void {
+            if ($enabled && ! $store->isRestaurantProfile()) {
+                $before = ['business_profile' => $store->business_profile];
+                $store->forceFill(['business_profile' => Store::BUSINESS_PROFILE_RESTAURANT])->save();
+
+                $this->audit->record(
+                    'b2c.business_profile.compatibility_conversion',
+                    $actor,
+                    $store,
+                    $before,
+                    ['business_profile' => Store::BUSINESS_PROFILE_RESTAURANT],
+                    $request,
+                );
+            }
+
+            // Compatibility-only path: disabling the legacy feature never changes
+            // a Restaurant back into Retail. The authoritative business profile is sticky.
+            $this->restaurantSaas->setEnabled($store->fresh(), $enabled, $actor, $request);
+        });
 
         return back()->with(
             'status',
