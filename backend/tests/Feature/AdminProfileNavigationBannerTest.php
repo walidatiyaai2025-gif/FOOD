@@ -227,6 +227,7 @@ class AdminProfileNavigationBannerTest extends TestCase
     {
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => 'RETAIL_STORE',
             'code' => $code,
             'name' => $code,
             'is_active' => true,
