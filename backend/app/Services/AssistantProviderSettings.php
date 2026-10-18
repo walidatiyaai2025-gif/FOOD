@@ -59,7 +59,10 @@ final class AssistantProviderSettings
                 ->first();
 
             if ($setting instanceof Setting && is_string($setting->value) && $setting->value !== '') {
-                $decrypted = Crypt::decryptString($setting->value);
+                $storedValue = $setting->value;
+                $decodedValue = json_decode($storedValue, true);
+                $encryptedValue = is_string($decodedValue) ? $decodedValue : $storedValue;
+                $decrypted = Crypt::decryptString($encryptedValue);
 
                 return $decrypted === '' ? null : $decrypted;
             }
@@ -124,7 +127,10 @@ final class AssistantProviderSettings
                 }
 
                 $secret->forceFill([
-                    'value' => Crypt::encryptString(trim($apiKey)),
+                    'value' => json_encode(
+                        Crypt::encryptString(trim($apiKey)),
+                        JSON_THROW_ON_ERROR,
+                    ),
                     'is_secret' => true,
                 ])->save();
             }
