@@ -385,6 +385,15 @@ class AdminNavigation
 
         $globalRoles = array_values(array_filter((array) ($definition['global_roles'] ?? []), 'is_string'));
 
+        if (in_array('SUPER_ADMIN', $globalRoles, true) && $this->isSuperAdmin($user)) {
+            return true;
+        }
+
+        $globalRoles = array_values(array_filter(
+            $globalRoles,
+            static fn (string $role): bool => $role !== 'SUPER_ADMIN',
+        ));
+
         if ($globalRoles !== [] && $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')

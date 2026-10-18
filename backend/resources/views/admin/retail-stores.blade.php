@@ -226,7 +226,7 @@ $roleLabel = static function ($role): string {
                             <h3>{{ $ar?'6. مراجعة وإنشاء':'6. Review & create' }}</h3>
                             <p>{{ $ar?'راجع القيم الفعلية قبل إنشاء المتجر. يمكنك الرجوع لأي خطوة بدون فقد البيانات.':'Review the actual values before creating the store. You can go back without losing entered data.' }}</p>
                             <div class="store-review-grid">
-                                <div class="store-review-item"><small>{{ __('retail_stores.profile.business_type') }}</small><strong data-review="business_profile">—</strong></div>
+                                <div class="store-review-item"><small>{{ __('retail_stores.profile.business_type') }}</small><strong data-review="business_profile" data-business-profile-summary>—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الكود':'Code' }}</small><strong data-review="code">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الاسم':'Name' }}</small><strong data-review="name">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الشعار':'Logo' }}</small><strong data-review="logo">—</strong></div>
