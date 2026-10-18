@@ -100,16 +100,16 @@ $roleLabel = static function ($role): string {
                         </ol>
 
                         <section class="store-wizard-panel" data-wizard-panel="identity">
-                            <h3>{{ $ar?'1. نوع النشاط والهوية':'1. Business type & identity' }}</h3>
-                            <p>{{ $ar?'اختر نموذج التشغيل أولاً؛ هذا الاختيار يفصل متجر التجزئة عن المطعم داخل النظام.':'Choose the operating model first; this keeps Retail Store and Restaurant workspaces separate.' }}</p>
+                            <h3>{{ __('retail_stores.profile.identity_title') }}</h3>
+                            <p>{{ __('retail_stores.profile.identity_description') }}</p>
                             <div class="store-form-grid">
-                                <label>{{ $ar?'نوع النشاط':'Business Type' }}
+                                <label>{{ __('retail_stores.profile.business_type') }}
                                     <select name="business_profile" required>
-                                        <option value="">{{ $ar?'اختر نوع النشاط':'Select business type' }}</option>
-                                        <option value="RETAIL_STORE" @selected(old('business_profile')==='RETAIL_STORE')>{{ $ar?'متجر تجزئة':'Retail Store' }}</option>
-                                        <option value="RESTAURANT" @selected(old('business_profile')==='RESTAURANT')>{{ $ar?'مطعم':'Restaurant' }}</option>
+                                        <option value="">{{ __('retail_stores.profile.select_business_type') }}</option>
+                                        <option value="RETAIL_STORE" @selected(old('business_profile')==='RETAIL_STORE')>{{ __('retail_stores.profile.retail_store') }}</option>
+                                        <option value="RESTAURANT" @selected(old('business_profile')==='RESTAURANT')>{{ __('retail_stores.profile.restaurant') }}</option>
                                     </select>
-                                    <small class="foodex-file-help">{{ $ar?'المتجر يحصل على أدوات البيع بالتجزئة فقط، والمطعم يحصل على أدوات المطعم ومشتريات الجملة.':'Retail receives retail-selling tools only; Restaurant receives restaurant operations plus Wholesale Purchases.' }}</small>
+                                    <small class="foodex-file-help">{{ __('retail_stores.profile.business_type_help') }}</small>
                                 </label>
                                 <label>{{ $ar?'كود المتجر':'Store code' }}
                                     <input name="code" value="{{ old('code') }}" required maxlength="80" pattern="[A-Za-z0-9_-]+" placeholder="{{ $ar?'مثال: CAIRO-01':'e.g. CAIRO-01' }}">
@@ -226,7 +226,7 @@ $roleLabel = static function ($role): string {
                             <h3>{{ $ar?'6. مراجعة وإنشاء':'6. Review & create' }}</h3>
                             <p>{{ $ar?'راجع القيم الفعلية قبل إنشاء المتجر. يمكنك الرجوع لأي خطوة بدون فقد البيانات.':'Review the actual values before creating the store. You can go back without losing entered data.' }}</p>
                             <div class="store-review-grid">
-                                <div class="store-review-item"><small>{{ $ar?'نوع النشاط':'Business Type' }}</small><strong data-review="business_profile">—</strong></div>
+                                <div class="store-review-item"><small>{{ __('retail_stores.profile.business_type') }}</small><strong data-review="business_profile">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الكود':'Code' }}</small><strong data-review="code">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الاسم':'Name' }}</small><strong data-review="name">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الشعار':'Logo' }}</small><strong data-review="logo">—</strong></div>
@@ -248,7 +248,7 @@ $roleLabel = static function ($role): string {
 
             <section class="foodex-card store-panel">
                 <div class="store-head">
-                    <div><h2>{{ $ar?'أنشطة B2C':'B2C Businesses' }}</h2><p>{{ $ar?'إدارة متاجر التجزئة والمطاعم كلٌ وفق مساحة العمل الخاصة به.':'Manage Retail Stores and Restaurants through their separate operating profiles.' }}</p></div>
+                    <div><h2>{{ __('retail_stores.profile.list_title') }}</h2><p>{{ __('retail_stores.profile.list_description') }}</p></div>
                     <form method="get" class="store-search">
                         <label>{{ $ar?'بحث بالاسم أو الكود':'Search name or code' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'اكتب اسم المتجر أو الكود':'Store name or code' }}"></label>
                         <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'بحث':'Search' }}</button>
@@ -311,14 +311,14 @@ $roleLabel = static function ($role): string {
                         <section class="store-service" data-business-profile="{{ $store->business_profile }}">
                             <div class="store-service-copy">
                                 <div class="store-meta">
-                                    <h4>{{ $ar?'نموذج التشغيل':'Operating profile' }}</h4>
+                                    <h4>{{ __('retail_stores.profile.operating_profile') }}</h4>
                                     <span class="badge active">
-                                        {{ $store->business_profile === 'RESTAURANT' ? ($ar?'مطعم':'Restaurant') : ($ar?'متجر تجزئة':'Retail Store') }}
+                                        {{ $store->business_profile === 'RESTAURANT' ? __('retail_stores.profile.restaurant') : __('retail_stores.profile.retail_store') }}
                                     </span>
                                 </div>
                                 <p>{{ $store->business_profile === 'RESTAURANT'
-                                    ? ($ar?'مساحة المطعم منفصلة وتشمل تشغيل المطعم ومشتريات الجملة.':'Restaurant workspace is isolated and includes restaurant operations plus Wholesale Purchases.')
-                                    : ($ar?'مساحة التجزئة لا تعرض وحدات المطاعم.':'Retail workspace does not expose restaurant-only modules.') }}</p>
+                                    ? __('retail_stores.profile.restaurant_workspace_description')
+                                    : __('retail_stores.profile.retail_workspace_description') }}</p>
                             </div>
                         </section>
 
@@ -365,9 +365,9 @@ $roleLabel = static function ($role): string {
 
                         <form method="post" action="{{ route('admin.retail-stores.roles.assign',$store) }}" class="store-form-grid">
                             @csrf
-                            <label>{{ $ar?'المستخدم':'User' }}<select name="user_id" required><option value="">{{ $ar?'اختر المستخدم':'Select user' }}</option>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select></label>
-                            <label>{{ $ar?'الدور داخل المتجر':'Store role' }}<select name="role_id" required><option value="">{{ $ar?'اختر الدور':'Select role' }}</option>@foreach(($storeRolesByProfile[$store->business_profile] ?? collect()) as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
-                            <button class="foodex-action-secondary button secondary" type="submit">＋ {{ $ar?'إسناد الدور':'Assign role' }}</button>
+                            <label>{{ __('retail_stores.roles.user') }}<select name="user_id" required><option value="">{{ __('retail_stores.roles.select_user') }}</option>@foreach($users as $managedUser)<option value="{{ $managedUser->id }}">{{ $managedUser->name }} · {{ $managedUser->email }}</option>@endforeach</select></label>
+                            <label>{{ __('retail_stores.roles.store_role') }}<select name="role_id" required><option value="">{{ __('retail_stores.roles.select_role') }}</option>@foreach(($storeRolesByProfile[$store->business_profile] ?? collect()) as $role)<option value="{{ $role->id }}">{{ $role->name }} ({{ $role->code }})</option>@endforeach</select></label>
+                            <button class="foodex-action-secondary button secondary" type="submit">＋ {{ __('retail_stores.roles.assign_role') }}</button>
                         </form>
                         </div>
                     </details>
