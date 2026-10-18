@@ -68,7 +68,7 @@ class AdminProfileNavigationBannerTest extends TestCase
         $admin = $this->storeAdmin($storeId, 'retail@example.test');
         $keys = $this->navigationKeys($admin);
 
-        $this->assertContains('administration_hub', $keys);
+        $this->assertNotContains('administration_hub', $keys);
         $this->assertNotContains('profile', $keys);
         $this->assertContains('b2c_dashboard', $keys);
         $this->assertContains('b2c_products', $keys);
