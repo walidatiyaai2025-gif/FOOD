@@ -90,7 +90,6 @@ class ProductionDatasetSnapshotTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'system.production_snapshot.restored']);
     }
 
-
     public function test_restore_refuses_migration_mismatch_before_mutating_live_dataset(): void
     {
         $actor = User::query()->create([
