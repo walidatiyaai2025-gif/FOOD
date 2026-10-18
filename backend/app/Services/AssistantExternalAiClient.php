@@ -183,7 +183,7 @@ final class AssistantExternalAiClient
     {
         $trimmed = trim($content);
 
-        if (str_starts_with($trimmed, '\`\`\`')) {
+        if (str_starts_with($trimmed, '```')) {
             $trimmed = preg_replace('/^\`\`\`(?:json)?\s*|\s*\`\`\`$/i', '', $trimmed) ?? $trimmed;
         }
 
