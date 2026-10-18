@@ -7,8 +7,22 @@
 <style>
 .cs-shell{display:grid;gap:var(--foodex-space-5)}
 .cs-search,.cs-panel{padding:var(--foodex-space-5)}
-.cs-search form,.cs-filter{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
-.cs-search label,.cs-filter label,.cs-form label{display:grid;gap:6px;font-weight:700}
+.cs-search form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+.cs-search label,.cs-form label{display:grid;gap:6px;font-weight:700}
+.cs-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.cs-filter-strip{padding:10px 12px}
+.cs-filter{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);gap:8px;align-items:center;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.cs-filter label{display:block;min-width:132px}
+.cs-filter :is(input,select){width:100%;min-height:38px;height:38px;padding-block:0!important}
+.cs-filter .cs-filter-search{min-width:210px}
+.cs-filter .cs-filter-submit{min-width:112px}
+.cs-filter .cs-filter-submit button{width:100%;min-height:38px;height:38px;white-space:nowrap}
+.cs-workspace-tabs{display:flex;align-items:center;gap:8px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:thin}
+.cs-workspace-tab{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:0 16px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+.cs-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-workspace-tab[aria-selected="true"]{background:var(--foodex-green-dark);border-color:var(--foodex-green-dark);color:#fff}
+.cs-tab-panel{display:grid;gap:16px;min-width:0}
+.cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(165px,1fr);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
 .cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:3px solid var(--cs-accent)!important;transition:transform .18s ease,box-shadow .18s ease}
 .cs-kpi:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)}
@@ -46,7 +60,7 @@
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
 @media(max-width:1100px){.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
-@media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-filter{grid-auto-columns:minmax(145px,74vw)}.cs-filter .cs-filter-search{min-width:74vw}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
 </style>
 </head>
 <body>
@@ -85,44 +99,50 @@
                 @endforeach
             </section>
 
-            <section class="foodex-card cs-panel">
-                <div class="cs-section-head">
-                    <div><h2>{{ __('customer_service_workspace.dashboard.title') }}</h2><p>{{ __('customer_service_workspace.dashboard.help') }}</p></div>
-                    <span class="cs-badge">{{ $dashboard['from'] }} → {{ $dashboard['to'] }}</span>
-                </div>
+            <section class="foodex-card cs-filter-strip" aria-label="{{ __('customer_service_workspace.dashboard.title') }}">
                 <form method="get" class="cs-filter">
-                    <label>{{ __('customer_service_workspace.filters.from') }}<input type="date" name="from" value="{{ $filters['from'] ?? $dashboard['from'] }}"></label>
-                    <label>{{ __('customer_service_workspace.filters.to') }}<input type="date" name="to" value="{{ $filters['to'] ?? $dashboard['to'] }}"></label>
-                    <label>{{ __('customer_service_workspace.filters.store') }}
-                        <select name="store_id"><option value="">{{ __('customer_service_workspace.values.all') }}</option>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.from') }}</span><input aria-label="{{ __('customer_service_workspace.filters.from') }}" type="date" name="from" value="{{ $filters['from'] ?? $dashboard['from'] }}"></label>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.to') }}</span><input aria-label="{{ __('customer_service_workspace.filters.to') }}" type="date" name="to" value="{{ $filters['to'] ?? $dashboard['to'] }}"></label>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.store') }}</span>
+                        <select aria-label="{{ __('customer_service_workspace.filters.store') }}" name="store_id"><option value="">{{ __('customer_service_workspace.filters.store') }} · {{ __('customer_service_workspace.values.all') }}</option>
                             @foreach($storeOptions as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }} · {{ $store->code }}</option>@endforeach
                         </select>
                     </label>
-                    <label>{{ __('customer_service_workspace.filters.status') }}
-                        <select name="status"><option value="">{{ __('customer_service_workspace.values.all') }}</option>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.status') }}</span>
+                        <select aria-label="{{ __('customer_service_workspace.filters.status') }}" name="status"><option value="">{{ __('customer_service_workspace.filters.status') }} · {{ __('customer_service_workspace.values.all') }}</option>
                             @foreach($caseStatuses as $value)<option value="{{ $value }}" @selected(($filters['status']??'')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach
                         </select>
                     </label>
-                    <label>{{ __('customer_service_workspace.filters.priority') }}
-                        <select name="priority"><option value="">{{ __('customer_service_workspace.values.all') }}</option>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.priority') }}</span>
+                        <select aria-label="{{ __('customer_service_workspace.filters.priority') }}" name="priority"><option value="">{{ __('customer_service_workspace.filters.priority') }} · {{ __('customer_service_workspace.values.all') }}</option>
                             @foreach($casePriorities as $value)<option value="{{ $value }}" @selected(($filters['priority']??'')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach
                         </select>
                     </label>
-                    <label>{{ __('customer_service_workspace.filters.queue') }}
-                        <select name="queue"><option value="">{{ __('customer_service_workspace.values.all') }}</option>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.queue') }}</span>
+                        <select aria-label="{{ __('customer_service_workspace.filters.queue') }}" name="queue"><option value="">{{ __('customer_service_workspace.filters.queue') }} · {{ __('customer_service_workspace.values.all') }}</option>
                             @foreach($caseQueues as $value)<option value="{{ $value }}" @selected(($filters['queue']??'')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach
                         </select>
                     </label>
-                    <label>{{ __('customer_service_workspace.filters.category') }}
-                        <select name="type"><option value="">{{ __('customer_service_workspace.values.all') }}</option>
+                    <label><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.category') }}</span>
+                        <select aria-label="{{ __('customer_service_workspace.filters.category') }}" name="type"><option value="">{{ __('customer_service_workspace.filters.category') }} · {{ __('customer_service_workspace.values.all') }}</option>
                             @foreach($caseCategories as $value)<option value="{{ $value }}" @selected(($filters['type']??'')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach
                         </select>
                     </label>
-                    <label>{{ __('customer_service_workspace.filters.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}" maxlength="120" placeholder="{{ __('customer_service_workspace.filters.search_placeholder') }}"></label>
-                    <div><button class="foodex-action-primary foodex-filter-action" type="submit">{{ __('customer_service_workspace.filters.apply') }}</button></div>
+                    <label class="cs-filter-search"><span class="cs-visually-hidden">{{ __('customer_service_workspace.filters.search') }}</span><input aria-label="{{ __('customer_service_workspace.filters.search') }}" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="120" placeholder="{{ __('customer_service_workspace.filters.search_placeholder') }}"></label>
+                    <div class="cs-filter-submit"><button class="foodex-action-primary foodex-filter-action" type="submit">{{ __('customer_service_workspace.filters.apply') }}</button></div>
                 </form>
             </section>
 
+            @php($defaultWorkspaceTab = $selectedCase ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'cases'))
+            <nav class="cs-workspace-tabs" role="tablist" aria-label="{{ __('customer_service_workspace.tabs.label') }}" data-cs-tabs data-default-tab="{{ $defaultWorkspaceTab }}">
+                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="true" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }}</button>
+                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="analytics">{{ __('customer_service_workspace.tabs.analytics') }}</button>
+                @if($canCustomers)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="customers">{{ __('customer_service_workspace.tabs.customers') }}</button>@endif
+                @if($canManageTeam)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="team">{{ __('customer_service_workspace.tabs.team') }}</button>@endif
+                @if($capabilities->isNotEmpty())<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="tools">{{ __('customer_service_workspace.tabs.tools') }}</button>@endif
+            </nav>
+
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="analytics" hidden>
             <section class="cs-charts" aria-label="{{ __('customer_service_workspace.dashboard.charts') }}">
                 @foreach(['customer_growth','case_status','sla','category','store_mix','customer_value'] as $chartKey)
                     @php($chart=$dashboard['charts'][$chartKey] ?? [])
@@ -158,8 +178,10 @@
                 </div>
             </section>
             @endif
+            </div>
 
             @if($canCustomers)
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="customers" hidden>
             <section class="foodex-card cs-search" aria-labelledby="customer-service-search-title">
                 <div class="cs-section-head">
                     <div><h2 id="customer-service-search-title">{{ __('customer_service_workspace.search_title') }}</h2><p>{{ __('customer_service_workspace.search_help') }}</p></div>
@@ -169,8 +191,10 @@
                     <button class="foodex-action-primary foodex-filter-action" type="submit">{{ __('customer_service_workspace.open_customer') }}</button>
                 </form>
             </section>
+            </div>
             @endif
 
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="cases" hidden>
             <section class="foodex-card cs-panel" data-pagination-required>
                 <div class="cs-section-head">
                     <div><h2>{{ __('customer_service_workspace.cases.title') }}</h2><p>{{ __('customer_service_workspace.cases.help') }}</p></div>
@@ -302,8 +326,10 @@
                 @endif
             </section>
             @endif
+            </div>
 
             @if($canManageTeam)
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="team" hidden>
             <section class="foodex-card cs-panel" data-customer-service-team-management>
                 <div class="cs-section-head">
                     <div>
@@ -379,24 +405,61 @@
                     </table>
                 </div>
             </section>
+            </div>
             @endif
 
-            <nav class="foodex-tabs" aria-label="{{ __('customer_service_workspace.journey_label') }}">
-                @foreach($capabilities as $item)<a class="foodex-tab" href="{{ $item['url'] }}">{{ __('customer_service_workspace.cards.'.$item['key'].'.title') }}</a>@endforeach
-            </nav>
             @if($capabilities->isNotEmpty())
+            <div class="cs-tab-panel" role="tabpanel" data-cs-panel="tools" hidden>
                 <section class="cs-grid" aria-label="{{ __('customer_service_workspace.journey_label') }}">
                     @foreach($capabilities as $item)
                         <article class="foodex-card cs-card"><div class="cs-card-head"><h2>{{ __('customer_service_workspace.cards.'.$item['key'].'.title') }}</h2><span class="cs-card-icon" aria-hidden="true">{{ $item['icon'] }}</span></div><p>{{ __('customer_service_workspace.cards.'.$item['key'].'.description') }}</p><a class="foodex-action-secondary button secondary" href="{{ $item['url'] }}">{{ __('customer_service_workspace.cards.'.$item['key'].'.action') }}</a></article>
                     @endforeach
                 </section>
+                <section class="foodex-card cs-search" role="note"><strong>{{ __('customer_service_workspace.truth_title') }}</strong><p>{{ __('customer_service_workspace.truth_help') }}</p></section>
+            </div>
             @endif
-
-            <section class="foodex-card cs-search" role="note"><strong>{{ __('customer_service_workspace.truth_title') }}</strong><p>{{ __('customer_service_workspace.truth_help') }}</p></section>
         </div>
     </main>
 </div>
 <script>
+(() => {
+    const tabsRoot = document.querySelector('[data-cs-tabs]');
+    if (!tabsRoot) return;
+
+    const tabs = Array.from(tabsRoot.querySelectorAll('[data-cs-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-cs-panel]'));
+    const available = new Set(tabs.map((tab) => tab.dataset.csTab));
+    const hashName = window.location.hash.startsWith('#cs-tab-')
+        ? window.location.hash.slice('#cs-tab-'.length)
+        : (window.location.hash === '#case-detail' ? 'cases' : '');
+    const initial = available.has(hashName)
+        ? hashName
+        : (available.has(tabsRoot.dataset.defaultTab) ? tabsRoot.dataset.defaultTab : tabs[0]?.dataset.csTab);
+
+    const activate = (name, updateHash = true) => {
+        if (!available.has(name)) return;
+
+        tabs.forEach((tab) => {
+            const active = tab.dataset.csTab === name;
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.csPanel !== name;
+        });
+
+        if (updateHash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search + '#cs-tab-' + name);
+        }
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activate(tab.dataset.csTab));
+    });
+
+    activate(initial || 'cases', false);
+})();
+
 (() => {
     const counters = document.querySelectorAll('[data-cs-counter][data-count-target]');
     if (!counters.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
