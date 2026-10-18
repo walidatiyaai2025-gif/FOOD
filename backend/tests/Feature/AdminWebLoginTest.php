@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AdminSecuritySession;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -97,6 +98,90 @@ class AdminWebLoginTest extends TestCase
 
         $this->get('/admin/b2c/dashboard')->assertOk();
         $this->get('/admin/b2b/dashboard')->assertForbidden();
+    }
+
+    public function test_dual_channel_non_super_user_prefers_the_requested_retail_login_channel(): void
+    {
+        $storeId = $this->createB2cStore();
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+        $this->assignStoreRole($user, $storeId, 'B2C_STORE_ADMIN');
+
+        $this->post('/admin/b2c/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'locale' => 'en',
+        ])->assertRedirect(route('admin.b2c.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_distinct_management_accounts_behind_one_ip_do_not_trigger_global_lockout_during_normal_admin_testing(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.60']);
+
+        for ($attempt = 1; $attempt <= 25; $attempt++) {
+            $this->post('/admin/b2b/login', [
+                'email' => "unknown-{$attempt}@example.test",
+                'password' => 'wrong-password',
+                'locale' => 'en',
+            ])->assertSessionHasErrors('email');
+        }
+
+        $this->post('/admin/b2b/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'locale' => 'en',
+        ])->assertRedirect(route('admin.b2b.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_per_identifier_management_login_throttle_remains_strict(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.61']);
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->post('/admin/b2b/login', [
+                'email' => '  '.strtoupper($user->email).'  ',
+                'password' => 'wrong-password',
+                'locale' => 'en',
+            ])->assertSessionHasErrors('email');
+        }
+
+        $this->post('/admin/b2b/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'locale' => 'en',
+        ])->assertStatus(429);
+
+        $this->assertGuest();
+    }
+
+    public function test_failed_post_auth_session_completion_clears_the_authenticated_state(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+        $revoked = AdminSecuritySession::query()->create([
+            'user_id' => $user->id,
+            'session_hash' => hash('sha256', 'revoked-login-session'),
+            'ip_address' => '203.0.113.62',
+            'user_agent' => 'Feature test',
+            'last_seen_at' => now(),
+            'revoked_at' => now(),
+            'revoked_by' => $user->id,
+        ]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.62'])
+            ->withSession(['admin_security_session_public_id' => $revoked->public_id])
+            ->post('/admin/b2b/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+                'locale' => 'en',
+            ])
+            ->assertForbidden();
+
+        $this->assertGuest();
     }
 
     public function test_login_redirects_to_the_only_channel_the_identity_is_authorized_for(): void
