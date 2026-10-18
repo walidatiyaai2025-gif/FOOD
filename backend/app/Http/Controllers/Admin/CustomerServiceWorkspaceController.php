@@ -258,7 +258,7 @@ final class CustomerServiceWorkspaceController extends Controller
         return view('admin.customer-service-workspace', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
-            'navContext' => 'customer_360',
+            'navContext' => 'erp_customer_service',
             'capabilities' => $capabilities,
             'canCustomers' => $canCustomers && Route::has('admin.customer-360.index'),
             'canWhatsAppInbox' => $canWhatsAppInbox,
