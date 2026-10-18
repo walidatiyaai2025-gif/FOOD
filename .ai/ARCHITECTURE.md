@@ -152,3 +152,8 @@ FOODEX has one Assistant lineage. Extend the existing Management Assistant contr
 
 Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/retailer-consent -> agent orchestrator -> typed allowlisted tools -> deterministic semantic/read-model/domain services -> authoritative persistence. Providers may classify/plan/explain only; server software owns permissions, calculations and writes. Sell-in and sell-out are separately typed facts. Read-only remains default until #2224 adds draft -> explicit approval -> re-authorization -> idempotent execution.
 
+
+
+### Agent orchestration invariant
+
+The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
