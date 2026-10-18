@@ -96,14 +96,14 @@ final class AdminSecurityGovernanceCompletionTest extends TestCase
         $admin = $this->superAdmin('en');
 
         $this->actingAs($admin)
-            ->get(route('admin.security.index'))
+            ->get(route('admin.security.index', ['section' => 'governance']))
             ->assertOk()
             ->assertSee('Security &amp; governance snapshot', false);
 
         $admin->forceFill(['locale' => 'ar'])->save();
 
         $this->actingAs($admin->fresh())
-            ->get(route('admin.security.index'))
+            ->get(route('admin.security.index', ['section' => 'governance']))
             ->assertOk()
             ->assertSee('لقطة الأمان والحوكمة');
     }
