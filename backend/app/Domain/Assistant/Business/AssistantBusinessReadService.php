@@ -2,6 +2,8 @@
 
 namespace App\Domain\Assistant\Business;
 
+use App\Domain\Analytics\Semantic\MetricDictionary;
+use App\Domain\Analytics\Semantic\SemanticMetricService;
 use App\Domain\Assistant\Data\AssistantAction;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
@@ -17,7 +19,10 @@ final class AssistantBusinessReadService
 
     private const NON_REVENUE_STATUSES = ['cancelled', 'refunded'];
 
-    public function __construct(private readonly OperationalTenantScope $scope) {}
+    public function __construct(
+        private readonly OperationalTenantScope $scope,
+        private readonly SemanticMetricService $semanticMetrics,
+    ) {}
 
     public function execute(string $tool, AssistantToolRequest $request): AssistantToolResult
     {
