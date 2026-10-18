@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AdminNavigation;
+use App\Support\B2cWorkspaceLandingResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,15 +13,21 @@ use Illuminate\Support\Facades\App;
 
 class AdminShellController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly B2cWorkspaceLandingResolver $workspaceLanding,
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        if (! $user->hasRole('SUPER_ADMIN') && $this->isRetailStoreAdmin($user)) {
-            return redirect()->route('admin.b2c.dashboard');
+        if (! $user->hasRole('SUPER_ADMIN')) {
+            $target = $this->workspaceLanding->urlFor($user);
+            if ($target !== null) {
+                return redirect()->to($target);
+            }
         }
 
         return $this->render($request);
