@@ -12,6 +12,7 @@ use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,7 @@ class AssistantSecurityBoundaryTest extends TestCase
 
     public function test_wholesale_sellout_requires_linked_active_consent_and_revocation_is_immediate(): void
     {
-        $wholesaleStore = $this->store('b2b', 'AI-SEC-W');
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
         $retailStore = $this->store('b2c', 'AI-SEC-R');
         $this->linkRetailWholesaleAccount($retailStore);
 
@@ -136,7 +137,7 @@ class AssistantSecurityBoundaryTest extends TestCase
 
     public function test_cross_retailer_aggregation_requires_consent_for_every_retailer(): void
     {
-        $wholesaleStore = $this->store('b2b', 'AI-SEC-W-AGG');
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
         $retailA = $this->store('b2c', 'AI-SEC-R1');
         $retailB = $this->store('b2c', 'AI-SEC-R2');
         $this->linkRetailWholesaleAccount($retailA);
@@ -167,7 +168,7 @@ class AssistantSecurityBoundaryTest extends TestCase
 
     public function test_consent_denial_is_localized_and_does_not_disclose_hidden_identifiers(): void
     {
-        $wholesaleStore = $this->store('b2b', 'AI-SEC-W-L10N');
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
         $retailStore = $this->store('b2c', 'AI-SEC-R-L10N');
         $this->linkRetailWholesaleAccount($retailStore);
         $wholesaleActor = $this->globalUser('B2B_ADMIN');
