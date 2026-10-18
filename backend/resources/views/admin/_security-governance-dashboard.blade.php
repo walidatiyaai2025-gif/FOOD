@@ -1,7 +1,9 @@
+@php($securitySection = $securitySection ?? 'governance')
 <style>
 .security-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}.security-kpi{display:grid;gap:6px;padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}.security-kpi strong{font-size:1.55rem}.security-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.security-bars{display:grid;gap:9px}.security-bar{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.security-bar-track{height:9px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.security-bar-fill{height:100%;background:var(--foodex-green);border-radius:inherit}.security-health{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.security-health-item{padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.security-report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.security-report-grid a{display:flex;justify-content:space-between;gap:8px;padding:11px;border:1px solid var(--foodex-border);border-radius:10px;text-decoration:none;color:inherit}.security-table-wrap{overflow-x:auto}.security-table{width:100%;border-collapse:collapse}.security-table th,.security-table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.security-audit-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.security-audit-filters input{width:100%;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px}.security-session-agent{max-width:380px;overflow-wrap:anywhere;color:var(--foodex-muted)}@media(max-width:760px){.security-grid{grid-template-columns:1fr}.security-audit-filters{grid-template-columns:1fr}.security-bar{grid-template-columns:minmax(100px,.8fr) minmax(80px,1fr) auto}}
 </style>
 
+@if($securitySection==='governance')
 <section class="panel" data-security-governance-dashboard>
 <div class="head"><div><h2>{{ __('security_governance.dashboard.title') }}</h2><div class="muted">{{ __('security_governance.dashboard.description') }}</div></div><a class="btn secondary" href="{{ route('admin.mfa.enroll') }}">{{ __('security_governance.mfa_admin.manage_self') }}</a></div>
 <div class="security-kpis">
@@ -50,7 +52,9 @@
 @endforeach
 </div></div>
 </section>
+@endif
 
+@if($securitySection==='sessions')
 <section class="panel" data-security-session-registry>
 <div class="head"><div><h2>{{ __('security_governance.dashboard.sessions') }}</h2><div class="muted">{{ __('security_governance.sessions.last_seen') }}</div></div><span class="badge">{{ $securitySessions->count() }}</span></div>
 <div class="security-table-wrap"><table class="security-table foodex-table" data-pagination-required><thead><tr><th>{{ __('admin.security.users') }}</th><th>{{ __('security_governance.sessions.ip') }}</th><th>{{ __('security_governance.sessions.agent') }}</th><th>{{ __('security_governance.sessions.last_seen') }}</th><th></th></tr></thead><tbody>
@@ -76,9 +80,13 @@
 </tbody></table></div>
 </section>
 
+@endif
+
+@if($securitySection==='audit')
 <section class="panel" data-security-audit-explorer>
 <div class="head"><div><h2>{{ __('security_governance.dashboard.audit') }}</h2></div></div>
 <form method="get" class="security-audit-filters">
+<input type="hidden" name="section" value="audit">
 <input name="audit_actor" value="{{ $auditFilters['audit_actor'] }}" placeholder="{{ __('security_governance.audit.actor') }}">
 <input name="audit_event" value="{{ $auditFilters['audit_event'] }}" placeholder="{{ __('security_governance.audit.event') }}">
 <input name="audit_entity" value="{{ $auditFilters['audit_entity'] }}" placeholder="{{ __('security_governance.audit.entity') }}">
@@ -93,3 +101,4 @@
 @empty<tr><td colspan="5"><div class="note foodex-empty-state">{{ __('security_governance.audit.empty') }}</div></td></tr>@endforelse
 </tbody></table></div><div class="pager">{{ $auditRows->links() }}</div>
 </section>
+@endif
