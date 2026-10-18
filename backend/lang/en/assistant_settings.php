@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'brand' => 'FOODEX',
+    'not_available' => '—',
     'title' => 'FOODEX Assistant Settings',
     'subtitle' => 'FOODEX Assistant',
     'description' => 'Enable the Assistant and optionally connect an AI provider while server-side permissions, read-only enforcement and authoritative FOODEX tools remain in control.',
