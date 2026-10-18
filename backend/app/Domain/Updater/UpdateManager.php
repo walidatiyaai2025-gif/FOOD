@@ -309,7 +309,8 @@ final class UpdateManager
      */
     private function checkpoint(UpdateHistory $history, array $evidence, array $attributes = []): void
     {
-        $current = is_array($history->execution_evidence) ? $history->execution_evidence : [];
+        $storedEvidence = $history->getAttribute('execution_evidence');
+        $current = is_array($storedEvidence) ? $storedEvidence : [];
 
         $history->forceFill(array_merge($attributes, [
             'execution_evidence' => array_merge($current, $evidence),
