@@ -35,7 +35,7 @@
 <a class="so-skip" href="#menu">{{ $locale === 'ar' ? 'انتقل إلى القائمة' : 'Skip to menu' }}</a>
 <header class="so-header">
     <div class="so-brand">
-        @if($site['logo_url'])<img src="{{ $site['logo_url'] }}" alt="" width="52" height="52" decoding="async">@endif
+        @if($site['logo_url'])<img src="{{ $site['logo_url'] }}" alt="" width="52" height="52" decoding="async" data-store-logo onerror="this.hidden=true">@endif
         <div><strong>{{ $site['name'] }}</strong>@if($site['tagline'] !== '')<span>{{ $site['tagline'] }}</span>@endif</div>
     </div>
     <div class="so-header-actions">

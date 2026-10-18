@@ -282,8 +282,16 @@ final class RestaurantMenuContentSnapshotService
         if ($value === '') {
             return null;
         }
+
         if (str_starts_with($value, '/') || str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
             return $value;
+        }
+
+        // StoreLogoService persists browser-facing logo paths as "storage/...".
+        // Do not feed those paths back into the public disk URL builder or the
+        // result becomes "/storage/storage/..." and renders as a broken image.
+        if (str_starts_with($value, 'storage/')) {
+            return '/'.ltrim($value, '/');
         }
 
         return Storage::disk('public')->url($value);

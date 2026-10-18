@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
+use App\Domain\SmartOrdering\Themes\RestaurantMenuContentSnapshotService;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -209,6 +213,65 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString("$('[data-category]').forEach", $script);
         $this->assertStringContainsString('.so-search-feedback', $stylesheet);
         $this->assertStringContainsString('.so-search-clear{min-height:44px', $stylesheet);
+    }
+
+    public function test_store_logo_storage_path_is_normalized_through_real_snapshot_and_public_render(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'LOGO-REGRESSION',
+            'name' => 'Logo Regression Restaurant',
+            'logo_path' => 'storage/stores/17/branding/logo-example.webp',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $site = SmartOrderingSite::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'slug' => 'logo-regression',
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+        ]);
+        $revision = SmartOrderingRevision::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $site->id,
+            'status' => 'published',
+            'schema_version' => 1,
+            'payload' => ['appearance' => $this->snapshot('quick-bite', 'light')['appearance']],
+            'checksum' => hash('sha256', 'logo-regression'),
+            'published_at' => now(),
+        ]);
+
+        $snapshot = app(RestaurantMenuContentSnapshotService::class)->snapshot($site, $revision);
+
+        $this->assertSame('/storage/stores/17/branding/logo-example.webp', $snapshot['site']['logo_url']);
+
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+        $this->get('/smart-ordering/demo')
+            ->assertOk()
+            ->assertSee('src="/storage/stores/17/branding/logo-example.webp"', false)
+            ->assertSee('data-store-logo', false)
+            ->assertSee('onerror="this.hidden=true"', false);
+
+        $reflection = new \ReflectionClass(RestaurantMenuContentSnapshotService::class);
+        $method = $reflection->getMethod('mediaUrl');
+        $method->setAccessible(true);
+        $service = $reflection->newInstanceWithoutConstructor();
+
+        $this->assertSame(
+            '/storage/stores/17/branding/logo-example.webp',
+            $method->invoke($service, '/storage/stores/17/branding/logo-example.webp'),
+        );
+        $this->assertSame(
+            'https://cdn.example.test/store-logo.webp',
+            $method->invoke($service, 'https://cdn.example.test/store-logo.webp'),
+        );
+        $this->assertSame(
+            Storage::disk('public')->url('menu/items/burger.webp'),
+            $method->invoke($service, 'menu/items/burger.webp'),
+        );
     }
 
     public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void

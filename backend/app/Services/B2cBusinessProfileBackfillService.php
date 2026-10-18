@@ -53,32 +53,44 @@ final class B2cBusinessProfileBackfillService
         ): void {
             foreach ($stores as $store) {
                 $storeId = (int) $store->id;
-                $target = isset($restaurantLookup[$storeId])
+                $isRestaurant = isset($restaurantLookup[$storeId]);
+                $target = $isRestaurant
                     ? Store::BUSINESS_PROFILE_RESTAURANT
                     : Store::BUSINESS_PROFILE_RETAIL_STORE;
 
                 $target === Store::BUSINESS_PROFILE_RESTAURANT ? $restaurant++ : $retail++;
 
                 $before = $store->business_profile === null ? null : (string) $store->business_profile;
-                if ($before === $target) {
-                    continue;
+                if ($before !== $target) {
+                    DB::table('stores')->where('id', $storeId)->update([
+                        'business_profile' => $target,
+                        'updated_at' => now(),
+                    ]);
+                    $converted++;
+
+                    if (Schema::hasTable('b2c_business_profile_backfill_audit')) {
+                        DB::table('b2c_business_profile_backfill_audit')->insertOrIgnore([
+                            'store_id' => $storeId,
+                            'previous_profile' => $before,
+                            'assigned_profile' => $target,
+                            'source' => $isRestaurant
+                                ? 'restaurant_saas_master_entitlement'
+                                : 'b2c_default',
+                            'converted_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
                 }
 
-                DB::table('stores')->where('id', $storeId)->update([
-                    'business_profile' => $target,
-                    'updated_at' => now(),
-                ]);
-                $converted++;
-
-                if (Schema::hasTable('b2c_business_profile_backfill_audit')) {
-                    DB::table('b2c_business_profile_backfill_audit')->insertOrIgnore([
+                if (Schema::hasTable('store_business_profile_backfills')) {
+                    DB::table('store_business_profile_backfills')->insertOrIgnore([
                         'store_id' => $storeId,
-                        'previous_profile' => $before,
-                        'assigned_profile' => $target,
-                        'source' => isset($restaurantLookup[$storeId])
-                            ? 'restaurant_saas_master_entitlement'
-                            : 'b2c_default',
-                        'converted_at' => now(),
+                        'business_profile' => $target,
+                        'classification_reason' => $isRestaurant
+                            ? 'restaurant_saas_master_enabled'
+                            : 'legacy_b2c_default_retail',
+                        'classified_at' => now(),
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
