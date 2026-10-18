@@ -52,7 +52,9 @@ final class SmartOrderingMenuAdminController extends Controller
 
         $setupFlow = ! $request->boolean('legacy');
         $setupSteps = ['menu', 'design', 'identity', 'review', 'publish'];
-        $requestedSetupStep = strtolower(trim((string) $request->query('setup', 'menu')));
+        $requestedSetupStep = $request->has('setup')
+            ? strtolower(trim((string) $request->query('setup')))
+            : ($request->boolean('review') ? 'review' : 'menu');
         $setupStep = in_array($requestedSetupStep, $setupSteps, true) ? $requestedSetupStep : 'menu';
 
         $draftPayload = (array) $draft->payload;
