@@ -1425,6 +1425,111 @@ async function captureCustomerServiceGoldenEvidence(page, locale) {
   }
 }
 
+async function captureRestaurantTemplateRuntimeEvidence(page, locale) {
+  const templates = [
+    'fine-dining-elegant-light',
+    'fine-dining-dark-luxury',
+    'contemporary-bistro',
+    'premium-arabic-dining',
+    'modern-minimal',
+    'chef-tasting',
+  ];
+  const viewports = [
+    { width: 320, height: 780, label: 'mobile-320' },
+    { width: 360, height: 800, label: 'mobile-360' },
+    { width: 390, height: 844, label: 'mobile-390' },
+    { width: 412, height: 915, label: 'mobile-412' },
+    { width: 430, height: 932, label: 'mobile-430' },
+    { width: 768, height: 1024, label: 'tablet-768' },
+    { width: 1024, height: 900, label: 'desktop-1024' },
+    { width: 1280, height: 900, label: 'desktop-1280' },
+    { width: 1440, height: 1080, label: 'desktop-1440' },
+  ];
+  const expectedDir = locale === 'ar' ? 'rtl' : 'ltr';
+
+  for (const template of templates) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const response = await page.goto(
+      `${baseUrl}/admin/smart-ordering/appearance/demo-preview?theme=${encodeURIComponent(template)}&lang=${locale}`,
+      { waitUntil: 'networkidle' },
+    );
+    if (!response || !response.ok() || page.url().includes('/login')) {
+      throw new Error(
+        `Restaurant template demo route failed: ${template}/${locale}; HTTP ${response?.status() ?? 'no-response'}; ${page.url()}`,
+      );
+    }
+
+    const routeProof = await page.evaluate(({ template, expectedDir }) => ({
+      template: document.documentElement.dataset.template || '',
+      dir: document.documentElement.dir,
+      adminShell: Boolean(document.querySelector('.foodex-admin-layout')),
+      storefront: Boolean(document.querySelector('body.so-page')),
+      skipLink: Boolean(document.querySelector('a.so-skip[href="#menu"]')),
+      main: Boolean(document.querySelector('main#menu')),
+      itemCount: document.querySelectorAll('[data-menu-item]').length,
+      hasPrivatePreviewHeader: document.documentElement.innerHTML.includes('X-FOODEX-Preview-State'),
+      hasInternalField: Boolean(document.querySelector('[name="store_id"],[name="tenant_id"],[name="internal_id"]')),
+      expectedTemplate: template,
+      expectedDir,
+    }), { template, expectedDir });
+
+    if (
+      routeProof.template !== template
+      || routeProof.dir !== expectedDir
+      || routeProof.adminShell
+      || !routeProof.storefront
+      || !routeProof.skipLink
+      || !routeProof.main
+      || routeProof.itemCount < 1
+      || routeProof.hasInternalField
+    ) {
+      throw new Error(
+        `Restaurant template runtime contract failed: ${template}/${locale} ${JSON.stringify(routeProof)}`,
+      );
+    }
+
+    for (const viewport of viewports) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.waitForTimeout(35);
+      await assertNoPageOverflow(page, `restaurant-template/${template}/${locale}/${viewport.label}`);
+
+      const geometry = await page.evaluate(() => {
+        const html = document.documentElement;
+        const body = document.body;
+        const menu = document.querySelector('main#menu');
+        const cart = document.querySelector('[data-cart-open]');
+        return {
+          viewport: innerWidth,
+          htmlWidth: html.scrollWidth,
+          bodyWidth: body.scrollWidth,
+          menuRight: menu ? menu.getBoundingClientRect().right : null,
+          menuLeft: menu ? menu.getBoundingClientRect().left : null,
+          cartWidth: cart ? cart.getBoundingClientRect().width : null,
+        };
+      });
+      if (
+        geometry.htmlWidth > geometry.viewport + 1
+        || geometry.bodyWidth > geometry.viewport + 1
+        || (geometry.menuRight !== null && geometry.menuRight > geometry.viewport + 1)
+        || (geometry.menuLeft !== null && geometry.menuLeft < -1)
+      ) {
+        throw new Error(
+          `Restaurant template geometry overflow: ${template}/${locale}/${viewport.label} ${JSON.stringify(geometry)}`,
+        );
+      }
+
+      if (viewport.width === 390 || viewport.width === 1440) {
+        await snap(
+          page,
+          `02_Web/Restaurant_Templates/${template}__${viewport.label}__${locale}.png`,
+        );
+      }
+    }
+  }
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -1680,6 +1785,7 @@ async function captureLocale(browser, locale) {
     '/admin/smart-ordering/appearance',
     { fullMatrix: true },
   );
+  await captureRestaurantTemplateRuntimeEvidence(page, locale);
   await captureResponsiveRoute(
     page,
     locale,
