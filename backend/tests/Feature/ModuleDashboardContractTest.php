@@ -103,4 +103,47 @@ class ModuleDashboardContractTest extends TestCase
             $this->assertStringContainsString($required, $contract);
         }
     }
+
+    public function test_kpi_summary_bar_platform_wide_responsive_contract(): void
+    {
+        $css = file_get_contents(public_path('assets/admin/foodex-visualization.css'));
+
+        foreach ([
+            '--foodex-kpi-summary-min:200px',
+            '--foodex-kpi-summary-min:180px',
+            '--foodex-kpi-summary-min:160px',
+            '--foodex-kpi-summary-min:100%',
+            'repeat(auto-fit,minmax(min(100%,var(--foodex-kpi-summary-min)),1fr))',
+            'overflow-wrap:anywhere',
+            'white-space:normal',
+            '[dir="rtl"] :is(',
+            '[dir="ltr"] :is(',
+        ] as $responsiveContract) {
+            $this->assertStringContainsString($responsiveContract, $css);
+        }
+
+        foreach ([
+            '.foodex-module-kpis',
+            '.erp-kpis',
+            '.wa-report-kpis',
+            '.rg-kpis',
+            '.security-kpis',
+            '.b2b-ref-kpis',
+            '.so-a-kpis',
+            '.ri-kpis',
+            '.rc-kpis',
+            '.fieldops-kpis',
+            '.kpis',
+            '.c360-kpis',
+            '.cs-kpis',
+            '.si-kpis',
+            '.wa-kpis',
+            '.store-ops-kpis',
+            '.merchant-summary',
+            '.wa-kpi-grid',
+        ] as $kpiGrid) {
+            $this->assertStringContainsString(':root '.$kpiGrid, $css);
+        }
+    }
+
 }
