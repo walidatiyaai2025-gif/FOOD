@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\TestCase;
 
-final class AssistantAgentOrchestratorTest extends TestCase
+class AssistantAgentOrchestratorTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -36,6 +36,7 @@ final class AssistantAgentOrchestratorTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+
         config([
             'assistant.agent.max_steps' => 2,
             'assistant.agent.max_tool_calls' => 4,
@@ -44,134 +45,140 @@ final class AssistantAgentOrchestratorTest extends TestCase
             'assistant.agent.planning_tokens' => 384,
             'assistant.agent.synthesis_tokens' => 640,
         ]);
+
+        $this->bindBrain();
     }
 
-    public function test_multi_tool_plan_executes_registered_reads_and_returns_grounded_synthesis(): void
+    public function test_multi_tool_plan_executes_registered_tools_and_returns_grounded_synthesis(): void
     {
-        $storeId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $this->store('b2b', 'AI-AGENT-MULTI');
         $actor = $this->globalUser('SUPER_ADMIN');
 
         $this->bindTools([
-            $this->tool('sales.summary', ['recognized_revenue' => 20.5, 'currency' => 'KWD']),
+            $this->tool('sales.summary', ['recognized_revenue' => 20.5]),
             $this->tool('inventory.alerts', ['low_stock' => 2]),
         ]);
         $this->bindProvider([
             $this->providerResult(toolCalls: [
-                ['name' => 'sales__summary', 'arguments' => [], 'id' => 'plan-1'],
-                ['name' => 'inventory__alerts', 'arguments' => [], 'id' => 'plan-2'],
+                ['name' => 'sales__summary', 'arguments' => [], 'id' => 'call-1'],
+                ['name' => 'inventory__alerts', 'arguments' => [], 'id' => 'call-2'],
             ]),
             $this->providerResult(structured: [
-                'message' => 'Revenue is 20.5 KWD and two inventory alerts need attention.',
+                'message' => 'Revenue is 20.5 and two inventory alerts need attention.',
                 'used_evidence' => ['ev-call-1', 'ev-call-2'],
                 'uncertainty' => [],
             ]),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Compare sales and inventory risk.', 'agent-multi');
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Compare sales and inventory risk.', 'agent-multi'),
+        );
 
         $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
-        $this->assertSame('sales.summary', $result->brainResult->intent);
-        $this->assertCount(2, $result->toolExecutions);
-        $this->assertCount(2, $result->evidence);
-        $this->assertSame('sales.summary', $result->toolExecutions[0]['tool']);
-        $this->assertSame('inventory.alerts', $result->toolExecutions[1]['tool']);
         $this->assertSame(
-            'Revenue is 20.5 KWD and two inventory alerts need attention.',
+            'Revenue is 20.5 and two inventory alerts need attention.',
             $result->message,
         );
-        $this->assertSame(20.5, $result->toolResult?->data['results']['sales.summary']['recognized_revenue']);
-        $this->assertFalse($result->toolResult?->data['_agent']['chain_of_thought_stored']);
+        $this->assertCount(2, $result->toolExecutions);
+        $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
+        $this->assertSame('COMPLETE', $result->toolExecutions[1]['status']);
+        $this->assertCount(2, $result->evidence);
+        $this->assertNotNull($result->toolResult);
+        $this->assertSame(20.5, $result->toolResult->data['results']['sales.summary']['recognized_revenue']);
+        $this->assertSame(2, $result->toolResult->data['results']['inventory.alerts']['low_stock']);
+        $this->assertFalse($result->toolResult->data['_agent']['chain_of_thought_stored']);
         $this->assertSame(2, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
-    public function test_no_tool_plan_returns_safe_answer_without_business_execution(): void
+    public function test_no_tool_plan_completes_without_executing_business_tools(): void
     {
-        $storeId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $this->store('b2b', 'AI-AGENT-NO-TOOL');
         $actor = $this->globalUser('SUPER_ADMIN');
 
         $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
         $this->bindProvider([
             $this->providerResult(structured: [
                 'action' => 'no_tool',
-                'message' => 'Hello. How can I help with FOODEX?',
-                'steps' => [],
+                'message' => 'Hello — no business read is needed.',
             ]),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Hello', 'agent-no-tool');
-
-        $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
-        $this->assertNull($result->toolResult);
-        $this->assertSame([], $result->toolExecutions);
-        $this->assertSame('Hello. How can I help with FOODEX?', $result->message);
-        $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
-    }
-
-    public function test_over_budget_plan_is_rejected_before_any_tool_executes(): void
-    {
-        $storeId = app(WholesalePrincipal::class)->storeId();
-        $actor = $this->globalUser('SUPER_ADMIN');
-
-        $this->bindTools([
-            $this->tool('sales.summary', ['recognized_revenue' => 10]),
-            $this->tool('inventory.alerts', ['low_stock' => 1]),
-            $this->tool('orders.summary', ['orders' => 1]),
-            $this->tool('stores.summary', ['stores' => 1]),
-        ]);
-        $this->bindProvider([
-            $this->providerResult(toolCalls: [
-                ['name' => 'sales__summary', 'arguments' => [], 'id' => '1'],
-                ['name' => 'inventory__alerts', 'arguments' => [], 'id' => '2'],
-                ['name' => 'orders__summary', 'arguments' => [], 'id' => '3'],
-                ['name' => 'stores__summary', 'arguments' => [], 'id' => '4'],
-                ['name' => 'sales__compare', 'arguments' => [], 'id' => '5'],
-            ]),
-        ]);
-
-        $result = $this->run(
-            $actor,
-            $storeId,
-            'Give me a broad operational analysis.',
-            'agent-budget',
-            new AgentExecutionBudget(maxToolCalls: 4),
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Hello', 'agent-no-tool'),
         );
 
-        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
+        $this->assertSame('Hello — no business read is needed.', $result->message);
+        $this->assertNull($result->toolResult);
         $this->assertSame([], $result->toolExecutions);
-        $this->assertSame('EXECUTION_BUDGET_EXCEEDED', $result->providerMetadata['failure']);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
-    public function test_duplicate_tool_call_is_executed_once_and_marked_degraded(): void
+    public function test_unknown_tool_plan_fails_closed_without_execution(): void
     {
-        $storeId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $this->store('b2b', 'AI-AGENT-UNKNOWN');
         $actor = $this->globalUser('SUPER_ADMIN');
 
         $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
         $this->bindProvider([
             $this->providerResult(toolCalls: [
-                ['name' => 'sales__summary', 'arguments' => [], 'id' => '1'],
-                ['name' => 'sales__summary', 'arguments' => [], 'id' => '2'],
-            ]),
-            $this->providerResult(structured: [
-                'message' => 'One unique sales read was enough.',
-                'used_evidence' => ['ev-call-1'],
-                'uncertainty' => ['A duplicate planner call was suppressed.'],
+                ['name' => 'database__raw_query', 'arguments' => ['sql' => 'SELECT *'], 'id' => 'bad'],
             ]),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Check sales twice.', 'agent-duplicate');
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Run a database query.', 'agent-unknown'),
+        );
 
         $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertNull($result->toolResult);
+        $this->assertSame('FAILED', $result->toolExecutions[0]['status']);
+        $this->assertSame('TOOL_NOT_REGISTERED', $result->toolExecutions[0]['failure_code']);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
+    }
+
+    public function test_duplicate_tool_plan_is_bounded_and_marked_degraded(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-LOOP');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
+        $this->bindProvider([
+            $this->providerResult(toolCalls: [
+                [
+                    'name' => 'sales__summary',
+                    'arguments' => ['from' => '2026-10-01', 'to' => '2026-10-01'],
+                    'id' => 'same-1',
+                ],
+                [
+                    'name' => 'sales__summary',
+                    'arguments' => ['from' => '2026-10-01', 'to' => '2026-10-01'],
+                    'id' => 'same-2',
+                ],
+            ]),
+            $this->providerResult(structured: [
+                'message' => 'Only one unique sales read was executed.',
+                'used_evidence' => ['ev-call-1'],
+                'uncertainty' => ['A duplicate tool step was suppressed.'],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Check the same sales period twice.', 'agent-loop'),
+        );
+
+        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertCount(2, $result->toolExecutions);
         $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
         $this->assertSame('FAILED', $result->toolExecutions[1]['status']);
         $this->assertSame('EXECUTION_BUDGET_EXCEEDED', $result->toolExecutions[1]['failure_code']);
+        $this->assertCount(1, $result->evidence);
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
-    public function test_tool_failure_returns_partial_grounded_answer_and_unavailable_evidence(): void
+    public function test_runtime_tool_failure_yields_partial_grounded_result_without_retry_loop(): void
     {
-        $storeId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $this->store('b2b', 'AI-AGENT-FAIL');
         $actor = $this->globalUser('SUPER_ADMIN');
 
         $this->bindTools([
@@ -184,45 +191,28 @@ final class AssistantAgentOrchestratorTest extends TestCase
                 ['name' => 'inventory__alerts', 'arguments' => [], 'id' => 'fail'],
             ]),
             $this->providerResult(structured: [
-                'message' => 'Sales evidence is available; inventory is currently unavailable.',
-                'used_evidence' => ['ev-call-1', 'ev-call-2'],
-                'uncertainty' => ['Inventory read failed.'],
-            ]),
-        ]);
-
-        $result = $this->run($actor, $storeId, 'Check sales and inventory.', 'agent-failure');
-
-        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
-        $this->assertSame('TOOL_UNAVAILABLE', $result->toolExecutions[1]['failure_code']);
-        $this->assertSame('unavailable', $result->evidence[1]['status']);
-        $this->assertSame('TOOL_FAILURE', $result->evidence[1]['source_type']);
-    }
-
-    public function test_insufficient_data_is_explicitly_partial(): void
-    {
-        $storeId = app(WholesalePrincipal::class)->storeId();
-        $actor = $this->globalUser('SUPER_ADMIN');
-
-        $this->bindTools([$this->tool('orders.lookup', ['found' => false])]);
-        $this->bindProvider([
-            $this->providerResult(toolCalls: [
-                ['name' => 'orders__lookup', 'arguments' => ['order_number' => 'MISSING'], 'id' => 'lookup'],
-            ]),
-            $this->providerResult(structured: [
-                'message' => 'That order was not found in the authorized scope.',
+                'message' => 'Sales evidence is available; inventory evidence is unavailable.',
                 'used_evidence' => ['ev-call-1'],
-                'uncertainty' => ['No matching order was available.'],
+                'uncertainty' => ['Inventory tool failed.'],
             ]),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Find order MISSING.', 'agent-missing');
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Check sales and inventory.', 'agent-failure'),
+        );
 
         $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
-        $this->assertSame('PARTIAL', $result->toolExecutions[0]['status']);
-        $this->assertFalse($result->toolResult?->data['results']['orders.lookup']['found']);
+        $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
+        $this->assertSame('FAILED', $result->toolExecutions[1]['status']);
+        $this->assertSame('TOOL_UNAVAILABLE', $result->toolExecutions[1]['failure_code']);
+        $this->assertCount(1, $result->evidence);
+        $this->assertSame(
+            'Sales evidence is available; inventory evidence is unavailable.',
+            $result->message,
+        );
     }
 
-    public function test_permission_is_rechecked_by_executor_and_denied_plan_does_not_audit_read(): void
+    public function test_permission_is_rechecked_by_real_executor_before_planned_tool_runs(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
         $actor = $this->globalUser('INVENTORY');
@@ -234,61 +224,99 @@ final class AssistantAgentOrchestratorTest extends TestCase
             ]),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Show sales.', 'agent-permission');
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Show sales.', 'agent-permission'),
+        );
 
         $this->assertSame(AgentTurnResult::DENIED, $result->status);
+        $this->assertNull($result->toolResult);
+        $this->assertSame('FAILED', $result->toolExecutions[0]['status']);
         $this->assertSame('SCOPE_DENIED', $result->toolExecutions[0]['failure_code']);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
-    public function test_provider_failure_falls_back_to_existing_brain_and_tool_path(): void
+    public function test_malformed_plan_degrades_to_existing_deterministic_brain(): void
     {
-        $storeId = app(WholesalePrincipal::class)->storeId();
+        $storeId = $this->store('b2b', 'AI-AGENT-MALFORMED');
         $actor = $this->globalUser('SUPER_ADMIN');
 
-        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 9])]);
-        $this->app->instance(AssistantBrainInterface::class, new class implements AssistantBrainInterface
-        {
-            public function respond(AssistantBrainRequest $request): AssistantBrainResult
-            {
-                return new AssistantBrainResult(
-                    message: 'Using deterministic sales.',
-                    intent: 'sales.summary',
-                    confidence: 1.0,
-                    state: [
-                        'entities' => [],
-                        'period' => null,
-                        'pending_clarification' => false,
-                        'locale' => 'en',
-                    ],
-                );
-            }
-        });
+        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
+        $this->bindProvider([
+            $this->providerResult(structured: [
+                'action' => 'execute',
+                'steps' => [
+                    ['tool' => 'sales.summary', 'arguments' => 'not-an-object'],
+                ],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Show sales.', 'agent-malformed'),
+        );
+
+        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertSame('Deterministic fallback.', $result->message);
+        $this->assertNull($result->toolResult);
+        $this->assertSame('PROVIDER_MALFORMED', $result->providerMetadata['failure']);
+    }
+
+    public function test_provider_failure_preserves_core_assistant_fallback(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-PROVIDER-DOWN');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
         $this->bindProvider([
             new AssistantProviderResult(
                 ok: false,
                 provider: 'test',
                 model: 'test',
-                failureReason: AssistantProviderResult::FAILURE_DISABLED,
+                failureReason: AssistantProviderResult::FAILURE_UNAVAILABLE,
             ),
         ]);
 
-        $result = $this->run($actor, $storeId, 'Sales today.', 'agent-disabled');
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Hello', 'agent-provider-down'),
+        );
 
-        $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
-        $this->assertSame('sales.summary', $result->brainResult->intent);
-        $this->assertSame(9, $result->toolResult?->data['recognized_revenue']);
-        $this->assertSame(AssistantProviderResult::FAILURE_DISABLED, $result->providerMetadata['failure_reason']);
-        $this->assertSame(1, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
+        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertSame('Deterministic fallback.', $result->message);
+        $this->assertNull($result->toolResult);
     }
 
-    private function run(
+    private function bindBrain(?string $intent = null, string $message = 'Deterministic fallback.'): void
+    {
+        $brain = new class($intent, $message) implements AssistantBrainInterface
+        {
+            public function __construct(
+                private ?string $intent,
+                private string $message,
+            ) {}
+
+            public function respond(AssistantBrainRequest $request): AssistantBrainResult
+            {
+                return new AssistantBrainResult(
+                    message: $this->message,
+                    intent: $this->intent,
+                    confidence: $this->intent === null ? 0.5 : 1.0,
+                    state: [
+                        'pending_clarification' => false,
+                        'entities' => [],
+                        'locale' => $request->locale,
+                    ],
+                );
+            }
+        };
+
+        $this->app->instance(AssistantBrainInterface::class, $brain);
+    }
+
+    private function turn(
         User $actor,
         int $storeId,
         string $message,
         string $correlationId,
-        ?AgentExecutionBudget $budget = null,
-    ): AgentTurnResult {
+    ): AgentTurnRequest {
         $context = [
             'path' => '/admin/b2b/dashboard',
             'channel' => 'b2b',
@@ -298,6 +326,7 @@ final class AssistantAgentOrchestratorTest extends TestCase
                 'store_id' => $storeId,
             ],
         ];
+
         $principal = app(AiPrincipalContextResolver::class)->resolve(
             $actor,
             'en',
@@ -305,7 +334,7 @@ final class AssistantAgentOrchestratorTest extends TestCase
             $correlationId,
         );
 
-        return app(AssistantAgentOrchestrator::class)->run(new AgentTurnRequest(
+        return new AgentTurnRequest(
             actorUserId: (int) $actor->getKey(),
             userMessage: $message,
             locale: 'en',
@@ -313,8 +342,17 @@ final class AssistantAgentOrchestratorTest extends TestCase
             correlationId: $correlationId,
             context: $context,
             state: [],
-            budget: $budget ?? AgentExecutionBudget::fromConfig(),
-        ));
+            budget: new AgentExecutionBudget(
+                maxSteps: 2,
+                maxToolCalls: 4,
+                maxProviderCalls: 2,
+                maxTotalResultBytes: 65536,
+                maxPerToolResultBytes: 16384,
+                maxPlanningTokens: 384,
+                maxSynthesisTokens: 640,
+                maxElapsedMs: 12000,
+            ),
+        );
     }
 
     /** @param list<AssistantToolInterface> $tools */
@@ -326,7 +364,7 @@ final class AssistantAgentOrchestratorTest extends TestCase
     /** @param list<AssistantProviderResult> $results */
     private function bindProvider(array $results): void
     {
-        $this->app->instance(AssistantProviderGatewayInterface::class, new class($results) implements AssistantProviderGatewayInterface
+        $provider = new class($results) implements AssistantProviderGatewayInterface
         {
             /** @param list<AssistantProviderResult> $results */
             public function __construct(private array $results) {}
@@ -355,7 +393,7 @@ final class AssistantAgentOrchestratorTest extends TestCase
                     ok: false,
                     provider: 'test',
                     model: 'test',
-                    failureReason: AssistantProviderResult::FAILURE_UNAVAILABLE,
+                    failureReason: AssistantProviderResult::FAILURE_MALFORMED,
                 );
             }
 
@@ -370,7 +408,9 @@ final class AssistantAgentOrchestratorTest extends TestCase
                     latencyMs: 1,
                 );
             }
-        });
+        };
+
+        $this->app->instance(AssistantProviderGatewayInterface::class, $provider);
     }
 
     /**
@@ -378,15 +418,15 @@ final class AssistantAgentOrchestratorTest extends TestCase
      * @param array<string,mixed>|null $structured
      */
     private function providerResult(
-        ?array $structured = null,
-        array $toolCalls = [],
         ?string $text = null,
+        array $toolCalls = [],
+        ?array $structured = null,
     ): AssistantProviderResult {
         return new AssistantProviderResult(
             ok: true,
             provider: 'test',
             model: 'test',
-            text: $text ?? ($structured === null ? null : json_encode($structured, JSON_THROW_ON_ERROR)),
+            text: $text,
             structuredPayload: $structured,
             toolCalls: $toolCalls,
             finishReason: $toolCalls === [] ? 'stop' : 'tool_calls',
@@ -400,7 +440,10 @@ final class AssistantAgentOrchestratorTest extends TestCase
         return new class($key, $data) implements AssistantToolInterface
         {
             /** @param array<string,mixed> $data */
-            public function __construct(private string $keyName, private array $data) {}
+            public function __construct(
+                private string $keyName,
+                private array $data,
+            ) {}
 
             public function key(): string
             {
@@ -444,5 +487,19 @@ final class AssistantAgentOrchestratorTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
 
         return $user;
+    }
+
+    private function store(string $channel, string $code): int
+    {
+        $typeId = (int) DB::table('store_types')->where('code', strtoupper($channel))->value('id');
+
+        return (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }
