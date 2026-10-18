@@ -77,7 +77,10 @@ class CoreReferenceSeeder extends Seeder
                 'updated_at' => $now,
             ])->all(),
             ['code'],
-            ['name', 'scope', 'is_system'],
+            // BuiltInJobRoleCatalog owns the canonical display name. Avoid
+            // rewriting it here on every seed pass, which would make the
+            // subsequent reconciler touch updated_at despite no semantic change.
+            ['scope', 'is_system'],
         );
     }
 
