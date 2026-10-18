@@ -186,9 +186,9 @@
 
             @if($canCustomers)
             <div class="cs-tab-panel" role="tabpanel" data-cs-panel="customers" hidden>
-            <section class="foodex-card cs-search" aria-labelledby="customer-service-search-title">
+            <section class="foodex-card cs-search" aria-label="{{ __('customer_service_workspace.tabs.customers') }}">
                 <div class="cs-section-head">
-                    <div><h2 id="customer-service-search-title">{{ __('customer_service_workspace.search_title') }}</h2><p>{{ __('customer_service_workspace.search_help') }}</p></div>
+                    <div><p>{{ __('customer_service_workspace.search_help') }}</p></div>
                 </div>
                 <form method="get" action="{{ route('admin.customer-360.index') }}">
                     <label><span>{{ __('customer_service_workspace.search_label') }}</span><input name="q" maxlength="120" autocomplete="off" placeholder="{{ __('customer_service_workspace.search_placeholder') }}"></label>
