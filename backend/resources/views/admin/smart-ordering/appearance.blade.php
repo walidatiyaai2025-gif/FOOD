@@ -301,6 +301,184 @@ $quickMenuShouldOpen = old('_quick_menu') === '1';
 
 <script>
 (() => {
+    const modal = document.querySelector('[data-quick-menu-modal]');
+    const openButton = document.querySelector('[data-quick-menu-open]');
+    const closeButton = modal?.querySelector('[data-quick-menu-close]');
+    const form = modal?.querySelector('[data-quick-menu-form]');
+    if (!modal || !openButton || !closeButton || !form) return;
+
+    const steps = [...modal.querySelectorAll('[data-quick-menu-step]')];
+    const progress = [...modal.querySelectorAll('[data-quick-menu-progress]')];
+    const back = modal.querySelector('[data-quick-menu-back]');
+    const next = modal.querySelector('[data-quick-menu-next]');
+    const submit = modal.querySelector('[data-quick-menu-submit]');
+    const items = modal.querySelector('[data-quick-menu-items]');
+    const addItem = modal.querySelector('[data-quick-menu-add]');
+    const review = modal.querySelector('[data-quick-menu-review]');
+    let current = 1;
+    let itemIndex = items.querySelectorAll('[data-quick-menu-item]').length;
+
+    const open = () => {
+        modal.hidden = false;
+        document.body.classList.add('so-menu-wizard-open');
+        requestAnimationFrame(() => modal.querySelector('input:not([type="hidden"])')?.focus({preventScroll:true}));
+    };
+
+    const close = () => {
+        modal.hidden = true;
+        document.body.classList.remove('so-menu-wizard-open');
+        openButton.focus({preventScroll:true});
+    };
+
+    const inputValue = (name) => (form.querySelector('[name="' + name + '"]')?.value || '').trim();
+    const hasAnyValue = (selector) => [...form.querySelectorAll(selector)].some((input) => input.value.trim() !== '');
+
+    const validateStep = () => {
+        if (current === 1 && !hasAnyValue('[data-quick-required-group="menu"]')) {
+            form.querySelector('[name="menu_name_ar"]')?.focus();
+            return false;
+        }
+
+        if (current === 2 && inputValue('category_name_ar') === '' && inputValue('category_name_en') === '') {
+            form.querySelector('[name="category_name_ar"]')?.focus();
+            return false;
+        }
+
+        if (current === 3) {
+            const rows = [...items.querySelectorAll('[data-quick-menu-item]')];
+            if (rows.length === 0) return false;
+            for (const row of rows) {
+                const ar = row.querySelector('input[name$="[name_ar]"]')?.value.trim() || '';
+                const en = row.querySelector('input[name$="[name_en]"]')?.value.trim() || '';
+                const price = row.querySelector('input[name$="[price]"]');
+                if (ar === '' && en === '') {
+                    row.querySelector('input[name$="[name_ar]"]')?.focus();
+                    return false;
+                }
+                if (!price || price.value === '') {
+                    price?.focus();
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+    const refreshReview = () => {
+        if (!review) return;
+        const itemRows = [...items.querySelectorAll('[data-quick-menu-item]')];
+        const menuName = inputValue('menu_name_ar') || inputValue('menu_name_en');
+        const categoryName = inputValue('category_name_ar') || inputValue('category_name_en');
+
+        review.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'so-menu-review-card';
+
+        const title = document.createElement('strong');
+        title.textContent = menuName + ' · ' + categoryName;
+
+        const meta = document.createElement('span');
+        meta.textContent = itemRows.length + ' {{ $isAr ? 'صنف جاهز للحفظ كمسودة' : ' items ready to save as draft' }}';
+
+        card.append(title, meta);
+        review.append(card);
+    };
+
+    const render = () => {
+        steps.forEach((step) => {
+            step.hidden = Number(step.dataset.quickMenuStep) !== current;
+        });
+        progress.forEach((node) => {
+            if (Number(node.dataset.quickMenuProgress) === current) {
+                node.setAttribute('aria-current', 'step');
+            } else {
+                node.removeAttribute('aria-current');
+            }
+        });
+        back.hidden = current === 1;
+        next.hidden = current === 3;
+        submit.hidden = current !== 3;
+        if (current === 3) refreshReview();
+    };
+
+    const addItemRow = () => {
+        const source = items.querySelector('[data-quick-menu-item]');
+        if (!source) return;
+
+        const row = source.cloneNode(true);
+        const index = itemIndex++;
+        row.querySelectorAll('input').forEach((input) => {
+            if (input.name) {
+                input.name = input.name.replace(/items\[\d+\]/, 'items[' + index + ']');
+            }
+            if (input.type === 'checkbox') {
+                input.checked = false;
+            } else {
+                input.value = '';
+            }
+        });
+
+        items.append(row);
+        row.querySelector('input')?.focus();
+        refreshReview();
+    };
+
+    openButton.addEventListener('click', open);
+    closeButton.addEventListener('click', close);
+    modal.addEventListener('pointerdown', (event) => {
+        if (event.target === modal) close();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) close();
+    });
+
+    next.addEventListener('click', () => {
+        if (!validateStep()) return;
+        current = Math.min(3, current + 1);
+        render();
+    });
+
+    back.addEventListener('click', () => {
+        current = Math.max(1, current - 1);
+        render();
+    });
+
+    addItem.addEventListener('click', addItemRow);
+
+    items.addEventListener('click', (event) => {
+        const remove = event.target.closest('[data-quick-menu-remove]');
+        if (!remove) return;
+        const rows = items.querySelectorAll('[data-quick-menu-item]');
+        if (rows.length <= 1) return;
+        remove.closest('[data-quick-menu-item]')?.remove();
+        refreshReview();
+    });
+
+    modal.querySelectorAll('[data-category-suggestion]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const target = document.documentElement.dir === 'rtl'
+                ? form.querySelector('[data-quick-category-ar]')
+                : form.querySelector('[data-quick-category-en]');
+            if (target) {
+                target.value = button.dataset.categorySuggestion || '';
+                target.focus();
+            }
+        });
+    });
+
+    form.addEventListener('submit', (event) => {
+        if (!validateStep()) event.preventDefault();
+    });
+
+    if (!modal.hidden) {
+        document.body.classList.add('so-menu-wizard-open');
+    }
+
+    render();
+})();
+
+(() => {
     const root = document.querySelector('[data-builder]');
     const site = document.getElementById('site');
     const frame = root.querySelector('[data-preview]');
