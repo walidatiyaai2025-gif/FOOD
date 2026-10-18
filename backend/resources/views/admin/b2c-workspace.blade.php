@@ -277,38 +277,9 @@
 @endphp
 <div class="dashboard-layout" data-golden-dashboard="ph06" data-dashboard-geometry="physical-ltr">
     <section class="dashboard-shell">
-        <header class="topbar">
-            <a class="profile" href="{{ route('admin.profile.index') }}" style="text-decoration:none;color:inherit">
-                <div class="avatar">{{ mb_substr($user->name, 0, 1) }}</div>
-                <div><strong>{{ $user->name }}</strong><small>{{ __('admin.b2c_dashboard.system_manager') }}</small></div>
-            </a>
-            <form class="global-search" data-foodex-dashboard-header-search method="get" action="{{ route('admin.b2c.dashboard') }}">
-                <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
-                <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
-                <input type="hidden" name="store_id" value="{{ $storeId }}">
-                <input type="hidden" name="dashboard_tab" value="{{ $dashboardTab }}">
-                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
-                <span class="search-icon">@include('admin._premium-icon',['name'=>'search'])</span>
-                @if(request('q') && count($dashboard['search']))
-                <div class="search-results">
-                    @foreach($dashboard['search'] as $result)
-                    @php
-                        $scopedSearchUrl = $result['route']
-                            .(str_contains($result['route'], '?') ? '&' : '?')
-                            .'store_id='.$storeId
-                            .($supportAccess ? '&support_access=1' : '');
-                    @endphp
-                    <a href="{{ $scopedSearchUrl }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
-                    @endforeach
-                </div>
-                @endif
-            </form>
-            <div class="top-actions">
-                
-            </div>
-        </header>
 
+
+        @include('admin._global-header')
         <main class="content" data-retail-control-center>
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
