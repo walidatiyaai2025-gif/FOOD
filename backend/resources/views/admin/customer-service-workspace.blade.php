@@ -25,6 +25,9 @@
 .cs-workspace-tab{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:0 16px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
 .cs-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
 .cs-workspace-tab[aria-selected="true"]{background:var(--foodex-green-dark);border-color:var(--foodex-green-dark);color:#fff}
+.cs-tab-count{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:900;line-height:1;border:1px solid transparent;font-variant-numeric:tabular-nums}
+.cs-tab-count.ok{background:#DCFCE7;color:#166534;border-color:#86EFAC}
+.cs-tab-count.danger{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5}
 .cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}
 .cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
@@ -147,9 +150,10 @@
             </section>
 
             @php($defaultWorkspaceTab = ($selectedCase || old('platform_customer_id')) ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'analytics'))
+            @php($caseCount = (int) $cases->total())
             <nav class="cs-workspace-tabs" role="tablist" aria-label="{{ __('customer_service_workspace.tabs.label') }}" data-cs-tabs data-default-tab="{{ $defaultWorkspaceTab }}">
                 <button class="cs-workspace-tab" type="button" role="tab" aria-selected="true" data-cs-tab="analytics">{{ __('customer_service_workspace.tabs.analytics') }}</button>
-                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }}</button>
+                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }} <span class="cs-tab-count {{ $caseCount === 0 ? 'ok' : 'danger' }}">{{ $caseCount }}</span></button>
                 @if($canCustomers)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="customers">{{ __('customer_service_workspace.tabs.customers') }}</button>@endif
                 @if($canManageTeam)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="team">{{ __('customer_service_workspace.tabs.team') }}</button>@endif
                 @if($capabilities->isNotEmpty())<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="tools">{{ __('customer_service_workspace.tabs.tools') }}</button>@endif
