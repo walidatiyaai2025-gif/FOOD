@@ -58,6 +58,10 @@ class AssistantBusinessToolsTest extends TestCase
         $this->assertSame(2, $summary->data['recognized_orders']);
         $this->assertSame(139.0, $summary->data['gross_value']);
         $this->assertSame(40.0, $summary->data['recognized_revenue']);
+        $this->assertSame('sell_out', $summary->data['metric_provenance']['flow']);
+        $this->assertSame('b2c', $summary->data['metric_provenance']['channel']);
+        $this->assertFalse($summary->data['metric_provenance']['model_arithmetic_allowed']);
+        $this->assertSame('Net revenue', $summary->data['metric_definitions']['revenue.net']['label']);
 
         $compare = $this->tool('sales.compare')->execute($this->request(
             $admin,

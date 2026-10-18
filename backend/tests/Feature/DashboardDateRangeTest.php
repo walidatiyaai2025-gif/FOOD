@@ -35,6 +35,8 @@ class DashboardDateRangeTest extends TestCase
         $this->assertSame($to->toDateString(), $dashboard['selected_to']);
         $this->assertSame(3, $dashboard['range_days']);
         $this->assertCount(3, $dashboard['series']);
+        $this->assertSame('sell_out', $dashboard['metric_provenance']['flow']);
+        $this->assertSame('b2c', $dashboard['metric_provenance']['channel']);
 
         $this->actingAs($user)
             ->get(route('admin.b2c.dashboard', [
@@ -69,6 +71,8 @@ class DashboardDateRangeTest extends TestCase
         $this->assertSame($to->toDateString(), $dashboard['selected_to']);
         $this->assertSame(5, $dashboard['range_days']);
         $this->assertCount(5, $dashboard['series']);
+        $this->assertSame('sell_in', $dashboard['metric_provenance']['flow']);
+        $this->assertSame('b2b', $dashboard['metric_provenance']['channel']);
 
         $view = file_get_contents(resource_path('views/admin/b2b-workspace.blade.php'));
         $this->assertIsString($view);
