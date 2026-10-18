@@ -452,6 +452,13 @@ class ScreenshotEvidenceSeeder extends Seeder
             ->where('code', 'FOODEX-DEMO-B2C')
             ->value('id');
 
+        DB::table('stores')
+            ->where('id', $retailStoreId)
+            ->update([
+                'business_profile' => Store::BUSINESS_PROFILE_RESTAURANT,
+                'updated_at' => $now,
+            ]);
+
         $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
         app(RestaurantSaasStoreFeatureService::class)->setEnabled(
