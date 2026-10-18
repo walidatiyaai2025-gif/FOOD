@@ -300,7 +300,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-state" role="status">{{ __('assistant_settings.operations.no_traces') }}</div>
 @else
 <div class="assistant-ops-table-wrap" role="region" aria-label="{{ __('assistant_settings.operations.recent_traces') }}" tabindex="0">
-<table class="assistant-ops-table">
+<table class="assistant-ops-table" data-pagination-exempt="bounded-latest-25-ai-traces">
 <thead>
 <tr>
 <th>{{ __('assistant_settings.operations.trace') }}</th>
@@ -344,7 +344,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-state" role="status">{{ __('assistant_settings.operations.no_traces') }}</div>
 @else
 <div class="assistant-ops-table-wrap" role="region" aria-label="{{ __('assistant_settings.operations.trace_detail') }}" tabindex="0">
-<table class="assistant-ops-table">
+<table class="assistant-ops-table" data-pagination-exempt="bounded-selected-trace-100-events">
 <thead>
 <tr>
 <th>{{ __('assistant_settings.operations.time') }}</th>
