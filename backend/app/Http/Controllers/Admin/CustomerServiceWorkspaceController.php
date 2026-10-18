@@ -225,6 +225,10 @@ final class CustomerServiceWorkspaceController extends Controller
         $selectedCaseId ??= $request->integer('case_id') ?: null;
         $relatedRecordOptions = $this->cases->relatedRecordOptions($actor);
         $canManageTeam = $this->team->canManage($actor);
+        $canWhatsAppInbox = $canWhatsApp && Route::has('admin.whatsapp-inbox.index');
+        $inboxSummary = $canWhatsAppInbox
+            ? $this->cases->whatsAppInboxSummary($actor)
+            : ['unread_count' => 0, 'items' => collect()];
 
         return view('admin.customer-service-workspace', [
             'user' => $actor,
@@ -232,6 +236,8 @@ final class CustomerServiceWorkspaceController extends Controller
             'navContext' => 'customer_360',
             'capabilities' => $capabilities,
             'canCustomers' => $canCustomers && Route::has('admin.customer-360.index'),
+            'canWhatsAppInbox' => $canWhatsAppInbox,
+            'inboxSummary' => $inboxSummary,
             'dashboard' => $this->cases->dashboard($actor, $filters),
             'cases' => $this->cases->paginateCases($actor, $filters),
             'selectedCase' => $selectedCaseId === null ? null : $this->cases->caseDetail($actor, $selectedCaseId),
