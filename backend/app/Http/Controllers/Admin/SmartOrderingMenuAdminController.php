@@ -885,7 +885,21 @@ final class SmartOrderingMenuAdminController extends Controller
     ): RedirectResponse {
         [$actor, $site] = $this->context($request, $tenants, $sites, 'smart_ordering.publish');
         abort_unless((int) $revision->site_id === (int) $site->id, 404);
-        $revisions->publish($actor, $site, $revision, $request);
+
+        if ($request->boolean('guided')) {
+            abort_unless($actor->hasPermission('smart_ordering.manage', (int) $site->store_id), 403);
+            $sites->setEntitlement($actor, $site, 'public_menu', true, null, $request);
+            $sites->updateRuntime($actor, $site->fresh(), 'ENABLED', true, $request);
+        }
+
+        $revisions->publish($actor, $site->fresh(), $revision, $request);
+
+        if ($request->boolean('guided')) {
+            return redirect()->route('admin.smart-ordering.menu.index', [
+                'store_id' => $site->store_id,
+                'setup' => 'publish',
+            ])->with('status', __('smart_ordering_menu.published'));
+        }
 
         return back()->with('status', __('smart_ordering_menu.published'));
     }
