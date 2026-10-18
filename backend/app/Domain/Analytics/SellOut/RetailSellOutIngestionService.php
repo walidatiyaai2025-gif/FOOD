@@ -86,6 +86,7 @@ final class RetailSellOutIngestionService
                 ->first();
 
             $before = $existing === null ? null : (array) $existing;
+            $existingValues = $before ?? [];
             $now = now('UTC');
 
             DB::table('retail_sellout_connections')->updateOrInsert(
@@ -98,10 +99,10 @@ final class RetailSellOutIngestionService
                     'provider' => $provider,
                     'source_timezone' => $sourceTimezone,
                     'status' => 'active',
-                    'created_by_user_id' => $existing?->created_by_user_id ?? $actor->getKey(),
+                    'created_by_user_id' => $existingValues['created_by_user_id'] ?? $actor->getKey(),
                     'revoked_at' => null,
                     'revoked_by_user_id' => null,
-                    'created_at' => $existing?->created_at ?? $now,
+                    'created_at' => $existingValues['created_at'] ?? $now,
                     'updated_at' => $now,
                 ],
             );
@@ -225,15 +226,12 @@ final class RetailSellOutIngestionService
             $coverageDates = [];
             $sourceTimes = [];
 
-            foreach (array_values($rows) as $index => $row) {
-                [$normalized, $error] = $this->normalizeRow(
-                    $connection,
-                    is_array($row) ? $row : [],
-                );
+            foreach ($rows as $index => $row) {
+                [$normalized, $error] = $this->normalizeRow($connection, $row);
 
                 if ($error !== null) {
                     $rejected++;
-                    $this->reject($runId, $index + 1, is_array($row) ? $row : [], $error[0], $error[1]);
+                    $this->reject($runId, $index + 1, $row, $error[0], $error[1]);
 
                     continue;
                 }
