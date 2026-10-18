@@ -4,14 +4,21 @@ namespace App\Domain\Assistant\Support;
 
 use App\Models\User;
 use App\Services\OperationalTenantScope;
+use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class AssistantPageContext
 {
     private const ENTITY_KEYS = ['order_id', 'customer_id', 'driver_id', 'product_id', 'account_id'];
 
-    public function __construct(private readonly OperationalTenantScope $scope) {}
+    public function __construct(
+        private readonly OperationalTenantScope $scope,
+        private readonly Router $router,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $input
@@ -20,6 +27,7 @@ final class AssistantPageContext
     public function resolve(User $user, array $input): array
     {
         $path = $this->path($input['path'] ?? null);
+        $routeContext = $this->routeContext($path);
         $pathChannel = str_starts_with($path, '/admin/b2b') ? 'b2b'
             : (str_starts_with($path, '/admin/b2c') ? 'b2c' : null);
         $channel = $this->channel($input['channel'] ?? $input['store_channel'] ?? null);
@@ -31,7 +39,9 @@ final class AssistantPageContext
         }
 
         $channel ??= $pathChannel;
-        $storeId = $this->positiveInt($input['store_id'] ?? $input['storeId'] ?? null);
+        $routeStoreId = $this->positiveInt($routeContext['entities']['store_id'] ?? null);
+        $storeId = $routeStoreId
+            ?? $this->positiveInt($input['store_id'] ?? $input['storeId'] ?? null);
 
         if ($storeId !== null) {
             $channel = $this->scope->assertStore($user, $storeId, 'assistant.use', $channel);
@@ -50,7 +60,7 @@ final class AssistantPageContext
         }
 
         foreach (self::ENTITY_KEYS as $key) {
-            $id = $this->positiveInt($input[$key] ?? null);
+            $id = $this->positiveInt($routeContext['entities'][$key] ?? $input[$key] ?? null);
             if ($id === null) {
                 continue;
             }
@@ -61,7 +71,7 @@ final class AssistantPageContext
 
         return [
             'path' => $path,
-            'route' => $this->route($path),
+            'route' => $routeContext['route'],
             'domain' => $this->domain($path, $channel),
             'channel' => $channel,
             'store_id' => $storeId,
@@ -177,7 +187,61 @@ final class AssistantPageContext
         return $path;
     }
 
-    private function route(string $path): string
+    /**
+     * Resolve the registered management route and numeric route parameters without
+     * trusting browser-supplied entity ids. Extracted ids are still checked by
+     * entityVisible()/OperationalTenantScope before they become authorized context.
+     *
+     * @return array{route:string,entities:array<string,int>}
+     */
+    private function routeContext(string $path): array
+    {
+        try {
+            $route = $this->router->getRoutes()->match(HttpRequest::create($path, 'GET'));
+        } catch (NotFoundHttpException|MethodNotAllowedHttpException) {
+            return ['route' => $this->fallbackRoute($path), 'entities' => []];
+        }
+
+        $routeName = $route->getName();
+        $routeName = is_string($routeName) && $routeName !== ''
+            ? $routeName
+            : $this->fallbackRoute($path);
+
+        $parameters = $route->parameters();
+        $entities = [];
+
+        foreach ([
+            'store_id' => ['store', 'storeId', 'store_id'],
+            'order_id' => ['order'],
+            'customer_id' => ['customer', 'b2bCustomer', 'b2cCustomer'],
+            'driver_id' => ['driver'],
+            'product_id' => ['product'],
+        ] as $entityKey => $parameterNames) {
+            foreach ($parameterNames as $parameterName) {
+                $id = $this->positiveInt($parameters[$parameterName] ?? null);
+                if ($id === null) {
+                    continue;
+                }
+
+                $entities[$entityKey] = $id;
+                break;
+            }
+        }
+
+        if (str_starts_with($path, '/admin/b2b')) {
+            $accountId = $this->positiveInt($parameters['account'] ?? null);
+            if ($accountId !== null) {
+                $entities['account_id'] = $accountId;
+            }
+        }
+
+        return [
+            'route' => $routeName,
+            'entities' => $entities,
+        ];
+    }
+
+    private function fallbackRoute(string $path): string
     {
         foreach ([
             '/admin/b2b' => 'admin.b2b',
