@@ -21,6 +21,11 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('data-count-target', $view);
         $this->assertStringContainsString("prefers-reduced-motion: reduce", $view);
         $this->assertStringContainsString('window.requestAnimationFrame(tick)', $view);
+        $this->assertStringContainsString('@keyframes csKpiStripe', $view);
+        $this->assertStringContainsString('@keyframes csKpiEnter', $view);
+        $this->assertStringContainsString('.cs-kpi::before{content:""', $view);
+        $this->assertStringContainsString('animation:csKpiStripe 2.4s linear infinite', $view);
+        $this->assertStringContainsString('@media(prefers-reduced-motion:reduce)', $view);
         $this->assertStringContainsString('class="foodex-card cs-filter-strip"', $view);
         $this->assertStringContainsString('.cs-kpis + .cs-filter-strip{margin-top:calc(-1 * var(--foodex-space-5) + 4px)}', $view);
         $this->assertStringContainsString('.cs-filter{display:flex', $view);
