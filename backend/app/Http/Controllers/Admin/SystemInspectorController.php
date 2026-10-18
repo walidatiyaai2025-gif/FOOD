@@ -428,6 +428,147 @@ final class SystemInspectorController extends Controller
     }
 
     /** @return array<string,mixed> */
+    private function systemAdministrationEvidence(ProductionDatasetSnapshot $productionSnapshot): array
+    {
+        $updates = UpdateHistory::query()
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(function (UpdateHistory $row): array {
+                $evidence = is_array($row->execution_evidence) ? $row->execution_evidence : [];
+
+                return [
+                    'id' => $row->id,
+                    'actor_id' => $row->actor_id,
+                    'from_version' => $row->from_version,
+                    'to_version' => $row->to_version,
+                    'status' => $row->status,
+                    'environment' => $row->environment,
+                    'operation_reason' => $row->operation_reason,
+                    'backup_status' => $row->backup_status,
+                    'failed_stage' => $row->failed_stage,
+                    'rollback_status' => $row->rollback_status,
+                    'maintenance_mode_remained' => (bool) $row->maintenance_mode_remained,
+                    'health_verified_at' => $row->health_verified_at?->toIso8601String(),
+                    'started_at' => $row->started_at?->toIso8601String(),
+                    'finished_at' => $row->finished_at?->toIso8601String(),
+                    'failure_reason' => $row->failure_reason,
+                    'execution_evidence' => $this->safeUpdateEvidence($evidence),
+                ];
+            })
+            ->all();
+
+        try {
+            $snapshot = $productionSnapshot->status();
+        } catch (Throwable) {
+            $snapshot = ['state' => 'failed', 'verified' => false];
+        }
+
+        return [
+            'production_dataset_snapshot' => array_intersect_key($snapshot, array_flip([
+                'state',
+                'snapshot_id',
+                'verified',
+                'source_release',
+                'source_sha',
+                'environment',
+                'snapshot_reason',
+                'restore_reason',
+                'target_release',
+                'last_outcome',
+                'size',
+                'checksum_sha256',
+                'created_at',
+                'verified_at',
+                'launch_activated_at',
+                'restore_started_at',
+                'restored_at',
+                'restore_compatibility_verified_at',
+                'restore_health_verified_at',
+                'failed_at',
+            ])),
+            'update_history' => $updates,
+            'failed_jobs' => $this->safeFailedJobs(),
+        ];
+    }
+
+    /** @param array<string,mixed> $evidence
+     *  @return array<string,mixed>
+     */
+    private function safeUpdateEvidence(array $evidence): array
+    {
+        $allowed = [
+            'package_integrity',
+            'preflight',
+            'backup_files',
+            'backup_database',
+            'backup_verification',
+            'migrations',
+            'maintenance_mode',
+            'release_activation',
+            'cache_rebuild',
+            'health_check',
+            'rollback_files',
+            'rollback_database',
+            'rollback_health_check',
+            'result',
+        ];
+        $safe = array_intersect_key($evidence, array_flip($allowed));
+
+        foreach (['file_backup', 'database_backup'] as $key) {
+            $descriptor = $evidence[$key] ?? null;
+            if (! is_array($descriptor)) {
+                continue;
+            }
+            $safe[$key] = array_intersect_key($descriptor, array_flip([
+                'reference',
+                'size_bytes',
+                'sha256',
+            ]));
+        }
+
+        return $safe;
+    }
+
+    /** @return array{available:bool,count:int,rows:list<array<string,mixed>>} */
+    private function safeFailedJobs(): array
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            return ['available' => false, 'count' => 0, 'rows' => []];
+        }
+
+        try {
+            $idColumn = Schema::hasColumn('failed_jobs', 'uuid') ? 'uuid' : 'id';
+            $columns = [$idColumn];
+            foreach (['connection', 'queue', 'failed_at'] as $column) {
+                if (Schema::hasColumn('failed_jobs', $column)) {
+                    $columns[] = $column;
+                }
+            }
+
+            $rows = DB::table('failed_jobs')
+                ->orderByDesc(Schema::hasColumn('failed_jobs', 'failed_at') ? 'failed_at' : $idColumn)
+                ->limit(100)
+                ->get($columns)
+                ->map(static fn (object $row): array => [
+                    'reference' => (string) ($row->{$idColumn} ?? ''),
+                    'connection' => (string) ($row->connection ?? ''),
+                    'queue' => (string) ($row->queue ?? ''),
+                    'failed_at' => isset($row->failed_at) ? (string) $row->failed_at : null,
+                ])
+                ->all();
+
+            return [
+                'available' => true,
+                'count' => (int) DB::table('failed_jobs')->count(),
+                'rows' => $rows,
+            ];
+        } catch (Throwable) {
+            return ['available' => false, 'count' => 0, 'rows' => []];
+        }
+    }
+
+    /** @return array<string,mixed> */
     private function diagnostics(): array
     {
         $publicRoot = (string) config('filesystems.disks.public.root');
@@ -437,10 +578,56 @@ final class SystemInspectorController extends Controller
             ? trim((string) file_get_contents($versionPath))
             : '';
 
+        try {
+            DB::select('select 1');
+            $databaseHealthy = true;
+        } catch (Throwable) {
+            $databaseHealthy = false;
+        }
+
+        $cacheKey = 'foodex:inspector-health:'.bin2hex(random_bytes(5));
+        try {
+            Cache::put($cacheKey, 'ok', 5);
+            $cacheHealthy = Cache::get($cacheKey) === 'ok';
+            Cache::forget($cacheKey);
+        } catch (Throwable) {
+            $cacheHealthy = false;
+        }
+
+        $queueDriver = (string) config('queue.default');
+        if ($queueDriver === 'redis') {
+            try {
+                $connection = (string) config('queue.connections.redis.connection', 'default');
+                $queueHealthy = Redis::connection($connection)->ping() !== false;
+            } catch (Throwable) {
+                $queueHealthy = false;
+            }
+        } else {
+            $queueHealthy = $queueDriver === 'sync' && ! app()->environment('production');
+        }
+
+        $heartbeatPath = storage_path('app/system/scheduler-heartbeat.lock');
+        $heartbeatTimestamp = is_file($heartbeatPath)
+            ? (int) trim((string) @file_get_contents($heartbeatPath))
+            : 0;
+        $heartbeatAge = $heartbeatTimestamp > 0 ? max(0, time() - $heartbeatTimestamp) : null;
+
         return [
             'version' => $version !== '' ? $version : 'unknown',
             'app_url' => (string) config('app.url'),
             'environment' => (string) app()->environment(),
+            'database_driver' => (string) config('database.default'),
+            'database_healthy' => $databaseHealthy,
+            'cache_driver' => (string) config('cache.default'),
+            'cache_healthy' => $cacheHealthy,
+            'queue_driver' => $queueDriver,
+            'queue_healthy' => $queueHealthy,
+            'maintenance_mode' => app()->isDownForMaintenance(),
+            'scheduler_heartbeat_enabled' => (bool) config('foodex.scheduler_heartbeat', true),
+            'scheduler_last_run' => $heartbeatTimestamp > 0 ? date(DATE_ATOM, $heartbeatTimestamp) : null,
+            'scheduler_age_seconds' => $heartbeatAge,
+            'scheduler_healthy' => (bool) config('foodex.scheduler_heartbeat', true)
+                && ($heartbeatAge === null ? app()->environment('testing') : $heartbeatAge <= 180),
             'public_disk_root' => $publicRoot,
             'public_disk_writable' => is_dir($publicRoot) && is_writable($publicRoot),
             'public_link_path' => $publicLink,
