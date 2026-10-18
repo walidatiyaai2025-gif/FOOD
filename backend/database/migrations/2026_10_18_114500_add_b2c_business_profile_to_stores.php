@@ -1,8 +1,5 @@
 <?php
 
-use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
-use App\Enterprise\Entitlements\EntitlementScope;
-use App\Enums\StoreBusinessProfile;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -39,8 +36,8 @@ return new class extends Migration {
         $restaurantStoreIds = [];
         if (Schema::hasTable('enterprise_module_entitlements')) {
             $restaurantStoreIds = DB::table('enterprise_module_entitlements')
-                ->where('module_code', SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE)
-                ->where('scope_type', EntitlementScope::STORE)
+                ->where('module_code', 'smart_ordering')
+                ->where('scope_type', 'store')
                 ->where('is_enabled', true)
                 ->whereNotNull('scope_id')
                 ->pluck('scope_id')
@@ -60,8 +57,8 @@ return new class extends Migration {
                     $storeId = (int) $store->id;
                     $restaurant = isset($restaurantStoreIds[$storeId]);
                     $profile = $restaurant
-                        ? StoreBusinessProfile::RESTAURANT->value
-                        : StoreBusinessProfile::RETAIL_STORE->value;
+                        ? 'RESTAURANT'
+                        : 'RETAIL_STORE';
                     $reason = $restaurant
                         ? 'restaurant_saas_master_enabled'
                         : 'legacy_b2c_default_retail';
