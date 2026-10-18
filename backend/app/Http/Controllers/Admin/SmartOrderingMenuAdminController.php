@@ -15,6 +15,8 @@ use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
+use App\Domain\SmartOrdering\Themes\RestaurantTemplateSelectionService;
+use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
@@ -40,11 +42,26 @@ final class SmartOrderingMenuAdminController extends Controller
         SmartOrderingMenuRevisionService $revisions,
         SmartOrderingPriceResolver $prices,
         CommerceQuoteService $quotes,
+        ThemeRegistry $themes,
+        RestaurantTemplateSelectionService $templateSelection,
     ): View {
         [$actor, $site, $stores] = $this->context($request, $tenants, $sites);
         $draft = $revisions->draft($actor, $site, $request);
         $publishedRevision = $revisions->published($site);
         $scheduledRevision = $revisions->scheduled($site);
+
+        $setupFlow = ! $request->boolean('legacy');
+        $setupSteps = ['menu', 'design', 'identity', 'review', 'publish'];
+        $requestedSetupStep = strtolower(trim((string) $request->query('setup', 'menu')));
+        $setupStep = in_array($requestedSetupStep, $setupSteps, true) ? $requestedSetupStep : 'menu';
+
+        $draftPayload = (array) $draft->payload;
+        $setupContent = is_array($draftPayload['content'] ?? null) ? $draftPayload['content'] : [];
+        $setupIdentity = is_array($setupContent['identity'] ?? null) ? $setupContent['identity'] : [];
+        $setupSections = is_array($setupContent['sections'] ?? null) ? $setupContent['sections'] : [];
+        $selectedTemplate = $templateSelection->selected($draft);
+        $setupCurrentTheme = (string) ($selectedTemplate['id'] ?? $themes->resolveProduction(null));
+        $setupThemes = $themes->production();
 
         $menuIndex = SmartOrderingMenu::query()
             ->where('site_id', $site->id)
@@ -53,7 +70,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ->orderBy('id')
             ->get(['id', 'public_id', 'name_ar', 'name_en', 'sort_order', 'is_default', 'is_visible']);
 
-        $reviewMode = $request->boolean('review');
+        $reviewMode = $request->boolean('review') || ($setupFlow && in_array($setupStep, ['review', 'publish'], true));
         $requestedMenuId = $request->integer('menu_id');
         $focusedMenuId = $menuIndex->contains(fn (SmartOrderingMenu $menu): bool => (int) $menu->id === $requestedMenuId)
             ? $requestedMenuId
@@ -71,7 +88,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ->orderBy('sort_order')
             ->orderBy('id');
 
-        if ($reviewMode === false && $focusedMenuId !== null) {
+        if ($reviewMode === false && $setupFlow === false && $focusedMenuId !== null) {
             $menusQuery->whereKey($focusedMenuId);
         }
 
@@ -137,6 +154,25 @@ final class SmartOrderingMenuAdminController extends Controller
             ->values();
 
         $checkoutCurrency = $quotes->currencyForStore((int) $site->store_id);
+        $setupMenuCount = SmartOrderingMenu::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->count();
+        $setupCategoryCount = SmartOrderingMenuCategory::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->count();
+        $setupItemCount = SmartOrderingMenuItem::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->count();
+        $setupPreviewUrl = route('admin.smart-ordering.appearance.preview', [
+            'site' => $site->public_id,
+            'theme' => $setupCurrentTheme,
+            'revision' => 'draft',
+            'lang' => app()->getLocale() === 'ar' ? 'ar' : 'en',
+            'appearance' => (($setupThemes[$setupCurrentTheme]['dark'] ?? false) ? 'dark' : 'light'),
+        ]);
         $moneyStep = DisplayNumber::moneyStep($checkoutCurrency);
         $editableItems = SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get();
         $resolvedPrices = $prices->displayPrices($site, $editableItems);
@@ -181,6 +217,18 @@ final class SmartOrderingMenuAdminController extends Controller
             'itemPriceErrors' => $itemPriceErrors,
             'checkoutCurrency' => $checkoutCurrency,
             'moneyStep' => $moneyStep,
+            'setupFlow' => $setupFlow,
+            'setupStep' => $setupStep,
+            'setupThemes' => $setupThemes,
+            'setupCurrentTheme' => $setupCurrentTheme,
+            'setupIdentity' => $setupIdentity,
+            'setupSections' => $setupSections,
+            'setupMenuCount' => $setupMenuCount,
+            'setupCategoryCount' => $setupCategoryCount,
+            'setupItemCount' => $setupItemCount,
+            'setupPreviewUrl' => $setupPreviewUrl,
+            'canManageSetup' => $actor->hasPermission('smart_ordering.manage', (int) $site->store_id),
+            'canPublishSetup' => $actor->hasPermission('smart_ordering.publish', (int) $site->store_id),
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),
         ]);
     }
