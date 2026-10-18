@@ -43,6 +43,7 @@ class RestaurantWholesalePurchasesTest extends TestCase
 
         $storeId = (int) DB::table('stores')->where('code', 'RESTAURANT-BUYER')->value('id');
         $owner = User::query()->where('email', 'restaurant-buyer@example.test')->firstOrFail();
+        $owner->forceFill(['locale' => 'en'])->save();
         $link = DB::table('retail_wholesale_accounts')->where('retail_store_id', $storeId)->first();
 
         $this->assertNotNull($link);

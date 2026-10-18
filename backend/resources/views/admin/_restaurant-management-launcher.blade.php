@@ -5,10 +5,8 @@
     ], static fn ($value) => $value !== null);
     $restaurantOperationsUrl = static fn (string $tab, ?string $anchor = null): string =>
         route('admin.smart-ordering.operations.index', [...$restaurantWorkspaceQuery, 'tab' => $tab]).($anchor ? '#'.$anchor : '');
-    $restaurantModuleUrl = static fn (string $module): string =>
-        route('admin.b2c.module', [...$restaurantWorkspaceQuery, 'module' => $module]);
     $restaurantWholesalePurchasesUrl = $restaurantStoreId > 0
-        ? $restaurantModuleUrl('wholesale_purchases')
+        ? route('admin.b2c.module', [...$restaurantWorkspaceQuery, 'module' => 'wholesale_purchases'])
         : null;
 
     $restaurantPrimaryTasks = [

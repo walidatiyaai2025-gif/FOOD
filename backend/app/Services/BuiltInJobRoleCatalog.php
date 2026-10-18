@@ -87,10 +87,8 @@ final class BuiltInJobRoleCatalog
         }
 
         if ($storeId !== null && $definition['business_profiles'] !== []) {
-            $profile = Store::effectiveB2cBusinessProfile(
-                Store::query()->whereKey($storeId)->value('business_profile'),
-            );
-            if ($profile === null || ! in_array($profile, $definition['business_profiles'], true)) {
+            $profile = Store::query()->whereKey($storeId)->value('business_profile');
+            if (is_string($profile) && ! in_array($profile, $definition['business_profiles'], true)) {
                 return false;
             }
         }
