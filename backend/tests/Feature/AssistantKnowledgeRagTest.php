@@ -199,6 +199,144 @@ final class AssistantKnowledgeRagTest extends TestCase
         $this->assertSame([], $weak['sources']);
     }
 
+    public function test_weak_knowledge_evidence_is_refused_server_side_without_provider_synthesis(): void
+    {
+        $store = $this->store('b2c', 'AI-RAG-REFUSE');
+        $actor = $this->storeUser($store, 'B2C_STORE_ADMIN');
+
+        $this->app->instance(AssistantBrainInterface::class, new class implements AssistantBrainInterface
+        {
+            public function respond(AssistantBrainRequest $request): AssistantBrainResult
+            {
+                return new AssistantBrainResult(
+                    message: 'Deterministic fallback.',
+                    intent: null,
+                    confidence: 0.5,
+                    state: [
+                        'pending_clarification' => false,
+                        'entities' => [],
+                        'locale' => $request->locale,
+                    ],
+                );
+            }
+        });
+
+        $provider = new class implements AssistantProviderGatewayInterface
+        {
+            /** @var list<AssistantProviderRequest> */
+            public array $requests = [];
+
+            public function capabilities(): AssistantProviderCapabilities
+            {
+                return new AssistantProviderCapabilities(
+                    provider: 'test',
+                    model: 'test',
+                    fallbackModels: [],
+                    chat: true,
+                    structuredJson: true,
+                    toolCalls: true,
+                    contextWindowTokens: 8192,
+                    maxOutputTokens: 1024,
+                    timeoutSeconds: 10,
+                    reachable: true,
+                    healthy: true,
+                    agentCapable: true,
+                );
+            }
+
+            public function complete(AssistantProviderRequest $request): AssistantProviderResult
+            {
+                $this->requests[] = $request;
+
+                if (count($this->requests) === 1) {
+                    return new AssistantProviderResult(
+                        ok: true,
+                        provider: 'test',
+                        model: 'test',
+                        toolCalls: [[
+                            'name' => 'knowledge__search',
+                            'arguments' => ['query' => 'supplier credit insurance escalation'],
+                            'id' => 'knowledge-weak-1',
+                        ]],
+                        finishReason: 'tool_calls',
+                        latencyMs: 1,
+                    );
+                }
+
+                return new AssistantProviderResult(
+                    ok: true,
+                    provider: 'test',
+                    model: 'test',
+                    structuredPayload: [
+                        'message' => 'Hallucinated document answer that must never be returned.',
+                        'used_evidence' => ['ev-call-1'],
+                        'uncertainty' => [],
+                    ],
+                    finishReason: 'stop',
+                    latencyMs: 1,
+                );
+            }
+
+            public function health(): AssistantProviderHealth
+            {
+                return new AssistantProviderHealth(
+                    provider: 'test',
+                    model: 'test',
+                    enabled: true,
+                    reachable: true,
+                    healthy: true,
+                    latencyMs: 1,
+                );
+            }
+        };
+        $this->app->instance(AssistantProviderGatewayInterface::class, $provider);
+
+        $context = [
+            'path' => '/admin/b2c/dashboard',
+            'channel' => 'b2c',
+            'store_id' => $store,
+            'authorized_entities' => [
+                'channel' => 'b2c',
+                'store_id' => $store,
+            ],
+        ];
+        $principal = app(AiPrincipalContextResolver::class)->resolve(
+            $actor,
+            'en',
+            $context,
+            'rag-weak-refusal',
+        );
+
+        $result = app(AssistantAgentOrchestrator::class)->run(new AgentTurnRequest(
+            actorUserId: (int) $actor->getKey(),
+            userMessage: 'What is our supplier credit insurance escalation policy?',
+            locale: 'en',
+            principal: $principal,
+            correlationId: 'rag-weak-refusal',
+            context: $context,
+            state: [],
+            budget: new AgentExecutionBudget(
+                maxSteps: 2,
+                maxToolCalls: 4,
+                maxProviderCalls: 2,
+                maxTotalResultBytes: 65536,
+                maxPerToolResultBytes: 16384,
+                maxPlanningTokens: 384,
+                maxSynthesisTokens: 640,
+                maxElapsedMs: 12000,
+            ),
+        ));
+
+        $this->assertSame('DEGRADED', $result->status);
+        $this->assertSame('PARTIAL', $result->toolExecutions[0]['status']);
+        $this->assertSame(
+            'There is not enough approved FOODEX source evidence to answer this document question safely.',
+            $result->message,
+        );
+        $this->assertCount(1, $provider->requests);
+        $this->assertStringNotContainsString('Hallucinated document answer', $result->message);
+    }
+
     public function test_document_prompt_injection_is_inert_and_cannot_enable_extra_tools(): void
     {
         $store = $this->store('b2c', 'AI-RAG-INJECTION');
