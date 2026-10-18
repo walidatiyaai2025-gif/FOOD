@@ -64,6 +64,60 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_retail_store_admin_sidebar_excludes_platform_only_navigation(): void
+    {
+        $user = $this->retailAdmin('nav-retail-isolated@example.test');
+
+        $groups = collect(app(AdminNavigation::class)->groupsFor($user));
+        $items = $groups
+            ->flatMap(fn (array $group) => $group['children'])
+            ->values();
+
+        $this->assertFalse($groups->contains('key', 'finance'));
+        $this->assertFalse($groups->contains('key', 'administration'));
+
+        foreach ([
+            'enterprise_action_center',
+            'enterprise_workspaces',
+            'whatsapp_inbox',
+            'treasury_master',
+            'whatsapp_supervisor',
+            'b2c_finance',
+            'administration_hub',
+        ] as $forbiddenKey) {
+            $this->assertFalse(
+                $items->contains('key', $forbiddenKey),
+                "Retail sidebar unexpectedly exposed platform-only item [{$forbiddenKey}].",
+            );
+        }
+
+        $this->assertFalse(
+            $items->contains('label', 'admin.b2c_workspace.modules.finance'),
+            'Retail sidebar must never render the removed B2C finance translation key.',
+        );
+    }
+
+    public function test_global_platform_admin_keeps_platform_navigation_entries(): void
+    {
+        $user = $this->globalUser('B2B_ADMIN', 'nav-platform-sidebar@example.test');
+
+        $items = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->flatMap(fn (array $group) => $group['children'])
+            ->pluck('key');
+
+        foreach ([
+            'enterprise_action_center',
+            'enterprise_workspaces',
+            'treasury_master',
+            'administration_hub',
+        ] as $requiredKey) {
+            $this->assertTrue(
+                $items->contains($requiredKey),
+                "Global platform sidebar lost expected item [{$requiredKey}].",
+            );
+        }
+    }
+
     public function test_global_platform_admin_remains_eligible_for_erp(): void
     {
         $user = $this->globalUser('B2B_ADMIN', 'nav-platform-erp@example.test');
