@@ -36,12 +36,40 @@ final class AgentAssignmentEngine
             ->all();
     }
 
+    /** @return list<int> */
+    public function manuallyAssignableAgentIds(?int $storeId): array
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (User $user): bool => $this->canWorkConversation($user, $storeId))
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
     public function activeLoad(int $agentId): int
     {
         return DB::table('whats_app_conversations')
             ->where('primary_agent_id', $agentId)
             ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
             ->count();
+    }
+
+    /** @return array{id:int,name:string,status:string,capacity:int,load:int,accepts_new:bool,auto_eligible:bool} */
+    public function assertManuallyAssignable(int $agentId, ?int $storeId): array
+    {
+        $agent = User::query()->whereKey($agentId)->where('is_active', true)->first();
+
+        if (! $agent instanceof User || ! $this->canWorkConversation($agent, $storeId)) {
+            throw ValidationException::withMessages([
+                'agent_id' => [__('whatsapp.inbox.errors.agent_scope')],
+            ]);
+        }
+
+        return $this->summary($agent, $storeId);
     }
 
     /** @return array{id:int,name:string,status:string,capacity:int,load:int} */
@@ -175,16 +203,48 @@ final class AgentAssignmentEngine
             ->whereIn('id', $ids)
             ->orderBy('name')
             ->get()
-            ->map(function (User $user): object {
-                $profile = DB::table('whats_app_agent_profiles')->where('user_id', $user->getKey())->first();
+            ->map(fn (User $user): object => (object) $this->summary($user, $storeId));
+    }
 
-                return (object) [
-                    'id' => (int) $user->getKey(),
-                    'name' => (string) $user->name,
-                    'status' => (string) ($profile->status ?? 'OFFLINE'),
-                    'capacity' => (int) ($profile->capacity ?? 0),
-                    'load' => $this->activeLoad((int) $user->getKey()),
-                ];
-            });
+    /** @return Collection<int, covariant object> */
+    public function manualAssignmentSummaries(?int $storeId): Collection
+    {
+        $ids = $this->manuallyAssignableAgentIds($storeId);
+
+        return User::query()
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $user): object => (object) $this->summary($user, $storeId));
+    }
+
+    private function canWorkConversation(User $user, ?int $storeId): bool
+    {
+        return $user->hasPermission('whatsapp.conversations.view', $storeId)
+            && $user->hasPermission('whatsapp.conversations.reply', $storeId);
+    }
+
+    /** @return array{id:int,name:string,status:string,capacity:int,load:int,accepts_new:bool,auto_eligible:bool} */
+    private function summary(User $user, ?int $storeId): array
+    {
+        $profile = DB::table('whats_app_agent_profiles')->where('user_id', $user->getKey())->first();
+        $status = strtoupper((string) ($profile->status ?? 'OFFLINE'));
+        $capacity = max(0, (int) ($profile->capacity ?? 0));
+        $load = $this->activeLoad((int) $user->getKey());
+        $acceptsNew = (bool) ($profile->accepts_new ?? false);
+
+        return [
+            'id' => (int) $user->getKey(),
+            'name' => (string) $user->name,
+            'status' => $status,
+            'capacity' => $capacity,
+            'load' => $load,
+            'accepts_new' => $acceptsNew,
+            'auto_eligible' => $status === 'ONLINE'
+                && $acceptsNew
+                && $capacity > 0
+                && $load < $capacity
+                && $this->canWorkConversation($user, $storeId),
+        ];
     }
 }

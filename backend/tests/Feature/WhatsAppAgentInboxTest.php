@@ -78,6 +78,51 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.customer_assigned']);
     }
 
+    public function test_manual_assignment_roster_includes_all_active_customer_service_roles_without_auto_route_profile(): void
+    {
+        $this->enableInbox();
+        $store = $this->store('B2B', 'WA-MANUAL-ROSTER');
+        $customer = $this->customer($store, 'b2b', 'Manual Roster Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $admin = $this->globalUser('SUPER_ADMIN', 'Roster Admin');
+        $manager = $this->globalUser('CUSTOMER_SERVICE_MANAGER', 'Service Manager');
+        $supervisor = $this->globalUser('CUSTOMER_SERVICE_SUPERVISOR', 'Service Supervisor');
+        $agent = $this->globalUser('CUSTOMER_SERVICE_AGENT', 'Service Agent');
+        $finance = $this->globalUser('FINANCE', 'Finance User');
+
+        $engine = app(AgentAssignmentEngine::class);
+        $manualIds = $engine->manuallyAssignableAgentIds($store);
+        $autoIds = $engine->eligibleAgentIds($store, 'whatsapp');
+
+        foreach ([$manager, $supervisor, $agent] as $serviceUser) {
+            $this->assertContains($serviceUser->id, $manualIds);
+            $this->assertNotContains($serviceUser->id, $autoIds);
+        }
+        $this->assertNotContains($finance->id, $manualIds);
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('Service Manager')
+            ->assertSee('Service Supervisor')
+            ->assertSee('Service Agent')
+            ->assertDontSee('Finance User');
+
+        app(ConversationService::class)->assign(
+            $conversation,
+            $admin,
+            $manager->id,
+            0,
+            'manual manager handoff',
+        );
+
+        $this->assertDatabaseHas('whats_app_conversations', [
+            'id' => $conversation,
+            'primary_agent_id' => $manager->id,
+            'status' => 'OPEN',
+        ]);
+    }
+
     public function test_round_robin_is_deterministic(): void
     {
         $store = $this->store('B2B', 'WA-RR');
@@ -357,7 +402,9 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->get(route('admin.whatsapp-inbox.index'))
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('صندوق خدمة العملاء')
+            ->assertSee('المحادثات')
+            ->assertDontSee('صندوق خدمة العملاء المشترك')
+            ->assertDontSee('واجهة تشغيلية معزولة')
             ->assertSee('الرجوع لخدمة العملاء')
             ->assertSee(route('admin.erp.customer-service'), false);
 
@@ -366,7 +413,9 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->get(route('admin.whatsapp-inbox.index'))
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('Shared Customer Service Inbox')
+            ->assertSee('Conversations')
+            ->assertDontSee('Shared Customer Service Inbox')
+            ->assertDontSee('Isolated operational workspace')
             ->assertSee('Back to Customer Service')
             ->assertSee(route('admin.erp.customer-service'), false);
     }
@@ -599,7 +648,7 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
-    public function test_final_golden_workspace_keeps_three_worker_panes_and_certification_geometry(): void
+    public function test_inbox_keeps_three_authoritative_panes_without_fullscreen_shell_takeover(): void
     {
         $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
 
@@ -609,17 +658,14 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertStringContainsString('data-wa-pane="conversation-list"', $view);
         $this->assertStringContainsString('data-wa-pane="active-conversation"', $view);
         $this->assertStringContainsString('data-wa-pane="customer-context"', $view);
-        $this->assertStringContainsString('grid-template-columns:448px minmax(0,1fr) 379px', $view);
+        $this->assertStringContainsString('grid-template-columns:minmax(280px,.92fr) minmax(420px,1.55fr) minmax(290px,1fr)', $view);
         $this->assertStringContainsString('grid-template-areas:"context thread rail"', $view);
         $this->assertStringContainsString('html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}', $view);
+        $this->assertStringNotContainsString('height:100vh!important', $view);
+        $this->assertStringNotContainsString('display:none!important', $view);
 
         $golden = base_path('../docs/golden/customer-service-inbox/customer-service-inbox-golden.webp');
         $this->assertFileExists($golden);
-
-        $size = getimagesize($golden);
-        $this->assertIsArray($size);
-        $this->assertSame(1504, $size[0]);
-        $this->assertSame(851, $size[1]);
     }
 
     public function test_customer_360_context_pane_has_golden_section_order_and_locale_parity(): void
@@ -677,6 +723,23 @@ final class WhatsAppAgentInboxTest extends TestCase
             $this->assertNotSame('', trim((string) $en['inbox'][$key]));
             $this->assertNotSame('', trim((string) $ar['inbox'][$key]));
         }
+    }
+
+    public function test_inbox_source_keeps_platform_shell_and_responsive_controls_reachable(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertSame(1, substr_count($view, "@include('admin._global-header')"));
+        $this->assertStringNotContainsString('foodex-page-toolbar wa-shell-marker', $view);
+        $this->assertStringNotContainsString('html,body{height:100%;overflow:hidden}', $view);
+        $this->assertStringNotContainsString('.wa-inbox-layout>.sidebar{display:none!important}', $view);
+        $this->assertStringContainsString('@media(max-width:1499px)', $view);
+        $this->assertStringContainsString('@media(max-width:1023px)', $view);
+        $this->assertStringContainsString('@media(max-width:767px)', $view);
+        $this->assertStringContainsString('@media(max-width:430px)', $view);
+        $this->assertStringContainsString('grid-template-areas:"rail" "thread" "context"', $view);
+        $this->assertStringContainsString('.wa-conversation-head-actions{width:100%;justify-content:space-between}', $view);
     }
 
     public function test_inbox_center_thread_composer_has_golden_structure_and_locale_parity(): void

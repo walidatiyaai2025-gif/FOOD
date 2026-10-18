@@ -220,6 +220,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
         $this->actingAs($retailAdmin)
             ->post(route('admin.retail-stores.store'), [
+                'business_profile' => 'RETAIL_STORE',
                 'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
                 'code' => 'NOPE-RETAIL',
                 'name' => 'Nope Retail',
@@ -228,6 +229,7 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
         $this->actingAs($b2bAdmin)
             ->post(route('admin.retail-stores.store'), [
+                'business_profile' => 'RETAIL_STORE',
                 'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
                 'code' => 'NOPE-B2B',
                 'name' => 'Nope B2B',
