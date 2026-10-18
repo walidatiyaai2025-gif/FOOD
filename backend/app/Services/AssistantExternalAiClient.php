@@ -106,7 +106,7 @@ final class AssistantExternalAiClient
             if (! $response->successful()) {
                 return [
                     'ok' => false,
-                    'message' => 'Provider returned HTTP '.$response->status().'.',
+                    'message' => __('assistant_settings.errors.provider_http', ['status' => $response->status()]),
                 ];
             }
 
@@ -115,20 +115,20 @@ final class AssistantExternalAiClient
             if (! is_string($content) || trim($content) === '') {
                 return [
                     'ok' => false,
-                    'message' => 'Provider response did not include choices[0].message.content.',
+                    'message' => __('assistant_settings.errors.malformed_response'),
                 ];
             }
 
             return [
                 'ok' => true,
-                'message' => 'Connection succeeded.',
+                'message' => __('assistant_settings.test_success'),
             ];
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable) {
             return [
                 'ok' => false,
-                'message' => 'Connection failed. Verify the URL, model, key, TLS and firewall.',
+                'message' => __('assistant_settings.errors.connection_failed'),
             ];
         }
     }
@@ -156,7 +156,7 @@ final class AssistantExternalAiClient
 
         if (! $valid) {
             throw ValidationException::withMessages([
-                'api_url' => ['Use a public HTTP/HTTPS provider endpoint without embedded credentials.'],
+                'api_url' => [__('assistant_settings.errors.public_endpoint')],
             ]);
         }
     }
