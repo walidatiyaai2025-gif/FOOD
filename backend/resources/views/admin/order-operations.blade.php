@@ -53,7 +53,7 @@ $businessLabel = static function ($value): string {
 
 @include('admin._order-new-wizard')
 
-@if($dashboardVisible)
+<?php if ($dashboardVisible): ?>
 @php
     $dashboardBaseQuery = [
         'channel' => $selectedChannel,
@@ -342,9 +342,9 @@ $businessLabel = static function ($value): string {
     </div>
     </div>
 </section>
-@endif
+<?php endif; ?>
 
-@if(!$dashboardVisible)
+<?php if (!$dashboardVisible): ?>
 <nav class="order-workspace-tabs"
      role="tablist"
      aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
@@ -352,7 +352,7 @@ $businessLabel = static function ($value): string {
      data-default-tab="orders">
     <button class="order-workspace-tab" type="button" role="tab" aria-selected="true" data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$orders->total()) }}</span></button>
 </nav>
-@endif
+<?php endif; ?>
 
 <div class="order-tab-panel" role="tabpanel" data-order-panel="orders" @if($dashboardVisible && !request()->has('page')) hidden @endif>
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
