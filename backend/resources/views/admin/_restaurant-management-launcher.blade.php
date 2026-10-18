@@ -7,6 +7,17 @@
         route('admin.smart-ordering.operations.index', [...$restaurantWorkspaceQuery, 'tab' => $tab]).($anchor ? '#'.$anchor : '');
     $restaurantModuleUrl = static fn (string $module): string =>
         route('admin.b2c.module', [...$restaurantWorkspaceQuery, 'module' => $module]);
+    $restaurantWholesalePurchasesUrl = $restaurantStoreId > 0
+        ? route('admin.restaurant.wholesale-purchases.index', ['retail_store_id' => $restaurantStoreId])
+        : null;
+
+    $restaurantPrimaryTasks = [
+        ['key'=>'customer_orders','href'=>$restaurantOperationsUrl('orders'),'visible'=>$restaurantCanOrders],
+        ['key'=>'menu','href'=>route('admin.smart-ordering.menu.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanManage],
+        ['key'=>'operations','href'=>route('admin.smart-ordering.operations.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanOrders],
+        ['key'=>'wholesale_purchases','href'=>$restaurantWholesalePurchasesUrl,'visible'=>$restaurantCanOrders && $restaurantWholesalePurchasesUrl],
+        ['key'=>'settings','href'=>route('admin.smart-ordering.index',$restaurantWorkspaceQuery),'visible'=>true],
+    ];
 
     $restaurantWorkspaceGroups = [
         'service' => [
@@ -49,6 +60,9 @@
 @endphp
 
 <style>
+.restaurant-primary-tasks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0}
+.restaurant-primary-task{display:flex;align-items:center;justify-content:center;min-height:46px;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);color:inherit;text-decoration:none;font-weight:800;text-align:center}
+.restaurant-primary-task:hover,.restaurant-primary-task:focus-visible{background:var(--foodex-green-soft);outline:none}
 .restaurant-workspace-launcher{margin:12px 0 18px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);overflow:hidden}
 .restaurant-workspace-launcher>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:10px 14px;font-weight:800}
 .restaurant-workspace-launcher>summary::-webkit-details-marker{display:none}
@@ -63,10 +77,21 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
 .restaurant-workspace-link.is-partial{border:1px dashed var(--foodex-border)}
 .restaurant-workspace-link.is-unavailable{color:var(--foodex-muted);cursor:default}
 .restaurant-workspace-state{font-size:.68rem;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--foodex-orange-soft);color:var(--foodex-ink)}
-@media(max-width:1200px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:767px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}}
-@media(max-width:479px){.restaurant-workspace-groups{grid-template-columns:1fr}}
+@media(max-width:1200px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1024px){.restaurant-primary-task{min-height:44px}}
+@media(max-width:768px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}.restaurant-primary-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.restaurant-primary-tasks{grid-template-columns:1fr 1fr}.restaurant-primary-task{font-size:.82rem;padding:8px}}
+@media(max-width:390px){.restaurant-primary-task{min-height:42px}}
+@media(max-width:360px){.restaurant-workspace-groups,.restaurant-primary-tasks{grid-template-columns:1fr}}
 </style>
+
+<nav class="restaurant-primary-tasks" data-restaurant-task-first-nav aria-label="{{ __('smart_ordering.workspace.tasks_label') }}">
+    @foreach($restaurantPrimaryTasks as $task)
+        @if($task['visible'] && $task['href'])
+            <a class="restaurant-primary-task" data-restaurant-primary-task="{{ $task['key'] }}" href="{{ $task['href'] }}">{{ __('smart_ordering.workspace.tasks.'.$task['key']) }}</a>
+        @endif
+    @endforeach
+</nav>
 
 <details class="restaurant-workspace-launcher" data-restaurant-management-workspace>
     <summary>
