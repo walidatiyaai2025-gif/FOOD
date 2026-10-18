@@ -54,6 +54,14 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString("@php(\$customerCount = (int) (\$dashboard['total_customers'] ?? 0))", $view);
         $this->assertStringContainsString('cs-tab-count info', $view);
         $this->assertStringContainsString('.cs-tab-count.info{background:#DBEAFE', $view);
+        $this->assertStringContainsString('data-case-modal-link', $view);
+        $this->assertStringContainsString('data-case-modal-content', $view);
+        $this->assertStringContainsString('data-case-modal-close', $view);
+        $this->assertStringContainsString('data-case-list-url=', $view);
+        $this->assertStringContainsString("fetch(link.href", $view);
+        $this->assertStringContainsString("body.replaceChildren(content);", $view);
+        $this->assertStringContainsString("history.replaceState(null, '', listUrl + '#cs-tab-cases');", $view);
+        $this->assertStringContainsString('body.cs-case-modal-open{overflow:hidden}', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
         $this->assertStringContainsString('data-cs-panel="analytics"', $view);
         $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}', $view);
