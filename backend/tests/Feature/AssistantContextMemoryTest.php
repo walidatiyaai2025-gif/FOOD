@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Contracts\AssistantToolInterface;
+use App\Domain\Assistant\Data\AiPrincipalContext;
 use App\Domain\Assistant\Data\AssistantBrainRequest;
 use App\Domain\Assistant\Data\AssistantBrainResult;
 use App\Domain\Assistant\Data\AssistantToolRequest;
@@ -11,6 +12,7 @@ use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
+use App\Domain\Assistant\Support\AssistantContextToken;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Models\Role;
 use App\Models\User;
@@ -80,6 +82,44 @@ class AssistantContextMemoryTest extends TestCase
             'message' => 'Sales today',
             'context_token' => $token,
         ])->assertUnprocessable();
+    }
+
+    public function test_signed_context_transports_entity_hints_for_server_revalidation(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'en');
+        $principal = new AiPrincipalContext(
+            actorUserId: (int) $admin->getKey(),
+            locale: 'en',
+            roleCodes: ['SUPER_ADMIN'],
+            permissionCodes: ['assistant.use'],
+            businessScope: 'platform',
+            channel: 'b2b',
+            activeStoreId: 17,
+            permittedStoreIds: [17],
+            pageContext: [
+                'path' => '/admin/b2b/accounts/44',
+                'route' => 'admin.b2b',
+                'domain' => 'wholesale',
+                'channel' => 'b2b',
+                'store_id' => 17,
+                'authorized_entities' => [
+                    'account_id' => 44,
+                    'customer_id' => 31,
+                ],
+            ],
+            retailerDataGrants: [],
+            correlationId: '00000000-0000-4000-8000-000000000001',
+        );
+
+        $signed = app(AssistantContextToken::class)->issue($principal);
+        $transport = app(AssistantContextToken::class)->pageContext($admin, $signed['token']);
+
+        $this->assertSame('/admin/b2b/accounts/44', $transport['path']);
+        $this->assertSame('b2b', $transport['channel']);
+        $this->assertSame(17, $transport['store_id']);
+        $this->assertSame(44, $transport['account_id']);
+        $this->assertSame(31, $transport['customer_id']);
+        $this->assertArrayNotHasKey('authorized_entities', $transport);
     }
 
     public function test_memory_redacts_secrets_keeps_only_safe_preferences_and_never_stores_tool_facts(): void
