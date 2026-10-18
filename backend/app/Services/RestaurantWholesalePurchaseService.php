@@ -304,7 +304,6 @@ final class RestaurantWholesalePurchaseService
 
     /**
      * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
-     * @return Collection<int,array<string,mixed>>
      */
     public function supplierInvoices(array $context): Collection
     {
@@ -337,7 +336,6 @@ final class RestaurantWholesalePurchaseService
      * Canonical purchase-order lifecycle plus authoritative receipt lineage.
      *
      * @param  array{customer:B2bCustomer,wholesale_store_id:int,restaurant_store_id:int}  $context
-     * @return Collection<int,array<string,mixed>>
      */
     public function supplyStatuses(array $context): Collection
     {
