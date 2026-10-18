@@ -158,6 +158,13 @@ Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/
 
 The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
 
+### Knowledge / RAG invariant
+
+The Assistant knowledge layer is a governed read tool, not a second chatbot or data authority. Approved manuals, policies, procedures, SOPs, FAQs and product/business documents are indexed through `AssistantKnowledgeIndex` with exact version, locale and global-or-store scope. `knowledge.search` executes through the same `AssistantToolExecutor` authorization/audit boundary as every other tool. Inactive, revoked, deleted, superseded or expired sources cannot be retrieved.
+
+Agent routing keeps live transactional questions on deterministic FOODEX tools and document questions on `knowledge.search`; hybrid turns may use both. Document excerpts are untrusted data: they are unavailable during planning, cannot select/enable tools, and synthesis has no callable tools. Weak retrieval evidence fails closed rather than inviting the provider to invent an answer. Knowledge-backed answers expose server-derived exact source/version citations and freshness metadata.
+
+Authority: `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, #2223.
 
 ### AI security guardrail invariant
 
