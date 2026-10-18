@@ -75,7 +75,7 @@ final class AssistantProviderSettings
     }
 
     /**
-     * @param array{enabled:bool,api_url:string,model:string,timeout_seconds:int} $config
+     * @param  array{enabled:bool,api_url:string,model:string,timeout_seconds:int}  $config
      */
     public function persist(array $config, ?string $apiKey = null, bool $clearApiKey = false): Setting
     {
