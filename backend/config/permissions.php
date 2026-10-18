@@ -151,10 +151,20 @@ return [
 
     'roles' => [
         'SUPER_ADMIN' => ['*'],
+        'CUSTOMER_SERVICE_MANAGER' => [
+            'stores.view', 'support.view', 'support.manage', 'customer_service.team.manage',
+            'customers.view', 'customers.edit', 'customers.manage',
+            'orders.view', 'orders.create', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
+            'drivers.tracking.view',
+            'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
+            'whatsapp.conversations.assign', 'whatsapp.conversations.reassign',
+            'whatsapp.internal_notes.manage', 'whatsapp.customer_service.supervise',
+            'whatsapp.agent_status.manage', 'whatsapp.assignment_rules.manage', 'reports.view',
+        ],
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
@@ -168,7 +178,7 @@ return [
             'chatbot.ai.view', 'chatbot.ai.manage',
             'chatbot.segments.view', 'chatbot.segments.manage',
             'chatbot.analytics.view', 'chatbot.sessions.view', 'chatbot.sessions.takeover', 'chatbot.audit.view',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
         ],
         'B2B_ADMIN' => [
             'stores.view',
