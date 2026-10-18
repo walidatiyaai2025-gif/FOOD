@@ -266,38 +266,55 @@ final class SmartOrderingMenuAdminController extends Controller
         $data = $request->validate([
             'menu_name_ar' => ['nullable', 'string', 'max:255'],
             'menu_name_en' => ['nullable', 'string', 'max:255'],
-            'category_name_ar' => ['nullable', 'string', 'max:255'],
-            'category_name_en' => ['nullable', 'string', 'max:255'],
-            'items' => ['required', 'array', 'min:1', 'max:20'],
+            'menu_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+
+            'categories' => ['required', 'array', 'min:1', 'max:20'],
+            'categories.*.name_ar' => ['nullable', 'string', 'max:255'],
+            'categories.*.name_en' => ['nullable', 'string', 'max:255'],
+            'categories.*.image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+
+            'items' => ['required', 'array', 'min:1', 'max:100'],
+            'items.*.category_key' => ['required', 'string', 'max:64'],
             'items.*.name_ar' => ['nullable', 'string', 'max:255'],
             'items.*.name_en' => ['nullable', 'string', 'max:255'],
             'items.*.price' => ['required', 'numeric', 'min:0', 'max:99999999.999'],
+            'items.*.image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'items.*.featured' => ['nullable', 'boolean'],
         ]);
 
         $menuNameAr = trim((string) ($data['menu_name_ar'] ?? ''));
         $menuNameEn = trim((string) ($data['menu_name_en'] ?? ''));
-        $categoryNameAr = trim((string) ($data['category_name_ar'] ?? ''));
-        $categoryNameEn = trim((string) ($data['category_name_en'] ?? ''));
-
         if ($menuNameAr === '' && $menuNameEn === '') {
             throw ValidationException::withMessages([
                 'menu_name_ar' => [app()->getLocale() === 'ar' ? 'اكتب اسم المنيو.' : 'Enter a menu name.'],
             ]);
         }
-        if ($categoryNameAr === '' && $categoryNameEn === '') {
-            throw ValidationException::withMessages([
-                'category_name_ar' => [app()->getLocale() === 'ar' ? 'اكتب اسم القسم الأول.' : 'Enter the first category name.'],
-            ]);
+
+        $categories = (array) ($data['categories'] ?? []);
+        foreach ($categories as $key => $category) {
+            $nameAr = trim((string) ($category['name_ar'] ?? ''));
+            $nameEn = trim((string) ($category['name_en'] ?? ''));
+            if ($nameAr === '' && $nameEn === '') {
+                throw ValidationException::withMessages([
+                    "categories.$key.name_ar" => [app()->getLocale() === 'ar' ? 'اكتب اسم التصنيف.' : 'Enter a category name.'],
+                ]);
+            }
         }
 
-        $items = array_values((array) ($data['items'] ?? []));
-        foreach ($items as $index => $item) {
+        $items = (array) ($data['items'] ?? []);
+        foreach ($items as $key => $item) {
+            $categoryKey = (string) ($item['category_key'] ?? '');
+            if ($categoryKey === '' || ! array_key_exists($categoryKey, $categories)) {
+                throw ValidationException::withMessages([
+                    "items.$key.category_key" => [app()->getLocale() === 'ar' ? 'اختر تصنيفاً صحيحاً للصنف.' : 'Choose a valid category for the item.'],
+                ]);
+            }
+
             $nameAr = trim((string) ($item['name_ar'] ?? ''));
             $nameEn = trim((string) ($item['name_en'] ?? ''));
             if ($nameAr === '' && $nameEn === '') {
                 throw ValidationException::withMessages([
-                    "items.$index.name_ar" => [app()->getLocale() === 'ar' ? 'اكتب اسم الصنف.' : 'Enter the item name.'],
+                    "items.$key.name_ar" => [app()->getLocale() === 'ar' ? 'اكتب اسم الصنف.' : 'Enter the item name.'],
                 ]);
             }
         }
@@ -307,7 +324,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ->where('revision_id', $draft->id)
             ->count();
 
-        $menu = DB::transaction(function () use (
+        DB::transaction(function () use (
             $actor,
             $site,
             $draft,
@@ -315,36 +332,64 @@ final class SmartOrderingMenuAdminController extends Controller
             $request,
             $menuNameAr,
             $menuNameEn,
-            $categoryNameAr,
-            $categoryNameEn,
+            $categories,
             $items,
             $existingMenus,
-        ): SmartOrderingMenu {
+        ): void {
+            $menuImagePath = $request->hasFile('menu_image')
+                ? $request->file('menu_image')->store('smart-ordering/'.$site->public_id.'/menus', 'public')
+                : null;
+
             $menu = $writer->createMenu($actor, $site, $draft, [
                 'name_ar' => $menuNameAr !== '' ? $menuNameAr : null,
                 'name_en' => $menuNameEn !== '' ? $menuNameEn : $menuNameAr,
                 'description_ar' => null,
                 'description_en' => null,
+                'image_path' => $menuImagePath,
                 'is_default' => $existingMenus === 0,
                 'is_visible' => true,
                 'sort_order' => $existingMenus * 10,
                 'branch_ids' => [],
             ], $request);
 
-            $category = $writer->createCategory($actor, $site, $draft, $menu, [
-                'name_ar' => $categoryNameAr !== '' ? $categoryNameAr : null,
-                'name_en' => $categoryNameEn !== '' ? $categoryNameEn : $categoryNameAr,
-                'description_ar' => null,
-                'description_en' => null,
-                'icon' => null,
-                'is_visible' => true,
-                'sold_out' => false,
-                'sort_order' => 0,
-            ], $request);
+            $createdCategories = [];
+            $categoryOrder = 0;
+            foreach ($categories as $categoryKey => $category) {
+                $nameAr = trim((string) ($category['name_ar'] ?? ''));
+                $nameEn = trim((string) ($category['name_en'] ?? ''));
+                $categoryImage = $request->file("categories.$categoryKey.image");
+                $categoryImagePath = $categoryImage
+                    ? $categoryImage->store('smart-ordering/'.$site->public_id.'/categories', 'public')
+                    : null;
 
-            foreach ($items as $index => $item) {
+                $createdCategories[(string) $categoryKey] = $writer->createCategory($actor, $site, $draft, $menu, [
+                    'name_ar' => $nameAr !== '' ? $nameAr : null,
+                    'name_en' => $nameEn !== '' ? $nameEn : $nameAr,
+                    'description_ar' => null,
+                    'description_en' => null,
+                    'icon' => null,
+                    'image_path' => $categoryImagePath,
+                    'is_visible' => true,
+                    'sold_out' => false,
+                    'sort_order' => $categoryOrder * 10,
+                ], $request);
+                $categoryOrder++;
+            }
+
+            $itemOrderByCategory = [];
+            foreach ($items as $itemKey => $item) {
+                $categoryKey = (string) $item['category_key'];
+                $category = $createdCategories[$categoryKey];
                 $nameAr = trim((string) ($item['name_ar'] ?? ''));
                 $nameEn = trim((string) ($item['name_en'] ?? ''));
+                $itemImage = $request->file("items.$itemKey.image");
+                $itemImagePath = $itemImage
+                    ? $itemImage->store('smart-ordering/'.$site->public_id.'/items', 'public')
+                    : null;
+
+                $itemOrderByCategory[$categoryKey] = ($itemOrderByCategory[$categoryKey] ?? 0);
+                $sortOrder = $itemOrderByCategory[$categoryKey] * 10;
+                $itemOrderByCategory[$categoryKey]++;
 
                 $writer->createItem($actor, $site, $draft, $category, [
                     'source_product_id' => null,
@@ -352,6 +397,7 @@ final class SmartOrderingMenuAdminController extends Controller
                     'name_en' => $nameEn !== '' ? $nameEn : $nameAr,
                     'description_ar' => null,
                     'description_en' => null,
+                    'image_path' => $itemImagePath,
                     'gallery' => [],
                     'price_override' => (float) $item['price'],
                     'featured' => (bool) ($item['featured'] ?? false),
@@ -366,11 +412,9 @@ final class SmartOrderingMenuAdminController extends Controller
                     'vegetarian' => false,
                     'allow_customer_notes' => true,
                     'removable_ingredients' => [],
-                    'sort_order' => $index * 10,
+                    'sort_order' => $sortOrder,
                 ], $request);
             }
-
-            return $menu;
         });
 
         return redirect()->to(
@@ -379,7 +423,7 @@ final class SmartOrderingMenuAdminController extends Controller
                 'store_id' => $site->store_id,
                 'revision' => 'draft',
             ]).'#menu-builder'
-        )->with('status', __('smart_ordering_menu.saved'));
+        )->with('status', app()->getLocale() === 'ar' ? 'تم حفظ المنيو كمسودة.' : 'Menu saved as draft.');
     }
 
     public function updateMenu(
