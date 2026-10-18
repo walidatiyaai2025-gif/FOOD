@@ -87,11 +87,18 @@ final class OrderOperationsController extends Controller
             'driver_id' => ['nullable', 'integer', 'min:1'],
             'dispatch_status' => ['nullable', 'string', Rule::in(['awaiting_dispatch', 'assigned'])],
             'exception' => ['nullable', 'string', Rule::in(SalesOrderOperationsDashboardService::EXCEPTIONS)],
+            'action_required' => ['nullable', 'boolean'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $customerServiceProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
+        $actionRequiredExplicit = array_key_exists('action_required', $data);
+        $selectedActionRequired = $actionRequiredExplicit
+            ? (bool) $data['action_required']
+            : $customerServiceProfile;
 
         $operationalChannel = isset($data['channel'])
             ? (string) $data['channel']
@@ -164,12 +171,31 @@ final class OrderOperationsController extends Controller
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
-        $statusCounts = (clone $orderQuery)
+        $statusBaseQuery = clone $orderQuery;
+        $actionRequiredCount = (clone $statusBaseQuery)
+            ->whereExists(function ($dispatch): void {
+                $dispatch->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
+            })
+            ->count();
+
+        $statusCounts = (clone $statusBaseQuery)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status')
             ->map(static fn ($count): int => (int) $count)
             ->all();
+
+        if ($selectedActionRequired) {
+            $orderQuery->whereExists(function ($dispatch): void {
+                $dispatch->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
+            });
+        }
 
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
         $orders = (clone $orderQuery)
@@ -274,6 +300,7 @@ final class OrderOperationsController extends Controller
                 'channel' => $operationalChannel,
                 'from' => $dashboard['period']['from'],
                 'to' => $dashboard['period']['to'],
+                'action_required' => 0,
             ];
             if ($selectedStoreId !== null) {
                 $dashboardBaseQuery['store_id'] = $selectedStoreId;
@@ -445,6 +472,9 @@ final class OrderOperationsController extends Controller
             'statusOptions' => $statusOptions,
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
+            'actionRequiredCount' => $actionRequiredCount,
+            'selectedActionRequired' => $selectedActionRequired,
+            'customerServiceProfile' => $customerServiceProfile,
             'selectedStatus' => $selectedStatus,
             'selectedException' => $selectedException,
             'exceptionOptions' => SalesOrderOperationsDashboardService::EXCEPTIONS,
