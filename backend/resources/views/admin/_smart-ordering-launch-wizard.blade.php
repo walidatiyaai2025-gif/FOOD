@@ -99,8 +99,8 @@
                         <summary>+ {{ $launchIsAr?'إضافة تصنيف':'Add category' }}</summary>
                         <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}" data-setup-mirror-form>
                             @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $menu->categories->count()*10 }}"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="sold_out" value="0">
-                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
-                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
+                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
                             <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                             <label>{{ $launchIsAr?'أيقونة اختيارية':'Optional icon' }}<input name="icon"></label>
                             <button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
@@ -140,8 +140,8 @@
                                     <summary>+ {{ $launchIsAr?'إضافة صنف':'Add item' }}</summary>
                                     <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.store',$category) }}" data-setup-mirror-form>
                                         @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $category->items->count()*10 }}"><input type="hidden" name="spicy_level" value="0"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="allow_customer_notes" value="1">
-                                        <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
-                                        <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                                        <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
+                                        <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
                                         <label>{{ $launchIsAr?'السعر':'Price' }}<input type="number" min="0" step="{{ $moneyStep }}" name="price_override" required></label>
                                         <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                         <button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
@@ -200,16 +200,16 @@
 
             <div class="rl-form-grid">
                 <label>{{ $launchIsAr?'اسم المطعم بالعربي':'Arabic restaurant name' }}
-                    <input name="name_ar" value="{{ $launchNameAr }}" data-mirror-ar>
+                    <input name="name_ar" value="{{ $launchNameAr }}" data-mirror-ar> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the Arabic name value. --}}
                 </label>
                 <label>{{ $launchIsAr?'اسم المطعم بالإنجليزي':'English restaurant name' }}
-                    <input name="name_en" value="{{ $launchNameEn }}" data-mirror-en>
+                    <input name="name_en" value="{{ $launchNameEn }}" data-mirror-en> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the English name value. --}}
                 </label>
                 <label>{{ $launchIsAr?'وصف قصير بالعربي':'Arabic tagline' }}
-                    <input name="tagline_ar" value="{{ $launchTaglineAr }}">
+                    <input name="tagline_ar" value="{{ $launchTaglineAr }}"> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the Arabic tagline value. --}}
                 </label>
                 <label>{{ $launchIsAr?'وصف قصير بالإنجليزي':'English tagline' }}
-                    <input name="tagline_en" value="{{ $launchTaglineEn }}">
+                    <input name="tagline_en" value="{{ $launchTaglineEn }}"> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the English tagline value. --}}
                 </label>
                 <label>{{ $launchIsAr?'الهاتف':'Phone' }}
                     <input name="phone" value="{{ $launchPhone }}">
@@ -224,10 +224,10 @@
                     <input type="file" name="cover" accept="image/jpeg,image/png,image/webp">
                 </label>
                 <label class="span-2">{{ $launchIsAr?'وصف المطعم بالعربي':'Arabic description' }}
-                    <textarea name="description_ar">{{ $setupIdentity['description_ar'] ?? '' }}</textarea>
+                    <textarea name="description_ar">{{ $setupIdentity['description_ar'] ?? '' }}</textarea> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the Arabic description value. --}}
                 </label>
                 <label class="span-2">{{ $launchIsAr?'وصف المطعم بالإنجليزي':'English description' }}
-                    <textarea name="description_en">{{ $setupIdentity['description_en'] ?? '' }}</textarea>
+                    <textarea name="description_en">{{ $setupIdentity['description_en'] ?? '' }}</textarea> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the English description value. --}}
                 </label>
 
                 <label>{{ $launchIsAr?'الرابط المختصر للمطعم':'Public restaurant URL' }}
@@ -274,8 +274,8 @@
                             <summary>+ {{ $launchIsAr?'إضافة تصنيف':'Add category' }}</summary>
                             <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}" data-setup-mirror-form>
                                 @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $menu->categories->count()*10 }}"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="sold_out" value="0">
-                                <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
-                                <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                                <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
+                                <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
                                 <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                 <span></span><button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
                             </form>
@@ -306,8 +306,8 @@
                                         <summary>+ {{ $launchIsAr?'إضافة صنف':'Add item' }}</summary>
                                         <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.store',$category) }}" data-setup-mirror-form>
                                             @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $category->items->count()*10 }}"><input type="hidden" name="spicy_level" value="0"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="allow_customer_notes" value="1">
-                                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
-                                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
+                                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
                                             <label>{{ $launchIsAr?'السعر':'Price' }}<input type="number" min="0" step="{{ $moneyStep }}" name="price_override" required></label>
                                             <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                             <button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
