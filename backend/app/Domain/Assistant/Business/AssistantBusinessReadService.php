@@ -42,19 +42,60 @@ final class AssistantBusinessReadService
         [$fromUtc, $toUtc, $from, $to] = $this->dateWindow($request);
         $query = $this->ordersQuery($storeIds, $request, $fromUtc, $toUtc);
         $recognized = (clone $query)->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+        $channel = $this->channel($request);
+
+        $data = [
+            'from' => $from,
+            'to' => $to,
+            'orders' => (int) (clone $query)->count('orders.id'),
+            'recognized_orders' => (int) (clone $recognized)->count('orders.id'),
+            'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
+            'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
+            'average_order_value' => round((float) ((clone $recognized)->avg('orders.grand_total') ?? 0), 3),
+            'currency' => 'EGP',
+            'store_ids' => $storeIds,
+        ];
+
+        if ($channel !== null) {
+            $metrics = $this->semanticMetrics->orderSnapshot(
+                $query,
+                $channel === 'b2b' ? MetricDictionary::FLOW_SELL_IN : MetricDictionary::FLOW_SELL_OUT,
+                $from,
+                $to,
+                ['store_ids' => $storeIds],
+                'EGP',
+                $request->locale,
+            );
+
+            $data = [
+                ...$data,
+                'recognized_orders' => (int) $metrics['values']['recognized_orders'],
+                'gross_revenue' => (float) $metrics['values']['gross_revenue'],
+                'discounts' => (float) $metrics['values']['discounts'],
+                'recognized_revenue' => (float) $metrics['values']['net_revenue'],
+                'average_order_value' => (float) $metrics['values']['average_order_value'],
+                'units' => (float) $metrics['values']['units'],
+                'refunded_orders' => (int) $metrics['values']['refunded_orders'],
+                'refunded_value' => (float) $metrics['values']['refunded_value'],
+                'cancelled_orders' => (int) $metrics['values']['cancelled_orders'],
+                'cancelled_value' => (float) $metrics['values']['cancelled_value'],
+                'metric_provenance' => $metrics['provenance'],
+                'metric_definitions' => $metrics['definitions'],
+            ];
+        } else {
+            $data['metric_provenance'] = [
+                'dictionary_version' => MetricDictionary::VERSION,
+                'flow' => 'mixed',
+                'window' => ['from' => $from, 'to' => $to],
+                'timezone' => MetricDictionary::TIMEZONE,
+                'scope' => ['store_ids' => $storeIds],
+                'warning' => 'Explicit channel is required to interpret totals as sell-in or sell-out.',
+                'model_arithmetic_allowed' => false,
+            ];
+        }
 
         return new AssistantToolResult(
-            data: [
-                'from' => $from,
-                'to' => $to,
-                'orders' => (clone $query)->count('orders.id'),
-                'recognized_orders' => (clone $recognized)->count('orders.id'),
-                'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
-                'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
-                'average_order_value' => round((float) ((clone $recognized)->avg('orders.grand_total') ?? 0), 3),
-                'currency' => 'EGP',
-                'store_ids' => $storeIds,
-            ],
+            data: $data,
             actions: [$this->reportsAction($request)],
         );
     }
