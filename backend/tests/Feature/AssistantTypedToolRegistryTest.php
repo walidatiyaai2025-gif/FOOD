@@ -183,6 +183,12 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $this->assertSame(1000, $result->data['_tool']['row_limit']);
         $this->assertSame('fresh', $result->data['freshness']['state']);
         $this->assertSame([$store], $result->data['store_ids']);
+        $this->assertSame('none', $result->data['sellout_feed'][0]['state']);
+        $this->assertStringContainsString(
+            'No actual retail sell-out feed',
+            $result->data['sellout_feed'][0]['message_en'],
+        );
+        $this->assertFalse($result->data['sellout_feed'][0]['wholesale_purchase_inference']);
 
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'assistant.tool.read',
