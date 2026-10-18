@@ -51,6 +51,9 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString("cs-tab-count {{ \$caseCount === 0 ? 'ok' : 'danger' }}", $view);
         $this->assertStringContainsString('.cs-tab-count.ok{background:#DCFCE7', $view);
         $this->assertStringContainsString('.cs-tab-count.danger{background:#FEE2E2', $view);
+        $this->assertStringContainsString("@php(\$customerCount = (int) (\$dashboard['total_customers'] ?? 0))", $view);
+        $this->assertStringContainsString('cs-tab-count info', $view);
+        $this->assertStringContainsString('.cs-tab-count.info{background:#DBEAFE', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
         $this->assertStringContainsString('data-cs-panel="analytics"', $view);
         $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}', $view);
