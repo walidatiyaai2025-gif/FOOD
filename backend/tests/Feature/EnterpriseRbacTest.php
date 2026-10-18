@@ -10,6 +10,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -33,6 +34,106 @@ class EnterpriseRbacTest extends TestCase
             ->assertOk()
             ->assertSee('المستخدمون والأدوار والصلاحيات')
             ->assertSee('dir="rtl"', false);
+    }
+
+    public function test_security_center_defaults_to_compact_users_tab_and_splits_governance_surfaces(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/security')
+            ->assertOk()
+            ->assertSee('data-security-users-table', false)
+            ->assertSee('+ New user')
+            ->assertDontSee('data-security-governance-dashboard', false)
+            ->assertDontSee('data-security-session-registry', false)
+            ->assertDontSee('data-security-audit-explorer', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/security?section=governance')
+            ->assertOk()
+            ->assertSee('data-security-governance-dashboard', false)
+            ->assertDontSee('data-security-users-table', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/security?section=sessions')
+            ->assertOk()
+            ->assertSee('data-security-session-registry', false)
+            ->assertDontSee('data-security-governance-dashboard', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/security?section=audit')
+            ->assertOk()
+            ->assertSee('data-security-audit-explorer', false)
+            ->assertDontSee('data-security-users-table', false);
+    }
+
+    public function test_super_admin_can_create_customer_service_manager_from_security_center(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+        $managerRole = Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post('/admin/security/users', [
+                'name' => 'Customer Service Manager',
+                'username' => 'cs.manager',
+                'email' => 'cs.manager@example.test',
+                'password' => 'SecurePass!2026',
+                'password_confirmation' => 'SecurePass!2026',
+                'locale' => 'ar',
+                'role_id' => $managerRole->id,
+                'is_active' => true,
+            ])
+            ->assertRedirect(route('admin.security.index', ['section' => 'users']));
+
+        $manager = User::query()->where('email', 'cs.manager@example.test')->firstOrFail();
+
+        $this->assertSame('cs.manager', $manager->username);
+        $this->assertSame('ar', $manager->locale);
+        $this->assertTrue($manager->is_active);
+        $this->assertTrue(Hash::check('SecurePass!2026', $manager->password));
+        $this->assertTrue($manager->hasRole('CUSTOMER_SERVICE_MANAGER'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'user.created',
+            'auditable_type' => User::class,
+            'auditable_id' => $manager->id,
+            'user_id' => $admin->id,
+        ]);
+    }
+
+    public function test_user_creation_rolls_back_when_operator_cannot_grant_initial_role(): void
+    {
+        $operator = User::factory()->create(['locale' => 'en', 'is_active' => true]);
+        $operatorRole = Role::query()->create([
+            'code' => 'USER_ONBOARDING_OPERATOR',
+            'name' => 'User Onboarding Operator',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $operatorRole->permissions()->attach([
+            Permission::query()->where('code', 'security.view')->value('id'),
+            Permission::query()->where('code', 'users.roles.manage')->value('id'),
+        ]);
+        $operator->roles()->attach($operatorRole);
+        $managerRole = Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail();
+
+        $this->actingAs($operator)
+            ->from('/admin/security?section=users')
+            ->post('/admin/security/users', [
+                'name' => 'Forbidden Manager',
+                'username' => 'forbidden.manager',
+                'email' => 'forbidden.manager@example.test',
+                'password' => 'SecurePass!2026',
+                'password_confirmation' => 'SecurePass!2026',
+                'locale' => 'en',
+                'role_id' => $managerRole->id,
+                'is_active' => true,
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors();
+
+        $this->assertDatabaseMissing('users', ['email' => 'forbidden.manager@example.test']);
     }
 
     public function test_security_center_exposes_localized_searchable_permission_review_controls(): void
