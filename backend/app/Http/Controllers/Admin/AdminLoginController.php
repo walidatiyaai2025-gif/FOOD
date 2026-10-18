@@ -11,6 +11,7 @@ use App\Services\AdminWhatsAppOtpService;
 use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
+use App\Support\B2cWorkspaceLandingResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class AdminLoginController extends Controller
 {
     public function __construct(
         private readonly AdminNavigation $navigation,
+        private readonly B2cWorkspaceLandingResolver $workspaceLanding,
         private readonly CredentialAuthenticator $credentials,
         private readonly AuditLogger $audit,
         private readonly AdminSecurityPolicy $securityPolicy,
@@ -50,7 +52,11 @@ class AdminLoginController extends Controller
             $target = $this->targetChannel($user, $channel);
 
             if ($target !== null) {
-                return redirect()->route("admin.{$target}.dashboard");
+                $profileTarget = $target === 'b2c' ? $this->workspaceLanding->urlFor($user) : null;
+
+                return $profileTarget !== null
+                    ? redirect()->to($profileTarget)
+                    : redirect()->route("admin.{$target}.dashboard");
             }
         }
 
@@ -259,7 +265,9 @@ class AdminLoginController extends Controller
             ]);
 
             $intended = $this->authorizedIntendedUrl($request, $user);
-            $defaultTarget = route("admin.{$target}.dashboard");
+            $defaultTarget = $target === 'b2c'
+                ? ($this->workspaceLanding->urlFor($user) ?? route('admin.b2c.dashboard'))
+                : route("admin.{$target}.dashboard");
 
             if ($this->securityPolicy->requiresMfa($user)) {
                 $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
