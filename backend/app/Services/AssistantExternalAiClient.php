@@ -58,6 +58,17 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             systemInstructions: $this->routingPrompt($request->locale),
             taskInstructions: 'Classify this Assistant turn using only the allowed FOODEX intent contract.',
             userContent: $request->message,
+            responseSchema: [
+                'type' => 'object',
+                'required' => ['intent', 'confidence', 'message', 'entities'],
+                'properties' => [
+                    'intent' => ['type' => ['string', 'null']],
+                    'confidence' => ['type' => 'number'],
+                    'message' => ['type' => 'string'],
+                    'entities' => ['type' => 'object'],
+                ],
+                'additionalProperties' => false,
+            ],
             temperature: $config['temperature'],
             maxTokens: $config['max_tokens'],
             timeoutSeconds: $config['timeout_seconds'],
@@ -267,6 +278,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
             if ($text === null && $toolCalls === []) {
                 $sawMalformedResponse = true;
+                $this->markCircuitFailure($this->circuitKey($config['api_url'], $model), $config);
                 $this->providerTelemetry(
                     $config,
                     $model,
@@ -283,6 +295,21 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             if ($text !== null) {
                 $decoded = json_decode($text, true);
                 $structured = is_array($decoded) ? $decoded : null;
+            }
+
+            if ($request->responseSchema !== null && $structured === null) {
+                $sawMalformedResponse = true;
+                $this->markCircuitFailure($this->circuitKey($config['api_url'], $model), $config);
+                $this->providerTelemetry(
+                    $config,
+                    $model,
+                    'malformed_schema',
+                    $response->status(),
+                    $latency,
+                    $index > 0,
+                    correlationId: $request->correlationId,
+                );
+                continue;
             }
 
             return new AssistantProviderResult(
