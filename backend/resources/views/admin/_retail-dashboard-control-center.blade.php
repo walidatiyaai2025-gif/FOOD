@@ -34,8 +34,9 @@
     .rc-kpi-value{display:block;margin-top:7px;font-family:var(--foodex-font-en);font-size:1.35rem;font-weight:800;line-height:1.05}
     .rc-kpi-help{display:block;margin-top:5px;color:var(--foodex-muted);font-size:.62rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .rc-grid{display:grid;gap:10px;min-height:0}
-    .rc-overview-main{grid-template-columns:minmax(0,1.7fr) minmax(280px,.72fr)}
-    .rc-overview-bottom{grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr)}
+    .rc-overview-main{grid-template-columns:minmax(0,1.7fr) minmax(260px,.72fr)}
+    .rc-overview-main.with-map{grid-template-columns:minmax(0,1.35fr) minmax(260px,.78fr) minmax(230px,.62fr)}
+    .rc-overview-bottom{grid-template-columns:repeat(3,minmax(0,1fr))}
     .rc-card{min-width:0;min-height:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:12px 14px;box-shadow:var(--foodex-shadow-sm);overflow:hidden}
     .rc-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
     .rc-card-head h2{margin:0;font-size:.9rem;font-weight:800}.rc-card-head small{display:block;margin-top:2px;color:var(--foodex-muted);font-size:.64rem}
@@ -100,8 +101,8 @@
             <article class="rc-kpi"><span class="rc-kpi-label">{{ __('admin.b2c_dashboard.merchant_intelligence.summary.needs_attention') }}</span><b class="rc-kpi-value">{{ number_format((int)($merchantSummary['blocked'] ?? 0)) }}</b><small class="rc-kpi-help">{{ __('admin.b2c_dashboard.merchant_intelligence.summary.needs_attention_help') }}</small></article>
         </div>
 
-        <div class="rc-grid rc-overview-main">
-            <article class="rc-card">
+        <div class="rc-grid rc-overview-main {{ $canViewDriverTracking ? 'with-map' : '' }}" data-dashboard-primary-row>
+            <article class="rc-card" data-dashboard-primary-card="sales">
                 <div class="rc-card-head"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2><small>{{ $dashboard['selected_from'] }} — {{ $dashboard['selected_to'] }}</small></div><a class="section-link" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'sales'])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                 @php
                     $overviewSeries = collect($dashboard['series'] ?? [])->take(-7)->values();
@@ -125,22 +126,39 @@
                 </svg></div>
             </article>
 
-            <article class="rc-card">
-                <div class="rc-card-head"><div><h2>{{ __('admin.b2c_dashboard.merchant_intelligence.attention_title') }}</h2><small>{{ __('admin.b2c_dashboard.merchant_intelligence.attention_subtitle') }}</small></div><button type="button" class="section-link" data-dashboard-assistant-open style="border:0;background:transparent;cursor:pointer">{{ __('admin.b2c_dashboard_tabs.assistant') }}</button></div>
-                <div class="rc-attention-list">
-                    @forelse($merchantAttention->take(3) as $row)
-                        @php
-                            $action=(string)data_get($row,'recommendation.action','healthy');
-                            $stateClass=$action==='reorder_now'?'now':($action==='reorder_soon'?'soon':($action==='healthy'?'ok':'info'));
-                            $actionKey=in_array($action,['reorder_now','reorder_soon','do_not_reorder','missing_mapping','invalid_mapping','ambiguous_mapping','insufficient_data','healthy'],true)?$action:'review_needed';
-                        @endphp
-                        <a class="rc-attention-row" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId,'focus_product'=>(int)$row['retail_product_id']],$supportAccess?['support_access'=>1]:[])) }}">
-                            <span><strong>{{ $row['name'] }}</strong><small>{{ $row['sku'] }} · {{ __('admin.b2c_dashboard.merchant_intelligence.metrics.available') }} {{ number_format((float)data_get($row,'inventory.available',0),1) }}</small></span>
-                            <span class="rc-state {{ $stateClass }}">{{ __('admin.b2c_dashboard.merchant_intelligence.actions.'.$actionKey) }}</span>
-                        </a>
-                    @empty
-                        <div class="rc-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_attention') }}</div>
-                    @endforelse
+            @if($canViewDriverTracking)
+            <article class="rc-card dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
+                @include('admin._driver-live-map', [
+                    'feedUrl' => $driverTrackingFeedUrl,
+                    'secondaryFeedUrl' => $vanTrackingFeedUrl,
+                    'trackingActor' => 'mixed',
+                    'liveMapMode' => 'compact',
+                    'showFilters' => false,
+                    'showList' => false,
+                    'showSummary' => true,
+                    'pollMs' => 5000,
+                    'ctaUrl' => $driverTrackingPageUrl,
+                ])
+            </article>
+            @endif
+
+            @php
+                $overviewDist=$dashboard['distribution'];
+                $overviewTotal=array_sum($overviewDist);
+                $overviewP1=$overviewTotal?($overviewDist['processing']/$overviewTotal*100):0;
+                $overviewP2=$overviewTotal?($overviewDist['out_for_delivery']/$overviewTotal*100):0;
+                $overviewP3=$overviewTotal?($overviewDist['delivered']/$overviewTotal*100):0;
+                $overviewGradient="conic-gradient(var(--foodex-blue) 0 {$overviewP1}%, var(--foodex-orange) {$overviewP1}% ".($overviewP1+$overviewP2)."%, var(--foodex-green) ".($overviewP1+$overviewP2)."% ".($overviewP1+$overviewP2+$overviewP3)."%, var(--foodex-red) ".($overviewP1+$overviewP2+$overviewP3)."% 100%)";
+            @endphp
+            <article class="rc-card" data-dashboard-primary-card="order-distribution">
+                <div class="rc-card-head"><div><h2>{{ __('admin.b2c_dashboard.distribution') }}</h2></div></div>
+                <div class="rc-mini-donut-wrap">
+                    <div class="rc-mini-donut" style="background:{{ $overviewGradient }}"></div>
+                    <div class="rc-status-list">
+                        @foreach(['processing'=>'var(--foodex-blue)','out_for_delivery'=>'var(--foodex-orange)','delivered'=>'var(--foodex-green)','cancelled'=>'var(--foodex-red)'] as $status=>$color)
+                        <div class="rc-status-line"><span><i class="dot" style="background:{{ $color }}"></i>{{ __('admin.b2c_dashboard.status.'.$status) }}</span><b>{{ $overviewTotal?round($overviewDist[$status]/$overviewTotal*100):0 }}%</b></div>
+                        @endforeach
+                    </div>
                 </div>
             </article>
         </div>
@@ -154,6 +172,24 @@
                     @empty <div class="rc-empty">{{ __('admin.b2c_dashboard.no_orders') }}</div> @endforelse
                 </div>
             </article>
+
+            <article class="rc-card">
+                <div class="rc-card-head"><div><h2>{{ __('admin.b2c_dashboard.merchant_intelligence.attention_title') }}</h2></div><button type="button" class="section-link" data-dashboard-assistant-open style="border:0;background:transparent;cursor:pointer">{{ __('admin.b2c_dashboard_tabs.assistant') }}</button></div>
+                <div class="rc-attention-list">
+                    @forelse($merchantAttention->take(2) as $row)
+                        @php
+                            $action=(string)data_get($row,'recommendation.action','healthy');
+                            $stateClass=$action==='reorder_now'?'now':($action==='reorder_soon'?'soon':($action==='healthy'?'ok':'info'));
+                            $actionKey=in_array($action,['reorder_now','reorder_soon','do_not_reorder','missing_mapping','invalid_mapping','ambiguous_mapping','insufficient_data','healthy'],true)?$action:'review_needed';
+                        @endphp
+                        <a class="rc-attention-row" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId,'focus_product'=>(int)$row['retail_product_id']],$supportAccess?['support_access'=>1]:[])) }}">
+                            <span><strong>{{ $row['name'] }}</strong><small>{{ $row['sku'] }}</small></span>
+                            <span class="rc-state {{ $stateClass }}">{{ __('admin.b2c_dashboard.merchant_intelligence.actions.'.$actionKey) }}</span>
+                        </a>
+                    @empty <div class="rc-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_attention') }}</div> @endforelse
+                </div>
+            </article>
+
             <article class="rc-card">
                 <div class="rc-card-head"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2></div><a class="section-link" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'inventory'])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
                 <div class="rc-compact-list">
