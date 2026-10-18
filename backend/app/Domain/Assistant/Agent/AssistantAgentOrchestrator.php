@@ -94,23 +94,11 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $failed++;
                 $toolExecutions[] = [
                     'call_id' => 'call-'.($index + 1),
-                    'tool' => is_array($step) ? ($step['tool'] ?? null) : null,
+                    'tool' => $step['tool'],
                     'status' => 'FAILED',
                     'failure_code' => 'EXECUTION_BUDGET_EXCEEDED',
                 ];
                 break;
-            }
-
-            if (! is_array($step) || ! is_string($step['tool'] ?? null) || ! is_array($step['arguments'] ?? null)) {
-                $failed++;
-                $toolExecutions[] = [
-                    'call_id' => 'call-'.($index + 1),
-                    'tool' => null,
-                    'status' => 'FAILED',
-                    'failure_code' => 'PROVIDER_MALFORMED',
-                ];
-
-                continue;
             }
 
             $toolKey = (string) $step['tool'];
@@ -245,7 +233,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         $executedKeys = array_map(
             static fn (array $execution): ?string => $execution['status'] === 'FAILED'
                 ? null
-                : (is_string($execution['tool'] ?? null) ? $execution['tool'] : null),
+                : $execution['tool'],
             $toolExecutions,
         );
         $executedKeys = array_values(array_filter($executedKeys));
