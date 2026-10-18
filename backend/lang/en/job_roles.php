@@ -109,6 +109,7 @@ return [
     'level'=>'Role level',
     'errors' => [
         'module_unavailable'=>'The role ":role" cannot be newly assigned because its required module is disabled or not entitled for this scope.',
+        'profile_mismatch'=>'The role ":role" is not valid for this store business profile.',
         'canonical_locked'=>'Built-in job roles are governed by the canonical FOODEX role catalog. Clone the role to create an advanced custom variant.',
     ],
 ];
