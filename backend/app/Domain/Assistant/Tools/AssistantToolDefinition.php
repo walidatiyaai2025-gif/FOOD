@@ -8,12 +8,12 @@ use Illuminate\Validation\ValidationException;
 final readonly class AssistantToolDefinition
 {
     /**
-     * @param array{en:string,ar:string} $labels
-     * @param list<string> $requiredPermissions
-     * @param list<string> $channels
-     * @param array<string,mixed> $inputSchema
-     * @param array<string,mixed> $resultSchema
-     * @param array<string,mixed> $freshness
+     * @param  array{en:string,ar:string}  $labels
+     * @param  list<string>  $requiredPermissions
+     * @param  list<string>  $channels
+     * @param  array<string,mixed>  $inputSchema
+     * @param  array<string,mixed>  $resultSchema
+     * @param  array<string,mixed>  $freshness
      */
     public function __construct(
         public string $key,
@@ -123,7 +123,7 @@ final readonly class AssistantToolDefinition
     }
 
     /** @param array<string,mixed> $value
-     * @param array<string,mixed> $schema
+     * @param  array<string,mixed>  $schema
      */
     private function validateObject(array $value, array $schema, string $path): void
     {
