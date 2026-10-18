@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Assistant\Business\AssistantBusinessToolSet;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
+use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
@@ -23,6 +24,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Policies\B2bCustomerPolicy;
 use App\Policies\B2cCustomerPolicy;
+use App\Services\AssistantExternalAiClient;
 use App\Services\AssistantHybridBrain;
 use App\Services\DatabaseTranslationLoader;
 use App\Support\StoreContext;
@@ -57,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
         $this->app->bind(AssistantBrainInterface::class, AssistantHybridBrain::class);
+        $this->app->bind(AssistantProviderGatewayInterface::class, AssistantExternalAiClient::class);
         $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
         $this->app->bind(StorefrontSnapshotProvider::class, DatabaseStorefrontSnapshotProvider::class);

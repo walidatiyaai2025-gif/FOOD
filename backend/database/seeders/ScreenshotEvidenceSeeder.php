@@ -12,12 +12,14 @@ use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\SupplierDirectory;
+use App\Enums\StoreBusinessProfile;
 use App\Models\EnterpriseBankAccount;
 use App\Models\EnterpriseCashbox;
 use App\Models\Store;
 use App\Models\User;
 use App\Support\TenantContextResolver;
 use App\Services\PlatformCustomerService;
+use App\Services\StoreBusinessProfileService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -454,6 +456,10 @@ class ScreenshotEvidenceSeeder extends Seeder
 
         $retailEvidenceStore = Store::query()->findOrFail($retailStoreId);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($retailEvidenceStore);
+        $retailEvidenceStore = app(StoreBusinessProfileService::class)->assign(
+            $retailEvidenceStore,
+            StoreBusinessProfile::RESTAURANT,
+        );
         app(RestaurantSaasStoreFeatureService::class)->setEnabled(
             $retailEvidenceStore,
             true,
