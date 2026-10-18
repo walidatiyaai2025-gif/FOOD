@@ -2,8 +2,8 @@
   "schema_version": 1,
   "production_base_url": "https://foodex.50sols.com",
   "release": {
-    "version": "1.0.86",
-    "build": 86
+    "version": "1.0.89",
+    "build": 89
   },
   "public_urls": {
     "privacy": "https://foodex.50sols.com/privacy",

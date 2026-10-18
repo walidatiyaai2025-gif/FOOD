@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.89 - 2026-10-18
+- Promote every authoritative main change merged after FOODEX 1.0.86 through the current release head; owner-selected versions 1.0.87 and 1.0.88 remain unpublished.
+- Ship Restaurant SaaS 2.0 management/template/content convergence, per-store entitlement, module-aware RBAC, WhatsApp OTP authentication, and completed enterprise Catalog, Procurement, Stores/Channels, Field Operations, System Administration and Security governance surfaces.
+- Ship Customer Service / Customer 360 completion plus manager/team boundaries, order creation and auditable order-owner assignment with strict Retail/B2B isolation.
+- Ship compact Retail/B2B/Admin dashboard and header convergence, platform-only Retail navigation isolation, audited user onboarding, and bilingual task-focused Security administration.
+- Add configurable FOODEX Assistant external AI settings for OpenAI-compatible API URL, model, encrypted API key, timeout and connection testing while keeping deterministic read-only FOODEX tools and RBAC/store/channel authority.
+- Synchronize Customer, Driver and Van release identities at 1.0.89+89; generate release artifacts only from exact-head green release validation.
+- Keep the Dashboard package cumulative through the canonical updater boundary and independently deployable from installed mobile binaries.
+
 ## 1.0.86 - 2026-10-15
 - Promote the complete post-1.0.79 Dashboard lineage after the final #1560 P0 Smart Ordering blocker closed on main.
 - Ship the Premium Smart WhatsApp Chatbot plus WhatsApp media/calling/campaign/inbox and Meta-template reliability fixes while preserving fail-closed runtime controls.
