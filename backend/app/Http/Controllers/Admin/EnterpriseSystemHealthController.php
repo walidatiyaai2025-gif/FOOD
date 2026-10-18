@@ -442,8 +442,8 @@ final class EnterpriseSystemHealthController extends Controller
     }
 
     /**
-     * @param Collection<int,UpdateHistory> $updates
-     * @param array<string,mixed> $snapshot
+     * @param  Collection<int,UpdateHistory>  $updates
+     * @param  array<string,mixed>  $snapshot
      * @return list<array<string,mixed>>
      */
     private function backupRows(Collection $updates, array $snapshot): array
