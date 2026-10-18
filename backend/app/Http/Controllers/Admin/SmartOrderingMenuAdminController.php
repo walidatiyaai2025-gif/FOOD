@@ -50,7 +50,8 @@ final class SmartOrderingMenuAdminController extends Controller
         $publishedRevision = $revisions->published($site);
         $scheduledRevision = $revisions->scheduled($site);
 
-        $setupFlow = ! $request->boolean('legacy');
+        $setupFlow = ! $request->boolean('legacy')
+            && ($request->has('setup') || $request->boolean('review') || $request->boolean('guided'));
         $setupSteps = ['menu', 'design', 'identity', 'review', 'publish'];
         $requestedSetupStep = $request->has('setup')
             ? strtolower(trim((string) $request->query('setup')))
