@@ -467,6 +467,13 @@ final class SmartOrderingMenuAdminController extends Controller
             }
         });
 
+        if ($request->input('return_to') === 'menu_setup') {
+            return redirect()->route('admin.smart-ordering.menu.index', [
+                'store_id' => $site->store_id,
+                'setup' => 'menu',
+            ])->with('status', app()->getLocale() === 'ar' ? 'تم حفظ المنيو كمسودة.' : 'Menu saved as draft.');
+        }
+
         return redirect()->to(
             route('admin.smart-ordering.appearance.index', [
                 'site' => $site->public_id,
