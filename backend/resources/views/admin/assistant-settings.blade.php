@@ -255,6 +255,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 
 <div class="assistant-note">
+<strong>{{ __('assistant_settings.operations.execution_budgets') }}</strong>
+<p>{{ __('assistant_settings.operations.execution_budgets_help', [
+    'tools' => (int) config('assistant.agent.max_tool_calls', 4),
+    'bytes' => number_format(((int) config('assistant.agent.max_result_bytes', 65536)) / 1024),
+    'seconds' => (int) config('assistant.agent.max_seconds', 12),
+]) }}</p>
+</div>
+
+<div class="assistant-note">
 <strong>{{ __('assistant_settings.operations.last_provider') }}</strong>
 @if($lastProvider)
 <p>{{ $lastProvider['provider'] ?? '—' }} · {{ $lastProvider['model'] ?? '—' }} · {{ $lastProvider['outcome'] ?? '—' }} · {{ $lastProvider['latency_ms'] === null ? '—' : number_format($lastProvider['latency_ms']).' ms' }}</p>
