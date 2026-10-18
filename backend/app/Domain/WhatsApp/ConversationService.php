@@ -358,9 +358,9 @@ final class ConversationService
         );
         $storeId = $conversation->store_id === null ? null : (int) $conversation->store_id;
 
-        $this->assignments->assertEligible($agentId, $storeId);
+        $this->assignments->assertManuallyAssignable($agentId, $storeId);
         if ($backupAgentId !== null) {
-            $this->assignments->assertEligible($backupAgentId, $storeId);
+            $this->assignments->assertManuallyAssignable($backupAgentId, $storeId);
             if ($backupAgentId === $agentId) {
                 throw ValidationException::withMessages([
                     'backup_agent_id' => [__('whatsapp.inbox.errors.backup_same')],
