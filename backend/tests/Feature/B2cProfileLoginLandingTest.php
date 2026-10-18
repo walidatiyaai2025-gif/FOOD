@@ -176,7 +176,7 @@ class B2cProfileLoginLandingTest extends TestCase
             $source,
         );
         $this->assertStringContainsString(
-            '\$defaultTarget = \$this->defaultWorkspaceUrl(\$user, \$target, \$request);',
+            '$defaultTarget = $this->defaultWorkspaceUrl($user, $target, $request);',
             $source,
         );
     }
