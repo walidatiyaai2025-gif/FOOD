@@ -225,12 +225,7 @@ class B2cAdminWorkspaceTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/admin/b2c/incoming_orders')
-            ->assertOk()
-            ->assertSee('Wholesale Purchases')
-            ->assertSee('#'.$wholesaleOrderId)
-            ->assertSee('Make available for sale')
-            ->assertSee('Received in Retail inventory')
-            ->assertDontSee('Retail Buyer');
+            ->assertNotFound();
 
         $this->actingAs($admin)
             ->get('/admin/b2c/orders')
