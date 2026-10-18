@@ -67,7 +67,7 @@
 @endphp
 <main class="foodex-admin-main foodex-admin-page rw-shell" data-restaurant-wholesale-purchases>
     @include('admin._global-header')
-    <header class="foodex-page-toolbar rw-header">
+    <div class="foodex-page-toolbar rw-header">
         <div class="rw-title">
             <h1>{{ __('restaurant_wholesale.title') }}</h1>
             <p>{{ __('restaurant_wholesale.subtitle', ['restaurant' => $context['restaurant']->name]) }}</p>
@@ -89,7 +89,7 @@
             @endif
             <a class="rw-btn" href="{{ $restaurantBack }}">{{ __('restaurant_wholesale.back_to_restaurant') }}</a>
         </div>
-    </header>
+    </div>
 
     @if(session('status'))
         <p class="rw-status" role="status">{{ session('status') }}</p>
