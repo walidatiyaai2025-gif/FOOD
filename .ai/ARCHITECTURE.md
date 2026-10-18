@@ -150,5 +150,14 @@ Authoritative contract: docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md.
 
 FOODEX has one Assistant lineage. Extend the existing Management Assistant controller/routes, conversation state, AssistantBrainInterface, AssistantToolRegistry, AssistantPageContext, runtime/provider settings and OpenAI-compatible/Ollama client. Do not build a parallel chatbot, direct model-to-database path or second tool framework.
 
-Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/retailer-consent -> agent orchestrator -> typed allowlisted tools -> deterministic semantic/read-model/domain services -> authoritative persistence. Providers may classify/plan/explain only; server software owns permissions, calculations and writes. Sell-in and sell-out are separately typed facts. Read-only remains default until #2224 adds draft -> explicit approval -> re-authorization -> idempotent execution. Deterministic diagnostic analysis is versioned by `foodex.analytics.diagnostic.v1`: equal-period comparisons, trend/velocity, mix/contribution, exception rates and inventory cover are computed server-side, while missing/sparse/incomplete evidence is surfaced explicitly and the model cannot override computed values or infer causation from correlation.
+Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/retailer-consent -> agent orchestrator -> typed allowlisted tools -> deterministic semantic/read-model/domain services -> authoritative persistence. Providers may classify/plan/explain only; server software owns permissions, calculations and writes. Sell-in and sell-out are separately typed facts. Read-only remains default until #2224 adds draft -> explicit approval -> re-authorization -> idempotent execution.
 
+
+
+### Agent orchestration invariant
+
+The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
+
+### Deterministic analytics invariant
+
+FOODEX diagnostic arithmetic is server-authoritative and versioned by `foodex.analytics.diagnostic.v1`. Equal-period comparisons, trend/velocity, mix/contribution, exception rates and inventory cover are computed in deterministic Laravel code. Missing, sparse, stale or incomplete evidence is surfaced explicitly; model providers may explain results but cannot override computed values or infer causation from correlation.

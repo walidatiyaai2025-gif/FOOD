@@ -113,7 +113,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.
 
-## D-018 — AI diagnostics are deterministic evidence, not model arithmetic or causation
+## D-018 — Agent planning is bounded; server evidence is the only synthesis authority
+**Decision (#2215 / AI-07, 2026-10-18):** Multi-tool Assistant turns use the existing provider gateway only to propose allowlisted typed reads and synthesize from numbered server evidence. `AssistantToolExecutor` remains the mandatory authorization/audit gate for every proposed call. The orchestrator enforces hard step, call, time and result-size budgets, suppresses duplicate tool signatures and never persists/exposes provider reasoning.
+
+**Reason:** an unconstrained agent loop could turn model output into authority, amplify accidental repeated reads, leak scope through tool arguments or create unbounded latency/cost. FOODEX already has authoritative typed tools, semantic metrics, read models and security controls.
+
+**Consequences:** unknown/malformed tools fail closed; authorization/consent/schema failures are never converted into permissive fallbacks; provider/tool outages may yield explicit partial answers; AI-disabled/no-tool/provider-failure paths fall back to the existing Assistant; no chain-of-thought is stored; no public API contract changes are introduced by orchestration.
+
+**Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
+
+## D-019 — AI diagnostics are deterministic evidence, not model arithmetic or causation
 **Decision (#2218 / AI-10, 2026-10-18):** FOODEX period comparisons, trend/velocity, mix/contribution, refund/cancellation rates, inventory cover and margin diagnostics are computed by versioned server-side software before model narration. The reusable result contract is `foodex.analytics.diagnostic.v1`; model providers may explain it but cannot replace its values, submit SQL or promote correlation into a causal claim.
 
 **Reason:** business diagnostics must remain reproducible across Arabic/English narration, model/provider changes and provider outages. Missing comparison periods, sparse samples, stale/incomplete facts, zero denominators and incompatible currencies must produce explicit evidence limitations rather than invented percentages or causes.
