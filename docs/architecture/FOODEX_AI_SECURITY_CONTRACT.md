@@ -51,7 +51,7 @@ Future orchestrator work must use the same execution gate rather than calling `A
 
 Retail sell-out is protected retailer data. Wholesale sell-in does not imply permission to read sell-out.
 
-Sharing state is persisted in `assistant_retailer_data_grants`. A grant is exact and contains:
+Sharing state is persisted in `assistant_retailer_data_grants`. Grant/revoke requires the dedicated store-scoped `assistant.sellout.share` permission (SUPER_ADMIN remains platform-authoritative). A grant is exact and contains:
 
 - retailer store;
 - grantee Wholesale store, which must be the canonical `WholesalePrincipal` store;
