@@ -77,6 +77,14 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
 .restaurant-workspace-link.is-partial{border:1px dashed var(--foodex-border)}
 .restaurant-workspace-link.is-unavailable{color:var(--foodex-muted);cursor:default}
 .restaurant-workspace-state{font-size:.68rem;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--foodex-orange-soft);color:var(--foodex-ink)}
+.restaurant-primary-tasks.is-compact{display:flex;align-items:center;gap:6px;overflow-x:auto;margin:6px 0;padding:1px;scrollbar-width:thin}
+.restaurant-primary-tasks.is-compact .restaurant-primary-task{flex:0 0 auto;min-height:34px;padding:6px 10px;border-radius:999px;font-size:.74rem}
+.restaurant-workspace-launcher.is-compact{margin:6px 0 8px;border-radius:12px}
+.restaurant-workspace-launcher.is-compact>summary{min-height:36px;padding:7px 11px;font-size:.76rem}
+.restaurant-workspace-launcher.is-compact>summary small{font-size:.66rem;color:var(--foodex-muted)}
+.restaurant-workspace-launcher.is-compact .restaurant-workspace-groups{gap:6px;padding:0 8px 8px}
+.restaurant-workspace-launcher.is-compact .restaurant-workspace-group{padding:8px}
+
 @media(max-width:1280px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1024px){.restaurant-primary-task{min-height:44px}}
 @media(max-width:768px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}.restaurant-primary-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -85,7 +93,7 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
 @media(max-width:360px){.restaurant-workspace-groups,.restaurant-primary-tasks{grid-template-columns:1fr}}
 </style>
 
-<nav class="restaurant-primary-tasks" data-restaurant-task-first-nav aria-label="{{ __('smart_ordering.workspace.tasks_label') }}">
+<nav class="restaurant-primary-tasks {{ ($restaurantManagementCompact ?? false) ? 'is-compact' : '' }}" data-restaurant-task-first-nav aria-label="{{ __('smart_ordering.workspace.tasks_label') }}">
     @foreach($restaurantPrimaryTasks as $task)
         @if($task['visible'] && $task['href'])
             <a class="restaurant-primary-task" data-restaurant-primary-task="{{ $task['key'] }}" href="{{ $task['href'] }}">{{ __('smart_ordering.workspace.tasks.'.$task['key']) }}</a>
@@ -93,7 +101,7 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
     @endforeach
 </nav>
 
-<details class="restaurant-workspace-launcher" data-restaurant-management-workspace>
+<details class="restaurant-workspace-launcher {{ ($restaurantManagementCompact ?? false) ? 'is-compact' : '' }}" data-restaurant-management-workspace>
     <summary>
         <span>{{ __('smart_ordering.workspace.title') }}</span>
         <small>{{ __('smart_ordering.workspace.help') }}</small>
