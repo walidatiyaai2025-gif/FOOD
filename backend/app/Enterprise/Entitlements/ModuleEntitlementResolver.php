@@ -15,18 +15,31 @@ final class ModuleEntitlementResolver
         private readonly EntitlementScopeResolver $scopes,
     ) {}
 
+    public function forgetModule(string $moduleCode): void
+    {
+        $prefix = $moduleCode.'|';
+
+        foreach (array_keys($this->memo) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->memo[$key]);
+            }
+        }
+    }
+
     public function allows(
         string $moduleCode,
         EntitlementScope $scope,
         ?string $capability = null,
     ): bool {
+        // Lifecycle state is mutable and must remain authoritative even when an
+        // entitlement decision was memoized earlier in the request.
+        if ($this->registry->isEnabled($moduleCode) === false) {
+            return false;
+        }
+
         $memoKey = $moduleCode.'|'.$scope->key().'|'.($capability ?? '*');
         if (array_key_exists($memoKey, $this->memo)) {
             return $this->memo[$memoKey];
-        }
-
-        if ($this->registry->isEnabled($moduleCode) === false) {
-            return $this->memo[$memoKey] = false;
         }
 
         $manifest = $this->registry->manifest($moduleCode);
