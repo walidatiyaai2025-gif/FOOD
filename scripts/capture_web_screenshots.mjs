@@ -635,7 +635,7 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
 
 async function captureSecurityPermissionEvidence(page, locale) {
   await page.setViewportSize({ width: 1280, height: 900 });
-  const response = await page.goto(`${baseUrl}/admin/security`, { waitUntil: 'networkidle' });
+  const response = await page.goto(`${baseUrl}/admin/security?section=roles`, { waitUntil: 'networkidle' });
   if (!response || !response.ok() || page.url().includes('/login')) {
     throw new Error(`Security permission runtime route failed: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
   }
