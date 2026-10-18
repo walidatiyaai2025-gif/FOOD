@@ -11,13 +11,13 @@ final class AdminCompactHeaderContractTest extends TestCase
         $brand = file_get_contents(resource_path('views/admin/_brand.blade.php'));
 
         $this->assertIsString($brand);
-        $this->assertStringContainsString('--foodex-header-height:32px', $brand);
-        $this->assertStringContainsString('--foodex-header-height-tablet:34px', $brand);
-        $this->assertStringContainsString('--foodex-header-height-mobile:44px', $brand);
-        $this->assertStringContainsString('--foodex-header-control-height:24px', $brand);
-        $this->assertStringContainsString('--foodex-header-control-height-tablet:28px', $brand);
+        $this->assertStringContainsString('--foodex-header-height:44px', $brand);
+        $this->assertStringContainsString('--foodex-header-height-tablet:44px', $brand);
+        $this->assertStringContainsString('--foodex-header-height-mobile:56px', $brand);
+        $this->assertStringContainsString('--foodex-header-control-height:32px', $brand);
+        $this->assertStringContainsString('--foodex-header-control-height-tablet:32px', $brand);
         $this->assertStringContainsString('--foodex-header-control-height-mobile:44px', $brand);
-        $this->assertStringNotContainsString('--foodex-header-height:76px', $brand);
+        $this->assertStringContainsString('--foodex-header-icon-size:16px', $brand);
     }
 
     public function test_shared_global_header_and_page_toolbar_contract_are_distinct(): void
@@ -31,7 +31,7 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertStringContainsString('font-size:var(--foodex-text-lg)!important', $components);
         $this->assertStringContainsString('flex-wrap:nowrap', $components);
         $this->assertStringContainsString('position:fixed;z-index:10110', $components);
-        $this->assertStringContainsString('height:56px;min-height:56px;max-height:56px', $components);
+        $this->assertStringContainsString('height:var(--foodex-header-height-mobile);min-height:var(--foodex-header-height-mobile);max-height:var(--foodex-header-height-mobile)', $components);
         $this->assertStringContainsString('min-height:var(--foodex-touch-target)!important', $components);
         $this->assertStringNotContainsString('foodex-page-header', $components);
     }
@@ -79,7 +79,7 @@ final class AdminCompactHeaderContractTest extends TestCase
 
         $this->assertIsString($contract);
         $this->assertStringContainsString('## 13B. Single Global Admin Header System', $contract);
-        $this->assertStringContainsString('desktop global header chrome targets **32 px** height', $contract);
+        $this->assertStringContainsString('desktop global header chrome targets **44 px** height', $contract);
         $this->assertStringContainsString('one shared `admin._global-header`', $contract);
         $this->assertStringContainsString('page content uses `.foodex-page-toolbar`', $contract);
     }
