@@ -109,6 +109,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                     'status' => 'FAILED',
                     'failure_code' => 'PROVIDER_MALFORMED',
                 ];
+
                 continue;
             }
 
@@ -123,6 +124,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                     'status' => 'FAILED',
                     'failure_code' => $this->tools->has($toolKey) ? 'EXECUTION_BUDGET_EXCEEDED' : 'TOOL_NOT_REGISTERED',
                 ];
+
                 continue;
             }
             $seenTools[$toolKey] = true;
@@ -135,6 +137,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                     'status' => 'FAILED',
                     'failure_code' => 'APPROVAL_REQUIRED',
                 ];
+
                 continue;
             }
 
@@ -606,8 +609,8 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
     }
 
     /**
-     * @param array<string,array<string,mixed>> $results
-     * @param list<array<string,mixed>> $evidence
+     * @param  array<string,array<string,mixed>>  $results
+     * @param  list<array<string,mixed>>  $evidence
      */
     private function synthesize(
         AgentTurnRequest $request,

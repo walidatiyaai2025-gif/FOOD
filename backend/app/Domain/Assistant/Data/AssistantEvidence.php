@@ -5,9 +5,9 @@ namespace App\Domain\Assistant\Data;
 final readonly class AssistantEvidence
 {
     /**
-     * @param list<int> $storeIds
-     * @param array<string,mixed>|null $window
-     * @param array<string,mixed>|null $freshness
+     * @param  list<int>  $storeIds
+     * @param  array<string,mixed>|null  $window
+     * @param  array<string,mixed>|null  $freshness
      */
     public function __construct(
         public string $evidenceId,
