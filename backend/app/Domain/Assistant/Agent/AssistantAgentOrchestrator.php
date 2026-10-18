@@ -728,7 +728,10 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         return new AssistantEvidence(
             evidenceId: 'ev-'.$callId,
             callId: $callId,
-            sourceType: ((string) ($meta['data_class'] ?? $this->tools->definition($toolKey)->dataClass)) === 'KNOWLEDGE'\n                ? 'KNOWLEDGE_INDEX'\n                : 'DOMAIN_READ_MODEL',\n            sourceName: (string) ($meta['source'] ?? $this->tools->definition($toolKey)->source),
+            sourceType: ((string) ($meta['data_class'] ?? $this->tools->definition($toolKey)->dataClass)) === 'KNOWLEDGE'
+                ? 'KNOWLEDGE_INDEX'
+                : 'DOMAIN_READ_MODEL',
+            sourceName: (string) ($meta['source'] ?? $this->tools->definition($toolKey)->source),
             sourceVersion: (string) ($meta['schema_version'] ?? $this->tools->definition($toolKey)->schemaVersion),
             dataClass: (string) ($meta['data_class'] ?? $this->tools->definition($toolKey)->dataClass),
             channel: $request->channel,
