@@ -96,6 +96,7 @@
             @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
             @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
+        <section class="so-settings-panel" data-so-settings-panel="overview">
         @php
             $ov = $restaurantOverview;
             $ovFilters = $ov['filters'];
@@ -267,49 +268,29 @@
                 </article>
             </div>
         </section>
-        <section class="panel">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-                <div><h2>{{ __('smart_ordering_menu.nav_title') }}</h2><p>{{ __('smart_ordering_menu.description') }}</p></div>
-                <a class="primary" href="{{ route('admin.smart-ordering.menu.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_menu.nav_title') }}</a>
-            </div>
+        <div class="so-quick-links" aria-label="{{ $isAr ? 'روابط سريعة' : 'Quick links' }}">
+            <a class="so-quick-link" href="{{ route('admin.smart-ordering.menu.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">
+                <strong>{{ __('smart_ordering_menu.nav_title') }}</strong><span>→</span>
+            </a>
+            @if($entitlements['foodex_supply_intelligence'] ?? false)
+                <a class="so-quick-link" href="{{ route('admin.smart-ordering.supply.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">
+                    <strong>{{ __('smart_ordering_supply.title') }}</strong><span>→</span>
+                </a>
+            @endif
+            <a class="so-quick-link" href="{{ route('admin.smart-ordering.integrations.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">
+                <strong>{{ __('restaurant_integrations.title') }}</strong><span>→</span>
+            </a>
+            <a class="so-quick-link" href="{{ route('admin.smart-ordering.growth.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">
+                <strong>{{ __('restaurant_growth.title') }}</strong><span>→</span>
+            </a>
+        </div>
         </section>
 
-        @if($entitlements['foodex_supply_intelligence'] ?? false)
-        <section class="panel">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-                <div>
-                    <h2>{{ __('smart_ordering_supply.title') }}</h2>
-                    <p>{{ __('smart_ordering_supply.nav_description') }}</p>
-                </div>
-                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
-            </div>
-        </section>
-        <section class="panel">
-            <div class="so-section-head">
-                <div>
-                    <h2>{{ __('restaurant_integrations.title') }}</h2>
-                    <p>{{ __('restaurant_integrations.subtitle') }}</p>
-                </div>
-                <a class="primary" href="{{ route('admin.smart-ordering.integrations.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('restaurant_integrations.title') }}</a>
-            </div>
-        </section>
-        @endif
-
-        <section class="panel">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-                <div>
-                    <h2>{{ __('restaurant_growth.title') }}</h2>
-                    <p>{{ __('restaurant_growth.subtitle') }}</p>
-                </div>
-                <a class="primary" href="{{ route('admin.smart-ordering.growth.index',[$site] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('restaurant_growth.title') }}</a>
-            </div>
+        <section class="so-settings-panel" data-so-settings-panel="launch" hidden>
+            @include('admin._restaurant-onboarding')
         </section>
 
-        @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
-        @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
-
-        @include('admin._restaurant-onboarding')
-
+        <section class="so-settings-panel" data-so-settings-panel="site" hidden>
         <section class="panel">
             <form class="foodex-form" method="get" action="{{ route('admin.smart-ordering.index') }}">
                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -358,7 +339,13 @@
             </section>
         </div>
 
-        @include('admin._smart-ordering-content-editor')
+        </section>
+
+        <section class="so-settings-panel" data-so-settings-panel="content" hidden>
+            @include('admin._smart-ordering-content-editor')
+        </section>
+
+        <section class="so-settings-panel" data-so-settings-panel="modules" hidden>
 
         <section class="panel">
             <h2>{{ __('smart_ordering.entitlements') }}</h2>
@@ -396,6 +383,44 @@
             </form>
             @endif
         </section>
+        </section>
+
+        <script>
+        (() => {
+            const root = document.querySelector('[data-so-settings-page]');
+            const tabs = root?.querySelector('[data-so-settings-tabs]');
+            if (!root || !tabs) return;
+
+            const buttons = [...tabs.querySelectorAll('[data-so-settings-tab]')];
+            const panels = [...root.querySelectorAll('[data-so-settings-panel]')];
+            const available = new Set(buttons.map((button) => button.dataset.soSettingsTab));
+            const hashValue = window.location.hash.startsWith('#settings-')
+                ? window.location.hash.slice('#settings-'.length)
+                : null;
+            const defaultTab = available.has(hashValue)
+                ? hashValue
+                : (available.has(tabs.dataset.defaultTab) ? tabs.dataset.defaultTab : buttons[0]?.dataset.soSettingsTab);
+
+            const activate = (name, updateHistory = true) => {
+                if (!available.has(name)) name = defaultTab;
+                buttons.forEach((button) => {
+                    const active = button.dataset.soSettingsTab === name;
+                    button.setAttribute('aria-selected', active ? 'true' : 'false');
+                    button.tabIndex = active ? 0 : -1;
+                });
+                panels.forEach((panel) => {
+                    panel.hidden = panel.dataset.soSettingsPanel !== name;
+                });
+                if (updateHistory) {
+                    history.replaceState(null, '', '#settings-' + name);
+                }
+            };
+
+            buttons.forEach((button) => button.addEventListener('click', () => activate(button.dataset.soSettingsTab)));
+            activate(defaultTab, false);
+        })();
+        </script>
+        </div>
     </main>
 </div>
 </body>
