@@ -341,9 +341,9 @@
         <div class="rl-publish-card">
             <h2>{{ $publishedRevision ? ($launchIsAr?'المطعم منشور ويمكن تحديثه':'Restaurant is published and can be updated') : ($launchIsAr?'جاهز للنشر النهائي؟':'Ready to publish?') }}</h2>
             <p>{{ $launchIsAr?'النشر هو الخطوة الوحيدة التي تجعل المسودة الحالية ظاهرة للعملاء.':'Publishing is the only step that makes the current draft visible to customers.' }}</p>
-            @if(empty($itemPriceErrors) && $canPublishSetup && $scheduledRevision===null)
+            @if(empty($itemPriceErrors) && $canPublishSetup && $canManageSetup && $scheduledRevision===null)
                 <form method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
-                    @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                    @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="guided" value="1">
                     <button class="rl-next" type="submit">{{ $publishedRevision ? ($launchIsAr?'نشر التحديثات الآن':'Publish updates now') : ($launchIsAr?'نشر المطعم الآن':'Publish restaurant now') }}</button>
                 </form>
             @else
