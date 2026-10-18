@@ -182,7 +182,7 @@ class AdminNavigation
      * navigation and built-in job-role catalog. Explicit intended URLs are handled
      * by AdminLoginController before this default is used.
      */
-    public function defaultWorkspaceUrl(User $user, string $channel): string
+    public function defaultWorkspaceUrl(User $user, string $channel, ?int $storeId = null): string
     {
         $channels = $this->for($user);
         $channelDefinition = $channels[$channel] ?? null;
@@ -198,7 +198,7 @@ class AdminNavigation
             }
         }
 
-        foreach ($this->workspaceRoleDefinitions($user, $channel) as $role) {
+        foreach ($this->workspaceRoleDefinitions($user, $channel, $storeId) as $role) {
             $resolved = $this->workspaceUrlForRole($user, $channel, $role, $visibleItems);
             if ($resolved !== null) {
                 return $resolved;
@@ -275,12 +275,17 @@ class AdminNavigation
     /**
      * @return list<array{code:string,domain:string,level:string,sort:int}>
      */
-    private function workspaceRoleDefinitions(User $user, string $channel): array
+    private function workspaceRoleDefinitions(User $user, string $channel, ?int $storeId = null): array
     {
         $codes = [];
 
         if ($channel === 'b2c') {
             $storeIds = $this->tenantContext->retailStoreIds($user);
+
+            if ($storeId !== null) {
+                $storeIds = in_array($storeId, $storeIds, true) ? [$storeId] : [];
+            }
+
             if ($storeIds !== []) {
                 $codes = $user->storeRoleAssignments()
                     ->whereIn('store_id', $storeIds)
