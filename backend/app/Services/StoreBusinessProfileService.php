@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final class StoreBusinessProfileService
 {
