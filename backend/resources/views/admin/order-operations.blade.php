@@ -6,8 +6,8 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(132px,1fr));min-width:0;margin:12px 0 16px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
-.order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,#158A3A 0%,#2563EB 18%,#7C3AED 34%,#EA580C 50%,#DC2626 66%,#0891B2 82%,#BE123C 100%);background-size:180% 100%;animation:orderKpiEdge 4.8s linear infinite}
+.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(132px,1fr));min-width:0;margin:6px 0;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
+.order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,#158A3A 0%,#2563EB 18%,#7C3AED 34%,#EA580C 50%,#DC2626 66%,#0891B2 82%,#BE123C 100%);background-size:180% 100%;animation:orderKpiEdge 7.5s linear infinite}
 .order-kpi-item{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF;position:relative;min-width:132px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 12px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
 .order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
 .order-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}.order-kpi-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:17px;height:17px}
@@ -15,10 +15,10 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-kpi-state{position:absolute;inset-inline-end:10px;bottom:10px;width:7px;height:7px;border-radius:999px;background:var(--foodex-border)}.order-kpi-state[data-state="success"]{background:#16A34A}.order-kpi-state[data-state="warning"]{background:#EA580C}.order-kpi-state[data-state="danger"],.order-kpi-state[data-state="error"]{background:#DC2626}
 .order-kpi-item[data-tone="green"]{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF}.order-kpi-item[data-tone="blue"]{--order-kpi-accent:#2563EB;--order-kpi-soft:#EFF6FF}.order-kpi-item[data-tone="violet"]{--order-kpi-accent:#7C3AED;--order-kpi-soft:#F5F3FF}.order-kpi-item[data-tone="orange"]{--order-kpi-accent:#EA580C;--order-kpi-soft:#FFF7ED}.order-kpi-item[data-tone="red"]{--order-kpi-accent:#DC2626;--order-kpi-soft:#FEF2F2}.order-kpi-item[data-tone="amber"]{--order-kpi-accent:#B45309;--order-kpi-soft:#FFFBEB}.order-kpi-item[data-tone="cyan"]{--order-kpi-accent:#0E7490;--order-kpi-soft:#ECFEFF}.order-kpi-item[data-tone="rose"]{--order-kpi-accent:#BE123C;--order-kpi-soft:#FFF1F2}
 @keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
-.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
-.status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
-.order-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;margin:4px 0 14px}
-.order-workspace-tabs{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-width:0;margin:0;overflow-x:auto;overflow-y:hidden;padding:2px;scrollbar-width:thin;flex:0 1 auto}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:8px;margin-bottom:6px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
+.status-tabs{display:flex;gap:6px;overflow:auto;padding:2px 0 6px;margin-bottom:0}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
+.order-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;margin:0 0 6px}
+.order-workspace-tabs{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;margin:0;overflow-x:auto;overflow-y:hidden;padding:2px;scrollbar-width:thin;flex:0 1 auto}
 .order-workspace-filter-slot{display:flex;align-items:center;justify-content:flex-end;min-width:0;margin-inline-start:auto;flex:0 1 auto}
 .order-workspace-tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.78rem;font-weight:900;white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.035);transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
 .order-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
@@ -26,31 +26,42 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-workspace-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#DBEAFE;color:#1D4ED8;font-size:.68rem;font-weight:900;font-variant-numeric:tabular-nums}
 .order-workspace-tab[aria-selected="true"] .order-workspace-tab-count{background:rgba(255,255,255,.2);color:#fff}
 .order-tab-panel{min-width:0;width:100%}.order-tab-panel[hidden]{display:none!important}
-.table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.foodex-module-overview{display:grid;gap:6px}
+.order-tab-panel[data-order-panel="analytics"]{display:grid;gap:6px}
+.order-analytics-tabs{display:flex;align-items:center;gap:5px;overflow-x:auto;padding:0 0 2px;margin:0;scrollbar-width:thin}
+.order-analytics-subtab{min-height:34px;padding:0 13px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.7rem;font-weight:900;white-space:nowrap;cursor:pointer;transition:background .22s ease,color .22s ease,border-color .22s ease,transform .22s ease}
+.order-analytics-subtab:hover{transform:translateY(-1px);border-color:#bfd5c6;color:var(--foodex-green-dark)}
+.order-analytics-subtab[aria-selected="true"]{border-color:#146c36;background:#eaf7ef;color:#146c36;box-shadow:inset 0 0 0 1px rgba(20,108,54,.08)}
+[data-analytics-group][hidden]{display:none!important}
+.foodex-module-panels,.sales-ops-chart-grid{gap:6px!important;margin:0!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-card{padding:10px!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{margin-bottom:5px!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-module-chart-summary{margin:5px 0!important}
+.table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .sales-ops-bars{height:180px;align-items:flex-end}
-.sales-ops-bar-link{--order-chart-color:#158A3A;min-height:8px;text-decoration:none;background:var(--order-chart-color)!important;border-radius:8px 8px 3px 3px;box-shadow:0 5px 14px color-mix(in srgb,var(--order-chart-color) 24%,transparent);transform-origin:bottom center;transform:scaleY(0);opacity:.72}
-.sales-ops-bar-link:nth-child(8n+1){--order-chart-color:#158A3A}.sales-ops-bar-link:nth-child(8n+2){--order-chart-color:#2563EB}.sales-ops-bar-link:nth-child(8n+3){--order-chart-color:#7C3AED}.sales-ops-bar-link:nth-child(8n+4){--order-chart-color:#EA580C}.sales-ops-bar-link:nth-child(8n+5){--order-chart-color:#DC2626}.sales-ops-bar-link:nth-child(8n+6){--order-chart-color:#0891B2}.sales-ops-bar-link:nth-child(8n+7){--order-chart-color:#BE123C}.sales-ops-bar-link:nth-child(8n+8){--order-chart-color:#CA8A04}
-.order-tab-panel.charts-animate .sales-ops-bar-link{animation:orderChartGrow .72s cubic-bezier(.2,.8,.2,1) forwards}
-.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(2){animation-delay:.04s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(3){animation-delay:.08s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(4){animation-delay:.12s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(5){animation-delay:.16s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(6){animation-delay:.20s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(7){animation-delay:.24s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(8){animation-delay:.28s}
-.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:8px}
-.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--foodex-border);border-radius:10px;color:inherit;text-decoration:none}
-.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto;--order-rank-color:#158A3A}
-.sales-ops-ranked-bars a:nth-child(8n+1){--order-rank-color:#158A3A}.sales-ops-ranked-bars a:nth-child(8n+2){--order-rank-color:#2563EB}.sales-ops-ranked-bars a:nth-child(8n+3){--order-rank-color:#7C3AED}.sales-ops-ranked-bars a:nth-child(8n+4){--order-rank-color:#EA580C}.sales-ops-ranked-bars a:nth-child(8n+5){--order-rank-color:#DC2626}.sales-ops-ranked-bars a:nth-child(8n+6){--order-rank-color:#0891B2}.sales-ops-ranked-bars a:nth-child(8n+7){--order-rank-color:#BE123C}.sales-ops-ranked-bars a:nth-child(8n+8){--order-rank-color:#CA8A04}
-.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:#EEF2F6;overflow:hidden}
-.sales-ops-ranked-bars b{display:block;height:100%;background:var(--order-rank-color);border-radius:inherit;transform:scaleX(0)}
+.sales-ops-bar-link{--order-chart-color:#158A3A;--order-chart-color-2:#38BDF8;min-height:8px;text-decoration:none;background:linear-gradient(180deg,var(--order-chart-color-2) 0%,var(--order-chart-color) 72%,color-mix(in srgb,var(--order-chart-color) 80%,#0f172a) 100%)!important;border-radius:8px 8px 3px 3px;box-shadow:0 5px 14px color-mix(in srgb,var(--order-chart-color) 20%,transparent);transform-origin:bottom center;transform:scaleY(0);opacity:.72}
+.sales-ops-bar-link:nth-child(8n+1){--order-chart-color:#158A3A;--order-chart-color-2:#22C55E}.sales-ops-bar-link:nth-child(8n+2){--order-chart-color:#2563EB;--order-chart-color-2:#38BDF8}.sales-ops-bar-link:nth-child(8n+3){--order-chart-color:#7C3AED;--order-chart-color-2:#C084FC}.sales-ops-bar-link:nth-child(8n+4){--order-chart-color:#EA580C;--order-chart-color-2:#FACC15}.sales-ops-bar-link:nth-child(8n+5){--order-chart-color:#DC2626;--order-chart-color-2:#FB7185}.sales-ops-bar-link:nth-child(8n+6){--order-chart-color:#0891B2;--order-chart-color-2:#2DD4BF}.sales-ops-bar-link:nth-child(8n+7){--order-chart-color:#BE123C;--order-chart-color-2:#F472B6}.sales-ops-bar-link:nth-child(8n+8){--order-chart-color:#CA8A04;--order-chart-color-2:#FDBA74}
+.order-tab-panel.charts-animate .sales-ops-bar-link{animation:orderChartGrow 1.65s cubic-bezier(.16,.84,.22,1) forwards}
+.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(2){animation-delay:.08s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(3){animation-delay:.16s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(4){animation-delay:.24s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(5){animation-delay:.32s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(6){animation-delay:.40s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(7){animation-delay:.48s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(8){animation-delay:.56s}
+.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:5px}
+.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--foodex-border);border-radius:9px;color:inherit;text-decoration:none}
+.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto;--order-rank-color:#158A3A;--order-rank-color-2:#38BDF8}
+.sales-ops-ranked-bars a:nth-child(8n+1){--order-rank-color:#158A3A;--order-rank-color-2:#22C55E}.sales-ops-ranked-bars a:nth-child(8n+2){--order-rank-color:#2563EB;--order-rank-color-2:#38BDF8}.sales-ops-ranked-bars a:nth-child(8n+3){--order-rank-color:#7C3AED;--order-rank-color-2:#C084FC}.sales-ops-ranked-bars a:nth-child(8n+4){--order-rank-color:#EA580C;--order-rank-color-2:#FACC15}.sales-ops-ranked-bars a:nth-child(8n+5){--order-rank-color:#DC2626;--order-rank-color-2:#FB7185}.sales-ops-ranked-bars a:nth-child(8n+6){--order-rank-color:#0891B2;--order-rank-color-2:#2DD4BF}.sales-ops-ranked-bars a:nth-child(8n+7){--order-rank-color:#BE123C;--order-rank-color-2:#F472B6}.sales-ops-ranked-bars a:nth-child(8n+8){--order-rank-color:#CA8A04;--order-rank-color-2:#FDBA74}
+.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:linear-gradient(90deg,#f8fafc,#e2e8f0);overflow:hidden}
+.sales-ops-ranked-bars b{display:block;height:100%;background:linear-gradient(90deg,var(--order-rank-color),var(--order-rank-color-2));border-radius:inherit;transform:scaleX(0)}
 html[dir="rtl"] .sales-ops-ranked-bars b{transform-origin:right center}html[dir="ltr"] .sales-ops-ranked-bars b{transform-origin:left center}
-.order-tab-panel.charts-animate .sales-ops-ranked-bars b{animation:orderRankGrow .78s cubic-bezier(.2,.8,.2,1) forwards}
-.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:orderChartCardIn .38s ease-out both}
-.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(2){animation-delay:.05s}.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(3){animation-delay:.1s}
-@keyframes orderChartGrow{0%{transform:scaleY(0);opacity:.28}100%{transform:scaleY(1);opacity:1}}
-@keyframes orderRankGrow{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
-@keyframes orderChartCardIn{0%{opacity:.45;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+.order-tab-panel.charts-animate .sales-ops-ranked-bars b{animation:orderRankGrow 1.85s cubic-bezier(.16,.84,.22,1) forwards}
+.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:orderChartCardIn .85s ease-out both}
+.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(2){animation-delay:.12s}.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(3){animation-delay:.24s}
+@keyframes orderChartGrow{0%{transform:scaleY(0);opacity:.2}55%{opacity:.86}100%{transform:scaleY(1);opacity:1}}
+@keyframes orderRankGrow{0%{transform:scaleX(0);filter:saturate(.75)}100%{transform:scaleX(1);filter:saturate(1)}}
+@keyframes orderChartCardIn{0%{opacity:.35;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}
 @media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}
 @media(max-width:1180px){.order-workspace-bar{align-items:center}.order-workspace-tabs{flex:1 1 auto}.order-workspace-filter-slot{flex:0 0 auto}}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}
-@media(max-width:700px){.order-workspace-bar{gap:8px}.order-workspace-tab{min-height:38px;padding-inline:13px}.order-workspace-tabs{gap:6px}}
+@media(max-width:700px){.order-workspace-bar{gap:5px}.order-workspace-tab{min-height:36px;padding-inline:11px}.order-workspace-tabs,.order-analytics-tabs{gap:4px}.order-analytics-subtab{min-height:32px;padding-inline:10px}}
 @media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
-@media(prefers-reduced-motion:reduce){.order-kpi-card::before,.order-tab-panel.charts-animate .sales-ops-bar-link,.order-tab-panel.charts-animate .sales-ops-ranked-bars b,.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:none}.order-kpi-item,.order-workspace-tab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover{transform:none}.sales-ops-bar-link{transform:none;opacity:1}.sales-ops-ranked-bars b{transform:none}}
+@media(prefers-reduced-motion:reduce){.order-kpi-card::before,.order-tab-panel.charts-animate .sales-ops-bar-link,.order-tab-panel.charts-animate .sales-ops-ranked-bars b,.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:none}.order-kpi-item,.order-workspace-tab,.order-analytics-subtab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover,.order-analytics-subtab:hover{transform:none}.sales-ops-bar-link{transform:none;opacity:1}.sales-ops-ranked-bars b{transform:none}}
 </style>
 </head>
 <body>
@@ -133,8 +144,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 
     <div class="order-tab-panel" role="tabpanel" data-order-panel="analytics" <?php if (request()->has('page')): ?>hidden<?php endif; ?>>
+    <nav class="order-analytics-tabs"
+         role="tablist"
+         aria-label="{{ $isAr ? 'أقسام التحليلات' : 'Analytics sections' }}"
+         data-order-analytics-tabs
+         data-default-analytics-tab="performance">
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="true" data-analytics-tab="performance">{{ $isAr ? 'الأداء' : 'Performance' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="operations">{{ $isAr ? 'التشغيل' : 'Operations' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="channels">{{ $isAr ? 'القنوات والدفع' : 'Channels & Payment' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="commerce">{{ $isAr ? 'العملاء والمنتجات' : 'Customers & Products' }}</button>
+    </nav>
     <div class="foodex-module-panels">
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-trend-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="performance" aria-labelledby="sales-trend-title">
             <div class="foodex-viz-header">
                 <div><h3 class="foodex-viz-title" id="sales-trend-title">{{ __('order_operations.dashboard.charts.trend') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.trend_help') }}</p></div>
                 <a class="foodex-action-secondary button secondary" href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])) }}">{{ __('order_operations.dashboard.open_report') }}</a>
@@ -152,7 +173,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <?php endif; ?>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-exception-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="performance" aria-labelledby="sales-exception-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-exception-title">{{ __('order_operations.dashboard.charts.exceptions') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.exceptions_help') }}</p></div></div>
             <div class="sales-ops-exceptions">
                 <?php foreach (($dashboard['exceptions'] ?? []) as $exception): ?>
@@ -163,7 +184,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 
     <div class="sales-ops-chart-grid">
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-status-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-status-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-status-title">{{ __('order_operations.dashboard.charts.status') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.status_help') }}</p></div></div>
             <?php if (($dashboard['status_breakdown'] ?? []) === []): ?>
                 <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
@@ -176,7 +197,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <?php endif; ?>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-channel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-channel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-channel-title">{{ __('order_operations.dashboard.charts.channels') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.channels_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
                 <?php if (($dashboard['channel_breakdown'] ?? []) === []): ?>
@@ -189,22 +210,22 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-payment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-payment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-payment-title">{{ __('order_operations.dashboard.charts.payments') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.payments_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['payment_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['payment_breakdown'] ?? []) as $point): ?><div><span>{{ $point['provider'] }} · {{ $businessLabel($point['status']) }}</span><strong>{{ number_format((int)$point['payments']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-products-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-products-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-products-title">{{ __('order_operations.dashboard.charts.products') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.products_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['top_products'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['top_products'] ?? []) as $point): ?><a href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report'=>'products','product_id'=>$point['product_id']])) }}"><span>{{ $point['sku'] }} · {{ $point['name'] }}</span><strong>{{ \App\Support\DisplayNumber::quantity((float)$point['quantity']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-stores-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-stores-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-stores-title">{{ __('order_operations.dashboard.charts.stores') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.stores_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['store_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['store_breakdown'] ?? []) as $point): ?><a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['store_id'=>$point['store_id']])) }}"><span>{{ $point['store'] }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-customers-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-customers-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-customers-title">{{ __('order_operations.dashboard.charts.customers') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.customers_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
                 <?php if (($dashboard['top_customers'] ?? []) === []): ?>
@@ -225,18 +246,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-cancel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-cancel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-cancel-title">{{ __('order_operations.dashboard.charts.cancellations') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.cancellations_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['cancellation_reasons'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['cancellation_reasons'] ?? []) as $point): ?><div><span>{{ $point['reason']==='unspecified' ? __('order_operations.dashboard.unspecified_reason') : $businessLabel($point['reason']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-fulfillment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-fulfillment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-fulfillment-title">{{ __('order_operations.dashboard.charts.fulfillment') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.fulfillment_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php foreach (($dashboard['fulfillment_breakdown'] ?? []) as $point): ?><div><span>{{ __('order_operations.dashboard.fulfillment_buckets.'.$point['bucket']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?></div>
         </article>
 
         <?php if (is_array($dashboard['source_breakdown'] ?? null)): ?>
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-source-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-source-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-source-title">{{ __('order_operations.dashboard.charts.sources') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.sources_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['source_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['source_breakdown'] ?? []) as $point): ?><div><span>{{ $businessLabel($point['source']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
@@ -769,6 +790,50 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 })();
 
 (() => {
+    const tabs = document.querySelector('[data-order-analytics-tabs]');
+    const panel = document.querySelector('[data-order-panel="analytics"]');
+    if (!tabs || !panel) return;
+
+    const buttons = [...tabs.querySelectorAll('[data-analytics-tab]')];
+    const cards = [...panel.querySelectorAll('[data-analytics-group]')];
+    if (!buttons.length || !cards.length) return;
+
+    const available = new Set(buttons.map((button) => button.dataset.analyticsTab));
+    const defaultTab = available.has(tabs.dataset.defaultAnalyticsTab)
+        ? tabs.dataset.defaultAnalyticsTab
+        : buttons[0].dataset.analyticsTab;
+
+    const animateVisible = () => {
+        panel.classList.remove('charts-animate');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        void panel.offsetWidth;
+        panel.classList.add('charts-animate');
+    };
+
+    const activate = (name) => {
+        if (!available.has(name)) name = defaultTab;
+
+        buttons.forEach((button) => {
+            const active = button.dataset.analyticsTab === name;
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.tabIndex = active ? 0 : -1;
+        });
+
+        cards.forEach((card) => {
+            card.hidden = card.dataset.analyticsGroup !== name;
+        });
+
+        animateVisible();
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => activate(button.dataset.analyticsTab));
+    });
+
+    activate(defaultTab);
+})();
+
+(() => {
     const values = [...document.querySelectorAll('[data-order-counter]')];
     if (!values.length) return;
 
@@ -796,7 +861,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     };
 
     const fitAll = () => values.forEach(fit);
-    const duration = 650;
+    const duration = 1200;
 
     values.forEach((element) => {
         const raw = Number.parseFloat(element.dataset.counterRaw ?? '');
