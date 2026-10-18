@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\Order;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
@@ -52,6 +53,16 @@ class B2cWorkspaceController extends Controller
         'settings' => 'settings.view',
     ];
 
+    /** @var array<string,list<string>> */
+    private const PROFILE_MODULES = [
+        Store::BUSINESS_PROFILE_RETAIL_STORE => [
+            'dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'reports', 'settings',
+        ],
+        Store::BUSINESS_PROFILE_RESTAURANT => [
+            'customers', 'promotions', 'reports', 'settings',
+        ],
+    ];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly B2cDashboardService $dashboard,
@@ -77,6 +88,8 @@ class B2cWorkspaceController extends Controller
 
         $workspace = $this->workspaceContext($request, $user);
         $storeId = $workspace['selected_store_id'];
+        $businessProfile = $this->tenantContext->businessProfileForStore($storeId);
+        abort_unless($this->moduleAllowedForProfile($module, $businessProfile), 404);
         $this->authorizeModule($user, $module, $storeId);
         $storeIds = [$storeId];
         $availableStores = $workspace['stores'];
@@ -160,7 +173,8 @@ class B2cWorkspaceController extends Controller
         }
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
-            fn (string $candidate): bool => $this->canOpenModule($user, $candidate, $storeId),
+            fn (string $candidate): bool => $this->moduleAllowedForProfile($candidate, $businessProfile)
+                && $this->canOpenModule($user, $candidate, $storeId),
         ));
 
         return view('admin.b2c-workspace', compact(
@@ -180,6 +194,7 @@ class B2cWorkspaceController extends Controller
             'driverTrackingFeedUrl',
             'vanTrackingFeedUrl',
             'driverTrackingPageUrl',
+            'businessProfile',
         ));
     }
 
@@ -1647,6 +1662,11 @@ class B2cWorkspaceController extends Controller
         ];
     }
 
+    private function moduleAllowedForProfile(string $module, string $businessProfile): bool
+    {
+        return in_array($module, self::PROFILE_MODULES[$businessProfile] ?? [], true);
+    }
+
     private function canOpenModule(User $user, string $module, int $storeId): bool
     {
         $permission = self::MODULE_PERMISSIONS[$module] ?? null;
@@ -1741,7 +1761,7 @@ class B2cWorkspaceController extends Controller
                 'selected_store_id' => $requestedStoreId,
                 'stores' => DB::table('stores')
                     ->where('id', $requestedStoreId)
-                    ->get(['id', 'name', 'code'])
+                    ->get(['id', 'name', 'code', 'business_profile'])
                     ->all(),
                 'support_access' => true,
             ];
@@ -1760,13 +1780,15 @@ class B2cWorkspaceController extends Controller
         }
 
         $this->tenantContext->retail($user, $selectedStoreId, false, $request);
+        $selectedProfile = $this->tenantContext->businessProfileForStore($selectedStoreId);
 
         return [
             'selected_store_id' => $selectedStoreId,
             'stores' => DB::table('stores')
                 ->whereIn('id', $storeIds)
+                ->where('business_profile', $selectedProfile)
                 ->orderBy('name')
-                ->get(['id', 'name', 'code'])
+                ->get(['id', 'name', 'code', 'business_profile'])
                 ->all(),
             'support_access' => false,
         ];
