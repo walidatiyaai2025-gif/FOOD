@@ -63,13 +63,14 @@ class AdminNavigation
         $channels = $this->for($user);
         $isSuperAdmin = $this->isSuperAdmin($user);
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
+        $canAccessPlatformNavigation = $canAccessPlatformErp;
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index'),
-                $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index'),
+                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index') : null,
+                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index') : null,
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
@@ -106,7 +107,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $this->whatsAppInboxItem($user),
+                $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
@@ -137,12 +138,11 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
-                $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view'),
+                $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
-                $this->whatsAppSupervisorItem($user),
+                $canAccessPlatformNavigation ? $this->whatsAppSupervisorItem($user) : null,
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'finance', 'admin.b2c_workspace.modules.finance', 'finance.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
@@ -154,7 +154,7 @@ class AdminNavigation
                 $this->routeItem($user, 'mobile_van_download', 'admin.mobile_apps.van_download', 'admin.mobile-apps.van.download', 'platform.manage'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
-                $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index'),
+                $canAccessPlatformNavigation ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index') : null,
             ]),
         ];
 
