@@ -37,7 +37,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(GlobalSearchRegistry::class, function ($app): GlobalSearchRegistry {
+        $this->app->scoped(ModuleEntitlementResolver::class);
+        $this->app->scoped(GlobalSearchRegistry::class, function ($app): GlobalSearchRegistry {
             $registry = new GlobalSearchRegistry(
                 $app->make(ModuleRegistry::class),
                 $app->make(ModuleEntitlementResolver::class),
