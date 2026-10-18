@@ -36,6 +36,8 @@ final readonly class AgentTurnResult
             'evidence' => $this->evidence,
             'scope' => $this->scopeSummary,
             'provider' => $this->providerMetadata,
+            'model_sql_allowed' => false,
+            'chain_of_thought_stored' => false,
         ];
     }
 }
