@@ -6,8 +6,10 @@ use App\Domain\RestaurantSaaS\RestaurantOperatorService;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\SystemInspectorEvent;
+use App\Models\UpdateHistory;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
+use App\Services\ProductionDatasetSnapshot;
 use App\Services\SystemAdministrationRuntime;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
@@ -16,7 +18,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -299,6 +304,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         SystemAdministrationRuntime $systemRuntime,
+        ProductionDatasetSnapshot $productionSnapshot,
     ): StreamedResponse {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
@@ -317,6 +323,7 @@ final class SystemInspectorController extends Controller
                 'operations' => $systemRuntime->recentOperations(100),
             ],
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
+            'system_administration' => $this->systemAdministrationEvidence($productionSnapshot),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
                 'occurred_at' => $event->occurred_at->toIso8601String(),
@@ -435,7 +442,9 @@ final class SystemInspectorController extends Controller
             ->limit(100)
             ->get()
             ->map(function (UpdateHistory $row): array {
-                $evidence = is_array($row->execution_evidence) ? $row->execution_evidence : [];
+                $rawEvidence = $row->getAttribute('execution_evidence');
+                /** @var array<string,mixed> $evidence */
+                $evidence = is_array($rawEvidence) ? $rawEvidence : [];
 
                 return [
                     'id' => $row->id,
