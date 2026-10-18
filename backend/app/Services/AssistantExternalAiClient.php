@@ -195,7 +195,10 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         $config = $this->settings->snapshot();
 
         if (! $this->settings->usable()) {
-            return $this->failedResult($config['model'], 'provider_disabled');
+            return $this->failedResult(
+                $config['model'],
+                $config['enabled'] ? 'provider_unconfigured' : 'provider_disabled',
+            );
         }
 
         $models = $this->models->routingOrder($request->useCase);
@@ -237,6 +240,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 model: $model,
                 payload: $payload,
                 fallback: $index > 0,
+                correlationId: $request->correlationId,
             );
             $latency = (int) round((microtime(true) - $started) * 1000);
 
@@ -252,7 +256,15 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 : null;
 
             if ($text === null && $toolCalls === []) {
-                $this->providerTelemetry($config, $model, 'malformed', $response->status(), $latency, $index > 0);
+                $this->providerTelemetry(
+                    $config,
+                    $model,
+                    'malformed',
+                    $response->status(),
+                    $latency,
+                    $index > 0,
+                    correlationId: $request->correlationId,
+                );
                 continue;
             }
 
@@ -493,11 +505,12 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         string $model,
         array $payload,
         bool $fallback,
+        ?string $correlationId = null,
     ): ?Response {
         $circuitKey = $this->circuitKey($config['api_url'], $model);
 
         if (Cache::get($circuitKey.'.open', false) === true) {
-            $this->providerTelemetry($config, $model, 'circuit_open', null, 0, $fallback);
+            $this->providerTelemetry($config, $model, 'circuit_open', null, 0, $fallback, correlationId: $correlationId);
 
             return null;
         }
@@ -516,12 +529,12 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
                 if ($response->successful()) {
                     $this->resetCircuit($circuitKey);
-                    $this->providerTelemetry($config, $model, 'success', $status, $latency, $fallback, $attempt);
+                    $this->providerTelemetry($config, $model, 'success', $status, $latency, $fallback, $attempt, $correlationId);
 
                     return $response;
                 }
 
-                $this->providerTelemetry($config, $model, 'http_error', $status, $latency, $fallback, $attempt);
+                $this->providerTelemetry($config, $model, 'http_error', $status, $latency, $fallback, $attempt, $correlationId);
 
                 if ($status !== 429 && $status < 500) {
                     break;
@@ -535,6 +548,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                     (int) round((microtime(true) - $started) * 1000),
                     $fallback,
                     $attempt,
+                    $correlationId,
                 );
 
                 if ($attempt >= $attempts) {
@@ -584,6 +598,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         int $latencyMs,
         bool $fallback,
         int $attempt = 1,
+        ?string $correlationId = null,
     ): void {
         Log::info('assistant.provider.request', [
             'provider' => 'openai_compatible',
@@ -594,6 +609,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             'latency_ms' => $latencyMs,
             'attempt' => $attempt,
             'fallback' => $fallback,
+            'correlation_id' => $correlationId,
         ]);
     }
 
