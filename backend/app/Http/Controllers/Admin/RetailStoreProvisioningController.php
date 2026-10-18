@@ -20,8 +20,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 final class RetailStoreProvisioningController extends Controller
 {
@@ -203,64 +206,97 @@ final class RetailStoreProvisioningController extends Controller
             'manager_email' => ['nullable', 'required_if:manager_mode,new', 'email', 'max:255', 'unique:users,email'],
             'manager_password' => ['nullable', 'required_if:manager_mode,new', 'string', 'min:8', 'max:255'],
         ]);
-        $data['business_profile'] = $data['business_profile'] ?? Store::BUSINESS_PROFILE_RETAIL_STORE;
 
-        $store = DB::transaction(function () use ($request, $data, $actor): Store {
-            $storeTypeId = DB::table('store_types')->where('code', 'B2C')->value('id');
-            abort_if($storeTypeId === null, 500, 'Retail store type is not configured.');
-
-            $store = Store::query()->create([
-                'store_type_id' => $storeTypeId,
-                'business_profile' => $data['business_profile'],
-                'default_customer_wholesale_price_tier_id' => $data['default_customer_wholesale_price_tier_id'] ?? null,
-                'code' => strtoupper($data['code']),
-                'name' => $data['name'],
-                'logo_path' => null,
-                'is_active' => $request->boolean('is_active', true),
-                'advertising_enabled' => $request->boolean('advertising_enabled', true),
-                'live_ads_enabled' => $request->boolean('live_ads_enabled', true),
-                'coupons_enabled' => $request->boolean('coupons_enabled', true),
+        $businessProfile = (string) ($data['business_profile'] ?? Store::BUSINESS_PROFILE_RETAIL_STORE);
+        if ($businessProfile === Store::BUSINESS_PROFILE_RESTAURANT && ! $request->boolean('is_active', true)) {
+            throw ValidationException::withMessages([
+                'is_active' => [$this->msg(
+                    'يجب إنشاء المطعم بحالة نشطة حتى تكتمل تهيئة مساحة العمل.',
+                    'Restaurants must be created active so their workspace can be provisioned.',
+                )],
             ]);
-            $logo = $request->file('logo');
-            abort_unless($logo instanceof UploadedFile, 422, 'Store logo is required.');
-            $store->update(['logo_path' => $this->logos->store($logo, (int) $store->id)]);
+        }
 
-            $manager = $this->resolveManager($data);
-            $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('is_active', true)->firstOrFail();
+        $storedLogoPath = null;
 
-            DB::table('user_store_roles')->updateOrInsert(
-                ['user_id' => $manager->id, 'store_id' => $store->id, 'role_id' => $role->id],
-                ['created_at' => now(), 'updated_at' => now()],
-            );
+        try {
+            $store = DB::transaction(function () use ($request, $data, $actor, $businessProfile, &$storedLogoPath): Store {
+                $storeTypeId = DB::table('store_types')->where('code', 'B2C')->value('id');
+                abort_if($storeTypeId === null, 500, 'B2C store type is not configured.');
 
-            $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore($store, (int) $data['price_tier_id'], $manager);
+                $store = Store::query()->create([
+                    'store_type_id' => $storeTypeId,
+                    'business_profile' => $businessProfile,
+                    'default_customer_wholesale_price_tier_id' => $businessProfile === Store::BUSINESS_PROFILE_RETAIL_STORE
+                        ? ($data['default_customer_wholesale_price_tier_id'] ?? null)
+                        : null,
+                    'code' => strtoupper($data['code']),
+                    'name' => $data['name'],
+                    'logo_path' => null,
+                    'is_active' => $request->boolean('is_active', true),
+                    'advertising_enabled' => $request->boolean('advertising_enabled', true),
+                    'live_ads_enabled' => $request->boolean('live_ads_enabled', true),
+                    'coupons_enabled' => $request->boolean('coupons_enabled', true),
+                ]);
 
-            if ($store->isRestaurantProfile()) {
-                $this->restaurantSaas->setEnabled($store, true, $actor, $request);
+                $logo = $request->file('logo');
+                abort_unless($logo instanceof UploadedFile, 422, 'Store logo is required.');
+                $storedLogoPath = $this->logos->store($logo, (int) $store->id);
+                $store->update(['logo_path' => $storedLogoPath]);
+
+                $manager = $this->resolveManager($data);
+                $wholesaleCustomer = $this->wholesaleAccounts->ensureForStore(
+                    $store,
+                    (int) $data['price_tier_id'],
+                    $manager,
+                );
+
+                $restaurantBranchId = null;
+                if ($businessProfile === Store::BUSINESS_PROFILE_RESTAURANT) {
+                    $restaurantBranchId = $this->provisionRestaurantBaseline($store, $actor, $request);
+                }
+
+                $role = Role::query()
+                    ->where('code', 'B2C_STORE_ADMIN')
+                    ->where('is_active', true)
+                    ->firstOrFail();
+
+                DB::table('user_store_roles')->updateOrInsert(
+                    ['user_id' => $manager->id, 'store_id' => $store->id, 'role_id' => $role->id],
+                    ['created_at' => now(), 'updated_at' => now()],
+                );
+
+                $this->audit->record('retail_store.provisioned', $actor, $store, null, [
+                    'store_id' => $store->id,
+                    'business_profile' => $businessProfile,
+                    'b2b_customer_id' => $wholesaleCustomer->getKey(),
+                    'manager_user_id' => $manager->id,
+                    'manager_role' => $role->code,
+                    'price_tier_id' => (int) $data['price_tier_id'],
+                    'default_customer_wholesale_price_tier_id' => $store->default_customer_wholesale_price_tier_id,
+                    'restaurant_saas_enabled' => $businessProfile === Store::BUSINESS_PROFILE_RESTAURANT,
+                    'restaurant_branch_id' => $restaurantBranchId,
+                    'logo_path' => $store->logo_path,
+                    'is_active' => $store->is_active,
+                    'advertising_enabled' => $store->advertising_enabled,
+                    'live_ads_enabled' => $store->live_ads_enabled,
+                    'coupons_enabled' => $store->coupons_enabled,
+                ], $request);
+
+                return $store;
+            }, 3);
+        } catch (Throwable $e) {
+            if (is_string($storedLogoPath) && $storedLogoPath !== '') {
+                $this->logos->delete($storedLogoPath);
             }
 
-            $this->audit->record('retail_store.provisioned', $actor, $store, null, [
-                'store_id' => $store->id,
-                'business_profile' => $store->business_profile,
-                'b2b_customer_id' => $wholesaleCustomer->getKey(),
-                'manager_user_id' => $manager->id,
-                'manager_role' => $role->code,
-                'price_tier_id' => (int) $data['price_tier_id'],
-                'default_customer_wholesale_price_tier_id' => $store->default_customer_wholesale_price_tier_id,
-                'logo_path' => $store->logo_path,
-                'is_active' => $store->is_active,
-                'advertising_enabled' => $store->advertising_enabled,
-                'live_ads_enabled' => $store->live_ads_enabled,
-                'coupons_enabled' => $store->coupons_enabled,
-            ], $request);
-
-            return $store;
-        });
+            throw $e;
+        }
 
         return redirect()->route('admin.retail-stores.index')
             ->with('status', $store->isRestaurantProfile()
-                ? $this->msg('تم إنشاء المطعم وتجهيز مساحة تشغيله ومشتريات الجملة.', 'Restaurant provisioned with its operating workspace and Wholesale purchasing identity.')
-                : $this->msg('تم إنشاء متجر التجزئة وتعيين مديره.', 'Retail store provisioned and manager assigned.'));
+                ? $this->msg('تم إنشاء المطعم وتهيئة مساحة المطعم وحساب الشراء من الجملة.', 'Restaurant provisioned with its restaurant workspace and Wholesale purchasing identity.')
+                : $this->msg('تم إنشاء متجر التجزئة وتعيين مديره بدون تفعيل وحدات المطعم.', 'Retail store provisioned and manager assigned without Restaurant modules.'));
     }
 
     public function update(Request $request, Store $store): RedirectResponse
@@ -617,6 +653,44 @@ final class RetailStoreProvisioningController extends Controller
                 ],
             ];
         }, 3);
+    }
+
+    private function provisionRestaurantBaseline(Store $store, User $actor, Request $request): int
+    {
+        $this->restaurantSaas->setEnabled($store, true, $actor, $request);
+
+        $siteId = DB::table('smart_ordering_sites')
+            ->where('store_id', $store->getKey())
+            ->value('id');
+        abort_if($siteId === null, 500, 'Restaurant site provisioning did not create a site.');
+
+        $existingBranchId = DB::table('smart_ordering_branches')
+            ->where('site_id', $siteId)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->value('id');
+
+        if ($existingBranchId !== null) {
+            return (int) $existingBranchId;
+        }
+
+        return (int) DB::table('smart_ordering_branches')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => (int) $siteId,
+            'code' => 'MAIN',
+            'name_ar' => (string) $store->name,
+            'name_en' => (string) $store->name,
+            'timezone' => 'Asia/Kuwait',
+            'is_default' => true,
+            'is_active' => true,
+            'accepting_orders' => false,
+            'supports_dine_in' => true,
+            'supports_pickup' => true,
+            'supports_delivery' => true,
+            'allow_scheduled' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function resolveManager(array $data): User
