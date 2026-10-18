@@ -198,6 +198,10 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
 
         $this->assertStringContainsString('restaurant-primary-tasks.is-compact', $launcher);
         $this->assertStringContainsString('so-onboarding-gates-disclosure', $onboarding);
+        $this->assertStringNotContainsString('@forelse', $view);
+        $this->assertStringNotContainsString('@endforelse', $view);
+        $this->assertStringNotContainsString('@forelse', $onboarding);
+        $this->assertStringNotContainsString('@endforelse', $onboarding);
         $this->assertStringContainsString('data-so-content-tabs', $content);
         $this->assertStringContainsString('data-so-content-panel="story"', $content);
     }
