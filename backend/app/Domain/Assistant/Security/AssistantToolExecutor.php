@@ -7,8 +7,10 @@ use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Tools\AssistantToolDefinition;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Models\User;
+use App\Services\AssistantObservability;
 use App\Services\AuditLogger;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class AssistantToolExecutor
 {
@@ -17,6 +19,7 @@ final class AssistantToolExecutor
         private readonly AiPrincipalContextResolver $principals,
         private readonly RetailerSellOutAccessPolicy $sellOutPolicy,
         private readonly AuditLogger $audit,
+        private readonly AssistantObservability $observability,
     ) {}
 
     public function execute(
@@ -105,8 +108,46 @@ final class AssistantToolExecutor
         );
 
         $startedAt = hrtime(true);
-        $result = $this->tools->get($toolKey)->execute($request);
+
+        try {
+            $result = $this->tools->get($toolKey)->execute($request);
+        } catch (Throwable $exception) {
+            $elapsedMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
+
+            $this->observability->record($correlationId, 'tool.failed', [
+                'actor_user_id' => $request->actorUserId,
+                'store_id' => $request->storeId,
+                'phase' => 'tool',
+                'tool_key' => $toolKey,
+                'outcome' => 'failed',
+                'latency_ms' => $elapsedMs,
+                'metadata' => [
+                    'schema_version' => $definition->schemaVersion,
+                    'data_class' => $dataClass,
+                    'source' => $definition->source,
+                    'exception_class' => $exception::class,
+                ],
+            ]);
+
+            throw $exception;
+        }
+
         $elapsedMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
+
+        $this->observability->record($correlationId, 'tool.completed', [
+            'actor_user_id' => $request->actorUserId,
+            'store_id' => $request->storeId,
+            'phase' => 'tool',
+            'tool_key' => $toolKey,
+            'outcome' => 'success',
+            'latency_ms' => $elapsedMs,
+            'metadata' => [
+                'schema_version' => $definition->schemaVersion,
+                'data_class' => $dataClass,
+                'source' => $definition->source,
+                'row_limit' => $definition->rowLimit,
+            ],
+        ]);
 
         return new AssistantToolResult(
             data: [
