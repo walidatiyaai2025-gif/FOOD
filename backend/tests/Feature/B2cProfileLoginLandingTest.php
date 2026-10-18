@@ -149,7 +149,7 @@ class B2cProfileLoginLandingTest extends TestCase
         config()->set('security.mfa.enforce_privileged', true);
 
         $restaurant = $this->store('LOGIN-MFA-RESTAURANT', StoreBusinessProfile::RESTAURANT);
-        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $role = Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail();
         $permissionId = (int) DB::table('permissions')->where('code', 'platform.manage')->value('id');
         DB::table('permission_role')->insertOrIgnore([
             'permission_id' => $permissionId,
@@ -157,6 +157,7 @@ class B2cProfileLoginLandingTest extends TestCase
         ]);
 
         $user = $this->user('profile-mfa@example.test');
+        $user->roles()->attach($role);
         $this->assign($user, $restaurant, 'B2C_STORE_ADMIN');
 
         $this->post('/admin/b2c/login', [
