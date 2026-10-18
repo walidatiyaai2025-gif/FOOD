@@ -27,7 +27,7 @@
 .cs-workspace-tab[aria-selected="true"]{background:var(--foodex-green-dark);border-color:var(--foodex-green-dark);color:#fff}
 .cs-tab-panel{display:grid;gap:16px;min-width:0}
 .cs-tab-panel[hidden]{display:none!important}
-.cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(165px,1fr);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
+.cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
 .cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:3px solid var(--cs-accent)!important;transition:transform .18s ease,box-shadow .18s ease}
 .cs-kpi:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)}
 .cs-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}
