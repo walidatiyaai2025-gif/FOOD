@@ -140,7 +140,7 @@ class AssistantSettingsTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/settings/assistant')
             ->assertOk()
-            ->assertSee('••••••••••••', false)
+            ->assertSee('A key is already saved encrypted. Leave this blank to keep it.')
             ->assertDontSee('secret-provider-key');
     }
 
