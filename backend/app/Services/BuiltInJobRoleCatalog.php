@@ -250,7 +250,11 @@ final class BuiltInJobRoleCatalog
                     'scope' => $definition['scope'],
                     'is_system' => true,
                     'is_active' => true,
-                ])->save();
+                ]);
+
+                if (! $role->exists || $role->isDirty()) {
+                    $role->save();
+                }
 
                 $ids = collect($codes)->map(fn (string $permission): int => (int) $permissions[$permission])->all();
                 $role->permissions()->sync($ids);

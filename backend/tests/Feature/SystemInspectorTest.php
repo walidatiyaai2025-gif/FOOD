@@ -9,12 +9,14 @@ use App\Models\EnterpriseOutboxMessage;
 use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Role;
 use App\Models\SystemInspectorEvent;
+use App\Models\UpdateHistory;
 use App\Models\User;
 use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -62,6 +64,73 @@ class SystemInspectorTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('application/json', (string) $response->headers->get('content-type'));
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+    }
+
+    public function test_system_administration_export_is_bounded_and_secret_free(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'system-admin-export@example.test');
+
+        UpdateHistory::query()->create([
+            'actor_id' => $admin->id,
+            'from_version' => '1.0.0',
+            'to_version' => '1.0.1',
+            'status' => 'failed',
+            'environment' => 'production',
+            'backup_status' => 'available',
+            'file_backup_reference' => '/private/backup/path/should-never-export',
+            'database_backup_reference' => '/private/database/path/should-never-export',
+            'failed_stage' => 'health_check',
+            'rollback_status' => 'succeeded',
+            'package_hash' => str_repeat('a', 64),
+            'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+            'execution_evidence' => [
+                'package_integrity' => 'passed',
+                'preflight' => 'passed',
+                'file_backup' => [
+                    'reference' => 'safe-files-reference',
+                    'size_bytes' => 1024,
+                    'sha256' => str_repeat('b', 64),
+                    'private_path' => '/must/not/export',
+                ],
+                'database_backup' => [
+                    'reference' => 'safe-database-reference',
+                    'size_bytes' => 2048,
+                    'sha256' => str_repeat('c', 64),
+                ],
+                'health_check' => 'failed',
+                'rollback_health_check' => 'passed',
+                'secret' => 'must-not-export',
+            ],
+        ]);
+
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) Str::uuid(),
+            'connection' => 'redis',
+            'queue' => 'default',
+            'payload' => '{"token":"queue-secret-payload"}',
+            'exception' => 'queue-secret-exception',
+            'failed_at' => now(),
+        ]);
+
+        $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
+        $export->assertOk();
+
+        $content = $export->streamedContent();
+        $payload = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertArrayHasKey('system_administration', $payload);
+        $this->assertSame('safe-files-reference', $payload['system_administration']['update_history'][0]['execution_evidence']['file_backup']['reference']);
+        $this->assertSame(1, $payload['system_administration']['failed_jobs']['count']);
+        $this->assertTrue($payload['diagnostics']['database_healthy']);
+        $this->assertArrayHasKey('scheduler_healthy', $payload['diagnostics']);
+        $this->assertStringNotContainsString('/private/backup/path/should-never-export', $content);
+        $this->assertStringNotContainsString('/private/database/path/should-never-export', $content);
+        $this->assertStringNotContainsString('/must/not/export', $content);
+        $this->assertStringNotContainsString('must-not-export', $content);
+        $this->assertStringNotContainsString('queue-secret-payload', $content);
+        $this->assertStringNotContainsString('queue-secret-exception', $content);
     }
 
     public function test_route_exception_is_recorded_without_request_payload_or_secrets(): void

@@ -6,6 +6,7 @@ use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateRuntime;
+use App\Models\UpdateHistory;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -65,7 +66,22 @@ class UpdateManagerTest extends TestCase
         $this->assertDatabaseHas('update_history', [
             'to_version' => '1.1.0',
             'status' => 'success',
+            'environment' => 'testing',
+            'backup_status' => 'available',
+            'rollback_status' => 'not_required',
+            'maintenance_mode_remained' => false,
         ]);
+        $history->refresh();
+        $this->assertNotNull($history->health_verified_at);
+        $this->assertSame('passed', $history->execution_evidence['package_integrity'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['preflight'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['backup_files'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['backup_database'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['backup_verification'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['migrations'] ?? null);
+        $this->assertSame('passed', $history->execution_evidence['health_check'] ?? null);
+        $this->assertSame('files-backup', $history->execution_evidence['file_backup']['reference'] ?? null);
+        $this->assertSame('database-backup', $history->execution_evidence['database_backup']['reference'] ?? null);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.completed']);
     }
 
@@ -97,14 +113,24 @@ class UpdateManagerTest extends TestCase
             'health_check',
             'rollback_files',
             'rollback_database',
+            'health_check',
             'exit_maintenance_mode',
         ], $runtime->calls);
 
         $this->assertDatabaseHas('update_history', [
             'to_version' => '1.1.0',
             'status' => 'failed',
+            'failed_stage' => 'health_check',
+            'backup_status' => 'available',
+            'rollback_status' => 'succeeded',
+            'maintenance_mode_remained' => false,
             'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
         ]);
+        $failedHistory = UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
+        $this->assertSame('failed', $failedHistory->execution_evidence['health_check'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_files'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_database'] ?? null);
+        $this->assertSame('passed', $failedHistory->execution_evidence['rollback_health_check'] ?? null);
         $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
     }
@@ -143,6 +169,9 @@ class UpdateManagerTest extends TestCase
         $this->assertDatabaseHas('update_history', [
             'to_version' => '1.1.0',
             'status' => 'failed',
+            'failed_stage' => 'health_check',
+            'rollback_status' => 'incomplete',
+            'maintenance_mode_remained' => true,
             'failure_reason' => 'Update failed during [health_check]. Rollback was attempted. Rollback is incomplete; manual recovery is required. Maintenance mode remains enabled.',
         ]);
         $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
@@ -167,6 +196,8 @@ final class RecordingUpdateRuntime implements UpdateRuntime
      * @var array<int, string>
      */
     public array $calls = [];
+
+    private bool $primaryFailureTriggered = false;
 
     public function __construct(
         private readonly ?string $failAt = null,
@@ -241,7 +272,12 @@ final class RecordingUpdateRuntime implements UpdateRuntime
     {
         $this->calls[] = $stage;
 
-        if ($this->failAt === $stage || $this->failRollbackAt === $stage) {
+        if ($this->failRollbackAt === $stage) {
+            throw new RuntimeException('Simulated update runtime failure.');
+        }
+
+        if ($this->failAt === $stage && ! $this->primaryFailureTriggered) {
+            $this->primaryFailureTriggered = true;
             throw new RuntimeException('Simulated update runtime failure.');
         }
     }
