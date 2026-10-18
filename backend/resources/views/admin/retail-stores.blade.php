@@ -156,7 +156,7 @@ $roleLabel = static function ($role): string {
                                 </label>
                                 <label data-profile-retail-only>{{ __('smart_ordering.business_profile.retail_customer_tier') }}
                                     <select name="default_customer_wholesale_price_tier_id">
-                                        <option value="">{{ $ar?'STANDARD تلقائيًا':'Automatic STANDARD fallback' }}</option>
+                                        <option value="">{{ __('smart_ordering.business_profile.automatic_standard_fallback') }}</option>
                                         @foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((string)old('default_customer_wholesale_price_tier_id')===(string)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach
                                     </select>
                                 </label>
@@ -344,7 +344,7 @@ $roleLabel = static function ($role): string {
                                 </select>
                                 <small class="foodex-file-help">{{ $ar?'يستخدم هذا المستخدم نفس البريد وكلمة المرور في تطبيق العميل. إعادة التعيين تنقل صلاحية المدير الأساسية بدون إنشاء حساب جملة جديد.':'This User keeps the same email/password in Customer App. Reassignment moves the primary manager entitlement without creating another Wholesale account.' }}</small>
                             </label>
-                            <label>{{ __('smart_ordering.business_profile.retail_customer_tier') }}<select name="default_customer_wholesale_price_tier_id"><option value="">{{ $ar?'STANDARD تلقائيًا':'Automatic STANDARD fallback' }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->default_customer_wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
+                            <label>{{ __('smart_ordering.business_profile.retail_customer_tier') }}<select name="default_customer_wholesale_price_tier_id"><option value="">{{ __('smart_ordering.business_profile.automatic_standard_fallback') }}</option>@foreach($priceTiers as $tier)<option value="{{ $tier->id }}" @selected((int)$store->default_customer_wholesale_price_tier_id===(int)$tier->id)>{{ $tier->name }} · {{ $tier->code }}</option>@endforeach</select></label>
                             <label><span>{{ $ar?'الحالة':'Status' }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($store->is_active)> {{ $ar?'نشط':'Active' }}</span></label>
                             <button class="foodex-action-primary" type="submit">✓ {{ $ar?'حفظ بيانات المتجر':'Save store details' }}</button>
                         </form>
