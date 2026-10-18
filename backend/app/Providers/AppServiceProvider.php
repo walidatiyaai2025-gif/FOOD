@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Agent\AssistantAgentOrchestrator;
 use App\Domain\Assistant\Analytics\AssistantAnalyticsToolSet;
 use App\Domain\Assistant\Business\AssistantBusinessToolSet;
+use App\Domain\Assistant\Contracts\AgentOrchestratorInterface;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
@@ -61,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
         $this->app->bind(AssistantBrainInterface::class, AssistantHybridBrain::class);
+        $this->app->bind(AgentOrchestratorInterface::class, AssistantAgentOrchestrator::class);
         $this->app->bind(AssistantProviderGatewayInterface::class, AssistantExternalAiClient::class);
         $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
