@@ -181,7 +181,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $this->assertStringContainsString('restaurantManagementCompact = true', $view);
         $this->assertStringContainsString('so-quick-links', $view);
         $this->assertStringContainsString('sessionStorage.setItem(storageKey, name)', $view);
-        $this->assertStringContainsString("foodex:restaurant-settings-tab:", $view);
+        $this->assertStringContainsString('foodex:restaurant-settings-tab:', $view);
         $this->assertStringContainsString('$analyticsQuery = array_filter([', $view);
         $this->assertStringContainsString('$operationsQuery = array_filter([', $view);
         $this->assertStringContainsString("\$ovTrend = is_array(\$ov['trend'] ?? null)", $view);
