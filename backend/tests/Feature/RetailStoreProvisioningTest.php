@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\RestaurantSaaS\RestaurantSaasStoreFeatureService;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CustomerDomainResolver;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -412,9 +414,135 @@ class RetailStoreProvisioningTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"\\s+open="open"/', $html);
     }
 
+    public function test_retail_profile_creation_never_provisions_restaurant_capabilities(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'retail-profile-owner@example.test');
+        $tierId = $this->priceTierId();
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'PROFILE-RETAIL',
+            'name' => 'Profile Retail',
+            'logo' => UploadedFile::fake()->image('profile-retail.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Retail Profile Owner',
+            'manager_email' => 'retail-profile-manager@example.test',
+            'manager_password' => 'password123',
+        ])->assertRedirect(route('admin.retail-stores.index'));
+
+        $storeId = (int) DB::table('stores')->where('code', 'PROFILE-RETAIL')->value('id');
+        $this->assertGreaterThan(0, $storeId);
+        $this->assertFalse(app(RestaurantSaasStoreFeatureService::class)->isEnabled($storeId));
+        $this->assertDatabaseMissing('smart_ordering_sites', ['store_id' => $storeId]);
+        $this->assertDatabaseMissing('enterprise_module_entitlements', [
+            'module_code' => 'smart_ordering',
+            'scope_type' => 'store',
+            'scope_id' => $storeId,
+            'is_enabled' => true,
+        ]);
+        $this->assertDatabaseHas('retail_wholesale_accounts', ['retail_store_id' => $storeId]);
+
+        if (Schema::hasColumn('stores', 'business_profile')) {
+            $this->assertDatabaseHas('stores', [
+                'id' => $storeId,
+                'business_profile' => 'RETAIL_STORE',
+            ]);
+        }
+    }
+
+    public function test_restaurant_profile_creation_provisions_workspace_branch_and_wholesale_identity(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'restaurant-profile-owner@example.test');
+        $tierId = $this->priceTierId();
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RESTAURANT',
+            'code' => 'PROFILE-REST',
+            'name' => 'Profile Restaurant',
+            'logo' => UploadedFile::fake()->image('profile-restaurant.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Restaurant Profile Owner',
+            'manager_email' => 'restaurant-profile-manager@example.test',
+            'manager_password' => 'password123',
+        ])->assertRedirect(route('admin.retail-stores.index'));
+
+        $storeId = (int) DB::table('stores')->where('code', 'PROFILE-REST')->value('id');
+        $siteId = (int) DB::table('smart_ordering_sites')->where('store_id', $storeId)->value('id');
+
+        $this->assertGreaterThan(0, $storeId);
+        $this->assertGreaterThan(0, $siteId);
+        $this->assertTrue(app(RestaurantSaasStoreFeatureService::class)->isEnabled($storeId));
+        $this->assertDatabaseHas('retail_wholesale_accounts', ['retail_store_id' => $storeId]);
+        $this->assertDatabaseHas('smart_ordering_branches', [
+            'site_id' => $siteId,
+            'code' => 'MAIN',
+            'is_default' => true,
+            'is_active' => true,
+            'accepting_orders' => false,
+        ]);
+        $this->assertDatabaseHas('enterprise_module_entitlements', [
+            'module_code' => 'smart_ordering',
+            'scope_type' => 'store',
+            'scope_id' => $storeId,
+            'is_enabled' => true,
+        ]);
+
+        if (Schema::hasColumn('stores', 'business_profile')) {
+            $this->assertDatabaseHas('stores', [
+                'id' => $storeId,
+                'business_profile' => 'RESTAURANT',
+            ]);
+        }
+    }
+
+    public function test_failed_restaurant_provisioning_rolls_back_store_site_wholesale_identity_and_logo(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'restaurant-rollback-owner@example.test');
+        $tierId = $this->priceTierId();
+
+        Role::query()->where('code', 'B2C_STORE_ADMIN')->update(['is_active' => false]);
+
+        $before = [
+            'wholesale_links' => DB::table('retail_wholesale_accounts')->count(),
+            'b2b_customers' => DB::table('b2b_customers')->count(),
+            'b2b_accounts' => DB::table('b2b_accounts')->count(),
+            'sites' => DB::table('smart_ordering_sites')->count(),
+            'branches' => DB::table('smart_ordering_branches')->count(),
+            'module_entitlements' => DB::table('enterprise_module_entitlements')->count(),
+        ];
+
+        $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RESTAURANT',
+            'code' => 'PROFILE-ROLLBACK',
+            'name' => 'Rollback Restaurant',
+            'logo' => UploadedFile::fake()->image('rollback-restaurant.png', 256, 256),
+            'price_tier_id' => $tierId,
+            'is_active' => '1',
+            'manager_mode' => 'new',
+            'manager_name' => 'Rollback Owner',
+            'manager_email' => 'rollback-profile-manager@example.test',
+            'manager_password' => 'password123',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('stores', ['code' => 'PROFILE-ROLLBACK']);
+        $this->assertDatabaseMissing('users', ['email' => 'rollback-profile-manager@example.test']);
+        $this->assertSame($before['wholesale_links'], DB::table('retail_wholesale_accounts')->count());
+        $this->assertSame($before['b2b_customers'], DB::table('b2b_customers')->count());
+        $this->assertSame($before['b2b_accounts'], DB::table('b2b_accounts')->count());
+        $this->assertSame($before['sites'], DB::table('smart_ordering_sites')->count());
+        $this->assertSame($before['branches'], DB::table('smart_ordering_branches')->count());
+        $this->assertSame($before['module_entitlements'], DB::table('enterprise_module_entitlements')->count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
     public function test_store_create_is_a_gated_popup_wizard_with_final_review(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'wizard-owner@example.test');
+        $this->retailStore('WIZARD-PROFILE');
 
         $response = $this->actingAs($admin)
             ->get(route('admin.retail-stores.index'));
@@ -424,6 +552,11 @@ class RetailStoreProvisioningTest extends TestCase
             ->assertSee('data-open-store-wizard', false)
             ->assertSee('data-store-create-modal', false)
             ->assertSee('data-foodex-store-wizard', false)
+            ->assertSee('name="business_profile"', false)
+            ->assertSee('value="RETAIL_STORE"', false)
+            ->assertSee('value="RESTAURANT"', false)
+            ->assertDontSee('data-restaurant-saas-toggle', false)
+            ->assertSee('data-business-profile-summary', false)
             ->assertSee('data-wizard-panel="identity"', false)
             ->assertSee('data-wizard-panel="branding"', false)
             ->assertSee('data-wizard-panel="pricing"', false)
