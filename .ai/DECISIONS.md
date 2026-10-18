@@ -112,3 +112,12 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** external rows are tenant-owned, SKU-mapped, timezone-normalized, idempotent and reconciled; rejected rows are reported without persisting raw rejected payloads; active retailer consent is re-authorized on analytical reads; feed state exposes no/partial/available coverage and quality; the deterministic analytics layer combines actual sources while the LLM remains an interpreter only.
 
 **Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.
+
+## D-018 — AI diagnostics are deterministic evidence, not model arithmetic or causation
+**Decision (#2218 / AI-10, 2026-10-18):** FOODEX period comparisons, trend/velocity, mix/contribution, refund/cancellation rates, inventory cover and margin diagnostics are computed by versioned server-side software before model narration. The reusable result contract is `foodex.analytics.diagnostic.v1`; model providers may explain it but cannot replace its values, submit SQL or promote correlation into a causal claim.
+
+**Reason:** business diagnostics must remain reproducible across Arabic/English narration, model/provider changes and provider outages. Missing comparison periods, sparse samples, stale/incomplete facts, zero denominators and incompatible currencies must produce explicit evidence limitations rather than invented percentages or causes.
+
+**Consequences:** `analytics.diagnose` reuses the #2213 authorized read model, independently authorizes the prior period, preserves live sell-out consent and retention boundaries, gates SKU/category/margin detail behind catalog permission, and returns machine-readable confidence/quality reasons. Missing prior evidence suppresses comparative breakdowns rather than treating absence as zero.
+
+**Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
