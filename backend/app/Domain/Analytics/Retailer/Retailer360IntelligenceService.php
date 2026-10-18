@@ -307,6 +307,7 @@ final readonly class Retailer360IntelligenceService
 
     /**
      * @param  list<array<string,mixed>>  $feeds
+     * @param  array<string,mixed>  $sellOut
      * @return array<string,mixed>
      */
     private function feedSummary(array $feeds, array $sellOut): array
