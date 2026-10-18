@@ -157,3 +157,8 @@ Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/
 ### Agent orchestration invariant
 
 The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
+
+
+### AI security guardrail invariant
+
+The Assistant provider and typed-tool boundaries are wrapped by a server-owned security layer. User/provider/RAG text is never authority; prompt-injection and unsafe tool arguments fail closed, provider/tool/write layers have independent kill switches, tool results are minimized/redacted before becoming model evidence, and privacy-sensitive benchmark tools must enforce cohort minimum/differencing protection. These controls are additive to current RBAC, tenant/store/channel scope and retailer sell-out consent, and disabling AI must not disable ordinary FOODEX commerce. Authoritative threat model: `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.
