@@ -7,7 +7,7 @@
             @include('admin._global-search', ['globalSearchVariant' => 'header'])
         </div>
         @if($foodexGlobalHeaderExtraPartial)
-            <div class="foodex-global-header-extra" data-foodex-global-header-extra>
+            <div class="foodex-global-header-extra" data-foodex-header-extra>
                 @include($foodexGlobalHeaderExtraPartial)
             </div>
         @endif
