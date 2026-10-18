@@ -1265,6 +1265,92 @@ final class OrderOperationsController extends Controller
         ));
     }
 
+    public function assignCustomerServiceOwner(
+        Request $request,
+        int $order,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless($this->customerServiceTeam->canManage($actor), 403);
+        $model = $this->managedOrder($actor, $order, 'orders.manage');
+
+        $validated = $request->validate([
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+        $assignedUserId = isset($validated['assigned_user_id'])
+            ? (int) $validated['assigned_user_id']
+            : null;
+        $reason = trim((string) ($validated['reason'] ?? ''));
+
+        if ($assignedUserId !== null) {
+            $allowed = $this->customerServiceTeam
+                ->members($actor)
+                ->where('is_active', true)
+                ->contains(fn (User $member): bool => (int) $member->getKey() === $assignedUserId);
+            abort_unless($allowed, 403);
+        }
+
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $assignedUserId,
+            $reason,
+            $request,
+            $audit,
+        ): void {
+            $active = DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->whereNull('unassigned_at')
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->whereNull('unassigned_at')
+                ->update([
+                    'unassigned_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            $assignmentId = null;
+            if ($assignedUserId !== null) {
+                $assignmentId = (int) DB::table('order_customer_service_assignments')->insertGetId([
+                    'order_id' => (int) $model->getKey(),
+                    'assigned_user_id' => $assignedUserId,
+                    'assigned_by_user_id' => (int) $actor->getKey(),
+                    'reason' => $reason === '' ? null : $reason,
+                    'assigned_at' => now(),
+                    'unassigned_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $audit->record(
+                'order.customer_service_owner.changed',
+                $actor,
+                $model,
+                [
+                    'assignment_id' => $active?->id,
+                    'assigned_user_id' => $active?->assigned_user_id,
+                ],
+                [
+                    'assignment_id' => $assignmentId,
+                    'assigned_user_id' => $assignedUserId,
+                    'reason' => $reason === '' ? null : $reason,
+                ],
+                $request,
+            );
+        }, 3);
+
+        return back()->with('status', $this->msg(
+            $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
+            $assignedUserId === null ? 'Customer Service owner removed.' : 'Order assigned to Customer Service.',
+        ));
+    }
+
     public function reassign(
         Request $request,
         int $order,
