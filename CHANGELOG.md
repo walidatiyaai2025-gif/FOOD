@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.90 - 2026-10-18
+- Promote the complete authoritative main lineage after FOODEX 1.0.89 into the cumulative Dashboard 1.0.90 update.
+- Fix External AI provider API-key persistence on MySQL by storing encrypted ciphertext as a valid JSON string document while preserving encrypted-at-rest handling and safe decryption.
+- Ship the latest shared global-header alignment across search, notifications and account controls.
+- Ship the P0 Retail authentication repair that prevents one Retail login attempt from locking out unrelated accounts.
+- Add authoritative B2C business profiles so Retail Store and Restaurant behavior can be separated by explicit server-side profile semantics.
+- Preserve all earlier 1.0.89 enterprise, Customer Service, Restaurant SaaS and Assistant configuration capabilities already present on main.
+- Synchronize Customer, Driver and Van source identities at 1.0.90+90 per the repository release contract; the Dashboard update remains independently deployable.
+
 ## 1.0.89 - 2026-10-18
 - Promote every authoritative main change merged after FOODEX 1.0.86 through the current release head; owner-selected versions 1.0.87 and 1.0.88 remain unpublished.
 - Ship Restaurant SaaS 2.0 management/template/content convergence, per-store entitlement, module-aware RBAC, WhatsApp OTP authentication, and completed enterprise Catalog, Procurement, Stores/Channels, Field Operations, System Administration and Security governance surfaces.
