@@ -113,6 +113,14 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
 
+## D-018 — RAG documents are governed evidence, never instructions
+**Decision (#2223 / AI-15, 2026-10-18):** Approved FOODEX document knowledge is exposed to the existing Assistant only through the typed `knowledge.search` read tool. Sources carry exact version, locale and global-or-store scope; superseded, revoked, deleted and expired sources are excluded. Weak retrieval evidence is refused. Document excerpts are always untrusted data and cannot authorize, select or execute tools.
+
+**Reason:** mixing document text with agent instructions would allow indirect prompt injection, while allowing unscoped or stale documents would create cross-tenant and grounding failures. Live business facts also have different freshness/authority semantics from policy/manual content.
+
+**Consequences:** planning routes live facts to deterministic domain/read-model tools and documents to `knowledge.search`; hybrid questions may use both. Planning never sees retrieved document text, synthesis has no callable tools, every knowledge read is re-authorized/audited through `AssistantToolExecutor`, and final knowledge answers append server-derived exact source/version citations. Provider-disabled behavior remains additive/degraded and cannot take core FOODEX down.
+
+**Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
 
 ## D-018 — AI security is enforced at provider and tool boundaries, not by prompt trust
 **Decision (#2229 / AI-20, 2026-10-19):** FOODEX treats model/user/RAG text as untrusted and enforces AI-specific security in server code at the outbound provider boundary and the existing `AssistantToolExecutor`. The security layer owns prompt-injection blocking, output/secret filtering, tool/write kill switches, unsafe argument rejection, result minimization and cohort/differencing privacy protection.
