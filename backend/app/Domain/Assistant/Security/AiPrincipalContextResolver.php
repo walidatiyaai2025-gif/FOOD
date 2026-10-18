@@ -61,7 +61,7 @@ final class AiPrincipalContextResolver
     }
 
     /**
-     * @param list<int> $permittedStoreIds
+     * @param  list<int>  $permittedStoreIds
      * @return list<string>
      */
     private function roleCodes(User $user, ?int $activeStoreId, array $permittedStoreIds): array
@@ -93,7 +93,7 @@ final class AiPrincipalContextResolver
     }
 
     /**
-     * @param list<int> $permittedStoreIds
+     * @param  list<int>  $permittedStoreIds
      * @return list<string>
      */
     private function permissionCodes(User $user, ?int $activeStoreId, array $permittedStoreIds): array
@@ -155,7 +155,7 @@ final class AiPrincipalContextResolver
     }
 
     /**
-     * @param array<string, mixed> $pageContext
+     * @param  array<string, mixed>  $pageContext
      * @return array<string, mixed>
      */
     private function safePageContext(array $pageContext, ?string $channel, ?int $activeStoreId): array
