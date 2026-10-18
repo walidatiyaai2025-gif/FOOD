@@ -380,7 +380,10 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             if (! is_array($step) || ! is_string($step['tool'] ?? null) || ! is_array($step['arguments'] ?? null)) {
                 return ['kind' => 'fallback', 'provider' => $provider + ['failure' => 'PROVIDER_MALFORMED']];
             }
-            $steps[] = ['tool' => $step['tool'], 'arguments' => $step['arguments']];
+            $steps[] = [
+                'tool' => $this->toolKeyFromProviderName($step['tool']),
+                'arguments' => $step['arguments'],
+            ];
         }
 
         if ($steps === [] || count($steps) > min($request->budget->maxSteps, $request->budget->maxToolCalls)) {
