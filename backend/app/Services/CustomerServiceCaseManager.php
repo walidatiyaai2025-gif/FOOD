@@ -51,7 +51,7 @@ final class CustomerServiceCaseManager
      * Mirror the canonical WhatsApp inbox visibility rules so the Customer Service
      * workspace badge never exposes conversations outside the actor's real inbox.
      *
-     * @return array{unread_count:int,items:Collection<int,object>}
+     * @return array{unread_count:int,items:Collection<int,\stdClass>}
      */
     public function whatsAppInboxSummary(User $actor, int $limit = 12): array
     {
