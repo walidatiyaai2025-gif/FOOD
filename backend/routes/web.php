@@ -577,6 +577,8 @@ Route::prefix('admin')
         Route::post('/erp/bi/schedules', [EnterpriseBiScheduleController::class, 'store'])->middleware('throttle:30,1')->name('erp.bi.schedules.store');
         Route::patch('/erp/bi/schedules/{schedule}', [EnterpriseBiScheduleController::class, 'update'])->whereNumber('schedule')->middleware('throttle:30,1')->name('erp.bi.schedules.update');
         Route::get('/erp/customer-service', [CustomerServiceWorkspaceController::class, 'index'])->name('erp.customer-service');
+        Route::post('/erp/customer-service/team', [CustomerServiceWorkspaceController::class, 'storeTeamMember'])->middleware('throttle:30,1')->name('erp.customer-service.team.store');
+        Route::patch('/erp/customer-service/team/{member}', [CustomerServiceWorkspaceController::class, 'updateTeamMember'])->whereNumber('member')->middleware('throttle:30,1')->name('erp.customer-service.team.update');
         Route::post('/erp/customer-service/cases', [CustomerServiceWorkspaceController::class, 'storeCase'])->middleware('throttle:30,1')->name('erp.customer-service.cases.store');
         Route::get('/erp/customer-service/cases/{case}', [CustomerServiceWorkspaceController::class, 'showCase'])->whereNumber('case')->name('erp.customer-service.cases.show');
         Route::patch('/erp/customer-service/cases/{case}', [CustomerServiceWorkspaceController::class, 'updateCase'])->whereNumber('case')->middleware('throttle:30,1')->name('erp.customer-service.cases.update');
@@ -760,6 +762,7 @@ Route::prefix('admin')
         Route::patch('/operations/orders/{order}', [OrderOperationsController::class, 'update'])->whereNumber('order')->name('operations.orders.update');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
+        Route::patch('/operations/orders/{order}/customer-service-owner', [OrderOperationsController::class, 'assignCustomerServiceOwner'])->whereNumber('order')->middleware('throttle:30,1')->name('operations.orders.customer-service-owner');
         Route::patch('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'dispatch'])->whereNumber('order')->name('operations.orders.dispatch');
         Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CustomerServiceCaseManager;
+use App\Services\CustomerServiceTeamManager;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,7 @@ final class CustomerServiceWorkspaceController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly CustomerServiceCaseManager $cases,
+        private readonly CustomerServiceTeamManager $team,
     ) {}
 
     public function index(Request $request): View
@@ -90,6 +92,44 @@ final class CustomerServiceWorkspaceController extends Controller
             (string) ($record->original_name ?: 'attachment'),
             ['Content-Type' => (string) ($record->mime_type ?: 'application/octet-stream')],
         );
+    }
+
+    public function storeTeamMember(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($this->team->canManage($actor), 403);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:190', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:10', 'max:100'],
+            'locale' => ['required', Rule::in(['ar', 'en'])],
+            'role_code' => ['required', Rule::in($this->team->roleCodes())],
+        ]);
+
+        $this->team->create($actor, $validated, $request);
+
+        return redirect()
+            ->route('admin.erp.customer-service')
+            ->with('status', __('customer_service_workspace.team.member_created'));
+    }
+
+    public function updateTeamMember(Request $request, User $member): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($this->team->canManage($actor), 403);
+
+        $validated = $request->validate([
+            'role_code' => ['required', Rule::in($this->team->roleCodes())],
+            'is_active' => ['required', 'boolean'],
+            'deactivation_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $this->team->update($actor, $member, $validated, $request);
+
+        return redirect()
+            ->route('admin.erp.customer-service')
+            ->with('status', __('customer_service_workspace.team.member_updated'));
     }
 
     private function workspace(Request $request, ?int $selectedCaseId = null): View
@@ -184,6 +224,7 @@ final class CustomerServiceWorkspaceController extends Controller
 
         $selectedCaseId ??= $request->integer('case_id') ?: null;
         $relatedRecordOptions = $this->cases->relatedRecordOptions($actor);
+        $canManageTeam = $this->team->canManage($actor);
 
         return view('admin.customer-service-workspace', [
             'user' => $actor,
@@ -203,6 +244,9 @@ final class CustomerServiceWorkspaceController extends Controller
             'invoiceOptions' => $relatedRecordOptions['invoices'],
             'conversationOptions' => $relatedRecordOptions['conversations'],
             'canManageCases' => $this->cases->manageStoreIds($actor) !== [],
+            'canManageTeam' => $canManageTeam,
+            'teamMembers' => $canManageTeam ? $this->team->members($actor) : collect(),
+            'teamRoleCodes' => $this->team->roleCodes(),
             'caseStatuses' => (array) config('customer_service.statuses', []),
             'casePriorities' => (array) config('customer_service.priorities', []),
             'caseQueues' => (array) config('customer_service.queues', []),

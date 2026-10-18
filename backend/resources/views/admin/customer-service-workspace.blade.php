@@ -280,6 +280,84 @@
             </section>
             @endif
 
+            @if($canManageTeam)
+            <section class="foodex-card cs-panel" data-customer-service-team-management>
+                <div class="cs-section-head">
+                    <div>
+                        <h2>{{ __('customer_service_workspace.team.title') }}</h2>
+                        <p>{{ __('customer_service_workspace.team.help') }}</p>
+                    </div>
+                    <span class="cs-badge ok">{{ __('customer_service_workspace.team.manage_enabled') }}</span>
+                </div>
+                <div class="foodex-info" style="margin-bottom:14px">{{ __('customer_service_workspace.team.security_note') }}</div>
+                <details @if(old('email') && old('role_code')) open @endif>
+                    <summary class="foodex-action-primary" style="display:inline-flex">{{ __('customer_service_workspace.team.create') }}</summary>
+                    <form method="post" action="{{ route('admin.erp.customer-service.team.store') }}" class="cs-form" style="margin-top:16px">
+                        @csrf
+                        <label>{{ __('customer_service_workspace.team.name') }}<input name="name" required maxlength="120" value="{{ old('name') }}"></label>
+                        <label>{{ __('customer_service_workspace.team.email') }}<input type="email" name="email" required maxlength="190" autocomplete="off" value="{{ old('email') }}"></label>
+                        <label>{{ __('customer_service_workspace.team.password') }}<input type="password" name="password" required minlength="10" maxlength="100" autocomplete="new-password"></label>
+                        <label>{{ __('customer_service_workspace.team.locale') }}
+                            <select name="locale" required><option value="ar" @selected(old('locale','ar')==='ar')>{{ __('customer_service_workspace.team.language_ar') }}</option><option value="en" @selected(old('locale')==='en')>{{ __('customer_service_workspace.team.language_en') }}</option></select>
+                        </label>
+                        <label>{{ __('customer_service_workspace.team.role') }}
+                            <select name="role_code" required>
+                                <option value="CUSTOMER_SERVICE_AGENT" @selected(old('role_code','CUSTOMER_SERVICE_AGENT')==='CUSTOMER_SERVICE_AGENT')>{{ __('customer_service_workspace.team.agent') }}</option>
+                                <option value="CUSTOMER_SERVICE_SUPERVISOR" @selected(old('role_code')==='CUSTOMER_SERVICE_SUPERVISOR')>{{ __('customer_service_workspace.team.supervisor') }}</option>
+                            </select>
+                        </label>
+                        <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.team.create_action') }}</button></div>
+                    </form>
+                </details>
+
+                <div class="cs-table-wrap" style="margin-top:18px">
+                    <table class="cs-table" data-pagination-exempt="bounded-customer-service-team">
+                        <thead><tr>
+                            <th>{{ __('customer_service_workspace.team.name') }}</th>
+                            <th>{{ __('customer_service_workspace.team.email') }}</th>
+                            <th>{{ __('customer_service_workspace.team.role') }}</th>
+                            <th>{{ __('customer_service_workspace.team.status') }}</th>
+                            <th></th>
+                        </tr></thead>
+                        <tbody>
+                        @forelse($teamMembers as $member)
+                            @php($teamRoleCode=(string)($member->roles->first()?->code ?? 'CUSTOMER_SERVICE_AGENT'))
+                            <tr>
+                                <td data-label="{{ __('customer_service_workspace.team.name') }}"><strong>{{ $member->name }}</strong></td>
+                                <td data-label="{{ __('customer_service_workspace.team.email') }}">{{ $member->email }}</td>
+                                <td data-label="{{ __('customer_service_workspace.team.role') }}">{{ $teamRoleCode==='CUSTOMER_SERVICE_SUPERVISOR' ? __('customer_service_workspace.team.supervisor') : __('customer_service_workspace.team.agent') }}</td>
+                                <td data-label="{{ __('customer_service_workspace.team.status') }}"><span class="cs-badge {{ $member->is_active ? 'ok' : 'danger' }}">{{ $member->is_active ? __('customer_service_workspace.team.active') : __('customer_service_workspace.team.inactive') }}</span></td>
+                                <td>
+                                    <details>
+                                        <summary class="foodex-action-secondary button secondary">{{ __('customer_service_workspace.team.save') }}</summary>
+                                        <form method="post" action="{{ route('admin.erp.customer-service.team.update',['member'=>$member->id]) }}" class="cs-form" style="margin-top:10px;min-width:min(560px,80vw)">
+                                            @csrf @method('PATCH')
+                                            <label>{{ __('customer_service_workspace.team.role') }}
+                                                <select name="role_code" required>
+                                                    <option value="CUSTOMER_SERVICE_AGENT" @selected($teamRoleCode==='CUSTOMER_SERVICE_AGENT')>{{ __('customer_service_workspace.team.agent') }}</option>
+                                                    <option value="CUSTOMER_SERVICE_SUPERVISOR" @selected($teamRoleCode==='CUSTOMER_SERVICE_SUPERVISOR')>{{ __('customer_service_workspace.team.supervisor') }}</option>
+                                                </select>
+                                            </label>
+                                            <label style="display:flex;grid-template-columns:auto 1fr;align-items:center;align-content:center">
+                                                <input type="hidden" name="is_active" value="0">
+                                                <input type="checkbox" name="is_active" value="1" @checked($member->is_active)>
+                                                <span>{{ __('customer_service_workspace.team.active') }}</span>
+                                            </label>
+                                            <label>{{ __('customer_service_workspace.team.deactivation_reason') }}<input name="deactivation_reason" maxlength="500"></label>
+                                            <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.team.save') }}</button></div>
+                                        </form>
+                                    </details>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5"><div class="foodex-state">{{ __('customer_service_workspace.team.empty') }}</div></td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            @endif
+
             <nav class="foodex-tabs" aria-label="{{ __('customer_service_workspace.journey_label') }}">
                 @foreach($capabilities as $item)<a class="foodex-tab" href="{{ $item['url'] }}">{{ __('customer_service_workspace.cards.'.$item['key'].'.title') }}</a>@endforeach
             </nav>

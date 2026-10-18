@@ -14,6 +14,8 @@ final readonly class OrderOperationsRowContext
      * @param  array<int,OrderDispatchState>  $dispatchStates
      * @param  array<int,stdClass>  $vans
      * @param  array<int,stdClass>  $territories
+     * @param  array<int,stdClass>  $customerServiceAssignments
+     * @param  array<int,stdClass>  $customerServiceUsers
      * @param  array<int,string>  $customerNames
      * @param  array<int,stdClass>  $payments
      * @param  array<int,stdClass>  $invoices
@@ -28,6 +30,8 @@ final readonly class OrderOperationsRowContext
         public array $dispatchStates,
         public array $vans,
         public array $territories,
+        public array $customerServiceAssignments,
+        public array $customerServiceUsers,
         public array $customerNames,
         public array $payments,
         public array $invoices,

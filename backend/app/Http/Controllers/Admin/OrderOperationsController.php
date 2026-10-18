@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\CustomerServiceTeamManager;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
@@ -50,6 +51,7 @@ final class OrderOperationsController extends Controller
         private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
         private readonly SalesOrderOperationsDashboardService $salesDashboard,
+        private readonly CustomerServiceTeamManager $customerServiceTeam,
     ) {}
 
     public function b2bIndex(Request $request): View
@@ -261,6 +263,11 @@ final class OrderOperationsController extends Controller
             )
             : null;
 
+        $canAssignCustomerService = $this->customerServiceTeam->canManage($actor);
+        $customerServiceAgents = $canAssignCustomerService
+            ? $this->customerServiceTeam->members($actor)->where('is_active', true)->values()
+            : collect();
+
         $detail = null;
         if (isset($data['order'])) {
             $detailOrder = Order::query()
@@ -314,6 +321,8 @@ final class OrderOperationsController extends Controller
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,
             'newOrderWizard' => $this->newOrderWizard($actor),
+            'canAssignCustomerService' => $canAssignCustomerService,
+            'customerServiceAgents' => $customerServiceAgents,
             'isAr' => app()->getLocale() === 'ar',
         ]);
     }
@@ -525,7 +534,10 @@ final class OrderOperationsController extends Controller
             abort_unless($storeId === $principalStoreId, 404);
         }
 
-        $this->scope->assertStore($actor, $storeId, 'orders.manage', $channel);
+        abort_unless(
+            in_array($storeId, $this->orderCreateStoreIds($actor, $channel), true),
+            404,
+        );
 
         return [$channel, $storeId];
     }
@@ -536,7 +548,7 @@ final class OrderOperationsController extends Controller
         $channels = [];
         $principalStoreId = app(WholesalePrincipal::class)->storeId();
         $b2bStoreIds = array_values(array_filter(
-            $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2b'),
+            $this->orderCreateStoreIds($actor, 'b2b'),
             static fn (int $storeId): bool => $storeId === $principalStoreId,
         ));
 
@@ -548,7 +560,7 @@ final class OrderOperationsController extends Controller
             ];
         }
 
-        $b2cStoreIds = $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2c');
+        $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
         if ($b2cStoreIds !== []) {
             $channels[] = [
                 'code' => 'b2c',
@@ -593,6 +605,15 @@ final class OrderOperationsController extends Controller
             'channels' => $channels,
             'payment_methods' => $paymentMethods,
         ];
+    }
+
+    /** @return list<int> */
+    private function orderCreateStoreIds(User $actor, string $channel): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->scope->allowedStoreIds($actor, 'orders.create', $channel),
+            $this->scope->allowedStoreIds($actor, 'orders.manage', $channel),
+        )));
     }
 
     /** @return array<string,mixed> */
@@ -1244,6 +1265,97 @@ final class OrderOperationsController extends Controller
         ));
     }
 
+    public function assignCustomerServiceOwner(
+        Request $request,
+        int $order,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless($this->customerServiceTeam->canManage($actor), 403);
+        $model = $this->managedOrder($actor, $order, 'orders.manage');
+
+        $validated = $request->validate([
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+        $assignedUserId = isset($validated['assigned_user_id'])
+            ? (int) $validated['assigned_user_id']
+            : null;
+        $reason = trim((string) ($validated['reason'] ?? ''));
+
+        if ($assignedUserId !== null) {
+            $allowed = $this->customerServiceTeam
+                ->members($actor)
+                ->where('is_active', true)
+                ->contains(fn (User $member): bool => (int) $member->getKey() === $assignedUserId);
+            abort_unless($allowed, 403);
+        }
+
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $assignedUserId,
+            $reason,
+            $request,
+            $audit,
+        ): void {
+            DB::table('orders')
+                ->where('id', $model->getKey())
+                ->lockForUpdate()
+                ->first(['id']);
+
+            $active = DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->whereNull('unassigned_at')
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->whereNull('unassigned_at')
+                ->update([
+                    'unassigned_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            $assignmentId = null;
+            if ($assignedUserId !== null) {
+                $assignmentId = (int) DB::table('order_customer_service_assignments')->insertGetId([
+                    'order_id' => (int) $model->getKey(),
+                    'assigned_user_id' => $assignedUserId,
+                    'assigned_by_user_id' => (int) $actor->getKey(),
+                    'reason' => $reason === '' ? null : $reason,
+                    'assigned_at' => now(),
+                    'unassigned_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $audit->record(
+                'order.customer_service_owner.changed',
+                $actor,
+                $model,
+                [
+                    'assignment_id' => $active?->id,
+                    'assigned_user_id' => $active?->assigned_user_id,
+                ],
+                [
+                    'assignment_id' => $assignmentId,
+                    'assigned_user_id' => $assignedUserId,
+                    'reason' => $reason === '' ? null : $reason,
+                ],
+                $request,
+            );
+        }, 3);
+
+        return back()->with('status', $this->msg(
+            $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
+            $assignedUserId === null ? 'Customer Service owner removed.' : 'Order assigned to Customer Service.',
+        ));
+    }
+
     public function reassign(
         Request $request,
         int $order,
@@ -1337,7 +1449,7 @@ final class OrderOperationsController extends Controller
     private function listRowContext(array $orders): OrderOperationsRowContext
     {
         if ($orders === []) {
-            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], []);
+            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], []);
         }
 
         $orderIds = array_map(
@@ -1372,6 +1484,38 @@ final class OrderOperationsController extends Controller
             $orderId = (int) $dispatch->order_id;
             if (isset($dispatchStates[$orderId]) === false) {
                 $dispatchStates[$orderId] = $dispatch;
+            }
+        }
+
+        $customerServiceAssignments = [];
+        foreach (
+            DB::table('order_customer_service_assignments')
+                ->whereIn('order_id', $orderIds)
+                ->whereNull('unassigned_at')
+                ->orderByDesc('id')
+                ->get(['id', 'order_id', 'assigned_user_id', 'assigned_by_user_id', 'reason', 'assigned_at']) as $assignment
+        ) {
+            $orderId = (int) $assignment->order_id;
+            if (! isset($customerServiceAssignments[$orderId])) {
+                $customerServiceAssignments[$orderId] = $assignment;
+            }
+        }
+
+        $customerServiceUserIds = collect($customerServiceAssignments)
+            ->pluck('assigned_user_id')
+            ->filter()
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $customerServiceUsers = [];
+        if ($customerServiceUserIds !== []) {
+            foreach (
+                DB::table('users')
+                    ->whereIn('id', $customerServiceUserIds)
+                    ->get(['id', 'name', 'email', 'is_active']) as $teamUser
+            ) {
+                $customerServiceUsers[(int) $teamUser->id] = $teamUser;
             }
         }
 
@@ -1570,6 +1714,8 @@ final class OrderOperationsController extends Controller
             dispatchStates: $dispatchStates,
             vans: $vans,
             territories: $territories,
+            customerServiceAssignments: $customerServiceAssignments,
+            customerServiceUsers: $customerServiceUsers,
             customerNames: $customerNames,
             payments: $payments,
             invoices: $invoices,
@@ -1595,6 +1741,21 @@ final class OrderOperationsController extends Controller
         ?OrderOperationsRowContext $context = null,
     ): array {
         $orderId = (int) $order->getKey();
+
+        $customerServiceAssignment = $context === null
+            ? DB::table('order_customer_service_assignments')
+                ->where('order_id', $orderId)
+                ->whereNull('unassigned_at')
+                ->latest('id')
+                ->first(['id', 'assigned_user_id', 'reason', 'assigned_at'])
+            : ($context->customerServiceAssignments[$orderId] ?? null);
+        $customerServiceOwner = $customerServiceAssignment === null
+            ? null
+            : ($context === null
+                ? DB::table('users')
+                    ->where('id', (int) $customerServiceAssignment->assigned_user_id)
+                    ->first(['id', 'name', 'email', 'is_active'])
+                : ($context->customerServiceUsers[(int) $customerServiceAssignment->assigned_user_id] ?? null));
 
         $assignment = $context === null
             ? DriverAssignment::query()
@@ -1785,6 +1946,10 @@ final class OrderOperationsController extends Controller
             'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
+            'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
+            'customer_service_owner' => $customerServiceOwner?->name,
+            'customer_service_owner_email' => $customerServiceOwner?->email,
+            'customer_service_assignment_reason' => $customerServiceAssignment?->reason,
             'assignment_id' => $assignment?->getKey(),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,

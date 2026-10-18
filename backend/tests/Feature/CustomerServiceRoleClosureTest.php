@@ -1,0 +1,234 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Role;
+use App\Models\User;
+use App\Services\B2bCustomerService;
+use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
+use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+final class CustomerServiceRoleClosureTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(CoreReferenceSeeder::class);
+    }
+
+    public function test_customer_service_role_matrix_supports_manager_workflow_and_staff_order_creation(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        $supervisor = $this->userWithRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+
+        foreach ([
+            'customer_service.team.manage',
+            'customers.view',
+            'customers.edit',
+            'customers.manage',
+            'orders.view',
+            'orders.create',
+            'orders.edit',
+            'orders.approve',
+            'orders.manage',
+            'orders.dispatch',
+        ] as $permission) {
+            $this->assertTrue($manager->hasPermission($permission), $permission);
+        }
+
+        foreach ([$supervisor, $agent] as $staff) {
+            $this->assertTrue($staff->hasPermission('orders.view'));
+            $this->assertTrue($staff->hasPermission('orders.create'));
+            $this->assertFalse($staff->hasPermission('orders.manage'));
+            $this->assertFalse($staff->hasPermission('customer_service.team.manage'));
+            $this->assertContains(
+                $principalStoreId,
+                app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.create', 'b2b'),
+            );
+        }
+
+        $this->assertContains(
+            $principalStoreId,
+            app(OperationalTenantScope::class)->allowedStoreIds($manager, 'orders.manage', 'b2b'),
+        );
+    }
+
+    public function test_manager_can_create_and_manage_only_customer_service_staff(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+
+        $this->actingAs($manager)
+            ->post(route('admin.erp.customer-service.team.store'), [
+                'name' => 'Service Agent One',
+                'email' => 'service.agent.one@example.test',
+                'password' => 'Temporary123!',
+                'locale' => 'ar',
+                'role_code' => 'CUSTOMER_SERVICE_AGENT',
+            ])
+            ->assertRedirect(route('admin.erp.customer-service'));
+
+        $member = User::query()->where('email', 'service.agent.one@example.test')->firstOrFail();
+        $this->assertTrue($member->hasRole('CUSTOMER_SERVICE_AGENT'));
+        $this->assertFalse($member->hasRole('CUSTOMER_SERVICE_SUPERVISOR'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'customer_service.team.member_created',
+            'user_id' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->patch(route('admin.erp.customer-service.team.update', ['member' => $member->id]), [
+                'role_code' => 'CUSTOMER_SERVICE_SUPERVISOR',
+                'is_active' => '0',
+                'deactivation_reason' => 'Shift ended',
+            ])
+            ->assertRedirect(route('admin.erp.customer-service'));
+
+        $member = $member->fresh();
+        $this->assertTrue($member->hasRole('CUSTOMER_SERVICE_SUPERVISOR'));
+        $this->assertFalse((bool) $member->is_active);
+        $this->assertNotNull($member->deactivated_at);
+        $this->assertSame('Shift ended', $member->deactivation_reason);
+
+        $this->actingAs($manager)
+            ->post(route('admin.erp.customer-service.team.store'), [
+                'name' => 'Forbidden Admin',
+                'email' => 'forbidden.admin@example.test',
+                'password' => 'Temporary123!',
+                'locale' => 'en',
+                'role_code' => 'B2B_ADMIN',
+            ])
+            ->assertSessionHasErrors('role_code');
+
+        $privileged = $this->userWithRole('B2B_ADMIN');
+        $privileged->roles()->attach(Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail());
+
+        $this->actingAs($manager)
+            ->patch(route('admin.erp.customer-service.team.update', ['member' => $privileged->id]), [
+                'role_code' => 'CUSTOMER_SERVICE_AGENT',
+                'is_active' => '1',
+            ])
+            ->assertSessionHasErrors('member');
+
+        $this->assertTrue($privileged->fresh()->hasRole('B2B_ADMIN'));
+    }
+
+    public function test_agent_can_reach_new_order_workflow_without_receiving_order_management(): void
+    {
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+
+        $this->actingAs($agent)
+            ->get(route('admin.operations.orders.index', ['channel' => 'b2b']))
+            ->assertOk()
+            ->assertViewHas('newOrderWizard', function (array $wizard): bool {
+                return collect($wizard['channels'])->contains(
+                    fn (array $channel): bool => $channel['code'] === 'b2b'
+                );
+            });
+
+        $this->actingAs($agent)
+            ->withHeader('Accept', 'application/json')
+            ->post(route('admin.operations.orders.quote'), [
+                'channel' => 'b2b',
+                'store_id' => $principalStoreId,
+            ])
+            ->assertStatus(422);
+
+        $this->assertFalse($agent->hasPermission('orders.manage'));
+    }
+
+    public function test_manager_can_assign_and_unassign_order_followup_only_to_customer_service_team(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $outsider = $this->userWithRole('B2B_ADMIN');
+
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $customer = app(B2bCustomerService::class)->create(['name' => 'Assignment Customer']);
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $storeId,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => (int) $customer->getKey(),
+            'order_number' => 'CS-ASSIGN-1001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_id' => $agent->id,
+                'reason' => 'New order follow-up',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('order_customer_service_assignments', [
+            'order_id' => $orderId,
+            'assigned_user_id' => $agent->id,
+            'assigned_by_user_id' => $manager->id,
+            'reason' => 'New order follow-up',
+            'unassigned_at' => null,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'order.customer_service_owner.changed',
+            'user_id' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_id' => $outsider->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_id' => null,
+                'reason' => 'Returned to queue',
+            ])
+            ->assertRedirect();
+
+        $this->assertFalse(
+            DB::table('order_customer_service_assignments')
+                ->where('order_id', $orderId)
+                ->whereNull('unassigned_at')
+                ->exists(),
+        );
+    }
+
+    public function test_agent_cannot_manage_customer_service_team(): void
+    {
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+
+        $this->actingAs($agent)
+            ->post(route('admin.erp.customer-service.team.store'), [
+                'name' => 'Unauthorized User',
+                'email' => 'unauthorized@example.test',
+                'password' => 'Temporary123!',
+                'locale' => 'en',
+                'role_code' => 'CUSTOMER_SERVICE_AGENT',
+            ])
+            ->assertForbidden();
+    }
+
+    private function userWithRole(string $code): User
+    {
+        $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $user->roles()->attach(Role::query()->where('code', $code)->firstOrFail());
+
+        return $user->fresh();
+    }
+}
