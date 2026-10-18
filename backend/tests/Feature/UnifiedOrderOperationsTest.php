@@ -192,7 +192,15 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringNotContainsString('@if(', $dashboardBlock);
         $this->assertStringNotContainsString('@foreach(', $dashboardBlock);
         $this->assertStringNotContainsString('@forelse(', $dashboardBlock);
-        $this->assertStringContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
+        $this->assertStringNotContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
+        $this->assertStringContainsString('data-order-workspace-bar', $view);
+        $this->assertStringContainsString('data-order-workspace-filter', $view);
+        $this->assertStringContainsString("@include('admin._order-operations-header-filters')", $view);
+        $this->assertStringContainsString('@keyframes orderChartGrow', $view);
+        $this->assertStringContainsString('@keyframes orderRankGrow', $view);
+        $this->assertStringContainsString('charts-animate', $view);
+        $this->assertStringContainsString('--order-chart-color:#2563EB', $view);
+        $this->assertStringContainsString('--order-chart-color:#7C3AED', $view);
         $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
         $this->assertStringNotContainsString('data-order-workspace-context', $view);
         $this->assertStringNotContainsString("@include('admin._module-dashboard-filters'", $view);
@@ -217,6 +225,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('name="from"', $headerFilter);
         $this->assertStringContainsString('name="to"', $headerFilter);
         $this->assertStringContainsString('order-header-new-order', $headerFilter);
+        $this->assertStringContainsString('.order-header-filter{display:flex', $headerFilter);
+        $this->assertStringContainsString('height:34px!important', $headerFilter);
     }
 
     public function test_order_grid_is_fixed_to_ten_rows_per_page(): void
