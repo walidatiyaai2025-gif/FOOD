@@ -30,6 +30,20 @@ final class AssistantMemoryPolicy
         return CarbonImmutable::instance($state->updated_at)->greaterThanOrEqualTo($cutoff);
     }
 
+    public function expireTransientState(AssistantConversationState $state): AssistantConversationState
+    {
+        $state->forceFill([
+            'last_intent' => null,
+            'last_period' => null,
+            'last_authorized_entities' => [],
+            'last_tool' => null,
+            'result_references' => [],
+            'pending_clarification_slots' => [],
+        ])->save();
+
+        return $state->fresh();
+    }
+
     /**
      * Durable Assistant memory is deliberately tiny: presentation preferences only.
      * Business values, tool results, permissions and provider/model settings are never accepted.
