@@ -26,7 +26,7 @@ final readonly class AnalyticsReadModelService
     /**
      * Read only materialized facts; no model or caller can provide SQL.
      *
-     * @param list<int> $storeIds
+     * @param  list<int>  $storeIds
      * @return array<string,mixed>
      */
     public function read(
@@ -187,7 +187,7 @@ final readonly class AnalyticsReadModelService
     }
 
     /**
-     * @param list<int> $requested
+     * @param  list<int>  $requested
      * @return list<int>
      */
     private function authorizedStores(
