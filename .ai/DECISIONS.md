@@ -94,3 +94,11 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md, #2208 and #2209.
 
+## D-016 — AI sell-out access is exact, revocable and re-authorized per call
+**Decision (#2211 / AI-03, 2026-10-18):** Retail sell-out remains retailer-owned protected data. Wholesale Assistant access is allowed only for the canonical FOODEX Wholesale Principal, an exact Retail store relationship, an active purpose-bound grant, and current FOODEX permissions. Grant/revoke requires `assistant.sellout.share`; every tool execution rebuilds principal/store/channel authority server-side.
+
+**Reason:** page context, conversation memory, provider output and a historical grant must never become authorization. A broad B2B role or sell-in relationship is insufficient evidence that Retail sell-out may be analyzed.
+
+**Consequences:** revocation blocks subsequent reads immediately; multi-retailer aggregation authorizes every Retail store independently; consent/read/tool access is audited; localized denial does not expose hidden ids; providers receive no authorization power.
+
+**Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
