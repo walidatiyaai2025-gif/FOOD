@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.security.title') }} · FOODEX</title>
 <style>
-:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1500px;margin:auto;padding:28px}.top,.head,.row{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:var(--foodex-muted);line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px;margin-top:12px}.filters,.checks,.actions{display:flex;flex-wrap:wrap;gap:9px}.filters{margin:16px 0}.checks{margin:10px 0}.actions{align-items:center}input,select,textarea,button{font:inherit}input[type=text],select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px;background:#fff}textarea{width:100%;min-height:65px}.grow{flex:1;min-width:240px}.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:750;cursor:pointer}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.secondary{background:#eef2ff;color:#3730a3}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.75rem;background:#e2e8f0;margin:3px}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.system{background:#e0e7ff;color:#3730a3}details{margin-top:12px}summary{cursor:pointer;font-weight:800}.store{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;margin:8px 0}.permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.permission-group{border:0;border-top:1px solid #e2e8f0;padding:10px 0 0;min-width:0}.permission-group legend{font-weight:800;padding:0}.permission-group-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.permission-group-tools .btn{padding:6px 9px}.permission-search{display:grid;gap:5px;margin:12px 0}.permission-search input{width:100%}.permission-option{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-radius:8px}.permission-option input{margin-top:4px}.permission-code{display:block;color:#64748b;margin-top:2px;overflow-wrap:anywhere}.permission-impact{display:grid;gap:4px;margin:12px 0}.assignment-store>summary{padding:4px 0}.job-role-meta{display:grid;gap:5px;margin-top:6px}.job-role-tags{display:flex;flex-wrap:wrap;gap:5px}.job-role-responsibilities{margin:8px 0 0;padding-inline-start:20px}.role-unavailable{opacity:.72}.role-unavailable .badge{background:var(--foodex-orange-soft);color:var(--foodex-ink)}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}.note{background:#f8fafc;padding:12px;border-radius:12px;color:#475569}.pager{margin-top:14px}@media(max-width:760px){.page{padding:12px}.top,.head,.row{flex-direction:column}.role-grid{grid-template-columns:1fr}.panel{padding:14px}.card{padding:12px}.filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.grow{min-width:0;width:100%}.checks{display:grid;grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch}.actions form{max-width:100%}.permissions{grid-template-columns:1fr}}
+:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1500px;margin:auto;padding:28px}.top,.head,.row{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:var(--foodex-muted);line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px;margin-top:12px}.filters,.checks,.actions{display:flex;flex-wrap:wrap;gap:9px}.filters{margin:16px 0}.checks{margin:10px 0}.actions{align-items:center}input,select,textarea,button{font:inherit}input[type=text],select,textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px;background:#fff}textarea{width:100%;min-height:65px}.grow{flex:1;min-width:240px}.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:750;cursor:pointer}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.secondary{background:#eef2ff;color:#3730a3}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.75rem;background:#e2e8f0;margin:3px}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.system{background:#e0e7ff;color:#3730a3}details{margin-top:12px}summary{cursor:pointer;font-weight:800}.store{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;margin:8px 0}.permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.permission-group{border:0;border-top:1px solid #e2e8f0;padding:10px 0 0;min-width:0}.permission-group legend{font-weight:800;padding:0}.permission-group-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.permission-group-tools .btn{padding:6px 9px}.permission-search{display:grid;gap:5px;margin:12px 0}.permission-search input{width:100%}.permission-option{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-radius:8px}.permission-option input{margin-top:4px}.permission-code{display:block;color:#64748b;margin-top:2px;overflow-wrap:anywhere}.permission-impact{display:grid;gap:4px;margin:12px 0}.assignment-store>summary{padding:4px 0}.job-role-meta{display:grid;gap:5px;margin-top:6px}.job-role-tags{display:flex;flex-wrap:wrap;gap:5px}.job-role-responsibilities{margin:8px 0 0;padding-inline-start:20px}.role-unavailable{opacity:.72}.role-unavailable .badge{background:var(--foodex-orange-soft);color:var(--foodex-ink)}.security-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.security-tab{display:inline-flex;align-items:center;min-height:42px;padding:9px 14px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;color:var(--foodex-ink);font-weight:800;text-decoration:none}.security-tab[aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}.security-users-head-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.security-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:min(720px,90vw);padding-top:12px}.security-create-form label{display:grid;gap:6px;font-weight:700}.security-create-form input,.security-create-form select{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:9px 11px;background:#fff}.security-create-form .span-2{grid-column:1/-1}.security-user-table-wrap{overflow-x:auto}.security-user-table{width:100%;border-collapse:collapse;min-width:920px}.security-user-table th,.security-user-table td{padding:12px 10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:middle}.security-user-table th{font-size:.82rem;color:var(--foodex-muted);background:var(--foodex-background)}.security-user-identity{display:grid;gap:3px;min-width:220px}.security-user-role-list{display:flex;flex-wrap:wrap;gap:4px;max-width:420px}.security-user-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.security-user-actions details{margin:0}.security-user-actions summary{list-style:none}.security-user-actions summary::-webkit-details-marker{display:none}.security-modal-stack{display:grid;gap:12px;min-width:min(760px,90vw);padding-top:12px}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}.note{background:#f8fafc;padding:12px;border-radius:12px;color:#475569}.pager{margin-top:14px}@media(max-width:760px){.page{padding:12px}.top,.head,.row{flex-direction:column}.role-grid{grid-template-columns:1fr}.panel{padding:14px}.card{padding:12px}.filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.grow{min-width:0;width:100%}.checks{display:grid;grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch}.actions form{max-width:100%}.permissions{grid-template-columns:1fr}.security-create-form{grid-template-columns:1fr;min-width:0}.security-create-form .span-2{grid-column:auto}.security-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.security-tab{white-space:nowrap}}
 </style>
     @include('admin._brand-components')
 </head>
@@ -15,16 +15,20 @@
 @include('admin._global-header')
 @include('admin._admin-center-switcher',['active'=>'administration'])
 <div class="top foodex-page-toolbar"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.administration.index') }}">{{ __('admin.security.back') }}</a></div>
-<nav class="foodex-tabs" aria-label="{{ __('admin.security.title') }}" style="margin-bottom:18px"><a class="back" aria-current="page" href="{{ route('admin.security.index') }}">{{ __('admin.security.title') }}</a><a class="back" href="{{ route('admin.enterprise-security.index') }}">{{ __('enterprise_security.title') }}</a></nav>
+<nav class="security-tabs" aria-label="{{ __('admin.security.title') }}">
+<a class="security-tab" @if($securitySection==='users') aria-current="page" @endif href="{{ route('admin.security.index',['section'=>'users']) }}">{{ __('admin.security.tabs.users') }}</a>
+<a class="security-tab" @if($securitySection==='roles') aria-current="page" @endif href="{{ route('admin.security.index',['section'=>'roles']) }}">{{ __('admin.security.tabs.roles') }}</a>
+<a class="security-tab" @if($securitySection==='governance') aria-current="page" @endif href="{{ route('admin.security.index',['section'=>'governance']) }}">{{ __('admin.security.tabs.governance') }}</a>
+<a class="security-tab" @if($securitySection==='sessions') aria-current="page" @endif href="{{ route('admin.security.index',['section'=>'sessions']) }}">{{ __('admin.security.tabs.sessions') }}</a>
+<a class="security-tab" @if($securitySection==='audit') aria-current="page" @endif href="{{ route('admin.security.index',['section'=>'audit']) }}">{{ __('admin.security.tabs.audit') }}</a>
+<a class="security-tab" href="{{ route('admin.enterprise-security.index') }}">{{ __('enterprise_security.title') }}</a>
+</nav>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="errors foodex-state" role="alert"><strong>{{ __('admin.security.validation_failed') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-@include('admin._security-governance-dashboard')
+@include('admin._security-governance-dashboard',['securitySection'=>$securitySection])
 
-<section class="panel">
-<div class="head"><div><h2>{{ __('admin.security.users_title') }}</h2><div class="muted">{{ __('admin.security.users_description') }}</div></div><span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span></div>
-<form method="get" class="filters"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
-
+@if($securitySection==='users')
 @php
 $roleLabel = static function ($role): string {
     if (! $role) {
@@ -36,39 +40,71 @@ $roleLabel = static function ($role): string {
     return \Illuminate\Support\Facades\Lang::has($key) ? __($key) : $role->name;
 };
 @endphp
-@forelse($users as $managedUser)
-<article class="card">
+<section class="panel" data-security-users>
 <div class="head">
-<div>
-<h3 style="margin:0">{{ $managedUser->name }}</h3>
-<div class="muted">
-    {{ $managedUser->email }} · <strong>{{ __('admin.security.username') }}:</strong> {{ $managedUser->username ?: '—' }}
-</div>
-<div>
-    <span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>
-    @foreach($managedUser->roles as $role)
-        <span class="badge">{{ $roleLabel($role) }} <small>({{ $role->code }})</small></span> {{-- localization-gate: allow technical RBAC role identifier --}}
-    @endforeach
-    @foreach($managedUser->storeRoleAssignments as $a)
-        <span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }} <small>({{ $a->role?->code }})</small></span> {{-- localization-gate: allow technical RBAC role identifier --}}
-    @endforeach
-    <span class="badge {{ $mfaByUser->has($managedUser->id)?'active':'inactive' }}">{{ $mfaByUser->has($managedUser->id)?__('security_governance.mfa_admin.enabled'):__('security_governance.mfa_admin.missing') }}</span>
-</div>
-@if($ssoByUser->has($managedUser->id))
-    <div class="muted">
-        {{ __('security_governance.sso.identity') }}:
-        @foreach($ssoByUser->get($managedUser->id) as $identity)
-            <span dir="ltr">{{ $identity->provider }} · {{ $identity->subject }}</span> {{-- localization-gate: allow external SSO provider and subject identifiers --}}
-            @if(!$loop->last) · @endif
-        @endforeach
-    </div>
-@endif
-@if(!$managedUser->is_active&&$managedUser->deactivation_reason)<div class="muted">{{ __('admin.security.reason') }}: {{ $managedUser->deactivation_reason }}</div>@endif
-</div>
-@can('users.status.manage')<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" onsubmit="return confirm('{{ $managedUser->is_active?__('admin.security.confirm_deactivate'):__('admin.security.confirm_activate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="{{ $managedUser->is_active?0:1 }}">@if($managedUser->is_active)<input type="text" name="reason" maxlength="500" placeholder="{{ __('admin.security.optional_reason') }}"><button class="btn danger">{{ __('admin.security.deactivate') }}</button>@else<button class="btn success">{{ __('admin.security.activate') }}</button>@endif</form>@endcan
-</div>
+<div><h2>{{ __('admin.security.users_title') }}</h2><div class="muted">{{ __('admin.security.users_description') }}</div></div>
+<div class="security-users-head-actions">
 @can('users.roles.manage')
-<div class="actions" style="margin-top:10px">
+<details data-foodex-operational-modal>
+<summary class="btn primary">{{ __('admin.security.create_user') }}</summary>
+<form method="post" action="{{ route('admin.security.users.store') }}" class="security-create-form">
+@csrf
+<label>{{ __('admin.security.user_name') }}<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name"></label>
+<label>{{ __('admin.security.username') }}<input name="username" value="{{ old('username') }}" maxlength="80" autocomplete="username" placeholder="{{ __('admin.security.username_optional') }}"></label>
+<label>{{ __('admin.security.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="190" autocomplete="email"></label>
+<label>{{ __('admin.security.locale') }}<select name="locale" required><option value="ar" @selected(old('locale','ar')==='ar')>{{ __('admin.security.locale_ar') }}</option><option value="en" @selected(old('locale')==='en')>{{ __('admin.security.locale_en') }}</option></select></label>
+<label>{{ __('admin.security.password') }}<input type="password" name="password" required minlength="10" maxlength="100" autocomplete="new-password"></label>
+<label>{{ __('admin.security.password_confirmation') }}<input type="password" name="password_confirmation" required minlength="10" maxlength="100" autocomplete="new-password"></label>
+<label class="span-2">{{ __('admin.security.initial_role') }}
+<select name="role_id" required>
+<option value="">{{ __('admin.security.select_role') }}</option>
+@foreach($globalRoles as $role)
+@if((bool)$globalRoleAvailability->get((int)$role->id,false))
+<option value="{{ $role->id }}" @selected((string)old('role_id')===(string)$role->id)>{{ $jobRoleMeta[$role->code]['name'] ?? $roleLabel($role) }}</option>
+@endif
+@endforeach
+</select>
+<span class="muted">{{ __('admin.security.initial_role_help') }}</span>
+</label>
+<label class="span-2" style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:8px"><input type="hidden" name="is_active" value="0"><input style="width:auto" type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ __('admin.security.create_active') }}</label>
+<div class="span-2 actions"><button class="btn primary" type="submit">{{ __('admin.security.create_user_submit') }}</button></div>
+</form>
+</details>
+@endcan
+<span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span>
+</div>
+</div>
+<form method="get" class="filters"><input type="hidden" name="section" value="users"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
+
+<div class="security-user-table-wrap">
+<table class="security-user-table foodex-table" data-security-users-table>
+<thead><tr><th>{{ __('admin.security.user') }}</th><th>{{ __('admin.security.assigned_roles') }}</th><th>{{ __('admin.security.access_state') }}</th><th>{{ __('admin.security.actions') }}</th></tr></thead>
+<tbody>
+@forelse($users as $managedUser)
+<tr>
+<td><div class="security-user-identity"><strong>{{ $managedUser->name }}</strong><span class="muted">{{ $managedUser->email }}</span><span class="muted">{{ __('admin.security.username') }}: {{ $managedUser->username ?: '—' }}</span></div></td>
+<td><div class="security-user-role-list">
+@foreach($managedUser->roles as $role)<span class="badge">{{ $roleLabel($role) }}</span>@endforeach
+@foreach($managedUser->storeRoleAssignments as $a)<span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }}</span>@endforeach
+@if($managedUser->roles->isEmpty() && $managedUser->storeRoleAssignments->isEmpty())<span class="muted">—</span>@endif
+</div></td>
+<td>
+<span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>
+<span class="badge {{ $mfaByUser->has($managedUser->id)?'active':'inactive' }}">{{ $mfaByUser->has($managedUser->id)?__('security_governance.mfa_admin.enabled'):__('security_governance.mfa_admin.missing') }}</span>
+</td>
+<td><div class="security-user-actions">
+@can('users.roles.manage')
+<details data-foodex-operational-modal><summary class="btn secondary">{{ __('admin.security.manage') }}</summary>
+<div class="security-modal-stack">
+@include('admin._security-role-assignment-picker', [
+    'managedUser' => $managedUser,
+    'globalRoles' => $globalRoles,
+    'stores' => $stores,
+    'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
+    'jobRoleMeta' => $jobRoleMeta,
+    'globalRoleAvailability' => $globalRoleAvailability,
+    'storeRoleAvailabilityByStore' => $storeRoleAvailabilityByStore,
+])
 @if($mfaByUser->has($managedUser->id))
 <form method="post" action="{{ route('admin.security.users.mfa.reset',$managedUser) }}" onsubmit="return confirm('{{ __('security_governance.mfa_admin.reset_confirm') }}')">@csrf @method('delete')<button class="btn danger" type="submit">{{ __('security_governance.mfa_admin.reset') }}</button></form>
 @endif
@@ -83,23 +119,27 @@ $roleLabel = static function ($role): string {
 <form method="post" action="{{ route('admin.security.users.sso.destroy',$identity) }}">@csrf @method('delete')<button class="btn danger" type="submit">{{ __('security_governance.sso.unlink') }} · {{ $identity->provider }}</button></form>
 @endforeach
 </div>
-<details data-foodex-operational-modal><summary>{{ __('admin.security.manage_assignments') }}</summary>
-@include('admin._security-role-assignment-picker', [
-    'managedUser' => $managedUser,
-    'globalRoles' => $globalRoles,
-    'stores' => $stores,
-    'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
-    'jobRoleMeta' => $jobRoleMeta,
-    'globalRoleAvailability' => $globalRoleAvailability,
-    'storeRoleAvailabilityByStore' => $storeRoleAvailabilityByStore,
-])
 </details>
 @endcan
-</article>
-@empty<div class="note foodex-empty-state">{{ __('admin.security.no_users') }}</div>@endforelse
+@can('users.status.manage')
+@if($managedUser->is_active)
+<details data-foodex-operational-modal><summary class="btn danger">{{ __('admin.security.deactivate') }}</summary>
+<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm('{{ __('admin.security.confirm_deactivate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="0"><input type="text" name="reason" maxlength="500" placeholder="{{ __('admin.security.optional_reason') }}"><button class="btn danger">{{ __('admin.security.deactivate') }}</button></form>
+</details>
+@else
+<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" onsubmit="return confirm('{{ __('admin.security.confirm_activate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="1"><button class="btn success">{{ __('admin.security.activate') }}</button></form>
+@endif
+@endcan
+</div></td>
+</tr>
+@empty<tr><td colspan="4"><div class="note foodex-empty-state">{{ __('admin.security.no_users') }}</div></td></tr>@endforelse
+</tbody></table>
+</div>
 <div class="pager">{{ $users->links() }}</div>
 </section>
+@endif
 
+@if($securitySection==='governance')
 @can('demo_data.manage')
 <section class="panel" data-demo-data-admin>
 <div class="head"><div><h2>{{ __('admin.security.demo_data.title') }}</h2><div class="muted">{{ __('admin.security.demo_data.description') }}</div></div><span class="badge system">{{ __('admin.security.demo_data.non_production') }}</span></div>
@@ -121,7 +161,9 @@ $roleLabel = static function ($role): string {
 </form>
 </section>
 @endcan
+@endif
 
+@if($securitySection==='roles')
 <section class="panel"><div class="head"><div><h2>{{ __('admin.security.roles_title') }}</h2><div class="muted">{{ __('admin.security.roles_description') }}</div></div><span class="badge">{{ $roles->count() }} {{ __('admin.security.roles') }}</span></div>
 @can('roles.manage')
 <details class="card" data-foodex-operational-modal><summary>{{ __('admin.security.create_role') }}</summary><form method="post" action="{{ route('admin.security.roles.store') }}">@csrf
@@ -199,6 +241,7 @@ $roleLabel = static function ($role): string {
 @endcan</details>@endforeach</div>
 </section>
 <div class="note">{{ __('admin.security.server_authoritative') }}</div>
+@endif
 @include('admin._security-interaction-runtime')
 </main>
 </div>
