@@ -329,12 +329,13 @@ $businessLabel = static function ($value): string {
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
+<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ $isAr ? 'مسؤول خدمة العملاء' : 'Customer Service owner' }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
 <tr>
 <td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
 <td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td> {{-- localization-gate: source resolved through localized businessLabel --}}
+<td>@if($row['customer_service_owner'])<strong>{{ $row['customer_service_owner'] }}</strong>@if($row['customer_service_owner_email'])<br><small>{{ $row['customer_service_owner_email'] }}</small>@endif @else {{ __('order_operations.unassigned') }} @endif</td>
 @php($badgeState=strtolower((string) $row['status']))
 <td><span class="badge foodex-status-badge" data-state="{{ $badgeState }}">{{ $row['status_label'] }}</span></td>
 <td>
@@ -370,6 +371,22 @@ $businessLabel = static function ($value): string {
 @if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
 <button type="submit">{{ $isAr ? 'تذكير السائق' : 'Remind driver' }}</button>
+</form>
+@endif
+
+@if($canAssignCustomerService && $row['can_manage'])
+<form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
+<label style="display:grid;gap:4px">
+<span>{{ $isAr ? 'إسناد متابعة خدمة العملاء' : 'Assign Customer Service follow-up' }}</span>
+<select name="assigned_user_id">
+<option value="">{{ $isAr ? 'بدون مسؤول / إلغاء الإسناد' : 'Unassigned / remove owner' }}</option>
+@foreach($customerServiceAgents as $agent)
+<option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }} · {{ $agent->roles->first()?->code==='CUSTOMER_SERVICE_SUPERVISOR' ? ($isAr?'مشرف':'Supervisor') : ($isAr?'موظف':'Agent') }}</option>
+@endforeach
+</select>
+</label>
+<input name="reason" maxlength="500" placeholder="{{ $isAr ? 'سبب الإسناد أو التغيير (اختياري)' : 'Assignment/change reason (optional)' }}">
+<button class="foodex-primary" type="submit">{{ $isAr ? 'حفظ الإسناد' : 'Save assignment' }}</button>
 </form>
 @endif
 
@@ -451,7 +468,7 @@ $businessLabel = static function ($value): string {
 </details>
 </td>
 </tr>
-@empty<tr><td colspan="10"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
+@empty<tr><td colspan="11"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
 </tbody></table>
 </section>
 {{ $orders->links() }}
