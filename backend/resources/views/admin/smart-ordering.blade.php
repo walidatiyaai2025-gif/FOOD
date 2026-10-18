@@ -38,6 +38,12 @@
         .so-settings-panel .foodex-module-kpi{padding:10px!important;min-height:84px!important}
         .so-settings-panel fieldset{border:1px solid var(--foodex-border);border-radius:12px;padding:10px;margin:0 0 8px}
         .so-settings-panel legend{font-weight:900;padding-inline:5px}
+        .so-settings-panel[data-so-settings-panel="modules"] .so-list{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px}
+        .so-settings-panel[data-so-settings-panel="modules"] .so-list label{display:flex;align-items:center;gap:7px;min-height:38px;padding:7px 9px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);font-size:.7rem;font-weight:800}
+        .so-settings-panel[data-so-settings-panel="modules"] .so-list input{margin:0}
+        .so-settings-panel[data-so-settings-panel="site"] .so-grid{gap:7px}
+        .so-settings-panel[data-so-settings-panel="site"] .foodex-form{gap:8px}
+
         @media(max-width:1100px){.so-settings-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.so-quick-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:700px){.so-settings-head{align-items:flex-start}.so-settings-head p{white-space:normal}.so-settings-head-actions{display:none}.so-settings-summary{grid-template-columns:1fr 1fr}.so-settings-tab{min-height:35px;padding-inline:11px}.so-quick-links{grid-template-columns:1fr}}
         @media(prefers-reduced-motion:reduce){.so-settings-tab{transition:none}.so-settings-tab:hover{transform:none}}
@@ -287,7 +293,7 @@
         </section>
 
         <section class="so-settings-panel" data-so-settings-panel="launch" hidden>
-            @include('admin._restaurant-onboarding')
+            @include('admin._restaurant-onboarding',['restaurantOnboardingCompact'=>true])
         </section>
 
         <section class="so-settings-panel" data-so-settings-panel="site" hidden>
@@ -342,7 +348,7 @@
         </section>
 
         <section class="so-settings-panel" data-so-settings-panel="content" hidden>
-            @include('admin._smart-ordering-content-editor')
+            @include('admin._smart-ordering-content-editor',['restaurantContentCompact'=>true])
         </section>
 
         <section class="so-settings-panel" data-so-settings-panel="modules" hidden>
