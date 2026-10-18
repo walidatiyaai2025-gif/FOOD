@@ -66,7 +66,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         }
 
         $steps = $plan['steps'];
-        if (! is_array($steps) || $steps === [] || count($steps) > $request->budget->maxSteps) {
+        if (! is_array($steps) || $steps === [] || count($steps) > $request->budget->maxToolCalls) {
             return $this->deterministicFallback(
                 $request,
                 $base,
@@ -176,34 +176,44 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 ];
             } catch (HttpExceptionInterface $exception) {
                 $status = $exception->getStatusCode();
+                $failureCode = in_array($status, [403, 404], true) ? 'SCOPE_DENIED' : 'TOOL_UNAVAILABLE';
                 if (in_array($status, [403, 404], true)) {
                     $denied++;
                 } else {
                     $failed++;
                 }
 
+                $failureEvidence = $this->failureEvidence($callId, $toolKey, $failureCode, $toolRequest);
+                $evidence[] = $failureEvidence;
                 $toolExecutions[] = [
                     'call_id' => $callId,
                     'tool' => $toolKey,
                     'status' => 'FAILED',
-                    'failure_code' => in_array($status, [403, 404], true) ? 'SCOPE_DENIED' : 'TOOL_UNAVAILABLE',
+                    'failure_code' => $failureCode,
+                    'evidence_id' => $failureEvidence['evidence_id'],
                 ];
             } catch (ValidationException) {
                 $failed++;
+                $failureEvidence = $this->failureEvidence($callId, $toolKey, 'TOOL_ARGUMENT_INVALID', $toolRequest);
+                $evidence[] = $failureEvidence;
                 $toolExecutions[] = [
                     'call_id' => $callId,
                     'tool' => $toolKey,
                     'status' => 'FAILED',
                     'failure_code' => 'TOOL_ARGUMENT_INVALID',
+                    'evidence_id' => $failureEvidence['evidence_id'],
                 ];
             } catch (Throwable $exception) {
                 report($exception);
                 $failed++;
+                $failureEvidence = $this->failureEvidence($callId, $toolKey, 'TOOL_UNAVAILABLE', $toolRequest);
+                $evidence[] = $failureEvidence;
                 $toolExecutions[] = [
                     'call_id' => $callId,
                     'tool' => $toolKey,
                     'status' => 'FAILED',
                     'failure_code' => 'TOOL_UNAVAILABLE',
+                    'evidence_id' => $failureEvidence['evidence_id'],
                 ];
             }
         }
@@ -261,6 +271,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                     'provider' => $plan['provider'],
                     'budget' => [
                         'max_steps' => $request->budget->maxSteps,
+                        'max_tool_calls' => $request->budget->maxToolCalls,
                         'max_result_bytes' => $request->budget->maxTotalResultBytes,
                         'elapsed_ms' => $this->elapsedMs($startedAt),
                     ],
@@ -298,6 +309,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 'scope' => $this->scopeSummary($request),
                 'deterministic_hints' => $this->canonicalEntities($base),
                 'max_steps' => $request->budget->maxSteps,
+                'max_tool_calls' => $request->budget->maxToolCalls,
             ],
             allowedTools: $this->tools->providerTools($request->locale),
             maxTokens: $request->budget->maxPlanningTokens,
@@ -323,9 +335,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             }
 
             return [
-                'kind' => count($steps) > $request->budget->maxSteps ? 'fallback' : 'execute',
+                'kind' => count($steps) > $request->budget->maxToolCalls ? 'fallback' : 'execute',
                 'steps' => $steps,
-                'provider' => count($steps) > $request->budget->maxSteps
+                'provider' => count($steps) > $request->budget->maxToolCalls
                     ? $provider + ['failure' => 'EXECUTION_BUDGET_EXCEEDED']
                     : $provider,
             ];
@@ -358,7 +370,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             $steps[] = ['tool' => $step['tool'], 'arguments' => $step['arguments']];
         }
 
-        if ($steps === [] || count($steps) > $request->budget->maxSteps) {
+        if ($steps === [] || count($steps) > $request->budget->maxToolCalls) {
             return ['kind' => 'fallback', 'provider' => $provider + ['failure' => 'EXECUTION_BUDGET_EXCEEDED']];
         }
 
@@ -692,6 +704,31 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         );
     }
 
+    /** @return array<string,mixed> */
+    private function failureEvidence(
+        string $callId,
+        string $toolKey,
+        string $failureCode,
+        AssistantToolRequest $request,
+    ): array {
+        $definition = $this->tools->definition($toolKey);
+
+        return [
+            'evidence_id' => 'ev-'.$callId,
+            'call_id' => $callId,
+            'source_type' => 'TOOL_FAILURE',
+            'source_name' => $definition->source,
+            'source_version' => $definition->schemaVersion,
+            'data_class' => $definition->dataClass,
+            'channel' => $request->channel,
+            'store_ids' => $request->storeId === null ? [] : [$request->storeId],
+            'window' => null,
+            'freshness' => null,
+            'status' => 'unavailable',
+            'failure_code' => $failureCode,
+        ];
+    }
+
     /** @return list<array<string,mixed>> */
     private function cards(string $toolKey, AssistantToolResult $result, string $locale): array
     {
@@ -806,7 +843,7 @@ You are the bounded planning adapter for the existing FOODEX Assistant.
 The server owns identity, authorization, store/channel scope, consent, calculations and execution.
 You may propose only the provided READ tools. Never propose SQL, database access, arbitrary functions, writes or hidden reasoning.
 For business questions, call only the minimum tools needed. Multiple independent facts may use multiple tool calls in one response.
-Never repeat a tool in the same plan. Never exceed the supplied max_steps.
+Never repeat a tool in the same plan. Never exceed the supplied max_tool_calls. One provider planning response is one planning step.
 If a required scope is ambiguous, return JSON only: {"action":"clarify","message":"...","steps":[]}.
 If no FOODEX data tool is needed, return JSON only: {"action":"no_tool","message":"...","steps":[]}.
 When returning a message, write it in {$language}. Never expose chain-of-thought.
