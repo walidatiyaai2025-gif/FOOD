@@ -131,7 +131,11 @@ class AssistantSettingsTest extends TestCase
 
         $this->assertTrue((bool) $secret->is_secret);
         $this->assertNotSame('secret-provider-key', $secret->value);
-        $this->assertSame('secret-provider-key', Crypt::decryptString((string) $secret->value));
+
+        $encryptedValue = json_decode((string) $secret->value, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsString($encryptedValue);
+        $this->assertSame('secret-provider-key', Crypt::decryptString($encryptedValue));
+        $this->assertSame('secret-provider-key', app(AssistantProviderSettings::class)->apiKey());
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $user->id,
             'event' => 'assistant.provider.updated',
