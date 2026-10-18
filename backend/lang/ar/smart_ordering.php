@@ -182,6 +182,14 @@ return [
     'workspace' => [
         'title' => 'مساحة إدارة المطعم',
         'help' => 'كل أدوات المطعم المصرح بها في مكان واحد',
+        'tasks_label' => 'المهام الأساسية للمطعم',
+        'tasks' => [
+            'customer_orders' => 'طلبات العملاء',
+            'menu' => 'المنيو',
+            'operations' => 'التشغيل',
+            'wholesale_purchases' => 'مشتريات الجملة',
+            'settings' => 'الإعدادات',
+        ],
         'groups' => [
             'service' => 'الخدمة والتشغيل',
             'menu_growth' => 'المنيو ونمو الضيوف',
