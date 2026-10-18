@@ -4,7 +4,7 @@
         && app(\App\Support\AdminNavigation::class)->usesCustomerServiceDashboardProfile(auth()->user());
 @endphp
 @if($foodexCustomerServiceProfile)
-<script>document.documentElement.classList.add('foodex-customer-service-profile')</script>
+<script>document.documentElement.classList.add('foodex-customer-service-profile')</script> {{-- localization-gate: allow — technical CSS class toggle; no user-facing copy. --}}
 @endif
 <style id="foodex-admin-component-tokens">
     /* Shared extended palette tokens: dashboard views reference these instead of local hex literals. */
