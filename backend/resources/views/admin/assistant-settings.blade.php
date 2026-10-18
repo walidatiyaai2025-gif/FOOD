@@ -63,6 +63,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <div class="assistant-capabilities">
 <div class="assistant-capability"><span>{{ __('assistant_settings.reachable') }}</span><strong>{{ $probe['reachable'] ? __('assistant_settings.yes') : __('assistant_settings.no') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.provider_health') }}</span><strong>{{ data_get($probe,'capabilities.health') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
 <div class="assistant-capability"><span>{{ __('assistant_settings.chat_contract') }}</span><strong>{{ data_get($probe,'capabilities.chat') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
 <div class="assistant-capability"><span>{{ __('assistant_settings.structured_json') }}</span><strong>{{ data_get($probe,'capabilities.structured_json') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
 <div class="assistant-capability"><span>{{ __('assistant_settings.tool_calls') }}</span><strong>{{ data_get($probe,'capabilities.tool_calls') ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
