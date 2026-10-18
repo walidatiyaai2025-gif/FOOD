@@ -4,6 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('customer_service_workspace.title') }} · FOODEX</title>
 @include('admin._brand-components')
+@if($canViewDriverTracking)
+<link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
+@endif
 <style>
 .cs-shell{display:grid;gap:var(--foodex-space-5)}
 .cs-search,.cs-panel{padding:var(--foodex-space-5)}
@@ -60,6 +64,7 @@
 .cs-kpi[data-tone="amber"]{--cs-accent:#B45309;--cs-accent-soft:#FFFBEB}
 .cs-kpi[data-tone="cyan"]{--cs-accent:#0E7490;--cs-accent-soft:#ECFEFF}
 .cs-kpi[data-tone="rose"]{--cs-accent:#BE123C;--cs-accent-soft:#FFF1F2}
+.cs-live-map-card{padding:12px 14px;min-width:0;overflow:hidden}
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .cs-chart{padding:var(--foodex-space-5)}.cs-chart h2{margin:0 0 14px;font-size:1rem}
 .cs-bars{display:grid;gap:10px}.cs-bar-row{--cs-bar-a:#16A34A;--cs-bar-b:#22C55E;display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
@@ -181,6 +186,22 @@ body.cs-case-modal-open{overflow:hidden}
             </nav>
 
             <div class="cs-tab-panel" role="tabpanel" data-cs-panel="analytics" hidden>
+            @if($canViewDriverTracking)
+            <article class="foodex-card cs-live-map-card dashboard-live-map-card" data-dashboard-live-driver-map>
+                @include('admin._driver-live-map', [
+                    'feedUrl' => $driverTrackingFeedUrl,
+                    'secondaryFeedUrl' => $vanTrackingFeedUrl,
+                    'trackingActor' => 'mixed',
+                    'liveMapMode' => 'compact',
+                    'showFilters' => false,
+                    'showList' => false,
+                    'showSummary' => true,
+                    'pollMs' => 5000,
+                    'ctaUrl' => $driverTrackingPageUrl,
+                    'trackingStores' => $trackingStores,
+                ])
+            </article>
+            @endif
             <section class="cs-charts" aria-label="{{ __('customer_service_workspace.dashboard.charts') }}">
                 @foreach(['customer_growth','case_status','sla','category','store_mix','customer_value'] as $chartKey)
                     @php($chart=$dashboard['charts'][$chartKey] ?? [])
@@ -640,5 +661,8 @@ body.cs-case-modal-open{overflow:hidden}
     });
 })();
 </script>
+@if($canViewDriverTracking)
+@include('admin._driver-live-map-scripts')
+@endif
 </body>
 </html>
