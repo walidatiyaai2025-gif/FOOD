@@ -198,12 +198,19 @@ final readonly class AnalyticsReadModelService
         ?int $wholesaleStoreId,
         string $locale,
     ): array {
+        $provided = $requested;
         $requested = collect($requested)
             ->map(static fn ($id): int => (int) $id)
             ->filter(static fn (int $id): bool => $id > 0)
             ->unique()
             ->values()
             ->all();
+
+        if ($provided !== [] && count($requested) !== count($provided)) {
+            throw ValidationException::withMessages([
+                'store_ids' => ['Requested analytics store ids must be unique positive integers.'],
+            ]);
+        }
 
         if (count($requested) > 100) {
             throw ValidationException::withMessages(['store_ids' => ['At most 100 analytics stores may be requested.']]);
@@ -221,6 +228,10 @@ final readonly class AnalyticsReadModelService
 
         if ($requested === []) {
             abort(403);
+        }
+
+        if (count($requested) > 100) {
+            throw ValidationException::withMessages(['store_ids' => ['At most 100 analytics stores may be requested.']]);
         }
 
         $remote = array_values(array_diff($requested, $direct));

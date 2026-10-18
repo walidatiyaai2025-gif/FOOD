@@ -64,7 +64,7 @@ Freshness is explicit:
 
 ## Performance contract
 
-The query path is the aggregate table, not transactional scans. The primary access index is `analytics_daily_channel_date_store_idx`, with a store/date companion index.
+The query path is the aggregate table, not transactional scans. The primary access index is `analytics_daily_channel_date_store_idx`, with a store/date companion index. Materialization also uses `orders_store_channel_created_idx` and `payments_created_status_order_idx` while reusing the existing stock-movement index.
 
 Targets for a warmed production database and up to 10 stores:
 

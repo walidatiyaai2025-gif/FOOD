@@ -80,13 +80,14 @@ return new class extends Migration
         });
 
         Schema::table('payments', function (Blueprint $table): void {
-            $table->index(['order_id', 'status', 'created_at'], 'payments_order_status_created_idx');
+            $table->index(['created_at', 'status', 'order_id'], 'payments_created_status_order_idx');
         });
     }
 
     public function down(): void
-    {        Schema::table('payments', function (Blueprint $table): void {
-            $table->dropIndex('payments_order_status_created_idx');
+    {
+        Schema::table('payments', function (Blueprint $table): void {
+            $table->dropIndex('payments_created_status_order_idx');
         });
 
         Schema::table('orders', function (Blueprint $table): void {

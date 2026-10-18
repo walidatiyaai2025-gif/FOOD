@@ -72,7 +72,7 @@ final class AnalyticsReadModelTest extends TestCase
                 'updated_at' => '2026-09-11 08:00:00',
             ],
             [
-                'order_id' => DB::table('orders')->where('status', 'refunded')->value('id'),
+                'order_id' => DB::table('orders')->where('store_id', $storeId)->where('status', 'refunded')->value('id'),
                 'invoice_id' => null,
                 'provider' => 'test',
                 'provider_reference' => 'AI-RM-PAY-R',

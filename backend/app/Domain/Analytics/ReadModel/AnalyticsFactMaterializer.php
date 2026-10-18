@@ -127,12 +127,12 @@ final readonly class AnalyticsFactMaterializer
         $from = $today->subDay();
 
         if ($storeIds !== []) {
-            $earliestWatermark = DB::table('analytics_pipeline_watermarks')
+            $watermarks = DB::table('analytics_pipeline_watermarks')
                 ->where('pipeline', 'commerce_daily')
                 ->whereIn('store_id', $storeIds)
-                ->min('materialized_through_date');
+                ->get(['store_id', 'materialized_through_date']);
 
-            if ($earliestWatermark === null) {
+            if ($watermarks->pluck('store_id')->unique()->count() !== count(array_unique($storeIds))) {
                 $from = $today->subDays(6);
             }
         } elseif (! DB::table('analytics_pipeline_watermarks')->where('pipeline', 'commerce_daily')->exists()) {
