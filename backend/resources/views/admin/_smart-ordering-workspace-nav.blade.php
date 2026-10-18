@@ -94,6 +94,11 @@
             {{ __('smart_ordering.operations_tab') }}
         </a>
     @endif
+    @if($restaurantCanOrders && $restaurantStoreId > 0)
+        <a class="foodex-tab" href="{{ route('admin.b2c.module', ['module' => 'wholesale_purchases', ...$restaurantStoreParams]) }}" @if(request()->route('module') === 'wholesale_purchases') aria-current="page" @endif>
+            {{ app()->getLocale()==='ar' ? 'مشتريات الجملة' : 'Wholesale Purchases' }}
+        </a>
+    @endif
     @if($restaurantCanManage)
         <a class="foodex-tab" href="{{ route('admin.smart-ordering.menu.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.menu.*')) aria-current="page" @endif>
             {{ __('smart_ordering_menu.nav_title') }}
