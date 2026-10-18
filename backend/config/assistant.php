@@ -14,6 +14,12 @@ return [
         'planning_tokens' => min(1024, max(128, (int) env('ASSISTANT_AGENT_PLANNING_TOKENS', 384))),
         'synthesis_tokens' => min(1536, max(128, (int) env('ASSISTANT_AGENT_SYNTHESIS_TOKENS', 640))),
     ],
+    'observability' => [
+        'enabled' => (bool) env('ASSISTANT_OBSERVABILITY_ENABLED', true),
+        'retention_days' => min(90, max(1, (int) env('ASSISTANT_OBSERVABILITY_RETENTION_DAYS', 14))),
+        'admin_window_hours' => min(168, max(1, (int) env('ASSISTANT_OBSERVABILITY_WINDOW_HOURS', 24))),
+        'export_max_rows' => min(10000, max(100, (int) env('ASSISTANT_OBSERVABILITY_EXPORT_MAX_ROWS', 5000))),
+    ],
     'external_ai' => [
         'enabled' => (bool) env('ASSISTANT_AI_ENABLED', false),
         'api_url' => (string) env('ASSISTANT_AI_API_URL', ''),
