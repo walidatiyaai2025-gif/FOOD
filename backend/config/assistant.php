@@ -21,6 +21,18 @@ return [
         'chunk_chars' => min(4000, max(400, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_CHARS', 1200))),
         'chunk_overlap_chars' => min(300, max(0, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_OVERLAP_CHARS', 120))),
     ],
+    'security' => [
+        'provider_enabled' => (bool) env('ASSISTANT_AI_PROVIDER_ENABLED', true),
+        'tools_enabled' => (bool) env('ASSISTANT_AI_TOOLS_ENABLED', true),
+        'write_actions_enabled' => (bool) env('ASSISTANT_AI_WRITE_ACTIONS_ENABLED', false),
+        'max_user_chars' => min(32000, max(1000, (int) env('ASSISTANT_AI_MAX_USER_CHARS', 8000))),
+        'max_result_depth' => min(12, max(2, (int) env('ASSISTANT_AI_MAX_RESULT_DEPTH', 6))),
+        'max_collection_items' => min(250, max(10, (int) env('ASSISTANT_AI_MAX_COLLECTION_ITEMS', 100))),
+        'max_result_string_chars' => min(20000, max(256, (int) env('ASSISTANT_AI_MAX_RESULT_STRING_CHARS', 4000))),
+        'cohort_minimum' => min(100, max(2, (int) env('ASSISTANT_AI_COHORT_MINIMUM', 5))),
+        'differencing_min_delta' => min(20, max(2, (int) env('ASSISTANT_AI_DIFFERENCING_MIN_DELTA', 2))),
+        'differencing_ttl_seconds' => min(86400, max(60, (int) env('ASSISTANT_AI_DIFFERENCING_TTL_SECONDS', 900))),
+    ],
     'external_ai' => [
         'enabled' => (bool) env('ASSISTANT_AI_ENABLED', false),
         'api_url' => (string) env('ASSISTANT_AI_API_URL', ''),
