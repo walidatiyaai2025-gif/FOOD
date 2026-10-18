@@ -68,6 +68,14 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('.cs-inbox-modal-frame-wrap{min-width:0;min-height:0;overflow:hidden', $view);
         $this->assertStringContainsString('body.cs-inbox-modal-open{overflow:hidden}', $view);
         $this->assertStringContainsString("foodex:close-customer-service-inbox", $view);
+        $this->assertStringContainsString('data-create-case-modal-open', $view);
+        $this->assertStringContainsString('data-create-case-modal', $view);
+        $this->assertStringContainsString('data-create-case-modal-close', $view);
+        $this->assertStringContainsString('name="_case_create" value="1"', $view);
+        $this->assertStringContainsString("old('_case_create') !== '1'", $view);
+        $this->assertStringContainsString('body.cs-create-case-modal-open{overflow:hidden}', $view);
+        $this->assertStringContainsString('.cs-create-case-body{min-width:0;min-height:0;overflow:auto', $view);
+        $this->assertStringContainsString("document.querySelector('[data-create-case-modal]')", $view);
         $this->assertStringContainsString('data-case-modal-link', $view);
         $this->assertStringContainsString('data-case-modal-content', $view);
         $this->assertStringContainsString('data-case-modal-close', $view);
