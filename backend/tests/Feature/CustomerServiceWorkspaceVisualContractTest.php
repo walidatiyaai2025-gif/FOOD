@@ -61,6 +61,13 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('.cs-tab-count.unread{background:#FEE2E2', $view);
         $this->assertStringContainsString('customer_service_workspace.inbox.open_full', $view);
         $this->assertStringContainsString('route(\'admin.whatsapp-inbox.index\',[\'conversation\'=>$conversation->id])', $view);
+        $this->assertStringContainsString('data-cs-inbox-modal-open', $view);
+        $this->assertStringContainsString('data-cs-inbox-modal', $view);
+        $this->assertStringContainsString('data-cs-inbox-frame', $view);
+        $this->assertStringContainsString('data-cs-inbox-modal-close', $view);
+        $this->assertStringContainsString('.cs-inbox-modal-frame-wrap{min-width:0;min-height:0;overflow:hidden', $view);
+        $this->assertStringContainsString('body.cs-inbox-modal-open{overflow:hidden}', $view);
+        $this->assertStringContainsString("foodex:close-customer-service-inbox", $view);
         $this->assertStringContainsString('data-case-modal-link', $view);
         $this->assertStringContainsString('data-case-modal-content', $view);
         $this->assertStringContainsString('data-case-modal-close', $view);
@@ -96,5 +103,18 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         ] as $metricKey) {
             $this->assertStringContainsString("'{$metricKey}' => ['icon' =>", $view);
         }
+    }
+
+    public function test_whatsapp_inbox_supports_embedded_customer_service_modal_shell(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/whatsapp-inbox.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("window.self!==window.top", $view);
+        $this->assertStringContainsString("document.documentElement.classList.add('wa-embedded')", $view);
+        $this->assertStringContainsString('html.wa-embedded .wa-inbox-layout>.sidebar,html.wa-embedded .foodex-global-header{display:none!important}', $view);
+        $this->assertStringContainsString('html.wa-embedded .wa-conversation-pane>.wa-list{flex:1;min-height:0;overflow:auto', $view);
+        $this->assertStringContainsString("foodex:close-customer-service-inbox", $view);
+        $this->assertStringContainsString("window.parent.postMessage", $view);
     }
 }
