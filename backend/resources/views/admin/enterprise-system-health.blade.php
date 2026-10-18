@@ -51,13 +51,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     </div>
 </div>
 
-@php($moduleDashboardFilters = [
+@php
+$moduleDashboardFilters = [
     'action' => route('admin.enterprise-system-health.index'),
     'from_value' => $selectedFrom,
     'to_value' => $selectedTo,
     'reset_url' => route('admin.enterprise-system-health.index'),
     'export_url' => route('admin.inspector.export'),
-])
+];
+@endphp
 @include('admin._module-dashboard-filters',['moduleDashboardFilters'=>$moduleDashboardFilters])
 
 <section class="system-admin-section" aria-labelledby="runtime-overview">
