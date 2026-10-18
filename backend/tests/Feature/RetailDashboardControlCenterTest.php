@@ -20,7 +20,7 @@ class RetailDashboardControlCenterTest extends TestCase
         $this->assertStringContainsString("@include('admin._merchant-intelligence-dashboard')", $workspace);
         $this->assertStringContainsString('data-dashboard-assistant', $workspace);
         $this->assertStringContainsString('data-dashboard-assistant-open', $workspace);
-        $this->assertStringNotContainsString("@include('admin._global-header')", $workspace);
+        $this->assertSame(1, substr_count($workspace, "@include('admin._global-header')"));
 
         foreach (['overview', 'sales', 'inventory', 'customers', 'analytics'] as $tab) {
             $this->assertStringContainsString('data-dashboard-pane="'.$tab.'"', $controlCenter);
