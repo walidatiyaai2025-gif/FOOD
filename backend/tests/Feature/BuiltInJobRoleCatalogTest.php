@@ -134,7 +134,7 @@ final class BuiltInJobRoleCatalogTest extends TestCase
     {
         $catalog = app(BuiltInJobRoleCatalog::class);
         $role = Role::query()->where('code', 'RESTAURANT_DIGITAL_MANAGER')->firstOrFail();
-        $store = $this->retailStore('ROLE-STORE-A');
+        $store = $this->profiledStore('ROLE-STORE-A', StoreBusinessProfile::RESTAURANT);
         $actor = $this->superAdmin();
         $target = User::factory()->create(['is_active' => true]);
 
