@@ -121,7 +121,7 @@
             timer = window.setTimeout(() => search(term, currentGeneration), debounceMs);
         });
 
-        input.addEventListener('keydown', (event) => {
+        input.addEventListener('keydown', async (event) => {
             const rows = options();
             if (event.key === 'ArrowDown' && rows.length) {
                 event.preventDefault();
@@ -129,9 +129,30 @@
             } else if (event.key === 'ArrowUp' && rows.length) {
                 event.preventDefault();
                 setActive(activeIndex <= 0 ? rows.length - 1 : activeIndex - 1);
-            } else if (event.key === 'Enter' && activeIndex >= 0 && rows[activeIndex]) {
+            } else if (event.key === 'Enter') {
+                const selected = activeIndex >= 0 ? rows[activeIndex] : rows[0];
+                if (selected) {
+                    event.preventDefault();
+                    selected.click();
+                    return;
+                }
+
+                const term = input.value.trim();
+                if (term.length < 2) return;
+
                 event.preventDefault();
-                rows[activeIndex].click();
+                if (timer) {
+                    window.clearTimeout(timer);
+                    timer = null;
+                }
+                generation += 1;
+                const currentGeneration = generation;
+                await search(term, currentGeneration);
+
+                const firstResult = options()[0];
+                if (firstResult && currentGeneration === generation) {
+                    firstResult.click();
+                }
             } else if (event.key === 'Escape') {
                 close();
             }
