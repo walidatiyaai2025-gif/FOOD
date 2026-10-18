@@ -71,6 +71,15 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('body.cs-case-modal-open{overflow:hidden}', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
         $this->assertStringContainsString('data-cs-panel="analytics"', $view);
+        $this->assertStringContainsString('data-dashboard-live-driver-map', $view);
+        $this->assertStringContainsString("@include('admin._driver-live-map'", $view);
+        $this->assertStringContainsString("'trackingActor' => 'mixed'", $view);
+        $this->assertStringContainsString("'liveMapMode' => 'compact'", $view);
+        $this->assertStringContainsString("'showFilters' => false", $view);
+        $this->assertStringContainsString("'showList' => false", $view);
+        $this->assertStringContainsString("'showSummary' => true", $view);
+        $this->assertStringContainsString("asset('assets/admin/driver-live-map.css')", $view);
+        $this->assertStringContainsString("@include('admin._driver-live-map-scripts')", $view);
         $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}', $view);
         $this->assertStringContainsString('.cs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}', $view);
         $this->assertStringContainsString('history.replaceState', $view);
