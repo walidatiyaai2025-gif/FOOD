@@ -41,7 +41,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             state: $request->state,
         ));
 
-        $plan = $this->plan($request, $base);
+        $plan = $this->plan($request, $base, $startedAt);
 
         if ($plan['kind'] === 'fallback') {
             return $this->deterministicFallback($request, $base, $startedAt, $plan['provider']);
@@ -66,7 +66,8 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         }
 
         $steps = $plan['steps'];
-        if (! is_array($steps) || $steps === [] || count($steps) > $request->budget->maxToolCalls) {
+        $maxPlannedSteps = min($request->budget->maxSteps, $request->budget->maxToolCalls);
+        if (! is_array($steps) || $steps === [] || count($steps) > $maxPlannedSteps) {
             return $this->deterministicFallback(
                 $request,
                 $base,
@@ -228,6 +229,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $base,
                 $startedAt,
                 $plan['provider'] + ['failure' => $failed > 0 ? 'TOOL_UNAVAILABLE' : 'DATA_UNAVAILABLE'],
+                $toolExecutions,
             );
         }
 
@@ -235,7 +237,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ? AgentTurnResult::DEGRADED
             : AgentTurnResult::COMPLETE;
 
-        $message = $this->synthesize($request, $results, $evidence, $status, $plan['provider']);
+        $message = $this->synthesize($request, $results, $evidence, $status, $startedAt);
         $state = $base->state;
         $executedKeys = array_values(array_map(
             static fn (array $execution): ?string => $execution['status'] === 'FAILED'
@@ -299,8 +301,19 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
     /**
      * @return array{kind:string,message?:string,steps?:list<array{tool:string,arguments:array<string,mixed>}>,provider:array<string,mixed>}
      */
-    private function plan(AgentTurnRequest $request, AssistantBrainResult $base): array
-    {
+    private function plan(
+        AgentTurnRequest $request,
+        AssistantBrainResult $base,
+        int $startedAt,
+    ): array {
+        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt);
+        if ($timeoutSeconds === null) {
+            return [
+                'kind' => 'fallback',
+                'provider' => ['failure' => 'EXECUTION_BUDGET_EXCEEDED'],
+            ];
+        }
+
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->planningInstructions($request->locale),
             taskInstructions: 'Select only the minimum registered READ tools needed. Use no more than the server step budget.',
@@ -314,7 +327,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ],
             allowedTools: $this->tools->providerTools($request->locale),
             maxTokens: $request->budget->maxPlanningTokens,
-            timeoutSeconds: 12,
+            timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
             useCase: 'agent_planning',
         ));
@@ -336,9 +349,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             }
 
             return [
-                'kind' => count($steps) > $request->budget->maxToolCalls ? 'fallback' : 'execute',
+                'kind' => count($steps) > min($request->budget->maxSteps, $request->budget->maxToolCalls) ? 'fallback' : 'execute',
                 'steps' => $steps,
-                'provider' => count($steps) > $request->budget->maxToolCalls
+                'provider' => count($steps) > min($request->budget->maxSteps, $request->budget->maxToolCalls)
                     ? $provider + ['failure' => 'EXECUTION_BUDGET_EXCEEDED']
                     : $provider,
             ];
@@ -368,10 +381,13 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             if (! is_array($step) || ! is_string($step['tool'] ?? null) || ! is_array($step['arguments'] ?? null)) {
                 return ['kind' => 'fallback', 'provider' => $provider + ['failure' => 'PROVIDER_MALFORMED']];
             }
-            $steps[] = ['tool' => $step['tool'], 'arguments' => $step['arguments']];
+            $steps[] = [
+                'tool' => $this->toolKeyFromProviderName($step['tool']),
+                'arguments' => $step['arguments'],
+            ];
         }
 
-        if ($steps === [] || count($steps) > $request->budget->maxToolCalls) {
+        if ($steps === [] || count($steps) > min($request->budget->maxSteps, $request->budget->maxToolCalls)) {
             return ['kind' => 'fallback', 'provider' => $provider + ['failure' => 'EXECUTION_BUDGET_EXCEEDED']];
         }
 
@@ -383,6 +399,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         AssistantBrainResult $base,
         int $startedAt,
         array $provider,
+        array $priorExecutions = [],
     ): AgentTurnResult {
         $pending = (bool) ($base->state['pending_clarification'] ?? false);
 
@@ -393,6 +410,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 brainResult: $base,
                 toolResult: null,
                 toolRequest: null,
+                toolExecutions: $priorExecutions,
                 scopeSummary: $this->scopeSummary($request),
                 providerMetadata: $provider,
             );
@@ -434,17 +452,20 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             state: $base->state + ['agent_orchestrated' => false],
         );
 
+        $fallbackExecution = [
+            'call_id' => $callId,
+            'tool' => $base->intent,
+            'status' => $status === AgentTurnResult::COMPLETE ? 'COMPLETE' : 'PARTIAL',
+            'evidence_id' => $evidence['evidence_id'],
+        ];
+        $allExecutions = [...$priorExecutions, $fallbackExecution];
+
         $toolResult = new AssistantToolResult(
             data: [
                 ...$result->data,
                 '_agent' => [
                     'status' => $status,
-                    'tool_executions' => [[
-                        'call_id' => $callId,
-                        'tool' => $base->intent,
-                        'status' => $status === AgentTurnResult::COMPLETE ? 'COMPLETE' : 'PARTIAL',
-                        'evidence_id' => $evidence['evidence_id'],
-                    ]],
+                    'tool_executions' => $allExecutions,
                     'evidence' => [$evidence],
                     'scope' => $this->scopeSummary($request),
                     'provider' => $provider,
@@ -463,7 +484,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             brainResult: $brain,
             toolResult: $toolResult,
             toolRequest: $toolRequest,
-            toolExecutions: $toolResult->data['_agent']['tool_executions'],
+            toolExecutions: $allExecutions,
             evidence: [$evidence],
             scopeSummary: $this->scopeSummary($request),
             providerMetadata: $provider,
@@ -593,8 +614,13 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         array $results,
         array $evidence,
         string $status,
-        array $planningProvider,
+        int $startedAt,
     ): string {
+        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt);
+        if ($timeoutSeconds === null) {
+            return $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED);
+        }
+
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->synthesisInstructions($request->locale),
             taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids.',
@@ -616,7 +642,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 'additionalProperties' => false,
             ],
             maxTokens: $request->budget->maxSynthesisTokens,
-            timeoutSeconds: 12,
+            timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
             useCase: 'grounded_synthesis',
         ));
@@ -889,6 +915,16 @@ PROMPT;
     private function elapsedMs(int $startedAt): int
     {
         return (int) round((hrtime(true) - $startedAt) / 1_000_000);
+    }
+
+    private function remainingProviderTimeoutSeconds(AgentTurnRequest $request, int $startedAt): ?int
+    {
+        $remainingMs = $request->budget->maxElapsedMs - $this->elapsedMs($startedAt);
+        if ($remainingMs < 3000) {
+            return null;
+        }
+
+        return min(12, max(3, intdiv($remainingMs, 1000)));
     }
 
     private function positiveInt(mixed $value): ?int

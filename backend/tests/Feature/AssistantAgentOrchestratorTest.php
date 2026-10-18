@@ -205,7 +205,9 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
         $this->assertSame('FAILED', $result->toolExecutions[1]['status']);
         $this->assertSame('TOOL_UNAVAILABLE', $result->toolExecutions[1]['failure_code']);
-        $this->assertCount(1, $result->evidence);
+        $this->assertCount(2, $result->evidence);
+        $this->assertSame('unavailable', $result->evidence[1]['status']);
+        $this->assertSame('TOOL_UNAVAILABLE', $result->evidence[1]['failure_code']);
         $this->assertSame(
             'Sales evidence is available; inventory evidence is unavailable.',
             $result->message,
@@ -233,6 +235,67 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('FAILED', $result->toolExecutions[0]['status']);
         $this->assertSame('SCOPE_DENIED', $result->toolExecutions[0]['failure_code']);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
+    }
+
+    public function test_structured_execute_plan_normalizes_provider_tool_name(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-STRUCTURED');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 15])]);
+        $this->bindProvider([
+            $this->providerResult(structured: [
+                'action' => 'execute',
+                'message' => '',
+                'steps' => [
+                    ['tool' => 'sales__summary', 'arguments' => []],
+                ],
+            ]),
+            $this->providerResult(structured: [
+                'message' => 'Revenue is 15.',
+                'used_evidence' => ['ev-call-1'],
+                'uncertainty' => [],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Show sales.', 'agent-structured'),
+        );
+
+        $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
+        $this->assertSame('sales.summary', $result->toolExecutions[0]['tool']);
+        $this->assertSame('Revenue is 15.', $result->message);
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
+    }
+
+    public function test_insufficient_data_is_degraded_with_explicit_uncertainty(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-INSUFFICIENT');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->tool('sales.summary', ['found' => false])]);
+        $this->bindProvider([
+            $this->providerResult(toolCalls: [
+                ['name' => 'sales__summary', 'arguments' => [], 'id' => 'missing'],
+            ]),
+            $this->providerResult(structured: [
+                'message' => 'The requested sales data is not available for this scope.',
+                'used_evidence' => ['ev-call-1'],
+                'uncertainty' => ['The tool returned no matching facts.'],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Show sales.', 'agent-insufficient'),
+        );
+
+        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertSame('PARTIAL', $result->toolExecutions[0]['status']);
+        $this->assertCount(1, $result->evidence);
+        $this->assertSame(
+            'The requested sales data is not available for this scope.',
+            $result->message,
+        );
     }
 
     public function test_malformed_plan_degrades_to_existing_deterministic_brain(): void
