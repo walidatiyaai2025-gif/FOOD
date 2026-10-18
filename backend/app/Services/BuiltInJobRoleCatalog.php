@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleManifestCatalog;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
