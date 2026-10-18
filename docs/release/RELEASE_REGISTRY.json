@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.77",
+  "current_version": "1.0.86",
   "releases": [
     {
       "version": "1.0.40",
@@ -265,7 +265,7 @@
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44",
-      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354\u2013#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
+      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354–#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
     },
     {
       "version": "1.0.75",
@@ -290,6 +290,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
       "note": "FOODEX 1.0.77 synchronized release automatically registered by Release Factory from source a679bdf5054e322c3278ffeb5ab8b534ff0b4354. Dashboard update is directly deployable over 1.0.75; Customer 1.0.76+76 is frozen/carried forward; Driver/Van are synchronized at 1.0.77+77."
+    },
+    {
+      "version": "1.0.86",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.86.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "0b6642bf3ebb73e4df4bec2cd59ac4ec84baa3eada245ddc6914c8a2f36ff318",
+      "note": "FOODEX 1.0.86 synchronized release reconciled from Release Factory source 12f148cc14e4dd66051f8bf062bdf20ef2f473a9. Dashboard update targets 1.0.86; Customer, Driver and Van identities are synchronized at 1.0.86+86."
     }
   ]
 }
