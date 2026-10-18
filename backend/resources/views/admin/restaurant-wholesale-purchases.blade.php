@@ -58,13 +58,14 @@
     </style>
 </head>
 <body>
+<div class="foodex-admin-layout">
 @php
     $restaurantStoreId = (int) $context['restaurant_store_id'];
     $baseQuery = ['retail_store_id' => $restaurantStoreId];
     $restaurantBack = route('admin.smart-ordering.index', ['store_id' => $restaurantStoreId]);
 @endphp
-<main class="rw-shell" data-restaurant-wholesale-purchases>
-    <header class="rw-header">
+<main class="foodex-admin-main rw-shell" data-restaurant-wholesale-purchases>
+    <header class="foodex-page-toolbar rw-header">
         <div class="rw-title">
             <h1>{{ __('restaurant_wholesale.title') }}</h1>
             <p>{{ __('restaurant_wholesale.subtitle', ['restaurant' => $context['restaurant']->name]) }}</p>
@@ -325,5 +326,6 @@
         </section>
     @endif
 </main>
+</div>
 </body>
 </html>
