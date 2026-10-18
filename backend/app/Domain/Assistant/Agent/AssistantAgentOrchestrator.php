@@ -3,8 +3,8 @@
 namespace App\Domain\Assistant\Agent;
 
 use App\Domain\Assistant\Contracts\AgentOrchestratorInterface;
+use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
-use App\Domain\Assistant\Conversation\DeterministicBrain;
 use App\Domain\Assistant\Data\AgentTurnRequest;
 use App\Domain\Assistant\Data\AgentTurnResult;
 use App\Domain\Assistant\Data\AssistantAction;
@@ -25,7 +25,7 @@ use Throwable;
 final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 {
     public function __construct(
-        private readonly DeterministicBrain $deterministic,
+        private readonly AssistantBrainInterface $brain,
         private readonly AssistantProviderGatewayInterface $provider,
         private readonly AssistantToolRegistry $tools,
         private readonly AssistantToolExecutor $executor,
@@ -34,7 +34,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
     public function run(AgentTurnRequest $request): AgentTurnResult
     {
         $startedAt = hrtime(true);
-        $base = $this->deterministic->respond(new AssistantBrainRequest(
+        $base = $this->brain->respond(new AssistantBrainRequest(
             message: $request->userMessage,
             locale: $request->locale,
             context: $request->context,
