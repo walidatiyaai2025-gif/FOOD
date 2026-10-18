@@ -32,7 +32,7 @@ class RestaurantTaskDensityContractTest extends TestCase
     public function test_task_first_navigation_has_explicit_responsive_breakpoints_and_bilingual_labels(): void
     {
         $launcher = file_get_contents(resource_path('views/admin/_restaurant-management-launcher.blade.php'));
-        foreach (['1200', '1024', '768', '430', '390', '360'] as $width) {
+        foreach (['1280', '1024', '768', '430', '390', '360'] as $width) {
             $this->assertStringContainsString('max-width:'.$width.'px', $launcher);
         }
 
