@@ -92,7 +92,9 @@ class AdminNavigation
                 $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
                     ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view'),
-                $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
+                $useCustomerServiceDashboardProfile
+                    ? null
+                    : $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
             ] : []),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
