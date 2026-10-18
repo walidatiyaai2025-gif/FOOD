@@ -43,7 +43,6 @@ class AdminShellController extends Controller
         return $this->render($request, 'b2c');
     }
 
-
     private function render(Request $request, ?string $activeChannel = null): View
     {
         $user = $request->user();
