@@ -7,6 +7,7 @@ use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -158,6 +159,21 @@ class AdminNavigation
             ]),
         ];
 
+        $hasRetailWorkspace = $this->tenantContext->retailStoreIdsByProfile(
+            $user,
+            Store::BUSINESS_PROFILE_RETAIL_STORE,
+        ) !== [];
+
+        if (! $hasRetailWorkspace && ! $isSuperAdmin) {
+            foreach ($groups as &$group) {
+                $group['children'] = array_values(array_filter(
+                    $group['children'],
+                    static fn (array $item): bool => ! str_starts_with((string) $item['key'], 'b2c_'),
+                ));
+            }
+            unset($group);
+        }
+
         return array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
     }
 
@@ -291,7 +307,11 @@ class AdminNavigation
             return null;
         }
 
-        if ($this->restaurantSaasAccess->enabledStoreIds($this->tenantContext->retailStoreIds($user)) === []) {
+        $restaurantStoreIds = $this->tenantContext->retailStoreIdsByProfile(
+            $user,
+            Store::BUSINESS_PROFILE_RESTAURANT,
+        );
+        if ($restaurantStoreIds === [] || $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds) === []) {
             return null;
         }
 
