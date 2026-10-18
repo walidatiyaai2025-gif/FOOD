@@ -101,6 +101,7 @@ class StoreChannelOperationsCompletionTest extends TestCase
         $tierId = $this->priceTierId();
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'OPS-NOT-READY',
             'name' => 'Not Ready Store',
             'logo' => UploadedFile::fake()->image('not-ready.png', 128, 128),
@@ -169,6 +170,7 @@ class StoreChannelOperationsCompletionTest extends TestCase
         $email = strtolower($code).'@example.test';
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => $code,
             'name' => $code.' Store',
             'logo' => UploadedFile::fake()->image(strtolower($code).'.png', 128, 128),
