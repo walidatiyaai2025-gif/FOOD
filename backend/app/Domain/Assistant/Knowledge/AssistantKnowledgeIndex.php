@@ -353,7 +353,6 @@ final class AssistantKnowledgeIndex
     }
 
     /**
-     * @param  object  $row
      * @return array<string,mixed>
      */
     private function source(object $row): array
