@@ -20,7 +20,7 @@ final readonly class AnalyticsFactMaterializer
     /**
      * Rebuild one bounded date slice from authoritative transactional tables.
      *
-     * @param list<int> $storeIds
+     * @param  list<int>  $storeIds
      * @return array{from:string,to:string,stores:int,commerce_rows:int,inventory_rows:int}
      */
     public function rebuild(string $from, string $to, array $storeIds = []): array
@@ -82,7 +82,7 @@ final readonly class AnalyticsFactMaterializer
     /**
      * Chunked historical backfill; each transactional slice is capped at 90 days.
      *
-     * @param list<int> $storeIds
+     * @param  list<int>  $storeIds
      * @return array{from:string,to:string,chunks:int,commerce_rows:int,inventory_rows:int}
      */
     public function backfill(string $from, string $to, array $storeIds = []): array
@@ -118,7 +118,7 @@ final readonly class AnalyticsFactMaterializer
     /**
      * Recompute the rolling edge so late-arriving updates become visible.
      *
-     * @param list<int> $storeIds
+     * @param  list<int>  $storeIds
      * @return array{from:string,to:string,stores:int,commerce_rows:int,inventory_rows:int}
      */
     public function refreshIncremental(array $storeIds = []): array
@@ -329,7 +329,7 @@ final readonly class AnalyticsFactMaterializer
         );
     }
 
-    /** @param list<int> $storeIds
+    /** @param  list<int>  $storeIds
      * @return list<object>
      */
     private function stores(array $storeIds): array
