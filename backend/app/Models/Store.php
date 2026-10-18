@@ -73,9 +73,16 @@ class Store extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query
-            ->where('stores.business_profile', $resolved->value)
+        $query = $query
             ->whereHas('storeType', static fn (Builder $typeQuery) => $typeQuery->where('code', 'B2C'));
+
+        if ($resolved === StoreBusinessProfile::RETAIL_STORE) {
+            return $query->where(static fn (Builder $profileQuery) => $profileQuery
+                ->where('stores.business_profile', $resolved->value)
+                ->orWhereNull('stores.business_profile'));
+        }
+
+        return $query->where('stores.business_profile', $resolved->value);
     }
 
     /**
