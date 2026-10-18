@@ -2,8 +2,13 @@
     $profile = $onboardingStatus['profile'] ?? null;
     $completion = (int) ($onboardingStatus['completion_percent'] ?? 0);
     $supportParams = $supportAccess ? ['support_access' => 1] : [];
+    $onboardingCompact = (bool) ($restaurantOnboardingCompact ?? false);
+    $onboardingGates = collect($onboardingStatus['gates'] ?? []);
+    $readyGateCount = $onboardingGates->where('state', 'ready')->count();
+    $blockedGateCount = $onboardingGates->where('state', 'blocked')->count();
+    $attentionGateCount = $onboardingGates->where('state', 'attention')->count();
 @endphp
-<section class="panel so-onboarding" aria-labelledby="restaurant-onboarding-title">
+<section class="panel so-onboarding {{ $onboardingCompact ? 'is-compact' : '' }}" aria-labelledby="restaurant-onboarding-title">
     <style>
         .so-onboarding{display:grid;gap:var(--foodex-space-4)}
         .so-onboarding-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);flex-wrap:wrap}
@@ -24,6 +29,20 @@
         .so-onboarding-import:first-child{border-top:0;padding-top:0}
         .so-onboarding-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3)}
         .so-onboarding-form-grid .span-2{grid-column:1/-1}
+        .so-onboarding.is-compact{gap:8px;padding:12px!important}
+        .so-onboarding.is-compact .so-onboarding-head{align-items:center}
+        .so-onboarding.is-compact .so-onboarding-progress{min-width:min(100%,220px)}
+        .so-onboarding-gates-disclosure{border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);overflow:hidden}
+        .so-onboarding-gates-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:8px 10px;cursor:pointer;list-style:none;font-size:.72rem;font-weight:900}
+        .so-onboarding-gates-disclosure>summary::-webkit-details-marker{display:none}
+        .so-onboarding-gate-counts{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+        .so-onboarding-gate-count{padding:3px 7px;border-radius:999px;font-size:.61rem;font-weight:900}
+        .so-onboarding-gate-count.ready{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .so-onboarding-gate-count.blocked{background:var(--foodex-danger-soft);color:var(--foodex-danger-text)}
+        .so-onboarding-gate-count.attention{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
+        .so-onboarding-gates-disclosure .so-onboarding-gates{padding:0 8px 8px}
+        .so-onboarding.is-compact .so-onboarding-grid{gap:8px}
+
         @media (max-width:767px){
             .so-onboarding-form-grid{grid-template-columns:1fr}
             .so-onboarding-form-grid .span-2{grid-column:auto}
@@ -49,7 +68,20 @@
         </div>
     </div>
 
-    <div class="so-onboarding-gates">
+    @if($onboardingCompact)
+        <details class="so-onboarding-gates-disclosure">
+            <summary>
+                <span>{{ __('restaurant_onboarding.title') }}</span>
+                <span class="so-onboarding-gate-counts">
+                    <span class="so-onboarding-gate-count ready">{{ $readyGateCount }} {{ __('restaurant_onboarding.states.ready') }}</span>
+                    @if($blockedGateCount)<span class="so-onboarding-gate-count blocked">{{ $blockedGateCount }} {{ __('restaurant_onboarding.states.blocked') }}</span>@endif
+                    @if($attentionGateCount)<span class="so-onboarding-gate-count attention">{{ $attentionGateCount }} {{ __('restaurant_onboarding.states.attention') }}</span>@endif
+                </span>
+            </summary>
+            <div class="so-onboarding-gates">
+    @else
+            <div class="so-onboarding-gates">
+    @endif
         @foreach($onboardingStatus['gates'] ?? [] as $gate)
             <article class="so-onboarding-gate">
                 <div class="so-onboarding-gate-top">
@@ -61,7 +93,10 @@
                 <small>{{ $gate['hard'] ? __('restaurant_onboarding.hard_gate') : __('restaurant_onboarding.soft_gate') }}</small>
             </article>
         @endforeach
-    </div>
+            </div>
+    @if($onboardingCompact)
+        </details>
+    @endif
 
     <div class="so-onboarding-actions">
         <a class="button" href="{{ route('admin.smart-ordering.operations.index', ['store_id' => $site->store_id] + $supportParams) }}">
