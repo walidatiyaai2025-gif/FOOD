@@ -177,21 +177,23 @@
 
             <h4>{{ __('restaurant_onboarding.recent_imports') }}</h4>
             <div class="so-onboarding-imports">
-                @forelse($onboardingStatus['imports'] ?? [] as $import)
-                    <article class="so-onboarding-import">
-                        <strong>{{ $import->original_filename }}</strong>
-                        <span class="so-onboarding-state" data-state="attention">{{ __('restaurant_onboarding.review_required') }}</span>
-                        <small>
-                            {{ __('restaurant_onboarding.rows', ['count' => $import->rows_total]) }}
-                            · {{ __('restaurant_onboarding.formula_rows', ['count' => $import->formula_rows]) }}
-                        </small>
-                        @if(is_array($import->headers) && $import->headers !== [])
-                            <small>{{ __('restaurant_onboarding.headers') }}: {{ implode(' · ', $import->headers) }}</small>
-                        @endif
-                    </article>
-                @empty
+                <?php if (($onboardingStatus['imports'] ?? []) === []): ?>
                     <p>{{ __('restaurant_onboarding.no_imports') }}</p>
-                @endforelse
+                <?php else: ?>
+                    <?php foreach (($onboardingStatus['imports'] ?? []) as $import): ?>
+                        <article class="so-onboarding-import">
+                            <strong>{{ $import->original_filename }}</strong>
+                            <span class="so-onboarding-state" data-state="attention">{{ __('restaurant_onboarding.review_required') }}</span>
+                            <small>
+                                {{ __('restaurant_onboarding.rows', ['count' => $import->rows_total]) }}
+                                · {{ __('restaurant_onboarding.formula_rows', ['count' => $import->formula_rows]) }}
+                            </small>
+                            @if(is_array($import->headers) && $import->headers !== [])
+                                <small>{{ __('restaurant_onboarding.headers') }}: {{ implode(' · ', $import->headers) }}</small>
+                            @endif
+                        </article>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </section>
     </div>
