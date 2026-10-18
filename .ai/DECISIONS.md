@@ -84,3 +84,13 @@ Append decision, Issue/PR/date when relevant, reason, consequences and authorita
 ## Commercial Customer 360 read composition
 
 Compose existing channel-specific customer identities and source records through a read-only adapter. Keep store/channel and per-section permissions explicit, use bounded order/reference reads and the existing ledger aggregate contract, and expose missing/disabled/unavailable source states. Identity reads must never call materializing customer resolver methods. No registry or WhatsApp authority changes are required for this foundation while those files have active owners.
+
+## D-015 — Agentic AI extends the existing FOODEX Assistant and never becomes a data authority
+**Decision (#2209 / AI-01, 2026-10-18):** The AI-PROGRAM evolves the current Management Assistant in place. Existing Assistant routes/conversations, AssistantBrainInterface, AssistantToolRegistry, page-context/runtime settings and the OpenAI-compatible/Ollama provider lineage are the only integration roots. Providers are reasoning adapters, not authorization, calculation, persistence or execution authorities.
+
+**Reason:** the current Assistant already has read-only tenant/store/channel safeguards, deterministic tools, persistent conversation state and a working Ollama/Qwen-compatible route. A parallel agent/chat stack would duplicate policy and state, increase cross-tenant risk and split business truth.
+
+**Consequences:** every tool/action is server-authorized; models get no database credentials or generic SQL capability; deterministic services calculate business metrics; sell-in and sell-out remain separate fact classes; provider failure degrades safely; writes stay disabled until the explicit #2224 approval lifecycle exists.
+
+**Authority:** docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md, #2208 and #2209.
+

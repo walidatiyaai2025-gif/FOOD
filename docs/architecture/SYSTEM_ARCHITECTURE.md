@@ -44,3 +44,16 @@ The authoritative application-preview contract is `docs/architecture/APP_PREVIEW
 - Guest/authenticated, B2B/B2C, Retail store, locale, Draft/Published and runtime-version context must be explicit and testable.
 - Preview credentials are short-lived, scoped, auditable and invalid as normal production app login credentials.
 - A Dashboard-managed app-visible change is incomplete unless the same PR preserves real-app/shared-runtime preview parity and updates contract/regression coverage.
+
+## Agentic AI / Assistant boundary
+
+The authoritative agent architecture is docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md.
+
+FOODEX Agentic AI extends the existing Management Assistant; it is not a second application or chatbot stack. The existing Assistant HTTP/controller/conversation state, AssistantBrainInterface compatibility seam, typed tool registry, page context, runtime settings and OpenAI-compatible/Ollama provider lineage are the integration roots.
+
+The dependency direction is:
+
+**Dashboard Assistant -> server identity/policy/tenant/consent -> agent orchestrator -> typed allowlisted tools -> deterministic semantic/read-model/domain services -> authoritative persistence.**
+
+The provider is a reasoning adapter only. It receives no database credentials, cannot execute SQL or arbitrary code, cannot grant scope and cannot authoritatively calculate business metrics. Sell-in and sell-out remain distinct fact classes. Every tool/action is re-authorized server-side; future writes require the explicit approval contract owned by AI-16/#2224. Provider or Assistant failure must not make core FOODEX commerce unavailable.
+
