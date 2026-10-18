@@ -7,6 +7,7 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,11 @@ abstract class TestCase extends BaseTestCase
 {
     protected function enableRestaurantSaasForTestStore(int $storeId): void
     {
+        DB::table('stores')->where('id', $storeId)->update([
+            'business_profile' => Store::BUSINESS_PROFILE_RESTAURANT,
+            'updated_at' => now(),
+        ]);
+
         $registration = app(ModuleRegistry::class)
             ->syncManifest(SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE);
 
