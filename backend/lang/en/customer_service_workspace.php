@@ -108,6 +108,8 @@ return [
         'email' => 'Email',
         'password' => 'Temporary password',
         'locale' => 'Language',
+        'language_ar' => 'Arabic',
+        'language_en' => 'English',
         'role' => 'Role',
         'status' => 'Status',
         'active' => 'Active',
