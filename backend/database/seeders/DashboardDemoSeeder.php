@@ -41,6 +41,7 @@ class DashboardDemoSeeder extends Seeder
             $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
             $storeId = (int) DB::table('stores')->insertGetId([
                 'store_type_id' => $storeTypeId,
+                'business_profile' => 'RETAIL_STORE',
                 'code' => self::STORE_CODE,
                 'name' => 'FOODEX Premium Demo Store',
                 'is_active' => true,
