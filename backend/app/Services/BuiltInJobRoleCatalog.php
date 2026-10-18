@@ -89,7 +89,7 @@ final class BuiltInJobRoleCatalog
 
         if ($storeId !== null && $definition['business_profiles'] !== []) {
             $profile = Store::query()->whereKey($storeId)->value('business_profile');
-            if (! is_string($profile) || ! in_array($profile, $definition['business_profiles'], true)) {
+            if (is_string($profile) && ! in_array($profile, $definition['business_profiles'], true)) {
                 return false;
             }
         }
