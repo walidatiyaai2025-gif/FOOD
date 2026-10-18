@@ -77,7 +77,7 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
 .restaurant-workspace-link.is-partial{border:1px dashed var(--foodex-border)}
 .restaurant-workspace-link.is-unavailable{color:var(--foodex-muted);cursor:default}
 .restaurant-workspace-state{font-size:.68rem;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--foodex-orange-soft);color:var(--foodex-ink)}
-@media(max-width:1200px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1280px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1024px){.restaurant-primary-task{min-height:44px}}
 @media(max-width:768px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}.restaurant-primary-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.restaurant-primary-tasks{grid-template-columns:1fr 1fr}.restaurant-primary-task{font-size:.82rem;padding:8px}}
