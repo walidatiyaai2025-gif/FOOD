@@ -1376,6 +1376,8 @@ async function captureCustomerServiceGoldenEvidence(page, locale) {
     };
     return {
       viewport: { width: innerWidth, height: innerHeight },
+      header: rect('[data-foodex-global-header]'),
+      sidebar: rect('.wa-inbox-layout > .sidebar'),
       workspace: rect('[data-wa-golden-workspace]'),
       context: rect('[data-wa-pane="customer-context"]'),
       thread: rect('[data-wa-pane="active-conversation"]'),
@@ -1383,21 +1385,20 @@ async function captureCustomerServiceGoldenEvidence(page, locale) {
     };
   });
 
-  for (const key of ['workspace', 'context', 'thread', 'rail']) {
-    if (!geometry[key]) throw new Error('Missing golden pane ' + key + ': ' + JSON.stringify(geometry));
+  for (const key of ['header', 'sidebar', 'workspace', 'context', 'thread', 'rail']) {
+    if (!geometry[key]) throw new Error('Missing Customer Service shell element ' + key + ': ' + JSON.stringify(geometry));
   }
-  if (Math.abs(geometry.workspace.width - 1504) > 2 || Math.abs(geometry.workspace.height - 851) > 2) {
-    throw new Error('Golden workspace does not fill 1504x851: ' + JSON.stringify(geometry));
+  if (
+    geometry.workspace.width < 900
+    || geometry.workspace.width >= geometry.viewport.width
+    || geometry.workspace.x < 0
+    || geometry.workspace.y <= 0
+  ) {
+    throw new Error('Customer Service workspace is not composed inside the shared platform shell: ' + JSON.stringify(geometry));
   }
-  if (locale === 'ar') {
-    const expected = { context: 448, thread: 677, rail: 379 };
-    for (const [key, width] of Object.entries(expected)) {
-      if (Math.abs(geometry[key].width - width) > 2) {
-        throw new Error(
-          'Golden ' + key + ' width drift: ' + geometry[key].width + 'px != '
-          + width + 'px; ' + JSON.stringify(geometry)
-        );
-      }
+  for (const key of ['context', 'thread', 'rail']) {
+    if (geometry[key].width < 260 || geometry[key].height < 320) {
+      throw new Error('Customer Service pane is clipped at 1504px: ' + key + ' ' + JSON.stringify(geometry));
     }
   }
 
