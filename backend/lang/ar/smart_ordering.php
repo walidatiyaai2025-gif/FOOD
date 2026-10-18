@@ -115,6 +115,12 @@ return [
         'preview_title' => 'المعاينة الحية للطلب الذكي',
         'empty' => 'أدخل المعرّف العام للمطعم لبدء المعاينة الحية.',
         'themes' => [
+            'fine-dining-elegant-light' => ['label' => 'مطعم فاخر — أناقة فاتحة', 'layout' => 'قائمة تحريرية'],
+            'fine-dining-dark-luxury' => ['label' => 'مطعم فاخر — فخامة داكنة', 'layout' => 'عرض تحريري مميز'],
+            'contemporary-bistro' => ['label' => 'بيسترو معاصر', 'layout' => 'شبكة صور مصغرة'],
+            'premium-arabic-dining' => ['label' => 'ضيافة عربية فاخرة', 'layout' => 'تحرير عربي يبدأ من اليمين'],
+            'modern-minimal' => ['label' => 'مطعم عصري بسيط', 'layout' => 'قائمة بسيطة'],
+            'chef-tasting' => ['label' => 'قائمة الشيف / التذوق', 'layout' => 'مسار أطباق متتابع'],
             'quick-bite' => ['label' => 'طلب سريع', 'layout' => 'تجربة طلب سريعة'],
             'elegant-dining' => ['label' => 'مطعم أنيق', 'layout' => 'تجربة تحريرية راقية'],
             'cafe-bakery' => ['label' => 'مقهى ومخبوزات', 'layout' => 'تخصيصات واضحة للمقهى'],
