@@ -146,6 +146,7 @@ final class SignalDetectionEngineTest extends TestCase
                 return $signal;
             }
         }
+
         return null;
     }
 
