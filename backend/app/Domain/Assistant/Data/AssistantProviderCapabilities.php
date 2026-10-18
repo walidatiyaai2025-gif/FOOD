@@ -18,6 +18,7 @@ final readonly class AssistantProviderCapabilities
         public int $maxOutputTokens,
         public int $timeoutSeconds,
         public bool $reachable,
+        public bool $healthy,
         public bool $agentCapable,
     ) {}
 }
