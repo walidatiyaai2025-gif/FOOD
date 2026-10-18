@@ -682,16 +682,24 @@ class B2bAdminWorkspaceTest extends TestCase
     {
         $admin = $this->user('SUPER_ADMIN', 'en');
 
-        $this->actingAs($admin)->get('/admin/b2b/dashboard')
+        $response = $this->actingAs($admin)->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('data-b2b-premium="v1"', false)
             ->assertSee('class="main foodex-admin-page"', false)
             ->assertSee('data-b2b-reference-dashboard="841x564"', false)
             ->assertSee('b2b-ref-kpis', false)
+            ->assertSee('--b2b-kpi-columns:4', false)
             ->assertSee('b2b-ref-middle', false)
             ->assertSee('b2b-ref-bottom', false)
             ->assertSee('b2b-ref-chart-wrap', false)
-            ->assertSee('b2b-ref-donut', false);
+            ->assertSee('b2b-ref-donut', false)
+            ->assertDontSee('b2b-ref-header-tools', false)
+            ->assertDontSee('data-foodex-dashboard-header-search-row', false);
+
+        $html = $response->getContent();
+        $this->assertIsString($html);
+        $this->assertSame(1, substr_count($html, 'data-foodex-global-header'));
+        $this->assertSame(1, substr_count($html, '<section class="foodex-global-search foodex-global-search--header"'));
     }
 
     /** @return array{0:int,1:int} */
