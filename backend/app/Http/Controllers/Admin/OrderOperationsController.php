@@ -525,7 +525,10 @@ final class OrderOperationsController extends Controller
             abort_unless($storeId === $principalStoreId, 404);
         }
 
-        $this->scope->assertStore($actor, $storeId, 'orders.manage', $channel);
+        abort_unless(
+            in_array($storeId, $this->orderCreateStoreIds($actor, $channel), true),
+            404,
+        );
 
         return [$channel, $storeId];
     }
@@ -536,7 +539,7 @@ final class OrderOperationsController extends Controller
         $channels = [];
         $principalStoreId = app(WholesalePrincipal::class)->storeId();
         $b2bStoreIds = array_values(array_filter(
-            $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2b'),
+            $this->orderCreateStoreIds($actor, 'b2b'),
             static fn (int $storeId): bool => $storeId === $principalStoreId,
         ));
 
@@ -548,7 +551,7 @@ final class OrderOperationsController extends Controller
             ];
         }
 
-        $b2cStoreIds = $this->scope->allowedStoreIds($actor, 'orders.manage', 'b2c');
+        $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
         if ($b2cStoreIds !== []) {
             $channels[] = [
                 'code' => 'b2c',
@@ -593,6 +596,15 @@ final class OrderOperationsController extends Controller
             'channels' => $channels,
             'payment_methods' => $paymentMethods,
         ];
+    }
+
+    /** @return list<int> */
+    private function orderCreateStoreIds(User $actor, string $channel): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->scope->allowedStoreIds($actor, 'orders.create', $channel),
+            $this->scope->allowedStoreIds($actor, 'orders.manage', $channel),
+        )));
     }
 
     /** @return array<string,mixed> */
