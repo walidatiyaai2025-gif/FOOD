@@ -57,13 +57,20 @@ class User extends Authenticatable
         }
 
         if ($channel === 'b2c') {
-            return $this->storeRoleAssignments()
+            $assignment = $this->storeRoleAssignments()
                 ->where('store_id', $storeId)
                 ->whereHas('role', fn ($query) => $query
                     ->where('code', $roleCode)
                     ->where('is_active', true)
                     ->where('scope', 'store'))
-                ->exists();
+                ->with('role:id,code')
+                ->first();
+
+            return $assignment !== null
+                && app(BuiltInJobRoleCatalog::class)->isBusinessProfileCompatible(
+                    (string) $assignment->role->code,
+                    $storeId,
+                );
         }
 
         $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
