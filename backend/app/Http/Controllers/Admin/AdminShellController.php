@@ -24,9 +24,9 @@ class AdminShellController extends Controller
         abort_unless($user instanceof User, 401);
 
         if (! $user->hasRole('SUPER_ADMIN')) {
-            $target = $this->workspaceLanding->urlFor($user);
-            if ($target !== null) {
-                return redirect()->to($target);
+            $workspaceTarget = $this->workspaceLanding->urlFor($user, $request);
+            if ($workspaceTarget !== null) {
+                return redirect()->to($workspaceTarget);
             }
         }
 
