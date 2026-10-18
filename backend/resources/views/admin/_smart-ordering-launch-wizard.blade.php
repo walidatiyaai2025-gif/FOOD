@@ -185,47 +185,68 @@
 
     @if($setupStep==='identity')
     <section class="rl-panel" data-launch-step="identity">
-        <div class="rl-panel-title"><div><h2>{{ $launchIsAr?'3. بيانات وهوية المطعم':'3. Restaurant identity' }}</h2><p>{{ $launchIsAr?'اضبط الاسم والشعار والصورة والرابط وحالة التشغيل هنا.':'Set name, branding, public URL and runtime here.' }}</p></div></div>
-        <form class="rl-form-card" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.revisions.content',$draft) }}" data-setup-mirror-form>
-            @csrf @method('PUT')
-            <h3>{{ $launchIsAr?'الهوية والمحتوى الأساسي':'Identity and core content' }}</h3>
-            <div class="rl-form-grid">
-                <label>{{ $launchIsAr?'اسم المطعم بالعربي':'Arabic restaurant name' }}<input name="name_ar" value="{{ $launchNameAr }}" data-mirror-ar></label>
-                <label>{{ $launchIsAr?'اسم المطعم بالإنجليزي':'English restaurant name' }}<input name="name_en" value="{{ $launchNameEn }}" data-mirror-en required></label>
-                <label>{{ $launchIsAr?'وصف قصير بالعربي':'Arabic tagline' }}<input name="tagline_ar" value="{{ $launchTaglineAr }}"></label>
-                <label>{{ $launchIsAr?'وصف قصير بالإنجليزي':'English tagline' }}<input name="tagline_en" value="{{ $launchTaglineEn }}"></label>
-                <label>{{ $launchIsAr?'الهاتف':'Phone' }}<input name="phone" value="{{ $launchPhone }}"></label>
-                <label>{{ $launchIsAr?'واتساب URL':'WhatsApp URL' }}<input name="whatsapp_url" value="{{ $setupIdentity['whatsapp_url'] ?? '' }}"></label>
-                <label>{{ $launchIsAr?'اللوجو':'Logo' }}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp"></label>
-                <label>{{ $launchIsAr?'صورة الغلاف':'Cover image' }}<input type="file" name="cover" accept="image/jpeg,image/png,image/webp"></label>
-                <label class="span-2">{{ $launchIsAr?'وصف المطعم بالعربي':'Arabic description' }}<textarea name="description_ar">{{ $setupIdentity['description_ar'] ?? '' }}</textarea></label>
-                <label class="span-2">{{ $launchIsAr?'وصف المطعم بالإنجليزي':'English description' }}<textarea name="description_en">{{ $setupIdentity['description_en'] ?? '' }}</textarea></label>
-            </div>
-            @foreach(['about_en','about_ar','chef_note_en','chef_note_ar','location_en','location_ar','map_url','reservation_cta_en','reservation_cta_ar','reservation_url','allergen_note_en','allergen_note_ar'] as $field)
-                <input type="hidden" name="{{ $field }}" value="{{ $setupSections[$field] ?? '' }}">
-            @endforeach
-            <div class="rl-form-actions"><button class="rl-next" type="submit">{{ $launchIsAr?'حفظ الهوية':'Save identity' }}</button></div>
-        </form>
-
-        <div class="rl-form-card">
-            <h3>{{ $launchIsAr?'الرابط والتشغيل':'Public URL and runtime' }}</h3>
-            <div class="rl-form-grid">
-                <form method="post" action="{{ route('admin.smart-ordering.slug',$site) }}">
-                    @csrf @method('PUT')
-                    <label>{{ $launchIsAr?'الرابط المختصر':'Public slug' }}<input name="slug" value="{{ $site->slug }}" required></label>
-                    <div class="rl-form-actions"><button class="rl-secondary" type="submit">{{ $launchIsAr?'حفظ الرابط':'Save URL' }}</button></div>
-                </form>
-                <form method="post" action="{{ route('admin.smart-ordering.runtime',$site) }}">
-                    @csrf @method('PUT')
-                    <input type="hidden" name="master_enabled" value="1">
-                    <label>{{ $launchIsAr?'حالة التشغيل':'Runtime state' }}
-                        <select name="runtime_state">@foreach((array)config('smart_ordering.runtime_states',[]) as $state)<option value="{{ $state }}" @selected($site->runtime_state===$state)>{{ __('smart_ordering.states.'.$state) }}</option>@endforeach</select>
-                    </label>
-                    <div class="rl-form-actions"><button class="rl-secondary" type="submit">{{ $launchIsAr?'حفظ التشغيل':'Save runtime' }}</button></div>
-                </form>
+        <div class="rl-panel-title">
+            <div>
+                <h2>{{ $launchIsAr?'3. بيانات وهوية المطعم':'3. Restaurant identity' }}</h2>
+                <p>{{ $launchIsAr?'كل بيانات الواجهة والرابط والتشغيل في نموذج واحد. بعد الحفظ تنتقل مباشرة للمراجعة.':'One form for storefront identity, public URL and runtime. Saving moves directly to review.' }}</p>
             </div>
         </div>
-        <div class="rl-actions"><a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'design']) }}">{{ $launchIsAr?'السابق':'Back' }}</a><a class="rl-next" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'review']) }}">{{ $launchIsAr?'التالي: المراجعة':'Next: Review' }}</a></div>
+
+        <form class="rl-form-card" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.setup.identity') }}" data-setup-mirror-form>
+            @csrf
+            <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+            <input type="hidden" name="master_enabled" value="1">
+            <h3>{{ $launchIsAr?'هوية المطعم':'Restaurant identity' }}</h3>
+
+            <div class="rl-form-grid">
+                <label>{{ $launchIsAr?'اسم المطعم بالعربي':'Arabic restaurant name' }}
+                    <input name="name_ar" value="{{ $launchNameAr }}" data-mirror-ar>
+                </label>
+                <label>{{ $launchIsAr?'اسم المطعم بالإنجليزي':'English restaurant name' }}
+                    <input name="name_en" value="{{ $launchNameEn }}" data-mirror-en required>
+                </label>
+                <label>{{ $launchIsAr?'وصف قصير بالعربي':'Arabic tagline' }}
+                    <input name="tagline_ar" value="{{ $launchTaglineAr }}">
+                </label>
+                <label>{{ $launchIsAr?'وصف قصير بالإنجليزي':'English tagline' }}
+                    <input name="tagline_en" value="{{ $launchTaglineEn }}">
+                </label>
+                <label>{{ $launchIsAr?'الهاتف':'Phone' }}
+                    <input name="phone" value="{{ $launchPhone }}">
+                </label>
+                <label>{{ $launchIsAr?'واتساب URL':'WhatsApp URL' }}
+                    <input name="whatsapp_url" value="{{ $setupIdentity['whatsapp_url'] ?? '' }}">
+                </label>
+                <label>{{ $launchIsAr?'اللوجو':'Logo' }}
+                    <input type="file" name="logo" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <label>{{ $launchIsAr?'صورة الغلاف':'Cover image' }}
+                    <input type="file" name="cover" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <label class="span-2">{{ $launchIsAr?'وصف المطعم بالعربي':'Arabic description' }}
+                    <textarea name="description_ar">{{ $setupIdentity['description_ar'] ?? '' }}</textarea>
+                </label>
+                <label class="span-2">{{ $launchIsAr?'وصف المطعم بالإنجليزي':'English description' }}
+                    <textarea name="description_en">{{ $setupIdentity['description_en'] ?? '' }}</textarea>
+                </label>
+
+                <label>{{ $launchIsAr?'الرابط المختصر للمطعم':'Public restaurant URL' }}
+                    <input name="slug" value="{{ $site->slug }}" required>
+                </label>
+                <label>{{ $launchIsAr?'حالة التشغيل':'Runtime state' }}
+                    <select name="runtime_state" required>
+                        @foreach((array)config('smart_ordering.runtime_states',[]) as $state)
+                            <option value="{{ $state }}" @selected($site->runtime_state===$state)>{{ __('smart_ordering.states.'.$state) }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+
+            <div class="rl-form-actions">
+                <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'design']) }}">{{ $launchIsAr?'السابق':'Back' }}</a>
+                <button class="rl-next" type="submit">{{ $launchIsAr?'حفظ والمتابعة للمراجعة':'Save and continue to review' }}</button>
+            </div>
+        </form>
     </section>
     @endif
 
