@@ -11,6 +11,7 @@ final class AssistantAnalyticsTool implements AssistantToolInterface
 {
     public const KEYS = [
         'analytics.summary',
+        'analytics.diagnose',
         'inventory.snapshot',
         'refunds.summary',
         'retailers.performance',
