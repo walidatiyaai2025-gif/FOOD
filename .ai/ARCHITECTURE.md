@@ -157,3 +157,8 @@ Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/
 ### Agent orchestration invariant
 
 The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
+
+
+### Assistant context and governed memory invariant
+
+Assistant page/session memory is a bounded continuation aid, never business authority. Browser context is first normalized against current FOODEX visibility rules and may be carried by a short-lived user-bound HMAC envelope, but every turn re-resolves the page context, principal, roles, permissions, tenant/store/channel scope and retailer sell-out consent before tool execution. Conversation state keeps only still-authorized entity identifiers/references, normalized time windows, intent/tool keys, clarification state, locale and allowlisted presentation preferences. It expires independently of conversation retention, redacts common secret patterns before persistence, and never stores transactional totals, balances, stock facts, provider secrets or model reasoning as durable memory. Business facts are always re-read from authoritative tools/read models.
