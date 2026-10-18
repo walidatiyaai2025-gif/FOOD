@@ -117,4 +117,18 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString("foodex:close-customer-service-inbox", $view);
         $this->assertStringContainsString("window.parent.postMessage", $view);
     }
+
+    public function test_customer_service_role_uses_shared_dashboard_visual_profile_across_admin_pages(): void
+    {
+        $brand = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+
+        $this->assertIsString($brand);
+        $this->assertStringContainsString("usesCustomerServiceDashboardProfile(auth()->user())", $brand);
+        $this->assertStringContainsString("document.documentElement.classList.add('foodex-customer-service-profile')", $brand);
+        $this->assertStringContainsString('html.foodex-customer-service-profile .foodex-global-header', $brand);
+        $this->assertStringContainsString('html.foodex-customer-service-profile .foodex-page-toolbar', $brand);
+        $this->assertStringContainsString('html.foodex-customer-service-profile .foodex-tabs', $brand);
+        $this->assertStringContainsString('html.foodex-customer-service-profile .foodex-nav-link.active', $brand);
+        $this->assertStringContainsString('html.foodex-customer-service-profile :is(.foodex-card,.panel,.card,.filters,.back,.foodex-form)', $brand);
+    }
 }
