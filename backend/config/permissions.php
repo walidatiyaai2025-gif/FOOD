@@ -184,14 +184,13 @@ return [
             'coupons.view', 'coupons.manage', 'live_ads.view', 'live_ads.manage',
         ],
         'B2C_STORE_ADMIN' => [
-            'stores.view', 'smart_ordering.view', 'smart_ordering.manage', 'smart_ordering.publish',
-            'smart_ordering.analytics.view', 'smart_ordering.analytics.export',
+            'stores.view',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete', 'catalog.manage',
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
-            'promotions.view', 'promotions.manage', 'smart_ordering.qr.view', 'smart_ordering.qr.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
+            'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
             'drivers.tracking.view', 'drivers.tracking.history', 'drivers.tracking.manage',
@@ -216,7 +215,7 @@ return [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'RETAIL_OPERATIONS' => [
-            'assistant.use', 'smart_ordering.qr.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
+            'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'drivers.tracking.view', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'RETAIL_INVENTORY' => [
