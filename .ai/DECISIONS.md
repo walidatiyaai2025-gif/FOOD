@@ -102,3 +102,13 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** revocation blocks subsequent reads immediately; multi-retailer aggregation authorizes every Retail store independently; consent/read/tool access is audited; localized denial does not expose hidden ids; providers receive no authorization power.
 
 **Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
+
+
+## D-017 — Agent planning is bounded; server evidence is the only synthesis authority
+**Decision (#2215 / AI-07, 2026-10-18):** Multi-tool Assistant turns use the existing provider gateway only to propose allowlisted typed reads and synthesize from numbered server evidence. `AssistantToolExecutor` remains the mandatory authorization/audit gate for every proposed call. The orchestrator enforces hard step, call, time and result-size budgets, suppresses duplicate tool signatures and never persists/exposes provider reasoning.
+
+**Reason:** an unconstrained agent loop could turn model output into authority, amplify accidental repeated reads, leak scope through tool arguments or create unbounded latency/cost. FOODEX already has authoritative typed tools, semantic metrics, read models and security controls.
+
+**Consequences:** unknown/malformed tools fail closed; authorization/consent/schema failures are never converted into permissive fallbacks; provider/tool outages may yield explicit partial answers; AI-disabled/no-tool/provider-failure paths fall back to the existing Assistant; no chain-of-thought is stored; no public API contract changes are introduced by orchestration.
+
+**Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
