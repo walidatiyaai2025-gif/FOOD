@@ -185,7 +185,7 @@ final class AssistantAgentOrchestrator
 
         if ($evidence === []) {
             return $sawPlan
-                ? $this->failedPlanResult($request->locale, $partial, $steps, $toolCalls)
+                ? $this->failedPlanResult($request->locale, $steps, $toolCalls)
                 : null;
         }
 
@@ -274,7 +274,7 @@ final class AssistantAgentOrchestrator
         );
     }
 
-    private function failedPlanResult(string $locale, bool $partial, int $steps, int $toolCalls): AssistantAgentResult
+    private function failedPlanResult(string $locale, int $steps, int $toolCalls): AssistantAgentResult
     {
         return new AssistantAgentResult(
             message: $locale === 'ar'
@@ -294,7 +294,7 @@ final class AssistantAgentOrchestrator
             ]),
             toolKeys: [],
             evidence: [],
-            partial: true || $partial,
+            partial: true,
             uncertainty: null,
             steps: $steps,
             toolCalls: $toolCalls,
