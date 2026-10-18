@@ -194,8 +194,13 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringNotContainsString("__('order_operations.description')", $view);
         $this->assertStringNotContainsString("__('order_operations.dashboard.subtitle')", $view);
         $this->assertStringNotContainsString("__('order_operations.dashboard.generated_at'", $view);
-        $this->assertStringContainsString('title="{{ __(\'order_operations.filters.channel\') }}"', $view);
-        $this->assertStringContainsString('title="{{ __(\'order_operations.filters.store\') }}"', $view);
+        $headerFilter = file_get_contents(resource_path('views/admin/_order-operations-header-filters.blade.php'));
+        $this->assertIsString($headerFilter);
+        $this->assertStringContainsString('data-order-header-controls', $headerFilter);
+        $this->assertStringContainsString('data-order-header-filter', $headerFilter);
+        $this->assertStringContainsString('name="from"', $headerFilter);
+        $this->assertStringContainsString('name="to"', $headerFilter);
+        $this->assertStringContainsString('order-header-new-order', $headerFilter);
     }
 
     private function retailStore(string $code): int
