@@ -220,7 +220,7 @@ final class SignalDetectionEngine
     private function retailerSignals(array &$out, array $rows, float $confidence): void
     {
         foreach ($rows as $row) {
-            if (! is_array($row) || ($row['authorized_scope'] ?? false) !== true) {
+            if (($row['authorized_scope'] ?? false) !== true) {
                 continue;
             }
             $storeId = $this->positiveInt($row['retailer_store_id'] ?? null);
@@ -270,7 +270,7 @@ final class SignalDetectionEngine
     private function forecastSignals(array &$out, array $rows, array $scope, float $confidence): void
     {
         foreach ($rows as $row) {
-            if (! is_array($row) || ($row['authorized_scope'] ?? false) !== true) {
+            if (($row['authorized_scope'] ?? false) !== true) {
                 continue;
             }
             $rowConfidence = is_numeric($row['confidence'] ?? null) ? min(1, max(0, (float) $row['confidence'])) : $confidence;
