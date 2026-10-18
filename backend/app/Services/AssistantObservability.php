@@ -39,7 +39,7 @@ final class AssistantObservability
      * Record only bounded operational metadata. Provider prompts, tool arguments,
      * tool results, customer payloads and credentials are intentionally excluded.
      *
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     public function record(?string $traceId, string $eventName, array $attributes = []): string
     {
