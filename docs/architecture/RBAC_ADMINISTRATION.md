@@ -12,17 +12,19 @@ Custom roles can be created, cloned, edited, activated/deactivated and deleted a
 
 Global assignments grant only roles whose scope is `global` or `both`. Store assignments grant only roles whose scope is `store` or `both`, and only for the selected store. Inactive roles grant nothing. Unknown permission codes are deny-by-default because Gates are registered only from the declared permission catalog.
 
-## User status
+## User onboarding and status
+
+The canonical Security workspace supports audited user onboarding for operators with `users.roles.manage`. A new user is created together with one initial global business-role assignment in a single transaction. The same role-grant authority and built-in-role availability checks used for later role changes are applied before the transaction can commit, so delegated operators cannot onboard a user with authority above their own. Passwords use the User model's hashed cast and are never written to audit payloads.
 
 Authorized administrators can activate or deactivate accounts with `users.status.manage`. Deactivation stores the timestamp and optional reason, revokes Sanctum personal access tokens immediately, and is also enforced on each authenticated API/dashboard request. Reactivation restores access without recreating the user.
 
 ## Audit events
 
-The security center records `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.deleted` through the shared audit logger.
+The security center records `user.created`, `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.deleted` through the shared audit logger.
 
 ## Administration surfaces
 
-- Dashboard: `/admin/security`
+- Dashboard: `/admin/security` with task-focused Users, Roles & Permissions, Security & Governance, Sessions, and Audit tabs.
 - API: `/api/v1/admin/security/*`
 - Read access: `security.view` or `users.view` where explicitly supported.
 - Mutations: `roles.manage`, `users.roles.manage`, and `users.status.manage`.
