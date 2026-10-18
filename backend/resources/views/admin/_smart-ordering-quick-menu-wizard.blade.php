@@ -145,7 +145,7 @@ body.qm-open{overflow:hidden}
                     <input type="text" name="menu_name_ar" value="{{ old('menu_name_ar') }}" placeholder="{{ $quickMenuIsAr ? 'المنيو الرئيسية' : 'Main menu' }}">
                 </label>
                 <label class="qm-field">{{ $quickMenuIsAr ? 'اسم المنيو بالإنجليزي' : 'English menu name' }}
-                    <input type="text" name="menu_name_en" value="{{ old('menu_name_en') }}" placeholder="Main menu">
+                    <input type="text" name="menu_name_en" value="{{ old('menu_name_en') }}" placeholder="{{ $quickMenuIsAr ? 'المنيو الرئيسية' : 'Main menu' }}">
                 </label>
             </div>
             <label class="qm-upload">
@@ -175,10 +175,10 @@ body.qm-open{overflow:hidden}
                         <input type="file" name="categories[{{ $categoryKey }}][image]" accept="image/jpeg,image/png,image/webp" data-image-input>
                     </label>
                     <label class="qm-field qm-name-ar">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
-                        <input type="text" name="categories[{{ $categoryKey }}][name_ar]" value="{{ $category['name_ar'] ?? '' }}" data-qm-category-ar>
+                        <input type="text" name="categories[{{ $categoryKey }}][name_ar]" value="{{ $category['name_ar'] ?? '' }}" data-qm-category-ar> {{-- localization-gate: allow — quick-menu bilingual authoring intentionally exposes the Arabic category name. --}}
                     </label>
                     <label class="qm-field qm-name-en">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
-                        <input type="text" name="categories[{{ $categoryKey }}][name_en]" value="{{ $category['name_en'] ?? '' }}" data-qm-category-en>
+                        <input type="text" name="categories[{{ $categoryKey }}][name_en]" value="{{ $category['name_en'] ?? '' }}" data-qm-category-en> {{-- localization-gate: allow — quick-menu bilingual authoring intentionally exposes the English category name. --}}
                     </label>
                     <button class="qm-remove" type="button" data-qm-remove-category aria-label="{{ $quickMenuIsAr ? 'حذف التصنيف' : 'Remove category' }}">×</button>
                 </div>
@@ -208,10 +208,10 @@ body.qm-open{overflow:hidden}
                         </select>
                     </label>
                     <label class="qm-field qm-name-ar">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
-                        <input type="text" name="items[{{ $itemKey }}][name_ar]" value="{{ $item['name_ar'] ?? '' }}">
+                        <input type="text" name="items[{{ $itemKey }}][name_ar]" value="{{ $item['name_ar'] ?? '' }}"> {{-- localization-gate: allow — quick-menu bilingual authoring intentionally exposes the Arabic item name. --}}
                     </label>
                     <label class="qm-field qm-name-en">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
-                        <input type="text" name="items[{{ $itemKey }}][name_en]" value="{{ $item['name_en'] ?? '' }}">
+                        <input type="text" name="items[{{ $itemKey }}][name_en]" value="{{ $item['name_en'] ?? '' }}"> {{-- localization-gate: allow — quick-menu bilingual authoring intentionally exposes the English item name. --}}
                     </label>
                     <label class="qm-field qm-price">{{ $quickMenuIsAr ? 'السعر' : 'Price' }} @if($quickMenuCurrency)<small>({{ $quickMenuCurrency }})</small>@endif
                         <input type="number" step="0.001" min="0" name="items[{{ $itemKey }}][price]" value="{{ $item['price'] ?? '' }}" placeholder="0.000">
