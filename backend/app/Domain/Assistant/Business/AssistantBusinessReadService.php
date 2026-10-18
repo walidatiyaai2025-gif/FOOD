@@ -2,6 +2,7 @@
 
 namespace App\Domain\Assistant\Business;
 
+use App\Domain\Analytics\Semantic\OrderSemanticMetricService;
 use App\Domain\Assistant\Data\AssistantAction;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
@@ -17,7 +18,10 @@ final class AssistantBusinessReadService
 
     private const NON_REVENUE_STATUSES = ['cancelled', 'refunded'];
 
-    public function __construct(private readonly OperationalTenantScope $scope) {}
+    public function __construct(
+        private readonly OperationalTenantScope $scope,
+        private readonly OrderSemanticMetricService $semanticMetrics,
+    ) {}
 
     public function execute(string $tool, AssistantToolRequest $request): AssistantToolResult
     {
@@ -41,19 +45,27 @@ final class AssistantBusinessReadService
         $storeIds = $this->storeIds($user, $request, 'reports.view');
         [$fromUtc, $toUtc, $from, $to] = $this->dateWindow($request);
         $query = $this->ordersQuery($storeIds, $request, $fromUtc, $toUtc);
-        $recognized = (clone $query)->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+        $totals = $this->semanticMetrics->compatibilityTotals($query);
+        $semanticMetrics = $this->semanticMetrics->summariesByDataset(
+            $query,
+            $from,
+            $to,
+            [
+                'store_ids' => $storeIds,
+                'channel' => $request->channel,
+            ],
+            'EGP',
+            $request->locale,
+        );
 
         return new AssistantToolResult(
             data: [
                 'from' => $from,
                 'to' => $to,
-                'orders' => (clone $query)->count('orders.id'),
-                'recognized_orders' => (clone $recognized)->count('orders.id'),
-                'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
-                'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
-                'average_order_value' => round((float) ((clone $recognized)->avg('orders.grand_total') ?? 0), 3),
+                ...$totals,
                 'currency' => 'EGP',
                 'store_ids' => $storeIds,
+                'semantic_metrics' => $semanticMetrics,
             ],
             actions: [$this->reportsAction($request)],
         );
@@ -583,14 +595,15 @@ final class AssistantBusinessReadService
         string $fromUtc,
         string $toUtc,
     ): array {
-        $query = $this->ordersQuery($storeIds, $request, $fromUtc, $toUtc);
-        $recognized = (clone $query)->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
+        $totals = $this->semanticMetrics->compatibilityTotals(
+            $this->ordersQuery($storeIds, $request, $fromUtc, $toUtc),
+        );
 
         return [
-            'orders' => (clone $query)->count('orders.id'),
-            'recognized_orders' => (clone $recognized)->count('orders.id'),
-            'gross_value' => round((float) (clone $query)->sum('orders.grand_total'), 3),
-            'recognized_revenue' => round((float) (clone $recognized)->sum('orders.grand_total'), 3),
+            'orders' => $totals['orders'],
+            'recognized_orders' => $totals['recognized_orders'],
+            'gross_value' => $totals['gross_value'],
+            'recognized_revenue' => $totals['recognized_revenue'],
         ];
     }
 
