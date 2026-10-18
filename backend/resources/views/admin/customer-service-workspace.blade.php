@@ -27,20 +27,20 @@
 .cs-filter .cs-filter-submit button{width:auto;min-height:34px;height:34px;padding-inline:14px;white-space:nowrap}
 .cs-workspace-tabs{display:flex;align-items:center;gap:8px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:thin}
 .cs-workspace-tab{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:0 16px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
-.cs-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-workspace-tab:hover{transform:translateY(-1px);border-color:var(--foodex-palette-b8d9c2);color:var(--foodex-green-dark)}
 .cs-workspace-tab[aria-selected="true"]{background:var(--foodex-green-dark);border-color:var(--foodex-green-dark);color:#fff}
 .cs-tab-count{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:900;line-height:1;border:1px solid transparent;font-variant-numeric:tabular-nums}
-.cs-tab-count.ok{background:#DCFCE7;color:#166534;border-color:#86EFAC}
-.cs-tab-count.danger{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5}
-.cs-tab-count.info{background:#DBEAFE;color:#1D4ED8;border-color:#93C5FD}
-.cs-tab-count.unread{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5;box-shadow:0 0 0 2px rgba(220,38,38,.08)}
+.cs-tab-count.ok{background:var(--foodex-palette-dcfce7);color:var(--foodex-palette-166534);border-color:var(--foodex-palette-86efac)}
+.cs-tab-count.danger{background:var(--foodex-palette-fee2e2);color:var(--foodex-palette-b91c1c);border-color:var(--foodex-palette-fca5a5)}
+.cs-tab-count.info{background:var(--foodex-palette-dbeafe);color:var(--foodex-palette-1d4ed8);border-color:var(--foodex-palette-93c5fd)}
+.cs-tab-count.unread{background:var(--foodex-palette-fee2e2);color:var(--foodex-palette-b91c1c);border-color:var(--foodex-palette-fca5a5);box-shadow:0 0 0 2px rgba(220,38,38,.08)}
 .cs-inbox-list{display:grid;gap:8px}
 .cs-inbox-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;color:inherit;background:var(--foodex-surface);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
-.cs-inbox-item:hover{transform:translateY(-1px);border-color:#b8d9c2;box-shadow:var(--foodex-shadow-sm)}
+.cs-inbox-item:hover{transform:translateY(-1px);border-color:var(--foodex-palette-b8d9c2);box-shadow:var(--foodex-shadow-sm)}
 .cs-inbox-main{min-width:0;display:grid;gap:4px}
 .cs-inbox-title{display:flex;align-items:center;gap:8px;min-width:0}.cs-inbox-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cs-inbox-meta{color:var(--foodex-muted);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cs-inbox-unread{min-width:28px;height:28px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#FEE2E2;color:#B91C1C;font-size:.72rem;font-weight:900;font-variant-numeric:tabular-nums}
+.cs-inbox-unread{min-width:28px;height:28px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--foodex-palette-fee2e2);color:var(--foodex-palette-b91c1c);font-size:.72rem;font-weight:900;font-variant-numeric:tabular-nums}
 .cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}
 .cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
@@ -56,19 +56,19 @@
 .cs-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.62rem;font-weight:700;line-height:1.35}
 .cs-kpi-value{align-self:center;font-size:1.55rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--foodex-ink)}
 .cs-kpi-meta{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap}
-.cs-kpi[data-tone="green"]{--cs-accent:#158A3A;--cs-accent-soft:#EAF7EF}
-.cs-kpi[data-tone="blue"]{--cs-accent:#2563EB;--cs-accent-soft:#EFF6FF}
-.cs-kpi[data-tone="violet"]{--cs-accent:#7C3AED;--cs-accent-soft:#F5F3FF}
-.cs-kpi[data-tone="orange"]{--cs-accent:#EA580C;--cs-accent-soft:#FFF7ED}
-.cs-kpi[data-tone="red"]{--cs-accent:#DC2626;--cs-accent-soft:#FEF2F2}
-.cs-kpi[data-tone="amber"]{--cs-accent:#B45309;--cs-accent-soft:#FFFBEB}
-.cs-kpi[data-tone="cyan"]{--cs-accent:#0E7490;--cs-accent-soft:#ECFEFF}
-.cs-kpi[data-tone="rose"]{--cs-accent:#BE123C;--cs-accent-soft:#FFF1F2}
+.cs-kpi[data-tone="green"]{--cs-accent:var(--foodex-palette-158a3a);--cs-accent-soft:var(--foodex-palette-eaf7ef)}
+.cs-kpi[data-tone="blue"]{--cs-accent:var(--foodex-palette-2563eb);--cs-accent-soft:var(--foodex-palette-eff6ff)}
+.cs-kpi[data-tone="violet"]{--cs-accent:var(--foodex-palette-7c3aed);--cs-accent-soft:var(--foodex-palette-f5f3ff)}
+.cs-kpi[data-tone="orange"]{--cs-accent:var(--foodex-palette-ea580c);--cs-accent-soft:var(--foodex-palette-fff7ed)}
+.cs-kpi[data-tone="red"]{--cs-accent:var(--foodex-palette-dc2626);--cs-accent-soft:var(--foodex-palette-fef2f2)}
+.cs-kpi[data-tone="amber"]{--cs-accent:var(--foodex-palette-b45309);--cs-accent-soft:var(--foodex-palette-fffbeb)}
+.cs-kpi[data-tone="cyan"]{--cs-accent:var(--foodex-palette-0e7490);--cs-accent-soft:var(--foodex-palette-ecfeff)}
+.cs-kpi[data-tone="rose"]{--cs-accent:var(--foodex-palette-be123c);--cs-accent-soft:var(--foodex-palette-fff1f2)}
 .cs-live-map-card{padding:12px 14px;min-width:0;overflow:hidden}
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .cs-chart{padding:var(--foodex-space-5)}.cs-chart h2{margin:0 0 14px;font-size:1rem}
-.cs-bars{display:grid;gap:10px}.cs-bar-row{--cs-bar-a:#16A34A;--cs-bar-b:#22C55E;display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
-.cs-bar-row:nth-child(6n+2){--cs-bar-a:#2563EB;--cs-bar-b:#60A5FA}.cs-bar-row:nth-child(6n+3){--cs-bar-a:#7C3AED;--cs-bar-b:#A78BFA}.cs-bar-row:nth-child(6n+4){--cs-bar-a:#EA580C;--cs-bar-b:#FB923C}.cs-bar-row:nth-child(6n+5){--cs-bar-a:#DC2626;--cs-bar-b:#F87171}.cs-bar-row:nth-child(6n){--cs-bar-a:#0891B2;--cs-bar-b:#22D3EE}
+.cs-bars{display:grid;gap:10px}.cs-bar-row{--cs-bar-a:var(--foodex-palette-16a34a);--cs-bar-b:var(--foodex-palette-22c55e);display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
+.cs-bar-row:nth-child(6n+2){--cs-bar-a:var(--foodex-palette-2563eb);--cs-bar-b:var(--foodex-palette-60a5fa)}.cs-bar-row:nth-child(6n+3){--cs-bar-a:var(--foodex-palette-7c3aed);--cs-bar-b:var(--foodex-palette-a78bfa)}.cs-bar-row:nth-child(6n+4){--cs-bar-a:var(--foodex-palette-ea580c);--cs-bar-b:var(--foodex-palette-fb923c)}.cs-bar-row:nth-child(6n+5){--cs-bar-a:var(--foodex-palette-dc2626);--cs-bar-b:var(--foodex-palette-f87171)}.cs-bar-row:nth-child(6n){--cs-bar-a:var(--foodex-palette-0891b2);--cs-bar-b:var(--foodex-palette-22d3ee)}
 .cs-bar-track{height:9px;border-radius:999px;background:var(--foodex-background);overflow:hidden}
 .cs-bar{width:var(--cs-bar-width,0%);height:100%;border-radius:999px;background:linear-gradient(90deg,var(--cs-bar-a) 0%,var(--cs-bar-b) 45%,var(--cs-bar-a) 100%);background-size:220% 100%;transform:scaleX(0);transform-origin:inline-start;animation:csBarFill .82s cubic-bezier(.2,.8,.2,1) forwards,csBarFlow 1.6s linear infinite}
 .cs-bar-row:nth-child(2) .cs-bar{animation-delay:.05s,0s}.cs-bar-row:nth-child(3) .cs-bar{animation-delay:.10s,0s}.cs-bar-row:nth-child(4) .cs-bar{animation-delay:.15s,0s}.cs-bar-row:nth-child(5) .cs-bar{animation-delay:.20s,0s}.cs-bar-row:nth-child(6) .cs-bar{animation-delay:.25s,0s}
@@ -93,7 +93,7 @@
 .cs-create-case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-surface),var(--foodex-green-soft))}
 .cs-create-case-head h2{margin:0;font-size:1.05rem}.cs-create-case-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.78rem}
 .cs-create-case-close{width:36px;height:36px;flex:0 0 36px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.25rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
-.cs-create-case-close:hover{background:var(--foodex-background);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-create-case-close:hover{background:var(--foodex-background);border-color:var(--foodex-palette-b8d9c2);color:var(--foodex-green-dark)}
 .cs-create-case-body{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;padding:20px;scrollbar-width:thin}
 .cs-create-case-form{margin:0!important}
 .cs-create-case-error{margin-bottom:14px}
@@ -113,7 +113,7 @@ body.cs-case-modal-open{overflow:hidden}
 [dir="rtl"] .cs-inbox-modal-toolbar{padding:0 16px 0 10px}
 .cs-inbox-modal-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foodex-ink);font-size:.9rem;font-weight:900}
 .cs-inbox-modal-close{width:34px;height:34px;flex:0 0 34px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.2rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
-.cs-inbox-modal-close:hover{background:var(--foodex-background);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-inbox-modal-close:hover{background:var(--foodex-background);border-color:var(--foodex-palette-b8d9c2);color:var(--foodex-green-dark)}
 .cs-inbox-modal-frame-wrap{min-width:0;min-height:0;overflow:hidden;background:var(--foodex-background)}
 .cs-inbox-modal-frame{display:block;width:100%;height:100%;border:0;background:var(--foodex-background)}
 body.cs-inbox-modal-open{overflow:hidden}
