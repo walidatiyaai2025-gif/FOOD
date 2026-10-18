@@ -15,6 +15,18 @@ return [
         'restaurant_workspace_description' => 'Restaurant workspace is isolated and includes restaurant operations plus Wholesale Purchases.',
         'retail_workspace_description' => 'Retail workspace does not expose restaurant-only modules.',
     ],
+    'create' => [
+        'subtitle' => 'Retail Store Creation',
+        'title' => 'Add Store',
+        'pricing_help' => 'Retail stores use the B2C channel; choose the Wholesale tiers linked to it.',
+        'default_wholesale_tier' => 'Default Wholesale tier for customers registered here',
+        'standard_fallback' => 'Automatic STANDARD fallback',
+        'submit' => 'Create Store Now',
+    ],
+    'status' => [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+    ],
     'roles' => [
         'user' => 'User',
         'select_user' => 'Select user',
