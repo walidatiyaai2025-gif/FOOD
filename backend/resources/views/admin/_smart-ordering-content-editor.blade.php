@@ -16,7 +16,7 @@
         [data-restaurant-content-editor].is-compact{padding:12px!important}
         .so-content-tabs{display:flex;align-items:center;gap:5px;margin:4px 0 8px;overflow-x:auto;scrollbar-width:thin}
         .so-content-tab{min-height:34px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.69rem;font-weight:900;cursor:pointer;white-space:nowrap}
-        .so-content-tab[aria-selected="true"]{background:var(--foodex-green-soft);border-color:#b9d8c1;color:var(--foodex-green-dark)}
+        .so-content-tab[aria-selected="true"]{background:var(--foodex-green-soft);border-color:var(--foodex-palette-b9d8c1);color:var(--foodex-green-dark)}
         [data-so-content-panel][hidden]{display:none!important}
         [data-restaurant-content-editor].is-compact .so-grid{gap:8px}
         [data-restaurant-content-editor].is-compact textarea{min-height:78px}
