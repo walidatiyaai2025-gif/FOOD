@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Assistant\Agent\AssistantAgentOrchestrator;
-use App\Domain\Assistant\Contracts\AssistantBrainInterface;
-use App\Domain\Assistant\Data\AssistantBrainRequest;
-use App\Domain\Assistant\Data\AssistantBrainResult;
+use App\Domain\Assistant\Contracts\AgentOrchestratorInterface;
+use App\Domain\Assistant\Data\AgentExecutionBudget;
+use App\Domain\Assistant\Data\AgentTurnRequest;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
 use App\Domain\Assistant\Security\AiPrincipalContextResolver;
-use App\Domain\Assistant\Security\AssistantToolExecutor;
 use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -41,11 +39,9 @@ final class AssistantController extends Controller
     ];
 
     public function __construct(
-        private readonly AssistantBrainInterface $brain,
-        private readonly AssistantAgentOrchestrator $agentOrchestrator,
+        private readonly AgentOrchestratorInterface $orchestrator,
         private readonly AssistantPageContext $pageContext,
         private readonly AiPrincipalContextResolver $principalContext,
-        private readonly AssistantToolExecutor $toolExecutor,
         private readonly AssistantRuntimeSettings $runtimeSettings,
     ) {}
 
@@ -147,9 +143,9 @@ final class AssistantController extends Controller
         $correlationId = (string) Str::uuid();
 
         try {
-            $this->principalContext->resolve($user, $locale, $context, $correlationId);
+            $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
 
-            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId): array {
+            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId, $principal): array {
                 $locked = AssistantConversation::query()
                     ->whereKey($conversation->getKey())
                     ->where('user_id', $user->getKey())
@@ -166,76 +162,32 @@ final class AssistantController extends Controller
                     'correlation_id' => $correlationId,
                 ]);
 
-                $brainRequest = new AssistantBrainRequest(
-                    message: $message,
+                $agentResult = $this->orchestrator->run(new AgentTurnRequest(
+                    actorUserId: (int) $user->getKey(),
+                    userMessage: $message,
                     locale: $locale,
+                    principal: $principal,
+                    correlationId: $correlationId,
                     context: $context,
                     state: $this->brainState($state),
-                );
-                $agentResult = $this->agentOrchestrator->run($user, $brainRequest, $correlationId);
+                    conversationPublicId: (string) $locked->public_id,
+                    budget: AgentExecutionBudget::fromConfig(),
+                ));
 
-                $toolResult = null;
-                $toolRequest = null;
-
-                if ($agentResult !== null) {
-                    $lastTool = $agentResult->toolKeys === []
-                        ? null
-                        : $agentResult->toolKeys[array_key_last($agentResult->toolKeys)];
-
-                    $brainResult = new AssistantBrainResult(
-                        message: $agentResult->message,
-                        intent: 'agent.multi_tool',
-                        confidence: 1.0,
-                        state: [
-                            'last_intent' => 'agent.multi_tool',
-                            'last_tool' => $lastTool,
-                            'pending_clarification' => false,
-                            'external_ai_routed' => true,
-                            'agent_orchestrated' => true,
-                        ],
-                    );
-                    $toolResult = $agentResult->toolResult;
-                    $toolRequest = new AssistantToolRequest(
-                        actorUserId: (int) $user->getKey(),
-                        locale: $locale,
-                        channel: $this->channel($context['channel'] ?? null),
-                        storeId: $this->positiveInt($context['store_id'] ?? null),
-                        entities: [],
-                        context: $context,
-                    );
-                } else {
-                    $brainResult = $this->brain->respond($brainRequest);
-                    $pendingClarification = (bool) ($brainResult->state['pending_clarification'] ?? false);
-
-                    if ($brainResult->intent !== null && ! $pendingClarification) {
-                        $entities = $this->toolEntities($brainResult->state);
-                        $toolRequest = new AssistantToolRequest(
-                            actorUserId: (int) $user->getKey(),
-                            locale: $locale,
-                            channel: $this->channel($entities['channel'] ?? $context['channel'] ?? null),
-                            storeId: $this->positiveInt($entities['store_id'] ?? $context['store_id'] ?? null),
-                            entities: $entities,
-                            context: $context,
-                        );
-                        $toolResult = $this->toolExecutor->execute(
-                            $brainResult->intent,
-                            $toolRequest,
-                            $correlationId,
-                        );
-                    }
-                }
+                $brainResult = $agentResult->brainResult;
+                $toolResult = $agentResult->toolResult;
+                $toolRequest = $agentResult->toolRequest;
 
                 $cards = $toolResult === null ? $brainResult->cards : $this->cards($brainResult->intent, $locale, $toolResult);
                 $actions = $toolResult === null ? $this->actions($brainResult->actions) : $this->actions($toolResult->actions);
                 $suggested = $brainResult->suggestedPrompts === [] ? $this->suggestedPrompts($locale) : $brainResult->suggestedPrompts;
-                $content = $agentResult !== null
-                    ? $agentResult->message
-                    : ($toolResult === null ? $brainResult->message : $this->resultMessage($brainResult->intent, $locale));
+                $content = $agentResult->message;
                 $assistantPayload = [
                     'cards' => $cards,
                     'actions' => $actions,
                     'suggested_prompts' => $suggested,
                     'data' => $toolResult === null ? [] : $toolResult->data,
+                    'agent' => $agentResult->metadata(),
                 ];
 
                 $assistantMessage = AssistantMessage::query()->create([
