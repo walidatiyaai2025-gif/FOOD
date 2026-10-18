@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Enums\StoreBusinessProfile;
-use App\Models\Store;
 use App\Models\User;
 use App\Services\StoreBusinessProfileService;
 use Illuminate\Http\Request;
@@ -135,11 +134,11 @@ final class B2cWorkspaceLandingResolver
     private function profileForPath(string $path): ?StoreBusinessProfile
     {
         if ($path === '/admin/smart-ordering' || str_starts_with($path, '/admin/smart-ordering/')) {
-            return StoreBusinessProfile::from(Store::BUSINESS_PROFILE_RESTAURANT);
+            return StoreBusinessProfile::RESTAURANT;
         }
 
         if ($path === '/admin/b2c' || str_starts_with($path, '/admin/b2c/')) {
-            return StoreBusinessProfile::from(Store::BUSINESS_PROFILE_RETAIL_STORE);
+            return StoreBusinessProfile::RETAIL_STORE;
         }
 
         return null;
@@ -147,7 +146,7 @@ final class B2cWorkspaceLandingResolver
 
     private function profileForStore(int $storeId): StoreBusinessProfile
     {
-        return $this->profiles->resolve($storeId) ?? StoreBusinessProfile::from(Store::BUSINESS_PROFILE_RETAIL_STORE);
+        return $this->profiles->resolve($storeId) ?? StoreBusinessProfile::RETAIL_STORE;
     }
 
     private function destinationForStore(User $user, int $storeId, bool $multiStore): string
