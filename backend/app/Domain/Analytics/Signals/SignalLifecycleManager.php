@@ -74,7 +74,7 @@ final class SignalLifecycleManager
 
         $signal['lifecycle'] = [
             'state' => $toState,
-            'allowed_next' => self::TRANSITIONS[$toState] ?? [],
+            'allowed_next' => self::TRANSITIONS[$toState],
             'changed_at' => $occurredAt,
             'changed_by_user_id' => (int) $actor->getKey(),
             'reason' => $reason,
