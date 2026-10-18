@@ -148,6 +148,7 @@ class AssistantContextMemoryTest extends TestCase
 
         $created = $this->actingAs($admin)->postJson('/admin/assistant/conversations', [
             'locale' => 'en',
+            'preferences' => ['response_style' => 'detailed'],
         ])->assertCreated();
 
         $publicId = (string) $created->json('data.conversation.public_id');
@@ -180,6 +181,10 @@ class AssistantContextMemoryTest extends TestCase
 
         $this->assertNull($state->last_intent);
         $this->assertNull($state->last_period);
+        $this->assertSame([
+            'locale' => 'en',
+            'response_style' => 'detailed',
+        ], $state->safe_preferences);
     }
 
     public function test_retention_prunes_only_the_current_users_expired_conversations(): void
