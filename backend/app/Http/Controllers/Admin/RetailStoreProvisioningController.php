@@ -510,6 +510,13 @@ final class RetailStoreProvisioningController extends Controller
         $this->assertRetailStore($store);
         $this->tenantContext->retail($actor, (int) $store->id, true, $request);
 
+        if ($store->isRestaurantProfile()) {
+            return redirect()->route('admin.smart-ordering.index', [
+                'store_id' => $store->id,
+                'support_access' => 1,
+            ]);
+        }
+
         return redirect()->route('admin.b2c.dashboard', [
             'store_id' => $store->id,
             'support_access' => 1,
