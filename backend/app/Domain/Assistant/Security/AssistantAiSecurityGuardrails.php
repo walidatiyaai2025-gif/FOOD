@@ -279,6 +279,12 @@ final class AssistantAiSecurityGuardrails
             ? null
             : hash('sha256', implode(',', $members));
 
+        foreach (['_privacy', 'privacy'] as $privacyKey) {
+            if (is_array($data[$privacyKey] ?? null)) {
+                unset($data[$privacyKey]['member_ids']);
+            }
+        }
+
         $cacheKey = 'assistant:privacy:difference:'.hash(
             'sha256',
             $actor->getKey().'|'.$toolKey.'|'.$metricKey.'|'.$cohortKey,
