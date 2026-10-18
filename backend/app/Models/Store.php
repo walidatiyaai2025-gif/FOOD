@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 class Store extends Model
@@ -25,9 +26,17 @@ class Store extends Model
     protected static function booted(): void
     {
         static::saving(function (Store $store): void {
+            if (! Schema::hasTable('stores') || ! Schema::hasColumn('stores', 'business_profile')) {
+                return;
+            }
+
             $profile = $store->business_profile;
             if ($profile !== null && ! in_array((string) $profile, self::businessProfiles(), true)) {
                 throw new InvalidArgumentException('Unsupported B2C business profile ['.(string) $profile.'].');
+            }
+
+            if (! Schema::hasTable('store_types')) {
+                return;
             }
 
             $channel = DB::table('store_types')->where('id', $store->store_type_id)->value('code');
@@ -62,16 +71,6 @@ class Store extends Model
         ];
     }
 
-    public function isRetailStoreProfile(): bool
-    {
-        return $this->business_profile === self::BUSINESS_PROFILE_RETAIL_STORE;
-    }
-
-    public function isRestaurantProfile(): bool
-    {
-        return $this->business_profile === self::BUSINESS_PROFILE_RESTAURANT;
-    }
-
     public function storeType(): BelongsTo
     {
         return $this->belongsTo(StoreType::class, 'store_type_id');
@@ -103,6 +102,16 @@ class Store extends Model
         return app(StoreBusinessProfileService::class)->isRestaurant($this);
     }
 
+    public function isRetailStoreProfile(): bool
+    {
+        return $this->business_profile === self::BUSINESS_PROFILE_RETAIL_STORE;
+    }
+
+    public function isRestaurantProfile(): bool
+    {
+        return $this->business_profile === self::BUSINESS_PROFILE_RESTAURANT;
+    }
+
     /**
      * @param  Builder<Store>  $query
      * @return Builder<Store>
@@ -112,15 +121,15 @@ class Store extends Model
         StoreBusinessProfile|string $profile,
     ): Builder {
         $resolved = $profile instanceof StoreBusinessProfile
-            ? $profile->value
-            : $profile;
+            ? $profile
+            : StoreBusinessProfile::tryFrom($profile);
 
-        if (! in_array($resolved, self::businessProfiles(), true)) {
-            throw new InvalidArgumentException('Unsupported B2C business profile ['.$resolved.'].');
+        if ($resolved === null) {
+            return $query->whereRaw('1 = 0');
         }
 
         return $query
-            ->where('stores.business_profile', $resolved)
+            ->where('stores.business_profile', $resolved->value)
             ->whereHas('storeType', static fn (Builder $typeQuery) => $typeQuery->where('code', 'B2C'));
     }
 
@@ -130,7 +139,7 @@ class Store extends Model
      */
     public function scopeRetailStores(Builder $query): Builder
     {
-        return $query->businessProfile(self::BUSINESS_PROFILE_RETAIL_STORE);
+        return $query->businessProfile(StoreBusinessProfile::RETAIL_STORE);
     }
 
     /**
@@ -139,7 +148,7 @@ class Store extends Model
      */
     public function scopeRestaurants(Builder $query): Builder
     {
-        return $query->businessProfile(self::BUSINESS_PROFILE_RESTAURANT);
+        return $query->businessProfile(StoreBusinessProfile::RESTAURANT);
     }
 
     /**
