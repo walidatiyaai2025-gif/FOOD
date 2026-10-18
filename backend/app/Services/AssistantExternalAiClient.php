@@ -119,6 +119,13 @@ final class AssistantExternalAiClient
                 ];
             }
 
+            if ($this->normalizeModelContent($content) !== 'FOODEX_OK') {
+                return [
+                    'ok' => false,
+                    'message' => __('assistant_settings.errors.unexpected_probe_response'),
+                ];
+            }
+
             return [
                 'ok' => true,
                 'message' => __('assistant_settings.test_success'),
@@ -181,11 +188,7 @@ final class AssistantExternalAiClient
      */
     private function parseRoutingResponse(string $content): ?array
     {
-        $trimmed = trim($content);
-
-        if (str_starts_with($trimmed, '```')) {
-            $trimmed = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', $trimmed) ?? $trimmed;
-        }
+        $trimmed = $this->normalizeModelContent($content);
 
         $decoded = json_decode($trimmed, true);
 
@@ -242,6 +245,19 @@ final class AssistantExternalAiClient
         return $result;
     }
 
+    private function normalizeModelContent(string $content): string
+    {
+        $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content;
+        $normalized = preg_replace('/<think\b[^>]*>.*?<\/think>\s*/is', '', $normalized) ?? $normalized;
+        $normalized = trim($normalized);
+
+        if (preg_match('/^```(?:json|text)?\s*(.*?)\s*```$/is', $normalized, $matches) === 1) {
+            $normalized = trim($matches[1]);
+        }
+
+        return $normalized;
+    }
+
     private function routingPrompt(string $locale): string
     {
         $intentList = implode(', ', self::ALLOWED_INTENTS);
@@ -256,6 +272,7 @@ Allowed intents: {$intentList}
 
 Rules:
 - Choose an allowed intent only when the user is asking for that FOODEX business/operations information.
+- Return only the final JSON object. Do not include chain-of-thought, analysis, <think> tags, markdown fences or prose outside the JSON object.
 - For general conversation or anything outside the allowed intents, set intent to null and answer briefly in {$language} in message.
 - Never invent business facts, totals, prices, inventory, customer data or order states.
 - Never request or perform write actions.
