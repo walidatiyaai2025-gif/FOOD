@@ -215,6 +215,11 @@ final class AssistantAiSecurityGuardrails
         $data = $this->sanitizeArray($result->data, $redacted);
         $data = $this->enforceCohortPrivacy($data, $actor, $toolKey, $correlationId);
 
+        if (($data['answerable'] ?? null) === false
+            && in_array($data['reason'] ?? null, ['COHORT_TOO_SMALL', 'DIFFERENCING_RISK'], true)) {
+            return new AssistantToolResult(data: $data);
+        }
+
         $cards = $this->sanitizeList($result->cards, $redacted);
         $references = $this->sanitizeList($result->references, $redacted);
 
