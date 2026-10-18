@@ -77,6 +77,7 @@ const b2c = [
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
   ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
+  ['23_مشتريات_الجملة_للمطعم', '/admin/restaurant/wholesale-purchases'],
 ];
 
 async function ensureDir(dir) {
