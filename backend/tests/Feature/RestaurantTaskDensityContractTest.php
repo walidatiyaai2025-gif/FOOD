@@ -25,7 +25,7 @@ class RestaurantTaskDensityContractTest extends TestCase
         $this->assertStringContainsString('data-restaurant-analytics-drilldown', $dashboard);
         $this->assertStringNotContainsString("['key'=>'aov'", $dashboard);
         $this->assertStringContainsString('data-menu-editor-bounded', $menu);
-        $this->assertStringContainsString("tab", $operations);
+        $this->assertStringContainsString('tab', $operations);
     }
 
     public function test_task_first_navigation_has_explicit_responsive_breakpoints_and_bilingual_labels(): void

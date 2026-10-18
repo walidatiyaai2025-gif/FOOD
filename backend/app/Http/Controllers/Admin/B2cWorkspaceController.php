@@ -19,6 +19,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\RetailWholesaleReplenishmentService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\SuggestedWholesalePurchasePlanService;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\CommercialDashboardContract;
 use App\Support\DisplayNumber;
@@ -1179,7 +1180,7 @@ class B2cWorkspaceController extends Controller
             ->value('b2b_customer_id');
         abort_if($b2bCustomerId === null, 409, 'Wholesale purchasing identity is not provisioned.');
 
-        $principalStoreId = app(\App\Services\WholesalePrincipal::class)->storeId();
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
         $catalog = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
             ->where('store_products.store_id', $principalStoreId)
