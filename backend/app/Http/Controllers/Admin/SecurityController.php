@@ -17,6 +17,7 @@ use App\Models\UserStoreRole;
 use App\Services\AdminSecurityPolicy;
 use App\Services\AdminSessionRegistry;
 use App\Services\AuditLogger;
+use App\Services\BuiltInJobRoleCatalog;
 use App\Services\DemoDataManager;
 use App\Services\RbacManager;
 use Database\Seeders\ProductDemoSeeder;
@@ -34,7 +35,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class SecurityController extends Controller
 {
-    public function index(Request $request, DemoDataManager $demoData): View
+    public function index(Request $request, DemoDataManager $demoData, BuiltInJobRoleCatalog $jobRoles): View
     {
         Gate::authorize('security.view');
         $this->useActorLocale($request);
@@ -120,6 +121,37 @@ final class SecurityController extends Controller
         $globalCandidates = $roles->where('scope', 'global')->where('is_active', true)->values();
         $storeCandidates = $roles->where('scope', 'store')->where('is_active', true)->values();
 
+        $jobRoleMeta = $jobRoles->presentationMap();
+        $globalRoleAvailability = $globalCandidates->mapWithKeys(
+            fn (Role $role): array => [(int) $role->id => $jobRoles->isAvailable((string) $role->code, null)],
+        );
+        $storeRoleAvailabilityByStore = $stores->mapWithKeys(
+            fn (Store $store): array => [
+                (int) $store->id => $storeCandidates->mapWithKeys(
+                    fn (Role $role): array => [
+                        (int) $role->id => $jobRoles->isAvailable((string) $role->code, (int) $store->id),
+                    ],
+                ),
+            ],
+        );
+        $roleAvailabilitySummary = $roles->mapWithKeys(function (Role $role) use (
+            $jobRoles,
+            $stores,
+            $storeRoleAvailabilityByStore,
+        ): array {
+            if ($role->scope === 'global') {
+                return [(int) $role->id => $jobRoles->isAvailable((string) $role->code, null)];
+            }
+
+            return [
+                (int) $role->id => $stores->contains(
+                    fn (Store $store): bool => (bool) $storeRoleAvailabilityByStore
+                        ->get((int) $store->id, collect())
+                        ->get((int) $role->id, false),
+                ),
+            ];
+        });
+
         $globalRoles = $isSuperAdmin
             ? $globalCandidates
             : $globalCandidates
@@ -170,8 +202,23 @@ final class SecurityController extends Controller
             ];
         });
 
+        $roleOutsideGrantAuthorityIds = $isSuperAdmin
+            ? []
+            : $roles
+                ->filter(fn (Role $role): bool => $role->permissions
+                    ->pluck('code')
+                    ->diff($grantablePermissionCodes ?? collect())
+                    ->isNotEmpty())
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
         $editableRoleIds = $roles
-            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes): bool {
+            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes, $jobRoles): bool {
+                if ($jobRoles->isBuiltIn((string) $role->code)) {
+                    return false;
+                }
+
                 if ($isSuperAdmin) {
                     return true;
                 }
@@ -214,11 +261,16 @@ final class SecurityController extends Controller
             'roles' => $roles,
             'globalRoles' => $globalRoles,
             'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
+            'jobRoleMeta' => $jobRoleMeta,
+            'globalRoleAvailability' => $globalRoleAvailability,
+            'storeRoleAvailabilityByStore' => $storeRoleAvailabilityByStore,
+            'roleAvailabilitySummary' => $roleAvailabilitySummary,
             'stores' => $stores,
             'permissionGroups' => $permissionGroups,
             'permissionLabels' => $permissionLabels,
             'permissionGroupLabels' => $permissionGroupLabels,
             'editableRoleIds' => $editableRoleIds,
+            'roleOutsideGrantAuthorityIds' => $roleOutsideGrantAuthorityIds,
             'privilegedPermissionCodes' => [
                 'platform.manage',
                 'security.view',

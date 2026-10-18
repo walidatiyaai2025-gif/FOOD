@@ -18,6 +18,7 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\DatabaseStorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
+use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CommerceQuoteService;
@@ -756,6 +757,181 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('data-restaurant-content-editor', false)
             ->assertSee('Content Kitchen')
             ->assertDontSee('config_json');
+    }
+
+    public function test_restaurant_templates_complete_gallery_to_public_certification_journey(): void
+    {
+        $fixture = $this->fixture('TEMPLATE-QA', 5.750);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft, , $category, $item] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Charred Garden Plate',
+            'name_ar' => 'طبق الحديقة المشوي',
+            'description_en' => 'Seasonal vegetables, smoked tahini and herbs from local growers.',
+            'description_ar' => 'خضروات موسمية وطحينة مدخنة وأعشاب من مزارع محلية.',
+            'image_path' => null,
+            'featured' => true,
+            'vegetarian' => true,
+            'allergens' => ['sesame'],
+        ]);
+        $writer->createItem($fixture['admin'], $fixture['site'], $draft, $category, [
+            'name_en' => 'Sold Out Tasting Course',
+            'name_ar' => 'طبق تذوق غير متاح',
+            'description_en' => 'A sold-out state used by final template QA.',
+            'description_ar' => 'حالة غير متاحة مستخدمة في فحص القوالب النهائي.',
+            'image_path' => null,
+            'price_override' => 8.500,
+            'is_visible' => true,
+            'sold_out' => true,
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 1,
+        ]);
+
+        $longNameEn = 'Saffron & Stone Seasonal Dining House — Fire, Market Produce and Generous Hospitality';
+        $longNameAr = 'دار زعفران وستون للمأكولات الموسمية — نكهات النار ومنتجات السوق وضيافة دافئة';
+
+        $this->actingAs($fixture['admin'])
+            ->put(route('admin.smart-ordering.revisions.content', $draft), [
+                'name_en' => $longNameEn,
+                'name_ar' => $longNameAr,
+                'tagline_en' => 'One bilingual menu reused across every production template without content re-entry.',
+                'tagline_ar' => 'قائمة ثنائية اللغة يعاد استخدامها في كل القوالب الإنتاجية دون إعادة إدخال المحتوى.',
+                'description_en' => 'Final integration fixture for responsive, localization and publication certification.',
+                'description_ar' => 'بيانات التكامل النهائي لاعتماد التجاوب والترجمة والنشر.',
+                'phone' => '+96522000000',
+                'whatsapp_url' => 'https://wa.me/96522000000',
+                'about_en' => 'Long-form restaurant copy remains readable across compact and editorial compositions.',
+                'about_ar' => 'يبقى وصف المطعم الطويل مقروءًا عبر التكوينات المدمجة والتحريرية.',
+                'chef_note_en' => 'The chef changes the tasting sequence with the market.',
+                'chef_note_ar' => 'يغير الشيف تسلسل التذوق حسب المتوفر في السوق.',
+                'location_en' => 'Kuwait City',
+                'location_ar' => 'مدينة الكويت',
+                'map_url' => 'https://maps.google.com/?q=Kuwait+City',
+                'reservation_cta_en' => 'Reserve your table',
+                'reservation_cta_ar' => 'احجز طاولتك',
+                'reservation_url' => 'https://example.test/reservations',
+                'allergen_note_en' => 'Ask the team about allergens before ordering.',
+                'allergen_note_ar' => 'اسأل الفريق عن مسببات الحساسية قبل الطلب.',
+            ])
+            ->assertRedirect();
+
+        $themes = app(ThemeRegistry::class);
+        $productionIds = $themes->productionIds();
+        $this->assertCount(6, $productionIds);
+        $this->assertCount(6, array_unique(array_map(
+            fn (string $theme): string => (string) $themes->productionDefinition($theme)['view'],
+            $productionIds,
+        )));
+        $this->assertCount(6, array_unique(array_map(
+            fn (string $theme): string => (string) $themes->productionDefinition($theme)['layout'],
+            $productionIds,
+        )));
+
+        $gallery = $this->actingAs($fixture['admin'])->get(route('admin.smart-ordering.appearance.index', [
+            'site' => (string) $fixture['site']->slug,
+            'lang' => 'en',
+        ]));
+        $gallery->assertOk()->assertSee('data-builder', false);
+        foreach ($productionIds as $theme) {
+            $gallery->assertSee('data-theme="'.$theme.'"', false);
+        }
+
+        $provider = app(StorefrontSnapshotProvider::class);
+        $before = $provider->revision((string) $fixture['site']->slug, 'draft');
+        $this->assertIsArray($before);
+        $baselineMenu = $before['menu'];
+
+        foreach ($productionIds as $theme) {
+            $this->actingAs($fixture['admin'])
+                ->post(route('admin.smart-ordering.appearance.apply'), [
+                    'site' => (string) $fixture['site']->slug,
+                    'theme' => $theme,
+                    'lang' => 'en',
+                    'device' => 'desktop',
+                ])
+                ->assertRedirect();
+
+            $snapshot = $provider->revision((string) $fixture['site']->slug, 'draft');
+            $this->assertIsArray($snapshot);
+            $this->assertSame($theme, $snapshot['appearance']['template']);
+            $this->assertSame($baselineMenu, $snapshot['menu'], 'Template selection must never mutate restaurant menu content.');
+
+            foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
+                $preview = $this->actingAs($fixture['admin'])->get(route('admin.smart-ordering.appearance.preview', [
+                    'site' => (string) $fixture['site']->slug,
+                    'theme' => $theme,
+                    'lang' => $locale,
+                    'revision' => 'draft',
+                ]));
+
+                $preview->assertOk()
+                    ->assertHeader('Cache-Control', 'no-store, private')
+                    ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+                    ->assertSee('data-template="'.$theme.'"', false)
+                    ->assertSee('dir="'.$direction.'"', false)
+                    ->assertSee($locale === 'ar' ? $longNameAr : $longNameEn)
+                    ->assertSee($locale === 'ar' ? 'طبق الحديقة المشوي' : 'Charred Garden Plate')
+                    ->assertSee('/images/smart-ordering/menu-media-placeholder.svg', false)
+                    ->assertDontSee('internal_id')
+                    ->assertDontSee('tenant_id');
+            }
+        }
+
+        $revisions = app(SmartOrderingMenuRevisionService::class);
+        $currentDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $this->assertSame('chef-tasting', data_get($currentDraft->payload, 'appearance.template'));
+        $revisions->publish($fixture['admin'], $fixture['site']->fresh(), $currentDraft->fresh());
+        $this->enablePublicMenu($fixture);
+
+        $publicEn = $this->get(route('public.smart-ordering.storefront', [
+            'siteKey' => (string) $fixture['site']->slug,
+            'lang' => 'en',
+        ]));
+        $publicEn->assertOk()
+            ->assertSee('data-template="chef-tasting"', false)
+            ->assertSee('dir="ltr"', false)
+            ->assertSee($longNameEn)
+            ->assertSee('Charred Garden Plate')
+            ->assertSee('Sold Out Tasting Course')
+            ->assertSee('/images/smart-ordering/menu-media-placeholder.svg', false)
+            ->assertDontSee('internal_id')
+            ->assertDontSee('tenant_id');
+
+        $this->get(route('public.smart-ordering.storefront', [
+            'siteKey' => (string) $fixture['site']->slug,
+            'lang' => 'ar',
+        ]))
+            ->assertOk()
+            ->assertSee('data-template="chef-tasting"', false)
+            ->assertSee('dir="rtl"', false)
+            ->assertSee($longNameAr)
+            ->assertSee('طبق الحديقة المشوي');
+
+        $nextDraft = $revisions->draft($fixture['admin'], $fixture['site']->fresh());
+        $privateItem = SmartOrderingMenuItem::query()
+            ->where('revision_id', $nextDraft->id)
+            ->where('public_id', $item->public_id)
+            ->firstOrFail();
+        $writer->updateItem($fixture['admin'], $fixture['site']->fresh(), $nextDraft, $privateItem, [
+            'name_en' => 'QA PRIVATE DRAFT ITEM',
+        ]);
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.appearance.apply'), [
+                'site' => (string) $fixture['site']->slug,
+                'theme' => 'modern-minimal',
+                'lang' => 'en',
+                'device' => 'mobile',
+            ])
+            ->assertRedirect();
+
+        $this->get(route('public.smart-ordering.storefront', [
+            'siteKey' => (string) $fixture['site']->slug,
+            'lang' => 'en',
+        ]))
+            ->assertOk()
+            ->assertSee('data-template="chef-tasting"', false)
+            ->assertSee('Charred Garden Plate')
+            ->assertDontSee('QA PRIVATE DRAFT ITEM');
     }
 
     /** @return array{draft:SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */
