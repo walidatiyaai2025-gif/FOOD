@@ -17,9 +17,16 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 @keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
 .status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
+.order-workspace-tabs{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-width:0;margin:4px 0 14px;overflow-x:auto;overflow-y:hidden;padding:2px;scrollbar-width:thin}
+.order-workspace-tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.78rem;font-weight:900;white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.035);transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+.order-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.order-workspace-tab[aria-selected="true"]{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 22px rgba(21,138,58,.16)}
+.order-workspace-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#DBEAFE;color:#1D4ED8;font-size:.68rem;font-weight:900;font-variant-numeric:tabular-nums}
+.order-workspace-tab[aria-selected="true"] .order-workspace-tab-count{background:rgba(255,255,255,.2);color:#fff}
+.order-tab-panel{min-width:0;width:100%}.order-tab-panel[hidden]{display:none!important}
 .table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sales-ops-bars{height:180px;align-items:flex-end}.sales-ops-bar-link{min-height:8px;text-decoration:none}.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:8px}.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--foodex-border);border-radius:10px;color:inherit;text-decoration:none}.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto}.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:var(--foodex-green-soft);overflow:hidden}.sales-ops-ranked-bars b{display:block;height:100%;background:var(--foodex-green);border-radius:inherit}
 @media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
-@media(prefers-reduced-motion:reduce){.order-kpi-card::before{animation:none}.order-kpi-item{transition:none}.order-kpi-item:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.order-kpi-card::before{animation:none}.order-kpi-item,.order-workspace-tab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -195,6 +202,24 @@ $businessLabel = static function ($value): string {
         @endforeach
     </div>
 
+    <nav class="order-workspace-tabs"
+         role="tablist"
+         aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
+         data-order-tabs
+         data-default-tab="{{ request()->has('page') ? 'orders' : 'analytics' }}">
+        <button class="order-workspace-tab"
+                type="button"
+                role="tab"
+                aria-selected="{{ request()->has('page') ? 'false' : 'true' }}"
+                data-order-tab="analytics">{{ $isAr ? 'التحليلات' : 'Analytics' }}</button>
+        <button class="order-workspace-tab"
+                type="button"
+                role="tab"
+                aria-selected="{{ request()->has('page') ? 'true' : 'false' }}"
+                data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$statusTotal) }}</span></button>
+    </nav>
+
+    <div class="order-tab-panel" role="tabpanel" data-order-panel="analytics" @if(request()->has('page')) hidden @endif>
     <div class="foodex-module-panels">
         <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-trend-title">
             <div class="foodex-viz-header">
@@ -315,11 +340,22 @@ $businessLabel = static function ($value): string {
         </article>
         @endif
     </div>
+    </div>
 </section>
+@else
+<nav class="order-workspace-tabs"
+     role="tablist"
+     aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
+     data-order-tabs
+     data-default-tab="orders">
+    <button class="order-workspace-tab" type="button" role="tab" aria-selected="true" data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$orders->total()) }}</span></button>
+</nav>
 @endif
 
+<div class="order-tab-panel" role="tabpanel" data-order-panel="orders" @if($dashboardVisible && !request()->has('page')) hidden @endif>
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
 @php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
+@php($orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []))
 @if(count($availableChannels ?? []) > 1)
 <nav class="status-tabs" aria-label="{{ $isAr ? 'قنوات الطلبات' : 'Order channels' }}" data-order-channel-tabs data-order-channel-selected="{{ $selectedChannel }}">
 @foreach($availableChannels as $channelOption)
@@ -358,7 +394,7 @@ $businessLabel = static function ($value): string {
 <label>{{ __('order_operations.filters.driver') }}<select name="driver_id"><option value="">{{ __('order_operations.all') }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>@endforeach</select></label>
 <label>{{ __('order_operations.filters.dispatch_status') }}<select name="dispatch_status"><option value="">{{ __('order_operations.all') }}</option><option value="awaiting_dispatch" @selected(request('dispatch_status')==='awaiting_dispatch')>{{ __('order_operations.dispatch.awaiting_queue') }}</option><option value="assigned" @selected(request('dispatch_status')==='assigned')>{{ $businessLabel('assigned') }}</option></select></label>
 <label>{{ __('order_operations.filters.exception') }}<select name="exception"><option value="">{{ __('order_operations.all') }}</option>@foreach($exceptionOptions as $exceptionOption)<option value="{{ $exceptionOption }}" @selected($selectedException===$exceptionOption)>{{ __('order_operations.dashboard.exceptions.'.$exceptionOption) }}</option>@endforeach</select></label>
-<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" data-order-filter-reset-context href="{{ route('admin.operations.orders.index',$workspaceContextQuery) }}">{{ __('order_operations.filters.reset') }}</a></div>
+<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" data-order-filter-reset-context href="{{ route('admin.operations.orders.index',$orderGridResetQuery) }}">{{ __('order_operations.filters.reset') }}</a></div>
 </form>
 
 <section class="foodex-card panel table-wrap">
@@ -506,6 +542,7 @@ $businessLabel = static function ($value): string {
 </tbody></table>
 </section>
 {{ $orders->links() }}
+</div>
 
 @if($detail)
 @php($detailCloseQuery=request()->except(['order','edit']))
@@ -775,6 +812,44 @@ $businessLabel = static function ($value): string {
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
 <script>
+(() => {
+    const tabs = document.querySelector('[data-order-tabs]');
+    if (!tabs) return;
+
+    const buttons = [...tabs.querySelectorAll('[data-order-tab]')];
+    const panels = [...document.querySelectorAll('[data-order-panel]')];
+    if (!buttons.length || !panels.length) return;
+
+    const available = new Set(buttons.map((button) => button.dataset.orderTab));
+    const defaultTab = available.has(tabs.dataset.defaultTab) ? tabs.dataset.defaultTab : buttons[0].dataset.orderTab;
+    const hashTab = window.location.hash.startsWith('#order-tab-')
+        ? window.location.hash.slice('#order-tab-'.length)
+        : null;
+
+    const activate = (name, updateHistory = true) => {
+        if (!available.has(name)) name = defaultTab;
+
+        buttons.forEach((button) => {
+            const active = button.dataset.orderTab === name;
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.orderPanel !== name;
+        });
+
+        if (updateHistory) {
+            history.replaceState(null, '', '#order-tab-' + name);
+        }
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => activate(button.dataset.orderTab));
+    });
+
+    activate(hashTab && available.has(hashTab) ? hashTab : defaultTab, false);
+})();
+
 (() => {
     const values = [...document.querySelectorAll('[data-order-counter]')];
     if (!values.length) return;
