@@ -17,30 +17,76 @@
 @endphp
 
 <style>
-.qm-card{display:grid;gap:10px;padding:12px;border:1px solid #bfe0c7;border-radius:14px;background:linear-gradient(135deg,#f4fbf6,#fff);box-shadow:0 8px 24px rgba(21,138,58,.06)}
-.qm-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.qm-card-title{display:grid;gap:2px}.qm-card-title strong{font-size:.86rem}.qm-card-title span{font-size:.68rem;color:var(--foodex-muted);line-height:1.5}
-.qm-card-stats,.qm-card-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.qm-stat{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;font-size:.62rem;font-weight:900;color:#475569}
-.qm-card-actions .foodex-action-primary,.qm-card-actions .foodex-action-secondary{min-height:36px;padding-inline:12px;border-radius:10px;font-size:.72rem}
-.qm-modal{position:fixed;z-index:14050;inset:0;display:grid;place-items:center;padding:14px;background:rgba(15,23,42,.56);backdrop-filter:blur(7px)}
-.qm-modal[hidden]{display:none!important}.qm-dialog{width:min(1040px,97vw);height:min(820px,94dvh);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--foodex-border);border-radius:20px;background:#fff;box-shadow:0 32px 90px rgba(15,23,42,.32)}
-.qm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(135deg,#f7fbf8,#eef8f1)}
-.qm-head h2{margin:0;font-size:1.05rem}.qm-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.71rem}.qm-close{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;font-weight:900;cursor:pointer}
-.qm-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px 18px;border-bottom:1px solid var(--foodex-border);background:#fff}.qm-progress span{display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;border-radius:10px;background:#f8fafc;color:#64748b;font-size:.67rem;font-weight:900}.qm-progress span[aria-current="step"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark);box-shadow:inset 0 0 0 1px #b9d8c1}
-.qm-body{min-height:0;overflow:auto;padding:16px 18px;background:#fbfcfd}.qm-step{display:grid;gap:12px;max-width:100%}.qm-step[hidden]{display:none!important}.qm-copy{padding:10px 12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;color:#475569;font-size:.7rem;line-height:1.55}
-.qm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.qm-field{display:grid;gap:5px;font-size:.68rem;font-weight:900;color:#334155}.qm-field input,.qm-field select{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:0 11px;font:inherit}.qm-field input:focus,.qm-field select:focus{outline:2px solid rgba(21,138,58,.16);border-color:#8bc79a}
-.qm-upload{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:center;padding:10px;border:1px dashed #b9d8c1;border-radius:12px;background:#f8fcf9}.qm-upload-preview{width:92px;height:72px;display:grid;place-items:center;overflow:hidden;border-radius:10px;background:#eef3ef;color:#64748b;font-size:.62rem;font-weight:800;text-align:center}.qm-upload-preview img{width:100%;height:100%;object-fit:cover}.qm-upload input[type="file"]{min-height:auto;padding:7px;background:#fff}
-.qm-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.qm-suggestions{display:flex;gap:6px;flex-wrap:wrap}.qm-chip{min-height:31px;padding:0 10px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#475569;font-size:.64rem;font-weight:800;cursor:pointer}.qm-chip:hover{border-color:#8bc79a;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-.qm-add{min-height:35px;padding:0 11px;border:1px dashed #86b893;border-radius:10px;background:#f5fbf6;color:var(--foodex-green-dark);font-size:.67rem;font-weight:900;cursor:pointer}
-.qm-categories,.qm-items{display:grid;gap:9px}.qm-category-row{display:grid;grid-template-columns:90px minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--foodex-border);border-radius:13px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.025)}
-.qm-image-tile{display:grid;gap:5px}.qm-image-box{width:90px;height:72px;display:grid;place-items:center;overflow:hidden;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;font-size:.58rem;font-weight:800;text-align:center;cursor:pointer}.qm-image-box img{width:100%;height:100%;object-fit:cover}.qm-image-tile input{position:absolute;opacity:0;pointer-events:none}
-.qm-item-row{display:grid;grid-template-columns:88px 150px minmax(0,1fr) minmax(0,1fr) 120px 78px auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--foodex-border);border-radius:13px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.025)}
-.qm-featured{display:flex;align-items:center;justify-content:center;gap:5px;min-height:42px;padding:0 8px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;font-size:.64rem;font-weight:900;white-space:nowrap}.qm-featured input{width:auto;min-height:0}
-.qm-remove{width:36px;height:36px;border:1px solid #fecaca;border-radius:9px;background:#fff7f7;color:#b91c1c;font-weight:900;cursor:pointer}.qm-remove:hover{background:#fee2e2}.qm-empty{padding:14px;border:1px dashed #cbd5e1;border-radius:12px;background:#fff;color:#64748b;text-align:center;font-size:.7rem}
-.qm-error{display:none;padding:9px 11px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;color:#b91c1c;font-size:.68rem;font-weight:800}.qm-error.is-visible{display:block}
-.qm-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--foodex-border);background:#fff}.qm-footer-actions{display:flex;align-items:center;gap:7px}.qm-footer button{min-height:40px;padding:0 14px;border-radius:10px;font-size:.71rem;font-weight:900;cursor:pointer}.qm-back{border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-ink)}.qm-next,.qm-save{border:1px solid var(--foodex-action-green);background:var(--foodex-action-green);color:#fff}.qm-save[disabled]{opacity:.65;cursor:wait}
+.qm-card{display:grid;gap:10px;padding:13px;border:1px solid #bfe0c7;border-radius:14px;background:linear-gradient(135deg,#f5fbf6,#fff);box-shadow:0 8px 24px rgba(21,138,58,.06)}
+.qm-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.qm-card-title{display:grid;gap:3px}.qm-card-title strong{font-size:.88rem;color:var(--foodex-ink)}.qm-card-title span{font-size:.69rem;color:var(--foodex-muted);line-height:1.55}
+.qm-card-stats,.qm-card-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.qm-stat{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:0 9px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:#475569;font-size:.62rem;font-weight:900}
+.qm-card-actions .foodex-action-primary,.qm-card-actions .foodex-action-secondary{min-height:37px;padding-inline:13px;border-radius:10px;font-size:.72rem}
+
+.qm-modal{position:fixed!important;z-index:14050!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(8px)}
+.qm-modal[hidden]{display:none!important}
+.qm-dialog{box-sizing:border-box!important;width:min(1080px,calc(100vw - 36px))!important;height:min(760px,calc(100dvh - 36px))!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:0!important;overflow:hidden!important;border:1px solid #dce5df!important;border-radius:20px!important;background:#fff!important;box-shadow:0 34px 100px rgba(15,23,42,.34)!important}
+.qm-dialog>*{box-sizing:border-box;min-width:0;width:100%!important;max-width:none!important;justify-self:stretch!important;align-self:stretch!important}
+
+.qm-head{flex:0 0 auto!important;display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;padding:16px 20px!important;border-bottom:1px solid #e7ece9!important;background:linear-gradient(135deg,#f8fcf9,#eff8f2)!important}
+.qm-head>div{min-width:0}.qm-head h2{margin:0;font-size:1.08rem;color:#13221a}.qm-head p{margin:4px 0 0;color:#667085;font-size:.71rem;line-height:1.55}
+.qm-close{flex:0 0 36px;width:36px!important;height:36px;display:grid;place-items:center;border:1px solid #d7e1db;border-radius:999px;background:#fff;color:#13221a;font-size:1.1rem;font-weight:900;cursor:pointer}
+
+.qm-progress{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;padding:10px 20px!important;border-bottom:1px solid #edf1ef!important;background:#fff!important}
+.qm-progress span{display:flex;align-items:center;justify-content:center;min-height:38px;padding:0 12px;border-radius:11px;background:#f5f7f6;color:#667085;font-size:.68rem;font-weight:900;transition:.18s ease}
+.qm-progress span[aria-current="step"]{background:#e9f7ed;color:#146c36;box-shadow:inset 0 0 0 1px #afd4b8}
+
+.qm-body{flex:1 1 auto!important;min-height:0!important;width:100%!important;overflow:auto!important;overscroll-behavior:contain;padding:16px 20px 18px!important;background:#f8faf9!important}
+.qm-step{width:100%!important;max-width:none!important;margin:0!important;display:grid!important;gap:12px!important}
+.qm-step[hidden]{display:none!important}
+.qm-step[data-qm-step="1"]{max-width:820px!important;margin-inline:auto!important}
+.qm-copy{padding:10px 12px;border:1px solid #e2e8e4;border-radius:11px;background:#fff;color:#52605a;font-size:.69rem;line-height:1.55}
+.qm-error{display:none;padding:9px 11px;margin-bottom:10px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;color:#b91c1c;font-size:.68rem;font-weight:800}.qm-error.is-visible{display:block}
+
+.qm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qm-field{display:grid;gap:5px;min-width:0;color:#334155;font-size:.68rem;font-weight:900}
+.qm-field input,.qm-field select{box-sizing:border-box;width:100%!important;min-width:0!important;min-height:42px!important;border:1px solid #d6dfda!important;border-radius:10px!important;background:#fff!important;padding:0 11px!important;color:#18251f!important;font:inherit!important}
+.qm-field input:focus,.qm-field select:focus{outline:2px solid rgba(21,138,58,.13);border-color:#7db98c!important}
+
+.qm-upload{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:center;padding:12px;border:1px dashed #a9ceb2;border-radius:13px;background:#f7fcf8;cursor:pointer}
+.qm-upload-preview{width:150px;height:108px;display:grid;place-items:center;overflow:hidden;border-radius:11px;background:#eaf0ec;color:#667085;font-size:.64rem;font-weight:800;text-align:center}.qm-upload-preview img{width:100%;height:100%;object-fit:cover}.qm-upload input[type=file]{min-height:auto!important;padding:8px!important}
+
+.qm-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.qm-suggestions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.qm-chip{min-height:32px;padding:0 11px;border:1px solid #cfd9d3;border-radius:999px;background:#fff;color:#475569;font-size:.64rem;font-weight:800;cursor:pointer}.qm-chip:hover{border-color:#83bd91;background:#edf8f0;color:#146c36}
+.qm-add{min-height:36px;padding:0 12px;border:1px dashed #72ad82;border-radius:10px;background:#eef9f1;color:#146c36;font-size:.68rem;font-weight:900;cursor:pointer}
+
+.qm-categories{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important}
+.qm-category-row{position:relative;display:grid!important;grid-template-columns:108px minmax(0,1fr)!important;grid-template-areas:"image ar" "image en"!important;gap:8px 10px!important;align-items:start!important;width:100%!important;padding:11px!important;border:1px solid #dce4df;border-radius:14px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.035)}
+.qm-category-row>.qm-image-tile{grid-area:image}.qm-category-row>.qm-name-ar{grid-area:ar}.qm-category-row>.qm-name-en{grid-area:en}
+.qm-category-row>.qm-remove{position:absolute;top:7px;inset-inline-end:7px;z-index:2}
+.qm-category-row .qm-field{padding-inline-end:34px}
+
+.qm-image-tile{display:grid;gap:5px;min-width:0}.qm-image-box{width:108px;height:96px;display:grid;place-items:center;overflow:hidden;border:1px dashed #c7d1cb;border-radius:11px;background:#f4f7f5;color:#667085;font-size:.59rem;font-weight:800;text-align:center;cursor:pointer}.qm-image-box img{width:100%;height:100%;object-fit:cover}.qm-image-tile input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+
+.qm-items{display:grid!important;gap:10px!important;width:100%!important}
+.qm-item-row{position:relative;display:grid!important;grid-template-columns:112px 150px minmax(140px,1fr) minmax(140px,1fr) 118px 82px 38px!important;gap:8px!important;align-items:end!important;width:100%!important;padding:11px!important;border:1px solid #dce4df;border-radius:14px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.035)}
+.qm-item-row .qm-image-box{width:112px;height:88px}.qm-category-select,.qm-name-ar,.qm-name-en,.qm-price{min-width:0}
+.qm-featured{display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-height:42px;padding:0 8px;border:1px solid #d6dfda;border-radius:10px;background:#fff;font-size:.64rem;font-weight:900;white-space:nowrap}.qm-featured input{width:auto!important;min-height:0!important;margin:0}
+.qm-remove{width:36px!important;height:36px;display:grid;place-items:center;border:1px solid #fecaca;border-radius:9px;background:#fff7f7;color:#b91c1c;font-weight:900;cursor:pointer}.qm-remove:hover{background:#fee2e2}
+
+.qm-footer{flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:12px 20px!important;border-top:1px solid #e7ece9!important;background:#fff!important}
+.qm-footer-actions{display:flex;align-items:center;gap:7px}.qm-footer button{min-height:40px;padding:0 15px;border-radius:10px;font-size:.71rem;font-weight:900;cursor:pointer}.qm-back{border:1px solid #d6dfda;background:#fff;color:#243029}.qm-next,.qm-save{border:1px solid #158a3a;background:#158a3a;color:#fff;box-shadow:0 5px 14px rgba(21,138,58,.14)}.qm-save[disabled]{opacity:.65;cursor:wait}
 body.qm-open{overflow:hidden}
-@media(max-width:900px){.qm-dialog{width:100%;height:96dvh}.qm-item-row{grid-template-columns:80px 130px 1fr 1fr}.qm-item-row>.qm-field:nth-of-type(4),.qm-featured,.qm-remove{grid-row:auto}.qm-category-row{grid-template-columns:80px 1fr 1fr auto}.qm-image-box{width:80px}}
-@media(max-width:650px){.qm-modal{padding:5px}.qm-dialog{height:calc(100dvh - 10px);border-radius:14px}.qm-head,.qm-body,.qm-footer{padding-inline:11px}.qm-progress{padding-inline:10px}.qm-progress span{font-size:.6rem}.qm-form-grid{grid-template-columns:1fr}.qm-category-row,.qm-item-row{grid-template-columns:1fr 1fr}.qm-image-tile{grid-column:1/-1}.qm-image-box{width:100%;height:120px}.qm-item-row .qm-field:nth-child(2){grid-column:1/-1}.qm-remove{justify-self:end}.qm-footer{position:sticky;bottom:0}}
+
+@media(max-width:1050px){
+  .qm-dialog{width:calc(100vw - 20px)!important;height:calc(100dvh - 20px)!important}
+  .qm-categories{grid-template-columns:1fr!important}
+  .qm-item-row{grid-template-columns:100px 140px minmax(130px,1fr) minmax(130px,1fr) 110px!important}
+  .qm-item-row>.qm-featured{grid-column:2/3}.qm-item-row>.qm-remove{grid-column:5/6;justify-self:end}
+}
+@media(max-width:760px){
+  .qm-modal{padding:5px!important}.qm-dialog{width:calc(100vw - 10px)!important;height:calc(100dvh - 10px)!important;border-radius:14px!important}
+  .qm-head,.qm-body,.qm-footer{padding-inline:12px!important}.qm-progress{padding-inline:10px!important;gap:5px!important}.qm-progress span{min-height:34px;font-size:.6rem;padding-inline:5px}
+  .qm-form-grid{grid-template-columns:1fr}.qm-upload{grid-template-columns:1fr}.qm-upload-preview{width:100%;height:150px}
+  .qm-category-row{grid-template-columns:90px minmax(0,1fr)!important}.qm-image-box{width:90px}
+  .qm-item-row{grid-template-columns:90px minmax(0,1fr)!important;align-items:start!important}
+  .qm-item-row>.qm-image-tile{grid-row:1/4}.qm-item-row>.qm-category-select,.qm-item-row>.qm-name-ar,.qm-item-row>.qm-name-en,.qm-item-row>.qm-price{grid-column:2/3}
+  .qm-item-row>.qm-featured{grid-column:2/3;justify-self:start}.qm-item-row>.qm-remove{position:absolute;top:8px;inset-inline-end:8px}
+}
 </style>
 
 @if($site instanceof \App\Domain\SmartOrdering\Models\SmartOrderingSite && $canApply)
@@ -125,10 +171,10 @@ body.qm-open{overflow:hidden}
                         <span class="qm-image-box" data-image-preview>{{ $quickMenuIsAr ? 'صورة التصنيف' : 'Category image' }}</span>
                         <input type="file" name="categories[{{ $categoryKey }}][image]" accept="image/jpeg,image/png,image/webp" data-image-input>
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
+                    <label class="qm-field qm-name-ar">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
                         <input type="text" name="categories[{{ $categoryKey }}][name_ar]" value="{{ $category['name_ar'] ?? '' }}" data-qm-category-ar>
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
+                    <label class="qm-field qm-name-en">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
                         <input type="text" name="categories[{{ $categoryKey }}][name_en]" value="{{ $category['name_en'] ?? '' }}" data-qm-category-en>
                     </label>
                     <button class="qm-remove" type="button" data-qm-remove-category aria-label="{{ $quickMenuIsAr ? 'حذف التصنيف' : 'Remove category' }}">×</button>
@@ -150,7 +196,7 @@ body.qm-open{overflow:hidden}
                         <span class="qm-image-box" data-image-preview>{{ $quickMenuIsAr ? 'صورة الصنف' : 'Item image' }}</span>
                         <input type="file" name="items[{{ $itemKey }}][image]" accept="image/jpeg,image/png,image/webp" data-image-input>
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'التصنيف' : 'Category' }}
+                    <label class="qm-field qm-category-select">{{ $quickMenuIsAr ? 'التصنيف' : 'Category' }}
                         <select name="items[{{ $itemKey }}][category_key]" data-qm-item-category>
                             @foreach($quickMenuCategories as $categoryKey => $category)
                                 @php($categoryLabel = trim((string)($category[$quickMenuIsAr ? 'name_ar' : 'name_en'] ?? '')) ?: trim((string)($category['name_ar'] ?? $category['name_en'] ?? '')))
@@ -158,13 +204,13 @@ body.qm-open{overflow:hidden}
                             @endforeach
                         </select>
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
+                    <label class="qm-field qm-name-ar">{{ $quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name' }}
                         <input type="text" name="items[{{ $itemKey }}][name_ar]" value="{{ $item['name_ar'] ?? '' }}">
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
+                    <label class="qm-field qm-name-en">{{ $quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name' }}
                         <input type="text" name="items[{{ $itemKey }}][name_en]" value="{{ $item['name_en'] ?? '' }}">
                     </label>
-                    <label class="qm-field">{{ $quickMenuIsAr ? 'السعر' : 'Price' }} @if($quickMenuCurrency)<small>({{ $quickMenuCurrency }})</small>@endif
+                    <label class="qm-field qm-price">{{ $quickMenuIsAr ? 'السعر' : 'Price' }} @if($quickMenuCurrency)<small>({{ $quickMenuCurrency }})</small>@endif
                         <input type="number" step="0.001" min="0" name="items[{{ $itemKey }}][price]" value="{{ $item['price'] ?? '' }}" placeholder="0.000">
                     </label>
                     <label class="qm-featured"><input type="checkbox" name="items[{{ $itemKey }}][featured]" value="1" @checked((bool)($item['featured'] ?? false))> {{ $quickMenuIsAr ? 'مميز' : 'Featured' }}</label>
@@ -366,7 +412,9 @@ body.qm-open{overflow:hidden}
         ar.type='text'; ar.name='categories['+key+'][name_ar]'; ar.dataset.qmCategoryAr=''; if (@json($quickMenuIsAr)) ar.value=prefill;
         const en = document.createElement('input');
         en.type='text'; en.name='categories['+key+'][name_en]'; en.dataset.qmCategoryEn=''; if (!@json($quickMenuIsAr)) en.value=prefill;
-        row.append(makeField(t.arabicName,ar),makeField(t.englishName,en));
+        const arField = makeField(t.arabicName, ar); arField.classList.add('qm-name-ar');
+        const enField = makeField(t.englishName, en); enField.classList.add('qm-name-en');
+        row.append(arField, enField);
 
         const remove = document.createElement('button');
         remove.type='button'; remove.className='qm-remove'; remove.dataset.qmRemoveCategory=''; remove.textContent='×';
@@ -385,12 +433,16 @@ body.qm-open{overflow:hidden}
 
         const select = document.createElement('select');
         select.name='items['+key+'][category_key]'; select.dataset.qmItemCategory='';
-        row.append(makeField(t.categoryLabel,select));
+        const categoryField = makeField(t.categoryLabel, select); categoryField.classList.add('qm-category-select');
+        row.append(categoryField);
 
         const ar=document.createElement('input'); ar.type='text'; ar.name='items['+key+'][name_ar]';
         const en=document.createElement('input'); en.type='text'; en.name='items['+key+'][name_en]';
         const price=document.createElement('input'); price.type='number'; price.step='0.001'; price.min='0'; price.name='items['+key+'][price]'; price.placeholder='0.000';
-        row.append(makeField(t.arabicName,ar),makeField(t.englishName,en),makeField(t.price,price));
+        const arField = makeField(t.arabicName, ar); arField.classList.add('qm-name-ar');
+        const enField = makeField(t.englishName, en); enField.classList.add('qm-name-en');
+        const priceField = makeField(t.price, price); priceField.classList.add('qm-price');
+        row.append(arField, enField, priceField);
 
         const featured=document.createElement('label'); featured.className='qm-featured';
         const check=document.createElement('input'); check.type='checkbox'; check.name='items['+key+'][featured]'; check.value='1';
