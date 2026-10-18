@@ -2,8 +2,8 @@
 
 namespace App\Domain\Analytics\ReadModel;
 
-use App\Domain\Analytics\Semantic\MetricDictionary;
 use App\Domain\Analytics\SellOut\RetailSellOutIngestionService;
+use App\Domain\Analytics\Semantic\MetricDictionary;
 use App\Domain\Assistant\Security\RetailerSellOutAccessPolicy;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
