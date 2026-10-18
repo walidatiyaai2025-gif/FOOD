@@ -203,7 +203,7 @@
                     <input name="name_ar" value="{{ $launchNameAr }}" data-mirror-ar>
                 </label>
                 <label>{{ $launchIsAr?'اسم المطعم بالإنجليزي':'English restaurant name' }}
-                    <input name="name_en" value="{{ $launchNameEn }}" data-mirror-en required>
+                    <input name="name_en" value="{{ $launchNameEn }}" data-mirror-en>
                 </label>
                 <label>{{ $launchIsAr?'وصف قصير بالعربي':'Arabic tagline' }}
                     <input name="tagline_ar" value="{{ $launchTaglineAr }}">
