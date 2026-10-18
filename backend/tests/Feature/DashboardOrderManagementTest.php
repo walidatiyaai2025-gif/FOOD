@@ -940,6 +940,7 @@ class DashboardOrderManagementTest extends TestCase
     {
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', $type)->value('id'),
+            'business_profile' => $type === 'B2C' ? 'RETAIL_STORE' : null,
             'code' => $code,
             'name' => $code,
             'is_active' => true,
