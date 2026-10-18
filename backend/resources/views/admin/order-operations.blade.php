@@ -179,11 +179,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                     data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$statusTotal) }}</span></button>
         </nav>
         <div class="order-workspace-filter-slot" data-order-workspace-filter>
-            <div data-order-filter-mode="analytics" hidden>
-                @include('admin._order-operations-header-filters')
-            </div>
             <div data-order-filter-mode="orders">
                 @include('admin._order-operations-order-filters')
+            </div>
+            <div data-order-filter-mode="analytics" hidden>
+                @include('admin._order-operations-header-filters')
             </div>
         </div>
     </div>
