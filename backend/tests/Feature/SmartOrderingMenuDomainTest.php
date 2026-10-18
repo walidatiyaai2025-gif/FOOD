@@ -59,7 +59,13 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('data-qm-modal', false)
             ->assertSee('data-qm-add-category', false)
             ->assertSee('data-qm-add-item', false)
+            ->assertSee('data-qm-save', false)
+            ->assertSee('name="categories[0][image]"', false)
+            ->assertSee('name="items[0][image]"', false)
             ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('display:flex!important;flex-direction:column!important', false)
+            ->assertSee('height:auto!important', false)
+            ->assertSee('grid-template-columns:repeat(2,minmax(0,1fr))!important', false)
             ->assertSee(route('admin.smart-ordering.menu.quick-create'), false);
 
         $this->actingAs($fixture['admin'])
