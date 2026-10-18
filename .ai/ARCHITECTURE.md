@@ -144,3 +144,11 @@ Finance consumes committed cross-module facts asynchronously through the existin
 - Successful posting persists immutable source-event/version -> canonical journal provenance in enterprise_finance_source_postings; event identity and GL idempotency prevent duplicate posting.
 - Source-scope mismatch, unsupported versions, Finance degradation, and mapping failures never roll back the already-committed source transaction.
 
+## Agentic AI boundary
+
+Authoritative contract: docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md.
+
+FOODEX has one Assistant lineage. Extend the existing Management Assistant controller/routes, conversation state, AssistantBrainInterface, AssistantToolRegistry, AssistantPageContext, runtime/provider settings and OpenAI-compatible/Ollama client. Do not build a parallel chatbot, direct model-to-database path or second tool framework.
+
+Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/retailer-consent -> agent orchestrator -> typed allowlisted tools -> deterministic semantic/read-model/domain services -> authoritative persistence. Providers may classify/plan/explain only; server software owns permissions, calculations and writes. Sell-in and sell-out are separately typed facts. Read-only remains default until #2224 adds draft -> explicit approval -> re-authorization -> idempotent execution.
+
