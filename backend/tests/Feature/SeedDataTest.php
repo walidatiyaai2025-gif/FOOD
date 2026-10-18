@@ -27,7 +27,7 @@ class SeedDataTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(
-            collect(array_keys((array) config('permissions.roles')))->sort()->values()->all(),
+            collect(array_keys((array) config('job_roles.roles')))->sort()->values()->all(),
             DB::table('roles')->orderBy('code')->pluck('code')->all(),
         );
 
