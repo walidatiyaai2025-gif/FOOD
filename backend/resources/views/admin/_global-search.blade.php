@@ -18,7 +18,7 @@
 .foodex-global-search--header .foodex-global-search-control .foodex-svg-icon{inset-inline-start:8px;top:50%;width:var(--foodex-header-icon-size);height:var(--foodex-header-icon-size);transform:translateY(-50%)}
 .foodex-global-search--header .foodex-global-search-input{height:var(--foodex-header-control-height);min-height:var(--foodex-header-control-height);padding-inline-start:28px!important;padding-inline-end:8px!important;border-radius:8px;font-size:.6875rem;line-height:1}
 @media(max-width:1023px) and (min-width:768px){.foodex-global-search--header .foodex-global-search-input{height:var(--foodex-header-control-height-tablet);min-height:var(--foodex-header-control-height-tablet)}}
-@media(max-width:767px){.foodex-global-search--header .foodex-global-search-input{height:var(--foodex-header-control-height-mobile);min-height:var(--foodex-header-control-height-mobile);font-size:16px}.foodex-global-search--header .foodex-global-search-control .foodex-svg-icon{width:18px;height:18px}.foodex-global-search-results{position:fixed;inset-inline:12px;top:56px;max-height:calc(100vh - 76px)}}
+@media(max-width:767px){.foodex-global-search--header .foodex-global-search-input{height:var(--foodex-header-control-height-mobile);min-height:var(--foodex-header-control-height-mobile);font-size:16px}.foodex-global-search--header .foodex-global-search-control .foodex-svg-icon{width:18px;height:18px}.foodex-global-search-results{position:fixed;inset-inline:12px;top:calc(var(--foodex-header-height-mobile) + 4px);max-height:calc(100vh - var(--foodex-header-height-mobile) - 20px)}}
 </style>
 <section class="foodex-global-search foodex-global-search--{{ $globalSearchVariant }}"
          data-foodex-global-search

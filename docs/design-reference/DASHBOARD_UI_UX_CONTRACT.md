@@ -313,9 +313,9 @@ The Laravel Admin/Dashboard renders **one platform header only**. Search, notifi
 Shared global-header rules:
 
 - every canonical Dashboard page using the shared Sidebar/Main shell renders one shared `admin._global-header` and no second platform header;
-- desktop global header chrome targets **32 px** height;
-- compact/tablet global header chrome targets **34 px** height;
-- mobile web keeps **44 px** touch-safe controls inside the shared 56 px top rail used by the off-canvas navigation launcher;
+- desktop global header chrome targets **44 px** height with **32 px** centered search/notification/account controls;
+- compact/tablet global header chrome targets **44 px** height with the same **32 px** control geometry;
+- mobile web keeps **44 px** touch-safe controls inside the shared **56 px** top rail used by the off-canvas navigation launcher;
 - global search, live notifications and account access belong only to the shared global header;
 - page content uses `.foodex-page-toolbar` for the page title, subtitle and page-specific actions below global chrome;
 - `.foodex-page-toolbar` is content structure, not a second platform header: it must not repeat global search, notification or account controls;

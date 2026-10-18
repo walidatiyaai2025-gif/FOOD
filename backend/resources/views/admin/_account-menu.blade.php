@@ -72,7 +72,7 @@
 .foodex-account-logout:hover,.foodex-account-logout:focus-visible{background:#fff1f0;color:#b42318}
 .foodex-account-signout{font-size:19px;line-height:1;text-align:center}
 @media(max-width:1023px) and (min-width:768px){.foodex-account-trigger{width:var(--foodex-header-control-height-tablet);height:var(--foodex-header-control-height-tablet);min-width:var(--foodex-header-control-height-tablet);min-height:var(--foodex-header-control-height-tablet)}}
-@media(max-width:767px){.foodex-account-trigger{width:var(--foodex-touch-target);height:var(--foodex-touch-target);min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target)}.foodex-account-avatar{width:30px;height:30px}.foodex-account-avatar .foodex-svg-icon{width:20px;height:20px}.foodex-account-panel{position:fixed;inset-inline:14px;inset-block-start:52px;width:auto}}
+@media(max-width:767px){.foodex-account-trigger{width:var(--foodex-touch-target);height:var(--foodex-touch-target);min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target)}.foodex-account-avatar{width:30px;height:30px}.foodex-account-avatar .foodex-svg-icon{width:20px;height:20px}.foodex-account-panel{position:fixed;inset-inline:14px;inset-block-start:calc(var(--foodex-header-height-mobile) + 4px);width:auto}}
 </style>
 
 <script>

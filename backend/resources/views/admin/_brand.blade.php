@@ -67,15 +67,15 @@
     --foodex-sidebar-width:232px;
 
     /* Compact Admin header contract: dense chrome, readable type, mobile touch safety. */
-    --foodex-header-height:32px;
-    --foodex-header-height-tablet:34px;
-    --foodex-header-height-mobile:44px;
-    --foodex-header-control-height:24px;
-    --foodex-header-control-height-tablet:28px;
+    --foodex-header-height:44px;
+    --foodex-header-height-tablet:44px;
+    --foodex-header-height-mobile:56px;
+    --foodex-header-control-height:32px;
+    --foodex-header-control-height-tablet:32px;
     --foodex-header-control-height-mobile:44px;
     --foodex-header-title-size:.8125rem;
     --foodex-header-meta-size:.625rem;
-    --foodex-header-icon-size:14px;
+    --foodex-header-icon-size:16px;
     --foodex-header-gap:6px;
 
     --foodex-breakpoint-desktop:1280px;
