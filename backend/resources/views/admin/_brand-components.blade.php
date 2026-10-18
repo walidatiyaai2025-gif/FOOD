@@ -1,4 +1,11 @@
 @include('admin._brand')
+@php
+    $foodexCustomerServiceProfile = auth()->check()
+        && app(\App\Support\AdminNavigation::class)->usesCustomerServiceDashboardProfile(auth()->user());
+@endphp
+@if($foodexCustomerServiceProfile)
+<script>document.documentElement.classList.add('foodex-customer-service-profile')</script>
+@endif
 <style id="foodex-admin-component-tokens">
     *,*::before,*::after{box-sizing:border-box}
     html,body{max-width:100%;overflow-x:hidden;background:var(--foodex-background)!important;color:var(--foodex-ink)!important}
@@ -781,6 +788,136 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-password-toggle{position:absolute;inset-inline-end:6px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:var(--foodex-muted);display:grid;place-items:center;cursor:pointer;font-size:19px;line-height:1}
     .foodex-password-toggle:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     @media(max-width:640px){.foodex-premium-auto-form{grid-template-columns:1fr;padding:var(--foodex-space-4)}}
+
+    /* Customer-service role visual profile: keep every authorized admin page aligned with the CS dashboard shell. */
+    html.foodex-customer-service-profile{
+        --foodex-cs-card-radius:18px;
+        --foodex-cs-control-radius:12px;
+        --foodex-cs-page-gap:14px;
+    }
+    html.foodex-customer-service-profile .foodex-admin-layout{
+        background:linear-gradient(180deg,#f8fafc 0%,var(--foodex-background) 34%,var(--foodex-background) 100%);
+    }
+    html.foodex-customer-service-profile .foodex-admin-layout>.foodex-admin-main,
+    html.foodex-customer-service-profile .foodex-admin-main.foodex-admin-page{
+        padding:clamp(18px,1.45vw,28px)!important;
+    }
+    html.foodex-customer-service-profile .foodex-global-header{
+        margin-bottom:16px;
+        border-radius:14px;
+        box-shadow:0 7px 22px rgba(15,23,42,.055);
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar{
+        min-height:64px;
+        align-items:center;
+        margin-bottom:14px;
+        padding:11px 14px;
+        border:1px solid var(--foodex-border);
+        border-radius:16px;
+        background:var(--foodex-surface);
+        box-shadow:var(--foodex-shadow-sm);
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar h1{
+        font-size:1.02rem!important;
+        line-height:1.3!important;
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar p{
+        margin-top:2px!important;
+        font-size:.72rem!important;
+    }
+    html.foodex-customer-service-profile :is(.foodex-card,.panel,.card,.filters,.back,.foodex-form){
+        border-radius:var(--foodex-cs-card-radius)!important;
+        border-color:#dde5ec!important;
+        box-shadow:0 7px 22px rgba(15,23,42,.045);
+    }
+    html.foodex-customer-service-profile :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.foodex-control){
+        border-radius:var(--foodex-cs-control-radius);
+    }
+    html.foodex-customer-service-profile :is(.primary,.button,.btn.primary,button.foodex-primary,.foodex-action-primary,.foodex-filter-action,.secondary,.button.secondary,.btn.secondary,.foodex-action-secondary){
+        border-radius:11px;
+    }
+    html.foodex-customer-service-profile .foodex-tabs{
+        gap:8px;
+        margin-bottom:14px;
+        padding:0;
+        border-bottom:0;
+        overflow-x:auto;
+        flex-wrap:nowrap;
+        scrollbar-width:thin;
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a,.foodex-tab){
+        flex:0 0 auto;
+        min-height:38px;
+        padding:0 16px;
+        border:1px solid var(--foodex-border);
+        border-radius:999px;
+        background:var(--foodex-surface);
+        color:var(--foodex-muted);
+        font-size:.78rem;
+        font-weight:800;
+        white-space:nowrap;
+        transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease;
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a,.foodex-tab):hover{
+        transform:translateY(-1px);
+        border-color:#b8d9c2;
+        color:var(--foodex-green-dark);
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a.active,.foodex-tab.active,[aria-selected="true"]){
+        border-color:var(--foodex-action-green)!important;
+        background:var(--foodex-action-green)!important;
+        color:#fff!important;
+    }
+    html.foodex-customer-service-profile :is(.table-wrap,.module-table-wrap,.foodex-table-wrap){
+        border-radius:16px;
+        scrollbar-width:thin;
+    }
+    html.foodex-customer-service-profile :is(.foodex-table,.foodex-ops-grid){
+        border-radius:16px;
+    }
+    html.foodex-customer-service-profile :is(.foodex-table,.foodex-ops-grid) th{
+        background:#f8fafc;
+    }
+    html.foodex-customer-service-profile :is(.foodex-modal,.foodex-record-drawer){
+        border-color:#dde5ec;
+        box-shadow:0 28px 80px rgba(15,23,42,.22);
+    }
+    html.foodex-customer-service-profile .foodex-modal{
+        border-radius:20px;
+    }
+    html.foodex-customer-service-profile .foodex-record-drawer-shell{
+        scrollbar-width:thin;
+        overscroll-behavior:contain;
+    }
+    html.foodex-customer-service-profile .foodex-sidebar-shell{
+        gap:12px;
+    }
+    html.foodex-customer-service-profile .foodex-nav-group[open]{
+        border-radius:14px;
+        background:#fbfcfd;
+    }
+    html.foodex-customer-service-profile .foodex-nav-link{
+        border-radius:11px;
+    }
+    html.foodex-customer-service-profile .foodex-nav-link.active{
+        background:var(--foodex-action-green);
+        box-shadow:0 8px 20px rgba(21,138,58,.16);
+    }
+    @media(max-width:767px){
+        html.foodex-customer-service-profile .foodex-admin-layout>.foodex-admin-main,
+        html.foodex-customer-service-profile .foodex-admin-main.foodex-admin-page{
+            padding:12px!important;
+        }
+        html.foodex-customer-service-profile .foodex-page-toolbar{
+            min-height:0;
+            padding:10px 12px;
+            border-radius:14px;
+        }
+        html.foodex-customer-service-profile :is(.foodex-card,.panel,.card,.filters,.back,.foodex-form){
+            border-radius:14px!important;
+        }
+    }
+
 </style>
 
 @php
