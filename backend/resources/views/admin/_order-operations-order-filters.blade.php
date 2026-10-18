@@ -45,7 +45,7 @@
     <form class="order-grid-filter-form"
           data-order-grid-filter
           method="get"
-          action="{{ route('admin.operations.orders.index') }}">
+          action="{{ route('admin.operations.orders.index') }}#order-tab-orders">
         <input type="hidden" name="channel" value="{{ $orderFilterChannel }}">
         @if(count($orderFilterStores) <= 1 && $orderFilterStoreId !== null)
             <input type="hidden" name="store_id" value="{{ $orderFilterStoreId }}">
