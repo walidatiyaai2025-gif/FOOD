@@ -184,7 +184,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 
     <div class="sales-ops-chart-grid">
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-status-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-status-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-status-title">{{ __('order_operations.dashboard.charts.status') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.status_help') }}</p></div></div>
             <?php if (($dashboard['status_breakdown'] ?? []) === []): ?>
                 <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
@@ -197,7 +197,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <?php endif; ?>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-channel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-channel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-channel-title">{{ __('order_operations.dashboard.charts.channels') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.channels_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
                 <?php if (($dashboard['channel_breakdown'] ?? []) === []): ?>
@@ -210,22 +210,22 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-payment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-payment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-payment-title">{{ __('order_operations.dashboard.charts.payments') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.payments_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['payment_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['payment_breakdown'] ?? []) as $point): ?><div><span>{{ $point['provider'] }} · {{ $businessLabel($point['status']) }}</span><strong>{{ number_format((int)$point['payments']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-products-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-products-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-products-title">{{ __('order_operations.dashboard.charts.products') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.products_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['top_products'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['top_products'] ?? []) as $point): ?><a href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report'=>'products','product_id'=>$point['product_id']])) }}"><span>{{ $point['sku'] }} · {{ $point['name'] }}</span><strong>{{ \App\Support\DisplayNumber::quantity((float)$point['quantity']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-stores-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-stores-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-stores-title">{{ __('order_operations.dashboard.charts.stores') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.stores_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['store_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['store_breakdown'] ?? []) as $point): ?><a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['store_id'=>$point['store_id']])) }}"><span>{{ $point['store'] }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" aria-labelledby="sales-customers-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-customers-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-customers-title">{{ __('order_operations.dashboard.charts.customers') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.customers_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
                 <?php if (($dashboard['top_customers'] ?? []) === []): ?>
@@ -246,18 +246,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-cancel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-cancel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-cancel-title">{{ __('order_operations.dashboard.charts.cancellations') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.cancellations_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['cancellation_reasons'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['cancellation_reasons'] ?? []) as $point): ?><div><span>{{ $point['reason']==='unspecified' ? __('order_operations.dashboard.unspecified_reason') : $businessLabel($point['reason']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" aria-labelledby="sales-fulfillment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-fulfillment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-fulfillment-title">{{ __('order_operations.dashboard.charts.fulfillment') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.fulfillment_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php foreach (($dashboard['fulfillment_breakdown'] ?? []) as $point): ?><div><span>{{ __('order_operations.dashboard.fulfillment_buckets.'.$point['bucket']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?></div>
         </article>
 
         <?php if (is_array($dashboard['source_breakdown'] ?? null)): ?>
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" aria-labelledby="sales-source-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-source-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-source-title">{{ __('order_operations.dashboard.charts.sources') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.sources_help') }}</p></div></div>
             <div class="sales-ops-simple-list"><?php if (($dashboard['source_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['source_breakdown'] ?? []) as $point): ?><div><span>{{ $businessLabel($point['source']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
