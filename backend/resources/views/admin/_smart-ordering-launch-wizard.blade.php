@@ -231,6 +231,73 @@
     @if($setupStep==='review')
     <section class="rl-panel" data-launch-step="review">
         <div class="rl-panel-title"><div><h2>{{ $launchIsAr?'4. مراجعة كل شيء قبل النشر':'4. Review before publishing' }}</h2><p>{{ $launchIsAr?'راجع الجاهزية والواجهة الفعلية قبل الخطوة الأخيرة.':'Review readiness and the real storefront before the final step.' }}</p></div></div>
+
+        @include('admin._smart-ordering-quick-menu-wizard')
+
+        <details class="rl-form-card" open>
+            <summary style="cursor:pointer;font-weight:900">{{ $launchIsAr?'إضافة وحذف سريع قبل النشر':'Quick add / delete before publishing' }}</summary>
+            <div class="rl-menu-list" style="margin-top:10px">
+                @foreach($menus as $menu)
+                    <article class="rl-menu-card">
+                        <header class="rl-menu-head">
+                            <div class="rl-menu-title"><div><strong>{{ $localized($menu,'name') }}</strong><small>{{ $menu->categories->count() }} {{ $launchIsAr?'تصنيف':'categories' }}</small></div></div>
+                            <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
+                                @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
+                            </form>
+                        </header>
+
+                        <details class="rl-inline-add">
+                            <summary>+ {{ $launchIsAr?'إضافة تصنيف':'Add category' }}</summary>
+                            <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}" data-setup-mirror-form>
+                                @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $menu->categories->count()*10 }}"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="sold_out" value="0">
+                                <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
+                                <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                                <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                                <span></span><button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
+                            </form>
+                        </details>
+
+                        <div class="rl-category-list">
+                            @foreach($menu->categories as $category)
+                                <section class="rl-category">
+                                    <div class="rl-category-head">
+                                        <div class="rl-menu-title"><div><strong>{{ $localized($category,'name') }}</strong><small>{{ $category->items->count() }} {{ $launchIsAr?'صنف':'items' }}</small></div></div>
+                                        <form method="post" action="{{ route('admin.smart-ordering.menu.categories.destroy',$category) }}" data-launch-delete>
+                                            @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="rl-danger" type="submit">{{ $launchIsAr?'حذف':'Delete' }}</button>
+                                        </form>
+                                    </div>
+
+                                    <div class="rl-item-list">
+                                        @foreach($category->items as $item)
+                                            <div class="rl-item">
+                                                <div class="rl-item-main"><div><strong>{{ $localized($item,'name') }}</strong><small>{{ $itemPrices[$item->id]['display'] ?? '' }}</small></div></div>
+                                                <form method="post" action="{{ route('admin.smart-ordering.menu.items.destroy',$item) }}" data-launch-delete>
+                                                    @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="rl-danger" type="submit">×</button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <details class="rl-inline-add">
+                                        <summary>+ {{ $launchIsAr?'إضافة صنف':'Add item' }}</summary>
+                                        <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.store',$category) }}" data-setup-mirror-form>
+                                            @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $category->items->count()*10 }}"><input type="hidden" name="spicy_level" value="0"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="allow_customer_notes" value="1">
+                                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label>
+                                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label>
+                                            <label>{{ $launchIsAr?'السعر':'Price' }}<input type="number" min="0" step="{{ $moneyStep }}" name="price_override" required></label>
+                                            <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                                            <button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
+                                        </form>
+                                    </details>
+                                </section>
+                            @endforeach
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        </details>
+
         <div class="rl-review-grid">
             <div class="rl-preview"><iframe src="{{ $setupPreviewUrl }}" title="{{ $launchIsAr?'معاينة نهائية':'Final preview' }}"></iframe></div>
             <div class="rl-checks">
