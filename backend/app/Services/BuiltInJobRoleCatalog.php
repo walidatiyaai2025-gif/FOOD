@@ -6,8 +6,10 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleManifestCatalog;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Store;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
@@ -38,6 +40,7 @@ final class BuiltInJobRoleCatalog
                 'domain' => (string) ($definition['domain'] ?? 'administration'),
                 'scope' => (string) ($definition['scope'] ?? 'global'),
                 'business_scope' => (string) ($definition['business_scope'] ?? ($definition['scope'] ?? 'global')),
+                'business_profiles' => array_values(array_unique(array_map('strval', (array) ($definition['business_profiles'] ?? [])))),
                 'level' => (string) ($definition['level'] ?? 'specialist'),
                 'required_modules' => array_values(array_unique(array_map('strval', (array) ($definition['required_modules'] ?? [])))),
                 'optional_modules' => array_values(array_unique(array_map('strval', (array) ($definition['optional_modules'] ?? [])))),
@@ -82,6 +85,13 @@ final class BuiltInJobRoleCatalog
         }
         if ($definition['scope'] === 'global' && $storeId !== null) {
             return false;
+        }
+
+        if ($storeId !== null && $definition['business_profiles'] !== []) {
+            $profile = Store::query()->whereKey($storeId)->value('business_profile');
+            if (is_string($profile) && ! in_array($profile, $definition['business_profiles'], true)) {
+                return false;
+            }
         }
 
         try {
@@ -290,6 +300,14 @@ final class BuiltInJobRoleCatalog
         }
         if (! in_array($definition['level'], ['manager', 'supervisor', 'operator', 'specialist', 'viewer'], true)) {
             throw new RuntimeException('Unsupported built-in role level ['.$definition['code'].'].');
+        }
+        $knownBusinessProfiles = array_map(
+            static fn (StoreBusinessProfile $profile): string => $profile->value,
+            StoreBusinessProfile::cases(),
+        );
+        $unknownProfiles = array_values(array_diff($definition['business_profiles'], $knownBusinessProfiles));
+        if ($unknownProfiles !== []) {
+            throw new RuntimeException('Built-in role ['.$definition['code'].'] references unknown B2C business profiles: '.implode(', ', $unknownProfiles));
         }
 
         $knownModules = $this->modules->all()->keys()->all();
