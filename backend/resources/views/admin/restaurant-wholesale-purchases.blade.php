@@ -288,7 +288,7 @@
                         <tr>
                             <td>{{ $invoice['invoice_number'] !== '' ? $invoice['invoice_number'] : '#'.$invoice['id'] }}</td>
                             <td class="rw-number">{{ $invoice['order_id'] ? '#'.$invoice['order_id'] : '—' }}</td>
-                            <td><span class="rw-pill">{{ $invoice['status'] }}</span></td>
+                            <td><span class="rw-pill">{{ __('restaurant_wholesale.invoice_status.'.strtolower(str_replace([' ', '-'], '_', trim((string) $invoice['status'])))) }}</span></td>
                             <td class="rw-number">{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td>
                             <td class="rw-number">{{ number_format($invoice['outstanding_amount'],3) }} {{ $invoice['currency'] }}</td>
                             <td>{{ $invoice['issued_at'] ? \Illuminate\Support\Carbon::parse($invoice['issued_at'])->format('Y-m-d') : '—' }}</td>
