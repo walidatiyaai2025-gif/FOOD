@@ -142,24 +142,27 @@ final class AssistantSettingsController extends Controller
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('settings.manage'), 403);
 
-        $validated = $request->validate([
-            'api_url' => ['required', 'url', 'max:1000'],
-            'model' => ['required', 'string', 'max:160'],
-            'api_key' => ['nullable', 'string', 'max:4096'],
-            'timeout_seconds' => ['required', 'integer', 'min:3', 'max:120'],
-        ]);
+        $config = $this->providerSettings->snapshot();
 
-        $apiUrl = trim((string) $validated['api_url']);
-        $this->externalAi->assertSafeEndpoint($apiUrl);
+        if ($config['api_url'] === '' || $config['model'] === '') {
+            throw ValidationException::withMessages([
+                'provider' => [
+                    app()->getLocale() === 'ar'
+                        ? 'احفظ رابط API والموديل أولاً ثم اختبر الاتصال.'
+                        : 'Save the API URL and model before testing the connection.',
+                ],
+            ]);
+        }
 
-        $submittedKey = trim((string) ($validated['api_key'] ?? ''));
+        $this->externalAi->assertSafeEndpoint($config['api_url']);
+
         $result = $this->externalAi->probe(
             [
-                'api_url' => $apiUrl,
-                'model' => trim((string) $validated['model']),
-                'timeout_seconds' => (int) $validated['timeout_seconds'],
+                'api_url' => $config['api_url'],
+                'model' => $config['model'],
+                'timeout_seconds' => $config['timeout_seconds'],
             ],
-            $submittedKey === '' ? $this->providerSettings->apiKey() : $submittedKey,
+            $this->providerSettings->apiKey(),
         );
 
         return redirect()
