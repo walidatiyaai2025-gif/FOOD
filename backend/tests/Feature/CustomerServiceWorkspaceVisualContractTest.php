@@ -28,6 +28,8 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('max-width:180px', $view);
         $this->assertStringContainsString('class="cs-visually-hidden"', $view);
         $this->assertStringNotContainsString("customer_service_workspace.dashboard.help", $view);
+        $this->assertStringNotContainsString('id="customer-service-search-title"', $view);
+        $this->assertStringContainsString("customer_service_workspace.search_help", $view);
         $this->assertStringContainsString('role="tablist"', $view);
         $this->assertStringContainsString('data-cs-tab="cases"', $view);
         $this->assertStringContainsString('data-cs-tab="analytics"', $view);
