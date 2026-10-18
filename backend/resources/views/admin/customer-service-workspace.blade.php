@@ -86,6 +86,18 @@
 .cs-notes{display:grid;gap:10px}.cs-note{padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.cs-note p{white-space:pre-wrap}
 .cs-exceptions{display:grid;gap:8px}.cs-exception{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;color:inherit}
 .cs-state{padding:28px;text-align:center}
+.cs-case-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cs-create-case-modal{position:fixed;z-index:13055;inset:0;display:grid;place-items:center;padding:24px;background:rgba(15,23,42,.5);backdrop-filter:blur(5px)}
+.cs-create-case-modal[hidden]{display:none!important}
+.cs-create-case-dialog{width:min(1120px,95vw);max-height:92dvh;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:20px;box-shadow:0 30px 86px rgba(15,23,42,.3);animation:csCaseModalEnter .2s cubic-bezier(.2,.8,.2,1) both}
+.cs-create-case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-surface),var(--foodex-green-soft))}
+.cs-create-case-head h2{margin:0;font-size:1.05rem}.cs-create-case-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.78rem}
+.cs-create-case-close{width:36px;height:36px;flex:0 0 36px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.25rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
+.cs-create-case-close:hover{background:var(--foodex-background);border-color:#b8d9c2;color:var(--foodex-green-dark)}
+.cs-create-case-body{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;padding:20px;scrollbar-width:thin}
+.cs-create-case-form{margin:0!important}
+.cs-create-case-error{margin-bottom:14px}
+body.cs-create-case-modal-open{overflow:hidden}
 .cs-case-modal{position:fixed;z-index:13050;inset:0;display:grid;place-items:center;padding:24px;background:rgba(15,23,42,.48);backdrop-filter:blur(5px)}
 .cs-case-modal[hidden]{display:none!important}
 .cs-case-modal-dialog{position:relative;width:min(1080px,94vw);max-height:90vh;overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:18px;box-shadow:0 28px 80px rgba(15,23,42,.28);animation:csCaseModalEnter .2s cubic-bezier(.2,.8,.2,1) both}
@@ -110,6 +122,7 @@ body.cs-inbox-modal-open{overflow:hidden}
 @media(max-width:1100px){.cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(max-width:620px){.cs-create-case-modal{padding:8px}.cs-create-case-dialog{width:100%;max-height:calc(100dvh - 16px);border-radius:14px}.cs-create-case-head{padding:13px 14px}.cs-create-case-body{padding:14px}.cs-case-head-actions{width:100%;justify-content:space-between}}
 @media(max-width:850px){.cs-inbox-modal{padding:8px}.cs-inbox-modal-dialog{width:100%;height:calc(100dvh - 16px);border-radius:14px;grid-template-rows:44px minmax(0,1fr)}.cs-inbox-modal-toolbar{padding-inline:10px}}
 @media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before,.cs-bar,.cs-case-modal-dialog{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}.cs-bar{transform:scaleX(1)!important}}
 </style>
@@ -184,7 +197,7 @@ body.cs-inbox-modal-open{overflow:hidden}
                 </form>
             </section>
 
-            @php($defaultWorkspaceTab = ($selectedCase || old('platform_customer_id')) ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'analytics'))
+            @php($defaultWorkspaceTab = ($selectedCase || old('_case_create') === '1' || old('platform_customer_id')) ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'analytics'))
             @php($caseCount = (int) $cases->total())
             @php($customerCount = (int) ($dashboard['total_customers'] ?? 0))
             @php($inboxUnreadCount = (int) ($inboxSummary['unread_count'] ?? 0))
@@ -320,7 +333,12 @@ body.cs-inbox-modal-open{overflow:hidden}
             <section class="foodex-card cs-panel" data-pagination-required>
                 <div class="cs-section-head">
                     <div><h2>{{ __('customer_service_workspace.cases.title') }}</h2><p>{{ __('customer_service_workspace.cases.help') }}</p></div>
-                    @if($canManageCases)<span class="cs-badge ok">{{ __('customer_service_workspace.cases.manage_enabled') }}</span>@endif
+                    @if($canManageCases)
+                    <div class="cs-case-head-actions">
+                        <span class="cs-badge ok">{{ __('customer_service_workspace.cases.manage_enabled') }}</span>
+                        <button class="foodex-action-primary" type="button" data-create-case-modal-open aria-haspopup="dialog">{{ __('customer_service_workspace.cases.create') }}</button>
+                    </div>
+                    @endif
                 </div>
                 @if($cases->isEmpty())
                     <div class="foodex-state cs-state">{{ __('customer_service_workspace.cases.empty') }}</div>
@@ -353,27 +371,44 @@ body.cs-inbox-modal-open{overflow:hidden}
             </section>
 
             @if($canManageCases)
-            <section class="foodex-card cs-panel">
-                <details @if(old('platform_customer_id')) open @endif>
-                    <summary class="foodex-action-primary" style="display:inline-flex">{{ __('customer_service_workspace.cases.create') }}</summary>
-                    <form method="post" action="{{ route('admin.erp.customer-service.cases.store') }}" class="cs-form" style="margin-top:16px">@csrf
-                        <label>{{ __('customer_service_workspace.filters.store') }}<select name="store_id" required><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($manageStoreOptions as $store)<option value="{{ $store->id }}" @selected((string)old('store_id')===(string)$store->id)>{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.customer') }}<select name="platform_customer_id" required><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($customerOptions as $customer)<option value="{{ $customer->id }}" @selected((string)old('platform_customer_id')===(string)$customer->id)>{{ $customer->name }} · {{ $customer->email ?: $customer->phone }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.filters.category') }}<select name="type" required>@foreach($caseCategories as $value)<option value="{{ $value }}" @selected(old('type','other')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.filters.priority') }}<select name="priority" required>@foreach($casePriorities as $value)<option value="{{ $value }}" @selected(old('priority','normal')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.filters.queue') }}<select name="queue"><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($caseQueues as $value)<option value="{{ $value }}" @selected(old('queue')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.owner') }}<select name="assigned_agent_id"><option value="">{{ __('customer_service_workspace.values.unassigned') }}</option>@foreach($agentOptions as $agent)<option value="{{ $agent->id }}" @selected((string)old('assigned_agent_id')===(string)$agent->id)>{{ $agent->name }}</option>@endforeach</select></label>
-                        <label class="wide">{{ __('customer_service_workspace.cases.subject') }}<input name="subject" maxlength="190" required value="{{ old('subject') }}"></label>
-                        <label class="wide">{{ __('customer_service_workspace.cases.description') }}<textarea name="description" maxlength="8000">{{ old('description') }}</textarea></label>
-                        <label>{{ __('customer_service_workspace.cases.order_id') }}<select name="order_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($orderOptions as $record)<option value="{{ $record->id }}" @selected((string)old('order_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.invoice_id') }}<select name="invoice_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($invoiceOptions as $record)<option value="{{ $record->id }}" @selected((string)old('invoice_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.conversation_id') }}<select name="conversation_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($conversationOptions as $record)<option value="{{ $record->id }}" @selected((string)old('conversation_id')===(string)$record->id)>{{ $record->customer_name }} · {{ $record->store_name }} · {{ \Illuminate\Support\Str::limit($record->reference,18) }}</option>@endforeach</select></label>
-                        <label>{{ __('customer_service_workspace.cases.delivery_reference') }}<input name="delivery_reference" maxlength="120" value="{{ old('delivery_reference') }}"></label>
-                        <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ old('sla_target_at') }}"></label>
-                        <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.cases.create_action') }}</button></div>
-                    </form>
-                </details>
-            </section>
+            <div class="cs-create-case-modal"
+                 data-create-case-modal
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="cs-create-case-title"
+                 @if(old('_case_create') !== '1') hidden @endif>
+                <div class="cs-create-case-dialog">
+                    <div class="cs-create-case-head">
+                        <div>
+                            <h2 id="cs-create-case-title">{{ __('customer_service_workspace.cases.create') }}</h2>
+                            <p>{{ __('customer_service_workspace.cases.help') }}</p>
+                        </div>
+                        <button class="cs-create-case-close" type="button" data-create-case-modal-close aria-label="{{ __('customer_service_workspace.cases.close') }}">×</button>
+                    </div>
+                    <div class="cs-create-case-body">
+                        @if(old('_case_create') === '1' && $errors->any())
+                            <div class="foodex-error cs-create-case-error" role="alert">{{ $errors->first() }}</div>
+                        @endif
+                        <form method="post" action="{{ route('admin.erp.customer-service.cases.store') }}" class="cs-form cs-create-case-form">@csrf
+                                                <input type="hidden" name="_case_create" value="1">
+                                                <label>{{ __('customer_service_workspace.filters.store') }}<select name="store_id" required><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($manageStoreOptions as $store)<option value="{{ $store->id }}" @selected((string)old('store_id')===(string)$store->id)>{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.cases.customer') }}<select name="platform_customer_id" required><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($customerOptions as $customer)<option value="{{ $customer->id }}" @selected((string)old('platform_customer_id')===(string)$customer->id)>{{ $customer->name }} · {{ $customer->email ?: $customer->phone }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.filters.category') }}<select name="type" required>@foreach($caseCategories as $value)<option value="{{ $value }}" @selected(old('type','other')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.filters.priority') }}<select name="priority" required>@foreach($casePriorities as $value)<option value="{{ $value }}" @selected(old('priority','normal')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.filters.queue') }}<select name="queue"><option value="">{{ __('customer_service_workspace.values.choose') }}</option>@foreach($caseQueues as $value)<option value="{{ $value }}" @selected(old('queue')===$value)>{{ __('customer_service_workspace.values.'.$value) }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.cases.owner') }}<select name="assigned_agent_id"><option value="">{{ __('customer_service_workspace.values.unassigned') }}</option>@foreach($agentOptions as $agent)<option value="{{ $agent->id }}" @selected((string)old('assigned_agent_id')===(string)$agent->id)>{{ $agent->name }}</option>@endforeach</select></label>
+                                                <label class="wide">{{ __('customer_service_workspace.cases.subject') }}<input name="subject" maxlength="190" required value="{{ old('subject') }}"></label>
+                                                <label class="wide">{{ __('customer_service_workspace.cases.description') }}<textarea name="description" maxlength="8000">{{ old('description') }}</textarea></label>
+                                                <label>{{ __('customer_service_workspace.cases.order_id') }}<select name="order_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($orderOptions as $record)<option value="{{ $record->id }}" @selected((string)old('order_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.cases.invoice_id') }}<select name="invoice_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($invoiceOptions as $record)<option value="{{ $record->id }}" @selected((string)old('invoice_id')===(string)$record->id)>{{ $record->reference }} · {{ $record->customer_name }} · {{ $record->store_name }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.cases.conversation_id') }}<select name="conversation_id"><option value="">{{ __('customer_service_workspace.values.none') }}</option>@foreach($conversationOptions as $record)<option value="{{ $record->id }}" @selected((string)old('conversation_id')===(string)$record->id)>{{ $record->customer_name }} · {{ $record->store_name }} · {{ \Illuminate\Support\Str::limit($record->reference,18) }}</option>@endforeach</select></label>
+                                                <label>{{ __('customer_service_workspace.cases.delivery_reference') }}<input name="delivery_reference" maxlength="120" value="{{ old('delivery_reference') }}"></label>
+                                                <label>{{ __('customer_service_workspace.cases.sla') }}<input type="datetime-local" name="sla_target_at" value="{{ old('sla_target_at') }}"></label>
+                                                <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_service_workspace.cases.create_action') }}</button></div>
+                                            </form>
+                    </div>
+                </div>
+            </div>
             @endif
 
             <div class="cs-case-modal"
@@ -602,6 +637,43 @@ body.cs-inbox-modal-open{overflow:hidden}
         if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
         if (event.data?.type === 'foodex:close-customer-service-inbox') closeInbox();
     });
+})();
+
+(() => {
+    const modal = document.querySelector('[data-create-case-modal]');
+    const openButton = document.querySelector('[data-create-case-modal-open]');
+    const closeButton = modal?.querySelector('[data-create-case-modal-close]');
+    if (!modal || !openButton || !closeButton) return;
+
+    const firstField = modal.querySelector('select[name="store_id"],input:not([type="hidden"]),select,textarea');
+
+    const openModal = () => {
+        modal.hidden = false;
+        document.body.classList.add('cs-create-case-modal-open');
+        requestAnimationFrame(() => {
+            if (firstField instanceof HTMLElement) firstField.focus({preventScroll:true});
+            else closeButton.focus({preventScroll:true});
+        });
+    };
+
+    const closeModal = () => {
+        modal.hidden = true;
+        document.body.classList.remove('cs-create-case-modal-open');
+        openButton.focus({preventScroll:true});
+    };
+
+    openButton.addEventListener('click', openModal);
+    closeButton.addEventListener('click', closeModal);
+    modal.addEventListener('pointerdown', (event) => {
+        if (event.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closeModal();
+    });
+
+    if (!modal.hidden) {
+        document.body.classList.add('cs-create-case-modal-open');
+    }
 })();
 
 (() => {
