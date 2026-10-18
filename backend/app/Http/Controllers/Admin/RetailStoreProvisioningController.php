@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\BuiltInJobRoleCatalog;
 use App\Services\RetailWholesaleAccountService;
 use App\Services\StoreChannelOperationsService;
 use App\Services\StoreLogoService;
@@ -26,6 +27,7 @@ final class RetailStoreProvisioningController extends Controller
 {
     public function __construct(
         private readonly AuditLogger $audit,
+        private readonly BuiltInJobRoleCatalog $jobRoles,
         private readonly TenantContextResolver $tenantContext,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
         private readonly StoreLogoService $logos,
@@ -150,13 +152,31 @@ final class RetailStoreProvisioningController extends Controller
         });
         $stores->setCollection($this->storeChannels->enrichStores($stores->getCollection()));
 
+        $storeRoleOptions = Role::query()
+            ->where('is_active', true)
+            ->where('scope', 'store')
+            ->orderBy('name')
+            ->get();
+
+        $storeRolesByProfile = collect(Store::businessProfiles())->mapWithKeys(
+            fn (string $profile): array => [$profile => $storeRoleOptions
+                ->filter(function (Role $role) use ($profile): bool {
+                    $definition = $this->jobRoles->definition((string) $role->code);
+                    $profiles = is_array($definition) ? (array) ($definition['business_profiles'] ?? []) : [];
+
+                    return $profiles === [] || in_array($profile, $profiles, true);
+                })
+                ->values()],
+        );
+
         return view('admin.retail-stores', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => 'retail_store_provisioning',
             'stores' => $stores,
             'search' => $search,
-            'storeRoles' => Role::query()->where('is_active', true)->where('scope', 'store')->orderBy('name')->get(),
+            'storeRoles' => $storeRoleOptions,
+            'storeRolesByProfile' => $storeRolesByProfile,
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']),
             'priceTiers' => $priceTiers,
             'storeChannelDashboard' => $storeChannelDashboard,
@@ -389,6 +409,11 @@ final class RetailStoreProvisioningController extends Controller
         ]);
 
         $role = Role::query()->whereKey($data['role_id'])->where('is_active', true)->where('scope', 'store')->firstOrFail();
+        abort_unless(
+            $this->jobRoles->isAvailable((string) $role->code, (int) $store->id),
+            422,
+            $this->msg('هذا الدور غير متاح لنوع النشاط المحدد.', 'This role is not available for the selected business profile.'),
+        );
         $managedUser = User::query()->whereKey($data['user_id'])->where('is_active', true)->firstOrFail();
 
         DB::table('user_store_roles')->updateOrInsert(
