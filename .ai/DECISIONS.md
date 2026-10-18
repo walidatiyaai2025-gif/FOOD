@@ -112,3 +112,13 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** unknown/malformed tools fail closed; authorization/consent/schema failures are never converted into permissive fallbacks; provider/tool outages may yield explicit partial answers; AI-disabled/no-tool/provider-failure paths fall back to the existing Assistant; no chain-of-thought is stored; no public API contract changes are introduced by orchestration.
 
 **Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
+
+
+## D-018 — AI security is enforced at provider and tool boundaries, not by prompt trust
+**Decision (#2229 / AI-20, 2026-10-19):** FOODEX treats model/user/RAG text as untrusted and enforces AI-specific security in server code at the outbound provider boundary and the existing `AssistantToolExecutor`. The security layer owns prompt-injection blocking, output/secret filtering, tool/write kill switches, unsafe argument rejection, result minimization and cohort/differencing privacy protection.
+
+**Reason:** prompt wording alone cannot guarantee isolation against malicious user text, poisoned documents, compromised model output or approval spoofing. Controls must remain authoritative even when the model ignores instructions or AI is disabled.
+
+**Consequences:** provider failures/injection degrade to the deterministic Assistant where safe; tool/tenant/consent denial never widens scope; writes remain disabled by default; protected benchmarks require server-emitted privacy metadata; security events record bounded reasons without raw malicious prompts/secrets; no public API contract changes.
+
+**Authority:** `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2229.
