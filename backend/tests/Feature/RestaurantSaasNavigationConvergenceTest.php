@@ -189,7 +189,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $this->assertStringContainsString("\$ovBranches = \$ov['branches'] ?? collect()", $view);
         $this->assertStringNotContainsString('@php\n            $ov = $restaurantOverview;', $view);
         $analyticsDefinition = strpos($view, '$analyticsQuery = array_filter([');
-        $analyticsUsage = strpos($view, "route('admin.smart-ordering.analytics.export',$analyticsQuery)");
+        $analyticsUsage = strpos($view, "route('admin.smart-ordering.analytics.export',\$analyticsQuery)");
         $this->assertNotFalse($analyticsDefinition);
         $this->assertNotFalse($analyticsUsage);
         $this->assertLessThan($analyticsUsage, $analyticsDefinition);
