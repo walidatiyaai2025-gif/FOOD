@@ -21,6 +21,15 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('data-count-target', $view);
         $this->assertStringContainsString("prefers-reduced-motion: reduce", $view);
         $this->assertStringContainsString('window.requestAnimationFrame(tick)', $view);
+        $this->assertStringContainsString('class="foodex-card cs-filter-strip"', $view);
+        $this->assertStringContainsString('class="cs-visually-hidden"', $view);
+        $this->assertStringNotContainsString("customer_service_workspace.dashboard.help", $view);
+        $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString('data-cs-tab="cases"', $view);
+        $this->assertStringContainsString('data-cs-tab="analytics"', $view);
+        $this->assertStringContainsString('data-cs-panel="cases"', $view);
+        $this->assertStringContainsString('data-cs-panel="analytics"', $view);
+        $this->assertStringContainsString('history.replaceState', $view);
 
         foreach ([
             'active_customers',
