@@ -11,7 +11,7 @@ FOODEX treats browser page context and conversation state as hints, never author
 
 ## Signed page context
 
-The server resolves the requested management page into a bounded page context containing the canonical management route/path, domain, channel, active store and authorized entity identifiers. Supported entity identifiers include store, order, customer, driver, product and B2B account references when they are visible inside the caller's current scope.
+The server resolves the requested management page into a bounded page context containing the canonical registered management route/path, domain, channel, active store and authorized entity identifiers. Numeric route parameters such as store/order/customer/driver/product are extracted from Laravel's registered route match; browser-supplied identifiers remain hints only and route-derived identifiers take precedence. Supported entity identifiers include store, order, customer, driver, product and B2B account references when they are visible inside the caller's current scope.
 
 The server returns a short-lived HMAC-authenticated context token that is bound to the authenticated user and includes the resolved locale, role codes, business scope and page context. A token is only a tamper-evident transport envelope. On every later turn its page context is passed back through `AssistantPageContext` and `AiPrincipalContextResolver`, so changed permissions, store access or sell-out consent take effect immediately.
 
