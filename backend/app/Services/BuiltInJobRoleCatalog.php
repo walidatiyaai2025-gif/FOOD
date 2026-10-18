@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleManifestCatalog;
@@ -300,7 +301,11 @@ final class BuiltInJobRoleCatalog
         if (! in_array($definition['level'], ['manager', 'supervisor', 'operator', 'specialist', 'viewer'], true)) {
             throw new RuntimeException('Unsupported built-in role level ['.$definition['code'].'].');
         }
-        $unknownProfiles = array_values(array_diff($definition['business_profiles'], Store::businessProfiles()));
+        $knownBusinessProfiles = array_map(
+            static fn (StoreBusinessProfile $profile): string => $profile->value,
+            StoreBusinessProfile::cases(),
+        );
+        $unknownProfiles = array_values(array_diff($definition['business_profiles'], $knownBusinessProfiles));
         if ($unknownProfiles !== []) {
             throw new RuntimeException('Built-in role ['.$definition['code'].'] references unknown B2C business profiles: '.implode(', ', $unknownProfiles));
         }
