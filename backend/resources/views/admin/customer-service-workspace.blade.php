@@ -9,9 +9,23 @@
 .cs-search,.cs-panel{padding:var(--foodex-space-5)}
 .cs-search form,.cs-filter{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
 .cs-search label,.cs-filter label,.cs-form label{display:grid;gap:6px;font-weight:700}
-.cs-kpis{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,6),minmax(0,1fr));gap:12px}
-.cs-kpi{padding:16px;display:grid;gap:5px;text-decoration:none;color:inherit}
-.cs-kpi strong{font-size:1.55rem}.cs-kpi small{color:var(--foodex-muted)}
+.cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(165px,1fr);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
+.cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:3px solid var(--cs-accent)!important;transition:transform .18s ease,box-shadow .18s ease}
+.cs-kpi:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)}
+.cs-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}
+.cs-kpi-icon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;display:grid;place-items:center;background:var(--cs-accent-soft);color:var(--cs-accent)}
+.cs-kpi-icon .foodex-svg-icon{width:17px;height:17px}
+.cs-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.62rem;font-weight:700;line-height:1.35}
+.cs-kpi-value{align-self:center;font-size:1.55rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--foodex-ink)}
+.cs-kpi-meta{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap}
+.cs-kpi[data-tone="green"]{--cs-accent:#158A3A;--cs-accent-soft:#EAF7EF}
+.cs-kpi[data-tone="blue"]{--cs-accent:#2563EB;--cs-accent-soft:#EFF6FF}
+.cs-kpi[data-tone="violet"]{--cs-accent:#7C3AED;--cs-accent-soft:#F5F3FF}
+.cs-kpi[data-tone="orange"]{--cs-accent:#EA580C;--cs-accent-soft:#FFF7ED}
+.cs-kpi[data-tone="red"]{--cs-accent:#DC2626;--cs-accent-soft:#FEF2F2}
+.cs-kpi[data-tone="amber"]{--cs-accent:#B45309;--cs-accent-soft:#FFFBEB}
+.cs-kpi[data-tone="cyan"]{--cs-accent:#0E7490;--cs-accent-soft:#ECFEFF}
+.cs-kpi[data-tone="rose"]{--cs-accent:#BE123C;--cs-accent-soft:#FFF1F2}
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .cs-chart{padding:var(--foodex-space-5)}.cs-chart h2{margin:0 0 14px;font-size:1rem}
 .cs-bars{display:grid;gap:10px}.cs-bar-row{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
@@ -30,9 +44,9 @@
 .cs-exceptions{display:grid;gap:8px}.cs-exception{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;color:inherit}
 .cs-state{padding:28px;text-align:center}
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
-@media(max-width:1100px){.cs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1100px){.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
-@media(max-width:620px){.cs-kpis,.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
 </style>
 </head>
 <body>
@@ -40,24 +54,33 @@
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
-        <div class="foodex-page-toolbar">
-            <div>
-                <span class="foodex-subtitle">{{ __('customer_service_workspace.eyebrow') }}</span>
-                <h1>{{ __('customer_service_workspace.title') }}</h1>
-                <p>{{ __('customer_service_workspace.subtitle') }}</p>
-            </div>
-        </div>
-
         <div class="cs-shell">
             @if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="foodex-error">{{ $errors->first() }}</div>@endif
 
+            @php($kpiPresentation = [
+                'active_customers' => ['icon' => 'active-users', 'tone' => 'green'],
+                'new_customers' => ['icon' => 'customers', 'tone' => 'blue'],
+                'repeat_customers' => ['icon' => 'reports', 'tone' => 'violet'],
+                'open_cases' => ['icon' => 'orders', 'tone' => 'orange'],
+                'overdue_sla' => ['icon' => 'bell', 'tone' => 'red'],
+                'high_risk_customers' => ['icon' => 'inspector', 'tone' => 'amber'],
+                'unresolved_conversations' => ['icon' => 'mobile', 'tone' => 'cyan'],
+                'recent_complaints' => ['icon' => 'content', 'tone' => 'rose'],
+            ])
             <section class="cs-kpis" aria-label="{{ __('customer_service_workspace.dashboard.kpis') }}">
                 @foreach($dashboard['kpis'] as $metric)
-                    <a class="foodex-card cs-kpi" href="{{ $metric['url'] }}">
-                        <small>{{ __('customer_service_workspace.metrics.'.$metric['key']) }}</small>
-                        <strong>{{ $metric['value'] === null ? '—' : $metric['value'] }}</strong>
-                        <small>{{ __('customer_service_workspace.dashboard.refreshed') }} {{ $metric['last_refresh'] }}</small>
+                    @php($presentation = $kpiPresentation[$metric['key']] ?? ['icon' => 'reports', 'tone' => 'green'])
+                    @php($counterTarget = is_numeric($metric['value']) ? (string) $metric['value'] : null)
+                    <a class="foodex-card cs-kpi" data-tone="{{ $presentation['tone'] }}" href="{{ $metric['url'] }}">
+                        <span class="cs-kpi-head">
+                            <span class="cs-kpi-icon" aria-hidden="true">@include('admin._premium-icon',['name'=>$presentation['icon']])</span>
+                            <span class="cs-kpi-label">{{ __('customer_service_workspace.metrics.'.$metric['key']) }}</span>
+                        </span>
+                        <strong class="cs-kpi-value" aria-label="{{ $metric['value'] === null ? '—' : $metric['value'] }}">
+                            <span aria-hidden="true" data-cs-counter @if($counterTarget !== null) data-count-target="{{ $counterTarget }}" @endif>{{ $metric['value'] === null ? '—' : $metric['value'] }}</span>
+                        </strong>
+                        <small class="cs-kpi-meta">{{ __('customer_service_workspace.dashboard.refreshed') }} {{ $metric['last_refresh'] }}</small>
                     </a>
                 @endforeach
             </section>
@@ -373,5 +396,40 @@
         </div>
     </main>
 </div>
+<script>
+(() => {
+    const counters = document.querySelectorAll('[data-cs-counter][data-count-target]');
+    if (!counters.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    counters.forEach((counter) => {
+        const rawTarget = counter.dataset.countTarget ?? '';
+        const target = Number(rawTarget);
+        if (!Number.isFinite(target)) return;
+
+        const decimalPoint = rawTarget.indexOf('.');
+        const precision = decimalPoint === -1 ? 0 : Math.min(2, rawTarget.length - decimalPoint - 1);
+        const duration = 720;
+        const startedAt = performance.now();
+        counter.textContent = precision > 0 ? (0).toFixed(precision) : '0';
+
+        const tick = (now) => {
+            const progress = Math.min(1, (now - startedAt) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = target * eased;
+            counter.textContent = precision > 0
+                ? current.toFixed(precision)
+                : String(Math.round(current));
+
+            if (progress < 1) {
+                window.requestAnimationFrame(tick);
+            } else {
+                counter.textContent = rawTarget;
+            }
+        };
+
+        window.requestAnimationFrame(tick);
+    });
+})();
+</script>
 </body>
 </html>
