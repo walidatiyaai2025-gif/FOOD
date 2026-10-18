@@ -9,8 +9,9 @@ use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
+use App\Domain\Assistant\Security\AiPrincipalContextResolver;
+use App\Domain\Assistant\Security\AssistantToolExecutor;
 use App\Domain\Assistant\Support\AssistantPageContext;
-use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AssistantRuntimeSettings;
@@ -39,8 +40,9 @@ final class AssistantController extends Controller
 
     public function __construct(
         private readonly AssistantBrainInterface $brain,
-        private readonly AssistantToolRegistry $tools,
         private readonly AssistantPageContext $pageContext,
+        private readonly AiPrincipalContextResolver $principalContext,
+        private readonly AssistantToolExecutor $toolExecutor,
         private readonly AssistantRuntimeSettings $runtimeSettings,
     ) {}
 
@@ -142,6 +144,8 @@ final class AssistantController extends Controller
         $correlationId = (string) Str::uuid();
 
         try {
+            $this->principalContext->resolve($user, $locale, $context, $correlationId);
+
             $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId): array {
                 $locked = AssistantConversation::query()
                     ->whereKey($conversation->getKey())
@@ -171,7 +175,6 @@ final class AssistantController extends Controller
                 $pendingClarification = (bool) ($brainResult->state['pending_clarification'] ?? false);
 
                 if ($brainResult->intent !== null && ! $pendingClarification) {
-                    abort_unless($this->tools->has($brainResult->intent), 422);
                     $entities = $this->toolEntities($brainResult->state);
                     $toolRequest = new AssistantToolRequest(
                         actorUserId: (int) $user->getKey(),
@@ -181,7 +184,11 @@ final class AssistantController extends Controller
                         entities: $entities,
                         context: $context,
                     );
-                    $toolResult = $this->tools->get($brainResult->intent)->execute($toolRequest);
+                    $toolResult = $this->toolExecutor->execute(
+                        $brainResult->intent,
+                        $toolRequest,
+                        $correlationId,
+                    );
                 }
 
                 $cards = $toolResult === null ? $brainResult->cards : $this->cards($brainResult->intent, $locale, $toolResult);
