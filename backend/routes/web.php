@@ -850,6 +850,7 @@ Route::prefix('admin')
         Route::post('/apps/downloads/prepare', [MobileAppDownloadController::class, 'prepare'])->name('mobile-apps.prepare');
         Route::post('/apps/downloads/retry', [MobileAppDownloadController::class, 'retry'])->name('mobile-apps.retry');
         Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
+        Route::get('/settings/assistant/diagnostics.csv', [AssistantSettingsController::class, 'exportDiagnostics'])->middleware('throttle:10,1')->name('assistant-settings.diagnostics.export');
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::put('/settings/assistant/provider', [AssistantSettingsController::class, 'updateProvider'])->name('assistant-settings.provider.update');
         Route::post('/settings/assistant/provider/test', [AssistantSettingsController::class, 'testProvider'])->middleware('throttle:10,1')->name('assistant-settings.provider.test');
