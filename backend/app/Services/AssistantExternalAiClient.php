@@ -47,6 +47,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
     public function __construct(
         private readonly AssistantProviderSettings $settings,
         private readonly AssistantModelRegistry $models,
+        private readonly AssistantObservability $observability,
     ) {}
 
     /**
@@ -321,6 +322,24 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 continue;
             }
 
+            $usage = [
+                'prompt_tokens' => $this->nullableInt(data_get($json, 'usage.prompt_tokens')),
+                'completion_tokens' => $this->nullableInt(data_get($json, 'usage.completion_tokens')),
+                'total_tokens' => $this->nullableInt(data_get($json, 'usage.total_tokens')),
+            ];
+
+            $this->observability->record($request->correlationId, 'provider.result', [
+                'phase' => 'provider',
+                'provider' => 'openai_compatible',
+                'model' => $model,
+                'outcome' => 'success',
+                'latency_ms' => $latency,
+                'fallback' => $index > 0,
+                'prompt_tokens' => $usage['prompt_tokens'],
+                'completion_tokens' => $usage['completion_tokens'],
+                'total_tokens' => $usage['total_tokens'],
+            ]);
+
             return new AssistantProviderResult(
                 ok: true,
                 provider: 'openai_compatible',
@@ -329,11 +348,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 structuredPayload: $structured,
                 toolCalls: $toolCalls,
                 finishReason: $this->nullableString(data_get($json, 'choices.0.finish_reason')),
-                usage: [
-                    'prompt_tokens' => $this->nullableInt(data_get($json, 'usage.prompt_tokens')),
-                    'completion_tokens' => $this->nullableInt(data_get($json, 'usage.completion_tokens')),
-                    'total_tokens' => $this->nullableInt(data_get($json, 'usage.total_tokens')),
-                ],
+                usage: $usage,
                 latencyMs: $latency,
                 fallback: $index > 0,
             );
@@ -652,9 +667,11 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         int $attempt = 1,
         ?string $correlationId = null,
     ): void {
+        $endpoint = $this->redactedEndpoint((string) ($config['api_url'] ?? ''));
+
         Log::info('assistant.provider.request', [
             'provider' => 'openai_compatible',
-            'endpoint' => $this->redactedEndpoint((string) ($config['api_url'] ?? '')),
+            'endpoint' => $endpoint,
             'model' => $model,
             'outcome' => $outcome,
             'status' => $status,
@@ -662,6 +679,20 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             'attempt' => $attempt,
             'fallback' => $fallback,
             'correlation_id' => $correlationId,
+        ]);
+
+        $this->observability->record($correlationId, 'provider.transport', [
+            'phase' => 'provider',
+            'provider' => 'openai_compatible',
+            'model' => $model,
+            'outcome' => $outcome,
+            'status_code' => $status,
+            'latency_ms' => $latencyMs,
+            'fallback' => $fallback,
+            'metadata' => [
+                'attempt' => $attempt,
+                'endpoint' => $endpoint,
+            ],
         ]);
     }
 
