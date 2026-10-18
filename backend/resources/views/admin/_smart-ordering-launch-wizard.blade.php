@@ -251,7 +251,7 @@
     @endif
 
     @if($setupStep==='review')
-    <section class="rl-panel" data-launch-step="review">
+    <section class="rl-panel" id="so-draft-review" data-launch-step="review">
         <div class="rl-panel-title"><div><h2>{{ $launchIsAr?'4. مراجعة كل شيء قبل النشر':'4. Review before publishing' }}</h2><p>{{ $launchIsAr?'راجع الجاهزية والواجهة الفعلية قبل الخطوة الأخيرة.':'Review readiness and the real storefront before the final step.' }}</p></div></div>
 
         @php($quickMenuReturnTo = 'menu_setup')
