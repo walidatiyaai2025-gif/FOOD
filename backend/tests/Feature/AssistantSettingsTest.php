@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
 use App\Domain\Assistant\Data\AssistantBrainRequest;
 use App\Domain\Assistant\Data\AssistantProviderRequest;
+use App\Domain\Assistant\Data\AssistantProviderResult;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Setting;
@@ -461,6 +462,85 @@ class AssistantSettingsTest extends TestCase
             ->assertRedirect(route('admin.assistant-settings.index'))
             ->assertSessionHas('provider_test_error')
             ->assertSessionHas('provider_probe', fn (array $probe): bool => $probe['reachable'] && ! $probe['agent_capable']);
+    }
+
+    public function test_provider_gateway_falls_back_after_malformed_primary_schema(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::sequence()
+                ->push([
+                    'choices' => [[
+                        'message' => ['content' => 'not-json'],
+                    ]],
+                ], 200)
+                ->push([
+                    'choices' => [[
+                        'message' => [
+                            'content' => '{"intent":"orders.lookup","confidence":0.95,"message":"fallback","entities":{"order_id":88}}',
+                        ],
+                    ]],
+                ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'fallback_models' => ['qwen3:1.7b'],
+            'timeout_seconds' => 20,
+            'retry_attempts' => 0,
+        ]);
+
+        $result = app(AssistantExternalAiClient::class)->route(
+            new AssistantBrainRequest(message: 'order 88', locale: 'en'),
+        );
+
+        $this->assertNotNull($result);
+        $this->assertSame(88, $result['entities']['order_id']);
+
+        $models = collect(Http::recorded())
+            ->map(static fn (array $entry): mixed => $entry[0]['model'])
+            ->values()
+            ->all();
+
+        $this->assertSame(['qwen3:4b', 'qwen3:1.7b'], $models);
+    }
+
+    public function test_typed_provider_complete_returns_stable_malformed_failure(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'not-json'],
+                ]],
+            ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+            'retry_attempts' => 0,
+        ]);
+
+        $result = app(AssistantProviderGatewayInterface::class)->complete(
+            new AssistantProviderRequest(
+                systemInstructions: 'Return JSON.',
+                taskInstructions: 'Follow the schema.',
+                userContent: 'test',
+                responseSchema: [
+                    'type' => 'object',
+                    'properties' => ['ok' => ['type' => 'boolean']],
+                    'required' => ['ok'],
+                ],
+                useCase: 'agent_planning',
+            ),
+        );
+
+        $this->assertFalse($result->ok);
+        $this->assertSame(AssistantProviderResult::FAILURE_MALFORMED, $result->failureReason);
+        Http::assertSentCount(1);
     }
 
     public function test_provider_gateway_falls_back_after_primary_5xx(): void
