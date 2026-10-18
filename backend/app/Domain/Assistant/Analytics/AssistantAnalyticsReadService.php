@@ -384,7 +384,7 @@ final readonly class AssistantAnalyticsReadService
             ['assistant.use', ...$permissions],
         );
 
-        $ids = array_shift($sets) ?? [];
+        $ids = array_shift($sets);
         foreach ($sets as $set) {
             $ids = array_values(array_intersect($ids, $set));
         }
