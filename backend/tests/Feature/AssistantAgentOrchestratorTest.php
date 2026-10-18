@@ -205,7 +205,9 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
         $this->assertSame('FAILED', $result->toolExecutions[1]['status']);
         $this->assertSame('TOOL_UNAVAILABLE', $result->toolExecutions[1]['failure_code']);
-        $this->assertCount(1, $result->evidence);
+        $this->assertCount(2, $result->evidence);
+        $this->assertSame('unavailable', $result->evidence[1]['status']);
+        $this->assertSame('TOOL_UNAVAILABLE', $result->evidence[1]['failure_code']);
         $this->assertSame(
             'Sales evidence is available; inventory evidence is unavailable.',
             $result->message,
