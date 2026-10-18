@@ -177,7 +177,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             $this->assertStringContainsString('data-so-settings-tab="'.$tab.'"', $view);
             $this->assertStringContainsString('data-so-settings-panel="'.$tab.'"', $view);
         }
-        $this->assertStringContainsString('data-so-settings-summary', str_replace('class="so-settings-summary"', 'data-so-settings-summary', $view));
+        $this->assertStringContainsString('data-so-settings-summary', $view);
         $this->assertStringContainsString('restaurantManagementCompact = true', $view);
         $this->assertStringContainsString('so-quick-links', $view);
         $this->assertStringContainsString('sessionStorage.setItem(storageKey, name)', $view);
