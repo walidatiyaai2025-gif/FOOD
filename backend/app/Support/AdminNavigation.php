@@ -163,7 +163,7 @@ class AdminNavigation
             Store::BUSINESS_PROFILE_RETAIL_STORE,
         ) !== [];
 
-        if (! $hasRetailWorkspace && ! $isSuperAdmin) {
+        if (! $hasRetailWorkspace) {
             foreach ($groups as &$group) {
                 $group['children'] = array_values(array_filter(
                     $group['children'],
