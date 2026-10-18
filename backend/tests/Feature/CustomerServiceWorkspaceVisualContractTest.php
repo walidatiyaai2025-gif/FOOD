@@ -35,8 +35,8 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('data-cs-tab="analytics"', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
         $this->assertStringContainsString('data-cs-panel="analytics"', $view);
-        $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:80%;max-width:80%;justify-self:start}', $view);
-        $this->assertStringContainsString('@media(max-width:850px){.cs-tab-panel{width:100%;max-width:100%}', $view);
+        $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}', $view);
+        $this->assertStringContainsString('.cs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}', $view);
         $this->assertStringContainsString('history.replaceState', $view);
 
         foreach ([
