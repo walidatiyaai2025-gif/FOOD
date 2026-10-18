@@ -69,7 +69,8 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
     .wa-golden-workspace{grid-template-columns:minmax(0,1fr) minmax(260px,320px)}
     html[dir=ltr] .wa-golden-workspace{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}
     .wa-thread-head{align-items:flex-start;flex-wrap:wrap}
-    .wa-thread-actions{max-width:100%;overflow-x:auto;padding-bottom:2px}
+    .wa-thread-actions{max-width:100%;overflow:visible;padding-bottom:2px}
+    .wa-thread-pane .wa-utility-menu{right:0;left:auto}
     .wa-status{grid-template-columns:repeat(2,minmax(0,1fr))}
     .wa-status>button{grid-column:1/-1}
 }
@@ -82,6 +83,8 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
     .wa-thread-head{min-height:0;padding:12px}
     .wa-thread-customer{min-width:0;flex:1 1 220px}
     .wa-thread-actions{flex:1 1 100%;justify-content:flex-start}
+    html[dir=ltr] .wa-thread-pane .wa-utility-menu{left:0;right:auto}
+    html[dir=rtl] .wa-thread-pane .wa-utility-menu{right:0;left:auto}
     .wa-status{grid-template-columns:minmax(0,1fr)}
     .wa-status>button{grid-column:auto;width:100%}
     .wa-filter-grid{grid-template-columns:minmax(0,1fr)}
