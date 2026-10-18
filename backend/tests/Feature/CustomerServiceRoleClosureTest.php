@@ -120,6 +120,28 @@ final class CustomerServiceRoleClosureTest extends TestCase
         $this->assertTrue($privileged->fresh()->hasRole('B2B_ADMIN'));
     }
 
+    public function test_customer_service_workspace_exposes_total_customer_count_and_admin_routes_land_there(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        app(B2bCustomerService::class)->create(['name' => 'Badge Customer One']);
+        app(B2bCustomerService::class)->create(['name' => 'Badge Customer Two']);
+
+        $this->actingAs($manager)
+            ->get(route('admin.erp.customer-service'))
+            ->assertOk()
+            ->assertViewHas('dashboard', function (array $dashboard): bool {
+                return (int) ($dashboard['total_customers'] ?? 0) >= 2;
+            });
+
+        $this->actingAs($manager)
+            ->get(route('admin.index'))
+            ->assertRedirect(route('admin.erp.customer-service'));
+
+        $this->actingAs($manager)
+            ->get(route('admin.b2b.dashboard'))
+            ->assertRedirect(route('admin.erp.customer-service'));
+    }
+
     public function test_customer_service_roles_can_open_customer_360_in_wholesale_scope(): void
     {
         foreach ([
