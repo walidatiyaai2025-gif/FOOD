@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
@@ -14,6 +15,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\BuiltInJobRoleCatalog;
 use App\Services\RbacManager;
+use App\Services\StoreBusinessProfileService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -137,6 +139,8 @@ final class BuiltInJobRoleCatalogTest extends TestCase
         $actor = $this->superAdmin();
         $target = User::factory()->create(['is_active' => true]);
 
+        app(StoreBusinessProfileService::class)->assign($store, StoreBusinessProfile::RESTAURANT);
+
         $this->enableModule('smart_ordering');
         $this->assertFalse($catalog->isAvailable('RESTAURANT_DIGITAL_MANAGER', $store->id));
 
@@ -181,6 +185,129 @@ final class BuiltInJobRoleCatalogTest extends TestCase
             'store_id' => $store->id,
             'role_id' => $role->id,
         ]);
+    }
+
+    public function test_business_profile_filters_store_roles_and_retail_roles_exclude_restaurant_capabilities(): void
+    {
+        $catalog = app(BuiltInJobRoleCatalog::class);
+        $actor = $this->superAdmin();
+        $retail = $this->retailStore('PROFILE-RETAIL');
+        $restaurant = $this->retailStore('PROFILE-RESTAURANT');
+
+        $this->setBusinessProfile($retail, 'RETAIL_STORE', $actor);
+        $this->setBusinessProfile($restaurant, 'RESTAURANT', $actor);
+
+        $this->assertSame('RETAIL_STORE', $catalog->businessProfileForStore($retail->id));
+        $this->assertSame('RESTAURANT', $catalog->businessProfileForStore($restaurant->id));
+
+        $this->assertTrue($catalog->isAvailable('STORE_STAFF', $retail->id));
+        $this->assertFalse($catalog->isAvailable('STORE_STAFF', $restaurant->id));
+        $this->assertFalse($catalog->isAvailable('RESTAURANT_DIGITAL_MANAGER', $retail->id));
+        $this->assertTrue($catalog->isAvailable('RESTAURANT_DIGITAL_MANAGER', $restaurant->id));
+
+        $this->assertSame(['RETAIL_STORE'], $catalog->definition('STORE_STAFF')['business_profiles']);
+        $this->assertSame(['RESTAURANT'], $catalog->definition('RESTAURANT_DIGITAL_MANAGER')['business_profiles']);
+
+        foreach (['B2C_STORE_ADMIN', 'RETAIL_OPERATIONS'] as $roleCode) {
+            $restaurantCapabilities = collect($catalog->definition($roleCode)['permissions'])
+                ->filter(static fn (string $permission): bool => str_starts_with($permission, 'smart_ordering.'));
+
+            $this->assertTrue($restaurantCapabilities->isEmpty(), $roleCode.' must not grant Restaurant capabilities.');
+        }
+    }
+
+    public function test_cross_profile_grants_are_rejected_and_stale_assignments_grant_nothing(): void
+    {
+        $manager = app(RbacManager::class);
+        $actor = $this->superAdmin();
+        $target = User::factory()->create(['is_active' => true]);
+        $retail = $this->retailStore('PROFILE-GRANT-RETAIL');
+        $restaurant = $this->retailStore('PROFILE-GRANT-RESTAURANT');
+        $this->setBusinessProfile($retail, 'RETAIL_STORE', $actor);
+        $this->setBusinessProfile($restaurant, 'RESTAURANT', $actor);
+
+        $retailRole = Role::query()->where('code', 'STORE_STAFF')->firstOrFail();
+        $restaurantRole = Role::query()->where('code', 'RESTAURANT_DIGITAL_MANAGER')->firstOrFail();
+        $request = Request::create('/admin/security', 'PUT');
+
+        try {
+            $manager->replaceUserRoles(
+                $actor,
+                $target,
+                [],
+                [['store_id' => $retail->id, 'role_id' => $restaurantRole->id]],
+                $request,
+            );
+            $this->fail('Restaurant role must not be assignable to a Retail Store.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('store_roles', $exception->errors());
+            $this->assertStringContainsString('business profile', $exception->errors()['store_roles'][0]);
+        }
+
+        try {
+            $manager->replaceUserRoles(
+                $actor,
+                $target,
+                [],
+                [['store_id' => $restaurant->id, 'role_id' => $retailRole->id]],
+                $request,
+            );
+            $this->fail('Retail role must not be assignable to a Restaurant.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('store_roles', $exception->errors());
+        }
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $target->id,
+            'store_id' => $restaurant->id,
+            'role_id' => $retailRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $fresh = $target->fresh();
+        $this->assertFalse($fresh->hasRole('STORE_STAFF', $restaurant->id));
+        $this->assertFalse($fresh->hasPermission('orders.view', $restaurant->id));
+
+        // Existing mismatched assignments can be retained for audit/migration,
+        // but they remain inert and cannot be newly introduced elsewhere.
+        $manager->replaceUserRoles(
+            $actor,
+            $fresh,
+            [],
+            [['store_id' => $restaurant->id, 'role_id' => $retailRole->id]],
+            $request,
+        );
+        $this->assertFalse($target->fresh()->hasPermission('orders.view', $restaurant->id));
+    }
+
+    public function test_security_role_picker_excludes_cross_profile_builtin_roles(): void
+    {
+        $admin = $this->superAdmin();
+        User::factory()->create(['name' => 'AAA Profile Picker Target', 'is_active' => true]);
+
+        $retail = $this->retailStore('PROFILE-PICKER-RETAIL');
+        $restaurant = $this->retailStore('PROFILE-PICKER-RESTAURANT');
+        $this->setBusinessProfile($retail, 'RETAIL_STORE', $admin);
+        $this->setBusinessProfile($restaurant, 'RESTAURANT', $admin);
+
+        $retailRole = Role::query()->where('code', 'STORE_STAFF')->firstOrFail();
+        $restaurantRole = Role::query()->where('code', 'RESTAURANT_DIGITAL_MANAGER')->firstOrFail();
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.security.index', ['section' => 'users']))
+            ->assertOk()
+            ->getContent();
+
+        $retailRestaurantPattern = '/name="store_role_ids\\['.$retail->id.'\\]\\[\\]"\\s+value="'.$restaurantRole->id.'"/';
+        $restaurantRetailPattern = '/name="store_role_ids\\['.$restaurant->id.'\\]\\[\\]"\\s+value="'.$retailRole->id.'"/';
+        $retailRetailPattern = '/name="store_role_ids\\['.$retail->id.'\\]\\[\\]"\\s+value="'.$retailRole->id.'"/';
+        $restaurantRestaurantPattern = '/name="store_role_ids\\['.$restaurant->id.'\\]\\[\\]"\\s+value="'.$restaurantRole->id.'"/';
+
+        $this->assertSame(0, preg_match($retailRestaurantPattern, $html));
+        $this->assertSame(0, preg_match($restaurantRetailPattern, $html));
+        $this->assertSame(1, preg_match($retailRetailPattern, $html));
+        $this->assertSame(1, preg_match($restaurantRestaurantPattern, $html));
     }
 
     public function test_multiple_roles_and_mixed_global_store_scopes_union_without_cross_channel_leakage(): void
@@ -369,12 +496,29 @@ final class BuiltInJobRoleCatalogTest extends TestCase
         return $user;
     }
 
+    private function setBusinessProfile(Store $store, string $profile, User $actor): void
+    {
+        app(StoreBusinessProfileService::class)->assign($store, StoreBusinessProfile::from($profile));
+
+        if ($profile === 'RESTAURANT') {
+            $this->enableModule('smart_ordering');
+            app(ModuleEntitlementManager::class)->set(
+                'smart_ordering',
+                new EntitlementScope(EntitlementScope::STORE, $store->id),
+                true,
+                null,
+                $actor,
+            );
+        }
+    }
+
     private function retailStore(string $code): Store
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
 
         $store = Store::query()->create([
             'store_type_id' => $typeId,
+            'business_profile' => StoreBusinessProfile::RETAIL_STORE->value,
             'code' => $code,
             'name' => $code,
             'is_active' => true,
