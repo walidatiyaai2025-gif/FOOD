@@ -11,6 +11,7 @@ use App\Services\AdminWhatsAppOtpService;
 use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
 use App\Support\AdminNavigation;
+use App\Support\B2cWorkspaceLandingResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class AdminLoginController extends Controller
 {
     public function __construct(
         private readonly AdminNavigation $navigation,
+        private readonly B2cWorkspaceLandingResolver $workspaceLanding,
         private readonly CredentialAuthenticator $credentials,
         private readonly AuditLogger $audit,
         private readonly AdminSecurityPolicy $securityPolicy,
@@ -47,7 +49,7 @@ class AdminLoginController extends Controller
             $target = $this->targetChannel($user, $preferredChannel);
 
             if ($target !== null) {
-                return redirect()->to($this->navigation->defaultWorkspaceUrl($user, $target));
+                return redirect()->to($this->defaultWorkspaceUrl($user, $target, $request));
             }
         }
 
@@ -256,7 +258,7 @@ class AdminLoginController extends Controller
             ]);
 
             $intended = $this->authorizedIntendedUrl($request, $user);
-            $defaultTarget = $this->navigation->defaultWorkspaceUrl($user, $target);
+            $defaultTarget = $this->defaultWorkspaceUrl($user, $target, $request);
 
             if ($this->securityPolicy->requiresMfa($user)) {
                 $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
@@ -377,7 +379,21 @@ class AdminLoginController extends Controller
             }
         }
 
+        if (! $this->workspaceLanding->allowsIntendedUrl($user, $request, $intended)) {
+            return null;
+        }
+
         return $intended;
+    }
+
+    private function defaultWorkspaceUrl(User $user, string $channel, Request $request): string
+    {
+        if ($channel === 'b2c') {
+            return $this->workspaceLanding->urlFor($user, $request)
+                ?? $this->navigation->defaultWorkspaceUrl($user, $channel);
+        }
+
+        return $this->navigation->defaultWorkspaceUrl($user, $channel);
     }
 
     private function targetChannel(User $user, string $preferred): ?string
