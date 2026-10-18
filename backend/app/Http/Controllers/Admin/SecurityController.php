@@ -202,6 +202,17 @@ final class SecurityController extends Controller
             ];
         });
 
+        $roleOutsideGrantAuthorityIds = $isSuperAdmin
+            ? []
+            : $roles
+                ->filter(fn (Role $role): bool => $role->permissions
+                    ->pluck('code')
+                    ->diff($grantablePermissionCodes ?? collect())
+                    ->isNotEmpty())
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
         $editableRoleIds = $roles
             ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes, $jobRoles): bool {
                 if ($jobRoles->isBuiltIn((string) $role->code)) {
@@ -259,6 +270,7 @@ final class SecurityController extends Controller
             'permissionLabels' => $permissionLabels,
             'permissionGroupLabels' => $permissionGroupLabels,
             'editableRoleIds' => $editableRoleIds,
+            'roleOutsideGrantAuthorityIds' => $roleOutsideGrantAuthorityIds,
             'privilegedPermissionCodes' => [
                 'platform.manage',
                 'security.view',
