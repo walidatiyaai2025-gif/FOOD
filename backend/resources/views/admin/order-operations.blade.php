@@ -6,13 +6,12 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.workspace-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface,#fff);font-size:.75rem;box-shadow:var(--foodex-shadow-sm)}.workspace-context span{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-ink);font-weight:800}.workspace-context .foodex-svg-icon{width:15px;height:15px;color:var(--foodex-green-dark)}
 .order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(118px,1fr));min-width:0;margin:12px 0 16px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
 .order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,#158A3A 0%,#2563EB 18%,#7C3AED 34%,#EA580C 50%,#DC2626 66%,#0891B2 82%,#BE123C 100%);background-size:180% 100%;animation:orderKpiEdge 4.8s linear infinite}
-.order-kpi-item{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF;position:relative;min-width:118px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 13px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
+.order-kpi-item{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF;position:relative;min-width:132px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 12px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
 .order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
 .order-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}.order-kpi-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:17px;height:17px}
-.order-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.63rem;font-weight:800;line-height:1.35}.order-kpi-value{align-self:center;font-size:1.22rem;line-height:1.12;color:var(--foodex-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.order-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.63rem;font-weight:800;line-height:1.35}.order-kpi-value{align-self:center;display:block;width:100%;max-width:100%;font-size:1.22rem;line-height:1.12;color:var(--foodex-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;text-overflow:clip}
 .order-kpi-state{position:absolute;inset-inline-end:10px;bottom:10px;width:7px;height:7px;border-radius:999px;background:var(--foodex-border)}.order-kpi-state[data-state="success"]{background:#16A34A}.order-kpi-state[data-state="warning"]{background:#EA580C}.order-kpi-state[data-state="danger"],.order-kpi-state[data-state="error"]{background:#DC2626}
 .order-kpi-item[data-tone="green"]{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF}.order-kpi-item[data-tone="blue"]{--order-kpi-accent:#2563EB;--order-kpi-soft:#EFF6FF}.order-kpi-item[data-tone="violet"]{--order-kpi-accent:#7C3AED;--order-kpi-soft:#F5F3FF}.order-kpi-item[data-tone="orange"]{--order-kpi-accent:#EA580C;--order-kpi-soft:#FFF7ED}.order-kpi-item[data-tone="red"]{--order-kpi-accent:#DC2626;--order-kpi-soft:#FEF2F2}.order-kpi-item[data-tone="amber"]{--order-kpi-accent:#B45309;--order-kpi-soft:#FFFBEB}.order-kpi-item[data-tone="cyan"]{--order-kpi-accent:#0E7490;--order-kpi-soft:#ECFEFF}.order-kpi-item[data-tone="rose"]{--order-kpi-accent:#BE123C;--order-kpi-soft:#FFF1F2}
 @keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
@@ -40,30 +39,12 @@ $businessLabel = static function ($value): string {
 @endphp
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
+@php($foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters')
 @include('admin._global-header')
-<div class="foodex-page-toolbar"><div><h1>{{ __('order_operations.title') }}</h1></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:.88rem;padding:10px 16px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</div>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 @include('admin._order-new-wizard')
-
-@php
-    $selectedStore = $selectedStoreId === null
-        ? null
-        : collect($availableStores ?? [])->firstWhere('id', $selectedStoreId);
-    $visibleStore = $selectedStore
-        ?? (count($availableStores ?? []) === 1 ? ($availableStores[0] ?? null) : null);
-    $selectedChannelOption = collect($availableChannels ?? [])->firstWhere('code', $selectedChannel);
-    $selectedChannelLabel = $selectedChannelOption['label'] ?? $businessLabel($selectedChannel);
-    $workspaceContextQuery = ['channel' => $selectedChannel];
-    if ($selectedStoreId !== null) {
-        $workspaceContextQuery['store_id'] = $selectedStoreId;
-    }
-@endphp
-<div class="workspace-context" data-order-workspace-context data-channel="{{ $selectedChannel }}" data-store-id="{{ $selectedStoreId ?? '' }}">
-    <span title="{{ __('order_operations.filters.channel') }}">@include('admin._premium-icon',['name'=>'orders']) {{ $selectedChannelLabel }}</span>
-    <span title="{{ __('order_operations.filters.store') }}">@include('admin._premium-icon',['name'=>'storefront']) {{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
-</div>
 
 @if($dashboardVisible)
 @php
@@ -86,6 +67,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'green',
             'label' => __('order_operations.dashboard.kpis.orders'),
             'value' => number_format((int) $dashboard['kpis']['orders']),
+            'raw' => (float) $dashboard['kpis']['orders'],
+            'decimals' => 0,
             'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
         ],
         [
@@ -94,6 +77,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'blue',
             'label' => __('order_operations.dashboard.kpis.recognized_revenue'),
             'value' => $dashboardMoney($dashboard['kpis']['recognized_revenue']),
+            'raw' => $dashboard['kpis']['recognized_revenue'],
+            'decimals' => 2,
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
         ],
         [
@@ -102,6 +87,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'violet',
             'label' => __('order_operations.dashboard.kpis.aov'),
             'value' => $dashboardMoney($dashboard['kpis']['average_order_value']),
+            'raw' => $dashboard['kpis']['average_order_value'],
+            'decimals' => 2,
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
         ],
         [
@@ -110,6 +97,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'orange',
             'label' => __('order_operations.dashboard.kpis.open_orders'),
             'value' => number_format((int) $dashboard['kpis']['open_orders']),
+            'raw' => (float) $dashboard['kpis']['open_orders'],
+            'decimals' => 0,
             'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
         ],
         [
@@ -118,6 +107,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'red',
             'label' => __('order_operations.dashboard.kpis.delayed_orders'),
             'value' => number_format((int) $dashboard['kpis']['delayed_orders']),
+            'raw' => (float) $dashboard['kpis']['delayed_orders'],
+            'decimals' => 0,
             'status' => ['label' => __('order_operations.dashboard.exceptions.delayed'), 'state' => $dashboard['kpis']['delayed_orders'] > 0 ? 'warning' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
         ],
@@ -127,6 +118,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'amber',
             'label' => __('order_operations.dashboard.kpis.awaiting_dispatch'),
             'value' => number_format((int) $dashboard['kpis']['awaiting_dispatch']),
+            'raw' => (float) $dashboard['kpis']['awaiting_dispatch'],
+            'decimals' => 0,
             'status' => ['label' => __('order_operations.dashboard.exceptions.awaiting_dispatch'), 'state' => $dashboard['kpis']['awaiting_dispatch'] > 0 ? 'warning' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'awaiting_dispatch'])),
         ],
@@ -136,6 +129,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'cyan',
             'label' => __('order_operations.dashboard.kpis.payment_exceptions'),
             'value' => number_format((int) $dashboard['kpis']['payment_exceptions']),
+            'raw' => (float) $dashboard['kpis']['payment_exceptions'],
+            'decimals' => 0,
             'status' => ['label' => __('order_operations.dashboard.exceptions.payment'), 'state' => $dashboard['kpis']['payment_exceptions'] > 0 ? 'danger' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'payment'])),
         ],
@@ -145,6 +140,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'rose',
             'label' => __('order_operations.dashboard.kpis.invoice_exceptions'),
             'value' => number_format((int) $dashboard['kpis']['invoice_exceptions']),
+            'raw' => (float) $dashboard['kpis']['invoice_exceptions'],
+            'decimals' => 0,
             'status' => ['label' => __('order_operations.dashboard.exceptions.invoice'), 'state' => $dashboard['kpis']['invoice_exceptions'] > 0 ? 'danger' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'invoice'])),
         ],
@@ -154,6 +151,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'blue',
             'label' => __('order_operations.dashboard.kpis.fulfillment_minutes'),
             'value' => $dashboard['kpis']['average_fulfillment_minutes'] === null ? '—' : number_format((float) $dashboard['kpis']['average_fulfillment_minutes'], 1),
+            'raw' => $dashboard['kpis']['average_fulfillment_minutes'],
+            'decimals' => 1,
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'operations'])),
         ],
         [
@@ -162,6 +161,8 @@ $businessLabel = static function ($value): string {
             'tone' => 'green',
             'label' => __('order_operations.dashboard.kpis.sla'),
             'value' => $dashboard['kpis']['open_within_sla_percent'] === null ? '—' : number_format((float) $dashboard['kpis']['open_within_sla_percent'], 1).'%',
+            'raw' => $dashboard['kpis']['open_within_sla_percent'],
+            'decimals' => 1,
             'status' => ['label' => __('order_operations.dashboard.sla_help'), 'state' => ($dashboard['kpis']['open_within_sla_percent'] ?? 100) >= 90 ? 'success' : 'warning'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
         ],
@@ -170,24 +171,6 @@ $businessLabel = static function ($value): string {
     $statusMax = max(1, (int) collect($dashboard['status_breakdown'])->max('orders'));
 @endphp
 <section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-label="{{ __('order_operations.dashboard.title') }}">
-    @php
-        $moduleDashboardFilters = [
-            'action' => route('admin.operations.orders.index'),
-            'scope_name' => 'store_id',
-            'scope_value' => $selectedStoreId ?? '',
-            'scope_options' => count($availableStores ?? []) > 1
-                ? ['' => __('order_operations.filters.all_authorized')]
-                    + collect($availableStores)->mapWithKeys(fn ($store) => [(string) $store['id'] => $store['name']])->all()
-                : [],
-            'from_value' => $dashboard['period']['from'],
-            'to_value' => $dashboard['period']['to'],
-            'hidden' => ['channel' => $selectedChannel],
-            'reset_url' => route('admin.operations.orders.index', ['channel' => $selectedChannel]),
-            'export_url' => route('admin.reports.export', array_merge($dashboardBaseQuery, ['report' => 'orders', 'format' => 'xlsx'])),
-        ];
-    @endphp
-    @include('admin._module-dashboard-filters', ['moduleDashboardFilters' => $moduleDashboardFilters])
-
     <div class="order-kpi-card" data-order-kpi-card aria-label="{{ __('order_operations.dashboard.title') }}">
         @foreach($dashboardKpis as $metric)
             <a class="order-kpi-item"
@@ -198,7 +181,10 @@ $businessLabel = static function ($value): string {
                     <span class="order-kpi-icon" aria-hidden="true">@include('admin._premium-icon',['name'=>$metric['icon']])</span>
                     <span class="order-kpi-label">{{ $metric['label'] }}</span>
                 </span>
-                <strong class="order-kpi-value foodex-number">{{ $metric['value'] }}</strong>
+                <strong class="order-kpi-value foodex-number"
+                        data-order-counter
+                        data-counter-target="{{ $metric['value'] }}"
+                        @if(is_numeric($metric['raw'] ?? null)) data-counter-raw="{{ $metric['raw'] }}" data-counter-decimals="{{ $metric['decimals'] ?? 0 }}" @endif>{{ $metric['value'] }}</strong>
                 @if(is_array($metric['status'] ?? null))
                     <span class="order-kpi-state"
                           data-state="{{ data_get($metric,'status.state','current') }}"
@@ -788,6 +774,69 @@ $businessLabel = static function ($value): string {
 </main>
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
+<script>
+(() => {
+    const values = [...document.querySelectorAll('[data-order-counter]')];
+    if (!values.length) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const formatLikeTarget = (element, value) => {
+        const target = element.dataset.counterTarget || String(value);
+        const decimals = Number.parseInt(element.dataset.counterDecimals || '0', 10);
+        const formatted = new Intl.NumberFormat(document.documentElement.lang || undefined, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        }).format(value);
+        return target.replace(/[-+]?\d[\d,]*(?:\.\d+)?/, formatted);
+    };
+
+    const fit = (element) => {
+        element.style.fontSize = '';
+        let size = Number.parseFloat(getComputedStyle(element).fontSize);
+        const minimum = 11;
+        let guard = 0;
+        while (element.scrollWidth > element.clientWidth && size > minimum && guard < 24) {
+            size -= .5;
+            element.style.fontSize = size + 'px';
+            guard += 1;
+        }
+    };
+
+    const fitAll = () => values.forEach(fit);
+    const duration = 650;
+
+    values.forEach((element) => {
+        const raw = Number.parseFloat(element.dataset.counterRaw ?? '');
+        if (!Number.isFinite(raw) || reducedMotion) {
+            fit(element);
+            return;
+        }
+
+        const started = performance.now();
+        const tick = (now) => {
+            const progress = Math.min(1, (now - started) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            element.textContent = formatLikeTarget(element, raw * eased);
+            fit(element);
+            if (progress < 1) {
+                window.requestAnimationFrame(tick);
+            } else {
+                element.textContent = element.dataset.counterTarget || element.textContent;
+                fit(element);
+            }
+        };
+
+        element.textContent = formatLikeTarget(element, 0);
+        window.requestAnimationFrame(tick);
+    });
+
+    let resizeFrame = 0;
+    window.addEventListener('resize', () => {
+        window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = window.requestAnimationFrame(fitAll);
+    }, {passive:true});
+})();
+</script>
 </body></html>
 @if($detail)
 <script>
