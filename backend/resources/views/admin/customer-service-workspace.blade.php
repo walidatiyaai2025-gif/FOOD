@@ -10,13 +10,17 @@
 .cs-search form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
 .cs-search label,.cs-form label{display:grid;gap:6px;font-weight:700}
 .cs-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.cs-filter-strip{padding:10px 12px}
-.cs-filter{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);gap:8px;align-items:center;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
-.cs-filter label{display:block;min-width:132px}
-.cs-filter :is(input,select){width:100%;min-height:38px;height:38px;padding-block:0!important}
-.cs-filter .cs-filter-search{min-width:210px}
-.cs-filter .cs-filter-submit{min-width:112px}
-.cs-filter .cs-filter-submit button{width:100%;min-height:38px;height:38px;white-space:nowrap}
+.cs-filter-strip{padding:6px 8px}
+.cs-kpis + .cs-filter-strip{margin-top:calc(-1 * var(--foodex-space-5) + 4px)}
+.cs-filter{display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.cs-filter label{display:block;flex:0 0 auto;min-width:0}
+.cs-filter :is(input,select){width:auto;min-width:0;max-width:180px;min-height:34px;height:34px;padding-block:0!important}
+.cs-filter select{field-sizing:content}
+.cs-filter input[type="date"]{width:138px}
+.cs-filter .cs-filter-search{flex:0 0 auto;min-width:0}
+.cs-filter .cs-filter-search input{width:205px;max-width:205px}
+.cs-filter .cs-filter-submit{flex:0 0 auto;min-width:0}
+.cs-filter .cs-filter-submit button{width:auto;min-height:34px;height:34px;padding-inline:14px;white-space:nowrap}
 .cs-workspace-tabs{display:flex;align-items:center;gap:8px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:thin}
 .cs-workspace-tab{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:0 16px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
 .cs-workspace-tab:hover{transform:translateY(-1px);border-color:#b8d9c2;color:var(--foodex-green-dark)}
@@ -60,7 +64,7 @@
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
 @media(max-width:1100px){.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
-@media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-filter{grid-auto-columns:minmax(145px,74vw)}.cs-filter .cs-filter-search{min-width:74vw}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
 </style>
 </head>
 <body>
