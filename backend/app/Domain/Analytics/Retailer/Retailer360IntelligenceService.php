@@ -228,7 +228,6 @@ final readonly class Retailer360IntelligenceService
             ],
         ];
 
-
         return $result;
     }
 
