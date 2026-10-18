@@ -2,9 +2,9 @@
 
 namespace App\Domain\Analytics\ReadModel;
 
+use App\Domain\Analytics\SellOut\RetailSellOutIngestionService;
 use App\Domain\Analytics\Semantic\MetricDictionary;
 use App\Domain\Analytics\Semantic\SemanticMetricService;
-use App\Domain\Analytics\SellOut\RetailSellOutIngestionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
