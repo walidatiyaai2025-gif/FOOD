@@ -33,6 +33,7 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $registry = app(AssistantToolRegistry::class);
 
         $this->assertTrue($registry->has('analytics.summary'));
+        $this->assertTrue($registry->has('analytics.diagnose'));
         $this->assertTrue($registry->has('support.summary'));
         $this->assertTrue($registry->has('margin.summary'));
 
@@ -52,6 +53,10 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $this->assertSame('1.0', $provider['x-foodex']['schema_version']);
         $this->assertSame(1000, $provider['x-foodex']['row_limit']);
         $this->assertStringContainsString('تجار التجزئة', $provider['function']['description']);
+
+        $diagnostic = $registry->definition('analytics.diagnose');
+        $this->assertSame('DeterministicAnalyticsEngine', $diagnostic->source);
+        $this->assertSame(['reports.view'], $diagnostic->requiredPermissions);
 
         $margin = $registry->definition('margin.summary');
         $this->assertSame(['reports.view', 'catalog.view'], $margin->requiredPermissions);
@@ -195,6 +200,47 @@ final class AssistantTypedToolRegistryTest extends TestCase
         ]);
     }
 
+    public function test_diagnostic_tool_is_audited_scoped_and_returns_computed_guardrails(): void
+    {
+        $store = $this->store('b2c', 'AI-DIAG');
+        $actor = $this->storeUser($store, 'B2C_STORE_ADMIN');
+        $today = CarbonImmutable::now(AnalyticsFactMaterializer::TIMEZONE)->startOfDay();
+        $currentFrom = $today->subDays(2);
+        $previousFrom = $today->subDays(5);
+
+        app(AnalyticsFactMaterializer::class)->rebuild(
+            $previousFrom->toDateString(),
+            $today->toDateString(),
+            [$store],
+        );
+
+        $result = app(AssistantToolExecutor::class)->execute(
+            'analytics.diagnose',
+            $this->request($actor, $store, 'b2c', [
+                'from' => $currentFrom->toDateString(),
+                'to' => $today->toDateString(),
+            ]),
+            'typed-diagnostic',
+        );
+
+        $this->assertSame('analytics.diagnose', $result->data['_tool']['key']);
+        $this->assertSame('DeterministicAnalyticsEngine', $result->data['_tool']['source']);
+        $this->assertSame('foodex.analytics.diagnostic.v1', $result->data['schema_version']);
+        $this->assertSame([$store], $result->data['scope']['store_ids']);
+        $this->assertSame('sufficient', $result->data['evidence']['state']);
+        $this->assertFalse($result->data['guardrails']['model_arithmetic_allowed']);
+        $this->assertFalse($result->data['guardrails']['model_may_override_computed_values']);
+        $this->assertNull($result->data['comparison']['net_revenue']['percent_change']);
+        $this->assertSame(
+            'zero_previous_denominator',
+            $result->data['comparison']['net_revenue']['percent_change_reason'],
+        );
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'assistant.tool.read',
+        ]);
+    }
+
     public function test_retailer_performance_requires_live_sellout_consent_and_revocation_is_immediate(): void
     {
         $wholesaleStore = app(WholesalePrincipal::class)->storeId();
@@ -229,6 +275,11 @@ final class AssistantTypedToolRegistryTest extends TestCase
             $request,
             'typed-consent-denied',
         ));
+        $this->assertSelloutDenied(fn () => app(AssistantToolExecutor::class)->execute(
+            'analytics.diagnose',
+            $request,
+            'diagnostic-consent-denied',
+        ));
 
         app(RetailerSellOutAccessPolicy::class)->grant(
             $retailOwner,
@@ -249,6 +300,15 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $this->assertSame($retailStore, $allowed->data['retailers'][0]['retailer_store_id']);
         $this->assertSame('SELL_OUT', $allowed->data['_tool']['data_class']);
 
+        $diagnostic = app(AssistantToolExecutor::class)->execute(
+            'analytics.diagnose',
+            $request,
+            'diagnostic-consent-allowed',
+        );
+        $this->assertSame('sell_out', $diagnostic->data['flow']);
+        $this->assertSame([$retailStore], $diagnostic->data['scope']['store_ids']);
+        $this->assertFalse($diagnostic->data['guardrails']['model_arithmetic_allowed']);
+
         app(RetailerSellOutAccessPolicy::class)->revoke(
             $retailOwner,
             $retailStore,
@@ -259,6 +319,11 @@ final class AssistantTypedToolRegistryTest extends TestCase
             'retailers.performance',
             $request,
             'typed-consent-revoked',
+        ));
+        $this->assertSelloutDenied(fn () => app(AssistantToolExecutor::class)->execute(
+            'analytics.diagnose',
+            $request,
+            'diagnostic-consent-revoked',
         ));
     }
 
