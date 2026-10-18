@@ -46,8 +46,8 @@ class B2cBusinessProfileFinalCertificationTest extends TestCase
         $this->assertStringContainsString('PROFILE_MODULES', $workspace);
         $this->assertStringNotContainsString("'wholesale_purchases' => 'orders.view'", $workspace);
         $this->assertStringContainsString('BUSINESS_PROFILE_RESTAURANT', $restaurantAccess);
-        $this->assertStringContainsString('BUSINESS_PROFILE_RETAIL_STORE', $landing);
-        $this->assertStringContainsString('BUSINESS_PROFILE_RESTAURANT', $landing);
+        $this->assertStringContainsString('StoreBusinessProfile::RETAIL_STORE', $landing);
+        $this->assertStringContainsString('StoreBusinessProfile::RESTAURANT', $landing);
         $this->assertStringContainsString('data-restaurant-task-first-nav', $launcher);
         $this->assertStringContainsString('admin.restaurant.wholesale-purchases.index', $launcher);
 
