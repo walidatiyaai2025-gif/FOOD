@@ -48,6 +48,68 @@ final class CustomerServiceCaseManager
     }
 
     /**
+     * Mirror the canonical WhatsApp inbox visibility rules so the Customer Service
+     * workspace badge never exposes conversations outside the actor's real inbox.
+     *
+     * @return array{unread_count:int,items:Collection<int,object>}
+     */
+    public function whatsAppInboxSummary(User $actor, int $limit = 12): array
+    {
+        if (
+            ! $actor->hasRole('SUPER_ADMIN')
+            && ! $actor->hasPermission('whatsapp.inbox.view')
+            && ! $actor->hasPermission('whatsapp.conversations.view')
+        ) {
+            return ['unread_count' => 0, 'items' => collect()];
+        }
+
+        $storeIds = $this->storeIdsForPermissions($actor, ['whatsapp.conversations.view']);
+        if (! $actor->hasRole('SUPER_ADMIN') && $storeIds === []) {
+            return ['unread_count' => 0, 'items' => collect()];
+        }
+
+        $base = DB::table('whats_app_conversations as conversations')
+            ->leftJoin('platform_customers as customers', 'customers.id', '=', 'conversations.platform_customer_id')
+            ->leftJoin('stores', 'stores.id', '=', 'conversations.store_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'conversations.primary_agent_id');
+
+        if (! $actor->hasRole('SUPER_ADMIN')) {
+            $base->whereIn('conversations.store_id', $storeIds);
+
+            if (! $actor->hasPermission('whatsapp.customer_service.supervise')) {
+                $base->where(function ($visibility) use ($actor): void {
+                    $visibility
+                        ->whereNull('conversations.primary_agent_id')
+                        ->orWhere('conversations.primary_agent_id', $actor->getKey());
+                });
+            }
+        }
+
+        $unreadCount = (int) (clone $base)->sum('conversations.unread_count');
+
+        $items = (clone $base)
+            ->where('conversations.unread_count', '>', 0)
+            ->orderByRaw('CASE WHEN conversations.primary_agent_id IS NULL THEN 0 ELSE 1 END')
+            ->orderByDesc('conversations.unread_count')
+            ->orderByDesc('conversations.updated_at')
+            ->limit(max(1, min(20, $limit)))
+            ->get([
+                'conversations.id',
+                'conversations.status',
+                'conversations.unread_count',
+                'conversations.updated_at',
+                'customers.name as customer_name',
+                'stores.name as store_name',
+                'agents.name as agent_name',
+            ]);
+
+        return [
+            'unread_count' => $unreadCount,
+            'items' => $items,
+        ];
+    }
+
+    /**
      * @param  array<string,mixed>  $filters
      * @return array<string,mixed>
      */
