@@ -50,8 +50,12 @@
 .cs-kpi[data-tone="rose"]{--cs-accent:#BE123C;--cs-accent-soft:#FFF1F2}
 .cs-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .cs-chart{padding:var(--foodex-space-5)}.cs-chart h2{margin:0 0 14px;font-size:1rem}
-.cs-bars{display:grid;gap:10px}.cs-bar-row{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
-.cs-bar-track{height:9px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.cs-bar{height:100%;background:var(--foodex-green-dark);border-radius:999px}
+.cs-bars{display:grid;gap:10px}.cs-bar-row{--cs-bar-a:#16A34A;--cs-bar-b:#22C55E;display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
+.cs-bar-row:nth-child(6n+2){--cs-bar-a:#2563EB;--cs-bar-b:#60A5FA}.cs-bar-row:nth-child(6n+3){--cs-bar-a:#7C3AED;--cs-bar-b:#A78BFA}.cs-bar-row:nth-child(6n+4){--cs-bar-a:#EA580C;--cs-bar-b:#FB923C}.cs-bar-row:nth-child(6n+5){--cs-bar-a:#DC2626;--cs-bar-b:#F87171}.cs-bar-row:nth-child(6n){--cs-bar-a:#0891B2;--cs-bar-b:#22D3EE}
+.cs-bar-track{height:9px;border-radius:999px;background:var(--foodex-background);overflow:hidden}
+.cs-bar{width:var(--cs-bar-width,0%);height:100%;border-radius:999px;background:linear-gradient(90deg,var(--cs-bar-a) 0%,var(--cs-bar-b) 45%,var(--cs-bar-a) 100%);background-size:220% 100%;transform:scaleX(0);transform-origin:inline-start;animation:csBarFill .82s cubic-bezier(.2,.8,.2,1) forwards,csBarFlow 1.6s linear infinite}
+.cs-bar-row:nth-child(2) .cs-bar{animation-delay:.05s,0s}.cs-bar-row:nth-child(3) .cs-bar{animation-delay:.10s,0s}.cs-bar-row:nth-child(4) .cs-bar{animation-delay:.15s,0s}.cs-bar-row:nth-child(5) .cs-bar{animation-delay:.20s,0s}.cs-bar-row:nth-child(6) .cs-bar{animation-delay:.25s,0s}
+@keyframes csBarFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes csBarFlow{from{background-position:0 0}to{background-position:220% 0}}
 .cs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .cs-card{padding:var(--foodex-space-5);display:grid;gap:12px;align-content:start;min-height:170px}
 .cs-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -69,7 +73,7 @@
 @media(max-width:1100px){.cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
-@media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before,.cs-bar{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}.cs-bar{transform:scaleX(1)!important}}
 </style>
 </head>
 <body>
@@ -142,10 +146,10 @@
                 </form>
             </section>
 
-            @php($defaultWorkspaceTab = $selectedCase ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'cases'))
+            @php($defaultWorkspaceTab = ($selectedCase || old('platform_customer_id')) ? 'cases' : (($canManageTeam && old('role_code')) ? 'team' : 'analytics'))
             <nav class="cs-workspace-tabs" role="tablist" aria-label="{{ __('customer_service_workspace.tabs.label') }}" data-cs-tabs data-default-tab="{{ $defaultWorkspaceTab }}">
-                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="true" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }}</button>
-                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="analytics">{{ __('customer_service_workspace.tabs.analytics') }}</button>
+                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="true" data-cs-tab="analytics">{{ __('customer_service_workspace.tabs.analytics') }}</button>
+                <button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="cases">{{ __('customer_service_workspace.tabs.cases') }}</button>
                 @if($canCustomers)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="customers">{{ __('customer_service_workspace.tabs.customers') }}</button>@endif
                 @if($canManageTeam)<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="team">{{ __('customer_service_workspace.tabs.team') }}</button>@endif
                 @if($capabilities->isNotEmpty())<button class="cs-workspace-tab" type="button" role="tab" aria-selected="false" data-cs-tab="tools">{{ __('customer_service_workspace.tabs.tools') }}</button>@endif
@@ -161,10 +165,10 @@
                         <div class="cs-bars">
                             @forelse($chart as $row)
                                 @if($chartKey==='customer_growth')
-                                    <div class="cs-bar-row"><span>{{ $row['label'] }}</span><div class="cs-bar-track"><div class="cs-bar" style="width:{{ min(100,((float)$row['new']/$max)*100) }}%"></div></div><strong>{{ $row['new'] }} / {{ $row['repeat'] }}</strong></div>
+                                    <div class="cs-bar-row"><span>{{ $row['label'] }}</span><div class="cs-bar-track"><div class="cs-bar" style="--cs-bar-width:{{ min(100,((float)$row['new']/$max)*100) }}%"></div></div><strong>{{ $row['new'] }} / {{ $row['repeat'] }}</strong></div>
                                 @else
                                     @php($value=(float)($row['value']??0))
-                                    <div class="cs-bar-row"><span>{{ __('customer_service_workspace.values.'.$row['label']) !== 'customer_service_workspace.values.'.$row['label'] ? __('customer_service_workspace.values.'.$row['label']) : $row['label'] }}</span><div class="cs-bar-track"><div class="cs-bar" style="width:{{ min(100,($value/$max)*100) }}%"></div></div><strong>{{ $value }}</strong></div>
+                                    <div class="cs-bar-row"><span>{{ __('customer_service_workspace.values.'.$row['label']) !== 'customer_service_workspace.values.'.$row['label'] ? __('customer_service_workspace.values.'.$row['label']) : $row['label'] }}</span><div class="cs-bar-track"><div class="cs-bar" style="--cs-bar-width:{{ min(100,($value/$max)*100) }}%"></div></div><strong>{{ $value }}</strong></div>
                                 @endif
                             @empty
                                 <div class="foodex-state">{{ __('customer_service_workspace.dashboard.no_data') }}</div>
