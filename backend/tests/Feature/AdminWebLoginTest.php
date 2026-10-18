@@ -208,21 +208,24 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_customer_service_agent_login_always_lands_on_b2b_dashboard(): void
+    public function test_customer_service_supervisor_and_agent_login_always_land_on_b2b_dashboard(): void
     {
-        $user = $this->userWithGlobalRole('CUSTOMER_SERVICE_AGENT');
+        foreach (['CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+            $user = $this->userWithGlobalRole($roleCode);
 
-        $this->post('/admin/b2b/login', [
-            'email' => $user->email,
-            'password' => 'correct-password',
-        ])->assertRedirect(route('admin.b2b.dashboard'));
+            $this->post('/admin/b2b/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])->assertRedirect(route('admin.b2b.dashboard'));
 
-        $this->assertAuthenticatedAs($user);
+            $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
+            $this->assertGuest();
+        }
     }
 
     public function test_customer_service_dashboard_roles_ignore_stale_intended_workspace_after_login(): void
     {
-        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
             $user = $this->userWithGlobalRole($roleCode);
             $intended = route('admin.erp.customer-service');
 
