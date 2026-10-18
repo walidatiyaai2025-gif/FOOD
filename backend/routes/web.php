@@ -762,6 +762,7 @@ Route::prefix('admin')
         Route::patch('/operations/orders/{order}', [OrderOperationsController::class, 'update'])->whereNumber('order')->name('operations.orders.update');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
+        Route::patch('/operations/orders/{order}/customer-service-owner', [OrderOperationsController::class, 'assignCustomerServiceOwner'])->whereNumber('order')->middleware('throttle:30,1')->name('operations.orders.customer-service-owner');
         Route::patch('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'dispatch'])->whereNumber('order')->name('operations.orders.dispatch');
         Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
