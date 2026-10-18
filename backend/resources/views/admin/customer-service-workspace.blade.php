@@ -28,8 +28,12 @@
 .cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}
 .cs-tab-panel[hidden]{display:none!important}
 .cs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,165px);gap:10px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:1px 1px 4px;scrollbar-width:thin}
-.cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:3px solid var(--cs-accent)!important;transition:transform .18s ease,box-shadow .18s ease}
-.cs-kpi:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)}
+.cs-kpi{--cs-accent:var(--foodex-green);--cs-accent-soft:var(--foodex-green-soft);position:relative;min-height:122px;padding:12px 13px;display:grid;grid-template-rows:auto 1fr auto;gap:6px;text-decoration:none;color:inherit;border-top:0!important;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease;animation:csKpiEnter .46s cubic-bezier(.2,.8,.2,1) both}
+.cs-kpi::before{content:"";position:absolute;inset-inline:0;top:0;height:3px;background:linear-gradient(90deg,var(--cs-accent) 0%,var(--cs-accent-soft) 35%,var(--cs-accent) 65%,var(--cs-accent-soft) 100%);background-size:220% 100%;animation:csKpiStripe 2.4s linear infinite}
+.cs-kpi:hover{transform:translateY(-4px) scale(1.015);box-shadow:0 12px 28px rgba(15,23,42,.12)}
+.cs-kpi:nth-child(2){animation-delay:.04s}.cs-kpi:nth-child(3){animation-delay:.08s}.cs-kpi:nth-child(4){animation-delay:.12s}.cs-kpi:nth-child(5){animation-delay:.16s}.cs-kpi:nth-child(6){animation-delay:.20s}.cs-kpi:nth-child(7){animation-delay:.24s}.cs-kpi:nth-child(8){animation-delay:.28s}
+@keyframes csKpiStripe{0%{background-position:0 0}100%{background-position:220% 0}}
+@keyframes csKpiEnter{0%{opacity:0;transform:translateY(10px) scale(.985)}100%{opacity:1;transform:translateY(0) scale(1)}}
 .cs-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}
 .cs-kpi-icon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;display:grid;place-items:center;background:var(--cs-accent-soft);color:var(--cs-accent)}
 .cs-kpi-icon .foodex-svg-icon{width:17px;height:17px}
@@ -65,6 +69,7 @@
 @media(max-width:1100px){.cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
+@media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}}
 </style>
 </head>
 <body>
