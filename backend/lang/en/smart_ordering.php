@@ -148,6 +148,12 @@ return [
         'preview_title' => 'Smart Ordering live preview',
         'empty' => 'Enter a restaurant public key to start the live preview.',
         'themes' => [
+            'fine-dining-elegant-light' => ['label' => 'Fine Dining — Elegant Light', 'layout' => 'Editorial dining'],
+            'fine-dining-dark-luxury' => ['label' => 'Fine Dining — Dark Luxury', 'layout' => 'Featured editorial'],
+            'contemporary-bistro' => ['label' => 'Contemporary Bistro', 'layout' => 'Thumbnail grid'],
+            'premium-arabic-dining' => ['label' => 'Premium Arabic Dining', 'layout' => 'RTL-first editorial'],
+            'modern-minimal' => ['label' => 'Modern Minimal Restaurant', 'layout' => 'Minimal list'],
+            'chef-tasting' => ['label' => 'Chef / Tasting Menu', 'layout' => 'Course timeline'],
             'quick-bite' => ['label' => 'Quick Bite', 'layout' => 'Fast ordering'],
             'elegant-dining' => ['label' => 'Elegant Dining', 'layout' => 'Editorial dining'],
             'cafe-bakery' => ['label' => 'Café & Bakery', 'layout' => 'Modifier-forward café'],
