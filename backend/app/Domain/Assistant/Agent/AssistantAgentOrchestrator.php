@@ -606,6 +606,12 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         string $status,
         int $startedAt,
     ): string {
+        if ($this->knowledgeEvidenceInsufficient($results)) {
+            return str_starts_with(strtolower($request->locale), 'ar')
+                ? 'لا توجد أدلة كافية في مصادر FOODEX المعتمدة للإجابة على سؤال المستندات هذا.'
+                : 'There is not enough approved FOODEX source evidence to answer this document question safely.';
+        }
+
         $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt);
         if ($timeoutSeconds === null) {
             return $this->withKnowledgeCitations(
@@ -860,6 +866,22 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         }
 
         return str_replace('__', '.', $name);
+    }
+
+    /**
+     * @param  array<string,array<string,mixed>>  $results
+     */
+    private function knowledgeEvidenceInsufficient(array $results): bool
+    {
+        if (count($results) !== 1 || ! isset($results['knowledge.search']) || ! is_array($results['knowledge.search'])) {
+            return false;
+        }
+
+        $knowledge = $results['knowledge.search'];
+
+        return ($knowledge['answerable'] ?? false) !== true
+            || ! is_array($knowledge['sources'] ?? null)
+            || $knowledge['sources'] === [];
     }
 
     /**
