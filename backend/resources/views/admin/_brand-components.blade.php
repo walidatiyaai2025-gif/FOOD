@@ -26,8 +26,15 @@
     .foodex-global-header{position:relative;z-index:60;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,560px) minmax(0,1fr);align-items:center;gap:var(--foodex-header-gap);width:100%;max-width:100%;min-width:0;height:var(--foodex-header-height);min-height:var(--foodex-header-height);max-height:var(--foodex-header-height);margin-bottom:12px;padding:5px 8px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px;box-shadow:var(--foodex-shadow-sm)}
     .foodex-global-header>*{min-width:0}
     .foodex-global-header-spacer{display:block;width:100%;min-width:0}
-    .foodex-global-header-search{min-width:0;width:100%;justify-self:center}
+    .foodex-global-header-center{grid-column:2;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;width:100%;margin-inline:auto}
+    .foodex-global-header-search{min-width:180px;width:100%;justify-self:center}
+    .foodex-global-header-extra{display:flex;align-items:center;min-width:0;flex:0 0 auto}
+    .foodex-global-header--with-extra{grid-template-columns:minmax(0,.45fr) minmax(720px,1100px) minmax(0,.45fr)}
+    .foodex-global-header--with-extra .foodex-global-header-search{flex:1 1 360px;max-width:460px}
+    .foodex-global-header--with-extra .foodex-global-header-extra{flex:0 1 auto;max-width:650px}
     .foodex-global-header-utilities{justify-self:end;display:flex;align-items:center;min-width:0}
+    @media(max-width:1250px){.foodex-global-header--with-extra{grid-template-columns:minmax(0,1fr) minmax(420px,760px) minmax(0,1fr)}.foodex-global-header--with-extra .foodex-global-header-search{max-width:520px}}
+    @media(max-width:767px){.foodex-global-header-center{grid-column:2;gap:5px}.foodex-global-header--with-extra{grid-template-columns:36px minmax(0,1fr) auto}.foodex-global-header--with-extra .foodex-global-header-search{min-width:0;max-width:none}.foodex-global-header--with-extra .foodex-global-header-extra{max-width:none}}
     .foodex-page-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-3);width:100%;max-width:100%;min-width:0;margin-bottom:var(--foodex-space-4);padding:0;overflow:visible}
     .foodex-page-toolbar>*{min-width:0}
     .foodex-page-toolbar>*:has(>h1){min-width:0}
