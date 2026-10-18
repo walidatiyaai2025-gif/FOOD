@@ -342,7 +342,9 @@ $businessLabel = static function ($value): string {
     </div>
     </div>
 </section>
-@else
+@endif
+
+@if(!$dashboardVisible)
 <nav class="order-workspace-tabs"
      role="tablist"
      aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
