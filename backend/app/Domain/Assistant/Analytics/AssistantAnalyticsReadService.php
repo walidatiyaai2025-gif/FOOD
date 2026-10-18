@@ -218,7 +218,11 @@ final readonly class AssistantAnalyticsReadService
     private function supportSummary(AssistantToolRequest $request): AssistantToolResult
     {
         $actor = $this->actor($request);
-        $allowed = $this->customerService->viewStoreIds($actor);
+        $allowed = array_values(array_intersect(
+            $this->customerService->viewStoreIds($actor),
+            $this->scope->allowedStoreIds($actor, 'assistant.use', $request->channel),
+        ));
+        sort($allowed);
         abort_if($allowed === [], 403);
 
         if ($request->storeId !== null) {
