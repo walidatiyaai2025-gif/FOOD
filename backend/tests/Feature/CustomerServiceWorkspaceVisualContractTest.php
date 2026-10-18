@@ -54,6 +54,13 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString("@php(\$customerCount = (int) (\$dashboard['total_customers'] ?? 0))", $view);
         $this->assertStringContainsString('cs-tab-count info', $view);
         $this->assertStringContainsString('.cs-tab-count.info{background:#DBEAFE', $view);
+        $this->assertStringContainsString('data-cs-tab="inbox"', $view);
+        $this->assertStringContainsString('data-cs-panel="inbox"', $view);
+        $this->assertStringContainsString("@php(\$inboxUnreadCount = (int) (\$inboxSummary['unread_count'] ?? 0))", $view);
+        $this->assertStringContainsString('@if($inboxUnreadCount > 0)<span class="cs-tab-count unread"', $view);
+        $this->assertStringContainsString('.cs-tab-count.unread{background:#FEE2E2', $view);
+        $this->assertStringContainsString('customer_service_workspace.inbox.open_full', $view);
+        $this->assertStringContainsString('route(\'admin.whatsapp-inbox.index\',[\'conversation\'=>$conversation->id])', $view);
         $this->assertStringContainsString('data-case-modal-link', $view);
         $this->assertStringContainsString('data-case-modal-content', $view);
         $this->assertStringContainsString('data-case-modal-close', $view);
