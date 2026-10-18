@@ -129,6 +129,13 @@ final class SmartOrderingThemePreviewController extends Controller
 
         $selection->selectDraft($actor, $site, $theme, $request);
 
+        if ($request->input('return_to') === 'menu_setup') {
+            return redirect()->route('admin.smart-ordering.menu.index', [
+                'store_id' => $site->store_id,
+                'setup' => 'identity',
+            ])->with('status', __('smart_ordering.appearance.template_applied'));
+        }
+
         return redirect()->route('admin.smart-ordering.appearance.index', array_filter([
             'site' => $siteKey,
             'theme' => $theme,
