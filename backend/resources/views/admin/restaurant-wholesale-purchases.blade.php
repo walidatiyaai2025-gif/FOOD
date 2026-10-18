@@ -17,8 +17,8 @@
         .rw-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
         .rw-control,.rw-btn{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);padding:0 12px;color:inherit}
         .rw-btn{display:inline-flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer}
-        .rw-btn-primary{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff}
-        .rw-btn-danger{color:#a82828}
+        .rw-btn-action{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff}
+        .rw-btn-danger{color:var(--foodex-danger-text)}
         .rw-status{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--foodex-green-soft);font-weight:700}
         .rw-tabs{display:flex;gap:6px;overflow:auto;padding:5px;margin:0 0 14px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface)}
         .rw-tab{min-height:40px;display:inline-flex;align-items:center;padding:0 14px;border-radius:9px;white-space:nowrap;font-weight:800;color:var(--foodex-muted)}
@@ -112,7 +112,7 @@
                 <div class="rw-empty">{{ __('restaurant_wholesale.empty.catalog') }}</div>
             @else
                 <div class="rw-table-wrap">
-                    <table>
+                    <table data-pagination-exempt="bounded-operational-or-canonical-buyer-snapshot">
                         <thead><tr>
                             <th>{{ __('restaurant_wholesale.columns.product') }}</th>
                             <th>{{ __('restaurant_wholesale.columns.price') }}</th>
@@ -137,7 +137,7 @@
                                                step="{{ $product['ordering_increment'] ?? 0.001 }}"
                                                value="{{ $product['minimum_order_quantity'] ?? $product['minimum_quantity'] ?? 1 }}"
                                                required>
-                                        <button class="rw-btn rw-btn-primary" type="submit">{{ __('restaurant_wholesale.catalog.add') }}</button>
+                                        <button class="rw-btn rw-btn-action" type="submit">{{ __('restaurant_wholesale.catalog.add') }}</button>
                                     </form>
                                 </td>
                             </tr>
@@ -158,7 +158,7 @@
                 <div class="rw-empty">{{ __('restaurant_wholesale.empty.cart') }}</div>
             @else
                 <div class="rw-table-wrap">
-                    <table>
+                    <table data-pagination-exempt="bounded-operational-or-canonical-buyer-snapshot">
                         <thead><tr>
                             <th>{{ __('restaurant_wholesale.columns.product') }}</th>
                             <th>{{ __('restaurant_wholesale.columns.quantity') }}</th>
@@ -233,7 +233,7 @@
                         <textarea id="rw-note" name="note" maxlength="1000"></textarea>
                     </div>
                     <div class="rw-checkout-actions">
-                        <button class="rw-btn rw-btn-primary" type="submit" @disabled($addresses->isEmpty())>{{ __('restaurant_wholesale.checkout.submit') }}</button>
+                        <button class="rw-btn rw-btn-action" type="submit" @disabled($addresses->isEmpty())>{{ __('restaurant_wholesale.checkout.submit') }}</button>
                     </div>
                 </form>
             @endif
@@ -246,7 +246,7 @@
             @if($orders->isEmpty())
                 <div class="rw-empty">{{ __('restaurant_wholesale.empty.orders') }}</div>
             @else
-                <div class="rw-table-wrap"><table>
+                <div class="rw-table-wrap"><table data-pagination-exempt="bounded-operational-or-canonical-buyer-snapshot">
                     <thead><tr>
                         <th>{{ __('restaurant_wholesale.columns.order') }}</th><th>{{ __('restaurant_wholesale.columns.status') }}</th>
                         <th>{{ __('restaurant_wholesale.columns.items') }}</th><th>{{ __('restaurant_wholesale.columns.total') }}</th>
@@ -275,7 +275,7 @@
             @if($invoices->isEmpty())
                 <div class="rw-empty">{{ __('restaurant_wholesale.empty.invoices') }}</div>
             @else
-                <div class="rw-table-wrap"><table>
+                <div class="rw-table-wrap"><table data-pagination-exempt="bounded-operational-or-canonical-buyer-snapshot">
                     <thead><tr>
                         <th>{{ __('restaurant_wholesale.columns.invoice') }}</th><th>{{ __('restaurant_wholesale.columns.order') }}</th>
                         <th>{{ __('restaurant_wholesale.columns.status') }}</th><th>{{ __('restaurant_wholesale.columns.total') }}</th>
@@ -304,7 +304,7 @@
             @if($supplyStatuses->isEmpty())
                 <div class="rw-empty">{{ __('restaurant_wholesale.empty.delivery') }}</div>
             @else
-                <div class="rw-table-wrap"><table>
+                <div class="rw-table-wrap"><table data-pagination-exempt="bounded-operational-or-canonical-buyer-snapshot">
                     <thead><tr>
                         <th>{{ __('restaurant_wholesale.columns.order') }}</th><th>{{ __('restaurant_wholesale.columns.status') }}</th>
                         <th>{{ __('restaurant_wholesale.columns.delivery_date') }}</th><th>{{ __('restaurant_wholesale.columns.receipt') }}</th>
