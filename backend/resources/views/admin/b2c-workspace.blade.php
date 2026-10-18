@@ -46,6 +46,21 @@
         .dashboard-tab{min-height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:calc(var(--foodex-radius-control) - 4px);font-weight:var(--foodex-font-weight-bold);font-size:var(--foodex-text-sm);color:var(--foodex-muted);white-space:nowrap}
         .dashboard-tab:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .dashboard-tab.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.16)}
+        .retail-dashboard-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:var(--foodex-space-3)}
+        .retail-dashboard-nav .dashboard-tabs{margin:0;min-width:0}
+        .dashboard-assistant-button{min-height:44px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--foodex-green);border-radius:var(--foodex-radius-control);background:var(--foodex-green-soft);color:var(--foodex-green-dark);padding:0 14px;font-weight:800;cursor:pointer;white-space:nowrap}
+        .dashboard-assistant-button:hover{background:var(--foodex-green);color:#fff}
+        .dashboard-assistant-drawer[hidden]{display:none}
+        .dashboard-assistant-drawer{position:fixed;inset:0;z-index:80;display:block}
+        .dashboard-assistant-backdrop{position:absolute;inset:0;border:0;background:rgba(15,23,42,.38);cursor:pointer}
+        .dashboard-assistant-panel{position:absolute;inset-block:0;inset-inline-end:0;width:min(760px,94vw);background:var(--foodex-background);border-inline-start:1px solid var(--foodex-border);box-shadow:-18px 0 42px rgba(15,23,42,.18);display:flex;flex-direction:column;min-width:0}
+        html[dir=ltr] .dashboard-assistant-panel{box-shadow:18px 0 42px rgba(15,23,42,.18)}
+        .dashboard-assistant-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border)}
+        .dashboard-assistant-head strong{display:block;font-size:1rem}.dashboard-assistant-head small{display:block;color:var(--foodex-muted);font-size:.68rem;margin-top:2px}
+        .dashboard-assistant-close{width:38px;height:38px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);font-size:1.35rem;cursor:pointer}
+        .dashboard-assistant-body{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 14px 18px}
+        .dashboard-assistant-body .merchant-intelligence{margin-top:10px}
+        html.dashboard-assistant-open{overflow:hidden}
         .headline{display:flex;justify-content:space-between;align-items:end;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
         .headline h1{margin:0 0 4px;font-size:clamp(1.55rem,2.2vw,1.9rem);font-weight:var(--foodex-font-weight-bold);line-height:var(--foodex-leading-tight)}
         .headline p{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
@@ -210,6 +225,7 @@
             .top-actions{gap:8px}
             .content{padding:12px}
             .dashboard-tabs{margin-bottom:12px;padding:4px}.dashboard-tab{min-height:44px;padding-inline:12px;font-size:.8rem}
+            .retail-dashboard-nav{align-items:stretch;gap:8px}.retail-dashboard-nav .dashboard-tabs{margin:0;flex:1}.dashboard-assistant-button{min-width:48px;padding-inline:11px}.dashboard-assistant-button span:last-child{display:none}
             .headline{align-items:stretch;flex-direction:column;gap:10px;margin-bottom:12px}
             .headline h1{font-size:1.35rem}.headline p{font-size:.8rem}
             .date-control{order:2;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:6px;padding:6px}
@@ -245,7 +261,11 @@
 <body>
 @if($module === 'dashboard' && $dashboard)
 @php
-    $dashboardTab = request('dashboard_tab') === 'assistant' ? 'assistant' : 'overview';
+    $dashboardTabs = ['overview', 'sales', 'inventory', 'customers', 'analytics'];
+    $requestedDashboardTab = (string) request('dashboard_tab', 'overview');
+    $dashboardTab = $requestedDashboardTab === 'assistant'
+        ? 'inventory'
+        : (in_array($requestedDashboardTab, $dashboardTabs, true) ? $requestedDashboardTab : 'overview');
     $dashboardTabBase = [
         'store_id' => $storeId,
         'from' => $dashboard['selected_from'],
@@ -257,40 +277,10 @@
 @endphp
 <div class="dashboard-layout" data-golden-dashboard="ph06" data-dashboard-geometry="physical-ltr">
     <section class="dashboard-shell">
-        <header class="topbar">
-            <a class="profile" href="{{ route('admin.profile.index') }}" style="text-decoration:none;color:inherit">
-                <div class="avatar">{{ mb_substr($user->name, 0, 1) }}</div>
-                <div><strong>{{ $user->name }}</strong><small>{{ __('admin.b2c_dashboard.system_manager') }}</small></div>
-            </a>
-            <form class="global-search" data-foodex-dashboard-header-search method="get" action="{{ route('admin.b2c.dashboard') }}">
-                <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
-                <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
-                <input type="hidden" name="store_id" value="{{ $storeId }}">
-                <input type="hidden" name="dashboard_tab" value="{{ $dashboardTab }}">
-                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
-                <span class="search-icon">@include('admin._premium-icon',['name'=>'search'])</span>
-                @if(request('q') && count($dashboard['search']))
-                <div class="search-results">
-                    @foreach($dashboard['search'] as $result)
-                    @php
-                        $scopedSearchUrl = $result['route']
-                            .(str_contains($result['route'], '?') ? '&' : '?')
-                            .'store_id='.$storeId
-                            .($supportAccess ? '&support_access=1' : '');
-                    @endphp
-                    <a href="{{ $scopedSearchUrl }}"><span><strong>{{ $result['title'] }}</strong><small> · {{ $result['subtitle'] }}</small></span><small>{{ __('admin.b2c_dashboard.search_types.'.$result['type']) }}</small></a>
-                    @endforeach
-                </div>
-                @endif
-            </form>
-            <div class="top-actions">
-                
-            </div>
-        </header>
 
-        <main class="content">
-@include('admin._global-header')
+
+        @include('admin._global-header')
+        <main class="content" data-retail-control-center>
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
@@ -321,123 +311,76 @@
                 </form>
             </div>
 
-            <nav class="dashboard-tabs" aria-label="{{ __('admin.b2c_dashboard_tabs.navigation') }}">
-                <a class="dashboard-tab {{ $dashboardTab==='overview'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'overview'])) }}">{{ __('admin.b2c_dashboard_tabs.overview') }}</a>
-                <a class="dashboard-tab {{ $dashboardTab==='assistant'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'assistant'])) }}">{{ __('admin.b2c_dashboard_tabs.assistant') }}</a>
-            </nav>
+            <div class="retail-dashboard-nav">
+                <nav class="dashboard-tabs" aria-label="{{ __('admin.b2c_dashboard_tabs.navigation') }}">
+                    @foreach(['overview','sales','inventory','customers','analytics'] as $tab)
+                        <a class="dashboard-tab {{ $dashboardTab===$tab?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>$tab])) }}">{{ __('admin.b2c_dashboard_tabs.'.$tab) }}</a>
+                    @endforeach
+                </nav>
+                <button type="button" class="dashboard-assistant-button" data-dashboard-assistant-open>
+                    <span aria-hidden="true">✦</span>
+                    <span>{{ __('admin.b2c_dashboard_tabs.assistant') }}</span>
+                </button>
+            </div>
 
-            @if($dashboardTab === 'overview')
-            @php
-                $kpis = [
-                    ['key'=>'active_users','icon'=>'active-users','class'=>'green','label'=>'active_users'],
-                    ['key'=>'orders','icon'=>'orders','class'=>'orange','label'=>'orders'],
-                    ['key'=>'revenue','icon'=>'revenue','class'=>'green','label'=>'revenue'],
-                    ['key'=>'products_sold','icon'=>'products','class'=>'orange','label'=>'products_sold'],
-                ];
-            @endphp
-            <section class="kpis" style="--foodex-card-columns:{{ min(8,max(1,count($kpis))) }}">
-                @foreach($kpis as $item)
-                    @php $metric=$dashboard['kpis'][$item['key']]; $delta=$metric['delta']; @endphp
-                    <article class="kpi">
-                        <div class="kpi-head"><span class="kpi-icon {{ $item['class'] }}">@include('admin._premium-icon',['name'=>$item['icon']])</span><span class="kpi-label">{{ __('admin.b2c_dashboard.kpis.'.$item['label']) }}@if(app()->getLocale()==='en')<small lang="en">{{ __('admin.b2c_dashboard.kpis.'.$item['label'].'_en') }}</small>@endif</span></div>
-                        <div class="kpi-value foodex-number">
-                            @if($item['key']==='revenue') {{ $dashboard['currency'] }} {{ \App\Support\DisplayNumber::money($metric['value'], $dashboard['currency']) }}
-                            @else {{ number_format($metric['value'], $item['key']==='products_sold' ? 0 : 0) }} @endif
+            @include('admin._retail-dashboard-control-center')
+
+            <div class="dashboard-assistant-drawer" data-dashboard-assistant aria-hidden="true" hidden>
+                <button type="button" class="dashboard-assistant-backdrop" data-dashboard-assistant-close aria-label="{{ app()->getLocale()==='ar'?'إغلاق المساعد الذكي':'Close smart assistant' }}"></button>
+                <aside class="dashboard-assistant-panel" role="dialog" aria-modal="true" aria-labelledby="dashboard-assistant-title">
+                    <div class="dashboard-assistant-head">
+                        <div>
+                            <strong id="dashboard-assistant-title">{{ __('admin.b2c_dashboard_tabs.assistant') }}</strong>
+                            <small>{{ __('admin.b2c_dashboard.merchant_intelligence.store_today_subtitle') }}</small>
                         </div>
-                        @if($item['key']==='active_users')
-                            <span class="delta na">{{ __('admin.b2c_dashboard.active_window', ['minutes'=>$metric['window_minutes']]) }}</span>
-                        @elseif($delta===null)
-                            <span class="delta na">{{ __('admin.b2c_dashboard.new_activity') }}</span>
-                        @else
-                            <span class="delta {{ $delta<0?'down':'' }}">{{ $delta>=0?'↑':'↓' }} {{ abs($delta) }}% · {{ __('admin.b2c_dashboard.vs_previous') }}</span>
-                        @endif
-                    </article>
-                @endforeach
-            </section>
-
-            <section class="middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
-                <article class="panel" data-dashboard-primary-card="sales">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders & Revenue</small>@endif</div><div class="legend"><span><i class="dot" style="background:var(--foodex-orange)"></i>{{ __('admin.b2c_dashboard.orders') }}</span><span><i class="dot" style="background:var(--foodex-green)"></i>{{ __('admin.b2c_dashboard.revenue') }}</span></div></div>
-                    @php
-                        $maxOrders=max(1,max(array_column($dashboard['series'],'orders')));
-                        $maxRevenue=max(1,max(array_column($dashboard['series'],'revenue')));
-                        $seriesCount=max(1,count($dashboard['series']));
-                        $denominator=max(1,$seriesCount-1);
-                        $labelEvery=max(1,(int)ceil($seriesCount/7));
-                        $step=560/$denominator;
-                        $barWidth=max(8,min(29,$step*.42));
-                        $points=[];
-                        foreach($dashboard['series'] as $i=>$row){$x=50+$i*$step;$y=192-($row['revenue']/$maxRevenue*130);$points[]="$x,$y";}
-                    @endphp
-                    <div class="chart"><svg viewBox="0 0 650 220" preserveAspectRatio="none" role="img" aria-label="{{ app()->getLocale()==='ar'?'الطلبات والإيرادات خلال الفترة المحددة':'Orders and revenue over the selected period' }}">
-                        @for($y=40;$y<=190;$y+=38)<line class="chart-grid" x1="34" y1="{{ $y }}" x2="630" y2="{{ $y }}"/>@endfor
-                        @foreach($dashboard['series'] as $i=>$row)
-                            @php $centerX=50+$i*$step; $x=$centerX-($barWidth/2); $height=max(4,($row['orders']/$maxOrders*110)); @endphp
-                            <rect class="orders-bar" x="{{ $x }}" y="{{ 192-$height }}" width="{{ $barWidth }}" height="{{ $height }}" rx="5"/>
-                            @if($i % $labelEvery === 0 || $i === $seriesCount-1)<text class="axis-label" x="{{ $centerX }}" y="211" text-anchor="middle">{{ $row['label'] }}</text>@endif
-                        @endforeach
-                        <polyline class="revenue-line" points="{{ implode(' ',$points) }}"/>
-                        @foreach($points as $point) @php [$cx,$cy]=explode(',',$point); @endphp <circle class="revenue-dot" cx="{{ $cx }}" cy="{{ $cy }}" r="4"/> @endforeach
-                    </svg></div>
-                </article>
-
-                @php
-                    $dist=$dashboard['distribution'];$total=array_sum($dist);$p1=$total?($dist['processing']/$total*100):0;$p2=$total?($dist['out_for_delivery']/$total*100):0;$p3=$total?($dist['delivered']/$total*100):0;
-                    $gradient="conic-gradient(var(--foodex-blue) 0 {$p1}%, var(--foodex-orange) {$p1}% ".($p1+$p2)."%, var(--foodex-green) ".($p1+$p2)."% ".($p1+$p2+$p3)."%, var(--foodex-red) ".($p1+$p2+$p3)."% 100%)";
-                @endphp
-                @if($canViewDriverTracking)
-                <article class="panel dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
-                    @include('admin._driver-live-map', [
-                        'feedUrl' => $driverTrackingFeedUrl,
-                        'secondaryFeedUrl' => $vanTrackingFeedUrl,
-                        'trackingActor' => 'mixed',
-                        'liveMapMode' => 'compact',
-                        'showFilters' => false,
-                        'showList' => false,
-                        'showSummary' => true,
-                        'pollMs' => 5000,
-                        'ctaUrl' => $driverTrackingPageUrl,
-                    ])
-                </article>
-                @endif
-
-                <article class="panel" data-dashboard-primary-card="order-distribution">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.distribution') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders Distribution</small>@endif</div></div>
-                    <div class="donut-wrap">
-                        <div class="donut" style="background:{{ $gradient }}"><div class="donut-center">{{ $total }}<small>{{ __('admin.b2c_dashboard.total_orders') }}</small></div></div>
-                        <div class="status-list">
-                            @foreach(['processing'=>'var(--foodex-blue)','out_for_delivery'=>'var(--foodex-orange)','delivered'=>'var(--foodex-green)','cancelled'=>'var(--foodex-red)'] as $status=>$color)
-                                <div class="status-row"><span><i class="dot" style="background:{{ $color }}"></i>{{ __('admin.b2c_dashboard.status.'.$status) }}</span><strong>{{ $total?round($dist[$status]/$total*100):0 }}%</strong></div>
-                            @endforeach
-                        </div>
+                        <button type="button" class="dashboard-assistant-close" data-dashboard-assistant-close aria-label="{{ app()->getLocale()==='ar'?'إغلاق':'Close' }}">×</button>
                     </div>
-                </article>
-            </section>
-
-            <section class="bottom">
-                <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.low_stock') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Low Stock Products</small>@endif</div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
-                    <div class="stock-list">
-                        @forelse($dashboard['low_stock'] as $product)
-                            <div class="stock"><span class="product-thumb">@if($product['image'])<img src="{{ asset(ltrim($product['image'],'/')) }}" alt="">@else ▧ @endif</span><span><strong>{{ $product['name'] }}</strong><small>{{ $product['sku'] }}</small></span><span class="stock-count">{{ number_format($product['available'],0) }} {{ __('admin.b2c_dashboard.remaining') }}</span></div>
-                        @empty <div class="empty">{{ __('admin.b2c_dashboard.no_low_stock') }}</div> @endforelse
+                    <div class="dashboard-assistant-body">
+                        @include('admin._merchant-intelligence-dashboard')
                     </div>
-                </article>
+                </aside>
+            </div>
 
-                <article class="panel">
-                    <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.recent_orders') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Recent Orders</small>@endif</div><a class="section-link" href="{{ route('admin.b2c.module',array_merge(['module'=>'orders','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ __('admin.b2c_dashboard.view_all') }}</a></div>
-                    <div class="recent-list">
-                        <div class="recent header"><span>#</span><span>{{ __('admin.b2c_dashboard.customer') }}</span><span>{{ __('admin.b2c_dashboard.items') }}</span><span>{{ __('admin.b2c_dashboard.amount') }}</span><span>{{ __('admin.b2c_dashboard.status_label') }}</span><span>{{ __('admin.b2c_dashboard.time') }}</span></div>
-                        @forelse($dashboard['recent_orders'] as $order)
-                            <div class="recent"><strong>{{ $order['number'] }}</strong><span>{{ $order['customer'] }}</span><span>{{ $order['items'] }}</span><span>{{ $order['currency'] }} {{ \App\Support\DisplayNumber::money($order['amount'], $order['currency']) }}</span><span><i class="badge {{ $order['status'] }}">{{ __('admin.b2c_dashboard.status.'.$order['status']) }}</i></span><small>{{ \Carbon\Carbon::parse($order['created_at'])->locale(app()->getLocale())->diffForHumans() }}</small></div>
-                        @empty <div class="empty">{{ __('admin.b2c_dashboard.no_orders') }}</div> @endforelse
-                    </div>
-                </article>
-
-            </section>
-            @else
-                @include('admin._merchant-intelligence-dashboard')
-            @endif
+            <script>
+                (() => {
+                    const drawer = document.querySelector('[data-dashboard-assistant]');
+                    if (!drawer) return;
+                    const body = drawer.querySelector('.dashboard-assistant-body');
+                    const open = (anchor = '') => {
+                        drawer.hidden = false;
+                        drawer.setAttribute('aria-hidden', 'false');
+                        document.documentElement.classList.add('dashboard-assistant-open');
+                        requestAnimationFrame(() => {
+                            if (anchor) {
+                                const target = drawer.querySelector('#' + CSS.escape(anchor));
+                                if (target) target.scrollIntoView({block: 'start'});
+                            }
+                            drawer.querySelector('[data-dashboard-assistant-close]')?.focus();
+                        });
+                    };
+                    const close = () => {
+                        drawer.hidden = true;
+                        drawer.setAttribute('aria-hidden', 'true');
+                        document.documentElement.classList.remove('dashboard-assistant-open');
+                    };
+                    document.querySelectorAll('[data-dashboard-assistant-open]').forEach((trigger) => {
+                        trigger.addEventListener('click', () => open(trigger.dataset.assistantAnchor || ''));
+                    });
+                    drawer.querySelectorAll('[data-dashboard-assistant-close]').forEach((trigger) => trigger.addEventListener('click', close));
+                    document.addEventListener('keydown', (event) => {
+                        if (event.key === 'Escape' && !drawer.hidden) close();
+                    });
+                    if (body) body.addEventListener('click', (event) => {
+                        const anchor = event.target.closest('a[href^="#"]');
+                        if (!anchor) return;
+                        const target = drawer.querySelector(anchor.getAttribute('href'));
+                        if (target) {
+                            event.preventDefault();
+                            target.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }
+                    });
+                })();
+            </script>
         </main>
     </section>
 

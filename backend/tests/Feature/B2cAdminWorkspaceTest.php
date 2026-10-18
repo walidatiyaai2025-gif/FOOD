@@ -75,7 +75,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('مرحباً أحمد السعيد')
-            ->assertSee('نظرة عامة على المبيعات')
+            ->assertSee('نظرة عامة')
             ->assertSee('المساعد الذكي')
             ->assertSee('إجمالي الطلبات')
             ->assertSee('EGP 20.00')
@@ -87,7 +87,7 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/b2c/dashboard?dashboard_tab=assistant')
             ->assertOk()
-            ->assertSee('نظرة عامة على المبيعات')
+            ->assertSee('نظرة عامة')
             ->assertSee('المساعد الذكي')
             ->assertDontSee('إجمالي الطلبات');
 
