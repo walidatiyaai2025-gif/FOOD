@@ -623,6 +623,7 @@ backend/app/Services/AppPreviewInvalidationStream.php
 backend/app/Services/AppPreviewSessionService.php
 backend/app/Services/AppPreviewTargetService.php
 backend/app/Services/AssistantExternalAiClient.php
+backend/app/Services/AssistantObservability.php
 backend/app/Services/AssistantHybridBrain.php
 backend/app/Services/AssistantProviderSettings.php
 backend/app/Services/AssistantRuntimeSettings.php
@@ -1046,6 +1047,7 @@ backend/database/migrations/2026_10_01_071100_create_assistant_conversations.php
 backend/database/migrations/2026_10_01_071110_create_assistant_messages.php
 backend/database/migrations/2026_10_01_071120_create_assistant_conversation_state.php
 backend/database/migrations/2026_10_01_071130_grant_assistant_use_permission.php
+backend/database/migrations/2026_10_19_000100_create_assistant_observability_events.php
 backend/database/migrations/2026_10_01_123500_harden_driver_delivery_proof_ledger.php
 backend/database/migrations/2026_10_01_203000_add_retail_wholesale_owner_identity.php
 backend/database/migrations/2026_10_01_203800_scope_customer_addresses_by_commerce_channel.php
