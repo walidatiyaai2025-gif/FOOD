@@ -100,9 +100,17 @@ $roleLabel = static function ($role): string {
                         </ol>
 
                         <section class="store-wizard-panel" data-wizard-panel="identity">
-                            <h3>{{ $ar?'1. هوية المتجر':'1. Store identity' }}</h3>
-                            <p>{{ $ar?'حدد الكود والاسم اللذين سيعرّفان المتجر داخل النظام.':'Set the code and display name that identify this store.' }}</p>
+                            <h3>{{ $ar?'1. نوع النشاط والهوية':'1. Business type & identity' }}</h3>
+                            <p>{{ $ar?'اختر نموذج التشغيل أولاً؛ هذا الاختيار يفصل متجر التجزئة عن المطعم داخل النظام.':'Choose the operating model first; this keeps Retail Store and Restaurant workspaces separate.' }}</p>
                             <div class="store-form-grid">
+                                <label>{{ $ar?'نوع النشاط':'Business Type' }}
+                                    <select name="business_profile" required>
+                                        <option value="">{{ $ar?'اختر نوع النشاط':'Select business type' }}</option>
+                                        <option value="RETAIL_STORE" @selected(old('business_profile')==='RETAIL_STORE')>{{ $ar?'متجر تجزئة':'Retail Store' }}</option>
+                                        <option value="RESTAURANT" @selected(old('business_profile')==='RESTAURANT')>{{ $ar?'مطعم':'Restaurant' }}</option>
+                                    </select>
+                                    <small class="foodex-file-help">{{ $ar?'المتجر يحصل على أدوات البيع بالتجزئة فقط، والمطعم يحصل على أدوات المطعم ومشتريات الجملة.':'Retail receives retail-selling tools only; Restaurant receives restaurant operations plus Wholesale Purchases.' }}</small>
+                                </label>
                                 <label>{{ $ar?'كود المتجر':'Store code' }}
                                     <input name="code" value="{{ old('code') }}" required maxlength="80" pattern="[A-Za-z0-9_-]+" placeholder="{{ $ar?'مثال: CAIRO-01':'e.g. CAIRO-01' }}">
                                     <small class="foodex-file-help">{{ $ar?'حروف إنجليزية وأرقام وشرطة وشرطة سفلية فقط.':'Letters, numbers, dash and underscore only.' }}</small>
@@ -218,6 +226,7 @@ $roleLabel = static function ($role): string {
                             <h3>{{ $ar?'6. مراجعة وإنشاء':'6. Review & create' }}</h3>
                             <p>{{ $ar?'راجع القيم الفعلية قبل إنشاء المتجر. يمكنك الرجوع لأي خطوة بدون فقد البيانات.':'Review the actual values before creating the store. You can go back without losing entered data.' }}</p>
                             <div class="store-review-grid">
+                                <div class="store-review-item"><small>{{ $ar?'نوع النشاط':'Business Type' }}</small><strong data-review="business_profile">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الكود':'Code' }}</small><strong data-review="code">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الاسم':'Name' }}</small><strong data-review="name">—</strong></div>
                                 <div class="store-review-item"><small>{{ $ar?'الشعار':'Logo' }}</small><strong data-review="logo">—</strong></div>
@@ -239,7 +248,7 @@ $roleLabel = static function ($role): string {
 
             <section class="foodex-card store-panel">
                 <div class="store-head">
-                    <div><h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2><p>{{ $ar?'تعديل البيانات الأساسية وإدارة الأدوار والدخول إلى سياق المتجر.':'Edit core details, manage roles and enter the store context.' }}</p></div>
+                    <div><h2>{{ $ar?'أنشطة B2C':'B2C Businesses' }}</h2><p>{{ $ar?'إدارة متاجر التجزئة والمطاعم كلٌ وفق مساحة العمل الخاصة به.':'Manage Retail Stores and Restaurants through their separate operating profiles.' }}</p></div>
                     <form method="get" class="store-search">
                         <label>{{ $ar?'بحث بالاسم أو الكود':'Search name or code' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'اكتب اسم المتجر أو الكود':'Store name or code' }}"></label>
                         <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'بحث':'Search' }}</button>
@@ -299,23 +308,18 @@ $roleLabel = static function ($role): string {
 
                         @include('admin._store-channel-360',['store'=>$store])
 
-                        <section class="store-service" data-restaurant-saas-feature="{{ $store->id }}">
+                        <section class="store-service" data-business-profile="{{ $store->business_profile }}">
                             <div class="store-service-copy">
                                 <div class="store-meta">
-                                    <h4>{{ __('smart_ordering.retail_feature.title') }}</h4>
-                                    <span class="badge {{ $store->restaurant_saas_enabled ? 'active' : '' }}">
-                                        {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.enabled') : __('smart_ordering.retail_feature.disabled') }}
+                                    <h4>{{ $ar?'نموذج التشغيل':'Operating profile' }}</h4>
+                                    <span class="badge active">
+                                        {{ $store->business_profile === 'RESTAURANT' ? ($ar?'مطعم':'Restaurant') : ($ar?'متجر تجزئة':'Retail Store') }}
                                     </span>
                                 </div>
-                                <p>{{ __('smart_ordering.retail_feature.description') }}</p>
+                                <p>{{ $store->business_profile === 'RESTAURANT'
+                                    ? ($ar?'مساحة المطعم منفصلة وتشمل تشغيل المطعم ومشتريات الجملة.':'Restaurant workspace is isolated and includes restaurant operations plus Wholesale Purchases.')
+                                    : ($ar?'مساحة التجزئة لا تعرض وحدات المطاعم.':'Retail workspace does not expose restaurant-only modules.') }}</p>
                             </div>
-                            <form method="post" action="{{ route('admin.retail-stores.restaurant-saas',$store) }}" class="store-service-action" data-restaurant-saas-toggle>
-                                @csrf @method('patch')
-                                <input type="hidden" name="enabled" value="{{ $store->restaurant_saas_enabled ? '0' : '1' }}">
-                                <button class="{{ $store->restaurant_saas_enabled ? 'foodex-action-secondary button secondary' : 'foodex-action-primary' }}" type="submit">
-                                    {{ $store->restaurant_saas_enabled ? __('smart_ordering.retail_feature.disable_action') : __('smart_ordering.retail_feature.enable_action') }}
-                                </button>
-                            </form>
                         </section>
 
                         <form method="post" action="{{ route('admin.retail-stores.update',$store) }}" enctype="multipart/form-data" class="store-form-grid">
@@ -474,6 +478,7 @@ $roleLabel = static function ($role): string {
             @json($ar?'الكوبونات':'Coupons') + ': ' + (checked('coupons_enabled') ? on : off)
         ].join(' · ');
 
+        reviewText('business_profile', selectedText('business_profile'));
         reviewText('code', code);
         reviewText('name', name);
         reviewText('logo', logo);
@@ -530,7 +535,7 @@ $roleLabel = static function ($role): string {
     const errorKeys = @json($errors->keys());
     if (errorKeys.length) {
         const stepForError = (key) => {
-            if (['code','name'].includes(key)) return 'identity';
+            if (['business_profile','code','name'].includes(key)) return 'identity';
             if (key === 'logo') return 'branding';
             if (['price_tier_id','default_customer_wholesale_price_tier_id','is_active'].includes(key)) return 'pricing';
             if (['advertising_enabled','live_ads_enabled','coupons_enabled'].includes(key)) return 'campaigns';
