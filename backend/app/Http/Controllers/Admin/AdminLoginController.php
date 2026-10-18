@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AdminLoginController extends Controller
 {
@@ -208,7 +209,8 @@ class AdminLoginController extends Controller
         string $locale,
         string $method,
     ): RedirectResponse {
-        $target = $this->targetChannel($user, 'b2b');
+        $preferredChannel = $user->hasRole('SUPER_ADMIN') ? 'b2b' : $channel;
+        $target = $this->targetChannel($user, $preferredChannel);
 
         if ($target === null) {
             Log::notice('Management login denied', [
@@ -233,46 +235,63 @@ class AdminLoginController extends Controller
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
-        $this->securitySessions->ensure($request, $user);
 
-        $userLocale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : $locale;
-        $request->session()->put('admin_login_locale', $userLocale);
+        try {
+            $this->securitySessions->ensure($request, $user);
 
-        $this->audit->record(
-            'management.login.succeeded',
-            $user,
-            $user,
-            null,
-            ['requested_channel' => $channel, 'granted_channel' => $target, 'method' => $method],
-            $request,
-        );
+            $userLocale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : $locale;
+            $request->session()->put('admin_login_locale', $userLocale);
 
-        Log::info('Management login succeeded', [
-            'channel_requested' => $channel,
-            'channel_granted' => $target,
-            'user_id' => $user->getKey(),
-            'method' => $method,
-        ]);
+            $this->audit->record(
+                'management.login.succeeded',
+                $user,
+                $user,
+                null,
+                ['requested_channel' => $channel, 'granted_channel' => $target, 'method' => $method],
+                $request,
+            );
 
-        $intended = $this->authorizedIntendedUrl($request, $user);
-        $defaultTarget = route("admin.{$target}.dashboard");
+            Log::info('Management login succeeded', [
+                'channel_requested' => $channel,
+                'channel_granted' => $target,
+                'user_id' => $user->getKey(),
+                'method' => $method,
+            ]);
 
-        if ($this->securityPolicy->requiresMfa($user)) {
-            $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
-            $hasMfa = AdminMfaCredential::query()
-                ->where('user_id', $user->id)
-                ->whereNotNull('enabled_at')
-                ->whereNull('revoked_at')
-                ->exists();
+            $intended = $this->authorizedIntendedUrl($request, $user);
+            $defaultTarget = route("admin.{$target}.dashboard");
 
-            return redirect()->route($hasMfa ? 'admin.mfa.challenge' : 'admin.mfa.enroll');
+            if ($this->securityPolicy->requiresMfa($user)) {
+                $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
+                $hasMfa = AdminMfaCredential::query()
+                    ->where('user_id', $user->id)
+                    ->whereNotNull('enabled_at')
+                    ->whereNull('revoked_at')
+                    ->exists();
+
+                return redirect()->route($hasMfa ? 'admin.mfa.challenge' : 'admin.mfa.enroll');
+            }
+
+            if ($intended !== null) {
+                return redirect()->to($intended);
+            }
+
+            return redirect()->to($defaultTarget);
+        } catch (Throwable $exception) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            Log::warning('Management login completion failed; authentication state cleared', [
+                'channel_requested' => $channel,
+                'channel_granted' => $target,
+                'user_id' => $user->getKey(),
+                'method' => $method,
+                'exception' => $exception::class,
+            ]);
+
+            throw $exception;
         }
-
-        if ($intended !== null) {
-            return redirect()->to($intended);
-        }
-
-        return redirect()->to($defaultTarget);
     }
 
     private function recordAuthFailure(Request $request, string $channel, string $reason): void
