@@ -73,11 +73,20 @@
 .cs-notes{display:grid;gap:10px}.cs-note{padding:12px;border:1px solid var(--foodex-border);border-radius:12px}.cs-note p{white-space:pre-wrap}
 .cs-exceptions{display:grid;gap:8px}.cs-exception{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;color:inherit}
 .cs-state{padding:28px;text-align:center}
+.cs-case-modal{position:fixed;z-index:13050;inset:0;display:grid;place-items:center;padding:24px;background:rgba(15,23,42,.48);backdrop-filter:blur(5px)}
+.cs-case-modal[hidden]{display:none!important}
+.cs-case-modal-dialog{position:relative;width:min(1080px,94vw);max-height:90vh;overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:18px;box-shadow:0 28px 80px rgba(15,23,42,.28);animation:csCaseModalEnter .2s cubic-bezier(.2,.8,.2,1) both}
+.cs-case-modal-body{min-width:0}
+.cs-case-modal-body>.cs-panel{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0}
+.cs-case-modal-close{position:sticky;top:10px;inset-inline-start:10px;z-index:4;margin:10px 10px -44px auto;width:34px;height:34px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);display:grid;place-items:center;font-size:1.2rem;font-weight:900;cursor:pointer;box-shadow:var(--foodex-shadow-sm)}
+.cs-case-modal-loading{padding:44px;text-align:center;color:var(--foodex-muted)}
+body.cs-case-modal-open{overflow:hidden}
+@keyframes csCaseModalEnter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .cs-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}.cs-section-head h2{margin:0}.cs-section-head p{margin:4px 0 0;color:var(--foodex-muted)}
 @media(max-width:1100px){.cs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-form,.cs-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.cs-charts,.cs-grid{grid-template-columns:1fr}.cs-table thead{display:none}.cs-table,.cs-table tbody,.cs-table tr,.cs-table td{display:block;width:100%}.cs-table tr{padding:10px 0;border-bottom:1px solid var(--foodex-border)}.cs-table td{border:0;padding:6px 0}.cs-table td:before{content:attr(data-label);display:block;font-size:11px;font-weight:800;color:var(--foodex-muted);margin-bottom:2px}}
 @media(max-width:620px){.cs-kpis{grid-auto-columns:minmax(150px,72vw)}.cs-form,.cs-detail-grid{grid-template-columns:1fr}.cs-bar-row{grid-template-columns:90px minmax(0,1fr) auto}}
-@media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before,.cs-bar{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}.cs-bar{transform:scaleX(1)!important}}
+@media(prefers-reduced-motion:reduce){.cs-kpi,.cs-kpi::before,.cs-bar,.cs-case-modal-dialog{animation:none!important}.cs-kpi{transition:none!important}.cs-kpi:hover{transform:none}.cs-bar{transform:scaleX(1)!important}}
 </style>
 </head>
 <body>
@@ -239,7 +248,7 @@
                                     <td data-label="{{ __('customer_service_workspace.filters.queue') }}">{{ __('customer_service_workspace.values.'.($case->queue ?: 'general')) }}</td>
                                     <td data-label="{{ __('customer_service_workspace.cases.owner') }}">{{ $case->assigned_agent_name ?: __('customer_service_workspace.values.unassigned') }}</td>
                                     <td data-label="{{ __('customer_service_workspace.cases.sla') }}"><span class="cs-badge {{ $overdue?'danger':'' }}">{{ $case->sla_target_at ?: '—' }}</span></td>
-                                    <td><a class="foodex-action-secondary button secondary" href="{{ route('admin.erp.customer-service.cases.show',['case'=>$case->id]) }}">{{ __('customer_service_workspace.cases.open') }}</a></td>
+                                    <td><a class="foodex-action-secondary button secondary" href="{{ route('admin.erp.customer-service.cases.show',['case'=>$case->id]) }}" data-case-modal-link aria-haspopup="dialog">{{ __('customer_service_workspace.cases.open') }}</a></td>
                                 </tr>
                             @endforeach
                             </tbody>
@@ -273,9 +282,13 @@
             </section>
             @endif
 
+            <div class="cs-case-modal" data-case-modal role="dialog" aria-modal="true" aria-label="{{ __('customer_service_workspace.cases.modal_title') }}" @if(!$selectedCase) hidden @endif>
+                <div class="cs-case-modal-dialog" data-case-modal-dialog>
+                    <button class="cs-case-modal-close" type="button" data-case-modal-close aria-label="{{ __('customer_service_workspace.cases.close') }}">×</button>
+                    <div class="cs-case-modal-body" data-case-modal-body>
             @if($selectedCase)
             @php($selectedOverdue=in_array($selectedCase->status,['open','pending'],true) && $selectedCase->sla_target_at && \Illuminate\Support\Carbon::parse($selectedCase->sla_target_at)->isPast())
-            <section class="foodex-card cs-panel" id="case-detail">
+            <section class="foodex-card cs-panel" id="case-detail" data-case-modal-content>
                 <div class="cs-section-head">
                     <div><h2>{{ \App\Support\DisplayNumber::reference($selectedCase->id) }} · {{ $selectedCase->subject ?: __('customer_service_workspace.values.untitled') }}</h2><p>{{ $selectedCase->customer_name }} · {{ $selectedCase->store_name }}</p></div>
                     <span class="cs-badge {{ $selectedOverdue?'danger':'ok' }}">{{ __('customer_service_workspace.values.'.$selectedCase->status) }}</span>
@@ -345,6 +358,9 @@
                 @endif
             </section>
             @endif
+                    </div>
+                </div>
+            </div>
             </div>
 
             @if($canManageTeam)
@@ -441,6 +457,70 @@
     </main>
 </div>
 <script>
+(() => {
+    const modal = document.querySelector('[data-case-modal]');
+    const body = modal?.querySelector('[data-case-modal-body]');
+    const closeButton = modal?.querySelector('[data-case-modal-close]');
+    if (!modal || !body || !closeButton) return;
+
+    let lastTrigger = null;
+
+    const openModal = () => {
+        modal.hidden = false;
+        document.body.classList.add('cs-case-modal-open');
+        closeButton.focus({preventScroll:true});
+    };
+
+    const closeModal = () => {
+        modal.hidden = true;
+        document.body.classList.remove('cs-case-modal-open');
+        if (lastTrigger instanceof HTMLElement) lastTrigger.focus({preventScroll:true});
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = 'cs-tab-cases';
+        history.replaceState(null, '', cleanUrl);
+    };
+
+    closeButton.addEventListener('click', closeModal);
+    modal.addEventListener('pointerdown', (event) => {
+        if (event.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closeModal();
+    });
+
+    document.addEventListener('click', async (event) => {
+        const link = event.target.closest('[data-case-modal-link]');
+        if (!link) return;
+
+        event.preventDefault();
+        lastTrigger = link;
+        body.innerHTML = '<div class="cs-case-modal-loading">{{ __('customer_service_workspace.cases.loading') }}</div>';
+        openModal();
+
+        try {
+            const response = await fetch(link.href, {
+                credentials: 'same-origin',
+                headers: {'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest'},
+            });
+            if (!response.ok) throw new Error('case_modal_failed');
+
+            const html = await response.text();
+            const parsed = new DOMParser().parseFromString(html, 'text/html');
+            const content = parsed.querySelector('[data-case-modal-content]');
+            if (!content) throw new Error('case_modal_missing');
+
+            body.replaceChildren(content);
+            history.replaceState(null, '', link.href + '#cs-tab-cases');
+        } catch (error) {
+            window.location.assign(link.href + '#cs-tab-cases');
+        }
+    });
+
+    if (body.querySelector('[data-case-modal-content]')) {
+        openModal();
+    }
+})();
+
 (() => {
     const tabsRoot = document.querySelector('[data-cs-tabs]');
     if (!tabsRoot) return;
