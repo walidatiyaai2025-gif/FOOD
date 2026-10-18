@@ -111,7 +111,6 @@ class AdminNavigation
                 $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
@@ -159,7 +158,7 @@ class AdminNavigation
             ]),
         ];
 
-        $hasRetailWorkspace = $this->tenantContext->retailStoreIdsByProfile(
+        $hasRetailWorkspace = $isSuperAdmin || $this->tenantContext->retailStoreIdsByProfile(
             $user,
             Store::BUSINESS_PROFILE_RETAIL_STORE,
         ) !== [];
