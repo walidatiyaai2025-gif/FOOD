@@ -9,6 +9,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -52,6 +53,30 @@ final class RestaurantSaasStoreFeatureService
         $this->modules->syncManifest(SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE);
 
         if ($enabled) {
+            if ($store->business_profile === null) {
+                $store->forceFill([
+                    'business_profile' => StoreBusinessProfile::RESTAURANT->value,
+                ])->save();
+
+                $this->audit->record(
+                    'b2c.business_profile.compatibility_conversion',
+                    $actor,
+                    $store,
+                    ['business_profile' => null],
+                    [
+                        'business_profile' => StoreBusinessProfile::RESTAURANT->value,
+                        'source' => 'legacy_restaurant_saas_toggle',
+                    ],
+                    $request,
+                );
+            } else {
+                abort_unless(
+                    $store->business_profile === StoreBusinessProfile::RESTAURANT->value,
+                    409,
+                    'Legacy Restaurant SaaS enablement cannot convert an explicit Retail Store profile.',
+                );
+            }
+
             $this->ensureModuleEnabled($actor);
             $this->controlPlane->provision($store, $actor, $request);
         } else {
