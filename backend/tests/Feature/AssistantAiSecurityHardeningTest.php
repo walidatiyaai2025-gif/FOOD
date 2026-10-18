@@ -185,6 +185,7 @@ class AssistantAiSecurityHardeningTest extends TestCase
             'security-cohort-first',
         );
         $this->assertSame(10, $first->data['benchmark']);
+        $this->assertArrayNotHasKey('member_ids', $first->data['_privacy']);
 
         $second = $guardrails->sanitizeToolResult(
             new AssistantToolResult(data: [
