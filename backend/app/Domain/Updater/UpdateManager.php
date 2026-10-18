@@ -243,7 +243,6 @@ final class UpdateManager
         }
     }
 
-
     /**
      * Persist only non-secret evidence. Filesystem paths remain private in the
      * protected recovery reference columns and are never rendered directly.
@@ -305,8 +304,8 @@ final class UpdateManager
     }
 
     /**
-     * @param array<string,mixed> $evidence
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $evidence
+     * @param  array<string,mixed>  $attributes
      */
     private function checkpoint(UpdateHistory $history, array $evidence, array $attributes = []): void
     {
