@@ -48,6 +48,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
 
         foreach ([$supervisor, $agent] as $staff) {
             $this->assertTrue($staff->hasPermission('orders.view'));
+            $this->assertTrue($staff->hasPermission('drivers.tracking.view'));
             $this->assertTrue($staff->hasPermission('orders.create'));
             $this->assertFalse($staff->hasPermission('orders.manage'));
             $this->assertFalse($staff->hasPermission('customer_service.team.manage'));
@@ -57,9 +58,14 @@ final class CustomerServiceRoleClosureTest extends TestCase
             );
         }
 
+        $this->assertTrue($manager->hasPermission('drivers.tracking.view'));
         $this->assertContains(
             $principalStoreId,
             app(OperationalTenantScope::class)->allowedStoreIds($manager, 'orders.manage', 'b2b'),
+        );
+        $this->assertContains(
+            $principalStoreId,
+            app(OperationalTenantScope::class)->allowedStoreIds($manager, 'drivers.tracking.view', 'b2b'),
         );
     }
 
@@ -120,6 +126,25 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ->assertSessionHasErrors('member');
 
         $this->assertTrue($privileged->fresh()->hasRole('B2B_ADMIN'));
+    }
+
+    public function test_customer_service_workspace_shows_live_tracking_card_for_customer_service_profiles(): void
+    {
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            $user = $this->userWithRole($roleCode);
+
+            $this->actingAs($user)
+                ->get(route('admin.erp.customer-service'))
+                ->assertOk()
+                ->assertSee('data-dashboard-live-driver-map', false)
+                ->assertSee('data-actor-kind="mixed"', false)
+                ->assertSee(route('admin.driver-live-tracking.feed', ['channel' => 'b2b']), false)
+                ->assertSee(route('admin.field-operations.fleet.feed', ['channel' => 'b2b']), false);
+        }
     }
 
     public function test_customer_service_workspace_exposes_total_customer_count_and_admin_routes_land_there(): void
