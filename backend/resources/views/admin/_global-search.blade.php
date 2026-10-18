@@ -28,18 +28,25 @@
          data-empty="{{ __('global_search.empty') }}"
          data-error="{{ __('global_search.error') }}">
     <label class="foodex-global-search-label" for="{{ $globalSearchId }}">{{ __('global_search.label') }}</label>
-    <div class="foodex-global-search-control">
-        @include('admin._premium-icon',['name'=>'search'])
-        <input id="{{ $globalSearchId }}"
-               class="foodex-global-search-input"
-               type="search"
-               autocomplete="off"
-               inputmode="search"
-               placeholder="{{ __('global_search.placeholder') }}"
-               aria-controls="{{ $globalSearchId }}-results"
-               aria-expanded="false"
-               data-foodex-global-search-input>
-    </div>
+    <form class="foodex-global-search-form"
+          method="get"
+          action="{{ route('admin.global-search') }}"
+          role="search"
+          data-foodex-global-search-form>
+        <div class="foodex-global-search-control">
+            @include('admin._premium-icon',['name'=>'search'])
+            <input id="{{ $globalSearchId }}"
+                   class="foodex-global-search-input"
+                   type="search"
+                   name="q"
+                   autocomplete="off"
+                   inputmode="search"
+                   placeholder="{{ __('global_search.placeholder') }}"
+                   aria-controls="{{ $globalSearchId }}-results"
+                   aria-expanded="false"
+                   data-foodex-global-search-input>
+        </div>
+    </form>
     <div id="{{ $globalSearchId }}-results"
          class="foodex-global-search-results"
          role="listbox"
@@ -47,4 +54,4 @@
          data-foodex-global-search-results></div>
     <p class="foodex-global-search-status" aria-live="polite" data-foodex-global-search-status>{{ __('global_search.hint') }}</p>
 </section>
-<script src="{{ asset('assets/admin/global-search.js') }}" defer></script>
+<script src="{{ asset('assets/admin/global-search.js') }}?v={{ @filemtime(public_path('assets/admin/global-search.js')) ?: '1' }}" defer></script>
