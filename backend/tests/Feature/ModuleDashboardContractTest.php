@@ -145,5 +145,4 @@ class ModuleDashboardContractTest extends TestCase
             $this->assertStringContainsString(':root '.$kpiGrid, $css);
         }
     }
-
 }
