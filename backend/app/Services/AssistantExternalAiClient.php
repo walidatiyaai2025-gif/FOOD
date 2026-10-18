@@ -83,7 +83,7 @@ final class AssistantExternalAiClient
     }
 
     /**
-     * @param array{api_url:string,model:string,timeout_seconds:int} $config
+     * @param  array{api_url:string,model:string,timeout_seconds:int}  $config
      * @return array{ok:bool,message:string}
      */
     public function probe(array $config, ?string $apiKey): array
