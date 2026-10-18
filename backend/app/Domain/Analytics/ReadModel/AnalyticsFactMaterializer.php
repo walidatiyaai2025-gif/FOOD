@@ -2,6 +2,7 @@
 
 namespace App\Domain\Analytics\ReadModel;
 
+use App\Domain\Analytics\SellOut\RetailSellOutIngestionService;
 use App\Domain\Analytics\Semantic\MetricDictionary;
 use App\Domain\Analytics\Semantic\SemanticMetricService;
 use Carbon\CarbonImmutable;
@@ -15,7 +16,10 @@ final readonly class AnalyticsFactMaterializer
 
     public const MAX_REBUILD_DAYS = 90;
 
-    public function __construct(private SemanticMetricService $semanticMetrics) {}
+    public function __construct(
+        private SemanticMetricService $semanticMetrics,
+        private RetailSellOutIngestionService $sellOutIngestion,
+    ) {}
 
     /**
      * Rebuild one bounded date slice from authoritative transactional tables.
@@ -174,6 +178,30 @@ final readonly class AnalyticsFactMaterializer
             $currency ?? 'KWD',
         );
 
+        $external = $channel === 'b2c'
+            ? $this->sellOutIngestion->dailyAggregate($storeId, $day->toDateString())
+            : $this->emptyExternalSellOut();
+
+        $combinedCurrencies = collect([$currency, $external['currency']])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $currency = count($combinedCurrencies) === 1 ? $combinedCurrencies[0] : null;
+
+        if (count($combinedCurrencies) > 1) {
+            $quality = 'incomplete';
+            $reason = 'mixed_currency';
+        } elseif ($external['quality_state'] !== 'complete') {
+            $quality = 'incomplete';
+            $reason ??= $external['incomplete_reason'];
+        }
+
+        $ordersTotal = (int) $metrics['values']['orders'] + (int) $external['orders_total'];
+        $recognizedOrders = (int) $metrics['values']['recognized_orders'] + (int) $external['orders_recognized'];
+        $netRevenue = round((float) $metrics['values']['net_revenue'] + (float) $external['net_revenue'], 3);
+        $averageOrderValue = $recognizedOrders === 0 ? 0.0 : round($netRevenue / $recognizedOrders, 3);
+
         $paymentBase = DB::table('payments')
             ->join('orders', 'orders.id', '=', 'payments.order_id')
             ->where('orders.store_id', $storeId)
@@ -214,24 +242,25 @@ final readonly class AnalyticsFactMaterializer
                     ->whereBetween('received_at', [$fromUtc, $toUtc])
                     ->max('updated_at')
                 : null,
+            $external['source_max_updated_at'],
         ]);
 
         return [
             'store_id' => $storeId,
             'channel' => $channel,
             'fact_date' => $day->toDateString(),
-            'orders_total' => (int) $metrics['values']['orders'],
-            'orders_recognized' => (int) $metrics['values']['recognized_orders'],
-            'gross_value' => round((float) (clone $orders)->sum('orders.grand_total'), 3),
-            'gross_revenue' => (float) $metrics['values']['gross_revenue'],
-            'discounts_total' => (float) $metrics['values']['discounts'],
-            'net_revenue' => (float) $metrics['values']['net_revenue'],
-            'refunded_value' => (float) $metrics['values']['refunded_value'],
-            'refunded_orders' => (int) $metrics['values']['refunded_orders'],
-            'cancelled_value' => (float) $metrics['values']['cancelled_value'],
-            'cancelled_orders' => (int) $metrics['values']['cancelled_orders'],
-            'units_sold' => (float) $metrics['values']['units'],
-            'average_order_value' => (float) $metrics['values']['average_order_value'],
+            'orders_total' => $ordersTotal,
+            'orders_recognized' => $recognizedOrders,
+            'gross_value' => round((float) (clone $orders)->sum('orders.grand_total') + (float) $external['gross_value'], 3),
+            'gross_revenue' => round((float) $metrics['values']['gross_revenue'] + (float) $external['gross_revenue'], 3),
+            'discounts_total' => round((float) $metrics['values']['discounts'] + (float) $external['discounts_total'], 3),
+            'net_revenue' => $netRevenue,
+            'refunded_value' => round((float) $metrics['values']['refunded_value'] + (float) $external['refunded_value'], 3),
+            'refunded_orders' => (int) $metrics['values']['refunded_orders'] + (int) $external['refunded_orders'],
+            'cancelled_value' => round((float) $metrics['values']['cancelled_value'] + (float) $external['cancelled_value'], 3),
+            'cancelled_orders' => (int) $metrics['values']['cancelled_orders'] + (int) $external['cancelled_orders'],
+            'units_sold' => round((float) $metrics['values']['units'] + (float) $external['units_sold'], 3),
+            'average_order_value' => $averageOrderValue,
             'payments_collected' => $paymentsCollected,
             'payments_refunded' => $paymentsRefunded,
             'wholesale_purchases' => $wholesalePurchases,
@@ -243,6 +272,29 @@ final readonly class AnalyticsFactMaterializer
             'incomplete_reason' => $reason,
             'created_at' => now('UTC'),
             'updated_at' => now('UTC'),
+        ];
+    }
+
+    /** @return array<string,int|float|string|null> */
+    private function emptyExternalSellOut(): array
+    {
+        return [
+            'orders_total' => 0,
+            'orders_recognized' => 0,
+            'gross_value' => 0.0,
+            'gross_revenue' => 0.0,
+            'discounts_total' => 0.0,
+            'net_revenue' => 0.0,
+            'refunded_value' => 0.0,
+            'refunded_orders' => 0,
+            'cancelled_value' => 0.0,
+            'cancelled_orders' => 0,
+            'units_sold' => 0.0,
+            'average_order_value' => 0.0,
+            'currency' => null,
+            'source_max_updated_at' => null,
+            'quality_state' => 'complete',
+            'incomplete_reason' => null,
         ];
     }
 

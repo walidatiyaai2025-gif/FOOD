@@ -104,7 +104,16 @@ Compose existing channel-specific customer identities and source records through
 **Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
 
 
-## D-017 — Agent planning is bounded; server evidence is the only synthesis authority
+## D-017 — Retail sell-out ingestion accepts actual sales only
+**Decision (#2217 / AI-09, 2026-10-18):** Canonical sell-out is composed only from actual retailer-to-customer transactions: native FOODEX B2C orders plus explicitly connected external POS/API/CSV sell-out events. Retail replenishment and wholesale purchases remain separate sell-in/procurement facts and are never inferred, relabelled or substituted as sell-out.
+
+**Reason:** purchase-to-retail timing, stock holding, returns and unsold inventory make wholesale replenishment an invalid proxy for consumer demand. AI decisions must distinguish absent/partial retail feeds from genuine zero sales.
+
+**Consequences:** external rows are tenant-owned, SKU-mapped, timezone-normalized, idempotent and reconciled; rejected rows are reported without persisting raw rejected payloads; active retailer consent is re-authorized on analytical reads; feed state exposes no/partial/available coverage and quality; the deterministic analytics layer combines actual sources while the LLM remains an interpreter only.
+
+**Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.
+
+## D-018 — Agent planning is bounded; server evidence is the only synthesis authority
 **Decision (#2215 / AI-07, 2026-10-18):** Multi-tool Assistant turns use the existing provider gateway only to propose allowlisted typed reads and synthesize from numbered server evidence. `AssistantToolExecutor` remains the mandatory authorization/audit gate for every proposed call. The orchestrator enforces hard step, call, time and result-size budgets, suppresses duplicate tool signatures and never persists/exposes provider reasoning.
 
 **Reason:** an unconstrained agent loop could turn model output into authority, amplify accidental repeated reads, leak scope through tool arguments or create unbounded latency/cost. FOODEX already has authoritative typed tools, semantic metrics, read models and security controls.
