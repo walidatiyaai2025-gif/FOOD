@@ -199,6 +199,47 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee(route('admin.smart-ordering.menu.publish', app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site'])), false);
     }
 
+    public function test_guided_identity_step_saves_branding_runtime_and_slug_then_moves_to_review(): void
+    {
+        Storage::fake('public');
+        $fixture = $this->fixture('IDENTITY', 5.000);
+        $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
+        $runtimeState = (string) collect((array) config('smart_ordering.runtime_states', []))->first();
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.setup.identity'), [
+                'store_id' => $fixture['store_id'],
+                'name_en' => 'Guided Kitchen',
+                'name_ar' => 'مطعم الخطوات',
+                'tagline_en' => 'One guided setup',
+                'tagline_ar' => 'إعداد واحد واضح',
+                'phone' => '+96522000000',
+                'slug' => 'guided-kitchen-'.$fixture['store_id'],
+                'runtime_state' => $runtimeState,
+                'master_enabled' => '1',
+                'logo' => UploadedFile::fake()->image('logo.png', 300, 300),
+                'cover' => UploadedFile::fake()->image('cover.jpg', 1200, 700),
+            ])
+            ->assertRedirect(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'review',
+            ]));
+
+        $site = $fixture['site']->fresh();
+        $this->assertSame('guided-kitchen-'.$fixture['store_id'], $site->slug);
+        $this->assertTrue((bool) $site->master_enabled);
+        $this->assertSame($runtimeState, $site->runtime_state);
+
+        $payload = (array) $draft->fresh()->payload;
+        $identity = (array) data_get($payload, 'content.identity', []);
+        $this->assertSame('Guided Kitchen', $identity['name_en'] ?? null);
+        $this->assertSame('مطعم الخطوات', $identity['name_ar'] ?? null);
+        $this->assertNotEmpty($identity['logo_url'] ?? null);
+        $this->assertNotEmpty($identity['cover_url'] ?? null);
+        Storage::disk('public')->assertExists((string) $identity['logo_url']);
+        Storage::disk('public')->assertExists((string) $identity['cover_url']);
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
