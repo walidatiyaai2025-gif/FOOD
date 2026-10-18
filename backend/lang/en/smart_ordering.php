@@ -749,6 +749,7 @@ return [
         'retail_summary' => 'This business is Retail Store only. Restaurant menu, table-ordering and restaurant-operation modules are not provisioned for it.',
         'conversion_note' => 'Business profile conversion is not part of ordinary store editing; legacy conversion remains an explicit controlled and audited admin action.',
         'not_applicable' => 'Not applicable',
+        'automatic_standard_fallback' => 'Automatic STANDARD fallback',
     ],
 
     'retail_feature' => [
