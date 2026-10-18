@@ -105,7 +105,7 @@ return [
         'provider_model' => 'المزود / الموديل',
         'tools' => 'الأدوات',
         'latency' => 'الزمن',
-        'fallback' => 'Fallback',
+        'fallback' => 'التبديل الاحتياطي',
         'time' => 'الوقت',
         'yes' => 'نعم',
         'no' => 'لا',
