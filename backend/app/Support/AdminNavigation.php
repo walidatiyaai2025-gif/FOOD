@@ -226,7 +226,7 @@ class AdminNavigation
             'operations' => ['order_operations', 'field_ops_overview'],
             'procurement' => ['erp_procurement'],
             'inventory' => ['erp_wms'],
-            'finance' => ['erp_finance', 'treasury_master'],
+            'finance' => ['erp_finance'],
             'treasury' => ['erp_treasury', 'treasury_master'],
             'catalog' => ['catalog_management'],
             'sales' => ['commercial_sales_control', 'order_operations'],
