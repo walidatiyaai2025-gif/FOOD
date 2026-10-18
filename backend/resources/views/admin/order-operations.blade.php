@@ -6,10 +6,21 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.workspace-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-surface,#fff);font-size:.82rem}.workspace-context span{display:inline-flex;align-items:center;gap:6px}.workspace-context strong{color:var(--foodex-muted)}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
+.workspace-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface,#fff);font-size:.75rem;box-shadow:var(--foodex-shadow-sm)}.workspace-context span{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-ink);font-weight:800}.workspace-context .foodex-svg-icon{width:15px;height:15px;color:var(--foodex-green-dark)}
+.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(118px,1fr));min-width:0;margin:12px 0 16px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
+.order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,#158A3A 0%,#2563EB 18%,#7C3AED 34%,#EA580C 50%,#DC2626 66%,#0891B2 82%,#BE123C 100%);background-size:180% 100%;animation:orderKpiEdge 4.8s linear infinite}
+.order-kpi-item{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF;position:relative;min-width:118px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 13px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
+.order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
+.order-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}.order-kpi-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:17px;height:17px}
+.order-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.63rem;font-weight:800;line-height:1.35}.order-kpi-value{align-self:center;font-size:1.22rem;line-height:1.12;color:var(--foodex-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.order-kpi-state{position:absolute;inset-inline-end:10px;bottom:10px;width:7px;height:7px;border-radius:999px;background:var(--foodex-border)}.order-kpi-state[data-state="success"]{background:#16A34A}.order-kpi-state[data-state="warning"]{background:#EA580C}.order-kpi-state[data-state="danger"],.order-kpi-state[data-state="error"]{background:#DC2626}
+.order-kpi-item[data-tone="green"]{--order-kpi-accent:#158A3A;--order-kpi-soft:#EAF7EF}.order-kpi-item[data-tone="blue"]{--order-kpi-accent:#2563EB;--order-kpi-soft:#EFF6FF}.order-kpi-item[data-tone="violet"]{--order-kpi-accent:#7C3AED;--order-kpi-soft:#F5F3FF}.order-kpi-item[data-tone="orange"]{--order-kpi-accent:#EA580C;--order-kpi-soft:#FFF7ED}.order-kpi-item[data-tone="red"]{--order-kpi-accent:#DC2626;--order-kpi-soft:#FEF2F2}.order-kpi-item[data-tone="amber"]{--order-kpi-accent:#B45309;--order-kpi-soft:#FFFBEB}.order-kpi-item[data-tone="cyan"]{--order-kpi-accent:#0E7490;--order-kpi-soft:#ECFEFF}.order-kpi-item[data-tone="rose"]{--order-kpi-accent:#BE123C;--order-kpi-soft:#FFF1F2}
+@keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
 .status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
 .table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sales-ops-bars{height:180px;align-items:flex-end}.sales-ops-bar-link{min-height:8px;text-decoration:none}.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:8px}.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--foodex-border);border-radius:10px;color:inherit;text-decoration:none}.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto}.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:var(--foodex-green-soft);overflow:hidden}.sales-ops-ranked-bars b{display:block;height:100%;background:var(--foodex-green);border-radius:inherit}
 @media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.order-kpi-card::before{animation:none}.order-kpi-item{transition:none}.order-kpi-item:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -30,7 +41,7 @@ $businessLabel = static function ($value): string {
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<div class="foodex-page-toolbar"><div><h1>{{ __('order_operations.title') }}</h1><p>{{ __('order_operations.description') }}</p></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:1rem;padding:12px 18px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</div>
+<div class="foodex-page-toolbar"><div><h1>{{ __('order_operations.title') }}</h1></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:.88rem;padding:10px 16px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</div>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
@@ -50,8 +61,8 @@ $businessLabel = static function ($value): string {
     }
 @endphp
 <div class="workspace-context" data-order-workspace-context data-channel="{{ $selectedChannel }}" data-store-id="{{ $selectedStoreId ?? '' }}">
-    <span><strong>{{ __('order_operations.filters.channel') }}</strong>{{ $selectedChannelLabel }}</span>
-    <span><strong>{{ __('order_operations.filters.store') }}</strong>{{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
+    <span title="{{ __('order_operations.filters.channel') }}">@include('admin._premium-icon',['name'=>'orders']) {{ $selectedChannelLabel }}</span>
+    <span title="{{ __('order_operations.filters.store') }}">@include('admin._premium-icon',['name'=>'storefront']) {{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
 </div>
 
 @if($dashboardVisible)
@@ -70,55 +81,85 @@ $businessLabel = static function ($value): string {
         : \App\Support\DisplayNumber::money((float) $value, $dashboardCurrency).' '.$dashboardCurrency;
     $dashboardKpis = [
         [
+            'key' => 'orders',
+            'icon' => 'orders',
+            'tone' => 'green',
             'label' => __('order_operations.dashboard.kpis.orders'),
             'value' => number_format((int) $dashboard['kpis']['orders']),
             'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
         ],
         [
+            'key' => 'recognized_revenue',
+            'icon' => 'revenue',
+            'tone' => 'blue',
             'label' => __('order_operations.dashboard.kpis.recognized_revenue'),
             'value' => $dashboardMoney($dashboard['kpis']['recognized_revenue']),
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
         ],
         [
+            'key' => 'aov',
+            'icon' => 'reports',
+            'tone' => 'violet',
             'label' => __('order_operations.dashboard.kpis.aov'),
             'value' => $dashboardMoney($dashboard['kpis']['average_order_value']),
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
         ],
         [
+            'key' => 'open_orders',
+            'icon' => 'orders',
+            'tone' => 'orange',
             'label' => __('order_operations.dashboard.kpis.open_orders'),
             'value' => number_format((int) $dashboard['kpis']['open_orders']),
             'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
         ],
         [
+            'key' => 'delayed_orders',
+            'icon' => 'bell',
+            'tone' => 'red',
             'label' => __('order_operations.dashboard.kpis.delayed_orders'),
             'value' => number_format((int) $dashboard['kpis']['delayed_orders']),
             'status' => ['label' => __('order_operations.dashboard.exceptions.delayed'), 'state' => $dashboard['kpis']['delayed_orders'] > 0 ? 'warning' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
         ],
         [
+            'key' => 'awaiting_dispatch',
+            'icon' => 'delivery',
+            'tone' => 'amber',
             'label' => __('order_operations.dashboard.kpis.awaiting_dispatch'),
             'value' => number_format((int) $dashboard['kpis']['awaiting_dispatch']),
             'status' => ['label' => __('order_operations.dashboard.exceptions.awaiting_dispatch'), 'state' => $dashboard['kpis']['awaiting_dispatch'] > 0 ? 'warning' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'awaiting_dispatch'])),
         ],
         [
+            'key' => 'payment_exceptions',
+            'icon' => 'revenue',
+            'tone' => 'cyan',
             'label' => __('order_operations.dashboard.kpis.payment_exceptions'),
             'value' => number_format((int) $dashboard['kpis']['payment_exceptions']),
             'status' => ['label' => __('order_operations.dashboard.exceptions.payment'), 'state' => $dashboard['kpis']['payment_exceptions'] > 0 ? 'danger' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'payment'])),
         ],
         [
+            'key' => 'invoice_exceptions',
+            'icon' => 'content',
+            'tone' => 'rose',
             'label' => __('order_operations.dashboard.kpis.invoice_exceptions'),
             'value' => number_format((int) $dashboard['kpis']['invoice_exceptions']),
             'status' => ['label' => __('order_operations.dashboard.exceptions.invoice'), 'state' => $dashboard['kpis']['invoice_exceptions'] > 0 ? 'danger' : 'success'],
             'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'invoice'])),
         ],
         [
+            'key' => 'fulfillment_minutes',
+            'icon' => 'delivery',
+            'tone' => 'blue',
             'label' => __('order_operations.dashboard.kpis.fulfillment_minutes'),
             'value' => $dashboard['kpis']['average_fulfillment_minutes'] === null ? '—' : number_format((float) $dashboard['kpis']['average_fulfillment_minutes'], 1),
             'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'operations'])),
         ],
         [
+            'key' => 'sla',
+            'icon' => 'inspector',
+            'tone' => 'green',
             'label' => __('order_operations.dashboard.kpis.sla'),
             'value' => $dashboard['kpis']['open_within_sla_percent'] === null ? '—' : number_format((float) $dashboard['kpis']['open_within_sla_percent'], 1).'%',
             'status' => ['label' => __('order_operations.dashboard.sla_help'), 'state' => ($dashboard['kpis']['open_within_sla_percent'] ?? 100) >= 90 ? 'success' : 'warning'],
@@ -128,15 +169,7 @@ $businessLabel = static function ($value): string {
     $dailyMax = max(1, (int) collect($dashboard['daily'])->max('orders'));
     $statusMax = max(1, (int) collect($dashboard['status_breakdown'])->max('orders'));
 @endphp
-<section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-labelledby="sales-ops-dashboard-title">
-    <div class="foodex-viz-header">
-        <div>
-            <h2 class="foodex-viz-title" id="sales-ops-dashboard-title">{{ __('order_operations.dashboard.title') }}</h2>
-            <p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.subtitle') }}</p>
-        </div>
-        <small class="foodex-module-updated">{{ __('order_operations.dashboard.generated_at', ['time' => $dashboard['generated_at']]) }}</small>
-    </div>
-
+<section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-label="{{ __('order_operations.dashboard.title') }}">
     @php
         $moduleDashboardFilters = [
             'action' => route('admin.operations.orders.index'),
@@ -155,9 +188,24 @@ $businessLabel = static function ($value): string {
     @endphp
     @include('admin._module-dashboard-filters', ['moduleDashboardFilters' => $moduleDashboardFilters])
 
-    <div class="foodex-module-kpis">
+    <div class="order-kpi-card" data-order-kpi-card aria-label="{{ __('order_operations.dashboard.title') }}">
         @foreach($dashboardKpis as $metric)
-            @include('admin._module-dashboard-kpi', ['metric' => $metric])
+            <a class="order-kpi-item"
+               data-order-kpi="{{ $metric['key'] }}"
+               data-tone="{{ $metric['tone'] }}"
+               href="{{ $metric['drilldown_url'] }}">
+                <span class="order-kpi-head">
+                    <span class="order-kpi-icon" aria-hidden="true">@include('admin._premium-icon',['name'=>$metric['icon']])</span>
+                    <span class="order-kpi-label">{{ $metric['label'] }}</span>
+                </span>
+                <strong class="order-kpi-value foodex-number">{{ $metric['value'] }}</strong>
+                @if(is_array($metric['status'] ?? null))
+                    <span class="order-kpi-state"
+                          data-state="{{ data_get($metric,'status.state','current') }}"
+                          title="{{ data_get($metric,'status.label','') }}"
+                          aria-label="{{ data_get($metric,'status.label','') }}"></span>
+                @endif
+            </a>
         @endforeach
     </div>
 
