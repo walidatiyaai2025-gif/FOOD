@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
 use App\Domain\Assistant\Data\AssistantBrainRequest;
+use App\Domain\Assistant\Data\AssistantProviderRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Setting;
@@ -245,6 +247,162 @@ class AssistantSettingsTest extends TestCase
         $this->assertTrue($result['capabilities']['budget_contract']);
         $this->assertSame(32768, $result['capabilities']['context_window_tokens']);
         $this->assertSame(1024, $result['capabilities']['max_output_tokens']);
+    }
+
+    public function test_typed_provider_gateway_exposes_capabilities_health_and_container_binding(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::sequence()
+                ->push([
+                    'choices' => [[
+                        'message' => ['content' => 'FOODEX_OK'],
+                    ]],
+                ], 200)
+                ->push([
+                    'choices' => [[
+                        'message' => ['content' => '{"ok":true,"contract":"foodex"}'],
+                    ]],
+                ], 200)
+                ->push([
+                    'choices' => [[
+                        'message' => [
+                            'content' => null,
+                            'tool_calls' => [[
+                                'id' => 'call_probe',
+                                'type' => 'function',
+                                'function' => [
+                                    'name' => 'foodex_capability_probe',
+                                    'arguments' => '{"ok":true}',
+                                ],
+                            ]],
+                        ],
+                    ]],
+                ], 200)
+                ->push([
+                    'choices' => [[
+                        'message' => ['content' => 'FOODEX_OK'],
+                    ]],
+                ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'fallback_models' => ['qwen3:1.7b'],
+            'timeout_seconds' => 20,
+            'context_window_tokens' => 32768,
+            'max_tokens' => 1024,
+        ]);
+
+        $gateway = app(AssistantProviderGatewayInterface::class);
+        $capabilities = $gateway->capabilities();
+
+        $this->assertSame('openai_compatible', $capabilities->provider);
+        $this->assertSame('qwen3:4b', $capabilities->model);
+        $this->assertSame(['qwen3:1.7b'], $capabilities->fallbackModels);
+        $this->assertTrue($capabilities->chat);
+        $this->assertTrue($capabilities->structuredJson);
+        $this->assertTrue($capabilities->toolCalls);
+        $this->assertTrue($capabilities->reachable);
+        $this->assertTrue($capabilities->healthy);
+        $this->assertTrue($capabilities->agentCapable);
+
+        $health = $gateway->health();
+
+        $this->assertTrue($health->enabled);
+        $this->assertTrue($health->reachable);
+        $this->assertTrue($health->healthy);
+        $this->assertSame(200, $health->statusCode);
+        $this->assertNull($health->failureReason);
+    }
+
+    public function test_typed_provider_complete_normalizes_payload_tool_calls_and_usage(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => "<think>Reason privately.</think>\n```json\n{\"answer\":\"ok\"}\n```",
+                        'tool_calls' => [[
+                            'id' => 'call_orders',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'orders_lookup',
+                                'arguments' => '{"order_id":42}',
+                            ],
+                        ]],
+                    ],
+                    'finish_reason' => 'tool_calls',
+                ]],
+                'usage' => [
+                    'prompt_tokens' => 120,
+                    'completion_tokens' => 30,
+                    'total_tokens' => 150,
+                ],
+            ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+            'context_window_tokens' => 32768,
+            'max_tokens' => 1024,
+        ]);
+
+        $result = app(AssistantProviderGatewayInterface::class)->complete(
+            new AssistantProviderRequest(
+                systemInstructions: 'You are a bounded FOODEX planner.',
+                taskInstructions: 'Return a structured proposal only.',
+                userContent: 'Find order 42.',
+                context: ['store_id' => 7],
+                allowedTools: [[
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'orders_lookup',
+                        'description' => 'Read one authorized order.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'order_id' => ['type' => 'integer'],
+                            ],
+                            'required' => ['order_id'],
+                        ],
+                    ],
+                ]],
+                responseSchema: [
+                    'type' => 'object',
+                    'properties' => [
+                        'answer' => ['type' => 'string'],
+                    ],
+                    'required' => ['answer'],
+                ],
+                maxTokens: 512,
+                timeoutSeconds: 10,
+                correlationId: 'test-correlation-2210',
+                useCase: 'agent_planning',
+            ),
+        );
+
+        $this->assertTrue($result->ok);
+        $this->assertSame('qwen3:4b', $result->model);
+        $this->assertSame('{"answer":"ok"}', $result->text);
+        $this->assertSame(['answer' => 'ok'], $result->structuredPayload);
+        $this->assertSame('orders_lookup', $result->toolCalls[0]['name']);
+        $this->assertSame(['order_id' => 42], $result->toolCalls[0]['arguments']);
+        $this->assertSame('tool_calls', $result->finishReason);
+        $this->assertSame(150, $result->usage['total_tokens']);
+        $this->assertFalse($result->fallback);
+
+        Http::assertSent(function ($request): bool {
+            return $request['model'] === 'qwen3:4b'
+                && $request['max_tokens'] === 512
+                && $request['tools'][0]['function']['name'] === 'orders_lookup'
+                && str_contains($request['messages'][0]['content'], 'Server-provided bounded context')
+                && str_contains($request['messages'][0]['content'], 'Required response schema');
+        });
     }
 
     public function test_external_ai_route_accepts_qwen_thinking_and_fenced_json(): void
