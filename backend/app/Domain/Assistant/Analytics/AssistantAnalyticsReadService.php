@@ -48,6 +48,7 @@ final readonly class AssistantAnalyticsReadService
             'metric_dictionary_version' => $read['metric_dictionary_version'],
             'timezone' => $read['timezone'],
             'store_ids' => $read['store_ids'],
+            'sellout_feed' => $read['sellout_feed'],
         ]);
     }
 
@@ -82,6 +83,7 @@ final readonly class AssistantAnalyticsReadService
             'currencies' => $totals['currencies'],
             'freshness' => $read['freshness'],
             'store_ids' => $read['store_ids'],
+            'sellout_feed' => $read['sellout_feed'],
         ]);
     }
 
@@ -125,6 +127,7 @@ final readonly class AssistantAnalyticsReadService
             'retailer_count' => count($rows),
             'freshness' => $read['freshness'],
             'timezone' => $read['timezone'],
+            'sellout_feed' => $read['sellout_feed'],
         ]);
     }
 

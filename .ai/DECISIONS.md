@@ -102,3 +102,13 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** revocation blocks subsequent reads immediately; multi-retailer aggregation authorizes every Retail store independently; consent/read/tool access is audited; localized denial does not expose hidden ids; providers receive no authorization power.
 
 **Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
+
+
+## D-017 — Retail sell-out ingestion accepts actual sales only
+**Decision (#2217 / AI-09, 2026-10-18):** Canonical sell-out is composed only from actual retailer-to-customer transactions: native FOODEX B2C orders plus explicitly connected external POS/API/CSV sell-out events. Retail replenishment and wholesale purchases remain separate sell-in/procurement facts and are never inferred, relabelled or substituted as sell-out.
+
+**Reason:** purchase-to-retail timing, stock holding, returns and unsold inventory make wholesale replenishment an invalid proxy for consumer demand. AI decisions must distinguish absent/partial retail feeds from genuine zero sales.
+
+**Consequences:** external rows are tenant-owned, SKU-mapped, timezone-normalized, idempotent and reconciled; rejected rows are reported without persisting raw rejected payloads; active retailer consent is re-authorized on analytical reads; feed state exposes no/partial/available coverage and quality; the deterministic analytics layer combines actual sources while the LLM remains an interpreter only.
+
+**Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.

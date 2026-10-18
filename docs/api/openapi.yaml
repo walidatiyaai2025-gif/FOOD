@@ -45,8 +45,215 @@ tags:
     description: Permission and scope-aware management reporting catalog.
   - name: App Preview
     description: Short-lived, read-only Customer/Driver preview sessions for the authorized Management Dashboard.
+  - name: AI Sell-Out
+    description: Retailer-owned actual sell-out connections, SKU mapping, ingestion and reconciliation.
 
 paths:
+  /assistant/sellout/connections:
+    get:
+      tags: [AI Sell-Out]
+      summary: List sell-out connections for an owned Retail store
+      operationId: listRetailSellOutConnections
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: retailer_store_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Tenant-owned sell-out connections with freshness and quality metadata
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      tags: [AI Sell-Out]
+      summary: Create or reactivate a retailer-owned POS/API/CSV sell-out connection
+      operationId: createRetailSellOutConnection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [retailer_store_id, source_type, provider, source_key]
+              properties:
+                retailer_store_id:
+                  type: integer
+                  minimum: 1
+                source_type:
+                  type: string
+                  enum: [pos_api, api, csv]
+                provider:
+                  type: string
+                  maxLength: 64
+                source_key:
+                  type: string
+                  maxLength: 128
+                source_timezone:
+                  type: string
+                  default: Asia/Kuwait
+      responses:
+        "201":
+          description: Sell-out connection created or reactivated
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /assistant/sellout/connections/{connection}/sku-mappings:
+    put:
+      tags: [AI Sell-Out]
+      summary: Map an external POS SKU to the exact Retail product
+      operationId: mapRetailSellOutSku
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: connection
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [external_sku, product_id]
+              properties:
+                external_sku:
+                  type: string
+                  maxLength: 128
+                product_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          description: SKU mapping saved
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /assistant/sellout/connections/{connection}/ingest:
+    post:
+      tags: [AI Sell-Out]
+      summary: Idempotently ingest normalized actual retail sell-out rows
+      description: Wholesale purchases are never accepted or inferred as sell-out. Bad rows are rejected individually and reported by the run.
+      operationId: ingestRetailSellOutRows
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: connection
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [idempotency_key, rows]
+              properties:
+                idempotency_key:
+                  type: string
+                  maxLength: 128
+                rows:
+                  type: array
+                  minItems: 1
+                  maxItems: 5000
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [event_id, transaction_id, sku, event_type, occurred_at, quantity, gross_amount, net_amount, currency]
+                    properties:
+                      event_id: {type: string, maxLength: 128}
+                      transaction_id: {type: string, maxLength: 128}
+                      sku: {type: string, maxLength: 128}
+                      event_type: {type: string, enum: [sale, refund, cancelled]}
+                      occurred_at: {type: string, description: Timestamp interpreted in the configured source timezone unless an offset is present}
+                      source_updated_at: {type: string}
+                      quantity: {type: number, exclusiveMinimum: 0}
+                      gross_amount: {type: number, minimum: 0}
+                      discount_amount: {type: number, minimum: 0, default: 0}
+                      net_amount: {type: number, minimum: 0}
+                      currency: {type: string, minLength: 3, maxLength: 3}
+      responses:
+        "200":
+          description: Ingestion run reconciliation, coverage, quality and rejected-row report
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Connection is revoked or inactive
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /assistant/sellout/connections/{connection}:
+    delete:
+      tags: [AI Sell-Out]
+      summary: Revoke a sell-out connection and block future ingestion
+      operationId: revokeRetailSellOutConnection
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: connection
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Connection revoked
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /assistant/sellout/ingest-runs/{run}:
+    get:
+      tags: [AI Sell-Out]
+      summary: Get sell-out ingestion reconciliation and rejected-row evidence
+      operationId: getRetailSellOutIngestRun
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: run
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Ingestion run reconciliation and rejection report
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /version:
     get:
       tags: [Version]
