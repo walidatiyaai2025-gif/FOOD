@@ -47,6 +47,10 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         );
         $this->assertStringContainsString('data-cs-tab="cases"', $view);
         $this->assertStringContainsString('data-cs-tab="analytics"', $view);
+        $this->assertStringContainsString("@php(\$caseCount = (int) \$cases->total())", $view);
+        $this->assertStringContainsString("cs-tab-count {{ \$caseCount === 0 ? 'ok' : 'danger' }}", $view);
+        $this->assertStringContainsString('.cs-tab-count.ok{background:#DCFCE7', $view);
+        $this->assertStringContainsString('.cs-tab-count.danger{background:#FEE2E2', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
         $this->assertStringContainsString('data-cs-panel="analytics"', $view);
         $this->assertStringContainsString('.cs-tab-panel{display:grid;gap:16px;min-width:0;width:100%;max-width:100%}', $view);
