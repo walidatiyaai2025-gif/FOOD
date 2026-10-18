@@ -49,11 +49,7 @@ class AdminLoginController extends Controller
             $target = $this->targetChannel($user, $preferredChannel);
 
             if ($target !== null) {
-                $profileTarget = $target === 'b2c' ? $this->workspaceLanding->urlFor($user) : null;
-
-                return redirect()->to(
-                    $profileTarget ?? $this->navigation->defaultWorkspaceUrl($user, $target),
-                );
+                return redirect()->to($this->defaultWorkspaceUrl($user, $target, $request));
             }
         }
 
@@ -262,9 +258,7 @@ class AdminLoginController extends Controller
             ]);
 
             $intended = $this->authorizedIntendedUrl($request, $user);
-            $defaultTarget = $target === 'b2c'
-                ? ($this->workspaceLanding->urlFor($user) ?? $this->navigation->defaultWorkspaceUrl($user, $target))
-                : $this->navigation->defaultWorkspaceUrl($user, $target);
+            $defaultTarget = $this->defaultWorkspaceUrl($user, $target, $request);
 
             if ($this->securityPolicy->requiresMfa($user)) {
                 $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
@@ -385,7 +379,21 @@ class AdminLoginController extends Controller
             }
         }
 
+        if (! $this->workspaceLanding->allowsIntendedUrl($user, $request, $intended)) {
+            return null;
+        }
+
         return $intended;
+    }
+
+    private function defaultWorkspaceUrl(User $user, string $channel, Request $request): string
+    {
+        if ($channel === 'b2c') {
+            return $this->workspaceLanding->urlFor($user, $request)
+                ?? $this->navigation->defaultWorkspaceUrl($user, $channel);
+        }
+
+        return $this->navigation->defaultWorkspaceUrl($user, $channel);
     }
 
     private function targetChannel(User $user, string $preferred): ?string
