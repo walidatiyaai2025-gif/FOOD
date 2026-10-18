@@ -35,11 +35,52 @@
 .so-preview-device iframe{display:block;width:100%;height:78vh;border:0;border-radius:var(--foodex-radius-md);background:var(--foodex-surface)}
 .so-preview-empty{min-height:420px;display:grid;place-items:center;padding:var(--foodex-space-6);border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-surface);color:var(--foodex-muted);text-align:center}
 .so-preview-hint{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-xs);line-height:var(--foodex-leading-normal)}
+.so-quick-menu-card{display:grid;gap:10px;padding:12px;border:1px solid #bfe0c7;border-radius:14px;background:linear-gradient(135deg,#f4fbf6,#fff);box-shadow:0 8px 24px rgba(21,138,58,.06)}
+.so-quick-menu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.so-quick-menu-title{display:grid;gap:2px}.so-quick-menu-title strong{font-size:.86rem;color:var(--foodex-ink)}.so-quick-menu-title span{font-size:.68rem;color:var(--foodex-muted);line-height:1.5}
+.so-quick-menu-stats{display:flex;gap:5px;flex-wrap:wrap}.so-quick-menu-stat{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;font-size:.62rem;font-weight:900;color:#475569}
+.so-quick-menu-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.so-quick-menu-actions .foodex-action-primary,.so-quick-menu-actions .foodex-action-secondary{min-height:36px;padding-inline:12px;border-radius:10px;font-size:.72rem}
+.so-menu-wizard{position:fixed;z-index:14050;inset:0;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.52);backdrop-filter:blur(6px)}
+.so-menu-wizard[hidden]{display:none!important}
+.so-menu-wizard-dialog{width:min(760px,96vw);max-height:92dvh;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--foodex-border);border-radius:20px;background:var(--foodex-surface);box-shadow:0 32px 90px rgba(15,23,42,.3)}
+.so-menu-wizard-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(135deg,#f8fbf9,#eef8f1)}
+.so-menu-wizard-head h2{margin:0;font-size:1rem}.so-menu-wizard-head p{margin:4px 0 0;color:var(--foodex-muted);font-size:.7rem}
+.so-menu-wizard-close{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;font-weight:900;cursor:pointer}
+.so-menu-wizard-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 18px;border-bottom:1px solid var(--foodex-border);background:#fff}
+.so-menu-wizard-progress span{display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 8px;border-radius:10px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:900}
+.so-menu-wizard-progress span[aria-current="step"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark);box-shadow:inset 0 0 0 1px #b9d8c1}
+.so-menu-wizard-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 18px}
+.so-menu-step{display:grid;gap:12px}.so-menu-step[hidden]{display:none!important}
+.so-menu-step-copy{padding:10px 12px;border-radius:12px;background:#f8fafc;color:#475569;font-size:.7rem;line-height:1.55}
+.so-menu-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.so-menu-form-grid label,.so-menu-item-row label{display:grid;gap:5px;font-size:.68rem;font-weight:900;color:#334155}
+.so-menu-form-grid input,.so-menu-item-row input{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:0 11px;font:inherit}
+.so-menu-suggestions{display:flex;gap:6px;flex-wrap:wrap}.so-menu-suggestion{min-height:32px;padding:0 10px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#475569;font-size:.65rem;font-weight:800;cursor:pointer}
+.so-menu-suggestion:hover{border-color:#86c395;color:var(--foodex-green-dark);background:var(--foodex-green-soft)}
+.so-menu-items{display:grid;gap:8px}
+.so-menu-item-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 130px auto;gap:7px;align-items:end;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}
+.so-menu-item-featured{display:flex!important;align-items:center!important;gap:5px!important;min-height:42px;padding-inline:4px;white-space:nowrap}.so-menu-item-featured input{width:auto!important;min-height:0!important}
+.so-menu-item-remove{width:34px;height:34px;border:1px solid #fecaca;border-radius:9px;background:#fff7f7;color:#b91c1c;font-weight:900;cursor:pointer}
+.so-menu-add-item{justify-self:start;min-height:36px;padding:0 11px;border:1px dashed #8fb99a;border-radius:10px;background:#f5fbf6;color:var(--foodex-green-dark);font-size:.68rem;font-weight:900;cursor:pointer}
+.so-menu-review{display:grid;gap:8px}.so-menu-review-card{padding:10px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.so-menu-review-card strong{display:block;margin-bottom:4px;font-size:.72rem}.so-menu-review-card span{color:var(--foodex-muted);font-size:.67rem}
+.so-menu-wizard-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--foodex-border);background:#fff}
+.so-menu-wizard-actions>div{display:flex;align-items:center;gap:6px}.so-menu-wizard-actions button{min-height:38px;padding:0 13px;border-radius:10px;font-size:.7rem;font-weight:900;cursor:pointer}
+.so-menu-next,.so-menu-submit{border:1px solid var(--foodex-action-green);background:var(--foodex-action-green);color:#fff}.so-menu-back{border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-ink)}
+body.so-menu-wizard-open{overflow:hidden}
+@media(max-width:700px){.so-menu-wizard{padding:6px}.so-menu-wizard-dialog{width:100%;max-height:calc(100dvh - 12px);border-radius:14px}.so-menu-form-grid{grid-template-columns:1fr}.so-menu-item-row{grid-template-columns:1fr 1fr}.so-menu-item-row label:nth-child(3){grid-column:1/2}.so-menu-item-featured{grid-column:2/3}.so-menu-item-remove{grid-column:2/3;justify-self:end}.so-menu-wizard-progress{padding-inline:10px}.so-menu-wizard-body{padding:12px}.so-menu-wizard-actions{padding:10px 12px}}
+
 @media(max-width:1023px){.so-builder-grid{grid-template-columns:minmax(0,1fr)}.so-builder-panel{position:static}.so-preview-stage{padding:var(--foodex-space-3)}}
 @media(max-width:767px){.so-builder-panel,.so-preview-stage{padding:var(--foodex-space-4)}.so-preview-device iframe{height:70vh}.so-segmented{grid-template-columns:minmax(0,1fr)}.so-segmented.so-segmented-two{grid-template-columns:repeat(2,minmax(0,1fr))}.so-template-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
+<?php
+$isAr = app()->getLocale() === 'ar';
+$quickMenuOldItems = old('items', [['name_ar'=>'','name_en'=>'','price'=>'','featured'=>false]]);
+if (!is_array($quickMenuOldItems) || $quickMenuOldItems === []) {
+    $quickMenuOldItems = [['name_ar'=>'','name_en'=>'','price'=>'','featured'=>false]];
+}
+$quickMenuShouldOpen = old('_quick_menu') === '1';
+?>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-appearance" data-builder>
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page">
@@ -61,6 +102,27 @@
 <label for="site">{{ __('smart_ordering.appearance.site_key_label') }}</label>
 <input id="site" value="{{ $siteKey }}" placeholder="{{ __('smart_ordering.appearance.site_key_placeholder') }}" autocomplete="off">
 </div>
+
+@if($site instanceof \App\Domain\SmartOrdering\Models\SmartOrderingSite && $canApply)
+<div class="so-quick-menu-card" id="menu-builder" data-quick-menu-card>
+    <div class="so-quick-menu-head">
+        <div class="so-quick-menu-title">
+            <strong>{{ $isAr ? 'ابني المنيو من هنا' : 'Build your menu here' }}</strong>
+            <span>{{ $isAr ? '3 خطوات فقط: اسم المنيو، القسم الأول، ثم الأصناف والأسعار.' : 'Only 3 steps: menu name, first category, then items and prices.' }}</span>
+        </div>
+        <span aria-hidden="true">🍽️</span>
+    </div>
+    <div class="so-quick-menu-stats">
+        <span class="so-quick-menu-stat">{{ $menuCount }} {{ $isAr ? 'منيو' : 'menus' }}</span>
+        <span class="so-quick-menu-stat">{{ $menuItemCount }} {{ $isAr ? 'صنف' : 'items' }}</span>
+        @if($quickMenuCurrency)<span class="so-quick-menu-stat">{{ $quickMenuCurrency }}</span>@endif
+    </div>
+    <div class="so-quick-menu-actions">
+        <button class="foodex-action-primary" type="button" data-quick-menu-open>{{ $menuCount > 0 ? ($isAr ? 'إضافة منيو سريعة' : 'Add quick menu') : ($isAr ? 'إنشاء أول منيو' : 'Create first menu') }}</button>
+        <a class="foodex-action-secondary" href="{{ route('admin.smart-ordering.menu.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'المحرر المتقدم' : 'Advanced editor' }}</a>
+    </div>
+</div>
+@endif
 
 <div class="so-builder-group">
 <span class="so-builder-label">{{ __('smart_ordering.appearance.template_gallery_label') }}</span>
@@ -144,6 +206,96 @@
 </section>
 </div>
 </div>
+@if($site instanceof \App\Domain\SmartOrdering\Models\SmartOrderingSite && $canApply)
+<div class="so-menu-wizard" data-quick-menu-modal role="dialog" aria-modal="true" aria-labelledby="quick-menu-title" @if(!$quickMenuShouldOpen) hidden @endif>
+    <form class="so-menu-wizard-dialog" method="post" action="{{ route('admin.smart-ordering.menu.quick-create') }}" data-quick-menu-form>
+        @csrf
+        <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+        <input type="hidden" name="_quick_menu" value="1">
+
+        <header class="so-menu-wizard-head">
+            <div>
+                <h2 id="quick-menu-title">{{ $isAr ? 'إنشاء المنيو بسهولة' : 'Create menu easily' }}</h2>
+                <p>{{ $isAr ? 'ابدأ بالأساسيات الآن، والتفاصيل المتقدمة تقدر تضيفها بعدين.' : 'Start with the essentials now; advanced details can be added later.' }}</p>
+            </div>
+            <button class="so-menu-wizard-close" type="button" data-quick-menu-close aria-label="{{ $isAr ? 'إغلاق' : 'Close' }}">×</button>
+        </header>
+
+        <div class="so-menu-wizard-progress" aria-label="{{ $isAr ? 'خطوات إنشاء المنيو' : 'Menu creation steps' }}">
+            <span aria-current="step" data-quick-menu-progress="1">1 · {{ $isAr ? 'المنيو' : 'Menu' }}</span>
+            <span data-quick-menu-progress="2">2 · {{ $isAr ? 'القسم' : 'Category' }}</span>
+            <span data-quick-menu-progress="3">3 · {{ $isAr ? 'الأصناف' : 'Items' }}</span>
+        </div>
+
+        <div class="so-menu-wizard-body">
+            @if($quickMenuShouldOpen && $errors->any())
+                <div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>
+            @endif
+
+            <section class="so-menu-step" data-quick-menu-step="1">
+                <div class="so-menu-step-copy">{{ $isAr ? 'اكتب اسم المنيو فقط. ممكن تستخدم نفس الاسم بالعربي والإنجليزي لو مش محتاج ترجمة مختلفة.' : 'Enter the menu name. You can use the same name for both languages if needed.' }}</div>
+                <div class="so-menu-form-grid">
+                    <label>{{ $isAr ? 'اسم المنيو بالعربي' : 'Menu name in Arabic' }}
+                        <input type="text" name="menu_name_ar" value="{{ old('menu_name_ar') }}" placeholder="{{ $isAr ? 'مثال: المنيو الرئيسية' : 'Example: Main menu' }}" data-quick-required-group="menu">
+                    </label>
+                    <label>{{ $isAr ? 'اسم المنيو بالإنجليزي' : 'Menu name in English' }}
+                        <input type="text" name="menu_name_en" value="{{ old('menu_name_en') }}" placeholder="Main menu" data-quick-required-group="menu">
+                    </label>
+                </div>
+            </section>
+
+            <section class="so-menu-step" data-quick-menu-step="2" hidden>
+                <div class="so-menu-step-copy">{{ $isAr ? 'ابدأ بقسم واحد فقط. بعد الحفظ تقدر تضيف أقسام أخرى بنفس سهولة.' : 'Start with one category. You can add more later.' }}</div>
+                <div class="so-menu-suggestions">
+                    @foreach(($isAr ? ['الأطباق الرئيسية','المقبلات','المشروبات','الحلويات'] : ['Main dishes','Starters','Drinks','Desserts']) as $suggestion)
+                        <button class="so-menu-suggestion" type="button" data-category-suggestion="{{ $suggestion }}">{{ $suggestion }}</button>
+                    @endforeach
+                </div>
+                <div class="so-menu-form-grid">
+                    <label>{{ $isAr ? 'اسم القسم بالعربي' : 'Category name in Arabic' }}
+                        <input type="text" name="category_name_ar" value="{{ old('category_name_ar') }}" placeholder="{{ $isAr ? 'مثال: الأطباق الرئيسية' : 'Example: Main dishes' }}" data-quick-category-ar>
+                    </label>
+                    <label>{{ $isAr ? 'اسم القسم بالإنجليزي' : 'Category name in English' }}
+                        <input type="text" name="category_name_en" value="{{ old('category_name_en') }}" placeholder="Main dishes" data-quick-category-en>
+                    </label>
+                </div>
+            </section>
+
+            <section class="so-menu-step" data-quick-menu-step="3" hidden>
+                <div class="so-menu-step-copy">{{ $isAr ? 'أضف الأصناف الأساسية الآن: الاسم والسعر فقط. الصور والإضافات والتفاصيل تقدر تضيفها لاحقاً.' : 'Add the essentials now: item name and price. Images and extras can be added later.' }}</div>
+                <div class="so-menu-items" data-quick-menu-items>
+                    @foreach($quickMenuOldItems as $quickIndex => $quickItem)
+                    <div class="so-menu-item-row" data-quick-menu-item>
+                        <label>{{ $isAr ? 'اسم الصنف بالعربي' : 'Arabic item name' }}
+                            <input type="text" name="items[{{ $quickIndex }}][name_ar]" value="{{ $quickItem['name_ar'] ?? '' }}" placeholder="{{ $isAr ? 'مثال: برجر لحم' : 'Example: Beef burger' }}">
+                        </label>
+                        <label>{{ $isAr ? 'اسم الصنف بالإنجليزي' : 'English item name' }}
+                            <input type="text" name="items[{{ $quickIndex }}][name_en]" value="{{ $quickItem['name_en'] ?? '' }}" placeholder="Beef burger">
+                        </label>
+                        <label>{{ $isAr ? 'السعر' : 'Price' }} @if($quickMenuCurrency)<span>({{ $quickMenuCurrency }})</span>@endif
+                            <input type="number" step="0.001" min="0" name="items[{{ $quickIndex }}][price]" value="{{ $quickItem['price'] ?? '' }}" placeholder="0.000" required>
+                        </label>
+                        <label class="so-menu-item-featured"><input type="checkbox" name="items[{{ $quickIndex }}][featured]" value="1" @checked((bool)($quickItem['featured'] ?? false))> {{ $isAr ? 'مميز' : 'Featured' }}</label>
+                        <button class="so-menu-item-remove" type="button" data-quick-menu-remove aria-label="{{ $isAr ? 'حذف الصنف' : 'Remove item' }}">×</button>
+                    </div>
+                    @endforeach
+                </div>
+                <button class="so-menu-add-item" type="button" data-quick-menu-add>+ {{ $isAr ? 'إضافة صنف آخر' : 'Add another item' }}</button>
+                <div class="so-menu-review" data-quick-menu-review></div>
+            </section>
+        </div>
+
+        <footer class="so-menu-wizard-actions">
+            <button class="so-menu-back" type="button" data-quick-menu-back hidden>{{ $isAr ? 'السابق' : 'Back' }}</button>
+            <div>
+                <button class="so-menu-next" type="button" data-quick-menu-next>{{ $isAr ? 'التالي' : 'Next' }}</button>
+                <button class="so-menu-submit" type="submit" data-quick-menu-submit hidden>{{ $isAr ? 'حفظ المنيو كمسودة' : 'Save menu as draft' }}</button>
+            </div>
+        </footer>
+    </form>
+</div>
+@endif
+
 </main>
 </div>
 
