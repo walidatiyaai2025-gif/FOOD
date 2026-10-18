@@ -55,7 +55,6 @@ Schedule::command('foodex:analytics-refresh')
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
 
-
 Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
     $count = app(NotificationCampaignDispatcher::class)->dispatchDue();
     $this->info("Dispatched {$count} scheduled notification campaign(s).");
