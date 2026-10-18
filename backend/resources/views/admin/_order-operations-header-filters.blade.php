@@ -14,28 +14,32 @@
     ], static fn ($value): bool => $value !== null && $value !== '');
 @endphp
 <style id="order-operations-header-filter-style">
-.order-header-controls{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
-.order-header-filter{display:flex;align-items:center;gap:6px;min-width:0}
+.order-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;white-space:nowrap}
+.order-header-filter{display:flex;align-items:center;gap:6px;min-width:0;padding:4px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);box-shadow:0 4px 14px rgba(15,23,42,.035)}
 .order-header-filter label{display:flex;align-items:center;gap:4px;min-width:0}
-.order-header-filter select,.order-header-filter input{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important;border-radius:8px!important;padding-inline:7px!important;font-size:.65rem!important}
+.order-header-filter select,.order-header-filter input{height:34px!important;min-height:34px!important;border-radius:8px!important;padding-inline:7px!important;font-size:.66rem!important;background:var(--foodex-surface)!important}
 .order-header-filter input[type="date"]{width:116px}
 .order-header-filter select{width:128px}
-.order-header-filter .foodex-filter-action,.order-header-filter .foodex-action-secondary,.order-header-new-order{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important;padding-inline:10px!important;border-radius:8px!important;font-size:.65rem!important;line-height:1!important}
+.order-header-filter .foodex-filter-action,.order-header-filter .foodex-action-secondary,.order-header-new-order{height:34px!important;min-height:34px!important;padding-inline:10px!important;border-radius:8px!important;font-size:.66rem!important;line-height:1!important}
 .order-header-filter .foodex-action-secondary{min-width:34px}
 .order-header-new-order{white-space:nowrap}
 .order-header-filter-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 .order-header-mobile-filter{display:none}
-@media(max-width:1250px){
+@media(max-width:1180px){
     .order-header-filter{display:none}
     .order-header-mobile-filter{display:block;position:relative}
-    .order-header-mobile-filter>summary{list-style:none;height:var(--foodex-header-control-height);min-width:38px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:8px;background:var(--foodex-surface);color:var(--foodex-green-dark);cursor:pointer;font-weight:900}
+    .order-header-mobile-filter>summary{list-style:none;height:36px;min-width:38px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface);color:var(--foodex-green-dark);cursor:pointer;font-weight:900}
     .order-header-mobile-filter>summary::-webkit-details-marker{display:none}
     .order-header-mobile-filter-panel{position:absolute;z-index:12040;top:calc(100% + 8px);inset-inline-end:0;width:min(92vw,520px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);box-shadow:0 16px 42px rgba(15,23,42,.16)}
     .order-header-mobile-filter-panel label{display:grid;gap:4px;font-size:.7rem;font-weight:800}
     .order-header-mobile-filter-panel select,.order-header-mobile-filter-panel input{width:100%}
     .order-header-mobile-filter-actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 }
-@media(max-width:767px){.order-header-new-order{padding-inline:8px!important}.order-header-mobile-filter-panel{position:fixed;top:calc(var(--foodex-header-height-mobile) + 8px);inset-inline:12px;width:auto}}
+@media(max-width:767px){
+    .order-header-controls{gap:4px}
+    .order-header-new-order{padding-inline:8px!important}
+    .order-header-mobile-filter-panel{position:fixed;top:92px;inset-inline:12px;width:auto}
+}
 </style>
 
 <div class="order-header-controls" data-order-header-controls>
