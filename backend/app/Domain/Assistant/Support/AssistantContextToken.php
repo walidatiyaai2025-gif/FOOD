@@ -77,7 +77,20 @@ final class AssistantContextToken
             $this->invalid();
         }
 
-        return $claims['page_context'];
+        $pageContext = $claims['page_context'];
+        $authorized = is_array($pageContext['authorized_entities'] ?? null)
+            ? $pageContext['authorized_entities']
+            : [];
+
+        foreach (['order_id', 'customer_id', 'driver_id', 'product_id', 'account_id'] as $key) {
+            if (array_key_exists($key, $authorized)) {
+                $pageContext[$key] = $authorized[$key];
+            }
+        }
+
+        unset($pageContext['authorized_entities']);
+
+        return $pageContext;
     }
 
     /** @return array<string,mixed> */
