@@ -31,6 +31,18 @@ Environment policy keys:
 - `ASSISTANT_AI_CIRCUIT_BREAKER_FAILURES`
 - `ASSISTANT_AI_CIRCUIT_BREAKER_SECONDS`
 
+## Typed provider abstraction
+
+#2210 implements the provider abstraction reserved by the parent architecture:
+
+- `AssistantProviderGatewayInterface::capabilities(): AssistantProviderCapabilities`
+- `AssistantProviderGatewayInterface::complete(AssistantProviderRequest): AssistantProviderResult`
+- `AssistantProviderGatewayInterface::health(): AssistantProviderHealth`
+
+`AssistantExternalAiClient` implements that interface and is bound to it in Laravel's container. The request contract carries server-owned system/task instructions, minimized content/context, allowlisted tool definitions, an optional response schema, token/temperature/timeout budgets, correlation id and an explicit registry use case. Provider results normalize text/structured payloads, proposed tool calls, finish/failure reason, usage, latency and safe model metadata. Tool calls are proposals only and are never executed by this gateway.
+
+Provider failures use the stable architecture taxonomy `PROVIDER_DISABLED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_INCAPABLE` and `PROVIDER_MALFORMED`, allowing the current deterministic Assistant and the future orchestrator to fail closed consistently.
+
 ## Capability probe
 
 The admin capability probe separates transport reachability from agent readiness.

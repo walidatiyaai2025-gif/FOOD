@@ -58,6 +58,7 @@ return [
     'agent_capable' => 'جاهز للوكيل',
     'agent_not_capable' => 'غير جاهز للوكيل',
     'reachable' => 'يمكن الوصول إليه',
+    'provider_health' => 'صحة المزود',
     'chat_contract' => 'عقد المحادثة',
     'structured_json' => 'JSON منظم',
     'tool_calls' => 'استدعاء الأدوات',

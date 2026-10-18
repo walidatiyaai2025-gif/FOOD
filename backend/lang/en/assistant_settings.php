@@ -58,6 +58,7 @@ return [
     'agent_capable' => 'Agent-capable',
     'agent_not_capable' => 'Not agent-capable',
     'reachable' => 'Reachable',
+    'provider_health' => 'Provider health',
     'chat_contract' => 'Chat contract',
     'structured_json' => 'Structured JSON',
     'tool_calls' => 'Tool calling',
