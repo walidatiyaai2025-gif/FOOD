@@ -170,6 +170,26 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_order_operations_uses_compact_single_card_kpi_summary(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-order-kpi-card', $view);
+        $this->assertStringContainsString('class="order-kpi-item"', $view);
+        $this->assertStringContainsString('class="order-kpi-icon"', $view);
+        $this->assertStringContainsString("data-tone="{{ \$metric['tone'] }}"", $view);
+        $this->assertStringContainsString('.order-kpi-card::before{content:""', $view);
+        $this->assertStringContainsString('@keyframes orderKpiEdge', $view);
+        $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$metric['icon']])", $view);
+        $this->assertStringNotContainsString("@include('admin._module-dashboard-kpi', ['metric' => \$metric])", $view);
+        $this->assertStringNotContainsString("__('order_operations.description')", $view);
+        $this->assertStringNotContainsString("__('order_operations.dashboard.subtitle')", $view);
+        $this->assertStringNotContainsString("__('order_operations.dashboard.generated_at'", $view);
+        $this->assertStringContainsString("title="{{ __('order_operations.filters.channel') }}"", $view);
+        $this->assertStringContainsString("title="{{ __('order_operations.filters.store') }}"", $view);
+    }
+
     private function retailStore(string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
