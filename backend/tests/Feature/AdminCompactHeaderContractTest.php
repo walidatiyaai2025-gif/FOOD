@@ -41,10 +41,12 @@ final class AdminCompactHeaderContractTest extends TestCase
         $search = file_get_contents(resource_path('views/admin/_global-search.blade.php'));
         $notifications = file_get_contents(resource_path('views/admin/_live-notifications.blade.php'));
         $account = file_get_contents(resource_path('views/admin/_account-menu.blade.php'));
+        $searchScript = file_get_contents(public_path('assets/admin/global-search.js'));
 
         $this->assertIsString($search);
         $this->assertIsString($notifications);
         $this->assertIsString($account);
+        $this->assertIsString($searchScript);
 
         $this->assertStringContainsString('input.foodex-global-search-input{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important', $search);
         $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)!important;min-height:var(--foodex-header-control-height-mobile)!important', $search);
@@ -56,6 +58,11 @@ final class AdminCompactHeaderContractTest extends TestCase
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $account);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $account);
+
+        $this->assertStringContainsString("event.key === 'Enter'", $searchScript);
+        $this->assertStringContainsString('const selected = activeIndex >= 0 ? rows[activeIndex] : rows[0];', $searchScript);
+        $this->assertStringContainsString('await search(term, currentGeneration);', $searchScript);
+        $this->assertStringContainsString('firstResult.click();', $searchScript);
     }
 
     public function test_canonical_admin_shell_uses_shared_global_header_partial(): void
