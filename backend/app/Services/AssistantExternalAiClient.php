@@ -482,7 +482,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
-            $this->providerTelemetry($config, (string) ($config['model'] ?? ''), 'probe_exception', null, 0, false);
+            $this->providerTelemetry($config, $config['model'], 'probe_exception', null, 0, false);
             report($exception);
 
             return $this->probeResult(
