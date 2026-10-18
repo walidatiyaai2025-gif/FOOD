@@ -66,18 +66,25 @@ class AdminNavigation
         $isSuperAdmin = $this->isSuperAdmin($user);
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
+        $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index') : null,
-                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index') : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
+                    : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
+                    : null,
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
             ]),
             $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp ? [
-                $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
+                $useCustomerServiceDashboardProfile
+                    ? null
+                    : $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
                 $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view'),
@@ -156,7 +163,9 @@ class AdminNavigation
                 $this->routeItem($user, 'mobile_van_download', 'admin.mobile_apps.van_download', 'admin.mobile-apps.van.download', 'platform.manage'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
-                $canAccessPlatformNavigation ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index') : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index')
+                    : null,
             ]),
         ];
 
@@ -210,6 +219,10 @@ class AdminNavigation
 
         if (! is_array($channelDefinition) || ! is_string($channelDefinition['route'] ?? null)) {
             return route('admin.index');
+        }
+
+        if ($this->usesCustomerServiceDashboardProfile($user)) {
+            return route($channelDefinition['route']);
         }
 
         $visibleItems = [];
@@ -441,6 +454,19 @@ class AdminNavigation
         return $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->exists();
+    }
+
+    public function usesCustomerServiceDashboardProfile(User $user): bool
+    {
+        if ($this->isSuperAdmin($user)) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', ['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT'])
             ->exists();
     }
 
