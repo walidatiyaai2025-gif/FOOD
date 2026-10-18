@@ -106,9 +106,9 @@
             $ov = is_array($restaurantOverview ?? null) ? $restaurantOverview : [];
             $ovFilters = is_array($ov['filters'] ?? null) ? $ov['filters'] : [];
             $ovKpis = is_array($ov['kpis'] ?? null) ? $ov['kpis'] : [];
-            $ovTrend = is_array($ovTrend ?? null) ? $ovTrend : [];
-            $ovOrderStatus = is_array($ovOrderStatus ?? null) ? $ovOrderStatus : [];
-            $ovBranches = $ovBranches ?? collect();
+            $ovTrend = is_array($ov['trend'] ?? null) ? $ov['trend'] : [];
+            $ovOrderStatus = is_array($ov['order_status'] ?? null) ? $ov['order_status'] : [];
+            $ovBranches = $ov['branches'] ?? collect();
 
             $ovQuery = array_filter([
                 'branch' => $ovFilters['branch'] ?? null,
@@ -191,8 +191,8 @@
                     </select>
                 </label>
                 <div class="foodex-module-date-range">
-                    <label class="foodex-module-filter-group"><span>{{ __('smart_ordering.overview.filters.from') }}</span><input type="date" name="from" value="{{ $ovFilters['from'] }}"></label>
-                    <label class="foodex-module-filter-group"><span>{{ __('smart_ordering.overview.filters.to') }}</span><input type="date" name="to" value="{{ $ovFilters['to'] }}"></label>
+                    <label class="foodex-module-filter-group"><span>{{ __('smart_ordering.overview.filters.from') }}</span><input type="date" name="from" value="{{ $ovFilters['from'] ?? '' }}"></label>
+                    <label class="foodex-module-filter-group"><span>{{ __('smart_ordering.overview.filters.to') }}</span><input type="date" name="to" value="{{ $ovFilters['to'] ?? '' }}"></label>
                     <button class="foodex-filter-action" type="submit">{{ __('smart_ordering.overview.filters.apply') }}</button>
                 </div>
                 <div class="foodex-module-toolbar-actions">
