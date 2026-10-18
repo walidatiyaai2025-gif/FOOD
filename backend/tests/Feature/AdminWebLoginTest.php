@@ -196,19 +196,19 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_customer_service_manager_login_always_lands_on_b2b_dashboard(): void
+    public function test_customer_service_manager_login_always_lands_on_customer_service_workspace(): void
     {
         $user = $this->userWithGlobalRole('CUSTOMER_SERVICE_MANAGER');
 
         $this->post('/admin/b2b/login', [
             'email' => $user->email,
             'password' => 'correct-password',
-        ])->assertRedirect(route('admin.b2b.dashboard'));
+        ])->assertRedirect(route('admin.erp.customer-service'));
 
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_customer_service_supervisor_and_agent_login_always_land_on_b2b_dashboard(): void
+    public function test_customer_service_supervisor_and_agent_login_always_land_on_customer_service_workspace(): void
     {
         foreach (['CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
             $user = $this->userWithGlobalRole($roleCode);
@@ -216,7 +216,7 @@ class AdminWebLoginTest extends TestCase
             $this->post('/admin/b2b/login', [
                 'email' => $user->email,
                 'password' => 'correct-password',
-            ])->assertRedirect(route('admin.b2b.dashboard'));
+            ])->assertRedirect(route('admin.erp.customer-service'));
 
             $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
             $this->assertGuest();
@@ -227,14 +227,14 @@ class AdminWebLoginTest extends TestCase
     {
         foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
             $user = $this->userWithGlobalRole($roleCode);
-            $intended = route('admin.erp.customer-service');
+            $intended = route('admin.b2b.dashboard');
 
             $this->withSession(['url.intended' => $intended])
                 ->post('/admin/b2b/login', [
                     'email' => $user->email,
                     'password' => 'correct-password',
                 ])
-                ->assertRedirect(route('admin.b2b.dashboard'));
+                ->assertRedirect(route('admin.erp.customer-service'));
 
             $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
             $this->assertGuest();
