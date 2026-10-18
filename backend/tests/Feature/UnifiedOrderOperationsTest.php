@@ -176,6 +176,14 @@ class UnifiedOrderOperationsTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('data-order-kpi-card', $view);
+        $this->assertStringContainsString('data-order-tabs', $view);
+        $this->assertStringContainsString('data-order-tab="analytics"', $view);
+        $this->assertStringContainsString('data-order-tab="orders"', $view);
+        $this->assertStringContainsString('data-order-panel="analytics"', $view);
+        $this->assertStringContainsString('data-order-panel="orders"', $view);
+        $this->assertStringContainsString('class="order-workspace-tab-count"', $view);
+        $this->assertStringContainsString("history.replaceState(null, '', '#order-tab-' + name)", $view);
+        $this->assertStringContainsString('.order-tab-panel[hidden]{display:none!important}', $view);
         $this->assertStringContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
         $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
         $this->assertStringNotContainsString('data-order-workspace-context', $view);
@@ -201,6 +209,17 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('name="from"', $headerFilter);
         $this->assertStringContainsString('name="to"', $headerFilter);
         $this->assertStringContainsString('order-header-new-order', $headerFilter);
+    }
+
+    public function test_order_grid_is_fixed_to_ten_rows_per_page(): void
+    {
+        $super = $this->superAdmin('unified-ten-rows@example.test');
+        app(WholesalePrincipal::class)->storeId();
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b&per_page=25')
+            ->assertOk()
+            ->assertViewHas('orders', fn ($orders) => $orders->perPage() === 10);
     }
 
     private function retailStore(string $code): int
