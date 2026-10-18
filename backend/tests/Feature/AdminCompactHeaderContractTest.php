@@ -51,6 +51,9 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertStringContainsString('input.foodex-global-search-input{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important', $search);
         $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)!important;min-height:var(--foodex-header-control-height-mobile)!important', $search);
         $this->assertStringContainsString('font-size:16px', $search);
+        $this->assertStringContainsString('data-foodex-global-search-form', $search);
+        $this->assertStringContainsString('name="q"', $search);
+        $this->assertStringContainsString("?v={{ @filemtime(public_path('assets/admin/global-search.js')) ?: '1' }}", $search);
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $notifications);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $notifications);
@@ -59,10 +62,10 @@ final class AdminCompactHeaderContractTest extends TestCase
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $account);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $account);
 
-        $this->assertStringContainsString("event.key === 'Enter'", $searchScript);
-        $this->assertStringContainsString('const selected = activeIndex >= 0 ? rows[activeIndex] : rows[0];', $searchScript);
+        $this->assertStringContainsString("form.addEventListener('submit', async (event) =>", $searchScript);
         $this->assertStringContainsString('await search(term, currentGeneration);', $searchScript);
-        $this->assertStringContainsString('firstResult.click();', $searchScript);
+        $this->assertStringContainsString('setActive(0);', $searchScript);
+        $this->assertStringContainsString("event.key === 'Enter' && activeIndex >= 0", $searchScript);
     }
 
     public function test_canonical_admin_shell_uses_shared_global_header_partial(): void
