@@ -7,17 +7,20 @@ use InvalidArgumentException;
 final class SignalDetectionEngine
 {
     public const SCHEMA_VERSION = 'foodex.ai.signals.v1';
+
     public const DIAGNOSTIC_SCHEMA_VERSION = 'foodex.analytics.diagnostic.v1';
 
     private const MIN_CONFIDENCE = 0.55;
+
     private const SEVERITY_RANK = ['info' => 1, 'low' => 2, 'medium' => 3, 'high' => 4, 'critical' => 5];
+
     private const COOLDOWN_HOURS = ['critical' => 4, 'high' => 6, 'medium' => 12, 'low' => 24, 'info' => 24];
 
     /**
-     * @param array<string,mixed> $diagnostic
-     * @param list<array<string,mixed>> $retailerInsights Authorized server-produced rows only.
-     * @param list<array<string,mixed>> $forecastRows Authorized server-produced rows only.
-     * @param list<array<string,mixed>> $priorSignals
+     * @param  array<string,mixed>  $diagnostic
+     * @param  list<array<string,mixed>>  $retailerInsights  Authorized server-produced rows only.
+     * @param  list<array<string,mixed>>  $forecastRows  Authorized server-produced rows only.
+     * @param  list<array<string,mixed>>  $priorSignals
      * @return array<string,mixed>
      */
     public function detect(
@@ -70,6 +73,7 @@ final class SignalDetectionEngine
             $fingerprint = $this->fingerprint($candidate, $scope);
             if (isset($seen[$fingerprint])) {
                 $suppressed[] = ['fingerprint' => $fingerprint, 'code' => $candidate['code'], 'reason' => 'duplicate_in_evaluation'];
+
                 continue;
             }
             $seen[$fingerprint] = true;
@@ -94,6 +98,7 @@ final class SignalDetectionEngine
                     'reason' => $decision['reason'],
                     'cooldown_hours' => $candidate['cooldown_hours'],
                 ];
+
                 continue;
             }
             if ($decision['escalated']) {
@@ -414,6 +419,7 @@ final class SignalDetectionEngine
     private function confidence(array $diagnostic): float
     {
         $value = $diagnostic['evidence']['confidence']['score'] ?? 0;
+
         return is_numeric($value) ? round(min(1, max(0, (float) $value)), 2) : 0;
     }
 
@@ -433,6 +439,7 @@ final class SignalDetectionEngine
         if ($timestamp === false) {
             throw new InvalidArgumentException('Signal timestamps must be valid ISO-compatible date/time values.');
         }
+
         return $timestamp;
     }
 
@@ -444,6 +451,7 @@ final class SignalDetectionEngine
     private function positiveInt(mixed $value): ?int
     {
         $integer = filter_var($value, FILTER_VALIDATE_INT);
+
         return is_int($integer) && $integer > 0 ? $integer : null;
     }
 
@@ -464,6 +472,7 @@ final class SignalDetectionEngine
         foreach ($value as $key => $item) {
             $value[$key] = $this->canonicalize($item);
         }
+
         return $value;
     }
 }
