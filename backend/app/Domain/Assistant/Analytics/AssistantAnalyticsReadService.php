@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
