@@ -35,6 +35,7 @@ class RetailStoreProvisioningTest extends TestCase
         $customerTierId = (int) DB::table('b2b_price_tiers')->where('code', 'WHOLESALE')->value('id');
 
         $response = $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'SHOP-A',
             'name' => 'Shop A',
             'logo' => UploadedFile::fake()->image('shop-a.png', 256, 256),
@@ -105,6 +106,7 @@ class RetailStoreProvisioningTest extends TestCase
         $tierId = $this->priceTierId();
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'OWNER-SWAP',
             'name' => 'Owner Swap',
             'logo' => UploadedFile::fake()->image('owner-swap.png', 256, 256),
@@ -224,6 +226,7 @@ class RetailStoreProvisioningTest extends TestCase
         $tierId = $this->priceTierId();
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'OWNER-REVOKE',
             'name' => 'Owner Revoke',
             'logo' => UploadedFile::fake()->image('owner-revoke.png', 256, 256),
@@ -288,6 +291,7 @@ class RetailStoreProvisioningTest extends TestCase
         $tierId = $this->priceTierId();
 
         $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'SHOP-SYNC',
             'name' => 'Shop Sync',
             'logo' => UploadedFile::fake()->image('shop-sync.png', 256, 256),
@@ -332,6 +336,7 @@ class RetailStoreProvisioningTest extends TestCase
             ['ENT-B', 'Entitled B', 'manager-ent-b@example.test'],
         ] as [$code, $name, $email]) {
             $this->actingAs($admin)->post(route('admin.retail-stores.store'), [
+                'business_profile' => 'RETAIL_STORE',
                 'code' => $code,
                 'name' => $name,
                 'price_tier_id' => $tierId,
@@ -436,6 +441,7 @@ class RetailStoreProvisioningTest extends TestCase
         $tierId = $this->priceTierId();
 
         $response = $this->actingAs($admin)->from(route('admin.retail-stores.index'))->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'NO-PARTIAL',
             'name' => 'No Partial Store',
             'logo' => UploadedFile::fake()->image('no-partial.png', 256, 256),
@@ -462,6 +468,7 @@ class RetailStoreProvisioningTest extends TestCase
 
         $this->actingAs($b2b)->get(route('admin.retail-stores.index'))->assertForbidden();
         $this->actingAs($b2b)->post(route('admin.retail-stores.store'), [
+            'business_profile' => 'RETAIL_STORE',
             'code' => 'FORBIDDEN',
             'name' => 'Forbidden',
             'manager_mode' => 'existing',
