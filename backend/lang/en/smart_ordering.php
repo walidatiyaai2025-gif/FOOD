@@ -182,6 +182,14 @@ return [
     'workspace' => [
         'title' => 'Restaurant Management workspace',
         'help' => 'All authorized restaurant tools in one place',
+        'tasks_label' => 'Primary restaurant tasks',
+        'tasks' => [
+            'customer_orders' => 'Customer Orders',
+            'menu' => 'Menu',
+            'operations' => 'Operations',
+            'wholesale_purchases' => 'Wholesale Purchases',
+            'settings' => 'Settings',
+        ],
         'groups' => [
             'service' => 'Service & operations',
             'menu_growth' => 'Menu & guest growth',
