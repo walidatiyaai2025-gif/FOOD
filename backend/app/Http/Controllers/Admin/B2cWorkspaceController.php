@@ -1174,6 +1174,52 @@ class B2cWorkspaceController extends Controller
 
     private function wholesalePurchaseModuleData(int $retailStoreId): array
     {
+        $b2bCustomerId = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $retailStoreId)
+            ->value('b2b_customer_id');
+        abort_if($b2bCustomerId === null, 409, 'Wholesale purchasing identity is not provisioned.');
+
+        $principalStoreId = app(\App\Services\WholesalePrincipal::class)->storeId();
+        $catalog = DB::table('store_products')
+            ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->where('store_products.store_id', $principalStoreId)
+            ->where('store_products.is_active', true)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->limit(24)
+            ->get([
+                'products.id',
+                'products.sku',
+                'products.name',
+                'store_products.price',
+            ])->map(static fn ($row): array => [
+                'id' => (int) $row->id,
+                'sku' => (string) $row->sku,
+                'name' => (string) $row->name,
+                'price' => $row->price === null ? null : (float) $row->price,
+            ])->all();
+
+        $cart = DB::table('carts')
+            ->where('store_id', $principalStoreId)
+            ->where('b2b_customer_id', (int) $b2bCustomerId)
+            ->where('channel', 'b2b')
+            ->first(['id']);
+        $cartRows = $cart === null ? [] : DB::table('cart_items')
+            ->join('products', 'products.id', '=', 'cart_items.product_id')
+            ->where('cart_items.cart_id', $cart->id)
+            ->orderBy('products.name')
+            ->get([
+                'products.sku',
+                'products.name',
+                'cart_items.quantity',
+                'cart_items.unit_price_snapshot',
+            ])->map(static fn ($row): array => [
+                'sku' => (string) $row->sku,
+                'name' => (string) $row->name,
+                'quantity' => (float) $row->quantity,
+                'unit_price' => $row->unit_price_snapshot === null ? null : (float) $row->unit_price_snapshot,
+            ])->all();
+
         $rows = DB::table('orders')
             ->join('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'orders.b2b_customer_id')
             ->join('stores as wholesale_stores', 'wholesale_stores.id', '=', 'orders.store_id')
@@ -1267,6 +1313,11 @@ class B2cWorkspaceController extends Controller
             ->all();
 
         return [
+            'buyer_sections' => ['catalog', 'cart', 'orders', 'invoices', 'delivery'],
+            'wholesale_customer_id' => (int) $b2bCustomerId,
+            'principal_wholesale_store_id' => $principalStoreId,
+            'catalog' => $catalog,
+            'cart' => $cartRows,
             'columns' => ['number', 'store', 'status', 'amount', 'invoice', 'paid', 'balance', 'availability', 'created', 'actions'],
             'rows' => $rows,
         ];
