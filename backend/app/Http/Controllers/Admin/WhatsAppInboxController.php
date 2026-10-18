@@ -156,7 +156,7 @@ final class WhatsAppInboxController extends Controller
                 ->sortBy(fn (array $row): string => (string) $row['timestamp'])
                 ->values();
 
-            $agents = $this->agents->summaries(
+            $agents = $this->agents->manualAssignmentSummaries(
                 $selected->store_id === null ? null : (int) $selected->store_id,
             );
         }
