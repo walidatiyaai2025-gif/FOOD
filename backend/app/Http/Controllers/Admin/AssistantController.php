@@ -396,7 +396,7 @@ final class AssistantController extends Controller
         foreach ($references as $reference) {
             $type = is_string($reference['type'] ?? null) ? $reference['type'] : null;
             $id = $this->positiveInt($reference['id'] ?? null);
-            if ($type !== null && $id !== null && in_array($type, ['order', 'customer', 'driver', 'product', 'store'], true)) {
+            if ($type !== null && $id !== null && in_array($type, ['order', 'customer', 'driver', 'product', 'store', 'account'], true)) {
                 $authorized[$type.'_id'] = $id;
             }
             if (($storeId = $this->positiveInt($reference['store_id'] ?? null)) !== null) {
