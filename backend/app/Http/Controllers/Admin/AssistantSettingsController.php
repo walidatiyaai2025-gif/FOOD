@@ -153,6 +153,8 @@ final class AssistantSettingsController extends Controller
                 'api_url' => $config['api_url'],
                 'model' => $config['model'],
                 'timeout_seconds' => $config['timeout_seconds'],
+                'context_window_tokens' => $config['context_window_tokens'],
+                'max_tokens' => $config['max_tokens'],
             ],
             $this->providerSettings->apiKey(),
         );
@@ -161,8 +163,9 @@ final class AssistantSettingsController extends Controller
             ->route('admin.assistant-settings.index')
             ->with(
                 $result['ok'] ? 'provider_test_success' : 'provider_test_error',
-                $result['ok'] ? __('assistant_settings.test_success') : $result['message'],
-            );
+                $result['message'],
+            )
+            ->with('provider_probe', $result);
     }
 
     private function actor(Request $request): User
