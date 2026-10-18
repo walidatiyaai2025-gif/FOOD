@@ -236,7 +236,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <?php else: ?>
                 <div class="sales-ops-ranked-bars">
                     <?php foreach (($dashboard['status_breakdown'] ?? []) as $point): ?>
-                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['status' => (string)$point['status']])) }}"><span>{{ $businessLabel((string)$point['status']) }}</span><i><b style="width:{{ round(((int)$point['orders'] / $statusMax) * 100) }}%"></b></i><strong>{{ number_format((int)$point['orders']) }}</strong></a>
+                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['status' => (string)$point['status']])) }}"><span>{{ $businessLabel((string)$point['status']) }}</span><i><b style="width:{{ round(((int)$point['orders'] / $statusMax) * 100) }}%"></b></i><strong>{{ number_format((int)$point['orders']) }}</strong></a> {{-- localization-gate: allow — status token inside route query is technical; visible status uses $businessLabel. --}}
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
@@ -249,7 +249,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                     <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
                 <?php else: ?>
                     <?php foreach (($dashboard['channel_breakdown'] ?? []) as $point): ?>
-                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['channel' => (string)$point['channel']])) }}"><span>{{ $businessLabel((string)$point['channel']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>
+                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['channel' => (string)$point['channel']])) }}"><span>{{ $businessLabel((string)$point['channel']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a> {{-- localization-gate: allow — channel token inside route query is technical; visible channel uses $businessLabel. --}}
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
@@ -395,7 +395,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <span class="order-grid-title">{{ $row['customer'] }}</span>
         <div class="order-grid-meta">
             <span>{{ $row['store'] }}</span>
-            <span class="order-mini-chip">{{ strtoupper((string)$row['channel']) }}</span>
+            <span class="order-mini-chip">{{ $businessLabel((string)$row['channel']) }}</span>
         </div>
     </div>
 </td>
