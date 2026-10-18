@@ -18,8 +18,15 @@ return [
         'cases' => 'Cases',
         'analytics' => 'Analytics',
         'customers' => 'Customers',
+        'inbox' => 'Customer Service Inbox',
         'team' => 'Team',
         'tools' => 'Tools',
+    ],
+    'inbox' => [
+        'title' => 'Customer Service Inbox',
+        'help' => 'Shows the latest unread conversations in your authorized scope. Managers and supervisors see the permitted team scope; agents see unassigned and personally assigned conversations.',
+        'open_full' => 'Open full inbox',
+        'empty' => 'There are no unread messages in your scope.',
     ],
     'dashboard' => [
         'title' => 'Service operations snapshot',
