@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ __('assistant_settings.title') }} · FOODEX</title>
+<title>{{ __('assistant_settings.title') }} · {{ __('assistant_settings.brand') }}</title>
 @include('admin._brand-components')
 @include('admin._settings-page-polish')
 <style>
@@ -165,8 +165,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </form>
 @else
 <div class="assistant-note">
-<p><strong>{{ __('assistant_settings.api_url') }}:</strong> {{ $providerSettings['api_url'] ?: '—' }}</p>
-<p><strong>{{ __('assistant_settings.model') }}:</strong> {{ $providerSettings['model'] ?: '—' }}</p>
+<p><strong>{{ __('assistant_settings.api_url') }}:</strong> {{ $providerSettings['api_url'] ?: __('assistant_settings.not_available') }}</p>
+<p><strong>{{ __('assistant_settings.model') }}:</strong> {{ $providerSettings['model'] ?: __('assistant_settings.not_available') }}</p>
 <p><strong>{{ __('assistant_settings.api_key') }}:</strong> {{ $providerSettings['api_key_configured'] ? __('assistant_settings.configured_encrypted') : __('assistant_settings.not_configured') }}</p>
 </div>
 @endif
