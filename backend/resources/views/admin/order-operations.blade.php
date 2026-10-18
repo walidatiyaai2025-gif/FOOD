@@ -329,7 +329,7 @@ $businessLabel = static function ($value): string {
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ $isAr ? 'مسؤول خدمة العملاء' : 'Customer Service owner' }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
+<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.customer_service_owner.column') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
 <tr>
@@ -377,16 +377,16 @@ $businessLabel = static function ($value): string {
 @if($canAssignCustomerService && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
 <label style="display:grid;gap:4px">
-<span>{{ $isAr ? 'إسناد متابعة خدمة العملاء' : 'Assign Customer Service follow-up' }}</span>
+<span>{{ __('order_operations.customer_service_owner.assign_follow_up') }}</span>
 <select name="assigned_user_id">
-<option value="">{{ $isAr ? 'بدون مسؤول / إلغاء الإسناد' : 'Unassigned / remove owner' }}</option>
+<option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
 @foreach($customerServiceAgents as $agent)
-<option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }} · {{ $agent->roles->first()?->code==='CUSTOMER_SERVICE_SUPERVISOR' ? ($isAr?'مشرف':'Supervisor') : ($isAr?'موظف':'Agent') }}</option>
+<option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }} · {{ $agent->roles->first()?->code==='CUSTOMER_SERVICE_SUPERVISOR' ? __('order_operations.customer_service_owner.supervisor') : __('order_operations.customer_service_owner.agent') }}</option>
 @endforeach
 </select>
 </label>
-<input name="reason" maxlength="500" placeholder="{{ $isAr ? 'سبب الإسناد أو التغيير (اختياري)' : 'Assignment/change reason (optional)' }}">
-<button class="foodex-primary" type="submit">{{ $isAr ? 'حفظ الإسناد' : 'Save assignment' }}</button>
+<input name="reason" maxlength="500" placeholder="{{ __('order_operations.customer_service_owner.reason_placeholder') }}">
+<button class="foodex-primary" type="submit">{{ __('order_operations.customer_service_owner.save') }}</button>
 </form>
 @endif
 
