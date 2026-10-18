@@ -182,6 +182,17 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $this->assertStringContainsString('so-quick-links', $view);
         $this->assertStringContainsString('sessionStorage.setItem(storageKey, name)', $view);
         $this->assertStringContainsString("foodex:restaurant-settings-tab:", $view);
+        $this->assertStringContainsString('$analyticsQuery = array_filter([', $view);
+        $this->assertStringContainsString('$operationsQuery = array_filter([', $view);
+        $this->assertStringContainsString("$ovTrend = is_array($ov['trend'] ?? null)", $view);
+        $this->assertStringContainsString("$ovOrderStatus = is_array($ov['order_status'] ?? null)", $view);
+        $this->assertStringContainsString("$ovBranches = $ov['branches'] ?? collect()", $view);
+        $this->assertStringNotContainsString('@php\n            $ov = $restaurantOverview;', $view);
+        $analyticsDefinition = strpos($view, '$analyticsQuery = array_filter([');
+        $analyticsUsage = strpos($view, "route('admin.smart-ordering.analytics.export',$analyticsQuery)");
+        $this->assertNotFalse($analyticsDefinition);
+        $this->assertNotFalse($analyticsUsage);
+        $this->assertLessThan($analyticsUsage, $analyticsDefinition);
         $this->assertStringContainsString("['restaurantOnboardingCompact'=>true]", $view);
         $this->assertStringContainsString("['restaurantContentCompact'=>true]", $view);
 
