@@ -185,7 +185,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      */
     public function cart(array $context, bool $create = false): ?Cart
     {
@@ -214,7 +214,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      * @return array<string,mixed>|null
      */
     public function cartSnapshot(array $context, ?User $user = null): ?array
@@ -228,7 +228,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      */
     public function addCartItem(array $context, User $user, int $productId, float $quantity): void
     {
@@ -250,7 +250,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      */
     public function updateCartItem(array $context, User $user, int $itemId, float $quantity): void
     {
@@ -272,7 +272,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      */
     public function removeCartItem(array $context, int $itemId): void
     {
@@ -287,7 +287,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      * @return Collection<int,Order>
      */
     public function purchaseOrders(array $context): Collection
@@ -303,7 +303,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      * @return Collection<int,array<string,mixed>>
      */
     public function supplierInvoices(array $context): Collection
@@ -336,7 +336,7 @@ final class RestaurantWholesalePurchaseService
     /**
      * Canonical purchase-order lifecycle plus authoritative receipt lineage.
      *
-     * @param array{customer:B2bCustomer,wholesale_store_id:int,restaurant_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int,restaurant_store_id:int}  $context
      * @return Collection<int,array<string,mixed>>
      */
     public function supplyStatuses(array $context): Collection
@@ -375,7 +375,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer} $context
+     * @param  array{customer:B2bCustomer}  $context
      * @return Collection<int,Address>
      */
     public function checkoutAddresses(array $context, User $user): Collection
@@ -388,7 +388,7 @@ final class RestaurantWholesalePurchaseService
     }
 
     /**
-     * @param array{customer:B2bCustomer,wholesale_store_id:int} $context
+     * @param  array{customer:B2bCustomer,wholesale_store_id:int}  $context
      * @return list<string>
      */
     public function paymentMethods(array $context): array
