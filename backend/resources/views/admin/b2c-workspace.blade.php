@@ -824,7 +824,7 @@
                                             </form>
                                             <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر من المسودة؟':'Delete this banner from Draft?' }}')">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                                         </div>
-                                    @elseif($column==='actions' && $module==='incoming_orders')
+                                    @elseif($column==='actions' && in_array($module,['incoming_orders','wholesale_purchases'],true))
                                         <div class="module-links">
                                             @foreach(($row[$column] ?? []) as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
                                             @if(!empty($row['_can_make_available']) && ($user->hasPermission('inventory.manage',$storeId) || $user->hasPermission('inventory.manage')))
