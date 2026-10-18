@@ -140,6 +140,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
             $this->actingAs($user)
                 ->get(route('admin.erp.customer-service'))
                 ->assertOk()
+                ->assertViewHas('navContext', 'erp_customer_service')
                 ->assertSee('data-dashboard-live-driver-map', false)
                 ->assertSee('data-actor-kind="mixed"', false)
                 ->assertSee(route('admin.driver-live-tracking.feed', ['channel' => 'b2b']), false)
