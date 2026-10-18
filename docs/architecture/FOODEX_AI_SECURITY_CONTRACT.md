@@ -132,3 +132,14 @@ Existing Assistant API, business and operations tests remain regression coverage
 #2211 adds no new public `/api/v1` HTTP route and changes no existing external request/response schema. `docs/api/openapi.yaml` therefore requires no delta for this issue.
 
 Consent persistence and policy are internal Laravel/domain contracts. A future business-facing consent-management HTTP surface must define its own explicit API/UI contract and authorization before exposure.
+
+
+## 10. AI-20 prompt, tool, exfiltration and privacy hardening
+
+#2229 extends this identity/tenant contract with the cross-cutting AI threat model in `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.
+
+`AssistantAiSecurityGuardrails` is additive to — never a replacement for — the existing principal/tool/consent boundary. It applies provider prompt/output controls, tool and write kill switches, malicious argument rejection, result minimization/secret filtering, malicious-RAG neutralization, cohort minimums and differencing protection. `AssistantToolExecutor` remains the mandatory execution point and now invokes those controls before and after the underlying typed tool.
+
+The global Assistant switch, provider switch, tool switch and write switch are intentionally independent. Disabling any AI layer does not disable FOODEX commerce. Security events store safe reason/correlation metadata rather than raw secrets or raw malicious prompt content.
+
+No model-authored approval, document instruction, client scope claim or conversation memory can bypass current RBAC, tenant/store/channel scope or retailer sell-out consent.
