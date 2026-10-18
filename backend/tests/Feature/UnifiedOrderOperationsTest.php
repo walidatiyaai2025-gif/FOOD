@@ -283,7 +283,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b&per_page=25')
             ->assertOk()
-            ->assertViewHas('orders', fn ($orders) => $orders->perPage() === 10);
+            ->assertViewHas('orders', fn ($orders) => $orders->perPage() === 25);
     }
 
     private function retailStore(string $code): int
