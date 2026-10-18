@@ -6,6 +6,14 @@ return [
     'retention_days' => max(1, (int) env('ASSISTANT_RETENTION_DAYS', 90)),
     'cache_seconds' => max(0, (int) env('ASSISTANT_CACHE_SECONDS', 60)),
     'rate_limit' => max(1, (int) env('ASSISTANT_RATE_LIMIT', 30)),
+    'agent' => [
+        'max_steps' => min(4, max(1, (int) env('ASSISTANT_AGENT_MAX_STEPS', 2))),
+        'max_tool_calls' => min(8, max(1, (int) env('ASSISTANT_AGENT_MAX_TOOL_CALLS', 4))),
+        'max_result_bytes' => min(262144, max(8192, (int) env('ASSISTANT_AGENT_MAX_RESULT_BYTES', 65536))),
+        'max_seconds' => min(30, max(3, (int) env('ASSISTANT_AGENT_MAX_SECONDS', 12))),
+        'planning_tokens' => min(1024, max(128, (int) env('ASSISTANT_AGENT_PLANNING_TOKENS', 384))),
+        'synthesis_tokens' => min(1536, max(128, (int) env('ASSISTANT_AGENT_SYNTHESIS_TOKENS', 640))),
+    ],
     'external_ai' => [
         'enabled' => (bool) env('ASSISTANT_AI_ENABLED', false),
         'api_url' => (string) env('ASSISTANT_AI_API_URL', ''),

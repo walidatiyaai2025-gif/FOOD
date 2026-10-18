@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Assistant\Contracts\AssistantBrainInterface;
-use App\Domain\Assistant\Data\AssistantBrainRequest;
+use App\Domain\Assistant\Contracts\AgentOrchestratorInterface;
+use App\Domain\Assistant\Data\AgentExecutionBudget;
+use App\Domain\Assistant\Data\AgentTurnRequest;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
 use App\Domain\Assistant\Security\AiPrincipalContextResolver;
-use App\Domain\Assistant\Security\AssistantToolExecutor;
 use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -39,10 +39,9 @@ final class AssistantController extends Controller
     ];
 
     public function __construct(
-        private readonly AssistantBrainInterface $brain,
+        private readonly AgentOrchestratorInterface $orchestrator,
         private readonly AssistantPageContext $pageContext,
         private readonly AiPrincipalContextResolver $principalContext,
-        private readonly AssistantToolExecutor $toolExecutor,
         private readonly AssistantRuntimeSettings $runtimeSettings,
     ) {}
 
@@ -144,9 +143,9 @@ final class AssistantController extends Controller
         $correlationId = (string) Str::uuid();
 
         try {
-            $this->principalContext->resolve($user, $locale, $context, $correlationId);
+            $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
 
-            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId): array {
+            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId, $principal): array {
                 $locked = AssistantConversation::query()
                     ->whereKey($conversation->getKey())
                     ->where('user_id', $user->getKey())
@@ -163,43 +162,32 @@ final class AssistantController extends Controller
                     'correlation_id' => $correlationId,
                 ]);
 
-                $brainResult = $this->brain->respond(new AssistantBrainRequest(
-                    message: $message,
+                $agentResult = $this->orchestrator->run(new AgentTurnRequest(
+                    actorUserId: (int) $user->getKey(),
+                    userMessage: $message,
                     locale: $locale,
+                    principal: $principal,
+                    correlationId: $correlationId,
                     context: $context,
                     state: $this->brainState($state),
+                    conversationPublicId: (string) $locked->public_id,
+                    budget: AgentExecutionBudget::fromConfig(),
                 ));
 
-                $toolResult = null;
-                $toolRequest = null;
-                $pendingClarification = (bool) ($brainResult->state['pending_clarification'] ?? false);
-
-                if ($brainResult->intent !== null && ! $pendingClarification) {
-                    $entities = $this->toolEntities($brainResult->state);
-                    $toolRequest = new AssistantToolRequest(
-                        actorUserId: (int) $user->getKey(),
-                        locale: $locale,
-                        channel: $this->channel($entities['channel'] ?? $context['channel'] ?? null),
-                        storeId: $this->positiveInt($entities['store_id'] ?? $context['store_id'] ?? null),
-                        entities: $entities,
-                        context: $context,
-                    );
-                    $toolResult = $this->toolExecutor->execute(
-                        $brainResult->intent,
-                        $toolRequest,
-                        $correlationId,
-                    );
-                }
+                $brainResult = $agentResult->brainResult;
+                $toolResult = $agentResult->toolResult;
+                $toolRequest = $agentResult->toolRequest;
 
                 $cards = $toolResult === null ? $brainResult->cards : $this->cards($brainResult->intent, $locale, $toolResult);
                 $actions = $toolResult === null ? $this->actions($brainResult->actions) : $this->actions($toolResult->actions);
                 $suggested = $brainResult->suggestedPrompts === [] ? $this->suggestedPrompts($locale) : $brainResult->suggestedPrompts;
-                $content = $toolResult === null ? $brainResult->message : $this->resultMessage($brainResult->intent, $locale);
+                $content = $agentResult->message;
                 $assistantPayload = [
                     'cards' => $cards,
                     'actions' => $actions,
                     'suggested_prompts' => $suggested,
                     'data' => $toolResult === null ? [] : $toolResult->data,
+                    'agent' => $agentResult->metadata(),
                 ];
 
                 $assistantMessage = AssistantMessage::query()->create([
@@ -323,22 +311,6 @@ final class AssistantController extends Controller
         ];
     }
 
-    /** @param array<string,mixed> $state
-     * @return array<string,mixed>
-     */
-    private function toolEntities(array $state): array
-    {
-        $entities = is_array($state['entities'] ?? null) ? $state['entities'] : [];
-        $period = is_array($state['period'] ?? null) ? $state['period'] : null;
-
-        if ($period !== null && isset($period['start'], $period['end'])) {
-            $entities['from'] = CarbonImmutable::parse((string) $period['start'])->setTimezone('Asia/Kuwait')->toDateString();
-            $entities['to'] = CarbonImmutable::parse((string) $period['end'])->subSecond()->setTimezone('Asia/Kuwait')->toDateString();
-        }
-
-        return $entities;
-    }
-
     private function persistState(
         AssistantConversation $conversation,
         ?AssistantConversationState $state,
@@ -445,15 +417,6 @@ final class AssistantController extends Controller
         ]];
     }
 
-    private function resultMessage(?string $intent, string $locale): string
-    {
-        $label = $this->intentLabel($intent, $locale);
-
-        return $locale === 'ar'
-            ? 'تمام، جهزت لك '.$label.' من بيانات FOODEX الحالية.'
-            : 'Done — I prepared the '.$label.' from the current FOODEX data.';
-    }
-
     private function intentLabel(?string $intent, string $locale): string
     {
         $labels = [
@@ -473,6 +436,7 @@ final class AssistantController extends Controller
             'drivers.assignments' => ['en' => 'Driver assignments', 'ar' => 'تكليفات السائقين'],
             'inventory.alerts' => ['en' => 'Inventory alerts', 'ar' => 'تنبيهات المخزون'],
             'brief.daily' => ['en' => 'Daily brief', 'ar' => 'ملخص اليوم'],
+            'agent.multi_tool' => ['en' => 'Grounded analysis', 'ar' => 'تحليل موثق'],
         ];
 
         return $labels[$intent][$locale] ?? ($intent ?? ($locale === 'ar' ? 'النتيجة' : 'Result'));
