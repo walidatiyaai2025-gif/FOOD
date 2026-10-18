@@ -112,7 +112,7 @@ final class RetailerSellOutAccessPolicy
                     'granted_by_user_id' => $actor->getKey(),
                     'revoked_at' => null,
                     'revoked_by_user_id' => null,
-                    'created_at' => $existing?->created_at ?? $now,
+                    'created_at' => $existing === null ? $now : $existing->created_at,
                     'updated_at' => $now,
                 ],
             );
