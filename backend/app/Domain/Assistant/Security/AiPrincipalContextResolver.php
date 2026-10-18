@@ -85,7 +85,7 @@ final class AiPrincipalContextResolver
         }
 
         return $codes
-            ->filter(fn ($code): bool => is_string($code) && $code !== '')
+            ->filter(static fn ($code): bool => $code !== '')
             ->unique()
             ->sort()
             ->values()
@@ -108,7 +108,7 @@ final class AiPrincipalContextResolver
         }
 
         return $codes
-            ->filter(fn ($code): bool => is_string($code) && $code !== '')
+            ->filter(static fn ($code): bool => $code !== '')
             ->unique()
             ->sort()
             ->values()
