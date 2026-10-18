@@ -146,6 +146,59 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertSame(2.25, (float) $cola->price_override);
     }
 
+    public function test_guided_restaurant_launch_flow_keeps_menu_design_identity_review_and_publish_in_one_workspace(): void
+    {
+        $fixture = $this->fixture('GUIDED', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [, , , $item] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Guided Burger',
+            'price_override' => 5.000,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('data-restaurant-launch', false)
+            ->assertSee('data-launch-step="review"', false)
+            ->assertSee('Quick add / delete before publishing')
+            ->assertSee('Guided Burger')
+            ->assertSee('data-qm-open', false)
+            ->assertSee(route('admin.smart-ordering.menu.items.destroy', $item), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'design',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="design"', false)
+            ->assertSee(route('admin.smart-ordering.appearance.apply'), false)
+            ->assertSee('name="return_to" value="menu_setup"', false)
+            ->assertSee(route('admin.smart-ordering.appearance.preview'), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'identity',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="identity"', false)
+            ->assertSee(route('admin.smart-ordering.slug', $fixture['site']), false)
+            ->assertSee(route('admin.smart-ordering.runtime', $fixture['site']), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'publish',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="publish"', false)
+            ->assertSee(route('admin.smart-ordering.menu.publish', app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site'])), false);
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
