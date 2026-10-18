@@ -207,6 +207,7 @@ return [
             'offers_loyalty' => 'Offers & loyalty',
             'staff' => 'Staff & shifts',
             'inventory' => 'Inventory',
+            'wholesale_purchases' => 'Wholesale Purchases',
             'recipes_cost' => 'Recipes & food cost',
             'purchasing' => 'Purchasing / replenishment',
             'payments' => 'Payments',
@@ -219,7 +220,7 @@ return [
         'states' => [
             'partial' => 'Partial',
         ],
-        'partial_note' => 'POS staff order entry, full first-party delivery dispatch and full purchasing remain explicit roadmap gaps. FOODEX does not relabel generic Orders or platform ERP as those restaurant capabilities.',
+        'partial_note' => 'POS staff order entry and full first-party delivery dispatch remain explicit roadmap gaps. Restaurant Wholesale Purchases now uses the canonical buyer account, cart, order and invoice authorities.',
     ],
     'settings_tab' => 'Overview & settings',
     'operations_tab' => 'Orders & branches',

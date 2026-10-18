@@ -31,6 +31,7 @@
         'people_supply' => [
             ['key' => 'staff', 'href' => $restaurantOperationsUrl('workforce'), 'visible' => $restaurantCanOrders],
             ['key' => 'inventory', 'href' => $restaurantCanInventory && $restaurantStoreId > 0 ? $restaurantModuleUrl('inventory') : null, 'visible' => $restaurantCanInventory && $restaurantStoreId > 0],
+            ['key' => 'wholesale_purchases', 'href' => $restaurantStoreId > 0 ? route('admin.restaurant.wholesale-purchases.index', ['retail_store_id' => $restaurantStoreId]) : null, 'visible' => $restaurantStoreId > 0],
             ['key' => 'recipes_cost', 'href' => $restaurantSupplyEnabled && $restaurantSiteParams ? route('admin.smart-ordering.supply.index', $restaurantSiteParams) : null, 'visible' => $restaurantSupplyEnabled && $restaurantSiteParams],
             ['key' => 'purchasing', 'href' => $restaurantSupplyEnabled && $restaurantSiteParams ? route('admin.smart-ordering.supply.index', $restaurantSiteParams) : null, 'visible' => $restaurantSupplyEnabled && $restaurantSiteParams, 'state' => 'partial'],
         ],
