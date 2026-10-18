@@ -13,7 +13,11 @@ use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
 use App\Domain\SmartOrdering\SmartOrderingModifierService;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
+use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
+use App\Domain\SmartOrdering\Themes\DatabaseStorefrontSnapshotProvider;
+use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CommerceQuoteService;
@@ -659,6 +663,99 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('Public menu is unpublished');
 
         $this->assertNull($revisions->published($fixture['site']->fresh()));
+    }
+
+    public function test_restaurant_content_editor_binds_real_menu_data_and_survives_template_changes(): void
+    {
+        Storage::fake('public');
+        $fixture = $this->fixture('CONTENT', 5.750);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft, , $category, $item] = $this->draftItem($fixture, $writer, [
+            'name_ar' => 'طبق الاختبار',
+            'description_en' => 'Fresh seasonal plate',
+            'description_ar' => 'طبق موسمي طازج',
+            'image_path' => 'smart-ordering/content/item.webp',
+            'featured' => true,
+            'vegetarian' => true,
+            'allergens' => ['sesame'],
+        ]);
+        $category->forceFill([
+            'name_ar' => 'الوجبات',
+            'description_en' => 'Main dishes',
+            'description_ar' => 'الأطباق الرئيسية',
+        ])->save();
+
+        $this->actingAs($fixture['admin'])
+            ->put(route('admin.smart-ordering.revisions.content', $draft), [
+                'name_en' => 'Content Kitchen',
+                'name_ar' => 'مطبخ المحتوى',
+                'tagline_en' => 'One menu, every template',
+                'tagline_ar' => 'منيو واحدة لكل القوالب',
+                'description_en' => 'Seasonal restaurant menu',
+                'description_ar' => 'منيو مطعم موسمية',
+                'phone' => '+96522000000',
+                'whatsapp_url' => 'https://wa.me/96522000000',
+                'logo' => UploadedFile::fake()->image('logo.png', 256, 256),
+                'cover' => UploadedFile::fake()->image('cover.webp', 1200, 600),
+                'about_en' => 'Local ingredients and careful cooking.',
+                'about_ar' => 'مكونات محلية وطهي بعناية.',
+                'chef_note_en' => 'Chef selections change with the season.',
+                'chef_note_ar' => 'اختيارات الشيف تتغير حسب الموسم.',
+                'location_en' => 'Kuwait City',
+                'location_ar' => 'مدينة الكويت',
+                'map_url' => 'https://maps.google.com/?q=Kuwait+City',
+                'reservation_cta_en' => 'Reserve a table',
+                'reservation_cta_ar' => 'احجز طاولتك',
+                'reservation_url' => 'https://example.test/reservations',
+                'allergen_note_en' => 'Ask the team about allergens.',
+                'allergen_note_ar' => 'اسأل الفريق عن مسببات الحساسية.',
+            ])
+            ->assertRedirect();
+
+        $provider = app(StorefrontSnapshotProvider::class);
+        $this->assertInstanceOf(DatabaseStorefrontSnapshotProvider::class, $provider);
+
+        $before = $provider->revision((string) $fixture['site']->slug, 'draft');
+        $this->assertIsArray($before);
+        $this->assertSame('Content Kitchen', $before['site']['name']['en']);
+        $this->assertSame('مطبخ المحتوى', $before['site']['name']['ar']);
+        $this->assertSame('Chef selections change with the season.', $before['site']['chef_note']['en']);
+        $this->assertSame('احجز طاولتك', $before['site']['reservation_cta']['ar']);
+        $this->assertSame('الوجبات', $before['menu']['categories'][0]['name']['ar']);
+        $this->assertSame((string) $item->public_id, $before['menu']['categories'][0]['items'][0]['public_key']);
+        $this->assertSame('5.75 EGP', $before['menu']['categories'][0]['items'][0]['price_display']);
+        $this->assertTrue($before['menu']['categories'][0]['items'][0]['featured']);
+
+        $json = json_encode($before, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        foreach (['store_id', 'site_id', 'tenant_id', 'internal_id', 'created_by', 'published_by'] as $privateKey) {
+            $this->assertStringNotContainsString('"'.$privateKey.'"', $json);
+        }
+
+        $renderer = app(StorefrontThemeRenderer::class);
+        $english = $renderer->prepare($before, localeOverride: 'en');
+        $arabic = $renderer->prepare($before, localeOverride: 'ar');
+        $this->assertSame('Content Kitchen', $english['site']['name']);
+        $this->assertSame('مطبخ المحتوى', $arabic['site']['name']);
+        $this->assertContains('Vegetarian', $english['menu']['categories'][0]['items'][0]['tags']);
+        $this->assertContains('نباتي', $arabic['menu']['categories'][0]['items'][0]['tags']);
+        $this->assertSame('rtl', $arabic['direction']);
+
+        $draft = $draft->fresh();
+        $payload = (array) $draft->payload;
+        $payload['appearance'] = ['template' => 'signature-brand', 'mode' => 'light'];
+        app(SmartOrderingRevisionService::class)->updateDraft($fixture['admin'], $draft, $payload);
+        $after = $provider->revision((string) $fixture['site']->slug, 'draft');
+
+        $this->assertSame($before['site']['name'], $after['site']['name']);
+        $this->assertSame($before['menu'], $after['menu']);
+        $this->assertSame('signature-brand', $after['appearance']['template']);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('data-restaurant-content-editor', false)
+            ->assertSee('Content Kitchen')
+            ->assertDontSee('config_json');
     }
 
     /** @return array{draft:SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */

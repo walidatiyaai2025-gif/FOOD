@@ -289,6 +289,8 @@
             </section>
         </div>
 
+        @include('admin._smart-ordering-content-editor')
+
         <section class="panel">
             <h2>{{ __('smart_ordering.entitlements') }}</h2>
             <form class="foodex-form" method="post" action="{{ route('admin.smart-ordering.entitlements', $site) }}">

@@ -9,6 +9,8 @@ use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Domain\RestaurantSaaS\RestaurantIntegrationService;
 use App\Domain\SmartOrdering\SmartOrderingLoyaltyOrderObserver;
+use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
+use App\Domain\SmartOrdering\Themes\DatabaseStorefrontSnapshotProvider;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
@@ -57,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AssistantBrainInterface::class, DeterministicBrain::class);
         $this->app->scoped(StoreContext::class, static fn (): StoreContext => new StoreContext);
         $this->app->bind(UpdateRuntime::class, LaravelUpdateRuntime::class);
+        $this->app->bind(StorefrontSnapshotProvider::class, DatabaseStorefrontSnapshotProvider::class);
         $this->app->extend(
             'translation.loader',
             static fn (Loader $loader): Loader => new DatabaseTranslationLoader($loader),
