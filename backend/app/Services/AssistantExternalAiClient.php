@@ -632,6 +632,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             maxOutputTokens: (int) $config['max_tokens'],
             timeoutSeconds: (int) $config['timeout_seconds'],
             reachable: (bool) ($probe['reachable'] ?? false),
+            healthy: (bool) data_get($probe, 'capabilities.health', false),
             agentCapable: (bool) ($probe['agent_capable'] ?? false),
         );
     }
