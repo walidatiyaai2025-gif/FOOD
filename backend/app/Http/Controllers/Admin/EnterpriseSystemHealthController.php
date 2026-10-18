@@ -96,7 +96,7 @@ final class EnterpriseSystemHealthController extends Controller
             : '—';
         $latestUpdate = $updates->first();
         $warnings = $this->configurationWarnings($database, $cache, $queue, $storage, $scheduler);
-        $applicationState = $this->applicationState($modules, $database, $cache, $storage);
+        $applicationState = $this->applicationState($modules->all(), $database, $cache, $storage);
         $currentVersion = $this->currentVersion();
         $incidentTrend = $this->incidentTrend($from, $to);
         $updateTrend = $this->updateTrend($from, $to);
@@ -475,9 +475,15 @@ final class EnterpriseSystemHealthController extends Controller
                 continue;
             }
 
-            $evidence = is_array($update->execution_evidence) ? $update->execution_evidence : [];
-            $fileEvidence = is_array($evidence['file_backup'] ?? null) ? $evidence['file_backup'] : [];
-            $databaseEvidence = is_array($evidence['database_backup'] ?? null) ? $evidence['database_backup'] : [];
+            $rawEvidence = $update->getAttribute('execution_evidence');
+            /** @var array<string,mixed> $evidence */
+            $evidence = is_array($rawEvidence) ? $rawEvidence : [];
+            $rawFileEvidence = $evidence['file_backup'] ?? null;
+            /** @var array<string,mixed> $fileEvidence */
+            $fileEvidence = is_array($rawFileEvidence) ? $rawFileEvidence : [];
+            $rawDatabaseEvidence = $evidence['database_backup'] ?? null;
+            /** @var array<string,mixed> $databaseEvidence */
+            $databaseEvidence = is_array($rawDatabaseEvidence) ? $rawDatabaseEvidence : [];
             $size = ((int) ($fileEvidence['size_bytes'] ?? 0)) + ((int) ($databaseEvidence['size_bytes'] ?? 0));
             $hash = (string) ($databaseEvidence['sha256'] ?? $fileEvidence['sha256'] ?? $update->package_hash ?? '');
 
@@ -543,21 +549,23 @@ final class EnterpriseSystemHealthController extends Controller
         return $warnings;
     }
 
-    /** @param Collection<int,array<string,mixed>> $modules */
+    /** @param list<array{health:string,lifecycle:string,stale_count:int}> $modules */
     private function applicationState(
-        Collection $modules,
+        array $modules,
         array $database,
         array $cache,
         array $storage,
     ): string {
+        $moduleRows = collect($modules);
+
         if (($database['state'] ?? null) === 'error'
             || ($cache['state'] ?? null) === 'error'
             || ($storage['state'] ?? null) !== 'writable'
-            || $modules->contains(static fn (array $module): bool => in_array($module['health'], ['ERROR'], true) || $module['lifecycle'] === 'ERROR')) {
+            || $moduleRows->contains(static fn (array $module): bool => in_array($module['health'], ['ERROR'], true) || $module['lifecycle'] === 'ERROR')) {
             return 'error';
         }
 
-        if ($modules->contains(static fn (array $module): bool => $module['health'] === 'DEGRADED' || (int) $module['stale_count'] > 0)) {
+        if ($moduleRows->contains(static fn (array $module): bool => $module['health'] === 'DEGRADED' || $module['stale_count'] > 0)) {
             return 'degraded';
         }
 
