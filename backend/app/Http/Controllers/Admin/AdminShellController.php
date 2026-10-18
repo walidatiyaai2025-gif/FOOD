@@ -43,16 +43,6 @@ class AdminShellController extends Controller
         return $this->render($request, 'b2c');
     }
 
-    private function isRetailStoreAdmin(User $user): bool
-    {
-        return $user->storeRoleAssignments()
-            ->whereHas('role', fn ($query) => $query
-                ->where('roles.code', 'B2C_STORE_ADMIN')
-                ->where('roles.is_active', true)
-                ->whereIn('roles.scope', ['store', 'both']))
-            ->exists();
-    }
-
     private function render(Request $request, ?string $activeChannel = null): View
     {
         $user = $request->user();
