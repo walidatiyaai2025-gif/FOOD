@@ -211,8 +211,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('@keyframes orderChartGrow', $view);
         $this->assertStringContainsString('@keyframes orderRankGrow', $view);
         $this->assertStringContainsString('charts-animate', $view);
-        $this->assertStringContainsString('--order-chart-color:#2563EB', $view);
-        $this->assertStringContainsString('--order-chart-color:#7C3AED', $view);
+        $this->assertStringContainsString('--order-chart-color:var(--foodex-palette-2563eb)', $view);
+        $this->assertStringContainsString('--order-chart-color:var(--foodex-palette-7c3aed)', $view);
         $this->assertStringContainsString('data-order-analytics-tabs', $view);
         $this->assertStringContainsString('data-analytics-tab="performance"', $view);
         $this->assertStringContainsString('data-analytics-tab="operations"', $view);
@@ -234,7 +234,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringNotContainsString("@include('admin._module-dashboard-filters'", $view);
         $this->assertStringContainsString('data-order-counter', $view);
         $this->assertStringContainsString('data-counter-target', $view);
-        $this->assertStringContainsString("window.requestAnimationFrame(tick)", $view);
+        $this->assertStringContainsString('window.requestAnimationFrame(tick)', $view);
         $this->assertStringContainsString('white-space:nowrap', $view);
         $this->assertStringContainsString('class="order-kpi-item"', $view);
         $this->assertStringContainsString('class="order-kpi-icon"', $view);
