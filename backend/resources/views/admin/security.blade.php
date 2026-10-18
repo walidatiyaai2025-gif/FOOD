@@ -186,7 +186,14 @@ $roleLabel = static function ($role): string {
 @endif
 <button class="btn primary">{{ __('admin.security.save_role') }}</button></form>
 @else
-<div class="note">{{ is_array($roleMeta) ? __('job_roles.errors.canonical_locked') : __('security_permissions.role_outside_authority') }}</div>
+@if(is_array($roleMeta))
+<div class="note">{{ __('job_roles.errors.canonical_locked') }}</div>
+@if(in_array((int) $role->id, $roleOutsideGrantAuthorityIds, true))
+<div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
+@endif
+@else
+<div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
+@endif
 @endif
 <div class="actions"><form method="post" action="{{ route('admin.security.roles.clone',$role) }}">@csrf <input name="code" required pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="{{ str_ireplace('B2C','RETAIL',$role->code) }}_COPY"><input name="name" required value="{{ $role->name }} Copy"><button class="btn secondary">{{ __('admin.security.clone') }}</button></form>@if(!$role->is_system)<form method="post" action="{{ route('admin.security.roles.destroy',$role) }}" onsubmit="return confirm('{{ __('admin.security.confirm_delete_role') }}')">@csrf @method('delete')<button class="btn danger">{{ __('admin.security.delete_role') }}</button></form>@endif</div>
 @endcan</details>@endforeach</div>
