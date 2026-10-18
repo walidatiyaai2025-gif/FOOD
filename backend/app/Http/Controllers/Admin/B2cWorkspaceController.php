@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\StoreBusinessProfile;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -16,6 +17,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
 use App\Services\RetailWholesaleReplenishmentService;
+use App\Services\StoreBusinessProfileService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\SuggestedWholesalePurchasePlanService;
 use App\Support\AdminNavigation;
@@ -52,11 +54,35 @@ class B2cWorkspaceController extends Controller
         'settings' => 'settings.view',
     ];
 
+    /** @var array<string,list<string>> */
+    private const PROFILE_MODULES = [
+        'RETAIL_STORE' => [
+            'dashboard',
+            'products',
+            'inventory',
+            'orders',
+            'customers',
+            'promotions',
+            'drivers',
+            'storefront',
+            'content',
+            'reports',
+            'settings',
+        ],
+        'RESTAURANT' => [
+            'customers',
+            'promotions',
+            'reports',
+            'settings',
+        ],
+    ];
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly B2cDashboardService $dashboard,
         private readonly ManagementReportService $reports,
         private readonly TenantContextResolver $tenantContext,
+        private readonly StoreBusinessProfileService $businessProfiles,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View|RedirectResponse
@@ -77,6 +103,8 @@ class B2cWorkspaceController extends Controller
 
         $workspace = $this->workspaceContext($request, $user);
         $storeId = $workspace['selected_store_id'];
+        $businessProfile = $this->businessProfiles->resolve($storeId) ?? StoreBusinessProfile::RETAIL_STORE;
+        abort_unless($this->moduleAllowedForProfile($module, $businessProfile), 404);
         $this->authorizeModule($user, $module, $storeId);
         $storeIds = [$storeId];
         $availableStores = $workspace['stores'];
@@ -1659,6 +1687,11 @@ class B2cWorkspaceController extends Controller
         }
 
         return ! $user->hasRole('SUPER_ADMIN') && $user->hasPermission($permission);
+    }
+
+    private function moduleAllowedForProfile(string $module, StoreBusinessProfile $profile): bool
+    {
+        return in_array($module, self::PROFILE_MODULES[$profile->value], true);
     }
 
     private function authorizeModule(User $user, string $module, int $storeId): void
