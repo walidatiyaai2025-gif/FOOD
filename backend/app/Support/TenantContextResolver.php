@@ -100,6 +100,45 @@ final class TenantContextResolver
             ->all();
     }
 
+    /** @return list<int> */
+    public function retailStoreIdsByProfile(User $user, string $profile): array
+    {
+        abort_unless(in_array($profile, Store::businessProfiles(), true), 404);
+
+        $ids = $this->retailStoreIds($user);
+        if ($ids === []) {
+            return [];
+        }
+
+        return Store::query()
+            ->whereIn('id', $ids)
+            ->where('business_profile', $profile)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    public function businessProfileForStore(int $storeId): string
+    {
+        $store = $this->storeForChannel($storeId, 'B2C');
+        $profile = (string) ($store->business_profile ?? '');
+        abort_unless(in_array($profile, Store::businessProfiles(), true), 404);
+
+        return $profile;
+    }
+
+    public function assertBusinessProfile(int $storeId, string $profile): Store
+    {
+        abort_unless(in_array($profile, Store::businessProfiles(), true), 404);
+        $store = $this->storeForChannel($storeId, 'B2C');
+        abort_unless($store->business_profile === $profile, 404);
+
+        return $store;
+    }
+
     public function defaultRetailStoreId(User $user): ?int
     {
         $ids = $this->retailStoreIds($user);
