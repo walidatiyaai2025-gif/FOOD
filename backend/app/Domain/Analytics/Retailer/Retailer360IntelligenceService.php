@@ -97,7 +97,7 @@ final readonly class Retailer360IntelligenceService
         $previousSellOut = $previous === null ? null : $this->factTotals($previous['facts']);
         $sellIn = $this->sellInTotals($sellInByStore);
         $previousSellIn = $previous === null ? null : $this->sellInTotals($previousSellInByStore);
-        $feed = $this->feedSummary($current['sellout_feed'] ?? []);
+        $feed = $this->feedSummary($current['sellout_feed'] ?? [], $sellOut);
 
         $inventoryAvailable = round((float) collect($current['inventory_snapshots'] ?? [])
             ->sum(static fn (array $row): float => (float) ($row['available_units'] ?? 0)), 3);
@@ -309,15 +309,22 @@ final readonly class Retailer360IntelligenceService
      * @param  list<array<string,mixed>>  $feeds
      * @return array<string,mixed>
      */
-    private function feedSummary(array $feeds): array
+    private function feedSummary(array $feeds, array $sellOut): array
     {
         $states = collect($feeds)->pluck('state')->filter()->values();
-        $state = $states->isEmpty() || $states->every(static fn ($value): bool => $value === 'none')
+        $externalState = $states->isEmpty() || $states->every(static fn ($value): bool => $value === 'none')
             ? 'none'
             : ($states->every(static fn ($value): bool => $value === 'available') ? 'available' : 'partial');
+        $nativeActivityObserved = (int) ($sellOut['orders'] ?? 0) > 0
+            || (int) ($sellOut['recognized_orders'] ?? 0) > 0;
+        $state = $externalState === 'partial'
+            ? 'partial'
+            : (($nativeActivityObserved || $externalState === 'available') ? 'available' : 'none');
 
         return [
             'state' => $state,
+            'external_feed_state' => $externalState,
+            'native_activity_observed' => $nativeActivityObserved,
             'last_sync_at' => collect($feeds)->pluck('last_sync_at')->filter()->sortDesc()->first(),
             'coverage_from' => collect($feeds)->pluck('coverage_from')->filter()->sort()->first(),
             'coverage_to' => collect($feeds)->pluck('coverage_to')->filter()->sortDesc()->first(),
@@ -771,9 +778,6 @@ final readonly class Retailer360IntelligenceService
         ];
     }
 
-    /**
-     * @return array{benchmark:array<string,mixed>,_privacy?:array<string,mixed>}
-     */
     /** @return array{benchmark:array<string,mixed>} */
     private function cohortBenchmark(): array
     {
