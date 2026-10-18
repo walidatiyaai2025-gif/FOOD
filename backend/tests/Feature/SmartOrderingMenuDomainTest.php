@@ -43,8 +43,9 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_appearance_builder_creates_a_starter_menu_in_three_simple_steps(): void
+    public function test_appearance_builder_creates_a_starter_menu_with_categories_and_images(): void
     {
+        Storage::fake('public');
         $fixture = $this->fixture('QUICKMENU', 5.000);
 
         $this->actingAs($fixture['admin'])
@@ -53,9 +54,12 @@ class SmartOrderingMenuDomainTest extends TestCase
                 'store_id' => $fixture['store_id'],
             ]))
             ->assertOk()
-            ->assertSee('data-quick-menu-card', false)
-            ->assertSee('data-quick-menu-open', false)
-            ->assertSee('data-quick-menu-modal', false)
+            ->assertSee('data-qm-card', false)
+            ->assertSee('data-qm-open', false)
+            ->assertSee('data-qm-modal', false)
+            ->assertSee('data-qm-add-category', false)
+            ->assertSee('data-qm-add-item', false)
+            ->assertSee('enctype="multipart/form-data"', false)
             ->assertSee(route('admin.smart-ordering.menu.quick-create'), false);
 
         $this->actingAs($fixture['admin'])
@@ -64,18 +68,31 @@ class SmartOrderingMenuDomainTest extends TestCase
                 '_quick_menu' => '1',
                 'menu_name_ar' => 'المنيو الرئيسية',
                 'menu_name_en' => 'Main Menu',
-                'category_name_ar' => 'الأطباق الرئيسية',
-                'category_name_en' => 'Main Dishes',
+                'menu_image' => UploadedFile::fake()->image('menu-cover.jpg', 1000, 700),
+                'categories' => [
+                    '0' => [
+                        'name_ar' => 'الأطباق الرئيسية',
+                        'name_en' => 'Main Dishes',
+                        'image' => UploadedFile::fake()->image('mains.jpg', 800, 600),
+                    ],
+                    '1' => [
+                        'name_ar' => 'المشروبات',
+                        'name_en' => 'Drinks',
+                    ],
+                ],
                 'items' => [
-                    [
+                    '0' => [
+                        'category_key' => '0',
                         'name_ar' => 'برجر لحم',
                         'name_en' => 'Beef Burger',
                         'price' => '7.500',
                         'featured' => '1',
+                        'image' => UploadedFile::fake()->image('burger.jpg', 700, 700),
                     ],
-                    [
-                        'name_ar' => 'بطاطا',
-                        'name_en' => 'Fries',
+                    '1' => [
+                        'category_key' => '1',
+                        'name_ar' => 'كولا',
+                        'name_en' => 'Cola',
                         'price' => '2.250',
                     ],
                 ],
@@ -92,23 +109,35 @@ class SmartOrderingMenuDomainTest extends TestCase
 
         $this->assertTrue((bool) $menu->is_default);
         $this->assertTrue((bool) $menu->is_visible);
+        $this->assertNotNull($menu->image_path);
+        Storage::disk('public')->assertExists((string) $menu->image_path);
 
-        $category = SmartOrderingMenuCategory::query()
+        $main = SmartOrderingMenuCategory::query()
             ->where('menu_id', $menu->id)
             ->where('name_en', 'Main Dishes')
             ->firstOrFail();
+        $drinks = SmartOrderingMenuCategory::query()
+            ->where('menu_id', $menu->id)
+            ->where('name_en', 'Drinks')
+            ->firstOrFail();
 
-        $items = SmartOrderingMenuItem::query()
-            ->where('category_id', $category->id)
-            ->orderBy('sort_order')
-            ->get();
+        $this->assertNotNull($main->image_path);
+        Storage::disk('public')->assertExists((string) $main->image_path);
 
-        $this->assertCount(2, $items);
-        $this->assertSame('Beef Burger', $items[0]->name_en);
-        $this->assertSame(7.5, (float) $items[0]->price_override);
-        $this->assertTrue((bool) $items[0]->featured);
-        $this->assertSame('Fries', $items[1]->name_en);
-        $this->assertSame(2.25, (float) $items[1]->price_override);
+        $burger = SmartOrderingMenuItem::query()
+            ->where('category_id', $main->id)
+            ->where('name_en', 'Beef Burger')
+            ->firstOrFail();
+        $cola = SmartOrderingMenuItem::query()
+            ->where('category_id', $drinks->id)
+            ->where('name_en', 'Cola')
+            ->firstOrFail();
+
+        $this->assertSame(7.5, (float) $burger->price_override);
+        $this->assertTrue((bool) $burger->featured);
+        $this->assertNotNull($burger->image_path);
+        Storage::disk('public')->assertExists((string) $burger->image_path);
+        $this->assertSame(2.25, (float) $cola->price_override);
     }
 
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
