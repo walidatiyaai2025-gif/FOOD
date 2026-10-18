@@ -1299,6 +1299,11 @@ final class OrderOperationsController extends Controller
             $request,
             $audit,
         ): void {
+            DB::table('orders')
+                ->where('id', $model->getKey())
+                ->lockForUpdate()
+                ->first(['id']);
+
             $active = DB::table('order_customer_service_assignments')
                 ->where('order_id', $model->getKey())
                 ->whereNull('unassigned_at')
