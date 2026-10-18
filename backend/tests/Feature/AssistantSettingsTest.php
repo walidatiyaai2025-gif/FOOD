@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assistant\Data\AssistantBrainRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AssistantExternalAiClient;
 use App\Services\AssistantProviderSettings;
 use App\Services\AssistantRuntimeSettings;
 use Database\Seeders\CoreReferenceSeeder;
@@ -153,7 +155,7 @@ class AssistantSettingsTest extends TestCase
         Http::fake([
             'https://ai.example.test/*' => Http::response([
                 'choices' => [[
-                    'message' => ['content' => 'FOODEX_OK'],
+                    'message' => ['content' => "<think>Checking provider connectivity.</think>\n```text\nFOODEX_OK\n```"],
                 ]],
             ], 200),
         ]);
@@ -179,6 +181,63 @@ class AssistantSettingsTest extends TestCase
                 && $request->hasHeader('Authorization', 'Bearer saved-secret')
                 && $request['model'] === 'foodex-model';
         });
+    }
+
+    public function test_external_ai_route_accepts_qwen_thinking_and_fenced_json(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => "<think>I should classify this request.</think>\n```json\n{\"intent\":\"orders.lookup\",\"confidence\":0.97,\"message\":\"سأبحث عن الطلب 123.\",\"entities\":{\"order_id\":123}}\n```",
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+        ]);
+
+        $result = app(AssistantExternalAiClient::class)->route(
+            new AssistantBrainRequest(
+                message: 'هات الطلب 123',
+                locale: 'ar',
+            ),
+        );
+
+        $this->assertNotNull($result);
+        $this->assertSame('orders.lookup', $result['intent']);
+        $this->assertSame(0.97, $result['confidence']);
+        $this->assertSame('سأبحث عن الطلب 123.', $result['message']);
+        $this->assertSame(['order_id' => 123], $result['entities']);
+    }
+
+    public function test_provider_connection_rejects_non_sentinel_model_reply(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'The provider is reachable, but I will not follow the probe contract.'],
+                ]],
+            ], 200),
+        ]);
+
+        $user = $this->settingsManager();
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/admin/settings/assistant/provider/test')
+            ->assertRedirect(route('admin.assistant-settings.index'))
+            ->assertSessionHas('provider_test_error');
     }
 
     public function test_dashboard_cannot_enable_assistant_when_read_only_fence_is_off(): void

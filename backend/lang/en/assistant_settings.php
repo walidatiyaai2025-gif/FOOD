@@ -58,6 +58,7 @@ return [
         'public_endpoint' => 'Use a public HTTP/HTTPS provider endpoint without embedded credentials.',
         'provider_http' => 'Provider returned HTTP :status.',
         'malformed_response' => 'Provider response did not include choices[0].message.content.',
+        'unexpected_probe_response' => 'Provider replied, but it did not follow the FOODEX compatibility probe. Verify the selected model and OpenAI-compatible chat endpoint.',
         'connection_failed' => 'Connection failed. Verify the URL, model, key, TLS and firewall.',
     ],
 ];

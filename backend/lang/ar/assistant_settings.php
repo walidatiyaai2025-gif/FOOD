@@ -58,6 +58,7 @@ return [
         'public_endpoint' => 'استخدم رابط HTTP/HTTPS عامًا لمزود الخدمة بدون بيانات اعتماد مضمّنة.',
         'provider_http' => 'أعاد مزود الخدمة حالة HTTP :status.',
         'malformed_response' => 'استجابة المزود لا تحتوي على choices[0].message.content.',
+        'unexpected_probe_response' => 'المزود استجاب، لكنه لم يلتزم باختبار توافق FOODEX. راجع الموديل المختار ورابط OpenAI-compatible Chat Completions.',
         'connection_failed' => 'فشل الاتصال. راجع الرابط والموديل والمفتاح وTLS والجدار الناري.',
     ],
 ];
