@@ -99,7 +99,7 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
 
     public function test_customer_service_manager_and_agent_sidebar_hide_platform_hubs_but_keep_service_workspace(): void
     {
-        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
             $user = $this->globalUser($roleCode, strtolower($roleCode).'@example.test');
 
             $groups = collect(app(AdminNavigation::class)->groupsFor($user));
@@ -123,6 +123,10 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             $this->assertFalse(
                 $groups->contains('key', 'administration'),
                 "{$roleCode} sidebar must hide the Administration group when its hub is hidden.",
+            );
+            $this->assertFalse(
+                $groups->contains('key', 'erp'),
+                "{$roleCode} sidebar must hide the ERP group.",
             );
             $this->assertTrue(
                 $items->contains('erp_customer_service'),
