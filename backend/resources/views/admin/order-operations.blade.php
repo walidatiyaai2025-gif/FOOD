@@ -502,6 +502,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @endif
 
 @if($row['can_dispatch'])
+<div data-order-dispatch-workspace>
+@if($row['dispatch_status']==='awaiting_dispatch')
+<div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
+@endif
 @if($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
@@ -535,6 +539,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 @endif
 @endif
+</div>
 @if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
