@@ -35,6 +35,7 @@ return [
                 'RETAIL_INVENTORY',
                 'RETAIL_FINANCE',
                 'RETAIL_CUSTOMER_SUPPORT',
+                'RESTAURANT_DIGITAL_MANAGER',
             ],
         ],
     ],
