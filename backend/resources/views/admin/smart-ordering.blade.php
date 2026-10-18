@@ -72,7 +72,7 @@
             </header>
             @include('admin._smart-ordering-workspace-nav')
 
-            <div class="so-settings-summary" aria-label="{{ $isAr ? 'ملخص إعدادات المطعم' : 'Restaurant settings summary' }}">
+            <div class="so-settings-summary" data-so-settings-summary aria-label="{{ $isAr ? 'ملخص إعدادات المطعم' : 'Restaurant settings summary' }}">
                 <div class="so-settings-summary-item" data-tone="green">
                     <span>{{ $isAr ? 'المطعم' : 'Restaurant' }}</span>
                     <strong>{{ optional($site->store)->name ?: ('#'.$site->store_id) }}</strong>
