@@ -37,7 +37,47 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-tab-panel[data-order-panel="analytics"] .foodex-viz-card{padding:10px!important}
 .order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{margin-bottom:5px!important}
 .order-tab-panel[data-order-panel="analytics"] .foodex-module-chart-summary{margin:5px 0!important}
-.table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.table-wrap{overflow:visible;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.045)}
+.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.74rem}
+.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:#f8fafc;color:#64748b;font-size:.64rem;font-weight:900;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
+.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid #edf1f4;background:var(--foodex-surface);transition:background .16s ease}
+.ops-table tbody tr:last-child td{border-bottom:0}
+.ops-table tbody tr:hover td{background:#f9fbfa}
+.ops-table th:nth-child(1){width:15%}.ops-table th:nth-child(2){width:17%}.ops-table th:nth-child(3){width:13%}.ops-table th:nth-child(4){width:18%}.ops-table th:nth-child(5){width:15%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:7%}
+.order-grid-row{--order-row-accent:#cbd5e1}
+.order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
+.order-grid-row.is-action-required{--order-row-accent:#f59e0b}
+.order-grid-row.is-action-required td{background:linear-gradient(90deg,rgba(245,158,11,.045),rgba(255,255,255,0) 38%)}
+.order-grid-row.is-action-required:hover td{background:linear-gradient(90deg,rgba(245,158,11,.085),rgba(249,251,250,.92) 42%)}
+.order-grid-primary{display:grid;gap:4px;min-width:0}.order-grid-primary>a{color:var(--foodex-green-dark);font-size:.82rem;font-weight:900;text-decoration:none}.order-grid-primary>a:hover{text-decoration:underline}
+.order-grid-title{font-weight:900;color:var(--foodex-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-grid-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--foodex-muted);font-size:.63rem}
+.order-mini-chip{display:inline-flex;align-items:center;min-height:20px;padding:0 7px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:.59rem;font-weight:800;white-space:nowrap}
+.order-status-chip{--status-bg:#f1f5f9;--status-fg:#475569;--status-border:#cbd5e1;display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:0 9px;border:1px solid var(--status-border);border-radius:999px;background:var(--status-bg);color:var(--status-fg);font-size:.63rem;font-weight:900;white-space:nowrap}
+.order-status-chip[data-state="pending"],.order-status-chip[data-state="waiting"],.order-status-chip[data-state="awaiting_dispatch"]{--status-bg:#fff7ed;--status-fg:#c2410c;--status-border:#fdba74}
+.order-status-chip[data-state="confirmed"]{--status-bg:#eff6ff;--status-fg:#1d4ed8;--status-border:#93c5fd}
+.order-status-chip[data-state="preparing"],.order-status-chip[data-state="processing"]{--status-bg:#f5f3ff;--status-fg:#6d28d9;--status-border:#c4b5fd}
+.order-status-chip[data-state="ready"]{--status-bg:#ecfeff;--status-fg:#0e7490;--status-border:#67e8f9}
+.order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:#eef2ff;--status-fg:#4338ca;--status-border:#a5b4fc}
+.order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:#ecfdf5;--status-fg:#15803d;--status-border:#86efac}
+.order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:#fff1f2;--status-fg:#be123c;--status-border:#fda4af}
+.order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid #fdba74;border-radius:999px;background:#fff7ed;color:#c2410c;font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
+.order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.order-execution{display:grid;gap:5px;min-width:0}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
+.order-grid-actions{text-align:center}
+.status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
+.status-tab[data-order-action-tab]{--status-tab-bg:#fff7ed;--status-tab-fg:#c2410c;--status-tab-border:#fdba74}
+.status-tab[data-order-status-tab="pending"]{--status-tab-bg:#fff7ed;--status-tab-fg:#c2410c;--status-tab-border:#fed7aa}
+.status-tab[data-order-status-tab="confirmed"]{--status-tab-bg:#eff6ff;--status-tab-fg:#1d4ed8;--status-tab-border:#bfdbfe}
+.status-tab[data-order-status-tab="preparing"]{--status-tab-bg:#f5f3ff;--status-tab-fg:#6d28d9;--status-tab-border:#ddd6fe}
+.status-tab[data-order-status-tab="ready"]{--status-tab-bg:#ecfeff;--status-tab-fg:#0e7490;--status-tab-border:#a5f3fc}
+.status-tab[data-order-status-tab="out_for_delivery"]{--status-tab-bg:#eef2ff;--status-tab-fg:#4338ca;--status-tab-border:#c7d2fe}
+.status-tab[data-order-status-tab="delivered"]{--status-tab-bg:#ecfdf5;--status-tab-fg:#15803d;--status-tab-border:#bbf7d0}
+.status-tab[data-order-status-tab="cancelled"],.status-tab[data-order-status-tab="failed"]{--status-tab-bg:#fff1f2;--status-tab-fg:#be123c;--status-tab-border:#fecdd3}
+.status-tab[aria-current="page"]{outline:2px solid color-mix(in srgb,var(--status-tab-fg) 38%,transparent);outline-offset:1px}
+.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .sales-ops-bars{height:180px;align-items:flex-end}
 .sales-ops-bar-link{--order-chart-color:#158A3A;--order-chart-color-2:#38BDF8;min-height:8px;text-decoration:none;background:linear-gradient(180deg,var(--order-chart-color-2) 0%,var(--order-chart-color) 72%,color-mix(in srgb,var(--order-chart-color) 80%,#0f172a) 100%)!important;border-radius:8px 8px 3px 3px;box-shadow:0 5px 14px color-mix(in srgb,var(--order-chart-color) 20%,transparent);transform-origin:bottom center;transform:scaleY(0);opacity:.72}
 .sales-ops-bar-link:nth-child(8n+1){--order-chart-color:#158A3A;--order-chart-color-2:#22C55E}.sales-ops-bar-link:nth-child(8n+2){--order-chart-color:#2563EB;--order-chart-color-2:#38BDF8}.sales-ops-bar-link:nth-child(8n+3){--order-chart-color:#7C3AED;--order-chart-color-2:#C084FC}.sales-ops-bar-link:nth-child(8n+4){--order-chart-color:#EA580C;--order-chart-color-2:#FACC15}.sales-ops-bar-link:nth-child(8n+5){--order-chart-color:#DC2626;--order-chart-color-2:#FB7185}.sales-ops-bar-link:nth-child(8n+6){--order-chart-color:#0891B2;--order-chart-color-2:#2DD4BF}.sales-ops-bar-link:nth-child(8n+7){--order-chart-color:#BE123C;--order-chart-color-2:#F472B6}.sales-ops-bar-link:nth-child(8n+8){--order-chart-color:#CA8A04;--order-chart-color-2:#FDBA74}
@@ -126,24 +166,29 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
              role="tablist"
              aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
              data-order-tabs
-             data-default-tab="{{ request()->has('page') ? 'orders' : 'analytics' }}">
+             data-default-tab="orders">
             <button class="order-workspace-tab"
                     type="button"
                     role="tab"
-                    aria-selected="{{ request()->has('page') ? 'false' : 'true' }}"
+                    aria-selected="false"
                     data-order-tab="analytics">{{ $isAr ? 'التحليلات' : 'Analytics' }}</button>
             <button class="order-workspace-tab"
                     type="button"
                     role="tab"
-                    aria-selected="{{ request()->has('page') ? 'true' : 'false' }}"
+                    aria-selected="true"
                     data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$statusTotal) }}</span></button>
         </nav>
         <div class="order-workspace-filter-slot" data-order-workspace-filter>
-            @include('admin._order-operations-header-filters')
+            <div data-order-filter-mode="analytics" hidden>
+                @include('admin._order-operations-header-filters')
+            </div>
+            <div data-order-filter-mode="orders">
+                @include('admin._order-operations-order-filters')
+            </div>
         </div>
     </div>
 
-    <div class="order-tab-panel" role="tabpanel" data-order-panel="analytics" <?php if (request()->has('page')): ?>hidden<?php endif; ?>>
+    <div class="order-tab-panel" role="tabpanel" data-order-panel="analytics" hidden>
     <nav class="order-analytics-tabs"
          role="tablist"
          aria-label="{{ $isAr ? 'أقسام التحليلات' : 'Analytics sections' }}"
@@ -277,12 +322,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <button class="order-workspace-tab" type="button" role="tab" aria-selected="true" data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$orders->total()) }}</span></button>
     </nav>
     <div class="order-workspace-filter-slot" data-order-workspace-filter>
-        @include('admin._order-operations-header-filters')
+        <div data-order-filter-mode="orders">
+            @include('admin._order-operations-order-filters')
+        </div>
     </div>
 </div>
 <?php endif; ?>
 
-<div class="order-tab-panel" role="tabpanel" data-order-panel="orders" @if($dashboardVisible && !request()->has('page')) hidden @endif>
+<div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
 @php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
 @php($orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []))
@@ -294,70 +341,104 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </nav>
 @endif
 
-@php($tabQuery=request()->except(['status','page','order','edit']))
-@php($dispatchQueueQuery=request()->except(['status','dispatch_status','channel','page','order','edit']))
+@php($tabQuery=request()->except(['status','page','order','edit','action_required']))
+@php($actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']))
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
-<a class="status-tab" data-order-status-tab="all" href="{{ route('admin.operations.orders.index',$tabQuery) }}" @if($selectedStatus===null) aria-current="page" @endif>
+<a class="status-tab"
+   data-order-action-tab
+   href="{{ route('admin.operations.orders.index',array_merge($actionQuery,['action_required'=>1])) }}#order-tab-orders"
+   @if($selectedActionRequired) aria-current="page" @endif>
+<span>{{ $isAr ? 'تحتاج إجراء' : 'Action required' }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
+</a>
+<a class="status-tab"
+   data-order-status-tab="all"
+   href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['action_required'=>0])) }}#order-tab-orders"
+   @if($selectedStatus===null && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ __('order_operations.all') }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
 </a>
 @foreach($statusTabs as $tab)
-<a class="status-tab" data-order-status-tab="{{ $tab['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code']])) }}" @if($selectedStatus===$tab['code']) aria-current="page" @endif>
+<a class="status-tab"
+   data-order-status-tab="{{ $tab['code'] }}"
+   href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code'],'action_required'=>0])) }}#order-tab-orders"
+   @if($selectedStatus===$tab['code'] && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
-@if($channelCodes->contains('b2b') && $selectedChannel !== 'b2c')
-<a class="status-tab" data-order-dispatch-workspace href="{{ route('admin.operations.orders.index',array_merge($dispatchQueueQuery,['channel'=>'b2b','dispatch_status'=>'awaiting_dispatch'])) }}" @if($selectedChannel==='b2b' && request('dispatch_status')==='awaiting_dispatch') aria-current="page" @endif><span>{{ __('order_operations.dispatch.awaiting_queue') }}</span></a>
-@endif
 </nav>
-
-<form method="get" class="filters foodex-card" data-order-filter-context data-selected-channel="{{ $selectedChannel }}" data-selected-store="{{ $selectedStoreId ?? '' }}">
-<input type="hidden" name="channel" value="{{ $selectedChannel }}">
-@if(count($availableStores ?? []) > 1)
-<label>{{ __('order_operations.filters.store') }}<select name="store_id"><option value="">{{ __('order_operations.filters.all_authorized') }}</option>@foreach($availableStores as $storeOption)<option value="{{ $storeOption['id'] }}" @selected($selectedStoreId===$storeOption['id'])>{{ $storeOption['name'] }}{{ $storeOption['code'] !== '' ? ' · '.$storeOption['code'] : '' }}</option>@endforeach</select></label>
-@elseif($selectedStoreId !== null)
-<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
-@endif
-<label>{{ __('order_operations.filters.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
-<label>{{ __('order_operations.filters.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
-<label>{{ __('order_operations.filters.order_number') }}<input name="order_number" value="{{ request('order_number') }}"></label>
-<label>{{ __('order_operations.filters.status') }}<select name="status"><option value="">{{ __('order_operations.all') }}</option>@foreach($statusOptions as $status)<option value="{{ $status['code'] }}" @selected(request('status')===$status['code'])>{{ $status['label'] }}</option>@endforeach</select></label>
-<label>{{ __('order_operations.filters.driver') }}<select name="driver_id"><option value="">{{ __('order_operations.all') }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>@endforeach</select></label>
-<label>{{ __('order_operations.filters.dispatch_status') }}<select name="dispatch_status"><option value="">{{ __('order_operations.all') }}</option><option value="awaiting_dispatch" @selected(request('dispatch_status')==='awaiting_dispatch')>{{ __('order_operations.dispatch.awaiting_queue') }}</option><option value="assigned" @selected(request('dispatch_status')==='assigned')>{{ $businessLabel('assigned') }}</option></select></label>
-<label>{{ __('order_operations.filters.exception') }}<select name="exception"><option value="">{{ __('order_operations.all') }}</option>@foreach($exceptionOptions as $exceptionOption)<option value="{{ $exceptionOption }}" @selected($selectedException===$exceptionOption)>{{ __('order_operations.dashboard.exceptions.'.$exceptionOption) }}</option>@endforeach</select></label>
-<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" data-order-filter-reset-context href="{{ route('admin.operations.orders.index',$orderGridResetQuery) }}">{{ __('order_operations.filters.reset') }}</a></div>
-</form>
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.customer_service_owner.column') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
+<th>{{ $isAr ? 'الطلب' : 'Order' }}</th>
+<th>{{ $isAr ? 'العميل' : 'Customer' }}</th>
+<th>{{ __('order_operations.columns.status') }}</th>
+<th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
+<th>{{ __('order_operations.customer_service_owner.column') }}</th>
+<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
+<th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
-<tr>
-<td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
-<td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td> {{-- localization-gate: source resolved through localized businessLabel --}}
-<td>@if($row['customer_service_owner'])<strong>{{ $row['customer_service_owner'] }}</strong>@if($row['customer_service_owner_email'])<br><small>{{ $row['customer_service_owner_email'] }}</small>@endif @else {{ __('order_operations.unassigned') }} @endif</td>
-@php($badgeState=strtolower((string) $row['status']))
-<td><span class="badge foodex-status-badge" data-state="{{ $badgeState }}">{{ $row['status_label'] }}</span></td>
+@php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
+@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
+@php($rowStatusState = strtolower((string) $row['status']))
+<tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
-@if($row['channel']==='b2b')
-{{ $row['dispatch_assignee_type']==='van' && $row['dispatch_assignee'] ? $row['dispatch_assignee'] : __('order_operations.unassigned') }}
-@else
-{{ $row['driver'] ?? __('order_operations.unassigned') }}
-@if($row['assignment_status'])<small>· {{ $businessLabel($row['assignment_status']) }}</small>@endif
-@endif
+    <div class="order-grid-primary">
+        <a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a>
+        <div class="order-grid-meta">
+            <span class="order-mini-chip">{{ $businessLabel($row['source']) }}</span>
+            <span>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('m-d H:i') ?? '—' }}</span>
+        </div>
+    </div>
 </td>
-<td><div class="dispatch-cell" data-order-dispatch-status="{{ $row['dispatch_status'] }}">
-@php($dispatchBadgeState=strtolower((string) $row['dispatch_status']))
-@if($row['dispatch_status']==='awaiting_dispatch')<div class="dispatch-warning">{{ __('order_operations.dispatch.warning') }}</div>@else<span class="badge foodex-status-badge" data-state="{{ $dispatchBadgeState }}">{{ $businessLabel($row['dispatch_status']) }}</span>@endif
-@if($row['dispatch_assignee'])<strong>{{ $businessLabel($row['dispatch_assignee_type']) }} · {{ $row['dispatch_assignee'] }}</strong>@endif
-@if($row['dispatch_territory'])<span class="dispatch-meta">{{ __('order_operations.dispatch.territory') }}: {{ $row['dispatch_territory'] }}</span>@endif
-@if($row['dispatch_source'])<span class="dispatch-meta">{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($row['dispatch_source']) }}</span>@endif
-@if($row['dispatch_reason'])<span class="dispatch-meta">{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($row['dispatch_reason']) }}</span>@endif
-</div></td>
-<td>{{ $businessLabel($row['payment_status']) }} @if($row['payment_provider'])<small>· {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}</small>@endif</td>
-<td>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</td>
-<td>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</td>
 <td>
+    <div class="order-grid-primary">
+        <span class="order-grid-title">{{ $row['customer'] }}</span>
+        <div class="order-grid-meta">
+            <span>{{ $row['store'] }}</span>
+            <span class="order-mini-chip">{{ strtoupper((string)$row['channel']) }}</span>
+        </div>
+    </div>
+</td>
+<td>
+    <div class="order-grid-primary">
+        <span class="order-status-chip" data-state="{{ $rowStatusState }}">{{ $row['status_label'] }}</span>
+        @if($rowActionRequired)
+            <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-execution">
+        @if($rowActionRequired)
+            <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
+        @elseif($rowExecutor)
+            <strong>{{ $rowExecutor }}</strong>
+            <small>{{ $businessLabel($row['dispatch_assignee_type'] ?: ($row['assignment_status'] ? 'driver' : 'unassigned')) }}</small>
+        @else
+            <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
+        @endif
+        @if($row['dispatch_territory'])
+            <small>{{ $row['dispatch_territory'] }}</small>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-owner">
+        @if($row['customer_service_owner'])
+            <strong>{{ $row['customer_service_owner'] }}</strong>
+            @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
+        @else
+            <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-financial">
+        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+    </div>
+</td>
+<td class="order-grid-actions">
 <details class="row-actions" data-order-row-actions>
 <summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
 <div class="row-action-menu">
@@ -766,6 +847,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         });
         panels.forEach((panel) => {
             panel.hidden = panel.dataset.orderPanel !== name;
+        });
+        document.querySelectorAll('[data-order-filter-mode]').forEach((filter) => {
+            filter.hidden = filter.dataset.orderFilterMode !== name;
         });
 
         const analyticsPanel = panels.find((panel) => panel.dataset.orderPanel === 'analytics');
