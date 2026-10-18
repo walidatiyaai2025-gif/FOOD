@@ -144,20 +144,17 @@ final class AssistantController extends Controller
         $context = $this->pageContext->resolve($user, (array) ($data['context'] ?? []));
         $correlationId = (string) Str::uuid();
         $turnStartedAt = hrtime(true);
-        $traceStoreId = $this->positiveInt(
-            $context['store_id']
-                ?? data_get($context, 'authorized_entities.store_id'),
-        );
+        $traceStoreId = null;
 
         $this->observability->record($correlationId, 'turn.started', [
             'actor_user_id' => $user->getKey(),
-            'store_id' => $traceStoreId,
             'phase' => 'turn',
             'outcome' => 'started',
         ]);
 
         try {
             $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
+            $traceStoreId = $principal->activeStoreId;
 
             $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId, $principal): array {
                 $locked = AssistantConversation::query()
