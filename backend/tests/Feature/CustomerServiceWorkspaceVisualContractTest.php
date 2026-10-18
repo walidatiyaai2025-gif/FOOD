@@ -26,6 +26,10 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringContainsString('.cs-kpi::before{content:""', $view);
         $this->assertStringContainsString('animation:csKpiStripe 2.4s linear infinite', $view);
         $this->assertStringContainsString('@media(prefers-reduced-motion:reduce)', $view);
+        $this->assertStringContainsString('@keyframes csBarFill', $view);
+        $this->assertStringContainsString('@keyframes csBarFlow', $view);
+        $this->assertStringContainsString('--cs-bar-width:', $view);
+        $this->assertStringContainsString('background-size:220% 100%', $view);
         $this->assertStringContainsString('class="foodex-card cs-filter-strip"', $view);
         $this->assertStringContainsString('.cs-kpis + .cs-filter-strip{margin-top:calc(-1 * var(--foodex-space-5) + 4px)}', $view);
         $this->assertStringContainsString('.cs-filter{display:flex', $view);
@@ -36,6 +40,11 @@ final class CustomerServiceWorkspaceVisualContractTest extends TestCase
         $this->assertStringNotContainsString('id="customer-service-search-title"', $view);
         $this->assertStringContainsString("customer_service_workspace.search_help", $view);
         $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString("old('role_code')) ? 'team' : 'analytics'", $view);
+        $this->assertLessThan(
+            strpos($view, 'data-cs-tab="cases"'),
+            strpos($view, 'data-cs-tab="analytics"'),
+        );
         $this->assertStringContainsString('data-cs-tab="cases"', $view);
         $this->assertStringContainsString('data-cs-tab="analytics"', $view);
         $this->assertStringContainsString('data-cs-panel="cases"', $view);
