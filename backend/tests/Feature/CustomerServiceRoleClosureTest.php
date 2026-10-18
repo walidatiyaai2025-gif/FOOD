@@ -130,6 +130,8 @@ final class CustomerServiceRoleClosureTest extends TestCase
 
     public function test_customer_service_workspace_shows_live_tracking_card_for_customer_service_profiles(): void
     {
+        app(WholesalePrincipal::class)->storeId();
+
         foreach ([
             'CUSTOMER_SERVICE_MANAGER',
             'CUSTOMER_SERVICE_SUPERVISOR',
@@ -150,6 +152,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
 
     public function test_customer_service_workspace_exposes_total_customer_count_and_admin_routes_land_there(): void
     {
+        app(WholesalePrincipal::class)->storeId();
         $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
         app(B2bCustomerService::class)->create(['name' => 'Badge Customer One']);
         app(B2bCustomerService::class)->create(['name' => 'Badge Customer Two']);
