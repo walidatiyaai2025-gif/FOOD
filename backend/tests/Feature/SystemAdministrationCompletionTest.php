@@ -15,14 +15,14 @@ final class SystemAdministrationCompletionTest extends TestCase
             'foodex-module-overview',
             'foodex-module-kpis',
             'foodex-module-chart',
-            "admin._module-dashboard-kpi",
-            "admin._module-dashboard-filters",
-            "admin.inspector.index",
-            "admin.system-update.index",
-            "admin.production-dataset-switch.index",
-            "backup-history",
-            "failed-jobs",
-            "module-health",
+            'admin._module-dashboard-kpi',
+            'admin._module-dashboard-filters',
+            'admin.inspector.index',
+            'admin.system-update.index',
+            'admin.production-dataset-switch.index',
+            'backup-history',
+            'failed-jobs',
+            'module-health',
         ] as $required) {
             $this->assertStringContainsString($required, $view);
         }
