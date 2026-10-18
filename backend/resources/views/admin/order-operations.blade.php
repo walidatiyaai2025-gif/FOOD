@@ -549,7 +549,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </details>
 </td>
 </tr>
-@empty<tr><td colspan="11"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
+@empty<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
 </tbody></table>
 </section>
 {{ $orders->links() }}
