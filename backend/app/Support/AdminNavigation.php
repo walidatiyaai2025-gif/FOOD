@@ -80,8 +80,12 @@ class AdminNavigation
                     : null,
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
+                $useCustomerServiceDashboardProfile
+                    ? ($this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
+                        ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'))
+                    : null,
             ]),
-            $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp ? [
+            $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile ? [
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
@@ -468,7 +472,7 @@ class AdminNavigation
         return $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
-            ->whereIn('roles.code', ['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT'])
+            ->whereIn('roles.code', ['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'])
             ->exists();
     }
 
