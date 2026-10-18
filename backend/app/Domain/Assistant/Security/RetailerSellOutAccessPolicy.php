@@ -92,6 +92,7 @@ final class RetailerSellOutAccessPolicy
 
             $before = $existing === null ? null : (array) $existing;
             $now = now();
+            $startsAt = $now->copy()->subSecond();
 
             DB::table('assistant_retailer_data_grants')->updateOrInsert(
                 [
@@ -103,7 +104,7 @@ final class RetailerSellOutAccessPolicy
                     'basis' => $basis,
                     'status' => 'active',
                     'retention_days' => $retentionDays,
-                    'starts_at' => $now,
+                    'starts_at' => $startsAt,
                     'expires_at' => $expiresAt,
                     'granted_by_user_id' => $actor->getKey(),
                     'revoked_at' => null,
