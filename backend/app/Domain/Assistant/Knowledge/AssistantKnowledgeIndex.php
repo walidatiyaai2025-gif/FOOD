@@ -3,6 +3,7 @@
 namespace App\Domain\Assistant\Knowledge;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -553,7 +554,7 @@ final class AssistantKnowledgeIndex
         }
     }
 
-    private function applyStoreScope($query, ?int $storeId): void
+    private function applyStoreScope(Builder $query, ?int $storeId): void
     {
         if ($storeId === null) {
             $query->whereNull('store_id');
