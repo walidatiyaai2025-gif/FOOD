@@ -23,6 +23,12 @@ return [
         'chunk_chars' => min(4000, max(400, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_CHARS', 1200))),
         'chunk_overlap_chars' => min(300, max(0, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_OVERLAP_CHARS', 120))),
     ],
+    'observability' => [
+        'enabled' => (bool) env('ASSISTANT_OBSERVABILITY_ENABLED', true),
+        'retention_days' => min(90, max(1, (int) env('ASSISTANT_OBSERVABILITY_RETENTION_DAYS', 14))),
+        'admin_window_hours' => min(168, max(1, (int) env('ASSISTANT_OBSERVABILITY_WINDOW_HOURS', 24))),
+        'export_max_rows' => min(10000, max(100, (int) env('ASSISTANT_OBSERVABILITY_EXPORT_MAX_ROWS', 5000))),
+    ],
     'security' => [
         'provider_enabled' => (bool) env('ASSISTANT_AI_PROVIDER_ENABLED', true),
         'tools_enabled' => (bool) env('ASSISTANT_AI_TOOLS_ENABLED', true),
