@@ -97,6 +97,44 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         );
     }
 
+    public function test_customer_service_manager_and_agent_sidebar_hide_platform_hubs_but_keep_service_workspace(): void
+    {
+        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+            $user = $this->globalUser($roleCode, strtolower($roleCode).'@example.test');
+
+            $groups = collect(app(AdminNavigation::class)->groupsFor($user));
+            $items = $groups
+                ->flatMap(fn (array $group) => $group['children'])
+                ->pluck('key');
+
+            foreach ([
+                'enterprise_action_center',
+                'enterprise_workspaces',
+                'erp_center',
+                'erp_my_work',
+                'administration_hub',
+            ] as $hiddenKey) {
+                $this->assertFalse(
+                    $items->contains($hiddenKey),
+                    "{$roleCode} sidebar unexpectedly exposed [{$hiddenKey}].",
+                );
+            }
+
+            $this->assertFalse(
+                $groups->contains('key', 'administration'),
+                "{$roleCode} sidebar must hide the Administration group when its hub is hidden.",
+            );
+            $this->assertFalse(
+                $groups->contains('key', 'erp'),
+                "{$roleCode} sidebar must hide the ERP group.",
+            );
+            $this->assertTrue(
+                $items->contains('erp_customer_service'),
+                "{$roleCode} must retain the Customer Service workspace entry.",
+            );
+        }
+    }
+
     public function test_global_platform_admin_keeps_platform_navigation_entries(): void
     {
         $user = $this->globalUser('B2B_ADMIN', 'nav-platform-sidebar@example.test');

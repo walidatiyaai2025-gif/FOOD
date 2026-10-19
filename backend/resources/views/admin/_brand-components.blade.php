@@ -1,5 +1,14 @@
 @include('admin._brand')
+@php
+    $foodexCustomerServiceProfile = auth()->check()
+        && app(\App\Support\AdminNavigation::class)->usesCustomerServiceDashboardProfile(auth()->user());
+@endphp
+@if($foodexCustomerServiceProfile)
+<script>document.documentElement.classList.add('foodex-customer-service-profile')</script> {{-- localization-gate: allow — technical CSS class toggle; no user-facing copy. --}}
+@endif
 <style id="foodex-admin-component-tokens">
+    /* Shared extended palette tokens: dashboard views reference these instead of local hex literals. */
+    :root{--foodex-palette-0891b2:#0891b2;--foodex-palette-0e7490:#0e7490;--foodex-palette-0f172a:#0f172a;--foodex-palette-111827:#111827;--foodex-palette-13221a:#13221a;--foodex-palette-14532d:#14532d;--foodex-palette-146c36:#146c36;--foodex-palette-15803d:#15803d;--foodex-palette-158a3a:#158a3a;--foodex-palette-166534:#166534;--foodex-palette-16a34a:#16a34a;--foodex-palette-179c52:#179c52;--foodex-palette-18251f:#18251f;--foodex-palette-1d4ed8:#1d4ed8;--foodex-palette-22c55e:#22c55e;--foodex-palette-22d3ee:#22d3ee;--foodex-palette-243029:#243029;--foodex-palette-2563eb:#2563eb;--foodex-palette-2dd4bf:#2dd4bf;--foodex-palette-334155:#334155;--foodex-palette-38bdf8:#38bdf8;--foodex-palette-4338ca:#4338ca;--foodex-palette-475569:#475569;--foodex-palette-52605a:#52605a;--foodex-palette-60a5fa:#60a5fa;--foodex-palette-64748b:#64748b;--foodex-palette-667085:#667085;--foodex-palette-67e8f9:#67e8f9;--foodex-palette-6d28d9:#6d28d9;--foodex-palette-72ad82:#72ad82;--foodex-palette-78ba87:#78ba87;--foodex-palette-7c3aed:#7c3aed;--foodex-palette-7db98c:#7db98c;--foodex-palette-83bd91:#83bd91;--foodex-palette-86efac:#86efac;--foodex-palette-8abd96:#8abd96;--foodex-palette-93c5fd:#93c5fd;--foodex-palette-a5b4fc:#a5b4fc;--foodex-palette-a5f3fc:#a5f3fc;--foodex-palette-a78bfa:#a78bfa;--foodex-palette-a9ceb2:#a9ceb2;--foodex-palette-afd4b8:#afd4b8;--foodex-palette-b45309:#b45309;--foodex-palette-b8d9c2:#b8d9c2;--foodex-palette-b91c1c:#b91c1c;--foodex-palette-b9d8c1:#b9d8c1;--foodex-palette-bbf7d0:#bbf7d0;--foodex-palette-be123c:#be123c;--foodex-palette-bedbc5:#bedbc5;--foodex-palette-bfd5c6:#bfd5c6;--foodex-palette-bfdbfe:#bfdbfe;--foodex-palette-bfe0c7:#bfe0c7;--foodex-palette-c084fc:#c084fc;--foodex-palette-c2410c:#c2410c;--foodex-palette-c4b5fd:#c4b5fd;--foodex-palette-c7d1cb:#c7d1cb;--foodex-palette-c7d2fe:#c7d2fe;--foodex-palette-ca8a04:#ca8a04;--foodex-palette-cbd5e1:#cbd5e1;--foodex-palette-cfd9d3:#cfd9d3;--foodex-palette-d6dfda:#d6dfda;--foodex-palette-d7e1db:#d7e1db;--foodex-palette-d97706:#d97706;--foodex-palette-dbeafe:#dbeafe;--foodex-palette-dc2626:#dc2626;--foodex-palette-dce4df:#dce4df;--foodex-palette-dce5df:#dce5df;--foodex-palette-dcfce7:#dcfce7;--foodex-palette-ddd6fe:#ddd6fe;--foodex-palette-e2e8e4:#e2e8e4;--foodex-palette-e2e8f0:#e2e8f0;--foodex-palette-e6ece8:#e6ece8;--foodex-palette-e7ece9:#e7ece9;--foodex-palette-e7f6eb:#e7f6eb;--foodex-palette-e9f7ed:#e9f7ed;--foodex-palette-ea580c:#ea580c;--foodex-palette-eaf0ec:#eaf0ec;--foodex-palette-eaf7ef:#eaf7ef;--foodex-palette-ecfdf5:#ecfdf5;--foodex-palette-ecfeff:#ecfeff;--foodex-palette-edf1ee:#edf1ee;--foodex-palette-edf1ef:#edf1ef;--foodex-palette-edf1f4:#edf1f4;--foodex-palette-edf8f0:#edf8f0;--foodex-palette-eef2ff:#eef2ff;--foodex-palette-eef7f0:#eef7f0;--foodex-palette-eef9f1:#eef9f1;--foodex-palette-eff6ff:#eff6ff;--foodex-palette-eff8f2:#eff8f2;--foodex-palette-f1f5f9:#f1f5f9;--foodex-palette-f1faf3:#f1faf3;--foodex-palette-f3c36b:#f3c36b;--foodex-palette-f3f6f4:#f3f6f4;--foodex-palette-f3fbf5:#f3fbf5;--foodex-palette-f472b6:#f472b6;--foodex-palette-f4f7f5:#f4f7f5;--foodex-palette-f59e0b:#f59e0b;--foodex-palette-f5f3ff:#f5f3ff;--foodex-palette-f5f7f6:#f5f7f6;--foodex-palette-f5fbf6:#f5fbf6;--foodex-palette-f6f8fa:#f6f8fa;--foodex-palette-f7efe6:#f7efe6;--foodex-palette-f7faf8:#f7faf8;--foodex-palette-f7fcf8:#f7fcf8;--foodex-palette-f87171:#f87171;--foodex-palette-f8faf9:#f8faf9;--foodex-palette-f8fafc:#f8fafc;--foodex-palette-f8fcf9:#f8fcf9;--foodex-palette-f97316:#f97316;--foodex-palette-f9fbfa:#f9fbfa;--foodex-palette-facc15:#facc15;--foodex-palette-fb7185:#fb7185;--foodex-palette-fb923c:#fb923c;--foodex-palette-fbfcfb:#fbfcfb;--foodex-palette-fca5a5:#fca5a5;--foodex-palette-fda4af:#fda4af;--foodex-palette-fdba74:#fdba74;--foodex-palette-fecaca:#fecaca;--foodex-palette-fecdd3:#fecdd3;--foodex-palette-fed7aa:#fed7aa;--foodex-palette-fee2e2:#fee2e2;--foodex-palette-fef2f2:#fef2f2;--foodex-palette-fff1f2:#fff1f2;--foodex-palette-fff7e6:#fff7e6;--foodex-palette-fff7ed:#fff7ed;--foodex-palette-fff7f7:#fff7f7;--foodex-palette-fffbeb:#fffbeb}
     *,*::before,*::after{box-sizing:border-box}
     html,body{max-width:100%;overflow-x:hidden;background:var(--foodex-background)!important;color:var(--foodex-ink)!important}
     body{font-family:var(--foodex-font-ui)!important;font-size:var(--foodex-text-sm);font-weight:var(--foodex-font-weight-regular);line-height:var(--foodex-leading-normal);text-rendering:optimizeLegibility}
@@ -19,8 +28,15 @@
     .foodex-global-header{position:relative;z-index:60;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,560px) minmax(0,1fr);align-items:center;gap:var(--foodex-header-gap);width:100%;max-width:100%;min-width:0;height:var(--foodex-header-height);min-height:var(--foodex-header-height);max-height:var(--foodex-header-height);margin-bottom:12px;padding:5px 8px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px;box-shadow:var(--foodex-shadow-sm)}
     .foodex-global-header>*{min-width:0}
     .foodex-global-header-spacer{display:block;width:100%;min-width:0}
-    .foodex-global-header-search{min-width:0;width:100%;justify-self:center}
+    .foodex-global-header-center{grid-column:2;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;width:100%;margin-inline:auto}
+    .foodex-global-header-search{min-width:180px;width:100%;justify-self:center}
+    .foodex-global-header-extra{display:flex;align-items:center;min-width:0;flex:0 0 auto}
+    .foodex-global-header--with-extra{grid-template-columns:minmax(0,.45fr) minmax(720px,1100px) minmax(0,.45fr)}
+    .foodex-global-header--with-extra .foodex-global-header-search{flex:1 1 360px;max-width:460px}
+    .foodex-global-header--with-extra .foodex-global-header-extra{flex:0 1 auto;max-width:650px}
     .foodex-global-header-utilities{justify-self:end;display:flex;align-items:center;min-width:0}
+    @media(max-width:1250px){.foodex-global-header--with-extra{grid-template-columns:minmax(0,1fr) minmax(420px,760px) minmax(0,1fr)}.foodex-global-header--with-extra .foodex-global-header-search{max-width:520px}}
+    @media(max-width:767px){.foodex-global-header-center{grid-column:2;gap:5px}.foodex-global-header--with-extra{grid-template-columns:36px minmax(0,1fr) auto}.foodex-global-header--with-extra .foodex-global-header-search{min-width:0;max-width:none}.foodex-global-header--with-extra .foodex-global-header-extra{max-width:none}}
     .foodex-page-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-3);width:100%;max-width:100%;min-width:0;margin-bottom:var(--foodex-space-4);padding:0;overflow:visible}
     .foodex-page-toolbar>*{min-width:0}
     .foodex-page-toolbar>*:has(>h1){min-width:0}
@@ -781,6 +797,136 @@ document.addEventListener('DOMContentLoaded', () => {
     .foodex-password-toggle{position:absolute;inset-inline-end:6px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:var(--foodex-muted);display:grid;place-items:center;cursor:pointer;font-size:19px;line-height:1}
     .foodex-password-toggle:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     @media(max-width:640px){.foodex-premium-auto-form{grid-template-columns:1fr;padding:var(--foodex-space-4)}}
+
+    /* Customer-service role visual profile: keep every authorized admin page aligned with the CS dashboard shell. */
+    html.foodex-customer-service-profile{
+        --foodex-cs-card-radius:18px;
+        --foodex-cs-control-radius:12px;
+        --foodex-cs-page-gap:14px;
+    }
+    html.foodex-customer-service-profile .foodex-admin-layout{
+        background:linear-gradient(180deg,#f8fafc 0%,var(--foodex-background) 34%,var(--foodex-background) 100%);
+    }
+    html.foodex-customer-service-profile .foodex-admin-layout>.foodex-admin-main,
+    html.foodex-customer-service-profile .foodex-admin-main.foodex-admin-page{
+        padding:clamp(18px,1.45vw,28px)!important;
+    }
+    html.foodex-customer-service-profile .foodex-global-header{
+        margin-bottom:16px;
+        border-radius:14px;
+        box-shadow:0 7px 22px rgba(15,23,42,.055);
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar{
+        min-height:64px;
+        align-items:center;
+        margin-bottom:14px;
+        padding:11px 14px;
+        border:1px solid var(--foodex-border);
+        border-radius:16px;
+        background:var(--foodex-surface);
+        box-shadow:var(--foodex-shadow-sm);
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar h1{
+        font-size:1.02rem!important;
+        line-height:1.3!important;
+    }
+    html.foodex-customer-service-profile .foodex-page-toolbar p{
+        margin-top:2px!important;
+        font-size:.72rem!important;
+    }
+    html.foodex-customer-service-profile :is(.foodex-card,.panel,.card,.filters,.back,.foodex-form){
+        border-radius:var(--foodex-cs-card-radius)!important;
+        border-color:#dde5ec!important;
+        box-shadow:0 7px 22px rgba(15,23,42,.045);
+    }
+    html.foodex-customer-service-profile :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.foodex-control){
+        border-radius:var(--foodex-cs-control-radius);
+    }
+    html.foodex-customer-service-profile :is(.primary,.button,.btn.primary,button.foodex-primary,.foodex-action-primary,.foodex-filter-action,.secondary,.button.secondary,.btn.secondary,.foodex-action-secondary){
+        border-radius:11px;
+    }
+    html.foodex-customer-service-profile .foodex-tabs{
+        gap:8px;
+        margin-bottom:14px;
+        padding:0;
+        border-bottom:0;
+        overflow-x:auto;
+        flex-wrap:nowrap;
+        scrollbar-width:thin;
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a,.foodex-tab){
+        flex:0 0 auto;
+        min-height:38px;
+        padding:0 16px;
+        border:1px solid var(--foodex-border);
+        border-radius:999px;
+        background:var(--foodex-surface);
+        color:var(--foodex-muted);
+        font-size:.78rem;
+        font-weight:800;
+        white-space:nowrap;
+        transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease;
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a,.foodex-tab):hover{
+        transform:translateY(-1px);
+        border-color:#b8d9c2;
+        color:var(--foodex-green-dark);
+    }
+    html.foodex-customer-service-profile .foodex-tabs :is(a.active,.foodex-tab.active,[aria-selected="true"]){
+        border-color:var(--foodex-action-green)!important;
+        background:var(--foodex-action-green)!important;
+        color:#fff!important;
+    }
+    html.foodex-customer-service-profile :is(.table-wrap,.module-table-wrap,.foodex-table-wrap){
+        border-radius:16px;
+        scrollbar-width:thin;
+    }
+    html.foodex-customer-service-profile :is(.foodex-table,.foodex-ops-grid){
+        border-radius:16px;
+    }
+    html.foodex-customer-service-profile :is(.foodex-table,.foodex-ops-grid) th{
+        background:#f8fafc;
+    }
+    html.foodex-customer-service-profile :is(.foodex-modal,.foodex-record-drawer){
+        border-color:#dde5ec;
+        box-shadow:0 28px 80px rgba(15,23,42,.22);
+    }
+    html.foodex-customer-service-profile .foodex-modal{
+        border-radius:20px;
+    }
+    html.foodex-customer-service-profile .foodex-record-drawer-shell{
+        scrollbar-width:thin;
+        overscroll-behavior:contain;
+    }
+    html.foodex-customer-service-profile .foodex-sidebar-shell{
+        gap:12px;
+    }
+    html.foodex-customer-service-profile .foodex-nav-group[open]{
+        border-radius:14px;
+        background:#fbfcfd;
+    }
+    html.foodex-customer-service-profile .foodex-nav-link{
+        border-radius:11px;
+    }
+    html.foodex-customer-service-profile .foodex-nav-link.active{
+        background:var(--foodex-action-green);
+        box-shadow:0 8px 20px rgba(21,138,58,.16);
+    }
+    @media(max-width:767px){
+        html.foodex-customer-service-profile .foodex-admin-layout>.foodex-admin-main,
+        html.foodex-customer-service-profile .foodex-admin-main.foodex-admin-page{
+            padding:12px!important;
+        }
+        html.foodex-customer-service-profile .foodex-page-toolbar{
+            min-height:0;
+            padding:10px 12px;
+            border-radius:14px;
+        }
+        html.foodex-customer-service-profile :is(.foodex-card,.panel,.card,.filters,.back,.foodex-form){
+            border-radius:14px!important;
+        }
+    }
+
 </style>
 
 @php

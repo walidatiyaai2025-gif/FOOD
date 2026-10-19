@@ -23,6 +23,10 @@ class AdminShellController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
+        if ($this->navigation->usesCustomerServiceDashboardProfile($user)) {
+            return redirect()->route('admin.erp.customer-service');
+        }
+
         if (! $user->hasRole('SUPER_ADMIN')) {
             $workspaceTarget = $this->workspaceLanding->urlFor($user, $request);
             if ($workspaceTarget !== null) {
@@ -33,8 +37,15 @@ class AdminShellController extends Controller
         return $this->render($request);
     }
 
-    public function b2b(Request $request): View
+    public function b2b(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        if ($this->navigation->usesCustomerServiceDashboardProfile($user)) {
+            return redirect()->route('admin.erp.customer-service');
+        }
+
         return $this->render($request, 'b2b');
     }
 

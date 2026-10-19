@@ -131,7 +131,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
 
-## D-020 — Assistant memory carries context, never transactional truth
+## D-020 — RAG documents are governed evidence, never instructions
+**Decision (#2223 / AI-15, 2026-10-18):** Approved FOODEX document knowledge is exposed to the existing Assistant only through the typed `knowledge.search` read tool. Sources carry exact version, locale and global-or-store scope; superseded, revoked, deleted and expired sources are excluded. Weak retrieval evidence is refused. Document excerpts are always untrusted data and cannot authorize, select or execute tools.
+
+**Reason:** mixing document text with agent instructions would allow indirect prompt injection, while allowing unscoped or stale documents would create cross-tenant and grounding failures. Live business facts also have different freshness/authority semantics from policy/manual content.
+
+**Consequences:** planning routes live facts to deterministic domain/read-model tools and documents to `knowledge.search`; hybrid questions may use both. Planning never sees retrieved document text, synthesis has no callable tools, every knowledge read is re-authorized/audited through `AssistantToolExecutor`, and final knowledge answers append server-derived exact source/version citations. Provider-disabled behavior remains additive/degraded and cannot take core FOODEX down.
+
+**Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
+
+## D-021 — Assistant memory carries context, never transactional truth
 **Decision (#2216 / AI-08, 2026-10-18):** FOODEX reuses the existing Assistant conversation/state tables and adds a bounded session policy. Server-resolved page context may travel in a short-lived HMAC-authenticated envelope bound to the authenticated user, but the envelope is not authorization: every turn re-runs page visibility and AI principal/RBAC/tenant/channel/retailer-consent resolution. Durable Assistant memory is limited to allowlisted presentation preferences; short conversation state contains identifiers/windows needed for follow-ups only.
 
 **Reason:** browser IDs and chat history are stale and attacker-controlled inputs if treated as authority. Keeping business values or permission snapshots in memory could answer from obsolete revenue/stock/sell-out facts or survive access revocation.

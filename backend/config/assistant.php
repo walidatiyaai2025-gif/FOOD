@@ -16,6 +16,13 @@ return [
         'planning_tokens' => min(1024, max(128, (int) env('ASSISTANT_AGENT_PLANNING_TOKENS', 384))),
         'synthesis_tokens' => min(1536, max(128, (int) env('ASSISTANT_AGENT_SYNTHESIS_TOKENS', 640))),
     ],
+    'knowledge' => [
+        'max_results' => min(8, max(1, (int) env('ASSISTANT_KNOWLEDGE_MAX_RESULTS', 5))),
+        'candidate_limit' => min(500, max(20, (int) env('ASSISTANT_KNOWLEDGE_CANDIDATE_LIMIT', 200))),
+        'retrieval_threshold' => min(1.0, max(0.05, (float) env('ASSISTANT_KNOWLEDGE_RETRIEVAL_THRESHOLD', 0.45))),
+        'chunk_chars' => min(4000, max(400, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_CHARS', 1200))),
+        'chunk_overlap_chars' => min(300, max(0, (int) env('ASSISTANT_KNOWLEDGE_CHUNK_OVERLAP_CHARS', 120))),
+    ],
     'external_ai' => [
         'enabled' => (bool) env('ASSISTANT_AI_ENABLED', false),
         'api_url' => (string) env('ASSISTANT_AI_API_URL', ''),

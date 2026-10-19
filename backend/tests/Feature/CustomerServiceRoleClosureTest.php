@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
+use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class CustomerServiceRoleClosureTest extends TestCase
@@ -46,6 +48,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
 
         foreach ([$supervisor, $agent] as $staff) {
             $this->assertTrue($staff->hasPermission('orders.view'));
+            $this->assertTrue($staff->hasPermission('drivers.tracking.view'));
             $this->assertTrue($staff->hasPermission('orders.create'));
             $this->assertFalse($staff->hasPermission('orders.manage'));
             $this->assertFalse($staff->hasPermission('customer_service.team.manage'));
@@ -55,9 +58,14 @@ final class CustomerServiceRoleClosureTest extends TestCase
             );
         }
 
+        $this->assertTrue($manager->hasPermission('drivers.tracking.view'));
         $this->assertContains(
             $principalStoreId,
             app(OperationalTenantScope::class)->allowedStoreIds($manager, 'orders.manage', 'b2b'),
+        );
+        $this->assertContains(
+            $principalStoreId,
+            app(OperationalTenantScope::class)->allowedStoreIds($manager, 'drivers.tracking.view', 'b2b'),
         );
     }
 
@@ -118,6 +126,96 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ->assertSessionHasErrors('member');
 
         $this->assertTrue($privileged->fresh()->hasRole('B2B_ADMIN'));
+    }
+
+    public function test_customer_service_workspace_shows_live_tracking_card_for_customer_service_profiles(): void
+    {
+        app(WholesalePrincipal::class)->storeId();
+
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            $user = $this->userWithRole($roleCode);
+
+            $this->actingAs($user)
+                ->get(route('admin.erp.customer-service'))
+                ->assertOk()
+                ->assertViewHas('navContext', 'erp_customer_service')
+                ->assertSee('data-dashboard-live-driver-map', false)
+                ->assertSee('data-actor-kind="mixed"', false)
+                ->assertSee(route('admin.driver-live-tracking.feed', ['channel' => 'b2b']), false)
+                ->assertSee(route('admin.field-operations.fleet.feed', ['channel' => 'b2b']), false);
+        }
+    }
+
+    public function test_customer_service_workspace_exposes_total_customer_count_and_admin_routes_land_there(): void
+    {
+        app(WholesalePrincipal::class)->storeId();
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        app(B2bCustomerService::class)->create(['name' => 'Badge Customer One']);
+        app(B2bCustomerService::class)->create(['name' => 'Badge Customer Two']);
+
+        $this->actingAs($manager)
+            ->get(route('admin.erp.customer-service'))
+            ->assertOk()
+            ->assertViewHas('dashboard', function (array $dashboard): bool {
+                return (int) ($dashboard['total_customers'] ?? 0) >= 2;
+            });
+
+        $this->actingAs($manager)
+            ->get(route('admin.index'))
+            ->assertRedirect(route('admin.erp.customer-service'));
+
+        $this->actingAs($manager)
+            ->get(route('admin.b2b.dashboard'))
+            ->assertRedirect(route('admin.erp.customer-service'));
+    }
+
+    public function test_customer_service_inbox_unread_count_respects_manager_supervisor_and_agent_visibility(): void
+    {
+        $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
+        $supervisor = $this->userWithRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $otherAgent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $storeId = app(WholesalePrincipal::class)->storeId();
+
+        $unassignedId = $this->whatsAppConversation($storeId, null, 2);
+        $mineId = $this->whatsAppConversation($storeId, $agent->id, 4);
+        $otherId = $this->whatsAppConversation($storeId, $otherAgent->id, 7);
+
+        $managerSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($manager);
+        $supervisorSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($supervisor);
+        $agentSummary = app(CustomerServiceCaseManager::class)->whatsAppInboxSummary($agent);
+
+        $this->assertSame(13, $managerSummary['unread_count']);
+        $this->assertSame(13, $supervisorSummary['unread_count']);
+        $this->assertSame(6, $agentSummary['unread_count']);
+
+        $agentIds = $agentSummary['items']->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $this->assertContains($unassignedId, $agentIds);
+        $this->assertContains($mineId, $agentIds);
+        $this->assertNotContains($otherId, $agentIds);
+    }
+
+    public function test_customer_service_roles_can_open_customer_360_in_wholesale_scope(): void
+    {
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            $user = $this->userWithRole($roleCode);
+
+            $this->assertTrue($user->hasPermission('customers.view'));
+            $this->assertFalse($user->hasPermission('b2b.accounts.view'));
+
+            $this->actingAs($user)
+                ->get(route('admin.customer-360.index', ['q' => '']))
+                ->assertOk()
+                ->assertViewIs('admin.customer-360-index');
+        }
     }
 
     public function test_agent_can_reach_new_order_workflow_without_receiving_order_management(): void
@@ -222,6 +320,23 @@ final class CustomerServiceRoleClosureTest extends TestCase
                 'role_code' => 'CUSTOMER_SERVICE_AGENT',
             ])
             ->assertForbidden();
+    }
+
+    private function whatsAppConversation(int $storeId, ?int $agentId, int $unreadCount): int
+    {
+        return (int) DB::table('whats_app_conversations')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'channel' => 'whatsapp',
+            'status' => $agentId === null ? 'WAITING_FOR_AGENT' : 'OPEN',
+            'primary_agent_id' => $agentId,
+            'priority' => 0,
+            'unread_count' => $unreadCount,
+            'waiting_since' => $agentId === null ? now() : null,
+            'lock_version' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function userWithRole(string $code): User

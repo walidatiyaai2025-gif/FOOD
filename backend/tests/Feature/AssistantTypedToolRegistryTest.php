@@ -34,6 +34,7 @@ final class AssistantTypedToolRegistryTest extends TestCase
 
         $this->assertTrue($registry->has('analytics.summary'));
         $this->assertTrue($registry->has('analytics.diagnose'));
+        $this->assertTrue($registry->has('retailers.360'));
         $this->assertTrue($registry->has('support.summary'));
         $this->assertTrue($registry->has('margin.summary'));
 
@@ -57,6 +58,19 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $diagnostic = $registry->definition('analytics.diagnose');
         $this->assertSame('DeterministicAnalyticsEngine', $diagnostic->source);
         $this->assertSame(['reports.view'], $diagnostic->requiredPermissions);
+
+        $retailer360 = $registry->definition('retailers.360');
+        $this->assertSame('READ', $retailer360->mode);
+        $this->assertSame('SELL_OUT', $retailer360->dataClass);
+        $this->assertTrue($retailer360->sellOutConsent);
+        $this->assertSame(['reports.view'], $retailer360->requiredPermissions);
+        $this->assertSame(['b2b'], $retailer360->channels);
+        $this->assertSame('Retailer360IntelligenceService', $retailer360->source);
+
+        $retailer360Provider = collect($registry->providerTools('en'))
+            ->firstWhere('x-foodex.tool_key', 'retailers.360');
+        $this->assertIsArray($retailer360Provider);
+        $this->assertSame('retailers__360', $retailer360Provider['function']['name']);
 
         $margin = $registry->definition('margin.summary');
         $this->assertSame(['reports.view', 'catalog.view'], $margin->requiredPermissions);
@@ -281,6 +295,12 @@ final class AssistantTypedToolRegistryTest extends TestCase
             'diagnostic-consent-denied',
         ));
 
+        $this->assertSelloutDenied(fn () => app(AssistantToolExecutor::class)->execute(
+            'retailers.360',
+            $request,
+            'retailer-360-consent-denied',
+        ));
+
         app(RetailerSellOutAccessPolicy::class)->grant(
             $retailOwner,
             $retailStore,
@@ -309,6 +329,18 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $this->assertSame([$retailStore], $diagnostic->data['scope']['store_ids']);
         $this->assertFalse($diagnostic->data['guardrails']['model_arithmetic_allowed']);
 
+        $retailer360 = app(AssistantToolExecutor::class)->execute(
+            'retailers.360',
+            $request,
+            'retailer-360-consent-allowed',
+        );
+        $this->assertSame('retailers.360', $retailer360->data['_tool']['key']);
+        $this->assertSame('Retailer360IntelligenceService', $retailer360->data['_tool']['source']);
+        $this->assertSame('SELL_OUT', $retailer360->data['_tool']['data_class']);
+        $this->assertSame('foodex.analytics.retailer360.v1', $retailer360->data['schema_version']);
+        $this->assertSame([$retailStore], $retailer360->data['account']['retailer_store_ids']);
+        $this->assertFalse($retailer360->data['flows']['sell_out']['wholesale_purchase_inference']);
+
         app(RetailerSellOutAccessPolicy::class)->revoke(
             $retailOwner,
             $retailStore,
@@ -324,6 +356,11 @@ final class AssistantTypedToolRegistryTest extends TestCase
             'analytics.diagnose',
             $request,
             'diagnostic-consent-revoked',
+        ));
+        $this->assertSelloutDenied(fn () => app(AssistantToolExecutor::class)->execute(
+            'retailers.360',
+            $request,
+            'retailer-360-consent-revoked',
         ));
     }
 

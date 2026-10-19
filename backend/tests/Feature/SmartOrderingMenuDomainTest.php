@@ -43,6 +43,233 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_appearance_builder_creates_a_starter_menu_with_categories_and_images(): void
+    {
+        Storage::fake('public');
+        $fixture = $this->fixture('QUICKMENU', 5.000);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.appearance.index', [
+                'site' => $fixture['site']->public_id,
+                'store_id' => $fixture['store_id'],
+            ]))
+            ->assertOk()
+            ->assertSee('data-qm-card', false)
+            ->assertSee('data-qm-open', false)
+            ->assertSee('data-qm-modal', false)
+            ->assertSee('data-qm-add-category', false)
+            ->assertSee('data-qm-add-item', false)
+            ->assertSee('data-qm-save', false)
+            ->assertSee('name="categories[0][image]"', false)
+            ->assertSee('name="items[0][image]"', false)
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('display:flex!important;flex-direction:column!important', false)
+            ->assertSee('height:auto!important', false)
+            ->assertSee('grid-template-columns:repeat(2,minmax(0,1fr))!important', false)
+            ->assertSee(route('admin.smart-ordering.menu.quick-create'), false);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.quick-create'), [
+                'store_id' => $fixture['store_id'],
+                '_quick_menu' => '1',
+                'menu_name_ar' => 'المنيو الرئيسية',
+                'menu_name_en' => 'Main Menu',
+                'menu_image' => UploadedFile::fake()->image('menu-cover.jpg', 1000, 700),
+                'categories' => [
+                    '0' => [
+                        'name_ar' => 'الأطباق الرئيسية',
+                        'name_en' => 'Main Dishes',
+                        'image' => UploadedFile::fake()->image('mains.jpg', 800, 600),
+                    ],
+                    '1' => [
+                        'name_ar' => 'المشروبات',
+                        'name_en' => 'Drinks',
+                    ],
+                ],
+                'items' => [
+                    '0' => [
+                        'category_key' => '0',
+                        'name_ar' => 'برجر لحم',
+                        'name_en' => 'Beef Burger',
+                        'price' => '7.500',
+                        'featured' => '1',
+                        'image' => UploadedFile::fake()->image('burger.jpg', 700, 700),
+                    ],
+                    '1' => [
+                        'category_key' => '1',
+                        'name_ar' => 'كولا',
+                        'name_en' => 'Cola',
+                        'price' => '2.250',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $draft = app(SmartOrderingMenuRevisionService::class)
+            ->draft($fixture['admin'], $fixture['site']->fresh());
+
+        $menu = SmartOrderingMenu::query()
+            ->where('revision_id', $draft->id)
+            ->where('name_en', 'Main Menu')
+            ->firstOrFail();
+
+        $this->assertTrue((bool) $menu->is_default);
+        $this->assertTrue((bool) $menu->is_visible);
+        $this->assertNotNull($menu->image_path);
+        Storage::disk('public')->assertExists((string) $menu->image_path);
+
+        $main = SmartOrderingMenuCategory::query()
+            ->where('menu_id', $menu->id)
+            ->where('name_en', 'Main Dishes')
+            ->firstOrFail();
+        $drinks = SmartOrderingMenuCategory::query()
+            ->where('menu_id', $menu->id)
+            ->where('name_en', 'Drinks')
+            ->firstOrFail();
+
+        $this->assertNotNull($main->image_path);
+        Storage::disk('public')->assertExists((string) $main->image_path);
+
+        $burger = SmartOrderingMenuItem::query()
+            ->where('category_id', $main->id)
+            ->where('name_en', 'Beef Burger')
+            ->firstOrFail();
+        $cola = SmartOrderingMenuItem::query()
+            ->where('category_id', $drinks->id)
+            ->where('name_en', 'Cola')
+            ->firstOrFail();
+
+        $this->assertSame(7.5, (float) $burger->price_override);
+        $this->assertTrue((bool) $burger->featured);
+        $this->assertNotNull($burger->image_path);
+        Storage::disk('public')->assertExists((string) $burger->image_path);
+        $this->assertSame(2.25, (float) $cola->price_override);
+    }
+
+    public function test_guided_restaurant_launch_flow_keeps_menu_design_identity_review_and_publish_in_one_workspace(): void
+    {
+        $fixture = $this->fixture('GUIDED', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [, , , $item] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Guided Burger',
+            'price_override' => 5.000,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'review' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('data-restaurant-launch', false)
+            ->assertSee('data-launch-step="review"', false)
+            ->assertSee('Quick add / delete before publishing')
+            ->assertSee('Guided Burger')
+            ->assertSee('data-qm-open', false)
+            ->assertSee(route('admin.smart-ordering.menu.items.destroy', $item), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'design',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="design"', false)
+            ->assertSee(route('admin.smart-ordering.appearance.apply'), false)
+            ->assertSee('name="return_to" value="menu_setup"', false)
+            ->assertSee(route('admin.smart-ordering.appearance.preview'), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'identity',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="identity"', false)
+            ->assertSee(route('admin.smart-ordering.menu.setup.identity'), false)
+            ->assertSee('Save and continue to review');
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'publish',
+            ]))
+            ->assertOk()
+            ->assertSee('data-launch-step="publish"', false)
+            ->assertSee(route('admin.smart-ordering.menu.publish', app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site'])), false);
+    }
+
+    public function test_guided_identity_step_saves_branding_runtime_and_slug_then_moves_to_review(): void
+    {
+        Storage::fake('public');
+        $fixture = $this->fixture('IDENTITY', 5.000);
+        $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
+        $runtimeState = (string) collect((array) config('smart_ordering.runtime_states', []))->first();
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.setup.identity'), [
+                'store_id' => $fixture['store_id'],
+                'name_en' => 'Guided Kitchen',
+                'name_ar' => 'مطعم الخطوات',
+                'tagline_en' => 'One guided setup',
+                'tagline_ar' => 'إعداد واحد واضح',
+                'phone' => '+96522000000',
+                'slug' => 'guided-kitchen-'.$fixture['store_id'],
+                'runtime_state' => $runtimeState,
+                'master_enabled' => '1',
+                'logo' => UploadedFile::fake()->image('logo.png', 300, 300),
+                'cover' => UploadedFile::fake()->image('cover.jpg', 1200, 700),
+            ])
+            ->assertRedirect(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'review',
+            ]));
+
+        $site = $fixture['site']->fresh();
+        $this->assertSame('guided-kitchen-'.$fixture['store_id'], $site->slug);
+        $this->assertTrue((bool) $site->master_enabled);
+        $this->assertSame($runtimeState, $site->runtime_state);
+
+        $payload = (array) $draft->fresh()->payload;
+        $identity = (array) data_get($payload, 'content.identity', []);
+        $this->assertSame('Guided Kitchen', $identity['name_en'] ?? null);
+        $this->assertSame('مطعم الخطوات', $identity['name_ar'] ?? null);
+        $this->assertNotEmpty($identity['logo_url'] ?? null);
+        $this->assertNotEmpty($identity['cover_url'] ?? null);
+        Storage::disk('public')->assertExists((string) $identity['logo_url']);
+        Storage::disk('public')->assertExists((string) $identity['cover_url']);
+    }
+
+    public function test_guided_final_publish_activates_public_storefront_and_publishes_draft(): void
+    {
+        $fixture = $this->fixture('GUIDEDPUBLISH', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft] = $this->draftItem($fixture, $writer, [
+            'name_en' => 'Launch Item',
+            'price_override' => 5.000,
+        ]);
+
+        $this->actingAs($fixture['admin'])
+            ->post(route('admin.smart-ordering.menu.publish', $draft), [
+                'store_id' => $fixture['store_id'],
+                'guided' => '1',
+            ])
+            ->assertRedirect(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'publish',
+            ]));
+
+        $site = $fixture['site']->fresh();
+        $this->assertTrue((bool) $site->master_enabled);
+        $this->assertSame('ENABLED', $site->runtime_state);
+        $this->assertTrue((bool) DB::table('smart_ordering_entitlements')
+            ->where('site_id', $site->id)
+            ->where('scope_key', 'site')
+            ->where('module', 'public_menu')
+            ->value('enabled'));
+        $this->assertNotNull(app(SmartOrderingMenuRevisionService::class)->published($site));
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
@@ -103,6 +330,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('data-smart-ordering-draft-review', false)
@@ -170,6 +398,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('Review menu before publishing')
