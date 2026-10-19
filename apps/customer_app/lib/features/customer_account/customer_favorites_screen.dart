@@ -325,7 +325,7 @@ double _favoriteGridCardExtent(
 ) {
   final textScale = MediaQuery.textScalerOf(context).scale(1);
   final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-  return (258.0 + (scaledDelta * 72.0) + 12.0) * .85;
+  return (368.0 + (scaledDelta * 240.0)) * .85;
 }
 
 class _ScrollableState extends StatelessWidget {
