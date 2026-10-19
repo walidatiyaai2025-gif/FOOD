@@ -82,8 +82,8 @@ Artisan::command(
     'foodex:legacy-import {phase=masters : Import phase} {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $phase = strtolower(trim((string) $this->argument('phase')));
-        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history', 'purchase-history'], true)) {
-            $this->error('Supported phases: masters, extended-masters, stock, sales-history, purchase-history.');
+        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history', 'purchase-history', 'operational-history'], true)) {
+            $this->error('Supported phases: masters, extended-masters, stock, sales-history, purchase-history, operational-history.');
 
             return 2;
         }
@@ -109,6 +109,7 @@ Artisan::command(
                 'stock' => $importer->importStock((bool) $this->option('apply'), $progress),
                 'sales-history' => $importer->importSalesHistory((bool) $this->option('apply'), $progress),
                 'purchase-history' => $importer->importPurchaseHistory((bool) $this->option('apply'), $progress),
+                'operational-history' => $importer->importOperationalHistory((bool) $this->option('apply'), $progress),
             };
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex import failed: '.$exception->getMessage());
@@ -302,6 +303,58 @@ Artisan::command(
                 }
             }
 
+            if ($phase === 'operational-history') {
+                $this->newLine();
+                $this->info('Operational-history type counts');
+                $this->table(
+                    ['Type', 'Headers', 'Details'],
+                    collect($result['type_counts'] ?? [])->map(
+                        static fn ($count, $type): array => [
+                            (string) $type,
+                            (int) $count,
+                            (int) (($result['detail_counts_by_type'][$type] ?? 0)),
+                        ],
+                    )->values()->all(),
+                );
+
+                $this->newLine();
+                $this->info('Operational pairing diagnostics');
+                $this->table(
+                    ['Metric', 'Count'],
+                    collect($result['pairing'] ?? [])->map(
+                        static fn ($count, $metric): array => [(string) $metric, (int) $count],
+                    )->values()->all(),
+                );
+
+                $samples = $result['samples'] ?? [];
+                if (($samples['pair_anomalies'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Operational pair anomaly samples (preserved as history; no stock replay)');
+                    $this->table(
+                        ['Family', 'Key', 'Headers', 'Types'],
+                        collect($samples['pair_anomalies'])->map(static fn (array $row): array => [
+                            $row['family'],
+                            $row['key'],
+                            $row['headers'],
+                            json_encode($row['types'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['invalid_location_headers'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Invalid/unmapped operational location samples');
+                    $this->table(
+                        ['Header', 'Type', 'Location'],
+                        collect($samples['invalid_location_headers'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['location_id'],
+                        ])->all(),
+                    );
+                }
+            }
+
             $this->warn('Dry-run only. Re-run with --apply after reviewing these counts.');
 
             return 0;
@@ -328,7 +381,7 @@ Artisan::command(
 
         return 0;
     },
-)->purpose('Migrate legacy Foodex masters, stock baseline, sales history, or immutable procurement history with provenance and safety gates.');
+)->purpose('Migrate legacy Foodex masters, stock baseline, sales/procurement history, or immutable operational history with provenance and safety gates.');
 
 
 Artisan::command(
