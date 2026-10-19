@@ -117,51 +117,20 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            headerPadding: const EdgeInsetsDirectional.fromSTEB(12, 1, 12, 1),
-            header: SizedBox(
-              height: 44,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        context.tr('b2b.app.title'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: CustomerUiColors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  CustomerOutlineIconButton(
-                    key: const ValueKey('b2b-dashboard-notifications'),
-                    icon: Icons.notifications_none_rounded,
-                    tooltip: context.tr('customer.nav.notifications'),
-                    semanticLabel: context.tr('customer.nav.notifications'),
-                    onPressed: () => Navigator.of(context).pushNamed(
-                      _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
-                    ),
-                  ),
-                ],
-              ),
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
             ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                // The existing app-level version/logout footer overlays routes.
-                // Wholesale's persistent dock already reserves that space.
-                padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
-                child: _B2bDashboardRemoteState(
-                  api: api!,
-                  endpoint: _endpoint()!,
-                  storefrontApi: storefrontApi,
-                ),
+            child: Padding(
+              // The existing app-level version/logout footer overlays routes.
+              // Wholesale's persistent dock already reserves that space.
+              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+              child: _B2bDashboardRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+                storefrontApi: storefrontApi,
               ),
             ),
           ),
@@ -175,34 +144,12 @@ class B2bJourneyScreen extends StatelessWidget {
       return Scaffold(
         key: const ValueKey('b2b-top-products-screen'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          toolbarHeight: 56,
-          elevation: 0,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          leading: IconButton(
-            key: const ValueKey('b2b-top-products-back'),
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const BackButtonIcon(),
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
           ),
-          title: Text(
-            context.tr('b2b.top_products.title'),
-            key: const ValueKey('b2b-top-products-header-title'),
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: CustomerUiColors.white,
-              fontSize: 12.6,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        body: SafeArea(
-          top: false,
           child: SingleChildScrollView(
             key: const ValueKey('b2b-top-products-scroll'),
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
@@ -288,29 +235,25 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            header: definition.pattern == CustomerRoutePaths.b2bInvoiceDetails
-                ? const SizedBox(height: 1)
-                : CustomerAccountHeader(
-                    title: content.$1,
-                    subtitle: content.$2,
-                  ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                padding: definition.pattern ==
-                            CustomerRoutePaths.b2bAccountStatement ||
-                        definition.pattern ==
-                            CustomerRoutePaths.b2bPurchaseReports
-                    ? const EdgeInsets.fromLTRB(
-                        CustomerUiSpacing.page,
-                        0,
-                        CustomerUiSpacing.page,
-                        CustomerUiSpacing.page,
-                      )
-                    : const EdgeInsets.all(CustomerUiSpacing.page),
-                child: remote,
-              ),
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
+            child: SingleChildScrollView(
+              padding: definition.pattern ==
+                          CustomerRoutePaths.b2bAccountStatement ||
+                      definition.pattern ==
+                          CustomerRoutePaths.b2bPurchaseReports
+                  ? const EdgeInsets.fromLTRB(
+                      CustomerUiSpacing.page,
+                      0,
+                      CustomerUiSpacing.page,
+                      CustomerUiSpacing.page,
+                    )
+                  : const EdgeInsets.all(CustomerUiSpacing.page),
+              child: remote,
             ),
           ),
         ),
@@ -351,8 +294,13 @@ class B2bJourneyScreen extends StatelessWidget {
 
     return withFooter(
       Scaffold(
-        appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
-        body: SafeArea(
+        backgroundColor: CustomerUiColors.mint,
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
