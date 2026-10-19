@@ -44,6 +44,11 @@
             {{ $locale === 'ar' ? 'السلة' : 'Cart' }} <span aria-hidden="true">🛒</span>
             <span class="so-cart-count" data-cart-count aria-live="polite">0</span>
         </button>
+        @if(($theme['id'] ?? '') === 'fresh-market-commerce')
+            <a class="so-icon-button fm-header-menu" href="#fm-categories" aria-label="{{ $locale === 'ar' ? 'فتح تصنيفات المنتجات' : 'Open product categories' }}">
+                <span aria-hidden="true">☰</span>
+            </a>
+        @endif
     </div>
 </header>
 @if(! $is_open)
