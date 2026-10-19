@@ -688,7 +688,7 @@ final readonly class Retailer360IntelligenceService
         }
 
         $score = max(0, min(100, $score));
-        $state = $score >= 80 ? 'good' : ($score >= 50 ? 'partial' : 'limited');
+        $state = $feed['state'] === 'none' ? 'limited' : ($score >= 80 ? 'good' : ($score >= 50 ? 'partial' : 'limited'));
 
         return [
             'state' => $state,
