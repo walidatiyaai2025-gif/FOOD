@@ -486,6 +486,269 @@ final class SmartOrderingMenuAdminController extends Controller
         )->with('status', app()->getLocale() === 'ar' ? 'تم حفظ المنيو كمسودة.' : 'Menu saved as draft.');
     }
 
+    public function quickUpdate(
+        Request $request,
+        SmartOrderingMenu $menu,
+        TenantContextResolver $tenants,
+        SmartOrderingSiteService $sites,
+        SmartOrderingMenuRevisionService $revisions,
+        SmartOrderingMenuWriteService $writer,
+    ): RedirectResponse {
+        [$actor, $site] = $this->context($request, $tenants, $sites);
+        $draft = $revisions->draft($actor, $site, $request);
+
+        abort_unless(
+            (int) $menu->site_id === (int) $site->id
+            && (int) $menu->revision_id === (int) $draft->id,
+            404,
+        );
+
+        $data = $request->validate([
+            'menu_name_ar' => ['nullable', 'string', 'max:255'],
+            'menu_name_en' => ['nullable', 'string', 'max:255'],
+            'menu_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+
+            'categories' => ['required', 'array', 'min:1', 'max:20'],
+            'categories.*.id' => ['nullable', 'integer', 'min:1'],
+            'categories.*.name_ar' => ['nullable', 'string', 'max:255'],
+            'categories.*.name_en' => ['nullable', 'string', 'max:255'],
+            'categories.*.image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+
+            'items' => ['required', 'array', 'min:1', 'max:100'],
+            'items.*.id' => ['nullable', 'integer', 'min:1'],
+            'items.*.category_key' => ['required', 'string', 'max:64'],
+            'items.*.name_ar' => ['nullable', 'string', 'max:255'],
+            'items.*.name_en' => ['nullable', 'string', 'max:255'],
+            'items.*.price' => ['required', 'numeric', 'min:0', 'max:99999999.999'],
+            'items.*.image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'items.*.featured' => ['nullable', 'boolean'],
+        ]);
+
+        $menuNameAr = trim((string) ($data['menu_name_ar'] ?? ''));
+        $menuNameEn = trim((string) ($data['menu_name_en'] ?? ''));
+        if ($menuNameAr === '' && $menuNameEn === '') {
+            throw ValidationException::withMessages([
+                'menu_name_ar' => [app()->getLocale() === 'ar' ? 'اكتب اسم المنيو.' : 'Enter a menu name.'],
+            ]);
+        }
+
+        $categories = (array) ($data['categories'] ?? []);
+        foreach ($categories as $key => $category) {
+            $nameAr = trim((string) ($category['name_ar'] ?? ''));
+            $nameEn = trim((string) ($category['name_en'] ?? ''));
+            if ($nameAr === '' && $nameEn === '') {
+                throw ValidationException::withMessages([
+                    "categories.$key.name_ar" => [app()->getLocale() === 'ar' ? 'اكتب اسم التصنيف.' : 'Enter a category name.'],
+                ]);
+            }
+        }
+
+        $items = (array) ($data['items'] ?? []);
+        foreach ($items as $key => $item) {
+            $categoryKey = (string) ($item['category_key'] ?? '');
+            if ($categoryKey === '' || ! array_key_exists($categoryKey, $categories)) {
+                throw ValidationException::withMessages([
+                    "items.$key.category_key" => [app()->getLocale() === 'ar' ? 'اختر تصنيفاً صحيحاً للصنف.' : 'Choose a valid category for the item.'],
+                ]);
+            }
+
+            $nameAr = trim((string) ($item['name_ar'] ?? ''));
+            $nameEn = trim((string) ($item['name_en'] ?? ''));
+            if ($nameAr === '' && $nameEn === '') {
+                throw ValidationException::withMessages([
+                    "items.$key.name_ar" => [app()->getLocale() === 'ar' ? 'اكتب اسم الصنف.' : 'Enter the item name.'],
+                ]);
+            }
+        }
+
+        $existingCategories = SmartOrderingMenuCategory::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->where('menu_id', $menu->id)
+            ->get()
+            ->keyBy('id');
+        $existingItems = SmartOrderingMenuItem::query()
+            ->where('site_id', $site->id)
+            ->where('revision_id', $draft->id)
+            ->whereIn('category_id', $existingCategories->keys())
+            ->get()
+            ->keyBy('id');
+
+        foreach ($categories as $key => $category) {
+            $categoryId = (int) ($category['id'] ?? 0);
+            if ($categoryId > 0 && ! $existingCategories->has($categoryId)) {
+                throw ValidationException::withMessages([
+                    "categories.$key.id" => [app()->getLocale() === 'ar' ? 'التصنيف المحدد لا يتبع هذه المنيو.' : 'The selected category does not belong to this menu.'],
+                ]);
+            }
+        }
+        foreach ($items as $key => $item) {
+            $itemId = (int) ($item['id'] ?? 0);
+            if ($itemId > 0 && ! $existingItems->has($itemId)) {
+                throw ValidationException::withMessages([
+                    "items.$key.id" => [app()->getLocale() === 'ar' ? 'الصنف المحدد لا يتبع هذه المنيو.' : 'The selected item does not belong to this menu.'],
+                ]);
+            }
+        }
+
+        DB::transaction(function () use (
+            $actor,
+            $site,
+            $draft,
+            $writer,
+            $request,
+            $menu,
+            $menuNameAr,
+            $menuNameEn,
+            $categories,
+            $items,
+            $existingCategories,
+            $existingItems,
+        ): void {
+            $menuUpdate = [
+                'name_ar' => $menuNameAr !== '' ? $menuNameAr : null,
+                'name_en' => $menuNameEn !== '' ? $menuNameEn : $menuNameAr,
+            ];
+            if ($request->hasFile('menu_image')) {
+                $menuUpdate['image_path'] = $request->file('menu_image')
+                    ->store('smart-ordering/'.$site->public_id.'/menus', 'public');
+            }
+            $writer->updateMenu($actor, $site, $draft, $menu, $menuUpdate, $request);
+
+            $categoryModels = [];
+            $submittedCategoryIds = [];
+            foreach ($categories as $categoryOrder => $category) {
+                $categoryKey = (string) $categoryOrder;
+                $categoryId = (int) ($category['id'] ?? 0);
+                $nameAr = trim((string) ($category['name_ar'] ?? ''));
+                $nameEn = trim((string) ($category['name_en'] ?? ''));
+                $categoryData = [
+                    'name_ar' => $nameAr !== '' ? $nameAr : null,
+                    'name_en' => $nameEn !== '' ? $nameEn : $nameAr,
+                    'sort_order' => ((int) $categoryOrder) * 10,
+                ];
+
+                $categoryImage = $request->file("categories.$categoryOrder.image");
+                if ($categoryImage) {
+                    $categoryData['image_path'] = $categoryImage
+                        ->store('smart-ordering/'.$site->public_id.'/categories', 'public');
+                }
+
+                if ($categoryId > 0) {
+                    /** @var SmartOrderingMenuCategory $categoryModel */
+                    $categoryModel = $existingCategories->get($categoryId);
+                    $categoryModels[$categoryKey] = $writer->updateCategory(
+                        $actor,
+                        $site,
+                        $draft,
+                        $categoryModel,
+                        $categoryData,
+                        $request,
+                    );
+                    $submittedCategoryIds[] = $categoryId;
+                } else {
+                    $categoryModels[$categoryKey] = $writer->createCategory(
+                        $actor,
+                        $site,
+                        $draft,
+                        $menu,
+                        $categoryData + [
+                            'description_ar' => null,
+                            'description_en' => null,
+                            'icon' => null,
+                            'is_visible' => true,
+                            'sold_out' => false,
+                        ],
+                        $request,
+                    );
+                }
+            }
+
+            $submittedItemIds = [];
+            $itemOrderByCategory = [];
+            foreach ($items as $itemKey => $item) {
+                $categoryKey = (string) $item['category_key'];
+                /** @var SmartOrderingMenuCategory $categoryModel */
+                $categoryModel = $categoryModels[$categoryKey];
+                $itemId = (int) ($item['id'] ?? 0);
+                $nameAr = trim((string) ($item['name_ar'] ?? ''));
+                $nameEn = trim((string) ($item['name_en'] ?? ''));
+                $itemOrderByCategory[$categoryKey] = ($itemOrderByCategory[$categoryKey] ?? 0);
+                $sortOrder = $itemOrderByCategory[$categoryKey] * 10;
+                $itemOrderByCategory[$categoryKey]++;
+
+                $itemData = [
+                    'category_id' => (int) $categoryModel->id,
+                    'name_ar' => $nameAr !== '' ? $nameAr : null,
+                    'name_en' => $nameEn !== '' ? $nameEn : $nameAr,
+                    'price_override' => (float) $item['price'],
+                    'featured' => (bool) ($item['featured'] ?? false),
+                    'sort_order' => $sortOrder,
+                ];
+                $itemImage = $request->file("items.$itemKey.image");
+                if ($itemImage) {
+                    $itemData['image_path'] = $itemImage
+                        ->store('smart-ordering/'.$site->public_id.'/items', 'public');
+                }
+
+                if ($itemId > 0) {
+                    /** @var SmartOrderingMenuItem $itemModel */
+                    $itemModel = $existingItems->get($itemId);
+                    $writer->updateItem($actor, $site, $draft, $itemModel, $itemData, $request);
+                    $submittedItemIds[] = $itemId;
+                } else {
+                    $writer->createItem($actor, $site, $draft, $categoryModel, $itemData + [
+                        'source_product_id' => null,
+                        'description_ar' => null,
+                        'description_en' => null,
+                        'gallery' => [],
+                        'best_seller' => false,
+                        'is_new' => false,
+                        'is_visible' => true,
+                        'sold_out' => false,
+                        'prep_time_minutes' => null,
+                        'calories' => null,
+                        'allergens' => [],
+                        'spicy_level' => 0,
+                        'vegetarian' => false,
+                        'allow_customer_notes' => true,
+                        'removable_ingredients' => [],
+                    ], $request);
+                }
+            }
+
+            foreach ($existingItems as $existingItem) {
+                if (! in_array((int) $existingItem->id, $submittedItemIds, true)) {
+                    $writer->deleteItem($actor, $site, $draft, $existingItem, $request);
+                }
+            }
+            foreach ($existingCategories as $existingCategory) {
+                if (! in_array((int) $existingCategory->id, $submittedCategoryIds, true)) {
+                    $writer->deleteCategory($actor, $site, $draft, $existingCategory, $request);
+                }
+            }
+        });
+
+        $message = app()->getLocale() === 'ar'
+            ? 'تم تحديث المنيو وحفظ التغييرات في المسودة.'
+            : 'Menu updated and saved to the draft.';
+
+        if ($request->input('return_to') === 'menu_setup') {
+            return redirect()->route('admin.smart-ordering.menu.index', [
+                'store_id' => $site->store_id,
+                'setup' => 'menu',
+            ])->with('status', $message);
+        }
+
+        return redirect()->to(
+            route('admin.smart-ordering.appearance.index', [
+                'site' => $site->public_id,
+                'store_id' => $site->store_id,
+                'revision' => 'draft',
+            ]).'#menu-builder'
+        )->with('status', $message);
+    }
+
     public function setupIdentity(
         Request $request,
         TenantContextResolver $tenants,
