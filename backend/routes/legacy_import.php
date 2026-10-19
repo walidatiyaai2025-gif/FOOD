@@ -793,7 +793,22 @@ Artisan::command(
     'foodex:legacy-sales-header-diagnostics {headerId* : Legacy wh_TransHeader IDs} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         try {
-            $report = $importer->salesHistoryHeaderDiagnostics((array) $this->argument('headerId'));
+            $report = $importer->salesHistoryHeaderDiagnostics(
+                (array) $this->argument('headerId'),
+                function (string $stage, string $state, ?float $elapsed): void {
+                    if ((bool) $this->option('json')) {
+                        return;
+                    }
+
+                    if ($state === 'start') {
+                        $this->line('>> '.$stage.' ...');
+
+                        return;
+                    }
+
+                    $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+                },
+            );
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex sales header diagnostics failed: '.$exception->getMessage());
 
