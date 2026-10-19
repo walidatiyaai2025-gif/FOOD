@@ -21,7 +21,7 @@ return [
     'hero_image_required' => 'مطلوبة لإكمال خطوة هوية المطعم.',
     'hero_image_current' => 'الصورة الحالية',
     'hero_image_replace' => 'اختيار صورة جديدة',
-    'save_profile' => 'حفظ هوية الموقع',
+    'save_profile' => 'حفظ هوية المطعم والمتابعة',
     'saving' => 'جارٍ الحفظ…',
     'checklist_title' => 'قائمة جاهزية الإطلاق',
     'hard_gate' => 'إلزامي',
