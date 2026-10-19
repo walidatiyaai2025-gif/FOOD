@@ -272,18 +272,21 @@ final class LegacyFoodexImportService
             ->orderBy('TransType')
             ->get());
 
-        $detailStats = $stage('detail_type_stats', fn () => $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->selectRaw(
-                'h.TransType, COUNT(*) AS details, '.
-                'SUM(CASE WHEN COALESCE(d.Qty, 0) < 0 THEN 1 ELSE 0 END) AS negative_qty_lines, '.
-                'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 THEN 1 ELSE 0 END) AS trans_pkg_qty1_lines'
-            )
-            ->groupBy('h.TransType')
-            ->get()
-            ->keyBy('TransType'));
+        $detailStats = collect();
+        if ($deep) {
+            $detailStats = $stage('detail_type_stats', fn () => $source->table('wh_TransDetails as d')
+                ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                ->selectRaw(
+                    'h.TransType, COUNT(*) AS details, '.
+                    'SUM(CASE WHEN COALESCE(d.Qty, 0) < 0 THEN 1 ELSE 0 END) AS negative_qty_lines, '.
+                    'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 THEN 1 ELSE 0 END) AS trans_pkg_qty1_lines'
+                )
+                ->groupBy('h.TransType')
+                ->get()
+                ->keyBy('TransType'));
+        }
 
         $types = [];
         foreach ($headerStats as $row) {
@@ -299,9 +302,9 @@ final class LegacyFoodexImportService
                 ),
                 'headers' => (int) $row->headers,
                 'posted_headers' => (int) $row->posted_headers,
-                'details' => (int) ($details->details ?? 0),
-                'negative_qty_lines' => (int) ($details->negative_qty_lines ?? 0),
-                'trans_pkg_qty1_lines' => (int) ($details->trans_pkg_qty1_lines ?? 0),
+                'details' => $deep ? (int) ($details->details ?? 0) : null,
+                'negative_qty_lines' => $deep ? (int) ($details->negative_qty_lines ?? 0) : null,
+                'trans_pkg_qty1_lines' => $deep ? (int) ($details->trans_pkg_qty1_lines ?? 0) : null,
                 'first_date' => $row->first_date === null ? null : (int) $row->first_date,
                 'last_date' => $row->last_date === null ? null : (int) $row->last_date,
                 'recognized_stock_type' => in_array($type, $recognizedTypes, true),
@@ -309,26 +312,33 @@ final class LegacyFoodexImportService
             ];
         }
 
-        $sourceCounts = $stage('posted_source_counts', function () use ($source, $recognizedTypes): array {
+        $sourceCounts = $stage('posted_source_counts', function () use ($source, $recognizedTypes, $deep): array {
+            $postedHeaders = (int) $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->count();
+            $recognizedHeaders = (int) $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->whereIn('TransType', $recognizedTypes)
+                ->count();
+
             return [
-                'posted_headers' => (int) $source->table('wh_TransHeader')
-                    ->whereRaw('COALESCE(Status, 1) <> 0')
-                    ->count(),
-                'posted_details' => (int) $source->table('wh_TransDetails as d')
-                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
-                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
-                    ->count(),
-                'recognized_stock_headers' => (int) $source->table('wh_TransHeader')
-                    ->whereRaw('COALESCE(Status, 1) <> 0')
-                    ->whereIn('TransType', $recognizedTypes)
-                    ->count(),
-                'recognized_stock_details' => (int) $source->table('wh_TransDetails as d')
-                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
-                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
-                    ->whereIn('h.TransType', $recognizedTypes)
-                    ->count(),
+                'posted_headers' => $postedHeaders,
+                'posted_details' => $deep
+                    ? (int) $source->table('wh_TransDetails as d')
+                        ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                        ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                        ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                        ->count()
+                    : (int) $source->table('wh_TransDetails')->count(),
+                'recognized_stock_headers' => $recognizedHeaders,
+                'recognized_stock_details' => $deep
+                    ? (int) $source->table('wh_TransDetails as d')
+                        ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                        ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                        ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                        ->whereIn('h.TransType', $recognizedTypes)
+                        ->count()
+                    : null,
             ];
         });
 
@@ -338,7 +348,7 @@ final class LegacyFoodexImportService
                 'type' => $row['type'],
                 'name' => $row['name'],
                 'posted_headers' => $row['posted_headers'],
-                'details' => $row['details'],
+                'details' => $row['details'] ?? null,
             ])
             ->values()
             ->all();
@@ -365,13 +375,10 @@ final class LegacyFoodexImportService
                 ->values()
                 ->all();
 
-            $usedItemIds = $source->table('wh_TransDetails as d')
-                ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-                ->whereRaw('COALESCE(h.Status, 1) <> 0')
-                ->whereRaw('COALESCE(d.Status, 1) <> 0')
-                ->whereIn('h.TransType', $recognizedTypes)
+            $usedItemIds = $source->table('wh_TransDetails')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
                 ->distinct()
-                ->pluck('d.ItemID')
+                ->pluck('ItemID')
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
 
