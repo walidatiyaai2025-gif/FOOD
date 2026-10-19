@@ -27,6 +27,7 @@ use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
 use App\Services\SmartOrderingQrAssetService;
 use App\Services\SmartOrderingQrManager;
+use App\Services\SmartOrderingWhatsAppLinkService;
 use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -761,6 +762,7 @@ final class SmartOrderingMenuAdminController extends Controller
         SmartOrderingSiteService $sites,
         SmartOrderingMenuRevisionService $menuRevisions,
         SmartOrderingRevisionService $revisions,
+        SmartOrderingWhatsAppLinkService $whatsAppLinks,
     ): RedirectResponse {
         [$actor, $site] = $this->context($request, $tenants, $sites);
         $draft = $menuRevisions->draft($actor, $site, $request);
@@ -773,7 +775,6 @@ final class SmartOrderingMenuAdminController extends Controller
             'description_en' => ['nullable', 'string', 'max:1000'],
             'description_ar' => ['nullable', 'string', 'max:1000'],
             'phone' => ['nullable', 'string', 'max:40'],
-            'whatsapp_url' => ['nullable', 'url', 'max:500'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'slug' => ['required', 'string', 'max:64'],
@@ -785,10 +786,12 @@ final class SmartOrderingMenuAdminController extends Controller
 
         foreach ([
             'name_en', 'name_ar', 'tagline_en', 'tagline_ar',
-            'description_en', 'description_ar', 'phone', 'whatsapp_url',
+            'description_en', 'description_ar', 'phone',
         ] as $field) {
             $identity[$field] = trim((string) ($data[$field] ?? ''));
         }
+
+        $identity['whatsapp_url'] = $whatsAppLinks->fromPhone($identity['phone'] ?? null) ?? '';
 
         foreach (['logo', 'cover'] as $asset) {
             $file = $request->file($asset);
