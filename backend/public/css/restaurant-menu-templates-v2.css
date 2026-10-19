@@ -125,7 +125,6 @@ html[data-template="fresh-market-commerce"] .so-mobile-cart{display:none}
 .fm-hero__cta b{
   display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#fff;color:#118c3f;font-size:23px;font-weight:700;
 }
-[dir="rtl"] .fm-hero__cta b{transform:rotate(180deg)}
 .fm-hero__media{position:relative;margin:0;min-width:0;overflow:hidden;background:#dff2fb}
 .fm-hero__media img{width:100%;height:100%;min-height:338px;object-fit:cover;object-position:center}
 .fm-hero__media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 56%,rgba(255,255,255,.95) 94%,#fff 100%);pointer-events:none}
@@ -151,7 +150,7 @@ html[data-template="fresh-market-commerce"] .so-mobile-cart{display:none}
 .fm-category-card img{width:38px;height:38px;object-fit:contain;border-radius:8px}
 .fm-category-icon{display:grid;place-items:center;width:38px;height:38px;font-size:30px;line-height:1}
 .fm-category-icon--grid{font-size:27px}
-.fm-category-card strong{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-category-card strong{display:-webkit-box;max-width:100%;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.15}
 
 .fm-featured,.fm-product-section{padding:10px 24px 22px;background:#fff}
 .fm-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 12px}
