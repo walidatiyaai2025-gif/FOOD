@@ -628,6 +628,7 @@ backend/app/Services/AppPreviewSessionService.php
 backend/app/Services/AppPreviewTargetService.php
 backend/app/Services/AssistantExternalAiClient.php
 backend/app/Services/AssistantHybridBrain.php
+backend/app/Services/AssistantObservability.php
 backend/app/Services/AssistantProviderSettings.php
 backend/app/Services/AssistantRuntimeSettings.php
 backend/app/Services/B2BOrderRoutingCoordinator.php
@@ -1168,6 +1169,7 @@ backend/database/migrations/2026_10_17_205700_add_admin_whatsapp_otp_authenticat
 backend/database/migrations/2026_10_17_210000_create_store_channel_operational_profiles.php
 backend/database/migrations/2026_10_18_065500_create_order_customer_service_assignments.php
 backend/database/migrations/2026_10_18_114500_add_b2c_business_profile_to_stores.php
+backend/database/migrations/2026_10_19_000100_create_assistant_observability_events.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
