@@ -108,6 +108,9 @@ final class RestaurantOnboardingService
             && $actor->hasPermission('smart_ordering.publish', (int) $store->getKey());
 
         $publicMenuEntitled = (bool) ($entitlements['public_menu'] ?? false);
+        $salesChannelsSelected = (bool) ($entitlements['dine_in'] ?? false)
+            || (bool) ($entitlements['pickup'] ?? false)
+            || (bool) ($entitlements['delivery'] ?? false);
         $previewReady = $menuPublished && $languageComplete && $priceReady;
         $healthReady = $site->runtime_state !== 'EMERGENCY_STOP';
 
@@ -116,6 +119,7 @@ final class RestaurantOnboardingService
             $this->gate('location_identity', true, true, $profileReady),
             $this->gate('opening_hours', true, true, $openingHoursReady),
             $this->gate('public_menu_entitlement', true, true, $publicMenuEntitled),
+            $this->gate('sales_channels', true, true, $salesChannelsSelected),
             $this->gate('menu_published', true, true, $menuPublished),
             $this->gate('prices', true, true, $priceReady),
             $this->gate('fulfillment', true, true, $fulfillmentReady),
@@ -130,7 +134,17 @@ final class RestaurantOnboardingService
             $this->gate('health', false, true, $healthReady),
         ];
 
-        return $this->result($gates) + [
+        $result = $this->result($gates);
+        $launched = $profile instanceof RestaurantLocationProfile
+            && (string) $profile->lifecycle_state === 'ACTIVE'
+            && (bool) $site->master_enabled
+            && (string) $site->runtime_state === 'ENABLED';
+        $setupFlow = $this->setupFlow($gates, $launched);
+
+        return $result + [
+            'setup_flow' => $setupFlow['steps'],
+            'current_step' => $setupFlow['current_step'],
+            'launched' => $launched,
             'profile' => $profile,
             'site' => $site,
             'context' => $context,
@@ -315,6 +329,64 @@ final class RestaurantOnboardingService
             'ready' => $ready,
             'state' => ! $required ? 'not_applicable' : ($ready ? 'ready' : ($hard ? 'blocked' : 'attention')),
         ];
+    }
+
+    /**
+     * Build a strict progressive setup path. A step becomes available only when
+     * every required hard gate in all previous steps is ready.
+     *
+     * @param list<array{key:string,hard:bool,required:bool,ready:bool,state:string}> $gates
+     * @return array{steps:list<array{key:string,number:int,available:bool,complete:bool,state:string,gates:list<string>}>,current_step:string}
+     */
+    private function setupFlow(array $gates, bool $launched): array
+    {
+        $gateMap = collect($gates)->keyBy('key');
+        $definitions = [
+            ['key' => 'identity', 'gates' => ['control_plane', 'location_identity', 'operator']],
+            ['key' => 'channels', 'gates' => ['public_menu_entitlement', 'sales_channels']],
+            ['key' => 'operations', 'gates' => ['opening_hours', 'fulfillment', 'delivery_rules']],
+            ['key' => 'menu', 'gates' => ['menu_published', 'prices', 'language']],
+            ['key' => 'entry', 'gates' => ['qr']],
+            ['key' => 'review', 'gates' => ['legal_contact', 'contact_channel', 'payment', 'launch_preview', 'health']],
+        ];
+
+        $steps = [];
+        $previousComplete = true;
+        $currentStep = $launched ? 'complete' : 'review';
+
+        foreach ($definitions as $index => $definition) {
+            $isReview = $definition['key'] === 'review';
+            $hardRequired = collect($definition['gates'])
+                ->map(fn (string $key) => $gateMap->get($key))
+                ->filter(fn ($gate) => is_array($gate) && ($gate['hard'] ?? false) && ($gate['required'] ?? false));
+
+            $complete = $isReview
+                ? $launched
+                : $hardRequired->every(fn (array $gate): bool => (bool) ($gate['ready'] ?? false));
+            $available = $launched || $previousComplete;
+            $state = $launched || $complete
+                ? 'complete'
+                : ($available ? 'current' : 'locked');
+
+            if (! $launched && $state === 'current' && $currentStep === 'review') {
+                $currentStep = $definition['key'];
+            }
+
+            $steps[] = [
+                'key' => $definition['key'],
+                'number' => $index + 1,
+                'available' => $available,
+                'complete' => $complete,
+                'state' => $state,
+                'gates' => $definition['gates'],
+            ];
+
+            if (! $complete) {
+                $previousComplete = false;
+            }
+        }
+
+        return ['steps' => $steps, 'current_step' => $currentStep];
     }
 
     /** @param list<array{key:string,hard:bool,required:bool,ready:bool,state:string}> $gates
