@@ -47,12 +47,7 @@
     };
     $allCategories = $menus->flatMap(fn($menu) => $menu->categories);
     $allItems = $allCategories->flatMap(fn($category) => $category->items);
-    $mediaUrl = static function ($path): ?string {
-        $path = trim((string) $path);
-        if ($path === '') return null;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
-    };
+    $mediaUrl = static fn ($path): ?string => app(\App\Services\SmartOrderingMediaService::class)->publicUrl($path);
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-menu">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
