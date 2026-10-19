@@ -67,7 +67,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $steps = $plan['steps'];
         $maxPlannedSteps = min($request->budget->maxSteps, $request->budget->maxToolCalls);
-        if (! is_array($steps) || $steps === [] || count($steps) > $maxPlannedSteps) {
+        if ($steps === [] || count($steps) > $maxPlannedSteps) {
             return $this->deterministicFallback(
                 $request,
                 $base,
@@ -94,23 +94,11 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $failed++;
                 $toolExecutions[] = [
                     'call_id' => 'call-'.($index + 1),
-                    'tool' => is_array($step) ? ($step['tool'] ?? null) : null,
+                    'tool' => $step['tool'],
                     'status' => 'FAILED',
                     'failure_code' => 'EXECUTION_BUDGET_EXCEEDED',
                 ];
                 break;
-            }
-
-            if (! is_array($step) || ! is_string($step['tool'] ?? null) || ! is_array($step['arguments'] ?? null)) {
-                $failed++;
-                $toolExecutions[] = [
-                    'call_id' => 'call-'.($index + 1),
-                    'tool' => null,
-                    'status' => 'FAILED',
-                    'failure_code' => 'PROVIDER_MALFORMED',
-                ];
-
-                continue;
             }
 
             $toolKey = (string) $step['tool'];
@@ -242,13 +230,13 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $message = $this->synthesize($request, $results, $evidence, $status, $startedAt);
         $state = $base->state;
-        $executedKeys = array_values(array_map(
-            static fn (array $execution): ?string => $execution['status'] === 'FAILED'
-                ? null
-                : (is_string($execution['tool'] ?? null) ? $execution['tool'] : null),
-            $toolExecutions,
-        ));
-        $executedKeys = array_values(array_filter($executedKeys));
+        /** @var list<string> $executedKeys */
+        $executedKeys = [];
+        foreach ($toolExecutions as $execution) {
+            if ($execution['status'] !== 'FAILED') {
+                $executedKeys[] = (string) $execution['tool'];
+            }
+        }
 
         $primaryIntent = $executedKeys[0] ?? $base->intent;
         $state['last_intent'] = $primaryIntent;
@@ -347,7 +335,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $toolKey = $this->toolKeyFromProviderName($call['name']);
                 $steps[] = [
                     'tool' => $toolKey,
-                    'arguments' => is_array($call['arguments']) ? $call['arguments'] : [],
+                    'arguments' => $call['arguments'],
                 ];
             }
 
