@@ -188,6 +188,17 @@ class MultiStoreDesignScreen extends StatelessWidget {
             onOpenProduct: (productId) => Navigator.of(context).pushNamed(
               CustomerRouteLocations.wholesaleProduct(scope, productId),
             ),
+            onAddToCart: ({
+              required storeId,
+              required productId,
+              required quantity,
+            }) async {
+              await actionApi.addCartItem(
+                storeId: storeId,
+                productId: productId,
+                quantity: quantity,
+              );
+            },
           ),
           CustomerFooterDestination.favorites,
         );
