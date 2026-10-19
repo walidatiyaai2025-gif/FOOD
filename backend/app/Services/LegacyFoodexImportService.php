@@ -423,7 +423,7 @@ final class LegacyFoodexImportService
 
         if ($deep) {
             $itemConversions = $stage('deep_load_items', fn () => $source->table('wh_Items')
-                ->get(['ID', 'Pkg2Qty', 'Pkg3Qty', 'Pkg4Qty', 'Pkg5Qty'])
+                ->get(['ID', 'Pkg2Qty', 'Pkg3Qty'])
                 ->keyBy('ID'));
 
             $postedDetails = 0;
@@ -432,6 +432,8 @@ final class LegacyFoodexImportService
             $usingFallback = 0;
             $negativeRawQty = 0;
             $conversionMismatch = 0;
+            $unresolvedPackageConversions = 0;
+            $unresolvedPackageSamples = [];
             $positions = [];
             $processedRows = 0;
             $chunkNumber = 0;
@@ -450,6 +452,8 @@ final class LegacyFoodexImportService
                 &$usingFallback,
                 &$negativeRawQty,
                 &$conversionMismatch,
+                &$unresolvedPackageConversions,
+                &$unresolvedPackageSamples,
                 &$positions,
                 &$processedRows,
                 &$chunkNumber,
@@ -482,6 +486,8 @@ final class LegacyFoodexImportService
                             &$usingFallback,
                             &$negativeRawQty,
                             &$conversionMismatch,
+                            &$unresolvedPackageConversions,
+                            &$unresolvedPackageSamples,
                             &$positions,
                             &$processedRows,
                             &$chunkNumber,
@@ -556,33 +562,38 @@ final class LegacyFoodexImportService
                                     $pkg3 = 1.0;
                                 }
 
-                                $pkg4 = (float) ($item->Pkg4Qty ?? 0);
-                                if (abs($pkg4) <= 0.0000001) {
-                                    $pkg4 = 1.0;
-                                }
-
-                                $pkg5 = (float) ($item->Pkg5Qty ?? 0);
-                                if (abs($pkg5) <= 0.0000001) {
-                                    $pkg5 = 1.0;
-                                }
-
                                 $fallbackQuantity = match ($package) {
+                                    1 => $absQty,
                                     2 => $absQty * $pkg2,
                                     3 => $absQty * $pkg3,
-                                    4 => $absQty * $pkg4,
-                                    5 => $absQty * $pkg5,
-                                    default => $absQty,
+                                    default => null,
                                 };
 
-                                $baseQuantity = abs($transPkgQty1) > 0.0000001
-                                    ? abs($transPkgQty1)
-                                    : $fallbackQuantity;
+                                if (abs($transPkgQty1) > 0.0000001) {
+                                    $baseQuantity = abs($transPkgQty1);
 
-                                if (
-                                    abs($transPkgQty1) > 0.0000001
-                                    && abs(abs($transPkgQty1) - $fallbackQuantity) > 0.001
-                                ) {
-                                    $conversionMismatch++;
+                                    if (
+                                        $fallbackQuantity !== null
+                                        && abs($baseQuantity - $fallbackQuantity) > 0.001
+                                    ) {
+                                        $conversionMismatch++;
+                                    }
+                                } elseif ($fallbackQuantity !== null) {
+                                    $baseQuantity = $fallbackQuantity;
+                                } else {
+                                    $unresolvedPackageConversions++;
+
+                                    if (count($unresolvedPackageSamples) < 20) {
+                                        $unresolvedPackageSamples[] = [
+                                            'detail_id' => (int) $row->DetailId,
+                                            'header_id' => $headerId,
+                                            'item_id' => $itemId,
+                                            'package' => $package,
+                                            'qty' => $rawQty,
+                                        ];
+                                    }
+
+                                    continue;
                                 }
 
                                 $storeId = (int) $header['store_id'];
@@ -654,6 +665,8 @@ final class LegacyFoodexImportService
                 'using_fallback' => $usingFallback,
                 'negative_raw_qty' => $negativeRawQty,
                 'transpkg_vs_conversion_mismatch' => $conversionMismatch,
+                'unresolved_package_conversions' => $unresolvedPackageConversions,
+                'unresolved_package_samples' => $unresolvedPackageSamples,
                 'source_detail_rows_scanned' => $processedRows,
             ];
 
