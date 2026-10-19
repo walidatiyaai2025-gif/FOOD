@@ -56,7 +56,7 @@
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
         @php($isAr = app()->getLocale() === 'ar')
-        @php($restaurantManagementCompact = true)
+        @php($restaurantManagementCompact = false)
         <div class="so-settings-page" data-so-settings-page>
             <header class="so-settings-head">
                 <div class="so-settings-head-main">
