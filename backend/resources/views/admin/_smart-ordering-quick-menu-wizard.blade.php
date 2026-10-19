@@ -302,6 +302,17 @@ body.qm-open{overflow:hidden}
     const form = modal?.querySelector('[data-qm-form]');
     if (!modal || !openButton || !closeButton || !form) return;
 
+    const editPayloads = @json($quickMenuEditPayloads);
+    const createAction = @json(route('admin.smart-ordering.menu.quick-create'));
+    const title = modal.querySelector('[data-qm-title]');
+    const subtitle = modal.querySelector('[data-qm-subtitle]');
+    const methodInput = form.querySelector('[data-qm-method]');
+    const modeInput = form.querySelector('[data-qm-mode]');
+    const editIdInput = form.querySelector('[data-qm-edit-id]');
+    const menuAr = form.querySelector('[name="menu_name_ar"]');
+    const menuEn = form.querySelector('[name="menu_name_en"]');
+    const menuImageInput = form.querySelector('[name="menu_image"]');
+    const menuImagePreview = menuImageInput?.closest('label')?.querySelector('[data-image-preview]');
     const steps = [...modal.querySelectorAll('[data-qm-step]')];
     const progress = [...modal.querySelectorAll('[data-qm-progress]')];
     const back = modal.querySelector('[data-qm-back]');
@@ -314,6 +325,7 @@ body.qm-open{overflow:hidden}
     let step = 1;
     let categoryIndex = Math.max(0, ...[...categories.querySelectorAll('[data-qm-category]')].map(row => Number(row.dataset.categoryKey) || 0)) + 1;
     let itemIndex = items.querySelectorAll('[data-qm-item]').length;
+    let lastTrigger = openButton;
 
     const t = {
         menu: @json($quickMenuIsAr ? 'اكتب اسم المنيو بالعربي أو الإنجليزي.' : 'Enter the menu name.'),
@@ -324,11 +336,18 @@ body.qm-open{overflow:hidden}
         categoryWord: @json($quickMenuIsAr ? 'تصنيف' : 'Category'),
         categoryImage: @json($quickMenuIsAr ? 'صورة التصنيف' : 'Category image'),
         itemImage: @json($quickMenuIsAr ? 'صورة الصنف' : 'Item image'),
+        menuImage: @json($quickMenuIsAr ? 'صورة المنيو' : 'Menu cover'),
         arabicName: @json($quickMenuIsAr ? 'الاسم بالعربي' : 'Arabic name'),
         englishName: @json($quickMenuIsAr ? 'الاسم بالإنجليزي' : 'English name'),
         categoryLabel: @json($quickMenuIsAr ? 'التصنيف' : 'Category'),
         price: @json($quickMenuIsAr ? 'السعر' : 'Price'),
         featured: @json($quickMenuIsAr ? 'مميز' : 'Featured'),
+        createTitle: @json($quickMenuIsAr ? 'إنشاء المنيو بسهولة' : 'Create menu easily'),
+        createSubtitle: @json($quickMenuIsAr ? 'كل شيء أساسي في 3 خطوات واضحة، بدون المحرر المعقد.' : 'Everything essential in 3 clear steps.'),
+        createSave: @json($quickMenuIsAr ? 'حفظ المنيو كمسودة' : 'Save menu as draft'),
+        editTitle: @json($quickMenuIsAr ? 'تعديل المنيو بسهولة' : 'Edit menu easily'),
+        editSubtitle: @json($quickMenuIsAr ? 'عدّل المنيو الحالية والتصنيفات والأصناف من نفس الخطوات الثلاث.' : 'Edit the current menu, categories and items in the same three steps.'),
+        editSave: @json($quickMenuIsAr ? 'حفظ التعديلات' : 'Save changes'),
     };
 
     const showError = (message) => {
@@ -337,7 +356,21 @@ body.qm-open{overflow:hidden}
         if (message) error.scrollIntoView({block:'nearest'});
     };
 
-    const open = () => {
+    const setPreview = (preview, imageUrl, placeholder) => {
+        if (!preview) return;
+        preview.innerHTML = '';
+        if (imageUrl) {
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = '';
+            preview.append(img);
+        } else {
+            preview.textContent = placeholder;
+        }
+    };
+
+    const open = (trigger = openButton) => {
+        lastTrigger = trigger;
         modal.hidden = false;
         document.body.classList.add('qm-open');
         requestAnimationFrame(() => modal.querySelector('input:not([type="hidden"])')?.focus({preventScroll:true}));
@@ -346,7 +379,7 @@ body.qm-open{overflow:hidden}
         modal.hidden = true;
         document.body.classList.remove('qm-open');
         showError('');
-        openButton.focus({preventScroll:true});
+        lastTrigger?.focus?.({preventScroll:true});
     };
 
     const categoryRows = () => [...categories.querySelectorAll('[data-qm-category]')];
@@ -386,12 +419,9 @@ body.qm-open{overflow:hidden}
                 const file = input.files?.[0];
                 if (!preview || !file) return;
                 const url = URL.createObjectURL(file);
-                preview.innerHTML = '';
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = '';
-                img.onload = () => URL.revokeObjectURL(url);
-                preview.append(img);
+                setPreview(preview, url, '');
+                const img = preview.querySelector('img');
+                if (img) img.onload = () => URL.revokeObjectURL(url);
             });
         });
     };
@@ -414,8 +444,8 @@ body.qm-open{overflow:hidden}
 
     const validate = () => {
         if (step === 1) {
-            const ar = form.querySelector('[name="menu_name_ar"]')?.value.trim() || '';
-            const en = form.querySelector('[name="menu_name_en"]')?.value.trim() || '';
+            const ar = menuAr?.value.trim() || '';
+            const en = menuEn?.value.trim() || '';
             if (!ar && !en) { showError(t.menu); return false; }
         }
         if (step === 2) {
@@ -431,22 +461,22 @@ body.qm-open{overflow:hidden}
             const invalid = !rows.length || rows.some(row => {
                 const ar = row.querySelector('input[name$="[name_ar]"]')?.value.trim() || '';
                 const en = row.querySelector('input[name$="[name_en]"]')?.value.trim() || '';
-                const price = row.querySelector('input[name$="[price]"]')?.value ?? '';
-                const category = row.querySelector('[data-qm-item-category]')?.value || '';
-                return (!ar && !en) || price === '' || category === '';
+                const priceValue = row.querySelector('input[name$="[price]"]')?.value ?? '';
+                const categoryValue = row.querySelector('[data-qm-item-category]')?.value || '';
+                return (!ar && !en) || priceValue === '' || categoryValue === '';
             });
             if (invalid) { showError(t.items); return false; }
         }
         return true;
     };
 
-    const makeImageTile = (name, placeholder) => {
+    const makeImageTile = (name, placeholder, imageUrl = null) => {
         const label = document.createElement('label');
         label.className = 'qm-image-tile';
         const box = document.createElement('span');
         box.className = 'qm-image-box';
         box.dataset.imagePreview = '';
-        box.textContent = placeholder;
+        setPreview(box, imageUrl, placeholder);
         const input = document.createElement('input');
         input.type = 'file';
         input.name = name;
@@ -463,18 +493,30 @@ body.qm-open{overflow:hidden}
         return label;
     };
 
-    const addCategory = (prefill = '') => {
-        const key = String(categoryIndex++);
+    const addCategory = (prefill = '', record = null) => {
+        const key = record?.key != null ? String(record.key) : String(categoryIndex++);
+        categoryIndex = Math.max(categoryIndex, (Number(key) || 0) + 1);
         const row = document.createElement('div');
         row.className = 'qm-category-row';
         row.dataset.qmCategory = '';
         row.dataset.categoryKey = key;
-        row.append(makeImageTile('categories['+key+'][image]', t.categoryImage));
+
+        if (record?.id) {
+            const id = document.createElement('input');
+            id.type = 'hidden';
+            id.name = 'categories['+key+'][id]';
+            id.value = String(record.id);
+            row.append(id);
+        }
+
+        row.append(makeImageTile('categories['+key+'][image]', t.categoryImage, record?.image_url || null));
 
         const ar = document.createElement('input');
-        ar.type='text'; ar.name='categories['+key+'][name_ar]'; ar.dataset.qmCategoryAr=''; if (@json($quickMenuIsAr)) ar.value=prefill;
+        ar.type='text'; ar.name='categories['+key+'][name_ar]'; ar.dataset.qmCategoryAr='';
+        ar.value = record?.name_ar || (@json($quickMenuIsAr) ? prefill : '');
         const en = document.createElement('input');
-        en.type='text'; en.name='categories['+key+'][name_en]'; en.dataset.qmCategoryEn=''; if (!@json($quickMenuIsAr)) en.value=prefill;
+        en.type='text'; en.name='categories['+key+'][name_en]'; en.dataset.qmCategoryEn='';
+        en.value = record?.name_en || (!@json($quickMenuIsAr) ? prefill : '');
         const arField = makeField(t.arabicName, ar); arField.classList.add('qm-name-ar');
         const enField = makeField(t.englishName, en); enField.classList.add('qm-name-en');
         row.append(arField, enField);
@@ -485,30 +527,40 @@ body.qm-open{overflow:hidden}
         categories.append(row);
         bindImagePreview(row);
         refreshCategoryOptions();
-        (prefill ? ( @json($quickMenuIsAr) ? ar : en ) : ar).focus();
+        return row;
     };
 
-    const addItem = () => {
+    const addItem = (record = null) => {
         const key = String(itemIndex++);
         const row = document.createElement('div');
         row.className='qm-item-row'; row.dataset.qmItem='';
-        row.append(makeImageTile('items['+key+'][image]', t.itemImage));
+
+        if (record?.id) {
+            const id = document.createElement('input');
+            id.type = 'hidden';
+            id.name = 'items['+key+'][id]';
+            id.value = String(record.id);
+            row.append(id);
+        }
+
+        row.append(makeImageTile('items['+key+'][image]', t.itemImage, record?.image_url || null));
 
         const select = document.createElement('select');
         select.name='items['+key+'][category_key]'; select.dataset.qmItemCategory='';
+        if (record?.category_key != null) select.dataset.preferredCategory = String(record.category_key);
         const categoryField = makeField(t.categoryLabel, select); categoryField.classList.add('qm-category-select');
         row.append(categoryField);
 
-        const ar=document.createElement('input'); ar.type='text'; ar.name='items['+key+'][name_ar]';
-        const en=document.createElement('input'); en.type='text'; en.name='items['+key+'][name_en]';
-        const price=document.createElement('input'); price.type='number'; price.step='0.001'; price.min='0'; price.name='items['+key+'][price]'; price.placeholder='0.000';
+        const ar=document.createElement('input'); ar.type='text'; ar.name='items['+key+'][name_ar]'; ar.value=record?.name_ar || '';
+        const en=document.createElement('input'); en.type='text'; en.name='items['+key+'][name_en]'; en.value=record?.name_en || '';
+        const price=document.createElement('input'); price.type='number'; price.step=@json((string)($moneyStep ?? '0.001')); price.min='0'; price.name='items['+key+'][price]'; price.placeholder='0.000'; price.value=record?.price ?? '';
         const arField = makeField(t.arabicName, ar); arField.classList.add('qm-name-ar');
         const enField = makeField(t.englishName, en); enField.classList.add('qm-name-en');
         const priceField = makeField(t.price, price); priceField.classList.add('qm-price');
         row.append(arField, enField, priceField);
 
         const featured=document.createElement('label'); featured.className='qm-featured';
-        const check=document.createElement('input'); check.type='checkbox'; check.name='items['+key+'][featured]'; check.value='1';
+        const check=document.createElement('input'); check.type='checkbox'; check.name='items['+key+'][featured]'; check.value='1'; check.checked=Boolean(record?.featured);
         featured.append(check,document.createTextNode(' '+t.featured));
         row.append(featured);
 
@@ -517,19 +569,107 @@ body.qm-open{overflow:hidden}
         items.append(row);
         bindImagePreview(row);
         refreshCategoryOptions();
+        if (record?.category_key != null) {
+            select.value = String(record.category_key);
+            delete select.dataset.preferredCategory;
+        }
         updateCount();
-        ar.focus();
+        return row;
     };
 
-    openButton.addEventListener('click',open);
+    const setMode = (mode, payload = null) => {
+        const editing = mode === 'edit' && payload;
+        form.action = editing ? payload.action : createAction;
+        modeInput.value = editing ? 'edit' : 'create';
+        editIdInput.value = editing ? String(payload.id) : '';
+        methodInput.disabled = !editing;
+        methodInput.value = 'PUT';
+        title.textContent = editing ? t.editTitle : t.createTitle;
+        subtitle.textContent = editing ? t.editSubtitle : t.createSubtitle;
+        save.textContent = editing ? t.editSave : t.createSave;
+        save.disabled = false;
+    };
+
+    const clearRows = () => {
+        categories.innerHTML = '';
+        items.innerHTML = '';
+        categoryIndex = 0;
+        itemIndex = 0;
+    };
+
+    const resetCreate = () => {
+        form.reset();
+        setMode('create');
+        menuAr.value = '';
+        menuEn.value = '';
+        if (menuImageInput) menuImageInput.value = '';
+        setPreview(menuImagePreview, null, t.menuImage);
+        clearRows();
+        addCategory();
+        addItem();
+        step = 1;
+        render();
+    };
+
+    const loadEdit = (payload) => {
+        if (!payload) return;
+        form.reset();
+        setMode('edit', payload);
+        menuAr.value = payload.name_ar || '';
+        menuEn.value = payload.name_en || '';
+        if (menuImageInput) menuImageInput.value = '';
+        setPreview(menuImagePreview, payload.image_url || null, t.menuImage);
+        clearRows();
+
+        const categoryRecords = Array.isArray(payload.categories) ? payload.categories : [];
+        const itemRecords = Array.isArray(payload.items) ? payload.items : [];
+        categoryRecords.forEach(record => addCategory('', record));
+        if (!categoryRecords.length) addCategory();
+        itemRecords.forEach(record => addItem(record));
+        if (!itemRecords.length) addItem();
+
+        refreshCategoryOptions();
+        itemRows().forEach(row => {
+            const select = row.querySelector('[data-qm-item-category]');
+            const preferred = select?.dataset.preferredCategory;
+            if (preferred != null) {
+                select.value = preferred;
+                delete select.dataset.preferredCategory;
+            }
+        });
+        updateCount();
+        step = 1;
+        render();
+    };
+
+    openButton.addEventListener('click', () => {
+        resetCreate();
+        open(openButton);
+    });
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-qm-edit-menu]');
+        if (!button) return;
+        const payload = editPayloads[String(button.dataset.qmEditMenu || '')];
+        if (!payload) return;
+        event.preventDefault();
+        loadEdit(payload);
+        open(button);
+    });
+
     closeButton.addEventListener('click',close);
     modal.addEventListener('pointerdown',event=>{if(event.target===modal)close();});
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)close();});
 
     next.addEventListener('click',()=>{if(!validate())return;step=Math.min(3,step+1);render();});
     back.addEventListener('click',()=>{step=Math.max(1,step-1);render();});
-    modal.querySelector('[data-qm-add-category]')?.addEventListener('click',()=>addCategory());
-    modal.querySelector('[data-qm-add-item]')?.addEventListener('click',addItem);
+    modal.querySelector('[data-qm-add-category]')?.addEventListener('click',()=>{
+        const row = addCategory();
+        row.querySelector('[data-qm-category-ar]')?.focus();
+    });
+    modal.querySelector('[data-qm-add-item]')?.addEventListener('click',()=>{
+        const row = addItem();
+        row.querySelector('input[name$="[name_ar]"]')?.focus();
+    });
 
     modal.querySelectorAll('[data-qm-category-suggestion]').forEach(button=>{
         button.addEventListener('click',()=>{
@@ -543,7 +683,11 @@ body.qm-open{overflow:hidden}
                 target.value=button.dataset.qmCategorySuggestion||'';
                 target.focus();
                 refreshCategoryOptions();
-            }else addCategory(button.dataset.qmCategorySuggestion||'');
+            } else {
+                const row = addCategory(button.dataset.qmCategorySuggestion||'');
+                const target=@json($quickMenuIsAr)?row.querySelector('[data-qm-category-ar]'):row.querySelector('[data-qm-category-en]');
+                target?.focus();
+            }
         });
     });
 
