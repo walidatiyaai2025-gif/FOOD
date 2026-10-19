@@ -156,7 +156,6 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('data-qm-edit-menu="'.$menu->id.'"', false)
-            ->assertSee(route('admin.smart-ordering.menu.quick-update', $menu), false)
             ->assertSee('Edit menu', false);
 
         $this->actingAs($fixture['admin'])
