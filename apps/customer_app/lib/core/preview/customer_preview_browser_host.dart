@@ -383,16 +383,17 @@ class _CustomerPreviewBrowserHostState
           title: 'FOODEX',
           searchHint: '',
           child: Center(
-          child: Semantics(
-            liveRegion: true,
-            child: Text(
-              _error == null
-                  ? 'FOODEX Customer preview ready'
-                  : 'FOODEX Customer preview unavailable',
-              key: ValueKey(
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
                 _error == null
-                    ? 'customer-preview-awaiting-bootstrap'
-                    : 'customer-preview-error',
+                    ? 'FOODEX Customer preview ready'
+                    : 'FOODEX Customer preview unavailable',
+                key: ValueKey(
+                  _error == null
+                      ? 'customer-preview-awaiting-bootstrap'
+                      : 'customer-preview-error',
+                ),
               ),
             ),
           ),
