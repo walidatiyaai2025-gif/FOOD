@@ -13,16 +13,17 @@ use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Models\Store;
 use App\Services\CommerceQuoteService;
+use App\Services\SmartOrderingMediaService;
 use App\Support\DisplayNumber;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 final class RestaurantMenuContentSnapshotService
 {
     public function __construct(
         private readonly SmartOrderingPriceResolver $prices,
         private readonly CommerceQuoteService $quotes,
+        private readonly SmartOrderingMediaService $media,
     ) {}
 
     /** @return array<string,mixed> */
@@ -278,23 +279,7 @@ final class RestaurantMenuContentSnapshotService
 
     private function mediaUrl(mixed $value): ?string
     {
-        $value = trim((string) $value);
-        if ($value === '') {
-            return null;
-        }
-
-        if (str_starts_with($value, '/') || str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
-            return $value;
-        }
-
-        // StoreLogoService persists browser-facing logo paths as "storage/...".
-        // Do not feed those paths back into the public disk URL builder or the
-        // result becomes "/storage/storage/..." and renders as a broken image.
-        if (str_starts_with($value, 'storage/')) {
-            return '/'.ltrim($value, '/');
-        }
-
-        return Storage::disk('public')->url($value);
+        return $this->media->publicUrl($value);
     }
 
     private function text(mixed $value, int $max): string
