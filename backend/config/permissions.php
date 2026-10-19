@@ -155,7 +155,7 @@ return [
             'stores.view', 'support.view', 'support.manage', 'customer_service.team.manage',
             'customers.view', 'customers.edit', 'customers.manage',
             'orders.view', 'orders.create', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
-            'drivers.tracking.view',
+            'finance.view', 'drivers.tracking.view',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.conversations.reassign',
             'whatsapp.internal_notes.manage', 'whatsapp.customer_service.supervise',
@@ -164,7 +164,9 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
+            'stores.view', 'customers.view',
+            'orders.view', 'orders.create', 'orders.manage', 'orders.dispatch',
+            'finance.view', 'drivers.tracking.view',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
@@ -178,7 +180,9 @@ return [
             'chatbot.ai.view', 'chatbot.ai.manage',
             'chatbot.segments.view', 'chatbot.segments.manage',
             'chatbot.analytics.view', 'chatbot.sessions.view', 'chatbot.sessions.takeover', 'chatbot.audit.view',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
+            'stores.view', 'customers.view',
+            'orders.view', 'orders.create', 'orders.manage', 'orders.dispatch',
+            'finance.view', 'drivers.tracking.view',
         ],
         'B2B_ADMIN' => [
             'stores.view',
@@ -223,7 +227,7 @@ return [
         'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
-            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch', 'finance.view',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'RETAIL_OPERATIONS' => [
@@ -237,7 +241,7 @@ return [
         ],
         'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
-            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch', 'finance.view',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
