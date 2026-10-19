@@ -87,14 +87,14 @@ Missing optional content collapses cleanly; no empty decorative box is shown.
 - media may move above/beside text only where the template remains legible.
 
 **Tablet 768 px**
-- one or two content columns according to template identity;
+- one or two content columns according to restaurant template identity; retail/grocery commerce templates may use up to four compact product columns when image, title, price and add target remain legible;
 - category rail can become horizontal sticky or compact side rail;
 - sections gain breathing room without changing information order.
 
 **Desktop 1024/1280+ px**
 - template-specific editorial composition is allowed;
 - content column remains bounded for readability;
-- dense grids may use two or three columns only when description readability remains intact.
+- restaurant dish grids normally use two or three columns; dedicated retail/grocery commerce templates may use four compact product columns when card readability and 44x44 actions are preserved.
 
 RTL mirrors directional composition intentionally. It does not merely apply `direction: rtl`: alignment, icon direction, category progression, image/text editorial balance and focus/scroll behavior must be checked in Arabic.
 
@@ -246,6 +246,31 @@ Stable template identifiers are implementation API and must not be renamed casua
 **RTL**
 - course numbering and directional decorative rules render correctly with Arabic text and localized numerals according to application conventions.
 
+### 3.7 `fresh-market-commerce` — Fresh Market · Modern Commerce
+
+**Positioning:** grocery, supermarket and restaurant-supply storefront optimized for rapid visual shopping on tablet and mobile.
+
+**Visual language**
+- bright white canvas with deep navy text, FOODEX green commerce actions and soft cool-gray boundaries;
+- image-led hero with a white gradient transition into restaurant/merchant copy;
+- compact white category tiles with icon/image treatment and a green “all products” anchor;
+- dense photographic product cards with availability badge, concise pack/description line, visible price and a dedicated green add button.
+
+**Composition**
+- RTL header keeps merchant identity/logo at the logical start and menu/cart/language actions opposite;
+- hero remains a two-column image/copy composition on tablet and mobile rather than collapsing into a generic stacked restaurant hero;
+- full-width rounded search follows the hero;
+- six-up category strip is the primary discovery control for the common grocery taxonomy, with overflow-safe behavior when more categories exist;
+- featured products render four-up on tablet/desktop and two-up on mobile;
+- remaining categories reuse the same product-card system below featured products so canonical menu data is never duplicated or re-entered;
+- checkout/item dialog continues to use the canonical Smart Ordering runtime and ordering APIs.
+
+**Mobile / RTL**
+- preserve the two-column hero balance from the approved reference;
+- product cards remain two-up down to 320 px with compact typography and >=44 px actionable controls wherever ordering is available;
+- directional CTA arrow and grid progression mirror correctly under RTL;
+- no device-frame artwork is rendered by the storefront itself; phone/tablet hardware shown in reference images is presentation context only.
+
 ## 4. State design contract
 
 Every template must implement identical business states with template-native styling:
@@ -361,7 +386,7 @@ Gallery preview uses the real template renderer with the demo fixture. Static sc
 
 A template is not designer-approved unless all are true:
 
-- the six IDs render as visibly different compositions, not recolors;
+- the seven production IDs render as visibly different compositions, not recolors;
 - no template resembles an Admin dashboard;
 - the same canonical content renders without duplication/re-entry;
 - long Arabic and English strings do not overlap controls/prices/media;
@@ -373,6 +398,6 @@ A template is not designer-approved unless all are true:
 - switching templates does not mutate menu content;
 - draft never leaks to public output;
 - customer public pages contain no admin IDs/codes/secrets;
-- visual regression captures exist for all six templates in AR and EN at representative mobile + desktop widths.
+- visual regression captures exist for all seven templates in AR and EN at representative mobile + desktop widths.
 
 Final sign-off is recorded on #2099 only after #2108 exact-head evidence passes.
