@@ -1113,3 +1113,147 @@ Artisan::command(
         return 1;
     },
 )->purpose('Verify imported Foodex sales history, provenance mappings, and unchanged stock baseline.');
+
+
+Artisan::command(
+    'foodex:legacy-purchase-history-verify {--json : Output machine-readable JSON}',
+    function (): int {
+        $latestRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'purchase-history')
+            ->orderByDesc('started_at')
+            ->first(['id', 'status', 'summary', 'error']);
+
+        if ($latestRun === null) {
+            $this->error('No purchase-history import run exists.');
+
+            return 1;
+        }
+
+        $summary = $latestRun->summary === null
+            ? []
+            : (json_decode((string) $latestRun->summary, true) ?: []);
+        $planned = (array) ($summary['planned'] ?? []);
+
+        $expectedDocuments = (int) ($planned['materialized_documents'] ?? 0);
+        $expectedLines = (int) ($planned['purchase_details'] ?? 0)
+            + (int) ($planned['purchase_return_details'] ?? 0);
+        $expectedSkipped = (int) ($planned['zero_effect_headers_skipped'] ?? 0);
+
+        $actualDocuments = (int) DB::table('legacy_procurement_documents')->count();
+        $actualLines = (int) DB::table('legacy_procurement_document_lines')->count();
+
+        $documentMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_TransHeader')
+            ->where('target_table', 'legacy_procurement_documents')
+            ->distinct()
+            ->count('target_id');
+
+        $lineMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_TransDetails')
+            ->where('target_table', 'legacy_procurement_document_lines')
+            ->distinct()
+            ->count('target_id');
+
+        $skipped = (int) DB::table('legacy_import_quarantine')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_TransHeader')
+            ->where('reason', 'zero_effect_empty_procurement_header_skipped')
+            ->whereNotNull('resolved_at')
+            ->count();
+
+        $orphanDocumentMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('legacy_procurement_documents as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_TransHeader')
+            ->where('m.target_table', 'legacy_procurement_documents')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanLineMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('legacy_procurement_document_lines as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_TransDetails')
+            ->where('m.target_table', 'legacy_procurement_document_lines')
+            ->whereNull('t.id')
+            ->count();
+
+        $latestStockRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'stock')
+            ->where('status', 'completed')
+            ->orderByDesc('started_at')
+            ->first(['summary']);
+        $stockSummary = $latestStockRun?->summary === null
+            ? []
+            : (json_decode((string) $latestStockRun->summary, true) ?: []);
+        $expectedInventory = (int) data_get($stockSummary, 'inventories.target_total', 0);
+        $currentInventory = (int) DB::table('inventories')->count();
+        $negativeInventory = (int) DB::table('inventories')->where('quantity', '<', 0)->count();
+
+        $healthy = (string) $latestRun->status === 'completed'
+            && $actualDocuments === $expectedDocuments
+            && $actualLines === $expectedLines
+            && $documentMappings === $expectedDocuments
+            && $lineMappings === $expectedLines
+            && $skipped === $expectedSkipped
+            && $orphanDocumentMappings === 0
+            && $orphanLineMappings === 0
+            && $currentInventory === $expectedInventory
+            && $negativeInventory === 0;
+
+        $report = [
+            'run_id' => (string) $latestRun->id,
+            'status' => (string) $latestRun->status,
+            'expected_documents' => $expectedDocuments,
+            'actual_documents' => $actualDocuments,
+            'expected_lines' => $expectedLines,
+            'actual_lines' => $actualLines,
+            'document_mappings' => $documentMappings,
+            'line_mappings' => $lineMappings,
+            'skipped_zero_effect_headers' => $skipped,
+            'orphan_document_mappings' => $orphanDocumentMappings,
+            'orphan_line_mappings' => $orphanLineMappings,
+            'expected_inventories' => $expectedInventory,
+            'current_inventories' => $currentInventory,
+            'negative_inventories' => $negativeInventory,
+            'healthy' => $healthy,
+            'error' => $latestRun->error,
+        ];
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $healthy ? 0 : 1;
+        }
+
+        $this->info('Legacy Foodex purchase-history verification');
+        $this->line('Latest run: '.$report['run_id'].' | status='.$report['status']);
+        $this->table(
+            ['Metric', 'Expected', 'Actual'],
+            [
+                ['documents', $expectedDocuments, $actualDocuments],
+                ['lines', $expectedLines, $actualLines],
+                ['document_mappings', $expectedDocuments, $documentMappings],
+                ['line_mappings', $expectedLines, $lineMappings],
+                ['skipped_zero_effect_headers', $expectedSkipped, $skipped],
+                ['inventories_unchanged', $expectedInventory, $currentInventory],
+                ['negative_inventories', 0, $negativeInventory],
+                ['orphan_document_mappings', 0, $orphanDocumentMappings],
+                ['orphan_line_mappings', 0, $orphanLineMappings],
+            ],
+        );
+
+        if ($healthy) {
+            $this->info('Purchase-history verification PASSED.');
+
+            return 0;
+        }
+
+        $this->error('Purchase-history verification FAILED. Do not continue to the next migration phase.');
+
+        return 1;
+    },
+)->purpose('Verify immutable Foodex purchase/return history and prove inventory remained unchanged.');
