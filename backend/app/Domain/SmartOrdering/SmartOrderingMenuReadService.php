@@ -593,6 +593,6 @@ final class SmartOrderingMenuReadService
 
     private function publicMediaUrl(?string $path): ?string
     {
-        return $this->media->publicUrl($path);
+        return $this->media->absoluteUrl($path);
     }
 }
