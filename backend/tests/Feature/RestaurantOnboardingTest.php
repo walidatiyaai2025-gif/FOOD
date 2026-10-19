@@ -202,6 +202,41 @@ final class RestaurantOnboardingTest extends TestCase
         ]);
     }
 
+    public function test_identity_profile_uploads_the_storefront_hero_and_unlocks_branding_gate(): void
+    {
+        Storage::fake('public');
+        [$store, $admin] = $this->restaurant('RS-ONBOARD-HERO');
+        app(RestaurantControlPlaneService::class)->provision($store, $admin);
+        $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
+
+        $response = $this->actingAs($admin)->put(
+            route('admin.smart-ordering.onboarding.profile', $site),
+            [
+                'business_name' => 'Hero Cafe',
+                'legal_name' => 'Hero Cafe LLC',
+                'timezone' => 'Asia/Kuwait',
+                'currency' => 'KWD',
+                'country_code' => 'KW',
+                'tax_registration_number' => 'KW-HERO',
+                'hero_image' => UploadedFile::fake()->image('hero.jpg', 1600, 900),
+            ],
+        );
+
+        $response->assertRedirect(
+            route('admin.smart-ordering.index', ['store_id' => $store->getKey()]).'#settings-launch',
+        );
+
+        $draft = app(SmartOrderingRevisionService::class)->draft($site);
+        $this->assertNotNull($draft);
+        $heroPath = (string) data_get($draft->payload, 'content.identity.cover_url');
+        $this->assertNotSame('', $heroPath);
+        Storage::disk('public')->assertExists($heroPath);
+
+        $status = app(RestaurantOnboardingService::class)->status($store->fresh(), $admin);
+        $this->assertNotContains('hero_image', collect($status['hard_blockers'])->pluck('key')->all());
+        $this->assertSame($heroPath, data_get($status, 'storefront_identity.cover_url'));
+    }
+
     public function test_csv_import_is_staged_for_review_without_publishing_menu_data(): void
     {
         Storage::fake('local');
