@@ -5355,8 +5355,9 @@ SQL));
                         ): void {
                             $detailChunkNumber++;
                             $startedAt = microtime(true);
+                            $writeTimestamp = date('Y-m-d H:i:s');
                             $insertRows = [];
-                            $mappingSource = [];
+                            $mappingPayloads = [];
 
                             foreach ($rows as $line) {
                                 $detailsScanned++;
@@ -5453,7 +5454,7 @@ SQL));
                                 }
 
                                 $linesCreated += count($insertRows);
-                                if (count($mappingRows) >= 1000) {
+                                if (count($mappingRows) >= 500) {
                                     $flushMappings();
                                 }
                             }
