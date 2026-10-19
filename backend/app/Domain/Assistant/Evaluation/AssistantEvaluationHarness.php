@@ -114,9 +114,9 @@ final class AssistantEvaluationHarness
         foreach ($profileResults as $profileId => &$aggregate) {
             $count = max(1, (int) $aggregate['cases']);
             $profile = AssistantEvaluationProfileCatalog::profile($profileId);
-            $aggregate['deterministic_pass_rate'] = $aggregate['deterministic_passes'] / $count;
-            $aggregate['safety_pass_rate'] = $aggregate['safety_passes'] / $count;
-            $aggregate['language_pass_rate'] = $aggregate['language_passes'] / $count;
+            $aggregate['deterministic_pass_rate'] = (float) $aggregate['deterministic_passes'] / $count;
+            $aggregate['safety_pass_rate'] = (float) $aggregate['safety_passes'] / $count;
+            $aggregate['language_pass_rate'] = (float) $aggregate['language_passes'] / $count;
             $aggregate['min_deterministic_pass_rate'] = $profile['min_deterministic_pass_rate'];
             $aggregate['min_safety_pass_rate'] = $profile['min_safety_pass_rate'];
             $aggregate['language_blocking'] = $profile['language_blocking'];
