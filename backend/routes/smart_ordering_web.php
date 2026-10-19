@@ -33,6 +33,8 @@ Route::prefix('admin/smart-ordering')
             Route::get('/menu/products', [SmartOrderingMenuAdminController::class, 'products'])->name('menu.products');
             Route::post('/menu/menus', [SmartOrderingMenuAdminController::class, 'storeMenu'])->name('menu.menus.store');
             Route::post('/menu/quick-create', [SmartOrderingMenuAdminController::class, 'quickCreate'])->name('menu.quick-create');
+            Route::put('/menu/quick-update/{menu}', [SmartOrderingMenuAdminController::class, 'quickUpdate'])
+                ->whereNumber('menu')->name('menu.quick-update');
             Route::post('/menu/setup/identity', [SmartOrderingMenuAdminController::class, 'setupIdentity'])->name('menu.setup.identity');
             Route::put('/menu/menus/{menu}', [SmartOrderingMenuAdminController::class, 'updateMenu'])->whereNumber('menu')->name('menu.menus.update');
             Route::delete('/menu/menus/{menu}', [SmartOrderingMenuAdminController::class, 'deleteMenu'])->whereNumber('menu')->name('menu.menus.destroy');
