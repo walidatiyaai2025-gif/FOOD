@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureFreshDriverLocation;
 use App\Http\Middleware\EnsureWhatsAppCapability;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
+use App\Http\Middleware\EnsureRestaurantSetupStage;
 use App\Http\Middleware\ResolveCustomerPreviewSession;
 use App\Http\Middleware\ResolveDriverPreviewSession;
 use App\Http\Middleware\ResolveSmartOrderingSite;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'active.user' => EnsureActiveUser::class,
             'driver.location.fresh' => EnsureFreshDriverLocation::class,
             'management.dashboard' => EnsureManagementDashboardAccess::class,
+            'restaurant.setup' => EnsureRestaurantSetupStage::class,
             'tenant.context' => ResolveTenantContext::class,
             'smart.ordering.site' => ResolveSmartOrderingSite::class,
             'whatsapp.capability' => EnsureWhatsAppCapability::class,
