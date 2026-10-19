@@ -1,9 +1,15 @@
 <?php
 
 use App\Http\Controllers\Admin\SmartOrderingThemePreviewController;
+use App\Http\Controllers\SmartOrderingMediaController;
 use App\Http\Controllers\SmartOrderingSitemapController;
 use App\Http\Controllers\SmartOrderingStorefrontController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/smart-ordering/media/{path}', SmartOrderingMediaController::class)
+    ->where('path', '.*')
+    ->middleware('throttle:240,1')
+    ->name('public.smart-ordering.media');
 
 Route::get('/smart-ordering/{siteKey}/sitemap.xml', SmartOrderingSitemapController::class)
     ->where('siteKey', '[A-Za-z0-9][A-Za-z0-9_-]{1,99}')
