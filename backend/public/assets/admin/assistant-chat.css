@@ -10,7 +10,7 @@
 .foodex-assistant-avatar-lg{width:42px;height:42px}
 aside.foodex-sidebar-collapsed .foodex-assistant-launcher{grid-template-columns:1fr;place-items:center;padding:8px}
 aside.foodex-sidebar-collapsed .foodex-assistant-launcher-copy,aside.foodex-sidebar-collapsed .foodex-assistant-launcher-status{display:none}
-.foodex-assistant-drawer{position:fixed;z-index:1200;inset-block:0;inset-inline-end:0;width:min(410px,calc(100vw - 24px));display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;background:var(--foodex-surface,#fff);border-inline-start:1px solid var(--foodex-border);box-shadow:0 22px 55px rgba(15,23,42,.20);color:var(--foodex-ink);direction:inherit}
+.foodex-assistant-drawer{position:fixed;z-index:1200;inset-block:0;inset-inline-end:0;width:min(410px,calc(100vw - 24px));display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto auto;background:var(--foodex-surface,#fff);border-inline-start:1px solid var(--foodex-border);box-shadow:0 22px 55px rgba(15,23,42,.20);color:var(--foodex-ink);direction:inherit}
 .foodex-assistant-drawer[hidden]{display:none!important}
 .foodex-assistant-header{min-height:72px;padding:12px 14px;border-bottom:1px solid var(--foodex-border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--foodex-surface,#fff)}
 .foodex-assistant-heading{min-width:0;display:flex;align-items:center;gap:10px}
@@ -18,7 +18,7 @@ aside.foodex-sidebar-collapsed .foodex-assistant-launcher-copy,aside.foodex-side
 .foodex-assistant-heading strong{font-size:.95rem}
 .foodex-assistant-heading small{font-size:.72rem;color:var(--foodex-muted)}
 .foodex-assistant-header-actions{display:flex;align-items:center;gap:6px}
-.foodex-assistant-icon-button{width:38px;height:38px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface,#fff);color:var(--foodex-ink);cursor:pointer;font-size:1.08rem}
+.foodex-assistant-icon-button{width:44px;height:44px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface,#fff);color:var(--foodex-ink);cursor:pointer;font-size:1.08rem}
 .foodex-assistant-icon-button:hover,.foodex-assistant-icon-button:focus-visible{border-color:var(--foodex-green);color:var(--foodex-green-dark);outline:none}
 .foodex-assistant-status{min-height:0;padding:0 14px;font-size:.72rem;color:var(--foodex-muted)}
 .foodex-assistant-status:not(:empty){min-height:34px;padding-block:8px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-green-soft)}
@@ -45,10 +45,10 @@ aside.foodex-sidebar-collapsed .foodex-assistant-launcher-copy,aside.foodex-side
 .foodex-assistant-card-row{display:flex;justify-content:space-between;gap:12px;font-size:.72rem}
 .foodex-assistant-card-row span:first-child{color:var(--foodex-muted)}
 .foodex-assistant-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
-.foodex-assistant-action{min-height:36px;border:1px solid var(--foodex-border);border-radius:10px;padding:7px 10px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.foodex-assistant-action{min-height:44px;border:1px solid var(--foodex-border);border-radius:10px;padding:7px 10px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .foodex-assistant-action:hover,.foodex-assistant-action:focus-visible{border-color:var(--foodex-green);outline:none}
 .foodex-assistant-prompts{padding:8px 14px;display:flex;gap:7px;overflow-x:auto;border-top:1px solid var(--foodex-border);scrollbar-width:thin}
-.foodex-assistant-prompt{flex:0 0 auto;min-height:36px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);padding:6px 10px;cursor:pointer;font-size:.72rem}
+.foodex-assistant-prompt{flex:0 0 auto;min-height:44px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);padding:6px 10px;cursor:pointer;font-size:.72rem}
 .foodex-assistant-prompt:hover,.foodex-assistant-prompt:focus-visible{border-color:var(--foodex-green);background:var(--foodex-green-soft);outline:none}
 .foodex-assistant-composer{padding:10px 14px 14px;border-top:1px solid var(--foodex-border);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;background:var(--foodex-surface,#fff)}
 .foodex-assistant-composer textarea{width:100%;min-height:44px;max-height:130px;resize:none;border:1px solid var(--foodex-border);border-radius:12px;padding:10px 11px;font:inherit;line-height:1.4;color:var(--foodex-ink);background:var(--foodex-surface,#fff)}
@@ -59,3 +59,54 @@ aside.foodex-sidebar-collapsed .foodex-assistant-launcher-copy,aside.foodex-side
 @media(max-width:1023px){.foodex-assistant{margin-top:10px}.foodex-assistant-launcher{grid-template-columns:42px minmax(0,1fr) 10px}.foodex-assistant-launcher-copy,.foodex-assistant-launcher-status{display:grid}.foodex-assistant-drawer{width:100vw;max-width:none;border-inline-start:0}}
 @media(max-width:767px){.foodex-assistant-drawer{width:100vw;height:100dvh}.foodex-assistant-header{padding:10px 12px}.foodex-assistant-messages{padding:14px 12px}.foodex-assistant-prompts{padding-inline:12px}.foodex-assistant-composer{padding:9px 12px calc(9px + env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){.foodex-assistant-launcher,.foodex-assistant-typing span{transition:none;animation:none}}
+
+
+/* #2225 — page-aware, evidence-bearing Assistant UX. */
+.foodex-assistant-scope{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:3px 8px;padding:9px 14px;border-bottom:1px solid var(--foodex-border);background:#fbfcfd;font-size:.7rem;line-height:1.35}
+.foodex-assistant-scope-label{grid-row:1 / span 2;align-self:center;min-height:28px;display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:700;white-space:nowrap}
+.foodex-assistant-scope strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.76rem}
+.foodex-assistant-scope [data-assistant-scope-secondary]{min-width:0;color:var(--foodex-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foodex-assistant-message-state{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.foodex-assistant-chip{min-height:26px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--foodex-border);border-radius:999px;padding:3px 8px;background:#fbfcfd;color:var(--foodex-muted);font-size:.67rem;font-weight:700}
+.foodex-assistant-chip[data-tone=success]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
+.foodex-assistant-chip[data-tone=warning]{background:var(--foodex-orange-soft);border-color:#ffd0a6;color:#8a4308}
+.foodex-assistant-chip[data-tone=danger]{background:var(--foodex-danger-soft);border-color:#f2b8b5;color:var(--foodex-danger-text)}
+.foodex-assistant-insights{display:grid;gap:8px;margin-top:7px}
+.foodex-assistant-section{border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface,#fff);padding:10px;display:grid;gap:8px}
+.foodex-assistant-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.74rem;font-weight:800;color:var(--foodex-green-dark)}
+.foodex-assistant-finding{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:start;gap:8px;padding:8px 0;border-top:1px solid var(--foodex-border)}
+.foodex-assistant-finding:first-of-type{border-top:0}
+.foodex-assistant-rank{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:.68rem;font-weight:900}
+.foodex-assistant-finding-copy{min-width:0;display:grid;gap:3px}
+.foodex-assistant-finding-copy strong{font-size:.72rem;line-height:1.45}
+.foodex-assistant-finding-copy small{color:var(--foodex-muted);font-size:.64rem}
+.foodex-assistant-recommendation{padding:8px 0;border-top:1px solid var(--foodex-border);font-size:.71rem;line-height:1.55}
+.foodex-assistant-recommendation:first-of-type{border-top:0}
+.foodex-assistant-evidence{margin-top:7px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd;overflow:hidden}
+.foodex-assistant-evidence>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;cursor:pointer;color:var(--foodex-green-dark);font-size:.72rem;font-weight:800;list-style:none}
+.foodex-assistant-evidence>summary::-webkit-details-marker{display:none}
+.foodex-assistant-evidence-list{display:grid;border-top:1px solid var(--foodex-border)}
+.foodex-assistant-evidence-row{display:grid;gap:3px;padding:9px 10px;border-top:1px solid var(--foodex-border);font-size:.68rem}
+.foodex-assistant-evidence-row:first-child{border-top:0}
+.foodex-assistant-evidence-row strong{font-size:.7rem}
+.foodex-assistant-evidence-row span{color:var(--foodex-muted)}
+.foodex-assistant-approval{border:1px solid #ffd0a6;border-radius:12px;background:var(--foodex-orange-soft);padding:10px;display:grid;gap:6px;font-size:.71rem}
+.foodex-assistant-approval strong{color:#8a4308}
+.foodex-assistant-approval p{margin:0;line-height:1.5}
+.foodex-assistant-retry{min-height:44px;justify-self:start;border:1px solid var(--foodex-border);border-radius:10px;padding:0 12px;background:var(--foodex-surface,#fff);color:var(--foodex-green-dark);font:inherit;font-size:.72rem;font-weight:800;cursor:pointer}
+.foodex-assistant-context-entry{min-height:44px!important;border:1px solid #b7dfc4!important;border-radius:var(--foodex-radius-control,10px);padding-inline:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}
+body.foodex-assistant-open-mobile{overflow:hidden}
+.foodex-assistant[data-busy="1"] .foodex-assistant-prompt{opacity:.58;pointer-events:none}
+@media(max-width:767px){
+  .foodex-assistant-scope{padding-inline:12px}
+  .foodex-assistant-message{max-width:94%}
+  .foodex-assistant-section,.foodex-assistant-card{padding:9px}
+  .foodex-assistant-finding{grid-template-columns:28px minmax(0,1fr)}
+  .foodex-assistant-finding>.foodex-assistant-chip{grid-column:2;justify-self:start}
+}
+@media(max-width:360px){
+  .foodex-assistant-heading small{display:none}
+  .foodex-assistant-scope{grid-template-columns:minmax(0,1fr)}
+  .foodex-assistant-scope-label{grid-row:auto;justify-self:start}
+  .foodex-assistant-header-actions{gap:3px}
+}

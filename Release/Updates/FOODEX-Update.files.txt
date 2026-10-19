@@ -1678,3 +1678,5 @@ backend/app/Domain/Assistant/Security/AssistantAiSecurityGuardrails.php
 backend/app/Domain/Assistant/Security/AssistantToolExecutor.php
 backend/app/Domain/Assistant/Evaluation/AssistantEvaluationHarness.php
 backend/app/Domain/Assistant/Evaluation/AssistantEvaluationProfileCatalog.php
+backend/lang/ar/assistant_ui.php
+backend/lang/en/assistant_ui.php
