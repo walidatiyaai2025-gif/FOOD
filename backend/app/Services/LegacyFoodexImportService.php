@@ -243,8 +243,8 @@ final class LegacyFoodexImportService
             3 => -1,  // Sales
             4 => 1,   // Restore
             5 => -1,  // Damaged
-            7 => -1,  // Transfer out
-            8 => 1,   // Transfer in
+            7 => 1,   // Legacy Foodex: transfer-to / incoming at this StoreId
+            8 => -1,  // Legacy Foodex: transfer-from / outgoing from this StoreId
             11 => 1,  // Inventory addition
             12 => -1, // Inventory deficit
             13 => 1,  // To car
@@ -839,6 +839,7 @@ final class LegacyFoodexImportService
                 'types_17_18_are_wrappers_not_stock' => true,
                 'quantity_prefers_trans_pkg_qty1' => true,
                 'fallback_uses_package_conversion' => true,
+                'transfer_signs_match_foodex_wh_vw_itemstock' => true,
                 'apply_enabled' => false,
                 'deep_reconstruction_enabled' => $deep,
             ],
