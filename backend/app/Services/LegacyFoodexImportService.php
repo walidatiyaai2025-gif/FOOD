@@ -3291,6 +3291,96 @@ SQL));
         }
     }
 
+    public function salesHistoryHeaderDiagnostics(array $headerIds): array
+    {
+        $source = DB::connection('foodex_legacy');
+
+        $ids = collect($headerIds)
+            ->map(static fn ($id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            throw new RuntimeException('At least one positive legacy HeaderId is required.');
+        }
+
+        $headers = $source->table('wh_TransHeader')
+            ->whereIn('HeaderId', $ids)
+            ->orderBy('HeaderId')
+            ->get([
+                'HeaderId',
+                'TransType',
+                'TransDate',
+                'CustomerId',
+                'StoreId',
+                'SalesRepId',
+                'CarHeaderId',
+                'SalesHeaderId',
+                'Code',
+                'DocTransNo',
+                'ReferenceNo',
+                'PriceType',
+                'PayType',
+                'Paid',
+                'PaidCash',
+                'PaidByVisa',
+                'Total',
+                'NetTotal',
+                'Balance',
+                'HdrDiscount',
+                'HdrTax',
+                'HdrAddtions',
+                'Periodterm',
+                'Status',
+                'Notes',
+            ]);
+
+        $details = $source->table('wh_TransDetails')
+            ->whereIn('HeaderId', $ids)
+            ->orderBy('HeaderId')
+            ->orderBy('DetailId')
+            ->get([
+                'DetailId',
+                'HeaderId',
+                'ItemID',
+                'Package',
+                'Qty',
+                'TransPkgQty1',
+                'Price',
+                'TransPkgPrice1',
+                'Value',
+                'DetailDiscount1',
+                'DetailDiscount2',
+                'DetailDiscount3',
+                'DetailTax',
+                'Status',
+            ]);
+
+        $byHeader = [];
+        foreach ($ids as $id) {
+            $header = $headers->firstWhere('HeaderId', $id);
+            $rows = $details->where('HeaderId', $id)->values();
+            $active = $rows->filter(static fn ($row): bool => (int) ($row->Status ?? 0) === 1)->values();
+
+            $byHeader[$id] = [
+                'header' => $header === null ? null : (array) $header,
+                'details_total' => $rows->count(),
+                'details_active' => $active->count(),
+                'detail_value_sum_all' => round((float) $rows->sum('Value'), 3),
+                'detail_value_sum_active' => round((float) $active->sum('Value'), 3),
+                'detail_base_qty_sum_active' => round((float) $active->sum('TransPkgQty1'), 3),
+                'details' => $rows->map(static fn ($row): array => (array) $row)->all(),
+            ];
+        }
+
+        return [
+            'headers' => $byHeader,
+            'read_only' => true,
+        ];
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
