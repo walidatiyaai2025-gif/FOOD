@@ -36,7 +36,6 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.location,
     required this.actionApi,
     this.api,
-    this.accountApi,
     this.storefrontApi,
     this.onLocaleChanged,
     this.onLogout,
@@ -46,7 +45,6 @@ class B2bJourneyScreen extends StatelessWidget {
   final CustomerRouteDefinition definition;
   final String location;
   final B2bApi? api;
-  final B2cAccountApi? accountApi;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final ValueChanged<Locale>? onLocaleChanged;
@@ -322,7 +320,6 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         _B2bMorePage(
           api: api!,
-          accountApi: accountApi,
           profileEndpoint: _endpoint()!,
           financeEndpoint: _accountSummaryEndpoint(),
           dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
@@ -4321,20 +4318,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   static const muted = CustomerUiColors.muted;
 
   late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
-  Future<Object?>? cart;
-  Future<Object?>? notifications;
-  String? _badgeLocale;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final locale =
-        Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ar';
-    if (_badgeLocale != locale) {
-      _badgeLocale = locale;
-      _loadBadges(locale);
-    }
-  }
 
   @override
   void didUpdateWidget(covariant _B2bMorePage oldWidget) {
@@ -4343,61 +4326,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         oldWidget.financeEndpoint != widget.financeEndpoint) {
       finance = widget.api.get(widget.financeEndpoint);
     }
-    if (oldWidget.accountApi != widget.accountApi ||
-        oldWidget.storeId != widget.storeId) {
-      _loadBadges(_badgeLocale ?? 'ar');
-    }
-  }
-
-  void _loadBadges(String locale) {
-    final a = widget.accountApi;
-    if (a == null) {
-      cart = null;
-      notifications = null;
-      return;
-    }
-    cart = a.cart(storeId: widget.storeId);
-    notifications = a.notifications(locale: locale == 'en' ? 'en' : 'ar');
-  }
-
-  int? _cartCount(Object? raw) {
-    if (raw is! Map) return null;
-    final m = Map<Object?, Object?>.from(raw);
-    final direct = int.tryParse(
-      (m['items_count'] ?? m['item_count'] ?? m['count'])?.toString() ?? '',
-    );
-    if (direct != null) return direct;
-    if (m['data'] is Map) return _cartCount(m['data']);
-    return m['items'] is List ? (m['items'] as List).length : null;
-  }
-
-  int? _unreadCount(Object? raw) {
-    if (raw is! Map) return null;
-    final m = Map<Object?, Object?>.from(raw);
-    final direct = int.tryParse(
-      (m['unread_count'] ?? m['unreadCount'] ?? m['unread_total'])
-              ?.toString() ??
-          '',
-    );
-    if (direct != null) return direct;
-    if (m['data'] is Map) return _unreadCount(m['data']);
-    final rows = m['data'] is List
-        ? m['data'] as List
-        : m['notifications'] is List
-            ? m['notifications'] as List
-            : null;
-    if (rows == null) return null;
-    var count = 0;
-    for (final rawRow in rows) {
-      if (rawRow is! Map) continue;
-      final row = Map<Object?, Object?>.from(rawRow);
-      if (row['is_read'] == false ||
-          row['read'] == false ||
-          row['read_at'] == null) {
-        count++;
-      }
-    }
-    return count;
   }
 
   void _open(String route) => Navigator.of(context).pushNamed(route);
@@ -4679,67 +4607,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       ),
     );
   }
-}
-
-class _HeaderCircle extends StatelessWidget {
-  const _HeaderCircle({
-    required this.icon,
-    required this.onTap,
-    this.badge,
-    this.dot = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final int? badge;
-  final bool dot;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CustomerOutlineIconButton(icon: icon, onPressed: onTap),
-          if (badge != null && badge! > 0)
-            PositionedDirectional(
-              start: -3,
-              top: -4,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: const BoxDecoration(
-                  color: CustomerUiColors.destructive,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  badge! > 99 ? '99+' : badge.toString(),
-                  style: const TextStyle(
-                    color: CustomerUiColors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-          if (dot)
-            PositionedDirectional(
-              start: 1,
-              top: 1,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: CustomerUiColors.destructive,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: CustomerUiColors.white,
-                    width: CustomerUiStroke.emphasis,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
 }
 
 class _FinanceCard extends StatelessWidget {
