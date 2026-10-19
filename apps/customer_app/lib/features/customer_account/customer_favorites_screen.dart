@@ -196,10 +196,8 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                             product['brand_name']?.toString().trim();
                         final brandImageUrl =
                             product['brand_image_url']?.toString().trim();
-                        final isAvailable =
-                            product['is_available'] != false &&
-                                product['availability_state'] !=
-                                    'OUT_OF_STOCK';
+                        final isAvailable = product['is_available'] != false &&
+                            product['availability_state'] != 'OUT_OF_STOCK';
 
                         final card = CustomerProductCard(
                           key: ValueKey(
@@ -209,9 +207,8 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                           title: name,
                           priceLabel: _priceLabel(price, currency),
                           imageUrl: imageUrl,
-                          brandLabel: brandLabel?.isEmpty == true
-                              ? null
-                              : brandLabel,
+                          brandLabel:
+                              brandLabel?.isEmpty == true ? null : brandLabel,
                           brandImageUrl: brandImageUrl?.isEmpty == true
                               ? null
                               : brandImageUrl,
@@ -283,8 +280,6 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
     }
     return null;
   }
-
-
 }
 
 class _FavoritesSkeleton extends StatelessWidget {
