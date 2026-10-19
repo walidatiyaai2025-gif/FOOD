@@ -188,6 +188,200 @@ final class LegacyFoodexImportService
         }
     }
 
+    private function ensureWholesaleCatalog(int $storeId): int
+    {
+        $catalog = DB::table('catalogs')
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2b')
+            ->where('is_migration_quarantine', false)
+            ->orderByRaw("CASE WHEN code = 'default' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->first(['id', 'is_active']);
+
+        if ($catalog !== null) {
+            if (! (bool) $catalog->is_active) {
+                DB::table('catalogs')->where('id', $catalog->id)->update([
+                    'is_active' => true,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return (int) $catalog->id;
+        }
+
+        $existing = DB::table('catalogs')
+            ->where('store_id', $storeId)
+            ->where('code', 'legacy-foodex')
+            ->first(['id']);
+
+        if ($existing !== null) {
+            DB::table('catalogs')->where('id', $existing->id)->update([
+                'channel' => 'b2b',
+                'name' => 'Legacy Foodex Catalog',
+                'is_active' => true,
+                'is_migration_quarantine' => false,
+                'updated_at' => now(),
+            ]);
+
+            return (int) $existing->id;
+        }
+
+        return (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'code' => 'legacy-foodex',
+            'name' => 'Legacy Foodex Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function importB2bPrices(int $storeId, string $runId): array
+    {
+        $tiers = DB::connection('foodex_legacy')
+            ->table('wh_PriceTypes')
+            ->orderBy('ID')
+            ->get();
+
+        $items = DB::connection('foodex_legacy')
+            ->table('wh_Items')
+            ->orderBy('ID')
+            ->get();
+
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($tiers as $tier) {
+            $sourceTierId = (int) $tier->ID;
+            $targetTierId = $this->mappedTargetId(
+                'wh_PriceTypes',
+                (string) $sourceTierId,
+                'b2b_price_tiers',
+            );
+
+            if ($targetTierId === null) {
+                continue;
+            }
+
+            foreach ($items as $item) {
+                $productId = $this->mappedTargetId('wh_Items', (string) $item->ID, 'products');
+                $unitPrice = $this->legacyPackagePrice($item, 1, $sourceTierId);
+
+                if ($productId === null || $unitPrice === null || $unitPrice <= 0) {
+                    $skipped++;
+                    continue;
+                }
+
+                $existing = DB::table('b2b_price_rules')
+                    ->where('price_tier_id', $targetTierId)
+                    ->where('store_id', $storeId)
+                    ->where('product_id', $productId)
+                    ->first(['id']);
+
+                $caseSize = isset($item->Pkg2Qty) && (float) $item->Pkg2Qty > 1
+                    ? round((float) $item->Pkg2Qty, 3)
+                    : null;
+                $packLabel = trim((string) ($item->Pkg2Name ?? ''));
+
+                $payload = [
+                    'unit_price' => $unitPrice,
+                    'minimum_quantity' => 1,
+                    'ordering_increment' => 1,
+                    'pack_size' => 1,
+                    'case_size' => $caseSize,
+                    'pack_label' => $packLabel === '' ? null : mb_substr($packLabel, 0, 255),
+                    'retail_reference_price' => $this->legacyPackagePrice($item, 1, 5),
+                    'is_active' => ! (bool) ($item->Inactive ?? false) && (int) ($item->Status ?? 1) !== 0,
+                    'updated_at' => now(),
+                ];
+
+                if ($existing === null) {
+                    $payload += [
+                        'price_tier_id' => $targetTierId,
+                        'store_id' => $storeId,
+                        'product_id' => $productId,
+                        'created_at' => now(),
+                    ];
+                    $ruleId = (int) DB::table('b2b_price_rules')->insertGetId($payload);
+                    $created++;
+                } else {
+                    $ruleId = (int) $existing->id;
+                    DB::table('b2b_price_rules')->where('id', $ruleId)->update($payload);
+                    $updated++;
+                }
+
+                $this->syncMapping(
+                    'wh_Items.PriceTier',
+                    (int) $item->ID.':'.$sourceTierId,
+                    'b2b_price_rules',
+                    $ruleId,
+                    $item,
+                    $runId,
+                    [
+                        'legacy_price_id' => $sourceTierId,
+                        'legacy_unit_price' => $unitPrice,
+                    ],
+                );
+            }
+        }
+
+        // Keep canonical tier mode disabled until unresolved legacy PriceID=0 customers
+        // and package-price consistency diagnostics have been explicitly cleared.
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $storeId, 'key' => B2bPricingMode::SETTING_KEY],
+            [
+                'value' => $this->json(false),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        $unresolvedCustomerPriceIds = (int) DB::connection('foodex_legacy')
+            ->table('wh_Customers')
+            ->where(function ($query): void {
+                $query->whereNull('PriceID')->orWhere('PriceID', '<=', 0);
+            })
+            ->where('Inactive', 0)
+            ->where('Status', '<>', 0)
+            ->count();
+
+        return [
+            'created' => $created,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'tiers_enabled' => false,
+            'unresolved_active_customer_price_ids' => $unresolvedCustomerPriceIds,
+        ];
+    }
+
+    private function legacyPackagePrice(object $row, int $package, int $tier): ?float
+    {
+        $field = 'Pkg'.$package.'Price'.$tier;
+        if (! property_exists($row, $field)) {
+            return null;
+        }
+
+        $value = (float) ($row->{$field} ?? 0);
+
+        return $value > 0 ? round($value, 3) : null;
+    }
+
+    private function firstPositivePackagePrice(object $row, int $package): ?float
+    {
+        foreach ([5, 4, 3, 2, 1] as $tier) {
+            $price = $this->legacyPackagePrice($row, $package, $tier);
+            if ($price !== null) {
+                return $price;
+            }
+        }
+
+        return null;
+    }
+
     private function importPriceTiers(string $runId): array
     {
         $rows = DB::connection('foodex_legacy')->table('wh_PriceTypes')->orderBy('ID')->get();
