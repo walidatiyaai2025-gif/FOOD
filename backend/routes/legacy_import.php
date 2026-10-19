@@ -246,6 +246,22 @@ Artisan::command(
                     );
                 }
 
+                if (($samples['missing_source_supplier_headers'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->line('Source purchases with SupplierId=0 will be preserved without inventing a supplier.');
+                    $this->table(
+                        ['Header', 'Type', 'Supplier', 'Location', 'Total', 'NetTotal'],
+                        collect($samples['missing_source_supplier_headers'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['supplier_id'],
+                            $row['location_id'],
+                            $row['total'],
+                            $row['net_total'],
+                        ])->all(),
+                    );
+                }
+
                 if (($samples['invalid_location_headers'] ?? []) !== []) {
                     $this->newLine();
                     $this->warn('Invalid/unmapped location header samples');
