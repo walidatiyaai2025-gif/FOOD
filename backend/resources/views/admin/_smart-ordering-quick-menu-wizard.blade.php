@@ -228,6 +228,7 @@ body.qm-open{overflow:hidden}
             <div class="qm-categories" data-qm-categories>
                 @foreach($quickMenuCategories as $categoryKey => $category)
                 <div class="qm-category-row" data-qm-category data-category-key="{{ $categoryKey }}">
+                    @if(!empty($category['id']))<input type="hidden" name="categories[{{ $categoryKey }}][id]" value="{{ $category['id'] }}">@endif
                     <label class="qm-image-tile">
                         <span class="qm-image-box" data-image-preview>{{ $quickMenuIsAr ? 'صورة التصنيف' : 'Category image' }}</span>
                         <input type="file" name="categories[{{ $categoryKey }}][image]" accept="image/jpeg,image/png,image/webp" data-image-input>
@@ -253,6 +254,7 @@ body.qm-open{overflow:hidden}
             <div class="qm-items" data-qm-items>
                 @foreach($quickMenuItems as $itemKey => $item)
                 <div class="qm-item-row" data-qm-item>
+                    @if(!empty($item['id']))<input type="hidden" name="items[{{ $itemKey }}][id]" value="{{ $item['id'] }}">@endif
                     <label class="qm-image-tile">
                         <span class="qm-image-box" data-image-preview>{{ $quickMenuIsAr ? 'صورة الصنف' : 'Item image' }}</span>
                         <input type="file" name="items[{{ $itemKey }}][image]" accept="image/jpeg,image/png,image/webp" data-image-input>
