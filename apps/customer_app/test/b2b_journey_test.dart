@@ -717,6 +717,68 @@ void main() {
   });
 
   testWidgets(
+    'Wholesale category browse route shows image-only categories with fixed search/cart header',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Bulk Water',
+            'sku': 'WATER-42',
+            'account_price': 75,
+            'category_id': 3,
+            'category_name': 'Beverages',
+            'category_image_url': 'https://example.invalid/beverages.jpg',
+          },
+          {
+            'id': 43,
+            'name': 'Bulk Rice',
+            'sku': 'RICE-43',
+            'account_price': 40,
+            'category_id': 4,
+            'category_name': 'Dry food',
+            'category_image_url': 'https://example.invalid/dry-food.jpg',
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute:
+              '/b2b/products?channel=wholesale&store_id=70&browse=categories',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-search')),
+        findsOneWidget,
+      );
+      expect(find.text('كل التصنيفات'), findsOneWidget);
+      expect(find.text('Beverages'), findsOneWidget);
+      expect(find.text('Dry food'), findsOneWidget);
+      expect(find.text('Bulk Water'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('wholesale-product-grid')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'Wholesale storefront CTA opens canonical Screen 10 with store context',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
@@ -1033,7 +1095,7 @@ void main() {
       expect(find.text('Filter'), findsOneWidget);
       expect(find.text('Default order'), findsOneWidget);
       expect(find.text('Wholesale Water'), findsOneWidget);
-      expect(find.text('Beverages'), findsOneWidget);
+      expect(find.text('Beverages'), findsWidgets);
       expect(find.textContaining('72.50 EGP'), findsOneWidget);
       expect(find.textContaining('Case 12'), findsNothing);
       expect(find.textContaining('Step 5'), findsNothing);
@@ -1147,7 +1209,7 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('b2b-product-additional-info')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.byType(PageView), findsOneWidget);
       expect(find.text('Wholesale Product'), findsOneWidget);
@@ -1179,6 +1241,87 @@ void main() {
         find.byKey(const ValueKey('b2b-product-detail-data')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'B2B product detail hides base wholesale/pack box and shows same-category products',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final api = _PathB2bApi({
+        '/api/v1/b2b/products/42?store_id=7': {
+          'id': 42,
+          'sku': 'MAIN-42',
+          'name': 'Main Product',
+          'store_id': 7,
+          'category_id': 3,
+          'category_name': 'Beverages',
+          'account_price': 7.25,
+          'base_wholesale_price': 8.0,
+          'retail_reference_price': 9.5,
+          'minimum_order_quantity': 1,
+          'ordering_increment': 1,
+          'pack_size': 12,
+          'pack_label': 'Case 12',
+          'available_quantity': 20,
+          'is_available': true,
+          'currency': 'EGP',
+        },
+        '/api/v1/b2b/products?store_id=7&category_id=3': {
+          'data': [
+            {
+              'id': 42,
+              'name': 'Main Product',
+              'category_id': 3,
+              'account_price': 7.25,
+              'currency': 'EGP',
+            },
+            {
+              'id': 43,
+              'name': 'Similar Drink',
+              'category_id': 3,
+              'account_price': 6.5,
+              'minimum_order_quantity': 1,
+              'available_quantity': 10,
+              'is_available': true,
+              'currency': 'EGP',
+            },
+          ],
+        },
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/products/42?store_id=7',
+          b2bApi: api,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('b2b-product-additional-info')),
+        findsNothing,
+      );
+      expect(find.text('سعر الجملة الأساسي'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('b2b-product-similar-title')),
+        findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Similar Drink'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Similar Drink'), findsOneWidget);
     },
   );
 
@@ -2321,6 +2464,7 @@ void main() {
         TextDirection.ltr,
       );
       expect(find.text('تفاصيل الطلب'), findsNothing);
+      expect(find.text('Paid'), findsOneWidget);
 
       final scrollable = find.byKey(const ValueKey('b2b-order-detail'));
 
@@ -2342,16 +2486,31 @@ void main() {
       expect(find.text('VAN-ONE'), findsWidgets);
       expect(find.textContaining('Driver One'), findsNothing);
 
-      await _scrollUntilBuilt(tester, scrollable, find.text('Bulk Water'));
-      expect(find.text('Bulk Water'), findsOneWidget);
-      expect(find.text('SKU-42'), findsOneWidget);
+      await _scrollUntilBuilt(
+        tester,
+        scrollable,
+        find.byKey(const ValueKey('b2b-order-line-1')),
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-order-line-1')),
+        findsOneWidget,
+      );
+      expect(find.text('Bulk Water'), findsNothing);
+      expect(find.text('SKU-42'), findsNothing);
+      expect(find.text('Quantity: 2'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-order-line-1')),
+          matching: find.textContaining('100'),
+        ),
+        findsOneWidget,
+      );
 
       await _scrollUntilBuilt(tester, scrollable, find.text('Price summary'));
       expect(find.text('Price summary'), findsOneWidget);
 
       await _scrollUntilBuilt(tester, scrollable, find.text('Account credit'));
       expect(find.text('Account credit'), findsOneWidget);
-      expect(find.text('Paid'), findsOneWidget);
 
       await _scrollUntilBuilt(
         tester,
@@ -3411,8 +3570,11 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-item-501')),
         findsOneWidget,
       );
-      expect(find.text('Wholesale item'), findsOneWidget);
-      expect(find.textContaining('WHO-501'), findsOneWidget);
+      expect(find.text('Wholesale item'), findsNothing);
+      expect(find.textContaining('WHO-501'), findsNothing);
+      expect(find.textContaining('الكمية'), findsOneWidget);
+      expect(find.text('الضريبة'), findsNothing);
+      expect(find.text('المديونية'), findsWidgets);
       expect(
         find.byKey(const ValueKey('b2b-invoice-payments')),
         findsOneWidget,
@@ -3433,16 +3595,13 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('b2b-invoice-related-order')),
-        findsOneWidget,
+        findsNothing,
       );
-
+      expect(find.text('الطلب المرتبط'), findsNothing);
       final pdfRect = tester.getRect(
         find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
       );
-      final relatedRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoice-related-order')),
-      );
-      expect((pdfRect.center.dy - relatedRect.center.dy).abs(), lessThan(1));
+      expect(pdfRect.width, greaterThan(0));
       expect(
         find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
         findsNothing,
