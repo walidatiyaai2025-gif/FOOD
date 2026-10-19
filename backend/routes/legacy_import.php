@@ -386,6 +386,20 @@ Artisan::command(
                     }
                 }
 
+                if (($samples['zero_amount_rows_nonblocking'] ?? []) !== []) {
+                    $this->line(
+                        'Zero-amount finance rows preserved without ledger effect: '.
+                        json_encode($samples['zero_amount_rows_nonblocking'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    );
+                }
+
+                if (($samples['negative_amounts'] ?? []) !== []) {
+                    $this->warn(
+                        'Negative finance amounts (blocking): '.
+                        json_encode($samples['negative_amounts'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    );
+                }
+
                 if (($samples['unsupported_types'] ?? []) !== []) {
                     $this->warn(
                         'Unsupported active PrTrans types: '.
