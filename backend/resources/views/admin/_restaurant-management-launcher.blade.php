@@ -12,13 +12,17 @@
         : null;
 
     $restaurantOperationsTab = (string) request()->query('tab', '');
+    $restaurantQrGate = collect($restaurantSetupStatus['gates'] ?? [])->firstWhere('key', 'qr');
+    $restaurantQrRequired = (bool) ($restaurantQrGate['required'] ?? false);
     $restaurantSettingsUrl = route('admin.smart-ordering.index', $restaurantWorkspaceQuery);
     $restaurantSetupUrls = [
         'identity' => $restaurantSettingsUrl.'#settings-launch',
         'channels' => $restaurantSettingsUrl.'#settings-modules',
         'operations' => $restaurantOperationsUrl('branches'),
         'menu' => route('admin.smart-ordering.menu.index', [...$restaurantWorkspaceQuery, 'setup' => 'menu']),
-        'entry' => $restaurantCanQr ? route('admin.smart-ordering.qr.index', $restaurantWorkspaceQuery) : null,
+        'entry' => $restaurantQrRequired && $restaurantCanQr
+            ? route('admin.smart-ordering.qr.index', $restaurantWorkspaceQuery)
+            : $restaurantSettingsUrl.'#settings-launch',
         'review' => $restaurantSettingsUrl.'#settings-launch',
     ];
     $restaurantPrimaryTasks = [
