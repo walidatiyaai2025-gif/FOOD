@@ -159,7 +159,9 @@ class _StoreSelectionDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFFAFBFA),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: 'FOODEX',
+            searchHint: 'ابحث عن المنتجات',
             child: FutureBuilder<Map<String, dynamic>>(
               future: future,
               builder: (context, snapshot) {
@@ -653,16 +655,26 @@ class _RetailStorefrontDesignScreenState
           if (snapshot.connectionState != ConnectionState.done) {
             return Directionality(
               textDirection: Directionality.of(context),
-              child: Scaffold(body: FoodexLoading()),
+              child: Scaffold(
+                body: FoodexUnifiedHeaderSurface(
+                  title: 'FOODEX',
+                  searchHint: 'ابحث عن المنتجات',
+                  child: FoodexLoading(),
+                ),
+              ),
             );
           }
           if (snapshot.hasError || !snapshot.hasData) {
             return Directionality(
               textDirection: Directionality.of(context),
               child: Scaffold(
-                body: FoodexErrorState(
-                  message: 'تعذر تحميل المتجر.',
-                  onRetry: () => setState(() => future = _load()),
+                body: FoodexUnifiedHeaderSurface(
+                  title: 'FOODEX',
+                  searchHint: 'ابحث عن المنتجات',
+                  child: FoodexErrorState(
+                    message: 'تعذر تحميل المتجر.',
+                    onRetry: () => setState(() => future = _load()),
+                  ),
                 ),
               ),
             );
@@ -719,7 +731,24 @@ class _RetailStorefrontDesignScreenState
             textDirection: Directionality.of(context),
             child: Scaffold(
               backgroundColor: palette.background,
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: data.config['store'] is Map &&
+                        (data.config['store'] as Map)['name'] != null
+                    ? (data.config['store'] as Map)['name'].toString()
+                    : 'FOODEX',
+                palette: palette,
+                location: widget.location,
+                searchController: search,
+                searchHint: 'ابحث عن المنتجات',
+                onSearchSubmitted: (value) {
+                  var route = '/products?store=' + storeId.toString();
+                  if (value.trim().isNotEmpty) {
+                    route += '&q=' + Uri.encodeQueryComponent(value.trim());
+                  }
+                  Navigator.of(context).pushNamed(route);
+                },
+                onCart: () => Navigator.of(context)
+                    .pushNamed('/cart?store=' + storeId.toString()),
                 child: _RetailHomeBody(
                   storeId: storeId,
                   data: data,
@@ -827,94 +856,6 @@ class _RetailHomeBody extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-          decoration: BoxDecoration(
-            color: palette.primaryDark,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      isPharmacy
-                          ? Icons.local_pharmacy_rounded
-                          : Icons.storefront_rounded,
-                      color: palette.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          store['name']?.toString() ?? 'FOODEX',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          branding['address']?.toString() ??
-                              'اختر عنوان التوصيل',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _HeaderButton(
-                    icon: Icons.notifications_none_rounded,
-                    palette: palette,
-                  ),
-                  const SizedBox(width: 8),
-                  _HeaderButton(
-                    icon: Icons.shopping_cart_outlined,
-                    palette: palette,
-                    onTap: () => Navigator.of(context)
-                        .pushNamed('/cart?store=$storeId'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                key: const ValueKey('b2c-home-search'),
-                controller: search,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (value) {
-                  var route = '/products?store=' + storeId.toString();
-                  if (value.trim().isNotEmpty) {
-                    route += '&q=' + Uri.encodeQueryComponent(value.trim());
-                  }
-                  Navigator.of(context).pushNamed(route);
-                },
-                decoration: InputDecoration(
-                  hintText: 'ابحث عن المنتجات',
-                  prefixIcon:
-                      Icon(Icons.search_rounded, color: palette.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
         ...sections.expand<Widget>((section) {
           final type = section['type']?.toString();
           if (type == 'hero') {
@@ -1378,7 +1319,11 @@ class _RetailProductDetailsDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Colors.white,
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: 'FOODEX',
+            location: widget.location,
+            palette: FoodexPalette.grocery,
+            searchHint: 'ابحث عن المنتجات',
             child: FutureBuilder<B2cProduct>(
               future: widget.catalogApi.product(
                 productId,
@@ -1403,18 +1348,16 @@ class _RetailProductDetailsDesignScreenState
                   key: const ValueKey('b2c-product-detail-data'),
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                   children: [
-                    FoodexTopBar(
-                      title: 'تفاصيل المنتج',
-                      actions: [
-                        CustomerFavoriteButton(
-                          api: widget.favoritesApi,
-                          storeId: storeId,
-                          productId: productId,
-                          isAuthenticated: widget.session.isAuthenticated,
-                          loginRoute:
-                              '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
-                        ),
-                      ],
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: CustomerFavoriteButton(
+                        api: widget.favoritesApi,
+                        storeId: storeId,
+                        productId: productId,
+                        isAuthenticated: widget.session.isAuthenticated,
+                        loginRoute:
+                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Opacity(
