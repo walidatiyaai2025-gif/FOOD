@@ -25,6 +25,6 @@ class PdfRuntimeFallbackContractTest extends TestCase
         $this->assertStringContainsString('require_once $barcodeRuntime;', $service);
         $this->assertStringContainsString('class_exists(\\TCPDF2DBarcode::class)', $service);
         $this->assertStringContainsString('class_exists(\\TCPDF::class)', $service);
-        $this->assertStringContainsString("str_contains($svg, '<svg')", $service);
+        $this->assertStringContainsString("str_contains(\$svg, '<svg')", $service);
     }
 }
