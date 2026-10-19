@@ -146,7 +146,7 @@ final class FieldOperationsDashboardService
 
         $statusBreakdown = (clone $assignments)
             ->selectRaw("COALESCE(order_van_execution_states.status, 'assigned') as status, COUNT(*) as deliveries")
-            ->groupByRaw("COALESCE(order_van_execution_states.status, 'assigned')")
+            ->groupBy('order_van_execution_states.status')
             ->orderByDesc('deliveries')
             ->get()
             ->map(static fn (object $row): array => [
@@ -198,7 +198,7 @@ final class FieldOperationsDashboardService
         $failedReasons = (clone $assignments)
             ->whereIn('order_van_execution_states.status', self::FAILED_RETURNED_STATUSES)
             ->selectRaw("COALESCE(NULLIF(TRIM(order_van_execution_states.failure_reason_code), ''), 'unspecified') as reason, COUNT(*) as failures")
-            ->groupByRaw("COALESCE(NULLIF(TRIM(order_van_execution_states.failure_reason_code), ''), 'unspecified')")
+            ->groupBy('order_van_execution_states.failure_reason_code')
             ->orderByDesc('failures')
             ->limit(10)
             ->get()
