@@ -350,6 +350,60 @@ class SmartOrderingMenuDomainTest extends TestCase
         ]);
     }
 
+    public function test_live_publish_surface_exposes_direct_site_qr_assets_and_downloads(): void
+    {
+        $fixture = $this->fixture('SITEQR', 5.000);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft] = $this->draftItem($fixture, $writer, [
+            'name_ar' => 'صنف مباشر',
+            'name_en' => 'Direct item',
+            'price_override' => 5.000,
+        ]);
+
+        app(SmartOrderingMenuRevisionService::class)->publish(
+            $fixture['admin'],
+            $fixture['site'],
+            $draft,
+        );
+        $fixture['site']->forceFill([
+            'master_enabled' => true,
+            'runtime_state' => 'ENABLED',
+        ])->save();
+
+        $publishPage = $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'publish',
+            ]))
+            ->assertOk()
+            ->assertSee('Live site QR')
+            ->assertSee(route('admin.smart-ordering.menu.site-qr.svg', [
+                'site' => $fixture['site'],
+                'store_id' => $fixture['store_id'],
+            ]), false)
+            ->assertSee(route('admin.smart-ordering.menu.site-qr.pdf', [
+                'site' => $fixture['site'],
+                'store_id' => $fixture['store_id'],
+            ]), false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.site-qr.svg', [
+                'site' => $fixture['site'],
+                'store_id' => $fixture['store_id'],
+            ]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8')
+            ->assertSee('<svg', false);
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.site-qr.pdf', [
+                'site' => $fixture['site'],
+                'store_id' => $fixture['store_id'],
+            ]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
     {
         $fixture = $this->fixture('FOCUS', 5.000);
