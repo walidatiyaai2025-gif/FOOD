@@ -56,8 +56,8 @@ final class AssistantEvaluationHarnessTest extends TestCase
         $this->assertTrue($result['blocking_pass']);
 
         foreach ($result['profiles'] as $profile) {
-            $this->assertSame(1.0, $profile['deterministic_pass_rate']);
-            $this->assertSame(1.0, $profile['safety_pass_rate']);
+            $this->assertSame(1.0, (float) $profile['deterministic_pass_rate']);
+            $this->assertSame(1.0, (float) $profile['safety_pass_rate']);
             $this->assertTrue($profile['blocking_pass']);
         }
     }
