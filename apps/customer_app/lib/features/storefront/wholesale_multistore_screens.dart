@@ -189,14 +189,27 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
           future: future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: SafeArea(
-                    child: FoodexLoading(key: ValueKey('b2b-loading'))),
+              return Scaffold(
+                body: FoodexUnifiedHeaderSurface(
+                  title: context.tr('b2b.app.title'),
+                  location: widget.location,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
+                  child: const FoodexLoading(
+                    key: ValueKey('b2b-loading'),
+                  ),
+                ),
               );
             }
             if (snapshot.hasError) {
               return Scaffold(
-                body: SafeArea(
+                body: FoodexUnifiedHeaderSurface(
+                  title: context.tr('b2b.app.title'),
+                  location: widget.location,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
                   child: FoodexErrorState(
                     key: const ValueKey('b2b-error'),
                     message: 'تعذر تحميل متجر الجملة.',
@@ -2014,9 +2027,14 @@ class _WholesaleFavoritesDesignScreenState
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Scaffold(
-              body: SafeArea(
-                child: FoodexLoading(
+            return Scaffold(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: const FoodexLoading(
                   key: ValueKey('wholesale-favorites-loading'),
                 ),
               ),
@@ -2024,7 +2042,12 @@ class _WholesaleFavoritesDesignScreenState
           }
           if (snapshot.hasError) {
             return Scaffold(
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexErrorState(
                   key: const ValueKey('wholesale-favorites-error'),
                   message: context.tr('customer.error.action_failed'),
@@ -2038,7 +2061,12 @@ class _WholesaleFavoritesDesignScreenState
           if (payload['store_required'] == true) {
             return Scaffold(
               backgroundColor: FoodexPalette.wholesale.background,
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexErrorState(
                   key: const ValueKey('wholesale-favorites-store-error'),
                   message: context.tr('b2b.catalog.load_error'),
@@ -2418,15 +2446,27 @@ class _WholesaleCatalogDesignScreenState
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Scaffold(
-              body: SafeArea(
-                child: FoodexLoading(key: ValueKey('b2b-catalog-loading')),
+            return Scaffold(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: const FoodexLoading(
+                  key: ValueKey('b2b-catalog-loading'),
+                ),
               ),
             );
           }
           if (snapshot.hasError) {
             return Scaffold(
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexErrorState(
                   key: const ValueKey('b2b-catalog-error'),
                   message: context.tr('b2b.catalog.load_error'),
@@ -2464,7 +2504,12 @@ class _WholesaleCatalogDesignScreenState
           if (payload['store_required'] == true) {
             return Scaffold(
               backgroundColor: FoodexPalette.wholesale.background,
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexEmptyState(
                   key: const ValueKey('b2b-catalog-store-required'),
                   title: context.tr('b2b.catalog.store_required_title'),
