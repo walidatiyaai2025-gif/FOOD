@@ -3564,7 +3564,12 @@ class _WholesaleProductDetailsDesignScreenState
       textDirection: Directionality.of(context),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: SafeArea(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: widget.location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
+          ),
           child: FutureBuilder<Object?>(
             future: future,
             builder: (context, snapshot) {
@@ -3579,8 +3584,7 @@ class _WholesaleProductDetailsDesignScreenState
                   ),
                   padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.product.title')),
-                    const SizedBox(height: 18),
+
                     FoodexErrorState(
                       message: context.tr(failure.messageKey),
                       onRetry: _retry,
@@ -3657,37 +3661,24 @@ class _WholesaleProductDetailsDesignScreenState
                 key: const ValueKey('b2b-product-detail-data'),
                 padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                 children: [
-                  Container(
-                    key: const ValueKey('b2b-product-detail-header'),
-                    decoration: BoxDecoration(
-                      color: FoodexPalette.wholesale.primaryDark,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: DefaultTextStyle.merge(
-                      style: const TextStyle(color: Colors.white),
-                      child: IconTheme(
-                        data: IconThemeData(color: Colors.white),
-                        child: FoodexTopBar(
-                          title: context.tr('customer.product.title'),
-                          actions: [
-                            IconButton(
-                              key: const ValueKey('b2b-product-refresh'),
-                              tooltip: context.tr('b2b.product.refresh'),
-                              onPressed: revalidating ? null : _retry,
-                              icon: const Icon(Icons.refresh_rounded),
-                            ),
-                            CustomerFavoriteButton(
-                              api: widget.favoritesApi,
-                              storeId: storeId,
-                              productId: productId,
-                              isAuthenticated: widget.session.isAuthenticated,
-                              loginRoute:
-                                  '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
-                            ),
-                          ],
-                        ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('b2b-product-refresh'),
+                        tooltip: context.tr('b2b.product.refresh'),
+                        onPressed: revalidating ? null : _retry,
+                        icon: const Icon(Icons.refresh_rounded),
                       ),
-                    ),
+                      CustomerFavoriteButton(
+                        api: widget.favoritesApi,
+                        storeId: storeId,
+                        productId: productId,
+                        isAuthenticated: widget.session.isAuthenticated,
+                        loginRoute:
+                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
+                      ),
+                    ],
                   ),
                   if (stale) ...[
                     const SizedBox(height: 10),
@@ -4346,7 +4337,12 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
             child: FutureBuilder<Object?>(
               future: future,
               builder: (context, snapshot) {
@@ -4379,56 +4375,16 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    SizedBox(
-                      key: const ValueKey('b2b-cart-header'),
-                      height: 44,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            key: const ValueKey('b2b-cart-back'),
-                            tooltip: MaterialLocalizations.of(context)
-                                .backButtonTooltip,
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(
-                              Directionality.of(context) == TextDirection.rtl
-                                  ? Icons.arrow_forward_ios_rounded
-                                  : Icons.arrow_back_ios_new_rounded,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              context.tr('b2b.cart.title'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF10233F),
-                                fontSize: 17,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          if (rows.isNotEmpty && widget.commerceApi != null)
-                            TextButton.icon(
-                              key: const ValueKey('b2b-cart-clear'),
-                              onPressed: () => _clear(rows),
-                              icon: const Icon(
-                                Icons.delete_sweep_outlined,
-                                size: 16,
-                              ),
-                              label: Text(context.tr('b2b.cart.clear')),
-                              style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                              ),
-                            ),
-                        ],
+                    if (rows.isNotEmpty && widget.commerceApi != null)
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton.icon(
+                          key: const ValueKey('b2b-cart-clear'),
+                          onPressed: () => _clear(rows),
+                          icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+                          label: Text(context.tr('b2b.cart.clear')),
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 6),
                     if (rows.isEmpty)
                       FoodexEmptyState(
@@ -4875,7 +4831,12 @@ class _WholesaleCheckoutDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
               builder: (context, snapshot) {
@@ -5052,8 +5013,7 @@ class _WholesaleCheckoutDesignScreenState
                   key: const ValueKey('b2b-checkout-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.checkout.title')),
-                    const SizedBox(height: 8),
+
                     CustomerCheckoutProgress(
                       key: const ValueKey('b2b-checkout-progress'),
                       steps: [
@@ -6129,30 +6089,21 @@ class _WholesaleOrderDetailsDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        key: const ValueKey('b2b-order-back'),
-                        onPressed: () => Navigator.of(context)
-                            .pushReplacementNamed('/b2b/orders'),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                      ),
-                      Expanded(
-                        child:
-                            FoodexTopBar(title: context.tr('b2b.order.title')),
-                      ),
-                      IconButton(
-                        key: const ValueKey('b2b-order-refresh'),
-                        tooltip: context.tr('b2b.order.refresh'),
-                        onPressed: _refresh,
-                        icon: const Icon(Icons.refresh_rounded),
-                      ),
-                    ],
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: IconButton(
+                    key: const ValueKey('b2b-order-refresh'),
+                    tooltip: context.tr('b2b.order.refresh'),
+                    onPressed: _refresh,
+                    icon: const Icon(Icons.refresh_rounded),
                   ),
                 ),
                 Expanded(
