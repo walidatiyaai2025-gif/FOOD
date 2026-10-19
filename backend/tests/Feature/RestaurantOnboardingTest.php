@@ -209,6 +209,14 @@ final class RestaurantOnboardingTest extends TestCase
         app(RestaurantControlPlaneService::class)->provision($store, $admin);
         $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
 
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.index', ['store_id' => $store->getKey()]))
+            ->assertOk()
+            ->assertSee('name="hero_image"', false)
+            ->assertSee('data-restaurant-hero-preview', false)
+            ->assertSee('Required setup order')
+            ->assertSee('Locked until complete:', false);
+
         $response = $this->actingAs($admin)->put(
             route('admin.smart-ordering.onboarding.profile', $site),
             [
