@@ -40,6 +40,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         'inventory.snapshot',
         'refunds.summary',
         'retailers.performance',
+        'retailers.360',
         'wholesale.purchases',
         'margin.summary',
         'support.summary',
