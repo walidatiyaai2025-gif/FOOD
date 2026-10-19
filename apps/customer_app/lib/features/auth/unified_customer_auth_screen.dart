@@ -269,24 +269,42 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         commerceContext != null &&
         commerceContext.isRetail &&
         commerceFactory != null) {
-      final commerce = commerceFactory(token);
-      await commerce.mergeGuestCartAfterAuthentication(
-        storeId: commerceContext.storeId,
-      );
+      // Authentication is already committed at this point. Guest-cart
+      // reconciliation is follow-up commerce work and must never downgrade a
+      // valid login into a misleading network/auth failure.
+      try {
+        final commerce = commerceFactory(token);
+        await commerce
+            .mergeGuestCartAfterAuthentication(
+              storeId: commerceContext.storeId,
+            )
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // The authenticated destination will load the authoritative cart and
+        // can retry reconciliation there. Preserve the valid session.
+      }
     }
 
     // The app-owned resume is intentionally allowed after this auth State has
     // been disposed by the authenticated rebuild. Only the local Navigator
     // fallback still requires [mounted].
     if (!mounted && appLevelResume == null) return;
-    await _resumeAfterAuthentication(
-      token: token,
-      nextRoute: nextRoute,
-      pendingStore: pendingStore,
-      pendingExecutor: pendingExecutor,
-      commerceContext: commerceContext,
-      appLevelResume: appLevelResume,
-    );
+    try {
+      await _resumeAfterAuthentication(
+        token: token,
+        nextRoute: nextRoute,
+        pendingStore: pendingStore,
+        pendingExecutor: pendingExecutor,
+        commerceContext: commerceContext,
+        appLevelResume: appLevelResume,
+      );
+    } catch (_) {
+      // A valid server token/session must not be reported as an offline login
+      // failure because a post-auth route handoff raced the authenticated
+      // rebuild. Fall back to the now-authenticated Navigator when available.
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(nextRoute);
+    }
   }
 
   Future<void> _authenticateWithBiometrics() async {
