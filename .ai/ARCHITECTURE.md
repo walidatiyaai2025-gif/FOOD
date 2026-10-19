@@ -173,3 +173,9 @@ Authority: `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, #2223.
 ### Assistant context and governed memory invariant
 
 Assistant page/session memory is a bounded continuation aid, never business authority. Browser context is first normalized against current FOODEX visibility rules and may be carried by a short-lived user-bound HMAC envelope, but every turn re-resolves the page context, principal, roles, permissions, tenant/store/channel scope and retailer sell-out consent before tool execution. Conversation state keeps only still-authorized entity identifiers/references, normalized time windows, intent/tool keys, clarification state, locale and allowlisted presentation preferences. It expires independently of conversation retention, redacts common secret patterns before persistence, and never stores transactional totals, balances, stock facts, provider secrets or model reasoning as durable memory. Business facts are always re-read from authoritative tools/read models.
+
+### AI evaluation invariant
+
+FOODEX AI quality is versioned and CI-gated through deterministic golden business cases. Numeric parity, tool choice, evidence, authorization/scope, refusal behavior, unavailable-data suppression and approval-governed action safety are blocking at 100% for every supported capability profile. Arabic/English language quality is measured separately so wording may vary while facts, permissions and safety may not. OpenAI-compatible/Ollama model changes and deterministic fallback are evaluated against explicit versioned profiles; provider capability never changes business authority.
+
+Authority: \`docs/testing/FOODEX_AI_EVALUATION_GATES.md\`, #2230.
