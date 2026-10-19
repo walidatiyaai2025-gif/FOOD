@@ -625,7 +625,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
-    expect(find.text('الإصدار 1.0.90'), findsOneWidget);
+    expect(find.text('الإصدار 1.0.91'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
