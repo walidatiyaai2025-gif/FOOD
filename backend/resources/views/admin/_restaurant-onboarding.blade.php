@@ -14,6 +14,7 @@
     $restaurantOperationsStepAvailable = (bool) ($setupSteps->get('operations')['available'] ?? false);
     $restaurantMenuStepAvailable = (bool) ($setupSteps->get('menu')['available'] ?? false);
     $restaurantEntryStepAvailable = (bool) ($setupSteps->get('entry')['available'] ?? false);
+    $hardBlockerKeys = collect($onboardingStatus['hard_blockers'] ?? [])->pluck('key');
 @endphp
 <section class="panel so-onboarding {{ $onboardingCompact ? 'is-compact' : '' }}" aria-labelledby="restaurant-onboarding-title">
     <style>
@@ -129,6 +130,8 @@
                 <a class="button primary" href="{{ route('admin.smart-ordering.menu.index', ['store_id' => $site->store_id, 'setup' => 'menu'] + $supportParams) }}">{{ __('restaurant_onboarding.actions.menu') }}</a>
             @elseif($currentSetupKey === 'entry' && $restaurantEntryStepAvailable)
                 <a class="button primary" href="{{ route('admin.smart-ordering.qr.index', ['store_id' => $site->store_id] + $supportParams) }}">{{ __('restaurant_onboarding.actions.qr') }}</a>
+            @elseif($currentSetupKey === 'review' && $hardBlockerKeys->contains('contact_channel'))
+                <a class="button primary" href="{{ route('admin.smart-ordering.operations.index', ['store_id' => $site->store_id, 'tab' => 'branches'] + $supportParams) }}">{{ __('restaurant_onboarding.actions.contact_channel') }}</a>
             @endif
         </div>
     @endif
