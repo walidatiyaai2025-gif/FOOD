@@ -79,7 +79,8 @@
         }
     }
     $restaurantSetupSteps = collect($restaurantSetupStatus['setup_flow'] ?? [])->keyBy('key');
-    $restaurantLaunched = (bool) ($restaurantSetupStatus['launched'] ?? false);
+    $restaurantGuidedSetup = ($restaurantSetupStatus['profile'] ?? null) instanceof \App\Domain\RestaurantSaaS\Models\RestaurantLocationProfile;
+    $restaurantLaunched = ! $restaurantGuidedSetup || (bool) ($restaurantSetupStatus['launched'] ?? false);
     $restaurantStepAvailable = static fn (string $key): bool =>
         (bool) (($restaurantSetupSteps->get($key)['available'] ?? false));
     $restaurantStepState = static fn (string $key): string =>
