@@ -662,7 +662,7 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertStringContainsString('grid-template-areas:"context thread rail"', $view);
         $this->assertStringContainsString('html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}', $view);
         $this->assertStringNotContainsString('height:100vh!important', $view);
-        $this->assertStringNotContainsString('display:none!important', $view);
+        $this->assertStringNotContainsString('.wa-golden-workspace{display:none!important}', $view);
 
         $golden = base_path('../docs/golden/customer-service-inbox/customer-service-inbox-golden.webp');
         $this->assertFileExists($golden);

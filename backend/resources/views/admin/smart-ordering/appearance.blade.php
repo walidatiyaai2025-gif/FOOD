@@ -40,6 +40,7 @@
 </style>
 </head>
 <body>
+
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-appearance" data-builder>
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'smart_ordering', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page">
@@ -61,6 +62,8 @@
 <label for="site">{{ __('smart_ordering.appearance.site_key_label') }}</label>
 <input id="site" value="{{ $siteKey }}" placeholder="{{ __('smart_ordering.appearance.site_key_placeholder') }}" autocomplete="off">
 </div>
+
+@include('admin._smart-ordering-quick-menu-wizard')
 
 <div class="so-builder-group">
 <span class="so-builder-label">{{ __('smart_ordering.appearance.template_gallery_label') }}</span>
@@ -144,6 +147,7 @@
 </section>
 </div>
 </div>
+
 </main>
 </div>
 

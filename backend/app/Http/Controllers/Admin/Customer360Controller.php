@@ -1165,15 +1165,23 @@ final class Customer360Controller extends Controller
             ];
         }
 
-        if ($this->navigation->canAccess($actor, 'b2b') && $actor->hasPermission('b2b.accounts.view')) {
-            $b2b = $this->scope->allowedStoreIds($actor, 'b2b.accounts.view', 'b2b');
+        if ($this->navigation->canAccess($actor, 'b2b')) {
+            $b2bPermission = $actor->hasPermission('b2b.accounts.view')
+                ? 'b2b.accounts.view'
+                : ($this->navigation->usesCustomerServiceDashboardProfile($actor) && $actor->hasPermission('customers.view')
+                    ? 'customers.view'
+                    : null);
 
-            return [
-                'mode' => 'b2b',
-                'b2b_store_ids' => $b2b,
-                'b2c_store_ids' => [],
-                'origin_store_ids' => $b2b,
-            ];
+            if ($b2bPermission !== null) {
+                $b2b = $this->scope->allowedStoreIds($actor, $b2bPermission, 'b2b');
+
+                return [
+                    'mode' => 'b2b',
+                    'b2b_store_ids' => $b2b,
+                    'b2c_store_ids' => [],
+                    'origin_store_ids' => $b2b,
+                ];
+            }
         }
 
         $b2c = $this->scope->allowedStoreIds($actor, 'customers.view', 'b2c');

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenu;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Domain\SmartOrdering\Themes\ConfigStorefrontSnapshotProvider;
@@ -13,6 +15,7 @@ use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
 use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -26,6 +29,7 @@ final class SmartOrderingThemePreviewController extends Controller
         ThemeRegistry $themes,
         SmartOrderingRevisionService $revisions,
         RestaurantTemplateSelectionService $selection,
+        CommerceQuoteService $quotes,
     ): View {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -35,6 +39,10 @@ final class SmartOrderingThemePreviewController extends Controller
         $siteKey = trim((string) $request->query('site', ''));
         $currentTheme = null;
         $canApply = false;
+        $site = null;
+        $menuCount = 0;
+        $menuItemCount = 0;
+        $quickMenuCurrency = null;
         if ($siteKey !== '') {
             $site = SmartOrderingSite::query()
                 ->whereIn('store_id', $storeIds)
@@ -48,6 +56,18 @@ final class SmartOrderingThemePreviewController extends Controller
             $selected = $revision === null ? null : $selection->selected($revision);
             $currentTheme = $selected['id'] ?? null;
             $canApply = $actor->hasPermission('smart_ordering.manage', (int) $site->store_id);
+            $quickMenuCurrency = $quotes->currencyForStore((int) $site->store_id);
+
+            if ($revision !== null) {
+                $menuCount = SmartOrderingMenu::query()
+                    ->where('site_id', $site->id)
+                    ->where('revision_id', $revision->id)
+                    ->count();
+                $menuItemCount = SmartOrderingMenuItem::query()
+                    ->where('site_id', $site->id)
+                    ->where('revision_id', $revision->id)
+                    ->count();
+            }
         }
 
         $selectedTheme = $themes->resolveProduction($request->query('theme', $currentTheme));
@@ -58,6 +78,10 @@ final class SmartOrderingThemePreviewController extends Controller
             'selectedTheme' => $selectedTheme,
             'currentTheme' => $currentTheme,
             'canApply' => $canApply,
+            'site' => $site,
+            'menuCount' => $menuCount,
+            'menuItemCount' => $menuItemCount,
+            'quickMenuCurrency' => $quickMenuCurrency,
             'selectedAppearance' => $themes->sanitizeAppearance(
                 $request->query('appearance', ($themes->productionDefinition($selectedTheme)['dark'] ?? false) ? 'dark' : 'light'),
             ),
@@ -104,6 +128,13 @@ final class SmartOrderingThemePreviewController extends Controller
         abort_unless(in_array($theme, $themes->productionIds(), true), 422);
 
         $selection->selectDraft($actor, $site, $theme, $request);
+
+        if ($request->input('return_to') === 'menu_setup') {
+            return redirect()->route('admin.smart-ordering.menu.index', [
+                'store_id' => $site->store_id,
+                'setup' => 'identity',
+            ])->with('status', __('smart_ordering.appearance.template_applied'));
+        }
 
         return redirect()->route('admin.smart-ordering.appearance.index', array_filter([
             'site' => $siteKey,

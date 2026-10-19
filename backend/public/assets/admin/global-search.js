@@ -7,10 +7,11 @@
         if (root.dataset.globalSearchReady === '1') return;
         root.dataset.globalSearchReady = '1';
 
+        const form = root.querySelector('[data-foodex-global-search-form]');
         const input = root.querySelector('[data-foodex-global-search-input]');
         const results = root.querySelector('[data-foodex-global-search-results]');
         const status = root.querySelector('[data-foodex-global-search-status]');
-        if (!input || !results || !status) return;
+        if (!form || !input || !results || !status) return;
 
         const endpoint = root.dataset.searchUrl || '';
         const labels = {
@@ -119,6 +120,31 @@
             }
 
             timer = window.setTimeout(() => search(term, currentGeneration), debounceMs);
+        });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const term = input.value.trim();
+            if (term.length < 2) {
+                results.replaceChildren();
+                close();
+                status.textContent = '';
+                return;
+            }
+
+            if (timer) {
+                window.clearTimeout(timer);
+                timer = null;
+            }
+
+            generation += 1;
+            const currentGeneration = generation;
+            await search(term, currentGeneration);
+
+            if (currentGeneration === generation && options().length) {
+                setActive(0);
+            }
         });
 
         input.addEventListener('keydown', (event) => {

@@ -91,6 +91,10 @@ class B2bWorkspaceController extends Controller
     {
         $user = $this->actor($request);
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
+
+        if ($module === 'dashboard' && $this->navigation->usesCustomerServiceDashboardProfile($user)) {
+            return redirect()->route('admin.erp.customer-service');
+        }
         $this->authorizeModule($user, $module);
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 

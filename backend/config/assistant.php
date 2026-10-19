@@ -4,6 +4,8 @@ return [
     'enabled' => (bool) env('ASSISTANT_ENABLED', false),
     'read_only' => (bool) env('ASSISTANT_READ_ONLY', true),
     'retention_days' => max(1, (int) env('ASSISTANT_RETENTION_DAYS', 90)),
+    'session_minutes' => min(1440, max(5, (int) env('ASSISTANT_SESSION_MINUTES', 120))),
+    'context_token_minutes' => min(120, max(5, (int) env('ASSISTANT_CONTEXT_TOKEN_MINUTES', 15))),
     'cache_seconds' => max(0, (int) env('ASSISTANT_CACHE_SECONDS', 60)),
     'rate_limit' => max(1, (int) env('ASSISTANT_RATE_LIMIT', 30)),
     'agent' => [

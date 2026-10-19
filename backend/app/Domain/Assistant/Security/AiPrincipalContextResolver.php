@@ -166,6 +166,8 @@ final class AiPrincipalContextResolver
 
         return [
             'path' => $path,
+            'route' => is_string($pageContext['route'] ?? null) ? $pageContext['route'] : 'admin',
+            'domain' => is_string($pageContext['domain'] ?? null) ? $pageContext['domain'] : 'management',
             'channel' => $channel,
             'store_id' => $activeStoreId,
             'authorized_entities' => is_array($pageContext['authorized_entities'] ?? null)
