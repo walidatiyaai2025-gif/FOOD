@@ -312,33 +312,37 @@ final class LegacyFoodexImportService
             ];
         }
 
-        $sourceCounts = $stage('posted_source_counts', function () use ($source, $recognizedTypes, $deep): array {
-            $postedHeaders = (int) $source->table('wh_TransHeader')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->count();
-            $recognizedHeaders = (int) $source->table('wh_TransHeader')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->whereIn('TransType', $recognizedTypes)
-                ->count();
+        $sourceCounts = $stage('posted_source_counts', function () use ($source, $recognizedTypes, $deep, $headerStats): array {
+            $postedHeaders = (int) collect($headerStats)->sum(
+                static fn ($row): int => (int) ($row->posted_headers ?? 0)
+            );
+            $recognizedHeaders = (int) collect($headerStats)
+                ->filter(static fn ($row): bool => in_array((int) $row->TransType, $recognizedTypes, true))
+                ->sum(static fn ($row): int => (int) ($row->posted_headers ?? 0));
+
+            if (! $deep) {
+                return [
+                    'posted_headers' => $postedHeaders,
+                    'posted_details' => null,
+                    'recognized_stock_headers' => $recognizedHeaders,
+                    'recognized_stock_details' => null,
+                ];
+            }
 
             return [
                 'posted_headers' => $postedHeaders,
-                'posted_details' => $deep
-                    ? (int) $source->table('wh_TransDetails as d')
-                        ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-                        ->whereRaw('COALESCE(h.Status, 1) <> 0')
-                        ->whereRaw('COALESCE(d.Status, 1) <> 0')
-                        ->count()
-                    : (int) $source->table('wh_TransDetails')->count(),
+                'posted_details' => (int) $source->table('wh_TransDetails as d')
+                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                    ->count(),
                 'recognized_stock_headers' => $recognizedHeaders,
-                'recognized_stock_details' => $deep
-                    ? (int) $source->table('wh_TransDetails as d')
-                        ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-                        ->whereRaw('COALESCE(h.Status, 1) <> 0')
-                        ->whereRaw('COALESCE(d.Status, 1) <> 0')
-                        ->whereIn('h.TransType', $recognizedTypes)
-                        ->count()
-                    : null,
+                'recognized_stock_details' => (int) $source->table('wh_TransDetails as d')
+                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                    ->whereIn('h.TransType', $recognizedTypes)
+                    ->count(),
             ];
         });
 
@@ -353,7 +357,7 @@ final class LegacyFoodexImportService
             ->values()
             ->all();
 
-        $mappingCoverage = $stage('mapping_coverage', function () use ($source, $recognizedTypes): array {
+        $mappingCoverage = $stage('mapping_coverage', function () use ($source, $recognizedTypes, $deep): array {
             $usedLocationIds = $source->table('wh_TransHeader')
                 ->whereRaw('COALESCE(Status, 1) <> 0')
                 ->whereIn('TransType', $recognizedTypes)
@@ -375,13 +379,6 @@ final class LegacyFoodexImportService
                 ->values()
                 ->all();
 
-            $usedItemIds = $source->table('wh_TransDetails')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->distinct()
-                ->pluck('ItemID')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-
             $productMappingKeys = DB::table('legacy_import_mappings')
                 ->where('source_system', self::SOURCE_SYSTEM)
                 ->where('source_table', 'wh_Items')
@@ -389,6 +386,23 @@ final class LegacyFoodexImportService
                 ->pluck('source_key')
                 ->map(static fn ($id): int => (int) $id)
                 ->flip();
+
+            if (! $deep) {
+                return [
+                    'used_locations' => count($usedLocationIds),
+                    'unmapped_locations' => $unmappedLocations,
+                    'used_items' => null,
+                    'unmapped_items' => [],
+                    'mapped_products' => $productMappingKeys->count(),
+                ];
+            }
+
+            $usedItemIds = $source->table('wh_TransDetails')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->distinct()
+                ->pluck('ItemID')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
 
             $unmappedItems = collect($usedItemIds)
                 ->reject(static fn (int $id): bool => $productMappingKeys->has($id))
@@ -400,6 +414,7 @@ final class LegacyFoodexImportService
                 'unmapped_locations' => $unmappedLocations,
                 'used_items' => count($usedItemIds),
                 'unmapped_items' => $unmappedItems,
+                'mapped_products' => $productMappingKeys->count(),
             ];
         });
 
