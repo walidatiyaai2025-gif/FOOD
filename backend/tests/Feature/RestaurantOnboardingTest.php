@@ -55,6 +55,55 @@ final class RestaurantOnboardingTest extends TestCase
         app(RestaurantOnboardingService::class)->launch($store, $admin);
     }
 
+    public function test_setup_flow_unlocks_one_stage_at_a_time(): void
+    {
+        [$store, $admin] = $this->restaurant('RS-ONBOARD-FLOW');
+        $controlPlane = app(RestaurantControlPlaneService::class);
+        $controlPlane->provision($store, $admin);
+
+        $initial = app(RestaurantOnboardingService::class)->status($store, $admin);
+        $initialSteps = collect($initial['setup_flow'])->keyBy('key');
+
+        $this->assertSame('identity', $initial['current_step']);
+        $this->assertSame('current', $initialSteps['identity']['state']);
+        $this->assertSame('locked', $initialSteps['channels']['state']);
+        $this->assertSame('locked', $initialSteps['operations']['state']);
+        $this->assertFalse($initial['launched']);
+
+        $controlPlane->updateLocationProfile($store, $admin, [
+            'timezone' => 'Asia/Kuwait',
+            'currency' => 'KWD',
+            'country_code' => 'KW',
+            'business_name' => 'Guided Cafe',
+            'legal_name' => 'Guided Cafe LLC',
+        ]);
+
+        $identityReady = app(RestaurantOnboardingService::class)->status($store->fresh(), $admin);
+        $identitySteps = collect($identityReady['setup_flow'])->keyBy('key');
+
+        $this->assertSame('channels', $identityReady['current_step']);
+        $this->assertSame('complete', $identitySteps['identity']['state']);
+        $this->assertSame('current', $identitySteps['channels']['state']);
+        $this->assertSame('locked', $identitySteps['operations']['state']);
+
+        $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
+        app(SmartOrderingSiteService::class)->replaceEntitlements($site, [
+            'public_menu' => true,
+            'pickup' => true,
+        ], $admin);
+
+        $channelsReady = app(RestaurantOnboardingService::class)->status($store->fresh(), $admin);
+        $channelSteps = collect($channelsReady['setup_flow'])->keyBy('key');
+
+        $this->assertSame('operations', $channelsReady['current_step']);
+        $this->assertSame('complete', $channelSteps['channels']['state']);
+        $this->assertSame('current', $channelSteps['operations']['state']);
+        $this->assertContains(
+            'opening_hours',
+            collect($channelsReady['hard_blockers'])->pluck('key')->all(),
+        );
+    }
+
     public function test_ready_restaurant_launches_without_bypassing_hard_gates(): void
     {
         [$store, $admin] = $this->restaurant('RS-ONBOARD-B');
