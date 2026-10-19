@@ -146,22 +146,26 @@ final class LegacyFoodexImportService
         ]);
 
         try {
-            $storeId = app(WholesalePrincipal::class)->storeId();
-            $catalogId = $this->ensureWholesaleCatalog($storeId);
+            $summary = DB::transaction(function () use ($runId): array {
+                $storeId = app(WholesalePrincipal::class)->storeId();
+                $catalogId = $this->ensureWholesaleCatalog($storeId);
 
-            $summary = [
-                'run_id' => $runId,
-                'store_id' => $storeId,
-                'catalog_id' => $catalogId,
-                'price_tiers' => $this->importPriceTiers($runId),
-                'warehouses' => $this->importWarehousesAndVans($storeId, $runId),
-                'categories' => $this->importCategories($catalogId, $runId),
-            ];
+                $summary = [
+                    'run_id' => $runId,
+                    'store_id' => $storeId,
+                    'catalog_id' => $catalogId,
+                    'price_tiers' => $this->importPriceTiers($runId),
+                    'warehouses' => $this->importWarehousesAndVans($storeId, $runId),
+                    'categories' => $this->importCategories($catalogId, $runId),
+                ];
 
-            $unitId = $this->ensureLegacyBaseUnit();
-            $summary['products'] = $this->importProducts($storeId, $catalogId, $unitId, $runId);
-            $summary['pricing'] = $this->importB2bPrices($storeId, $runId);
-            $summary['customers'] = $this->importCustomers($runId);
+                $unitId = $this->ensureLegacyBaseUnit();
+                $summary['products'] = $this->importProducts($storeId, $catalogId, $unitId, $runId);
+                $summary['pricing'] = $this->importB2bPrices($storeId, $runId);
+                $summary['customers'] = $this->importCustomers($runId);
+
+                return $summary;
+            }, 3);
 
             DB::table('legacy_import_runs')->where('id', $runId)->update([
                 'status' => 'completed',
