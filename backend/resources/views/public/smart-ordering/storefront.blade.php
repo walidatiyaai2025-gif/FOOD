@@ -15,6 +15,9 @@
     @if($site['seo']['canonical'])<meta property="og:url" content="{{ $site['seo']['canonical'] }}">@endif
     @if(($site['seo']['structured_json'] ?? '') !== '')<script type="application/ld+json">{!! $site['seo']['structured_json'] !!}</script>@endif
     <meta name="color-scheme" content="light dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/smart-ordering-storefront.css">
     <link rel="stylesheet" href="/css/restaurant-menu-templates-v2.css"> {{-- localization-gate: allow technical stylesheet asset --}}
     <style>:root{ @foreach($appearance['css_variables'] as $name => $value) {{ $name }}: {{ $value }}; @endforeach }</style>
