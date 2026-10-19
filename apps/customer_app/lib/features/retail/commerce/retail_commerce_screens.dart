@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../storefront/storefront_design_system.dart';
 
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/routing/customer_routes.dart';
@@ -211,24 +212,19 @@ class _RetailCartScreenState extends State<RetailCartScreen>
     if (_isOwnStoreBlocked(_error)) {
       return Scaffold(
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(strings.cart),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
+        body: FoodexUnifiedHeaderSurface(
+          title: strings.cart,
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          child: _OwnStoreBlockedState(strings: strings),
         ),
-        body: _OwnStoreBlockedState(strings: strings),
       );
     }
 
     return Scaffold(
       backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(strings.cart),
-        backgroundColor: CustomerUiColors.deepGreen,
-        foregroundColor: CustomerUiColors.white,
-      ),
-      body: SafeArea(
-        top: false,
+      body: FoodexUnifiedHeaderSurface(
+        title: strings.cart,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: _busy && cart == null
             ? const _CommerceLoadingSkeleton()
             : RefreshIndicator(
@@ -631,14 +627,9 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
       return Scaffold(
         key: const ValueKey('retail-order-success-screen'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(strings.orderSuccess),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          automaticallyImplyLeading: false,
-        ),
-        body: SafeArea(
-          top: false,
+        body: FoodexUnifiedHeaderSurface(
+          title: strings.orderSuccess,
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
           child: CustomerOrderSuccessPanel(
             title: strings.orderSuccess,
             message: strings.orderSuccessMessage,
@@ -700,24 +691,19 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
     if (_isOwnStoreBlocked(_error)) {
       return Scaffold(
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(strings.checkout),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
+        body: FoodexUnifiedHeaderSurface(
+          title: strings.checkout,
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          child: _OwnStoreBlockedState(strings: strings),
         ),
-        body: _OwnStoreBlockedState(strings: strings),
       );
     }
 
     return Scaffold(
       backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(strings.checkout),
-        backgroundColor: CustomerUiColors.deepGreen,
-        foregroundColor: CustomerUiColors.white,
-      ),
-      body: SafeArea(
-        top: false,
+      body: FoodexUnifiedHeaderSurface(
+        title: strings.checkout,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: _loading
             ? const _CheckoutLoadingSkeleton()
             : ListView(
