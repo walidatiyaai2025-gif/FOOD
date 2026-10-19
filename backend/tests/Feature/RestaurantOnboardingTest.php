@@ -47,6 +47,10 @@ final class RestaurantOnboardingTest extends TestCase
             collect($status['hard_blockers'])->pluck('key')->all(),
         );
         $this->assertContains(
+            'hero_image',
+            collect($status['hard_blockers'])->pluck('key')->all(),
+        );
+        $this->assertContains(
             'menu_published',
             collect($status['hard_blockers'])->pluck('key')->all(),
         );
@@ -78,6 +82,9 @@ final class RestaurantOnboardingTest extends TestCase
             'legal_name' => 'Guided Cafe LLC',
         ]);
 
+        $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
+        $this->setHeroImageReady($store, $admin, $site);
+
         $identityReady = app(RestaurantOnboardingService::class)->status($store->fresh(), $admin);
         $identitySteps = collect($identityReady['setup_flow'])->keyBy('key');
 
@@ -86,7 +93,6 @@ final class RestaurantOnboardingTest extends TestCase
         $this->assertSame('current', $identitySteps['channels']['state']);
         $this->assertSame('locked', $identitySteps['operations']['state']);
 
-        $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
         app(SmartOrderingSiteService::class)->replaceEntitlements($site, [
             'public_menu' => true,
             'pickup' => true,
@@ -119,6 +125,7 @@ final class RestaurantOnboardingTest extends TestCase
         ]);
 
         $site = SmartOrderingSite::query()->where('store_id', $store->getKey())->firstOrFail();
+        $this->setHeroImageReady($store, $admin, $site);
         app(SmartOrderingSiteService::class)->replaceEntitlements($site, [
             'public_menu' => true,
             'pickup' => true,
@@ -222,6 +229,24 @@ final class RestaurantOnboardingTest extends TestCase
             'formula_rows' => 1,
         ]);
         $this->assertSame($beforeItems, DB::table('smart_ordering_menu_items')->count());
+    }
+
+    private function setHeroImageReady(Store $store, User $admin, SmartOrderingSite $site): void
+    {
+        $revisions = app(SmartOrderingRevisionService::class);
+        $draft = $revisions->createOrReuseDraft($admin, $site);
+        $payload = (array) $draft->payload;
+        $content = is_array($payload['content'] ?? null) ? $payload['content'] : [];
+        $identity = is_array($content['identity'] ?? null) ? $content['identity'] : [];
+        $identity['cover_url'] = 'smart-ordering/branding/test/hero.jpg';
+        $content['identity'] = $identity;
+        $payload['content'] = $content;
+        $revisions->updateDraft($admin, $draft, $payload);
+
+        $this->assertSame(
+            'smart-ordering/branding/test/hero.jpg',
+            data_get(app(RestaurantOnboardingService::class)->status($store->fresh(), $admin), 'storefront_identity.cover_url'),
+        );
     }
 
     /** @return array{Store,User} */
