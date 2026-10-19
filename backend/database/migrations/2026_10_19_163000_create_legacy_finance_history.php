@@ -35,7 +35,7 @@ return new class extends Migration {
             $table->unsignedInteger('bank_id')->nullable();
             $table->boolean('gl_posted')->default(false);
             $table->unsignedBigInteger('gl_entry_header_id')->nullable();
-            $table->string('balance_effect', 16)->default('none');
+            $table->string('balance_effect', 64)->default('none');
             $table->json('source_payload');
             $table->uuid('last_run_id')->nullable();
             $table->timestamps();
