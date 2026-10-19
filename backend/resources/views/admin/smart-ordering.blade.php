@@ -64,6 +64,15 @@
         @php($restaurantChannelsAvailable = (bool)($restaurantSetupSteps->get('channels')['available'] ?? false))
         @php($restaurantOperationsAvailable = (bool)($restaurantSetupSteps->get('operations')['available'] ?? false))
         @php($restaurantMenuAvailable = (bool)($restaurantSetupSteps->get('menu')['available'] ?? false))
+        @php($restaurantCurrentSetupKey = (string)($onboardingStatus['current_step'] ?? 'identity'))
+        @php($restaurantCurrentSetupLabel = __('restaurant_onboarding.flow.steps.'.$restaurantCurrentSetupKey.'.title'))
+        @php($restaurantCurrentSetupUrl = match($restaurantCurrentSetupKey) {
+            'channels' => route('admin.smart-ordering.index',['store_id'=>$site->store_id]).'#settings-modules',
+            'operations' => route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id,'tab'=>'branches']),
+            'menu' => route('admin.smart-ordering.menu.index',['store_id'=>$site->store_id,'setup'=>'menu']),
+            'entry' => route('admin.smart-ordering.qr.index',['store_id'=>$site->store_id]),
+            default => route('admin.smart-ordering.index',['store_id'=>$site->store_id]).'#settings-launch',
+        })
         @php($restaurantCoreModules = ['public_menu','ordering','dine_in','pickup','delivery','whatsapp','campaign_qr'])
         <div class="so-settings-page" data-so-settings-page>
             <header class="so-settings-head">
@@ -75,8 +84,10 @@
                     </div>
                 </div>
                 <div class="so-settings-head-actions">
-                    @if($restaurantLaunched || $restaurantOperationsAvailable)
-                        <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id,'tab'=>$restaurantLaunched?'orders':'branches']) }}">{{ $restaurantLaunched ? ($isAr ? 'فتح التشغيل' : 'Open operations') : ($isAr ? 'إكمال إعداد التشغيل' : 'Continue operations setup') }}</a>
+                    @if($restaurantLaunched)
+                        <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id,'tab'=>'orders']) }}">{{ $isAr ? 'فتح التشغيل' : 'Open operations' }}</a>
+                    @elseif($restaurantGuidedSetup)
+                        <a class="foodex-action-primary" href="{{ $restaurantCurrentSetupUrl }}">{{ $isAr ? 'متابعة: ' : 'Continue: ' }}{{ $restaurantCurrentSetupLabel }}</a>
                     @endif
                 </div>
             </header>
