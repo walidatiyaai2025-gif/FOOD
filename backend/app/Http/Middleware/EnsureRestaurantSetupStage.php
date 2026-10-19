@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\RestaurantSaaS\Models\RestaurantLocationProfile;
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\Store;
@@ -35,6 +36,10 @@ final class EnsureRestaurantSetupStage
         }
 
         $status = $this->onboarding->status($store, $actor);
+        if (! (($status['profile'] ?? null) instanceof RestaurantLocationProfile)) {
+            return $next($request);
+        }
+
         $launched = (bool) ($status['launched'] ?? false);
 
         if ($launched) {
