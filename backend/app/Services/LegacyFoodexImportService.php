@@ -88,6 +88,9 @@ final class LegacyFoodexImportService
                 'stores' => (int) ($stockSnapshot?->stores ?? 0),
                 'items' => (int) ($stockSnapshot?->items ?? 0),
                 'rows' => $sourceCounts['wh_ItemStockOnHand'],
+                'usable_as_cutover_stock' => $stockSnapshot?->last_date !== null
+                    && $dateRange?->first_date !== null
+                    && (int) $stockSnapshot->last_date >= (int) $dateRange->first_date,
             ],
             'price_matrix_consistency' => $priceMatrixConsistency,
             'target' => [
@@ -1057,6 +1060,7 @@ final class LegacyFoodexImportService
             'units',
             'products',
             'product_selling_units',
+            'product_selling_unit_tier_prices',
             'store_products',
             'b2b_price_tiers',
             'b2b_price_rules',
