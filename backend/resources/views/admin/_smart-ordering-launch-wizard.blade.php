@@ -193,16 +193,15 @@
     <section class="rl-panel" data-launch-step="identity">
         <div class="rl-panel-title">
             <div>
-                <h2>{{ $launchIsAr?'3. بيانات وهوية المطعم':'3. Restaurant identity' }}</h2>
-                <p>{{ $launchIsAr?'كل بيانات الواجهة والرابط والتشغيل في نموذج واحد. بعد الحفظ تنتقل مباشرة للمراجعة.':'One form for storefront identity, public URL and runtime. Saving moves directly to review.' }}</p>
+                <h2>{{ $launchIsAr?'3. بيانات واجهة المنيو':'3. Menu storefront details' }}</h2>
+                <p>{{ $launchIsAr?'راجع الاسم والوصف والرابط والهوية البصرية. التشغيل يظل مقفلاً حتى الإطلاق النهائي.':'Review storefront copy, URL and branding. Runtime stays locked until final launch.' }}</p>
             </div>
         </div>
 
         <form class="rl-form-card" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.setup.identity') }}" data-setup-mirror-form>
             @csrf
             <input type="hidden" name="store_id" value="{{ $site->store_id }}">
-            <input type="hidden" name="master_enabled" value="1">
-            <h3>{{ $launchIsAr?'هوية المطعم':'Restaurant identity' }}</h3>
+            <h3>{{ $launchIsAr?'بيانات واجهة المنيو':'Menu storefront details' }}</h3>
 
             <div class="rl-form-grid">
                 <label>{{ $launchIsAr?'اسم المطعم بالعربي':'Arabic restaurant name' }}
@@ -240,13 +239,11 @@
                 <label>{{ $launchIsAr?'الرابط المختصر للمطعم':'Public restaurant URL' }}
                     <input name="slug" value="{{ $site->slug }}" required>
                 </label>
-                <label>{{ $launchIsAr?'حالة التشغيل':'Runtime state' }}
-                    <select name="runtime_state" required>
-                        @foreach((array)config('smart_ordering.runtime_states',[]) as $state)
-                            <option value="{{ $state }}" @selected($site->runtime_state===$state)>{{ __('smart_ordering.states.'.$state) }}</option>
-                        @endforeach
-                    </select>
-                </label>
+                <div class="span-2 foodex-alert">
+                    {{ $launchIsAr
+                        ? 'حالة التشغيل لا تتغير من هنا. التفعيل النهائي يتم فقط في خطوة المراجعة والإطلاق بعد اكتمال جميع المتطلبات.'
+                        : 'Runtime is not changed here. Final activation happens only in Review & launch after every prerequisite is complete.' }}
+                </div>
             </div>
 
             <div class="rl-form-actions">
