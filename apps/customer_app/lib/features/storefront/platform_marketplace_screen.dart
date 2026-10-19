@@ -563,7 +563,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                               _cartLocation(scope),
                             );
                           },
-                          cartCount: _int(data['cart_count']),
                           onOrders: () {
                             final scope = activeCommerceContext;
                             if (scope == null) return;
@@ -579,7 +578,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             );
                           },
                           searchController: _searchController,
-                          searchFocus: _searchFocus,
                           onSearchSubmitted: _submitSearch,
                           onSearchClear: () {
                             _searchController.clear();
@@ -801,11 +799,9 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.localeCode,
     required this.onStore,
     required this.onCart,
-    required this.cartCount,
     required this.onOrders,
     required this.onNotifications,
     required this.searchController,
-    required this.searchFocus,
     required this.onSearchSubmitted,
     required this.onSearchClear,
   });
@@ -819,11 +815,9 @@ class _MarketplaceHeader extends StatelessWidget {
   final String localeCode;
   final VoidCallback onStore;
   final VoidCallback onCart;
-  final int cartCount;
   final VoidCallback onOrders;
   final VoidCallback onNotifications;
   final TextEditingController searchController;
-  final FocusNode searchFocus;
   final ValueChanged<String> onSearchSubmitted;
   final VoidCallback onSearchClear;
 
@@ -949,40 +943,6 @@ class _MarketplaceHeader extends StatelessWidget {
           },
         );
 
-    Widget cartAction() => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            roundAction(
-              key: const ValueKey('marketplace-cart'),
-              icon: Icons.shopping_cart_outlined,
-              tooltip: context.tr('customer.nav.cart'),
-              onPressed: onCart,
-            ),
-            if (cartCount > 0)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  constraints:
-                      const BoxConstraints(minWidth: 17, minHeight: 17),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF4747),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    cartCount > 99 ? '99+' : '$cartCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
 
     return FoodexWholesaleHeader(
       title: 'FOODEX',
