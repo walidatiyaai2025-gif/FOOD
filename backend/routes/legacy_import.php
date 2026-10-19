@@ -325,3 +325,75 @@ Artisan::command(
         return 0;
     },
 )->purpose('Diagnose legacy Foodex transaction semantics before rebuilding 2026 inventory.');
+
+
+Artisan::command(
+    'foodex:legacy-stock-source-diagnostics {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        try {
+            $report = $importer->stockSourceDiagnostics();
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex stock source diagnostics failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex stock source diagnostics');
+
+        $this->table(
+            ['Table', 'Rows'],
+            collect($report['table_counts'])->map(
+                static fn ($rows, $table): array => [$table, $rows ?? 'n/a']
+            )->values()->all(),
+        );
+
+        if ($report['item_stock_snapshot'] !== null) {
+            $s = $report['item_stock_snapshot'];
+            $this->line(
+                'wh_ItemStockOnHand: rows='.$s['rows'].
+                ' | stores='.$s['stores'].
+                ' | items='.$s['items'].
+                ' | dates='.($s['first_date'] ?? 'n/a').' -> '.($s['last_date'] ?? 'n/a').
+                ' | negative='.$s['negative_rows'].
+                ' | zero='.$s['zero_rows'].
+                ' | positive='.$s['positive_rows']
+            );
+        }
+
+        $p = $report['previous_year_flags'];
+        $this->line(
+            'PrevYear: flagged='.$p['prev_year_headers'].
+            ' | current='.$p['current_year_headers'].
+            ' | headers_20251231='.$p['headers_20251231'].
+            ' | type11_20251231='.$p['type11_20251231'].
+            ' | prev_year_20251231='.$p['prev_year_20251231']
+        );
+
+        if ($report['stock_related_modules'] === []) {
+            $this->warn('No stock-related SQL view/procedure/function was discovered from module metadata.');
+        } else {
+            $this->table(
+                ['Schema', 'Object', 'Type', 'Snapshot', 'TransDetails', 'TransPkgQty1', 'CurrentStock'],
+                collect($report['stock_related_modules'])->map(static fn (array $row): array => [
+                    $row['schema'],
+                    $row['name'],
+                    $row['type'],
+                    $row['refs_itemstockonhand'] ? 'yes' : '',
+                    $row['refs_transdetails'] ? 'yes' : '',
+                    $row['refs_transpkgqty1'] ? 'yes' : '',
+                    $row['refs_currentstock'] ? 'yes' : '',
+                ])->all(),
+            );
+        }
+
+        $this->warn('Read-only discovery only. No FOODEX inventory rows were written.');
+
+        return 0;
+    },
+)->purpose('Discover the legacy Foodex authoritative current-stock calculation/source.');
