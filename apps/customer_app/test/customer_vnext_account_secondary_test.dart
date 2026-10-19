@@ -36,7 +36,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.byType(CustomerCurvedHeaderSurface),
+          find.byKey(const ValueKey('foodex-wholesale-shared-header')),
           findsOneWidget,
         );
         expect(find.byType(CustomerAccountHeader), findsOneWidget);
@@ -88,7 +88,7 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(
-            find.byType(CustomerCurvedHeaderSurface),
+            find.byKey(const ValueKey('foodex-wholesale-shared-header')),
             findsOneWidget,
             reason: route,
           );
@@ -122,7 +122,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+        expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
         expect(find.byType(CustomerAccountHeader), findsOneWidget);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
@@ -139,7 +139,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+        expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
         expect(find.byType(CustomerAccountHeader), findsOneWidget);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
