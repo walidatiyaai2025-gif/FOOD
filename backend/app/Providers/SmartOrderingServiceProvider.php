@@ -50,7 +50,7 @@ final class SmartOrderingServiceProvider extends ServiceProvider
             ->name('smart-ordering.')
             ->group(base_path('routes/smart-ordering-api.php'));
 
-        Route::middleware(['web', 'management.dashboard'])
+        Route::middleware(['web', 'management.dashboard', 'restaurant.setup:operations'])
             ->prefix('admin/smart-ordering')
             ->name('admin.smart-ordering.')
             ->group(base_path('routes/smart-ordering-admin.php'));
