@@ -321,6 +321,7 @@ final class LegacyFoodexImportService
                 $postedHeaderMap[$headerId] = [
                     'type' => $type,
                     'store_id' => $storeId,
+                    'trans_date' => $date,
                 ];
 
                 if (in_array($type, $recognizedTypes, true)) {
@@ -362,6 +363,30 @@ final class LegacyFoodexImportService
                 'car_wrapper_headers_17_18' => $carWrapperHeaders,
                 'linked_car_headers' => count($linkedCarHeaders),
             ];
+        });
+
+        $locationNames = $stage('source_location_names', function () use ($source): array {
+            $names = [];
+
+            foreach ($source->table('wh_Stores')->get(['ID', 'Code', 'Name_Ar', 'Name_En']) as $row) {
+                $id = (int) $row->ID;
+                $names[$id] = [
+                    'source_table' => 'wh_Stores',
+                    'code' => $this->legacyText($row->Code ?? null),
+                    'name' => $this->name($row->Name_Ar ?? null, $row->Name_En ?? null, 'Store '.$id),
+                ];
+            }
+
+            foreach ($source->table('wh_Cars')->get(['ID', 'Code', 'Name_Ar', 'Name_En']) as $row) {
+                $id = (int) $row->ID;
+                $names[$id] = [
+                    'source_table' => 'wh_Cars',
+                    'code' => $this->legacyText($row->Code ?? null),
+                    'name' => $this->name($row->Name_Ar ?? null, $row->Name_En ?? null, 'Car '.$id),
+                ];
+            }
+
+            return $names;
         });
 
         $warehouseMappings = $stage('target_mapping_lookup', fn () => [
@@ -608,11 +633,28 @@ final class LegacyFoodexImportService
                                         'item_id' => $itemId,
                                         'quantity' => 0.0,
                                         'movement_lines' => 0,
+                                        'first_date' => null,
+                                        'last_date' => null,
+                                        'by_type' => [],
                                     ];
                                 }
 
-                                $positions[$positionKey]['quantity'] += $movementSigns[$type] * $baseQuantity;
+                                $signedQuantity = $movementSigns[$type] * $baseQuantity;
+                                $positions[$positionKey]['quantity'] += $signedQuantity;
                                 $positions[$positionKey]['movement_lines']++;
+                                $positions[$positionKey]['by_type'][$type] = (
+                                    $positions[$positionKey]['by_type'][$type] ?? 0.0
+                                ) + $signedQuantity;
+
+                                $transDate = $header['trans_date'] ?? null;
+                                if ($transDate !== null) {
+                                    $positions[$positionKey]['first_date'] = $positions[$positionKey]['first_date'] === null
+                                        ? $transDate
+                                        : min($positions[$positionKey]['first_date'], $transDate);
+                                    $positions[$positionKey]['last_date'] = $positions[$positionKey]['last_date'] === null
+                                        ? $transDate
+                                        : max($positions[$positionKey]['last_date'], $transDate);
+                                }
                             }
 
                             if ($progress !== null) {
@@ -639,6 +681,7 @@ final class LegacyFoodexImportService
             $zeroPositions = 0;
             $negativePositions = 0;
             $negativeSamples = [];
+            $negativeStores = [];
 
             foreach ($positions as $position) {
                 $qty = round((float) $position['quantity'], 3);
@@ -646,12 +689,40 @@ final class LegacyFoodexImportService
                     $positivePositions++;
                 } elseif ($qty < -0.0005) {
                     $negativePositions++;
+                    $storeId = (int) $position['store_id'];
+
+                    if (! isset($negativeStores[$storeId])) {
+                        $negativeStores[$storeId] = [
+                            'store_id' => $storeId,
+                            'name' => $locationNames[$storeId]['name'] ?? 'Unknown location '.$storeId,
+                            'source_table' => $locationNames[$storeId]['source_table'] ?? null,
+                            'negative_positions' => 0,
+                            'total_negative_quantity' => 0.0,
+                            'by_type' => [],
+                        ];
+                    }
+
+                    $negativeStores[$storeId]['negative_positions']++;
+                    $negativeStores[$storeId]['total_negative_quantity'] += $qty;
+
+                    foreach ($position['by_type'] as $movementType => $contribution) {
+                        $negativeStores[$storeId]['by_type'][$movementType] = (
+                            $negativeStores[$storeId]['by_type'][$movementType] ?? 0.0
+                        ) + (float) $contribution;
+                    }
+
                     if (count($negativeSamples) < 20) {
                         $negativeSamples[] = [
-                            'store_id' => (int) $position['store_id'],
+                            'store_id' => $storeId,
+                            'store_name' => $locationNames[$storeId]['name'] ?? 'Unknown location '.$storeId,
                             'item_id' => (int) $position['item_id'],
                             'quantity' => $qty,
                             'movement_lines' => (int) $position['movement_lines'],
+                            'first_date' => $position['first_date'],
+                            'last_date' => $position['last_date'],
+                            'by_type' => collect($position['by_type'])
+                                ->map(static fn ($value): float => round((float) $value, 3))
+                                ->all(),
                         ];
                     }
                 } else {
@@ -670,11 +741,30 @@ final class LegacyFoodexImportService
                 'source_detail_rows_scanned' => $processedRows,
             ];
 
+            foreach ($negativeStores as &$negativeStore) {
+                $negativeStore['total_negative_quantity'] = round(
+                    (float) $negativeStore['total_negative_quantity'],
+                    3,
+                );
+                ksort($negativeStore['by_type']);
+                $negativeStore['by_type'] = collect($negativeStore['by_type'])
+                    ->map(static fn ($value): float => round((float) $value, 3))
+                    ->all();
+            }
+            unset($negativeStore);
+
+            usort(
+                $negativeStores,
+                static fn (array $a, array $b): int =>
+                    $b['negative_positions'] <=> $a['negative_positions'],
+            );
+
             $rebuildPreview = [
                 'positions' => count($positions),
                 'positive_positions' => $positivePositions,
                 'zero_positions' => $zeroPositions,
                 'negative_positions' => $negativePositions,
+                'negative_store_summary' => array_values($negativeStores),
                 'negative_samples' => $negativeSamples,
             ];
         } else {
