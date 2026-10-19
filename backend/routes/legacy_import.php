@@ -883,3 +883,198 @@ Artisan::command(
         return 0;
     },
 )->purpose('Inspect specific legacy Foodex sales/return headers and their detail rows.');
+
+
+Artisan::command(
+    'foodex:legacy-sales-history-verify {--json : Output machine-readable JSON}',
+    function (): int {
+        $latestRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'sales-history')
+            ->orderByDesc('started_at')
+            ->first(['id', 'status', 'started_at', 'finished_at', 'summary', 'error']);
+
+        if ($latestRun === null) {
+            $this->error('No sales-history import run exists.');
+
+            return 1;
+        }
+
+        $summary = $latestRun->summary === null
+            ? []
+            : (json_decode((string) $latestRun->summary, true) ?: []);
+        $planned = (array) ($summary['planned'] ?? []);
+
+        $expectedOrders = (int) ($planned['sales_headers_materialized'] ?? 0);
+        $expectedItems = (int) ($planned['sales_details'] ?? 0);
+        $expectedPayments = (int) ($planned['payments'] ?? 0);
+        $expectedReturns = (int) ($planned['return_ledger_entries'] ?? 0);
+        $expectedSkipped = (int) ($planned['zero_effect_sales_headers_skipped'] ?? 0);
+
+        $counts = [
+            'orders' => (int) DB::table('orders')->count(),
+            'order_items' => (int) DB::table('order_items')->count(),
+            'order_status_history' => (int) DB::table('order_status_history')->count(),
+            'invoices' => (int) DB::table('invoices')->count(),
+            'invoice_items' => (int) DB::table('invoice_items')->count(),
+            'payments' => (int) DB::table('payments')->count(),
+            'return_ledger_entries' => (int) DB::table('customer_account_ledger_entries')
+                ->where('source', 'legacy_foodex_import')
+                ->where('entry_type', 'return')
+                ->count(),
+        ];
+
+        $mappingCounts = [
+            'orders' => (int) DB::table('legacy_import_mappings')
+                ->where('source_system', 'foodex_sqlserver')
+                ->where('source_table', 'wh_TransHeader')
+                ->where('target_table', 'orders')
+                ->distinct()
+                ->count('target_id'),
+            'invoices' => (int) DB::table('legacy_import_mappings')
+                ->where('source_system', 'foodex_sqlserver')
+                ->where('source_table', 'wh_TransHeader')
+                ->where('target_table', 'invoices')
+                ->distinct()
+                ->count('target_id'),
+            'returns' => (int) DB::table('legacy_import_mappings')
+                ->where('source_system', 'foodex_sqlserver')
+                ->where('source_table', 'wh_TransHeader')
+                ->where('target_table', 'customer_account_ledger_entries')
+                ->distinct()
+                ->count('target_id'),
+        ];
+
+        $skipped = (int) DB::table('legacy_import_quarantine')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_TransHeader')
+            ->where('reason', 'zero_effect_empty_sales_header_skipped')
+            ->whereNotNull('resolved_at')
+            ->count();
+
+        $orphanOrderMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('orders as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_TransHeader')
+            ->where('m.target_table', 'orders')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanInvoiceMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('invoices as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_TransHeader')
+            ->where('m.target_table', 'invoices')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanReturnMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('customer_account_ledger_entries as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_TransHeader')
+            ->where('m.target_table', 'customer_account_ledger_entries')
+            ->whereNull('t.id')
+            ->count();
+
+        $latestStockRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'stock')
+            ->where('status', 'completed')
+            ->orderByDesc('started_at')
+            ->first(['summary']);
+        $stockSummary = $latestStockRun?->summary === null
+            ? []
+            : (json_decode((string) $latestStockRun->summary, true) ?: []);
+        $expectedInventory = (int) data_get($stockSummary, 'inventories.target_total', 0);
+        $currentInventory = (int) DB::table('inventories')->count();
+        $currentNegativeInventory = (int) DB::table('inventories')->where('quantity', '<', 0)->count();
+
+        $healthy = (string) $latestRun->status === 'completed'
+            && $counts['orders'] === $expectedOrders
+            && $counts['invoices'] === $expectedOrders
+            && $counts['order_status_history'] === $expectedOrders
+            && $counts['order_items'] === $expectedItems
+            && $counts['invoice_items'] === $expectedItems
+            && $counts['payments'] === $expectedPayments
+            && $counts['return_ledger_entries'] === $expectedReturns
+            && $mappingCounts['orders'] === $expectedOrders
+            && $mappingCounts['invoices'] === $expectedOrders
+            && $mappingCounts['returns'] === $expectedReturns
+            && $skipped === $expectedSkipped
+            && $orphanOrderMappings === 0
+            && $orphanInvoiceMappings === 0
+            && $orphanReturnMappings === 0
+            && $currentInventory === $expectedInventory
+            && $currentNegativeInventory === 0;
+
+        $report = [
+            'latest_run' => [
+                'id' => (string) $latestRun->id,
+                'status' => (string) $latestRun->status,
+                'error' => $latestRun->error,
+            ],
+            'expected' => [
+                'orders_and_invoices' => $expectedOrders,
+                'items' => $expectedItems,
+                'payments' => $expectedPayments,
+                'returns' => $expectedReturns,
+                'skipped_zero_effect_headers' => $expectedSkipped,
+            ],
+            'actual' => $counts,
+            'mappings' => $mappingCounts,
+            'skipped_zero_effect_headers' => $skipped,
+            'orphan_mappings' => [
+                'orders' => $orphanOrderMappings,
+                'invoices' => $orphanInvoiceMappings,
+                'returns' => $orphanReturnMappings,
+            ],
+            'stock_guard' => [
+                'expected_inventories' => $expectedInventory,
+                'current_inventories' => $currentInventory,
+                'negative_inventories' => $currentNegativeInventory,
+            ],
+            'healthy' => $healthy,
+        ];
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $healthy ? 0 : 1;
+        }
+
+        $this->info('Legacy Foodex sales-history verification');
+        $this->line('Latest run: '.$report['latest_run']['id'].' | status='.$report['latest_run']['status']);
+
+        $this->table(
+            ['Metric', 'Expected', 'Actual'],
+            [
+                ['orders', $expectedOrders, $counts['orders']],
+                ['invoices', $expectedOrders, $counts['invoices']],
+                ['order_status_history', $expectedOrders, $counts['order_status_history']],
+                ['order_items', $expectedItems, $counts['order_items']],
+                ['invoice_items', $expectedItems, $counts['invoice_items']],
+                ['payments', $expectedPayments, $counts['payments']],
+                ['return_ledger_entries', $expectedReturns, $counts['return_ledger_entries']],
+                ['order_mappings', $expectedOrders, $mappingCounts['orders']],
+                ['invoice_mappings', $expectedOrders, $mappingCounts['invoices']],
+                ['return_mappings', $expectedReturns, $mappingCounts['returns']],
+                ['skipped_zero_effect_headers', $expectedSkipped, $skipped],
+                ['inventories_unchanged', $expectedInventory, $currentInventory],
+                ['negative_inventories', 0, $currentNegativeInventory],
+                ['orphan_order_mappings', 0, $orphanOrderMappings],
+                ['orphan_invoice_mappings', 0, $orphanInvoiceMappings],
+                ['orphan_return_mappings', 0, $orphanReturnMappings],
+            ],
+        );
+
+        if ($healthy) {
+            $this->info('Sales-history verification PASSED.');
+
+            return 0;
+        }
+
+        $this->error('Sales-history verification FAILED. Do not continue to the next migration phase.');
+
+        return 1;
+    },
+)->purpose('Verify imported Foodex sales history, provenance mappings, and unchanged stock baseline.');
