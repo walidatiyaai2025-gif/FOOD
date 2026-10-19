@@ -557,6 +557,45 @@ void main() {
     expect(find.byKey(const ValueKey('unified-auth-error')), findsNothing);
   });
 
+  testWidgets(
+      'post-login runtime failure exposes exact auth stage and exception type',
+      (tester) async {
+    await tester.pumpWidget(
+      _testApp(
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, __, ___) async {
+            throw StateError('session-commit-failed');
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'correct-password',
+    );
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    final detail = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('unified-auth-error-detail')),
+    );
+    expect(
+      detail.data,
+      contains('AUTH-DIAG [session_commit_and_route] StateError'),
+    );
+    expect(detail.data, contains('session-commit-failed'));
+  });
+
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
     await tester.pumpWidget(
