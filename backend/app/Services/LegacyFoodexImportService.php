@@ -6146,7 +6146,11 @@ SQL));
         $unmappedSuppliers = [];
         $unmappedStores = [];
         $invalidDates = [];
-        $nonPositiveAmounts = [];
+        $zeroAmountRows = [];
+        $zeroAmountCount = 0;
+        $negativeAmounts = [];
+        $negativeAmountCount = 0;
+        $invoiceReceiptAggregates = [];
         $missingDirectPayments = [];
         $missingDirectPaymentCount = 0;
         $directPaymentAmountMismatches = [];
@@ -6187,7 +6191,11 @@ SQL));
             &$unmappedSuppliers,
             &$unmappedStores,
             &$invalidDates,
-            &$nonPositiveAmounts,
+            &$zeroAmountRows,
+            &$zeroAmountCount,
+            &$negativeAmounts,
+            &$negativeAmountCount,
+            &$invoiceReceiptAggregates,
             &$missingDirectPayments,
             &$missingDirectPaymentCount,
             &$directPaymentAmountMismatches,
@@ -6235,8 +6243,16 @@ SQL));
                     $invalidDates[$id] = (int) ($row->TransDate ?? 0);
                 }
 
-                if ($amount <= 0.0005) {
-                    $nonPositiveAmounts[$id] = $amount;
+                if ($amount < -0.0005) {
+                    $negativeAmountCount++;
+                    if (count($negativeAmounts) < 30) {
+                        $negativeAmounts[$id] = $amount;
+                    }
+                } elseif (abs($amount) <= 0.0005) {
+                    $zeroAmountCount++;
+                    if (count($zeroAmountRows) < 30) {
+                        $zeroAmountRows[$id] = $amount;
+                    }
                 }
 
                 if (in_array($type, [1, 2, 6], true)) {
@@ -6274,20 +6290,22 @@ SQL));
                                 'has_invoice' => $invoiceId !== null,
                             ];
                         }
-                    } else {
-                        $difference = round($amount - (float) $payment['amount'], 3);
-                        if (abs($difference) > 0.010) {
-                            $directPaymentAmountMismatchCount++;
-                            if (count($directPaymentAmountMismatches) < 30) {
-                                $directPaymentAmountMismatches[] = [
-                                'pr_id' => $id,
-                                'invoice_header_id' => $invoiceHeaderId,
-                                'pr_amount' => $amount,
-                                'payment_amount' => $payment['amount'],
-                                'difference' => $difference,
-                                ];
-                            }
-                        }
+                    }
+
+                    if (! isset($invoiceReceiptAggregates[$invoiceHeaderId])) {
+                        $invoiceReceiptAggregates[$invoiceHeaderId] = [
+                            'rows' => 0,
+                            'amount' => 0.0,
+                            'pr_ids' => [],
+                        ];
+                    }
+                    $invoiceReceiptAggregates[$invoiceHeaderId]['rows']++;
+                    $invoiceReceiptAggregates[$invoiceHeaderId]['amount'] = round(
+                        (float) $invoiceReceiptAggregates[$invoiceHeaderId]['amount'] + $amount,
+                        3,
+                    );
+                    if (count($invoiceReceiptAggregates[$invoiceHeaderId]['pr_ids']) < 10) {
+                        $invoiceReceiptAggregates[$invoiceHeaderId]['pr_ids'][] = $id;
                     }
 
                     $duplicatePaymentRows++;
@@ -6296,14 +6314,18 @@ SQL));
                 }
 
                 if ($classification === 'account_receipt' || $classification === 'cheque_receipt') {
-                    $ledgerCreditRows++;
-                    $ledgerCreditValue = round($ledgerCreditValue + $amount, 3);
+                    if ($amount > 0.0005) {
+                        $ledgerCreditRows++;
+                        $ledgerCreditValue = round($ledgerCreditValue + $amount, 3);
+                    }
                     continue;
                 }
 
                 if ($classification === 'customer_refund') {
-                    $ledgerDebitRows++;
-                    $ledgerDebitValue = round($ledgerDebitValue + $amount, 3);
+                    if ($amount > 0.0005) {
+                        $ledgerDebitRows++;
+                        $ledgerDebitValue = round($ledgerDebitValue + $amount, 3);
+                    }
 
                     if ($invoiceHeaderId > 0) {
                         $returnLedgerId = $maps['return_ledger_targets'][$invoiceHeaderId] ?? null;
@@ -6341,6 +6363,29 @@ SQL));
             }
         });
 
+        foreach ($invoiceReceiptAggregates as $invoiceHeaderId => $aggregate) {
+            $payment = $maps['payments_by_header'][$invoiceHeaderId] ?? null;
+            if ($payment === null) {
+                continue;
+            }
+
+            $aggregateAmount = round((float) $aggregate['amount'], 3);
+            $difference = round($aggregateAmount - (float) $payment['amount'], 3);
+            if (abs($difference) > 0.010) {
+                $directPaymentAmountMismatchCount++;
+                if (count($directPaymentAmountMismatches) < 30) {
+                    $directPaymentAmountMismatches[] = [
+                        'invoice_header_id' => (int) $invoiceHeaderId,
+                        'pr_rows' => (int) $aggregate['rows'],
+                        'pr_ids' => $aggregate['pr_ids'],
+                        'pr_amount_sum' => $aggregateAmount,
+                        'payment_amount' => $payment['amount'],
+                        'difference' => $difference,
+                    ];
+                }
+            }
+        }
+
         ksort($typeCounts);
         ksort($classificationCounts);
 
@@ -6352,7 +6397,10 @@ SQL));
             &$unmappedCustomers,
             &$unmappedSuppliers,
             &$invalidDates,
-            &$nonPositiveAmounts,
+            &$zeroAmountRows,
+            &$zeroAmountCount,
+            &$negativeAmounts,
+            &$negativeAmountCount,
         ): void {
             foreach (
                 $source->table('wh_InOutBank')
@@ -6370,8 +6418,16 @@ SQL));
                     $invalidDates['bank:'.$id] = (int) ($row->TransDate ?? 0);
                 }
 
-                if ($amount <= 0.0005) {
-                    $nonPositiveAmounts['bank:'.$id] = $amount;
+                if ($amount < -0.0005) {
+                    $negativeAmountCount++;
+                    if (count($negativeAmounts) < 30) {
+                        $negativeAmounts['bank:'.$id] = $amount;
+                    }
+                } elseif (abs($amount) <= 0.0005) {
+                    $zeroAmountCount++;
+                    if (count($zeroAmountRows) < 30) {
+                        $zeroAmountRows['bank:'.$id] = $amount;
+                    }
                 }
 
                 if ($customerId > 0 && ! isset($maps['customers'][$customerId])) {
@@ -6403,7 +6459,9 @@ SQL));
             'unmapped_suppliers' => count($unmappedSuppliers),
             'unmapped_stores_nonblocking' => count($unmappedStores),
             'invalid_dates' => count($invalidDates),
-            'nonpositive_amounts' => count($nonPositiveAmounts),
+            'zero_amount_rows_nonblocking' => $zeroAmountCount,
+            'negative_amounts' => $negativeAmountCount,
+            'invoice_receipt_groups' => count($invoiceReceiptAggregates),
             'missing_direct_payments' => $missingDirectPaymentCount,
             'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
             'missing_return_links' => $missingReturnLinkCount,
@@ -6427,7 +6485,8 @@ SQL));
                     'unmapped_suppliers' => array_slice(array_keys($unmappedSuppliers), 0, 30),
                     'unmapped_stores_nonblocking' => array_slice(array_keys($unmappedStores), 0, 30),
                     'invalid_dates' => array_slice($invalidDates, 0, 30, true),
-                    'nonpositive_amounts' => array_slice($nonPositiveAmounts, 0, 30, true),
+                    'zero_amount_rows_nonblocking' => $zeroAmountRows,
+                    'negative_amounts' => $negativeAmounts,
                     'missing_direct_payments' => $missingDirectPayments,
                     'direct_payment_amount_mismatches' => $directPaymentAmountMismatches,
                     'missing_return_links' => $missingReturnLinks,
@@ -6436,7 +6495,9 @@ SQL));
                 ],
                 'rules' => [
                     'gl_source_is_empty' => true,
-                    'pr_trans_type_1_invoice_link_deduplicates_existing_payment' => true,
+                    'pr_trans_type_1_invoice_link_deduplicates_existing_payment_by_invoice_aggregate' => true,
+                    'zero_amount_rows_are_preserved_without_ledger_effect' => true,
+                    'negative_amount_rows_block_apply' => true,
                     'pr_trans_type_1_unlinked_creates_customer_credit' => true,
                     'pr_trans_type_6_creates_customer_credit' => true,
                     'pr_trans_type_2_creates_customer_refund_debit' => true,
@@ -6452,7 +6513,7 @@ SQL));
             'unmapped_customers' => count($unmappedCustomers),
             'unmapped_suppliers' => count($unmappedSuppliers),
             'invalid_dates' => count($invalidDates),
-            'nonpositive_amounts' => count($nonPositiveAmounts),
+            'negative_amounts' => $negativeAmountCount,
             'missing_direct_payments' => $missingDirectPaymentCount,
             'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
             'missing_return_links' => $missingReturnLinkCount,
@@ -6600,7 +6661,10 @@ SQL));
                                     $invoiceId = $payment['invoice_id'];
                                     $orderId = $payment['order_id'];
                                     $balanceEffect = 'existing_payment_credit';
-                                } elseif ($classification === 'account_receipt' || $classification === 'cheque_receipt') {
+                                } elseif (
+                                    ($classification === 'account_receipt' || $classification === 'cheque_receipt')
+                                    && $amount > 0.0005
+                                ) {
                                     $ledgerReference = 'FDX-PR-'.$id;
                                     $balanceEffect = 'credit';
                                     $ledgerRows[] = [
@@ -6635,7 +6699,7 @@ SQL));
                                     ];
                                     $ledgerSource[$ledgerReference] = $id;
                                     $ledgerCredits = round($ledgerCredits + $amount, 3);
-                                } elseif ($classification === 'customer_refund') {
+                                } elseif ($classification === 'customer_refund' && $amount > 0.0005) {
                                     $ledgerReference = 'FDX-PR-'.$id;
                                     $balanceEffect = 'debit';
 
@@ -6674,6 +6738,10 @@ SQL));
                                     ];
                                     $ledgerSource[$ledgerReference] = $id;
                                     $ledgerDebits = round($ledgerDebits + $amount, 3);
+                                }
+
+                                if (abs($amount) <= 0.0005 && $balanceEffect === 'none') {
+                                    $balanceEffect = 'zero_effect';
                                 }
 
                                 $prepared[$id] = [
