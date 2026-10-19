@@ -55,6 +55,10 @@ Route::prefix('admin/smart-ordering')
             Route::put('/menu/options/{option}/branch', [SmartOrderingMenuAdminController::class, 'optionBranch'])->whereNumber('option')->name('menu.options.branch');
             Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
             Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
+            Route::get('/menu/site-qr/{site}/asset.svg', [SmartOrderingMenuAdminController::class, 'siteQrSvg'])
+                ->whereNumber('site')->name('menu.site-qr.svg');
+            Route::get('/menu/site-qr/{site}/asset.pdf', [SmartOrderingMenuAdminController::class, 'siteQrPdf'])
+                ->whereNumber('site')->name('menu.site-qr.pdf');
             Route::post('/menu/unpublish', [SmartOrderingMenuAdminController::class, 'unpublish'])->name('menu.unpublish');
             Route::post('/menu/revisions/{revision}/schedule', [SmartOrderingMenuAdminController::class, 'schedulePublish'])->whereNumber('revision')->name('menu.schedule');
 
