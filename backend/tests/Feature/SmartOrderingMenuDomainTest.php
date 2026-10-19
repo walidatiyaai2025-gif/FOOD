@@ -323,6 +323,8 @@ class SmartOrderingMenuDomainTest extends TestCase
             'name_en' => 'Launch Item',
             'price_override' => 5.000,
         ]);
+        $runtimeBefore = (string) $fixture['site']->runtime_state;
+        $masterBefore = (bool) $fixture['site']->master_enabled;
 
         $this->actingAs($fixture['admin'])
             ->post(route('admin.smart-ordering.menu.publish', $draft), [
@@ -335,8 +337,8 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]));
 
         $site = $fixture['site']->fresh();
-        $this->assertFalse((bool) $site->master_enabled);
-        $this->assertSame('DISABLED', $site->runtime_state);
+        $this->assertSame($masterBefore, (bool) $site->master_enabled);
+        $this->assertSame($runtimeBefore, (string) $site->runtime_state);
         $this->assertNotNull(app(SmartOrderingMenuRevisionService::class)->published($site));
     }
 
