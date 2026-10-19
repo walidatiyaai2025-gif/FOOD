@@ -16,7 +16,9 @@
     $launchReady = [
         'menu' => $setupMenuCount > 0 && $setupCategoryCount > 0 && $setupItemCount > 0,
         'design' => trim((string)$setupCurrentTheme) !== '',
-        'identity' => trim((string)$launchNameEn) !== '' && trim((string)$site->slug) !== '',
+        'identity' => trim((string)$launchNameEn) !== ''
+            && trim((string)$site->slug) !== ''
+            && trim((string)($setupIdentity['cover_url'] ?? '')) !== '',
         'review' => empty($itemPriceErrors),
         'publish' => $publishedRevision instanceof \App\Domain\SmartOrdering\Models\SmartOrderingRevision,
     ];
@@ -332,7 +334,7 @@
                 <div class="rl-check {{ $launchReady['design']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'المظهر':'Design' }}</span><strong>{{ $launchReady['design']?'✓':'!' }}</strong></div>
                 <div class="rl-check {{ $launchReady['identity']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'بيانات المطعم والرابط':'Restaurant identity' }}</span><strong>{{ $launchReady['identity']?'✓':'!' }}</strong></div>
                 <div class="rl-check {{ empty($itemPriceErrors)?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'أسعار الأصناف':'Item prices' }}</span><strong>{{ empty($itemPriceErrors)?'✓':count($itemPriceErrors) }}</strong></div>
-                <div class="rl-check {{ $site->master_enabled?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'التشغيل':'Runtime' }}</span><strong>{{ $site->master_enabled?'✓':'!' }}</strong></div>
+                <div class="rl-check is-ok"><span>{{ $launchIsAr?'التشغيل النهائي':'Final runtime' }}</span><strong>{{ $launchIsAr?'بعد اكتمال الإطلاق':'After launch' }}</strong></div>
                 @if(!empty($itemPriceErrors))<div class="foodex-alert error">{{ $launchIsAr?'يوجد أصناف بدون سعر صالح. ارجع للخطوة الأولى وأكمل الأسعار.':'Some items need a valid price before publishing.' }}</div>@endif
             </div>
         </div>
