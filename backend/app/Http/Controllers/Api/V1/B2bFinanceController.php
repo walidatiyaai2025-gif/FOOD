@@ -8,6 +8,7 @@ use App\Models\B2bCustomer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
@@ -365,21 +366,33 @@ class B2bFinanceController extends Controller
         ];
 
         if ($withItems) {
-            $payload['items'] = InvoiceItem::query()
+            $invoiceItems = InvoiceItem::query()
                 ->where('invoice_id', $invoice->getKey())
                 ->orderBy('id')
-                ->get()
-                ->map(function (InvoiceItem $item) use ($invoice): array {
+                ->get();
+            $productImages = Product::query()
+                ->whereIn(
+                    'id',
+                    $invoiceItems->pluck('product_id')->filter()->unique()->values()->all(),
+                )
+                ->pluck('primary_image_path', 'id');
+
+            $payload['items'] = $invoiceItems
+                ->map(function (InvoiceItem $item) use ($invoice, $productImages): array {
                     $snapshot = $item->getAttribute('line_snapshot');
                     $snapshotSku = is_array($snapshot) && isset($snapshot['sku'])
                         ? (string) $snapshot['sku']
                         : null;
+                    $imagePath = $item->product_id === null
+                        ? null
+                        : $productImages->get((int) $item->product_id);
 
                     return [
                         'id' => (int) $item->getKey(),
                         'product_id' => $item->product_id === null ? null : (int) $item->product_id,
                         'sku' => $item->sku_snapshot ?? $snapshotSku,
                         'description' => (string) $item->description,
+                        'image_url' => $this->assetUrl($imagePath),
                         'quantity' => (float) $item->quantity,
                         'unit_price' => (float) $item->unit_price,
                         'discount_total' => (float) ($item->line_discount_total ?? 0),
@@ -408,6 +421,20 @@ class B2bFinanceController extends Controller
         }
 
         return $payload;
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+        if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 
     /** @param array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} $amounts */

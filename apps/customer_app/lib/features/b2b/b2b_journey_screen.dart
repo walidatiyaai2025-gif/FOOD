@@ -6306,12 +6306,12 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
   }
 
   String _statusLabel(String value, bool ar) => switch (value) {
-        'paid' => ar ? 'مدفوعة' : 'Paid',
-        'partially_paid' => ar ? 'مدفوعة جزئياً' : 'Partially paid',
-        'overdue' => ar ? 'متأخرة' : 'Overdue',
+        'paid' => ar ? 'مسددة' : 'Settled',
+        'partially_paid' => ar ? 'مسددة جزئيًا' : 'Partially settled',
+        'overdue' => ar ? 'متأخرة السداد' : 'Overdue',
         'cancelled' => ar ? 'ملغاة' : 'Cancelled',
-        'credited' => ar ? 'رصيد دائن' : 'Credited',
-        _ => ar ? 'مفتوحة' : 'Open',
+        'credited' => ar ? 'رصيد دائن' : 'Credit balance',
+        _ => ar ? 'مستحقة' : 'Due',
       };
 
   String _ledgerTypeLabel(String value, bool ar) =>
@@ -6379,19 +6379,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
     } finally {
       if (mounted) setState(() => _sharingPdf = false);
     }
-  }
-
-  String? _orderRoute(Map<Object?, Object?> data) {
-    final orderId = int.tryParse(data['order_id']?.toString() ?? '');
-    if (orderId == null || orderId <= 0) return null;
-    final storeId = data['store_id']?.toString();
-    return Uri(
-      path: '/b2b/orders/$orderId',
-      queryParameters: <String, String>{
-        'channel': 'wholesale',
-        if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
-      },
-    ).toString();
   }
 
   Widget _summaryRow(String label, String value, {bool strong = false}) =>
@@ -6487,7 +6474,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
     final ledger = _rows(data['ledger_entries']);
     final status =
         data['display_status']?.toString() ?? data['status']?.toString() ?? '';
-    final orderRoute = _orderRoute(data);
     final credit =
         double.tryParse(data['credit_amount']?.toString() ?? '') ?? 0;
     final outstanding =
@@ -6669,14 +6655,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     label: Text(
                         ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
                   ),
-                  if (orderRoute != null)
-                    FilledButton.tonalIcon(
-                      key: const ValueKey('b2b-invoice-related-order'),
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(orderRoute),
-                      icon: const Icon(Icons.local_shipping_outlined),
-                      label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
-                    ),
                 ],
               ),
             ],
@@ -6700,8 +6678,8 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
             const SizedBox(width: 8),
             _settlementMetric(
               label: credit > 0.0005
-                  ? (ar ? 'لك' : 'Credit')
-                  : (ar ? 'عليك' : 'Outstanding'),
+                  ? (ar ? 'رصيد دائن' : 'Credit')
+                  : (ar ? 'المديونية' : 'Debt'),
               value: credit > 0.0005
                   ? _money(data['credit_amount'], currency)
                   : _money(data['outstanding_amount'], currency),
@@ -6730,10 +6708,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ar ? 'التوصيل / الرسوم' : 'Delivery / fees',
                   _money(data['delivery_total'], currency),
                 ),
-                _summaryRow(
-                  ar ? 'الضريبة' : 'Tax',
-                  _money(data['tax_total'], currency),
-                ),
                 const Divider(),
                 _summaryRow(
                   ar ? 'الإجمالي' : 'Total',
@@ -6746,7 +6720,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 ),
                 if (outstanding > 0.0005)
                   _summaryRow(
-                    ar ? 'المتبقي عليك' : 'Outstanding',
+                    ar ? 'المديونية' : 'Debt',
                     _money(data['outstanding_amount'], currency),
                     strong: true,
                   ),
@@ -6781,40 +6755,47 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
             final itemCurrency = item['currency']?.toString().isNotEmpty == true
                 ? item['currency'].toString()
                 : currency;
-            final discount =
-                double.tryParse(item['discount_total']?.toString() ?? '') ?? 0;
-            final tax =
-                double.tryParse(item['tax_total']?.toString() ?? '') ?? 0;
+            final imageUrl = item['image_url']?.toString().trim() ?? '';
             return Card(
               key: ValueKey('b2b-invoice-item-${item['id']}'),
               child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                padding: const EdgeInsets.all(10),
+                child: Row(
                   children: [
-                    Text(
-                      item['description']?.toString() ?? '—',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    if ((item['sku']?.toString() ?? '').isNotEmpty)
-                      Text('SKU: ${item['sku']}'),
-                    Text(
-                      '${ar ? 'الكمية: ' : 'Qty: '}${item['quantity']} × '
-                      '${_money(item['unit_price'], itemCurrency)}',
-                    ),
-                    if (discount > 0.0005)
-                      Text(
-                        '${ar ? 'خصم: ' : 'Discount: '}'
-                        '${_money(item['discount_total'], itemCurrency)}',
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: imageUrl.isEmpty
+                            ? const ColoredBox(
+                                color: CustomerUiColors.mint,
+                                child: Icon(Icons.inventory_2_outlined),
+                              )
+                            : Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const ColoredBox(
+                                  color: CustomerUiColors.mint,
+                                  child: Icon(Icons.inventory_2_outlined),
+                                ),
+                              ),
                       ),
-                    if (tax > 0.0005)
-                      Text(
-                        '${ar ? 'ضريبة: ' : 'Tax: '}'
-                        '${_money(item['tax_total'], itemCurrency)}',
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${ar ? 'الكمية' : 'Qty'}: ${item['quantity']}',
+                        style: const TextStyle(
+                          color: CustomerUiColors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      '${ar ? 'إجمالي البند: ' : 'Line total: '}'
-                      '${_money(item['line_total'], itemCurrency)}',
+                      _money(item['line_total'], itemCurrency),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -7131,12 +7112,12 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
   String _statusLabel(BuildContext context, String value) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     return switch (value) {
-      'paid' => ar ? 'مدفوعة' : 'Paid',
-      'partially_paid' => ar ? 'مدفوعة جزئياً' : 'Partially paid',
-      'overdue' => ar ? 'متأخرة' : 'Overdue',
+      'paid' => ar ? 'مسددة' : 'Settled',
+      'partially_paid' => ar ? 'مسددة جزئيًا' : 'Partially settled',
+      'overdue' => ar ? 'متأخرة السداد' : 'Overdue',
       'cancelled' => ar ? 'ملغاة' : 'Cancelled',
-      'credited' => ar ? 'رصيد دائن' : 'Credited',
-      _ => ar ? 'مفتوحة' : 'Open',
+      'credited' => ar ? 'رصيد دائن' : 'Credit balance',
+      _ => ar ? 'مستحقة' : 'Due',
     };
   }
 
@@ -7413,7 +7394,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                     '${ar ? 'المدفوع' : 'Paid'}: ${_money(total['paid'], currency)}',
                   ),
                   Text(
-                    '${ar ? 'المتبقي' : 'Outstanding'}: ${_money(total['outstanding'], currency)}',
+                    '${ar ? 'المديونية' : 'Debt'}: ${_money(total['outstanding'], currency)}',
                   ),
                   Text(
                     '${ar ? 'المتأخر' : 'Overdue'}: ${_money(total['overdue'], currency)}',
@@ -7569,7 +7550,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                                 style: compactBodyStyle,
                                 children: [
                                   TextSpan(
-                                    text: '${ar ? 'المتبقي' : 'Outstanding'}: ',
+                                    text: '${ar ? 'المديونية' : 'Debt'}: ',
                                   ),
                                   TextSpan(
                                     text: _money(

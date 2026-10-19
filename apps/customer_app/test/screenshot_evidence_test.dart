@@ -135,6 +135,11 @@ void main() {
       '/b2b/products?channel=wholesale&store_id=7',
       session: _b2b,
     ),
+    const _CaptureCase(
+      '01_Mobile/B2B_Customer/10b_التصنيفات__populated__ar.png',
+      '/b2b/products?channel=wholesale&store_id=7&browse=categories',
+      session: _b2b,
+    ),
     // C13 Screen 11: exact-head product-detail hierarchy evidence.
     const _CaptureCase(
       '01_Mobile/B2B_Customer/11_تفاصيل_المنتج_وإضافة_للسلة__populated__ar.png',
