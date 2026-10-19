@@ -3760,7 +3760,6 @@ class _WholesaleProductDetailsDesignScreenState
                       },
                     ),
                   ],
-                  ),
                 ],
               );
             },
