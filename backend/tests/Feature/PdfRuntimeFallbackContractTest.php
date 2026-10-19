@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\SmartOrderingQrAssetService;
 use Tests\TestCase;
 
 class PdfRuntimeFallbackContractTest extends TestCase
@@ -13,6 +14,15 @@ class PdfRuntimeFallbackContractTest extends TestCase
         $this->assertStringContainsString('ThirdParty/tcpdf/tcpdf.php', $factory);
         $this->assertStringContainsString('require_once $bundledRuntime;', $factory);
         $this->assertStringContainsString('class_exists(TCPDF::class)', $factory);
+    }
+
+    public function test_smart_ordering_qr_svg_generation_returns_renderable_svg(): void
+    {
+        $svg = app(SmartOrderingQrAssetService::class)->svg('https://example.test/menu');
+
+        $this->assertStringContainsString('<svg', $svg);
+        $this->assertStringContainsString('</svg>', $svg);
+        $this->assertStringContainsString('#000000', $svg);
     }
 
     public function test_smart_ordering_qr_assets_keep_bundled_tcpdf_fallback(): void
