@@ -13,6 +13,7 @@ import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/network/customer_data_mode.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_routes.dart';
+import 'core/theme/customer_ui_v3_tokens.dart';
 
 const _startupTaskTimeout = Duration(seconds: 3);
 const _pushBootstrapTimeout = Duration(seconds: 10);
@@ -214,7 +215,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
       return const Directionality(
         textDirection: TextDirection.rtl,
         child: ColoredBox(
-          color: Color(0xFF003223),
+          color: CustomerUiColors.deepGreenStrong,
           child: Center(
             child: SizedBox(
               width: 190,
