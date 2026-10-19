@@ -50,6 +50,7 @@ Compatibility tools remain registered for sales, order summaries/lookups, stores
 - `inventory.snapshot` — latest materialized inventory snapshots;
 - `refunds.summary` — refunds, refunded payments and cancellations;
 - `retailers.performance` — consented B2C sell-out comparison;
+- `retailers.360` — #2220 governed wholesale-facing account intelligence combining supplier-specific sell-in with consented actual sell-out, deterministic health/data-quality evidence and bounded drilldowns; peer benchmarking remains fail-closed until #2229 lands;
 - `wholesale.purchases` — consented retailer procurement totals/units;
 - `margin.summary` — recognized revenue, cost coverage, COGS and gross margin only where product cost is known;
 - `support.summary` — bounded customer-service/SLA workload without customer PII.
