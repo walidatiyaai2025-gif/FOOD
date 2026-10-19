@@ -1,0 +1,66 @@
+name: Diagnostic Customer Auth APK
+
+on:
+  push:
+    branches:
+      - diag/2268-auth-error-apk
+    paths:
+      - .github/workflows/diagnostic-customer-auth-apk.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/customer_app
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Prepare native identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name foodex_customer_app .
+          python3 ../../scripts/configure-mobile-native.py --app customer --app-dir . --platform android
+          rm -f test/widget_test.dart
+          flutter pub get
+      - name: Build diagnostic APK
+        shell: bash
+        env:
+          CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
+          CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
+          CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
+          CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          defines=(--dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com)
+          if [[ -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
+          fi
+          flutter build apk --release --build-name=1.0.94 --build-number="$GITHUB_RUN_NUMBER" "${defines[@]}"
+      - name: Verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp "$apk" "$GITHUB_WORKSPACE/out/FOODEX-Customer-1.0.94-auth-diagnostic.apk"
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-customer-auth-diagnostic-apk
+          path: out/FOODEX-Customer-1.0.94-auth-diagnostic.apk
+          if-no-files-found: error
+          retention-days: 7
