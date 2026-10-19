@@ -17,6 +17,7 @@ final class AssistantAnalyticsTool implements AssistantToolInterface
         'retailers.performance',
         'retailers.360',
         'wholesale.purchases',
+        'forecast.replenishment',
         'margin.summary',
         'support.summary',
     ];
