@@ -186,6 +186,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                           imageUrl: imageUrl,
                           categoryLabel: categoryLabel,
                           discountLabel: discountLabel,
+                          compact: true,
                           onTap: id == null || widget.onOpenProduct == null
                               ? null
                               : () => widget.onOpenProduct!(id),
@@ -204,6 +205,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                                 ),
                                 icon: Icons.favorite_rounded,
                                 selected: true,
+                                selectedColor: CustomerUiColors.destructive,
                                 tooltip: context.tr(
                                   'customer.addresses.delete',
                                 ),
@@ -319,9 +321,9 @@ double _favoriteGridCardExtent(
       .toDouble();
   final imageHeight = imageWidth / 1.35;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
-  final scaledTextAllowance = 210 + (textScale > 1 ? (textScale - 1) * 80 : 0);
+  final scaledTextAllowance = 175 + (textScale > 1 ? (textScale - 1) * 80 : 0);
   final extent = imageHeight + scaledTextAllowance;
-  return (extent < 330 ? 330.0 : extent) * .85;
+  return (extent < 235 ? 235.0 : extent) * .82;
 }
 
 class _ScrollableState extends StatelessWidget {
