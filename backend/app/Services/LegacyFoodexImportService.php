@@ -5988,6 +5988,1069 @@ SQL));
         ];
     }
 
+    public function importFinanceHistory(bool $apply, ?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        foreach (['legacy_finance_transactions', 'legacy_bank_transactions'] as $table) {
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException(
+                    "Missing {$table}. Run php artisan migrate before finance-history import."
+                );
+            }
+        }
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+
+        $maps = $stage('load_finance_history_mappings', function (): array {
+            $map = static function (string $sourceTable, string $targetTable): array {
+                $result = [];
+                foreach (
+                    DB::table('legacy_import_mappings')
+                        ->where('source_system', self::SOURCE_SYSTEM)
+                        ->where('source_table', $sourceTable)
+                        ->where('target_table', $targetTable)
+                        ->get(['source_key', 'target_id']) as $row
+                ) {
+                    $result[(int) $row->source_key] = (int) $row->target_id;
+                }
+
+                return $result;
+            };
+
+            $warehouses = [];
+            foreach (
+                DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
+                    ->where('target_table', 'warehouses')
+                    ->get(['source_key', 'target_id']) as $row
+            ) {
+                $warehouses[(int) $row->source_key] = (int) $row->target_id;
+            }
+
+            $warehouseStores = [];
+            if ($warehouses !== []) {
+                foreach (
+                    DB::table('warehouses')
+                        ->whereIn('id', array_values($warehouses))
+                        ->get(['id', 'store_id']) as $row
+                ) {
+                    $warehouseStores[(int) $row->id] = $row->store_id === null
+                        ? null
+                        : (int) $row->store_id;
+                }
+            }
+
+            $returnLedgerTargets = $map('wh_TransHeader', 'customer_account_ledger_entries');
+            $returnLedgerRows = [];
+            if ($returnLedgerTargets !== []) {
+                foreach (
+                    DB::table('customer_account_ledger_entries')
+                        ->whereIn('id', array_values($returnLedgerTargets))
+                        ->get(['id', 'b2b_customer_id', 'store_id', 'invoice_id', 'order_id']) as $row
+                ) {
+                    $returnLedgerRows[(int) $row->id] = [
+                        'b2b_customer_id' => (int) $row->b2b_customer_id,
+                        'store_id' => $row->store_id === null ? null : (int) $row->store_id,
+                        'invoice_id' => $row->invoice_id === null ? null : (int) $row->invoice_id,
+                        'order_id' => $row->order_id === null ? null : (int) $row->order_id,
+                    ];
+                }
+            }
+
+            $paymentsByHeader = [];
+            foreach (
+                DB::table('payments')
+                    ->where('provider', 'legacy_foodex')
+                    ->where('provider_reference', 'like', 'FDX-PAY-%')
+                    ->get(['id', 'invoice_id', 'order_id', 'provider_reference', 'amount']) as $row
+            ) {
+                if (preg_match('/^FDX-PAY-(\d+)$/', (string) $row->provider_reference, $match) !== 1) {
+                    continue;
+                }
+
+                $paymentsByHeader[(int) $match[1]] = [
+                    'id' => (int) $row->id,
+                    'invoice_id' => $row->invoice_id === null ? null : (int) $row->invoice_id,
+                    'order_id' => $row->order_id === null ? null : (int) $row->order_id,
+                    'amount' => round((float) $row->amount, 3),
+                ];
+            }
+
+            return [
+                'customers' => $map('wh_Customers', 'b2b_customers'),
+                'suppliers' => $map('wh_Suppliers', 'enterprise_suppliers'),
+                'invoices' => $map('wh_TransHeader', 'invoices'),
+                'orders' => $map('wh_TransHeader', 'orders'),
+                'return_ledger_targets' => $returnLedgerTargets,
+                'return_ledger_rows' => $returnLedgerRows,
+                'warehouses' => $warehouses,
+                'warehouse_stores' => $warehouseStores,
+                'payments_by_header' => $paymentsByHeader,
+            ];
+        });
+
+        $typeNames = $stage('load_finance_type_lookup', function () use ($source): array {
+            $result = [];
+            foreach (
+                $source->table('wh_PrTransTypes')
+                    ->orderBy('PrTypeId')
+                    ->get(['PrTypeId', 'PrTypeName', 'PrTypeNameEn']) as $row
+            ) {
+                $result[(int) $row->PrTypeId] = [
+                    'ar' => $this->legacyText($row->PrTypeName ?? null),
+                    'en' => $this->legacyText($row->PrTypeNameEn ?? null),
+                ];
+            }
+
+            return $result;
+        });
+
+        $parseDate = static function (mixed $value): ?string {
+            $date = (int) $value;
+            if ($date <= 0) {
+                return null;
+            }
+
+            $raw = str_pad((string) $date, 8, '0', STR_PAD_LEFT);
+            $parsed = \DateTimeImmutable::createFromFormat('!Ymd', $raw);
+            if ($parsed === false || $parsed->format('Ymd') !== $raw) {
+                return null;
+            }
+
+            return $parsed->format('Y-m-d');
+        };
+
+        $classificationCounts = [];
+        $classificationValues = [];
+        $typeCounts = [];
+        $unknownTypes = [];
+        $unmappedCustomers = [];
+        $unmappedSuppliers = [];
+        $unmappedStores = [];
+        $invalidDates = [];
+        $nonPositiveAmounts = [];
+        $missingDirectPayments = [];
+        $directPaymentAmountMismatches = [];
+        $missingReturnLinks = [];
+        $customerIdentityMismatches = [];
+        $prRows = 0;
+        $bankRows = 0;
+        $ledgerCreditRows = 0;
+        $ledgerCreditValue = 0.0;
+        $ledgerDebitRows = 0;
+        $ledgerDebitValue = 0.0;
+        $duplicatePaymentRows = 0;
+        $duplicatePaymentValue = 0.0;
+
+        $classify = static function (int $type, int $invoiceHeaderId): string {
+            return match ($type) {
+                1 => $invoiceHeaderId > 0 ? 'invoice_receipt_duplicate' : 'account_receipt',
+                2 => 'customer_refund',
+                6 => 'cheque_receipt',
+                7 => 'cheque_payment',
+                default => 'unsupported',
+            };
+        };
+
+        $stage('scan_finance_pr_transactions', function () use (
+            $source,
+            $maps,
+            $parseDate,
+            $classify,
+            &$classificationCounts,
+            &$classificationValues,
+            &$typeCounts,
+            &$unknownTypes,
+            &$unmappedCustomers,
+            &$unmappedSuppliers,
+            &$unmappedStores,
+            &$invalidDates,
+            &$nonPositiveAmounts,
+            &$missingDirectPayments,
+            &$directPaymentAmountMismatches,
+            &$missingReturnLinks,
+            &$customerIdentityMismatches,
+            &$prRows,
+            &$ledgerCreditRows,
+            &$ledgerCreditValue,
+            &$ledgerDebitRows,
+            &$ledgerDebitValue,
+            &$duplicatePaymentRows,
+            &$duplicatePaymentValue,
+        ): void {
+            foreach (
+                $source->table('wh_PrTrans')
+                    ->where('Status', 1)
+                    ->orderBy('ID')
+                    ->cursor() as $row
+            ) {
+                $id = (int) $row->ID;
+                $type = (int) $row->PrTransType;
+                $amount = round((float) ($row->TransVal ?? 0), 3);
+                $customerId = (int) ($row->CustomerId ?? 0);
+                $supplierId = (int) ($row->SupplierId ?? 0);
+                $storeSourceId = (int) ($row->StoreId ?? 0);
+                $invoiceHeaderId = (int) ($row->InvHeaderID ?? 0);
+                $classification = $classify($type, $invoiceHeaderId);
+
+                $prRows++;
+                $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+                $classificationCounts[$classification] = ($classificationCounts[$classification] ?? 0) + 1;
+                $classificationValues[$classification] = round(
+                    ($classificationValues[$classification] ?? 0) + $amount,
+                    3,
+                );
+
+                if ($classification === 'unsupported') {
+                    $unknownTypes[$type] = ($unknownTypes[$type] ?? 0) + 1;
+                }
+
+                if ($parseDate($row->TransDate ?? null) === null) {
+                    $invalidDates[$id] = (int) ($row->TransDate ?? 0);
+                }
+
+                if ($amount <= 0.0005) {
+                    $nonPositiveAmounts[$id] = $amount;
+                }
+
+                if (in_array($type, [1, 2, 6], true)) {
+                    if ($customerId <= 0 || ! isset($maps['customers'][$customerId])) {
+                        $unmappedCustomers[$customerId] = true;
+                    }
+                }
+
+                if ($supplierId > 0 && ! isset($maps['suppliers'][$supplierId])) {
+                    $unmappedSuppliers[$supplierId] = true;
+                }
+
+                if ($storeSourceId > 0) {
+                    $warehouseId = $maps['warehouses'][$storeSourceId] ?? null;
+                    $storeId = $warehouseId === null
+                        ? null
+                        : ($maps['warehouse_stores'][$warehouseId] ?? null);
+                    if ($storeId === null) {
+                        $unmappedStores[$storeSourceId] = true;
+                    }
+                }
+
+                if ($classification === 'invoice_receipt_duplicate') {
+                    $payment = $maps['payments_by_header'][$invoiceHeaderId] ?? null;
+                    $invoiceId = $maps['invoices'][$invoiceHeaderId] ?? null;
+
+                    if ($payment === null || $invoiceId === null) {
+                        if (count($missingDirectPayments) < 30) {
+                            $missingDirectPayments[] = [
+                                'pr_id' => $id,
+                                'invoice_header_id' => $invoiceHeaderId,
+                                'amount' => $amount,
+                                'has_payment' => $payment !== null,
+                                'has_invoice' => $invoiceId !== null,
+                            ];
+                        }
+                    } else {
+                        $difference = round($amount - (float) $payment['amount'], 3);
+                        if (abs($difference) > 0.010 && count($directPaymentAmountMismatches) < 30) {
+                            $directPaymentAmountMismatches[] = [
+                                'pr_id' => $id,
+                                'invoice_header_id' => $invoiceHeaderId,
+                                'pr_amount' => $amount,
+                                'payment_amount' => $payment['amount'],
+                                'difference' => $difference,
+                            ];
+                        }
+                    }
+
+                    $duplicatePaymentRows++;
+                    $duplicatePaymentValue = round($duplicatePaymentValue + $amount, 3);
+                    continue;
+                }
+
+                if ($classification === 'account_receipt' || $classification === 'cheque_receipt') {
+                    $ledgerCreditRows++;
+                    $ledgerCreditValue = round($ledgerCreditValue + $amount, 3);
+                    continue;
+                }
+
+                if ($classification === 'customer_refund') {
+                    $ledgerDebitRows++;
+                    $ledgerDebitValue = round($ledgerDebitValue + $amount, 3);
+
+                    if ($invoiceHeaderId > 0) {
+                        $returnLedgerId = $maps['return_ledger_targets'][$invoiceHeaderId] ?? null;
+                        $returnLedger = $returnLedgerId === null
+                            ? null
+                            : ($maps['return_ledger_rows'][$returnLedgerId] ?? null);
+
+                        if ($returnLedger === null) {
+                            if (count($missingReturnLinks) < 30) {
+                                $missingReturnLinks[] = [
+                                    'pr_id' => $id,
+                                    'return_header_id' => $invoiceHeaderId,
+                                    'customer_id' => $customerId,
+                                ];
+                            }
+                        } elseif (
+                            $customerId > 0
+                            && isset($maps['customers'][$customerId])
+                            && (int) $maps['customers'][$customerId] !== (int) $returnLedger['b2b_customer_id']
+                        ) {
+                            if (count($customerIdentityMismatches) < 30) {
+                                $customerIdentityMismatches[] = [
+                                    'pr_id' => $id,
+                                    'return_header_id' => $invoiceHeaderId,
+                                    'source_customer_id' => $customerId,
+                                    'mapped_customer_id' => $maps['customers'][$customerId],
+                                    'return_customer_id' => $returnLedger['b2b_customer_id'],
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        ksort($typeCounts);
+        ksort($classificationCounts);
+
+        $stage('scan_finance_bank_transactions', function () use (
+            $source,
+            $maps,
+            $parseDate,
+            &$bankRows,
+            &$unmappedCustomers,
+            &$unmappedSuppliers,
+            &$invalidDates,
+            &$nonPositiveAmounts,
+        ): void {
+            foreach (
+                $source->table('wh_InOutBank')
+                    ->where('Status', 1)
+                    ->orderBy('ID')
+                    ->cursor() as $row
+            ) {
+                $id = (int) $row->ID;
+                $bankRows++;
+                $customerId = (int) ($row->CustomerId ?? 0);
+                $supplierId = (int) ($row->SupplierId ?? 0);
+                $amount = round((float) ($row->TransVal ?? 0), 3);
+
+                if ($parseDate($row->TransDate ?? null) === null) {
+                    $invalidDates['bank:'.$id] = (int) ($row->TransDate ?? 0);
+                }
+
+                if ($amount <= 0.0005) {
+                    $nonPositiveAmounts['bank:'.$id] = $amount;
+                }
+
+                if ($customerId > 0 && ! isset($maps['customers'][$customerId])) {
+                    $unmappedCustomers[$customerId] = true;
+                }
+                if ($supplierId > 0 && ! isset($maps['suppliers'][$supplierId])) {
+                    $unmappedSuppliers[$supplierId] = true;
+                }
+            }
+        });
+
+        $targetFinanceRows = (int) DB::table('legacy_finance_transactions')->count();
+        $targetBankRows = (int) DB::table('legacy_bank_transactions')->count();
+        $existingFinanceLedgerRows = (int) DB::table('customer_account_ledger_entries')
+            ->where('source', 'legacy_foodex_finance')
+            ->count();
+
+        $planned = [
+            'active_pr_transactions' => $prRows,
+            'active_bank_transactions' => $bankRows,
+            'invoice_receipt_duplicates' => $duplicatePaymentRows,
+            'invoice_receipt_duplicate_value' => $duplicatePaymentValue,
+            'new_customer_ledger_credits' => $ledgerCreditRows,
+            'new_customer_ledger_credit_value' => $ledgerCreditValue,
+            'new_customer_ledger_debits' => $ledgerDebitRows,
+            'new_customer_ledger_debit_value' => $ledgerDebitValue,
+            'new_customer_ledger_entries' => $ledgerCreditRows + $ledgerDebitRows,
+            'unmapped_customers' => count($unmappedCustomers),
+            'unmapped_suppliers' => count($unmappedSuppliers),
+            'unmapped_stores_nonblocking' => count($unmappedStores),
+            'invalid_dates' => count($invalidDates),
+            'nonpositive_amounts' => count($nonPositiveAmounts),
+            'missing_direct_payments' => count($missingDirectPayments),
+            'direct_payment_amount_mismatches' => count($directPaymentAmountMismatches),
+            'missing_return_links' => count($missingReturnLinks),
+            'customer_identity_mismatches' => count($customerIdentityMismatches),
+            'unsupported_types' => array_sum($unknownTypes),
+            'existing_finance_history_rows' => $targetFinanceRows,
+            'existing_bank_history_rows' => $targetBankRows,
+            'existing_finance_ledger_rows' => $existingFinanceLedgerRows,
+        ];
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'finance-history',
+                'planned' => $planned,
+                'type_counts' => $typeCounts,
+                'classification_counts' => $classificationCounts,
+                'classification_values' => $classificationValues,
+                'samples' => [
+                    'unmapped_customers' => array_slice(array_keys($unmappedCustomers), 0, 30),
+                    'unmapped_suppliers' => array_slice(array_keys($unmappedSuppliers), 0, 30),
+                    'unmapped_stores_nonblocking' => array_slice(array_keys($unmappedStores), 0, 30),
+                    'invalid_dates' => array_slice($invalidDates, 0, 30, true),
+                    'nonpositive_amounts' => array_slice($nonPositiveAmounts, 0, 30, true),
+                    'missing_direct_payments' => $missingDirectPayments,
+                    'direct_payment_amount_mismatches' => $directPaymentAmountMismatches,
+                    'missing_return_links' => $missingReturnLinks,
+                    'customer_identity_mismatches' => $customerIdentityMismatches,
+                    'unsupported_types' => $unknownTypes,
+                ],
+                'rules' => [
+                    'gl_source_is_empty' => true,
+                    'pr_trans_type_1_invoice_link_deduplicates_existing_payment' => true,
+                    'pr_trans_type_1_unlinked_creates_customer_credit' => true,
+                    'pr_trans_type_6_creates_customer_credit' => true,
+                    'pr_trans_type_2_creates_customer_refund_debit' => true,
+                    'pr_trans_type_7_is_preserved_without_customer_ledger_posting' => true,
+                    'bank_in_out_is_preserved_without_customer_ledger_posting' => true,
+                    'does_not_mutate_inventory' => true,
+                    'does_not_create_general_ledger_journals' => true,
+                ],
+            ];
+        }
+
+        $blocking = [
+            'unmapped_customers' => count($unmappedCustomers),
+            'unmapped_suppliers' => count($unmappedSuppliers),
+            'invalid_dates' => count($invalidDates),
+            'nonpositive_amounts' => count($nonPositiveAmounts),
+            'missing_direct_payments' => count($missingDirectPayments),
+            'direct_payment_amount_mismatches' => count($directPaymentAmountMismatches),
+            'missing_return_links' => count($missingReturnLinks),
+            'customer_identity_mismatches' => count($customerIdentityMismatches),
+            'unsupported_types' => array_sum($unknownTypes),
+        ];
+
+        if (array_sum($blocking) !== 0) {
+            throw new RuntimeException(
+                'Finance history apply refused: source-to-target validation has blocking issues. '.
+                json_encode($blocking, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        if ($targetFinanceRows !== 0 || $targetBankRows !== 0 || $existingFinanceLedgerRows !== 0) {
+            throw new RuntimeException(
+                'Finance history apply refused: immutable finance targets are not clean.'
+            );
+        }
+
+        DB::table('legacy_import_runs')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('phase', 'finance-history')
+            ->where('status', 'running')
+            ->update([
+                'status' => 'aborted',
+                'error' => 'Previous finance-history process terminated before completion; target history was clean on retry.',
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'finance-history',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use (
+                $source,
+                $maps,
+                $typeNames,
+                $parseDate,
+                $classify,
+                $planned,
+                $runId,
+                $progress,
+            ): array {
+                $financeCreated = 0;
+                $bankCreated = 0;
+                $ledgerCreated = 0;
+                $duplicatePaymentMappings = 0;
+                $ledgerCredits = 0.0;
+                $ledgerDebits = 0.0;
+                $mappingRows = [];
+
+                $flushMappings = function () use (&$mappingRows): void {
+                    if ($mappingRows === []) {
+                        return;
+                    }
+
+                    DB::table('legacy_import_mappings')->upsert(
+                        $mappingRows,
+                        ['source_system', 'source_table', 'source_key', 'target_table'],
+                        ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                    );
+                    $mappingRows = [];
+                };
+
+                $prChunk = 0;
+                $prScanned = 0;
+                $source->table('wh_PrTrans')
+                    ->where('Status', 1)
+                    ->orderBy('ID')
+                    ->chunkById(
+                        500,
+                        function ($rows) use (
+                            &$financeCreated,
+                            &$ledgerCreated,
+                            &$duplicatePaymentMappings,
+                            &$ledgerCredits,
+                            &$ledgerDebits,
+                            &$mappingRows,
+                            &$prChunk,
+                            &$prScanned,
+                            $maps,
+                            $typeNames,
+                            $parseDate,
+                            $classify,
+                            $runId,
+                            $progress,
+                            $flushMappings,
+                        ): void {
+                            $prChunk++;
+                            $startedAt = microtime(true);
+                            $writeTimestamp = date('Y-m-d H:i:s');
+                            $ledgerRows = [];
+                            $ledgerSource = [];
+                            $prepared = [];
+
+                            foreach ($rows as $row) {
+                                $prScanned++;
+                                $id = (int) $row->ID;
+                                $type = (int) $row->PrTransType;
+                                $amount = round((float) $row->TransVal, 3);
+                                $customerSourceId = (int) ($row->CustomerId ?? 0);
+                                $supplierSourceId = (int) ($row->SupplierId ?? 0);
+                                $storeSourceId = (int) ($row->StoreId ?? 0);
+                                $invoiceHeaderId = (int) ($row->InvHeaderID ?? 0);
+                                $classification = $classify($type, $invoiceHeaderId);
+                                $date = $parseDate($row->TransDate);
+                                if ($date === null) {
+                                    throw new RuntimeException("Validated finance date for PrTrans {$id} became invalid during apply.");
+                                }
+                                $occurredAt = $date.' 00:00:00';
+
+                                $warehouseId = $storeSourceId > 0
+                                    ? ($maps['warehouses'][$storeSourceId] ?? null)
+                                    : null;
+                                $storeId = $warehouseId === null
+                                    ? null
+                                    : ($maps['warehouse_stores'][$warehouseId] ?? null);
+
+                                $b2bCustomerId = $customerSourceId > 0
+                                    ? ($maps['customers'][$customerSourceId] ?? null)
+                                    : null;
+                                $supplierId = $supplierSourceId > 0
+                                    ? ($maps['suppliers'][$supplierSourceId] ?? null)
+                                    : null;
+                                $invoiceId = null;
+                                $orderId = null;
+                                $paymentId = null;
+                                $ledgerReference = null;
+                                $balanceEffect = 'none';
+
+                                if ($classification === 'invoice_receipt_duplicate') {
+                                    $payment = $maps['payments_by_header'][$invoiceHeaderId];
+                                    $paymentId = (int) $payment['id'];
+                                    $invoiceId = $payment['invoice_id'];
+                                    $orderId = $payment['order_id'];
+                                    $balanceEffect = 'existing_payment_credit';
+                                } elseif ($classification === 'account_receipt' || $classification === 'cheque_receipt') {
+                                    $ledgerReference = 'FDX-PR-'.$id;
+                                    $balanceEffect = 'credit';
+                                    $ledgerRows[] = [
+                                        'b2b_customer_id' => $b2bCustomerId,
+                                        'store_id' => $storeId,
+                                        'invoice_id' => null,
+                                        'order_id' => null,
+                                        'entry_type' => 'payment',
+                                        'reference' => $ledgerReference,
+                                        'description' => $classification === 'cheque_receipt'
+                                            ? 'Legacy Foodex cheque receipt / PrTrans '.$id
+                                            : 'Legacy Foodex account receipt / PrTrans '.$id,
+                                        'debit' => 0,
+                                        'credit' => $amount,
+                                        'currency' => 'EGP',
+                                        'actor_user_id' => null,
+                                        'source' => 'legacy_foodex_finance',
+                                        'metadata' => $this->json([
+                                            'source_system' => self::SOURCE_SYSTEM,
+                                            'source_table' => 'wh_PrTrans',
+                                            'source_id' => $id,
+                                            'source_type' => $type,
+                                            'classification' => $classification,
+                                            'payment_type' => (int) ($row->PaymentType ?? 0),
+                                            'pay_type' => (int) ($row->PayType ?? 0),
+                                            'cash_box_no' => (int) ($row->CashBoxNo ?? 0),
+                                            'bank_id' => (int) ($row->BankId ?? 0),
+                                            'run_id' => $runId,
+                                        ]),
+                                        'occurred_at' => $occurredAt,
+                                        'created_at' => $occurredAt,
+                                    ];
+                                    $ledgerSource[$ledgerReference] = $id;
+                                    $ledgerCredits = round($ledgerCredits + $amount, 3);
+                                } elseif ($classification === 'customer_refund') {
+                                    $ledgerReference = 'FDX-PR-'.$id;
+                                    $balanceEffect = 'debit';
+
+                                    if ($invoiceHeaderId > 0) {
+                                        $returnLedgerId = $maps['return_ledger_targets'][$invoiceHeaderId];
+                                        $returnLedger = $maps['return_ledger_rows'][$returnLedgerId];
+                                        $invoiceId = $returnLedger['invoice_id'];
+                                        $orderId = $returnLedger['order_id'];
+                                        $storeId = $returnLedger['store_id'];
+                                    }
+
+                                    $ledgerRows[] = [
+                                        'b2b_customer_id' => $b2bCustomerId,
+                                        'store_id' => $storeId,
+                                        'invoice_id' => $invoiceId,
+                                        'order_id' => $orderId,
+                                        'entry_type' => 'refund',
+                                        'reference' => $ledgerReference,
+                                        'description' => 'Legacy Foodex customer payment/refund / PrTrans '.$id,
+                                        'debit' => $amount,
+                                        'credit' => 0,
+                                        'currency' => 'EGP',
+                                        'actor_user_id' => null,
+                                        'source' => 'legacy_foodex_finance',
+                                        'metadata' => $this->json([
+                                            'source_system' => self::SOURCE_SYSTEM,
+                                            'source_table' => 'wh_PrTrans',
+                                            'source_id' => $id,
+                                            'source_type' => $type,
+                                            'classification' => $classification,
+                                            'source_return_header_id' => $invoiceHeaderId > 0 ? $invoiceHeaderId : null,
+                                            'run_id' => $runId,
+                                        ]),
+                                        'occurred_at' => $occurredAt,
+                                        'created_at' => $occurredAt,
+                                    ];
+                                    $ledgerSource[$ledgerReference] = $id;
+                                    $ledgerDebits = round($ledgerDebits + $amount, 3);
+                                }
+
+                                $prepared[$id] = [
+                                    'source' => (array) $row,
+                                    'source_json' => $this->json((array) $row),
+                                    'classification' => $classification,
+                                    'date' => $date,
+                                    'amount' => $amount,
+                                    'customer_source_id' => $customerSourceId,
+                                    'b2b_customer_id' => $b2bCustomerId,
+                                    'supplier_source_id' => $supplierSourceId,
+                                    'supplier_id' => $supplierId,
+                                    'invoice_header_id' => $invoiceHeaderId,
+                                    'invoice_id' => $invoiceId,
+                                    'order_id' => $orderId,
+                                    'store_id' => $storeId,
+                                    'payment_id' => $paymentId,
+                                    'ledger_reference' => $ledgerReference,
+                                    'balance_effect' => $balanceEffect,
+                                    'type' => $type,
+                                ];
+                            }
+
+                            if ($ledgerRows !== []) {
+                                foreach (array_chunk($ledgerRows, 500) as $chunk) {
+                                    DB::table('customer_account_ledger_entries')->insert($chunk);
+                                }
+                                $ledgerCreated += count($ledgerRows);
+                            }
+
+                            $ledgerIds = [];
+                            if ($ledgerSource !== []) {
+                                foreach (
+                                    DB::table('customer_account_ledger_entries')
+                                        ->where('source', 'legacy_foodex_finance')
+                                        ->whereIn('reference', array_keys($ledgerSource))
+                                        ->get(['id', 'reference']) as $entry
+                                ) {
+                                    $ledgerIds[(string) $entry->reference] = (int) $entry->id;
+                                }
+                            }
+
+                            $historyRows = [];
+                            foreach ($prepared as $id => $item) {
+                                $sourceRow = $item['source'];
+                                $ledgerId = $item['ledger_reference'] === null
+                                    ? null
+                                    : ($ledgerIds[$item['ledger_reference']] ?? null);
+
+                                if ($item['ledger_reference'] !== null && $ledgerId === null) {
+                                    throw new RuntimeException("Finance ledger entry for PrTrans {$id} could not be resolved.");
+                                }
+
+                                $historyRows[] = [
+                                    'source_system' => self::SOURCE_SYSTEM,
+                                    'source_id' => $id,
+                                    'source_type' => $item['type'],
+                                    'type_name_ar' => $typeNames[$item['type']]['ar'] ?? null,
+                                    'type_name_en' => $typeNames[$item['type']]['en'] ?? null,
+                                    'classification' => $item['classification'],
+                                    'transaction_date' => $item['date'],
+                                    'receipt_number' => $this->legacyText($sourceRow['ReceiptNo'] ?? null),
+                                    'amount' => $item['amount'],
+                                    'source_customer_id' => $item['customer_source_id'] > 0 ? $item['customer_source_id'] : null,
+                                    'b2b_customer_id' => $item['b2b_customer_id'],
+                                    'source_supplier_id' => $item['supplier_source_id'] > 0 ? $item['supplier_source_id'] : null,
+                                    'supplier_id' => $item['supplier_id'],
+                                    'source_account_id' => (int) ($sourceRow['AccountID'] ?? 0) > 0
+                                        ? (int) $sourceRow['AccountID']
+                                        : null,
+                                    'source_invoice_header_id' => $item['invoice_header_id'] > 0
+                                        ? $item['invoice_header_id']
+                                        : null,
+                                    'invoice_id' => $item['invoice_id'],
+                                    'order_id' => $item['order_id'],
+                                    'store_id' => $item['store_id'],
+                                    'payment_id' => $item['payment_id'],
+                                    'ledger_entry_id' => $ledgerId,
+                                    'payment_type' => $sourceRow['PaymentType'] === null
+                                        ? null
+                                        : (int) $sourceRow['PaymentType'],
+                                    'pay_type' => $sourceRow['PayType'] === null
+                                        ? null
+                                        : (int) $sourceRow['PayType'],
+                                    'cash_box_no' => (int) ($sourceRow['CashBoxNo'] ?? 0) > 0
+                                        ? (int) $sourceRow['CashBoxNo']
+                                        : null,
+                                    'bank_id' => (int) ($sourceRow['BankId'] ?? 0) > 0
+                                        ? (int) $sourceRow['BankId']
+                                        : null,
+                                    'gl_posted' => (int) ($sourceRow['GlPosted'] ?? 0) === 1,
+                                    'gl_entry_header_id' => (int) ($sourceRow['glEntryHeaderId'] ?? 0) > 0
+                                        ? (int) $sourceRow['glEntryHeaderId']
+                                        : null,
+                                    'balance_effect' => $item['balance_effect'],
+                                    'source_payload' => $item['source_json'],
+                                    'last_run_id' => $runId,
+                                    'created_at' => $writeTimestamp,
+                                    'updated_at' => $writeTimestamp,
+                                ];
+                            }
+
+                            foreach (array_chunk($historyRows, 500) as $chunk) {
+                                DB::table('legacy_finance_transactions')->insert($chunk);
+                            }
+                            $financeCreated += count($historyRows);
+
+                            $historyTargets = DB::table('legacy_finance_transactions')
+                                ->where('source_system', self::SOURCE_SYSTEM)
+                                ->whereIn('source_id', array_keys($prepared))
+                                ->get(['id', 'source_id'])
+                                ->keyBy('source_id');
+
+                            foreach ($prepared as $id => $item) {
+                                $target = $historyTargets->get($id);
+                                if ($target === null) {
+                                    throw new RuntimeException("Inserted finance history row {$id} could not be resolved.");
+                                }
+
+                                $mappingRows[] = [
+                                    'source_system' => self::SOURCE_SYSTEM,
+                                    'source_table' => 'wh_PrTrans',
+                                    'source_key' => (string) $id,
+                                    'target_table' => 'legacy_finance_transactions',
+                                    'target_id' => (int) $target->id,
+                                    'source_hash' => hash('sha256', $item['source_json']),
+                                    'metadata' => $this->json([
+                                        'source' => $item['source'],
+                                        '_migration' => [
+                                            'phase' => 'finance-history',
+                                            'classification' => $item['classification'],
+                                        ],
+                                    ]),
+                                    'last_run_id' => $runId,
+                                    'created_at' => $writeTimestamp,
+                                    'updated_at' => $writeTimestamp,
+                                ];
+
+                                if ($item['payment_id'] !== null) {
+                                    $mappingRows[] = [
+                                        'source_system' => self::SOURCE_SYSTEM,
+                                        'source_table' => 'wh_PrTrans',
+                                        'source_key' => (string) $id,
+                                        'target_table' => 'payments',
+                                        'target_id' => (int) $item['payment_id'],
+                                        'source_hash' => hash('sha256', $item['source_json']),
+                                        'metadata' => $this->json([
+                                            'source' => $item['source'],
+                                            '_migration' => [
+                                                'phase' => 'finance-history',
+                                                'classification' => 'invoice_receipt_duplicate',
+                                                'decision' => 'linked_existing_sales_history_payment',
+                                            ],
+                                        ]),
+                                        'last_run_id' => $runId,
+                                        'created_at' => $writeTimestamp,
+                                        'updated_at' => $writeTimestamp,
+                                    ];
+                                    $duplicatePaymentMappings++;
+                                }
+
+                                $ledgerId = $item['ledger_reference'] === null
+                                    ? null
+                                    : ($ledgerIds[$item['ledger_reference']] ?? null);
+                                if ($ledgerId !== null) {
+                                    $mappingRows[] = [
+                                        'source_system' => self::SOURCE_SYSTEM,
+                                        'source_table' => 'wh_PrTrans',
+                                        'source_key' => (string) $id,
+                                        'target_table' => 'customer_account_ledger_entries',
+                                        'target_id' => $ledgerId,
+                                        'source_hash' => hash('sha256', $item['source_json']),
+                                        'metadata' => $this->json([
+                                            'source' => $item['source'],
+                                            '_migration' => [
+                                                'phase' => 'finance-history',
+                                                'classification' => $item['classification'],
+                                            ],
+                                        ]),
+                                        'last_run_id' => $runId,
+                                        'created_at' => $writeTimestamp,
+                                        'updated_at' => $writeTimestamp,
+                                    ];
+                                }
+                            }
+
+                            if (count($mappingRows) >= 1000) {
+                                $flushMappings();
+                            }
+
+                            if ($progress !== null) {
+                                $progress(
+                                    'materialize_finance_pr_chunk_'.$prChunk.'_rows_'.$prScanned,
+                                    'done',
+                                    round(microtime(true) - $startedAt, 3),
+                                );
+                            }
+                        },
+                        'ID',
+                        'ID',
+                    );
+
+                $bankChunk = 0;
+                $bankScanned = 0;
+                $source->table('wh_InOutBank')
+                    ->where('Status', 1)
+                    ->orderBy('ID')
+                    ->chunkById(
+                        500,
+                        function ($rows) use (
+                            &$bankCreated,
+                            &$mappingRows,
+                            &$bankChunk,
+                            &$bankScanned,
+                            $maps,
+                            $parseDate,
+                            $runId,
+                            $progress,
+                            $flushMappings,
+                        ): void {
+                            $bankChunk++;
+                            $startedAt = microtime(true);
+                            $writeTimestamp = date('Y-m-d H:i:s');
+                            $historyRows = [];
+                            $sourcePayloads = [];
+
+                            foreach ($rows as $row) {
+                                $bankScanned++;
+                                $id = (int) $row->ID;
+                                $date = $parseDate($row->TransDate);
+                                if ($date === null) {
+                                    throw new RuntimeException("Validated bank date for InOutBank {$id} became invalid during apply.");
+                                }
+
+                                $sourceArray = (array) $row;
+                                $sourceJson = $this->json($sourceArray);
+                                $customerSourceId = (int) ($row->CustomerId ?? 0);
+                                $supplierSourceId = (int) ($row->SupplierId ?? 0);
+
+                                $historyRows[] = [
+                                    'source_system' => self::SOURCE_SYSTEM,
+                                    'source_id' => $id,
+                                    'source_type' => (int) $row->TransType,
+                                    'transaction_date' => $date,
+                                    'receipt_number' => $this->legacyText($row->ReceiptNo ?? null),
+                                    'amount' => round((float) $row->TransVal, 3),
+                                    'bank_id' => (int) ($row->BankId ?? 0) > 0 ? (int) $row->BankId : null,
+                                    'source_customer_id' => $customerSourceId > 0 ? $customerSourceId : null,
+                                    'b2b_customer_id' => $customerSourceId > 0
+                                        ? ($maps['customers'][$customerSourceId] ?? null)
+                                        : null,
+                                    'source_supplier_id' => $supplierSourceId > 0 ? $supplierSourceId : null,
+                                    'supplier_id' => $supplierSourceId > 0
+                                        ? ($maps['suppliers'][$supplierSourceId] ?? null)
+                                        : null,
+                                    'source_account_id' => (int) ($row->AccountID ?? 0) > 0
+                                        ? (int) $row->AccountID
+                                        : null,
+                                    'gl_posted' => (int) ($row->GlPosted ?? 0) === 1,
+                                    'gl_entry_header_id' => (int) ($row->glEntryHeaderId ?? 0) > 0
+                                        ? (int) $row->glEntryHeaderId
+                                        : null,
+                                    'source_payload' => $sourceJson,
+                                    'last_run_id' => $runId,
+                                    'created_at' => $writeTimestamp,
+                                    'updated_at' => $writeTimestamp,
+                                ];
+                                $sourcePayloads[$id] = [
+                                    'array' => $sourceArray,
+                                    'json' => $sourceJson,
+                                ];
+                            }
+
+                            foreach (array_chunk($historyRows, 500) as $chunk) {
+                                DB::table('legacy_bank_transactions')->insert($chunk);
+                            }
+                            $bankCreated += count($historyRows);
+
+                            $targets = DB::table('legacy_bank_transactions')
+                                ->where('source_system', self::SOURCE_SYSTEM)
+                                ->whereIn('source_id', array_keys($sourcePayloads))
+                                ->get(['id', 'source_id'])
+                                ->keyBy('source_id');
+
+                            foreach ($sourcePayloads as $id => $payload) {
+                                $target = $targets->get($id);
+                                if ($target === null) {
+                                    throw new RuntimeException("Inserted bank history row {$id} could not be resolved.");
+                                }
+
+                                $mappingRows[] = [
+                                    'source_system' => self::SOURCE_SYSTEM,
+                                    'source_table' => 'wh_InOutBank',
+                                    'source_key' => (string) $id,
+                                    'target_table' => 'legacy_bank_transactions',
+                                    'target_id' => (int) $target->id,
+                                    'source_hash' => hash('sha256', $payload['json']),
+                                    'metadata' => $this->json([
+                                        'source' => $payload['array'],
+                                        '_migration' => [
+                                            'phase' => 'finance-history',
+                                            'decision' => 'preserve_only_no_ledger_posting',
+                                        ],
+                                    ]),
+                                    'last_run_id' => $runId,
+                                    'created_at' => $writeTimestamp,
+                                    'updated_at' => $writeTimestamp,
+                                ];
+                            }
+
+                            if (count($mappingRows) >= 1000) {
+                                $flushMappings();
+                            }
+
+                            if ($progress !== null) {
+                                $progress(
+                                    'materialize_finance_bank_chunk_'.$bankChunk.'_rows_'.$bankScanned,
+                                    'done',
+                                    round(microtime(true) - $startedAt, 3),
+                                );
+                            }
+                        },
+                        'ID',
+                        'ID',
+                    );
+
+                $flushMappings();
+
+                $targetFinanceRows = (int) DB::table('legacy_finance_transactions')->count();
+                $targetBankRows = (int) DB::table('legacy_bank_transactions')->count();
+                $targetLedgerRows = (int) DB::table('customer_account_ledger_entries')
+                    ->where('source', 'legacy_foodex_finance')
+                    ->count();
+
+                if (
+                    $targetFinanceRows !== (int) $planned['active_pr_transactions']
+                    || $targetBankRows !== (int) $planned['active_bank_transactions']
+                    || $targetLedgerRows !== (int) $planned['new_customer_ledger_entries']
+                    || $duplicatePaymentMappings !== (int) $planned['invoice_receipt_duplicates']
+                ) {
+                    throw new RuntimeException(
+                        'Finance history target validation failed: target counts do not match planned counts.'
+                    );
+                }
+
+                return [
+                    'run_id' => $runId,
+                    'planned' => $planned,
+                    'finance_history' => ['created' => $financeCreated],
+                    'bank_history' => ['created' => $bankCreated],
+                    'customer_ledger' => [
+                        'created' => $ledgerCreated,
+                        'credits' => round($ledgerCredits, 3),
+                        'debits' => round($ledgerDebits, 3),
+                    ],
+                    'duplicate_existing_payment_mappings' => $duplicatePaymentMappings,
+                    'target' => [
+                        'finance_history' => $targetFinanceRows,
+                        'bank_history' => $targetBankRows,
+                        'customer_ledger' => $targetLedgerRows,
+                    ],
+                    'inventory_mutations' => 0,
+                    'general_ledger_mutations' => 0,
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'finance-history',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
