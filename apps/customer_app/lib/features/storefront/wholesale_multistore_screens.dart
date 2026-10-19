@@ -6105,18 +6105,22 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.status'),
                                 _orderStatusText(context, status),
                               ),
-                              (
-                                context.tr('b2b.order.created_at'),
-                                _friendlyOrderDate(
-                                    order['created_at']?.toString()),
-                              ),
+                              if (payment != null)
+                                (
+                                  context.tr('b2b.order.payment_status'),
+                                  _paymentStatusText(
+                                    context,
+                                    payment['status']?.toString() ?? '',
+                                  ),
+                                ),
                               (
                                 context.tr('b2b.order.total'),
                                 money(total, currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.payment_method'),
-                                _paymentMethodText(context, paymentMethod),
+                                context.tr('b2b.order.created_at'),
+                                _friendlyOrderDate(
+                                    order['created_at']?.toString()),
                               ),
                             ],
                           ),
@@ -6240,35 +6244,14 @@ class _WholesaleOrderDetailsDesignScreenState
                                     currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.tax'),
-                                money(order['tax_total'], currency: currency),
-                              ),
-                              (
                                 context.tr('b2b.order.delivery_fee'),
                                 money(order['delivery_total'],
                                     currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.grand_total'),
-                                money(total, currency: currency),
-                              ),
-                            ],
-                          ),
-                          _OrderDetailCard(
-                            title: context.tr('b2b.order.payment'),
-                            rows: [
-                              (
                                 context.tr('b2b.order.payment_method'),
                                 _paymentMethodText(context, paymentMethod),
                               ),
-                              if (payment != null)
-                                (
-                                  context.tr('b2b.order.payment_status'),
-                                  _paymentStatusText(
-                                    context,
-                                    payment['status']?.toString() ?? '',
-                                  ),
-                                ),
                               if (accountCredit != null)
                                 (
                                   context.tr('b2b.order.account_credit_impact'),
@@ -6279,6 +6262,10 @@ class _WholesaleOrderDetailsDesignScreenState
                                             currency,
                                   ),
                                 ),
+                              (
+                                context.tr('b2b.order.grand_total'),
+                                money(total, currency: currency),
+                              ),
                             ],
                           ),
                           if (invoice != null &&
@@ -6296,7 +6283,10 @@ class _WholesaleOrderDetailsDesignScreenState
                                 ),
                                 (
                                   context.tr('b2b.invoice.payment_status'),
-                                  invoice['status']?.toString() ?? '-',
+                                  _invoiceStatusText(
+                                    context,
+                                    invoice['status']?.toString() ?? '',
+                                  ),
                                 ),
                               ],
                             ),
@@ -6443,6 +6433,27 @@ String _paymentStatusText(BuildContext context, String status) {
   }
 }
 
+String _invoiceStatusText(BuildContext context, String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'paid':
+    case 'settled':
+      return context.tr('b2b.invoice.status.settled');
+    case 'partially_paid':
+      return context.tr('b2b.invoice.status.partially_settled');
+    case 'overdue':
+      return context.tr('b2b.invoice.status.overdue');
+    case 'cancelled':
+    case 'canceled':
+    case 'void':
+    case 'voided':
+      return context.tr('b2b.invoice.status.cancelled');
+    case 'credited':
+      return context.tr('b2b.invoice.status.credited');
+    default:
+      return context.tr('b2b.invoice.status.due');
+  }
+}
+
 String _failureReasonText(BuildContext context, String reason) {
   switch (reason) {
     case 'customer_no_answer':
@@ -6573,88 +6584,59 @@ class _OrderLineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = item['image_url']?.toString() ?? '';
-    final sku = item['sku']?.toString() ?? '';
-    final pack =
-        _numberValue(item['pack_size'] ?? item['quantity_conversion_factor']) ??
-            1;
+    final quantity = item['quantity']?.toString() ?? '-';
+    final total = money(item['line_total'], currency: currency);
 
     return Container(
       key: ValueKey('b2b-order-line-${item['id'] ?? item['product_id']}'),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE9E3F0)),
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(15),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: imageUrl.isEmpty
-                      ? const ColoredBox(
-                          color: Color(0xFFF1F5F2),
-                          child: Icon(Icons.inventory_2_outlined),
-                        )
-                      : Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: Color(0xFFF1F5F2),
-                            child: Icon(Icons.inventory_2_outlined),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['name']?.toString() ??
-                          item['name_snapshot']?.toString() ??
-                          '-',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    if (sku.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        sku,
-                        style: const TextStyle(
-                          color: Color(0xFF667085),
-                          fontSize: 12,
-                        ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 54,
+              height: 54,
+              child: imageUrl.isEmpty
+                  ? const ColoredBox(
+                      color: Color(0xFFF1F5F2),
+                      child: Icon(Icons.inventory_2_outlined),
+                    )
+                  : Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: Color(0xFFF1F5F2),
+                        child: Icon(Icons.inventory_2_outlined),
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${context.tr('b2b.order.quantity')}: $quantity',
+              style: const TextStyle(
+                color: Color(0xFF6B7785),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.quantity'),
-            value: item['quantity']?.toString() ?? '-',
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.pack'),
-            value: compactNumber(pack),
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.unit_price'),
-            value: money(item['unit_price'], currency: currency),
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.line_total'),
-            value: money(item['line_total'], currency: currency),
+          const SizedBox(width: 8),
+          Text(
+            total,
+            style: const TextStyle(
+              color: Color(0xFF10233F),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
