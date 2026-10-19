@@ -109,6 +109,11 @@ final class AssistantToolDefinitionCatalog
         $add('retailers.performance', 'Compare consented retailer sell-out performance without direct SQL.', 'مقارنة أداء البيع للمستهلك لدى تجار التجزئة الموافقين بدون SQL مباشر.', ['reports.view'], 'all', ['b2b', 'b2c'], $analyticsSchema, 'AnalyticsReadModelService', 'SELL_OUT', true, 1000, 3000, ['stale_after_minutes' => 20]);
         $add('retailers.360', 'Build a governed 360 view of consented retailer sell-in, actual sell-out, account health and drilldowns.', 'إنشاء رؤية 360 محكومة لمشتريات تاجر التجزئة والبيع الفعلي للمستهلك وصحة الحساب والتفاصيل.', ['reports.view'], 'all', ['b2b'], $analyticsSchema, 'Retailer360IntelligenceService', 'SELL_OUT', true, 1000, 4000, ['stale_after_minutes' => 20]);
         $add('wholesale.purchases', 'Summarize consented retailer wholesale purchases and received units.', 'تلخيص مشتريات الجملة والوحدات المستلمة لتجار التجزئة الموافقين.', ['reports.view'], 'all', ['b2b', 'b2c'], $analyticsSchema, 'AnalyticsReadModelService', 'SELL_OUT', true, 1000, 3000, ['stale_after_minutes' => 20]);
+        $forecastSchema = self::schema([
+            'retailer_store_ids' => ['type' => 'array', 'items' => self::integer(), 'maxItems' => 25, 'uniqueItems' => true],
+            'horizon_days' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 90],
+        ]);
+        $add('forecast.replenishment', 'Forecast retailer demand and compute governed replenishment recommendations with backtesting.', 'توقع طلب تجار التجزئة وحساب توصيات إعادة التوريد المصرح بها مع الاختبار الخلفي.', ['reports.view'], 'all', ['b2b', 'b2c'], $forecastSchema, 'DemandForecastReplenishmentService', 'SELL_OUT', true, 1000, 3500, ['stale_after_minutes' => 20]);
         $add('margin.summary', 'Compute authorized gross margin only where cost coverage exists.', 'حساب هامش الربح المصرح به فقط عند توفر تغطية التكلفة.', ['reports.view', 'catalog.view'], 'all', ['b2b', 'b2c'], $period, 'AssistantAnalyticsReadService', rowLimit: 1000);
         $add('support.summary', 'Summarize authorized customer-service workload and SLA risk.', 'تلخيص عبء خدمة العملاء ومخاطر اتفاقية مستوى الخدمة المصرح بها.', ['customers.view', 'b2b.accounts.view', 'whatsapp.inbox.view'], 'any', ['b2b', 'b2c'], $period, 'CustomerServiceCaseManager', rowLimit: 100);
 
