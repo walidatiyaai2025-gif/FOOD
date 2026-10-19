@@ -397,8 +397,8 @@ final class AssistantEvaluationHarness
     }
 
     /**
-     * @param array<string,array{pass:bool,reason:string}> $gates
-     * @param list<string> $names
+     * @param  array<string,array{pass:bool,reason:string}>  $gates
+     * @param  list<string>  $names
      */
     private function allPass(array $gates, array $names): bool
     {
