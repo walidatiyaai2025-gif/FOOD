@@ -51,50 +51,51 @@ class _MarketplaceBarcodeScannerPageState
           title: context.tr('customer.marketplace.scan'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
           child: Stack(
-          fit: StackFit.expand,
-          children: [
-            MobileScanner(
-              onDetect: _handleCapture,
-            ),
-            IgnorePointer(
-              child: Center(
-                child: Container(
-                  width: 260,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 3),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                ),
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                onDetect: _handleCapture,
               ),
-            ),
-            PositionedDirectional(
-              start: 24,
-              end: 24,
-              bottom: 34,
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .66),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    context.tr('customer.marketplace.scan'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+              IgnorePointer(
+                child: Center(
+                  child: Container(
+                    width: 260,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 3),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+              PositionedDirectional(
+                start: 24,
+                end: 24,
+                bottom: 34,
+                child: SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .66),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      context.tr('customer.marketplace.scan'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
 }
