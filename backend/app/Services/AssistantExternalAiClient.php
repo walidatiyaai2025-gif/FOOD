@@ -8,6 +8,7 @@ use App\Domain\Assistant\Data\AssistantProviderCapabilities;
 use App\Domain\Assistant\Data\AssistantProviderHealth;
 use App\Domain\Assistant\Data\AssistantProviderRequest;
 use App\Domain\Assistant\Data\AssistantProviderResult;
+use App\Domain\Assistant\Security\AssistantAiSecurityGuardrails;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -37,10 +38,10 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         'brief.daily',
         'analytics.summary',
         'analytics.diagnose',
+        'retailers.360',
         'inventory.snapshot',
         'refunds.summary',
         'retailers.performance',
-        'retailers.360',
         'wholesale.purchases',
         'forecast.replenishment',
         'margin.summary',
@@ -51,6 +52,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         private readonly AssistantProviderSettings $settings,
         private readonly AssistantModelRegistry $models,
         private readonly AssistantObservability $observability,
+        private readonly AssistantAiSecurityGuardrails $guardrails,
     ) {}
 
     /**
@@ -60,7 +62,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
      */
     public function route(AssistantBrainRequest $request): ?array
     {
-        if (! $this->settings->usable()) {
+        if (! $this->settings->usable() || ! $this->guardrails->providerEnabled()) {
             return null;
         }
 
@@ -97,7 +99,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
     {
         $config = $this->settings->snapshot();
 
-        if (! $this->settings->usable()) {
+        if (! $this->settings->usable() || ! $this->guardrails->providerEnabled()) {
             return $this->capabilitiesDto($config, [
                 'reachable' => false,
                 'agent_capable' => false,
@@ -141,7 +143,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
     {
         $config = $this->settings->snapshot();
 
-        if (! $this->settings->usable()) {
+        if (! $this->settings->usable() || ! $this->guardrails->providerEnabled()) {
             return new AssistantProviderHealth(
                 provider: 'openai_compatible',
                 model: $config['model'],
@@ -149,9 +151,9 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 reachable: false,
                 healthy: false,
                 latencyMs: 0,
-                failureReason: $config['enabled']
-                    ? AssistantProviderResult::FAILURE_UNAVAILABLE
-                    : AssistantProviderResult::FAILURE_DISABLED,
+                failureReason: ! $this->guardrails->providerEnabled() || ! $config['enabled']
+                    ? AssistantProviderResult::FAILURE_DISABLED
+                    : AssistantProviderResult::FAILURE_UNAVAILABLE,
             );
         }
 
@@ -222,15 +224,22 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
     {
         $config = $this->settings->snapshot();
 
-        if (! $this->settings->usable()) {
+        if (! $this->settings->usable() || ! $this->guardrails->providerEnabled()) {
             return $this->failedResult(
                 $config['model'],
-                $config['enabled']
-                    ? AssistantProviderResult::FAILURE_UNAVAILABLE
-                    : AssistantProviderResult::FAILURE_DISABLED,
+                ! $this->guardrails->providerEnabled() || ! $config['enabled']
+                    ? AssistantProviderResult::FAILURE_DISABLED
+                    : AssistantProviderResult::FAILURE_UNAVAILABLE,
             );
         }
 
+        if ($this->guardrails->isPromptInjection($request->userContent)) {
+            $this->guardrails->recordPromptBlock($request);
+
+            return $this->failedResult($config['model'], AssistantProviderResult::FAILURE_DISABLED);
+        }
+
+        $request = $this->guardrails->sanitizeProviderRequest($request);
         $models = $this->models->routingOrder($request->useCase);
 
         if ($models === []) {
@@ -286,6 +295,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             $text = is_string($content) && trim($content) !== ''
                 ? $this->normalizeModelContent($content)
                 : null;
+            $text = $this->guardrails->sanitizeProviderOutput($text, $request);
 
             if ($text === null && $toolCalls === []) {
                 $sawMalformedResponse = true;
@@ -384,6 +394,21 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
      */
     public function probe(array $config, ?string $apiKey): array
     {
+        if (! $this->guardrails->providerEnabled()) {
+            $snapshot = $this->settings->snapshot();
+            $config = array_merge($snapshot, $config);
+
+            return $this->probeResult(
+                reachable: false,
+                chat: false,
+                structuredJson: false,
+                toolCalls: false,
+                config: $config,
+                latencyMs: 0,
+                message: __('assistant_settings.errors.connection_failed'),
+            );
+        }
+
         $snapshot = $this->settings->snapshot();
         $config = array_merge($snapshot, $config);
         $started = microtime(true);

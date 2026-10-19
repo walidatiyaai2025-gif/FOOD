@@ -1674,3 +1674,5 @@ preview/driver/index.html
 preview/driver/main.dart.js
 preview/driver/manifest.json
 preview/driver/version.json
+backend/app/Domain/Assistant/Security/AssistantAiSecurityGuardrails.php
+backend/app/Domain/Assistant/Security/AssistantToolExecutor.php

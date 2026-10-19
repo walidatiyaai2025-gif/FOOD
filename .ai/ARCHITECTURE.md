@@ -177,3 +177,7 @@ Assistant page/session memory is a bounded continuation aid, never business auth
 ## Assistant observability boundary
 
 The existing Management Assistant correlation id is also the AI trace id. Operational telemetry is persisted only as bounded/redacted metadata in `assistant_observability_events`; prompts, messages, tool arguments/results, customer/contact data, credentials and chain-of-thought are prohibited. Provider/model, tool duration, fallback, token usage and turn outcome remain diagnostics only and never become business-data authority. Trace storage is fail-open for core FOODEX and defaults to 14-day retention. Admin placement reuses the existing Assistant Settings surface; `settings.manage` is required for trace inspection/export. Canonical contract: `docs/architecture/FOODEX_AI_OBSERVABILITY.md`.
+
+### AI security guardrail invariant
+
+The Assistant provider and typed-tool boundaries are wrapped by a server-owned security layer. User/provider/RAG text is never authority; prompt-injection and unsafe tool arguments fail closed, provider/tool/write layers have independent kill switches, tool results are minimized/redacted before becoming model evidence, and privacy-sensitive benchmark tools must enforce cohort minimum/differencing protection. These controls are additive to current RBAC, tenant/store/channel scope and retailer sell-out consent, and disabling AI must not disable ordinary FOODEX commerce. Authoritative threat model: `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.
