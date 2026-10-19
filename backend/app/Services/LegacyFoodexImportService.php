@@ -6155,6 +6155,8 @@ SQL));
         $missingDirectPaymentCount = 0;
         $directPaymentAmountMismatches = [];
         $directPaymentAmountMismatchCount = 0;
+        $invoiceReceiptVarianceHeaders = [];
+        $invoiceReceiptVarianceAbsoluteValue = 0.0;
         $missingReturnLinks = [];
         $missingReturnLinkCount = 0;
         $customerIdentityMismatches = [];
@@ -6373,6 +6375,15 @@ SQL));
             $difference = round($aggregateAmount - (float) $payment['amount'], 3);
             if (abs($difference) > 0.010) {
                 $directPaymentAmountMismatchCount++;
+                $invoiceReceiptVarianceHeaders[(int) $invoiceHeaderId] = [
+                    'pr_amount' => $aggregateAmount,
+                    'payment_amount' => round((float) $payment['amount'], 3),
+                    'difference' => $difference,
+                ];
+                $invoiceReceiptVarianceAbsoluteValue = round(
+                    $invoiceReceiptVarianceAbsoluteValue + abs($difference),
+                    3,
+                );
                 if (count($directPaymentAmountMismatches) < 30) {
                     $directPaymentAmountMismatches[] = [
                         'invoice_header_id' => (int) $invoiceHeaderId,
@@ -6463,7 +6474,8 @@ SQL));
             'negative_amounts' => $negativeAmountCount,
             'invoice_receipt_groups' => count($invoiceReceiptAggregates),
             'missing_direct_payments' => $missingDirectPaymentCount,
-            'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
+            'invoice_receipt_variances_nonblocking' => $directPaymentAmountMismatchCount,
+            'invoice_receipt_variance_absolute_value' => $invoiceReceiptVarianceAbsoluteValue,
             'missing_return_links' => $missingReturnLinkCount,
             'customer_identity_mismatches' => $customerIdentityMismatchCount,
             'unsupported_types' => array_sum($unknownTypes),
@@ -6496,6 +6508,8 @@ SQL));
                 'rules' => [
                     'gl_source_is_empty' => true,
                     'pr_trans_type_1_invoice_link_deduplicates_existing_payment_by_invoice_aggregate' => true,
+                    'sales_header_paid_is_invoice_settlement_authority' => true,
+                    'pr_trans_invoice_receipt_variances_are_preserved_without_balance_adjustment' => true,
                     'zero_amount_rows_are_preserved_without_ledger_effect' => true,
                     'negative_amount_rows_block_apply' => true,
                     'pr_trans_type_1_unlinked_creates_customer_credit' => true,
@@ -6515,7 +6529,6 @@ SQL));
             'invalid_dates' => count($invalidDates),
             'negative_amounts' => $negativeAmountCount,
             'missing_direct_payments' => $missingDirectPaymentCount,
-            'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
             'missing_return_links' => $missingReturnLinkCount,
             'customer_identity_mismatches' => $customerIdentityMismatchCount,
             'unsupported_types' => array_sum($unknownTypes),
@@ -6564,6 +6577,7 @@ SQL));
                 $typeNames,
                 $parseDate,
                 $classify,
+                $invoiceReceiptVarianceHeaders,
                 $planned,
                 $runId,
                 $progress,
@@ -6609,6 +6623,7 @@ SQL));
                             $typeNames,
                             $parseDate,
                             $classify,
+                            $invoiceReceiptVarianceHeaders,
                             $runId,
                             $progress,
                             $flushMappings,
@@ -6660,7 +6675,13 @@ SQL));
                                     $paymentId = (int) $payment['id'];
                                     $invoiceId = $payment['invoice_id'];
                                     $orderId = $payment['order_id'];
-                                    $balanceEffect = 'existing_payment_credit';
+
+                                    if (isset($invoiceReceiptVarianceHeaders[$invoiceHeaderId])) {
+                                        $classification = 'invoice_receipt_variance';
+                                        $balanceEffect = 'existing_payment_credit_authoritative';
+                                    } else {
+                                        $balanceEffect = 'existing_payment_credit';
+                                    }
                                 } elseif (
                                     ($classification === 'account_receipt' || $classification === 'cheque_receipt')
                                     && $amount > 0.0005
@@ -6761,6 +6782,9 @@ SQL));
                                     'payment_id' => $paymentId,
                                     'ledger_reference' => $ledgerReference,
                                     'balance_effect' => $balanceEffect,
+                                    'receipt_variance' => $invoiceHeaderId > 0
+                                        ? ($invoiceReceiptVarianceHeaders[$invoiceHeaderId] ?? null)
+                                        : null,
                                     'type' => $type,
                                 ];
                             }
@@ -6873,6 +6897,7 @@ SQL));
                                         '_migration' => [
                                             'phase' => 'finance-history',
                                             'classification' => $item['classification'],
+                                            'receipt_variance' => $item['receipt_variance'],
                                         ],
                                     ]),
                                     'last_run_id' => $runId,
@@ -6892,8 +6917,10 @@ SQL));
                                             'source' => $item['source'],
                                             '_migration' => [
                                                 'phase' => 'finance-history',
-                                                'classification' => 'invoice_receipt_duplicate',
+                                                'classification' => $item['classification'],
                                                 'decision' => 'linked_existing_sales_history_payment',
+                                                'settlement_authority' => 'wh_TransHeader.Paid',
+                                                'receipt_variance' => $item['receipt_variance'],
                                             ],
                                         ]),
                                         'last_run_id' => $runId,
