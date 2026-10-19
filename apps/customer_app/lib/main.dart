@@ -13,14 +13,16 @@ import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/network/customer_data_mode.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_routes.dart';
+import 'core/theme/customer_ui_v3_tokens.dart';
+
+const _startupTaskTimeout = Duration(seconds: 3);
+const _pushBootstrapTimeout = Duration(seconds: 10);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final startup = Stopwatch()..start();
 
   final diagnostics = CustomerDiagnostics.instance;
-  await diagnostics.initialize();
-  await CustomerDataModeController.instance.initialize();
 
   final previousFlutterHandler = FlutterError.onError;
   FlutterError.onError = (details) {
@@ -40,24 +42,15 @@ Future<void> main() async {
 
   final sessionStore = SecureCustomerSessionStore();
   final authPreferenceStore = SecureCustomerAuthPreferenceStore();
-  var bootstrap = const CustomerAuthBootstrap(
-    session: CustomerSession.guest(),
-    preferences: CustomerAuthPreferences(),
-  );
-  try {
-    bootstrap = await restoreCustomerAuthBootstrap(
-      sessionStore: sessionStore,
-      preferenceStore: authPreferenceStore,
-    );
-  } catch (error) {
-    diagnostics.record('session_restore_error', {
-      'error_type': error.runtimeType.toString(),
-    });
-  }
 
+  // The first Flutter frame must never wait for plugin/platform storage.
+  // Android keeps the native launch splash visible until Flutter renders.
   runApp(
     _CustomerRuntimeBootstrap(
-      bootstrap: bootstrap,
+      bootstrap: const CustomerAuthBootstrap(
+        session: CustomerSession.guest(),
+        preferences: CustomerAuthPreferences(),
+      ),
       sessionStore: sessionStore,
       authPreferenceStore: authPreferenceStore,
       diagnostics: diagnostics,
@@ -87,21 +80,97 @@ class _CustomerRuntimeBootstrap extends StatefulWidget {
 }
 
 class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
+  late CustomerAuthBootstrap _bootstrap;
   CustomerFirebasePushService? _pushService;
+  bool _runtimeReady = false;
+  bool _startupMarkedUsable = false;
   bool _showPersistentFooter = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.startup.stop();
-      widget.diagnostics.markStartupUsable(widget.startup.elapsed);
-      widget.diagnostics.record('startup_usable', {
-        'elapsed_ms': widget.startup.elapsedMilliseconds,
-      });
+    _bootstrap = widget.bootstrap;
+    unawaited(_initializeDeferredRuntime());
+  }
+
+  Future<void> _initializeDeferredRuntime() async {
+    final authFuture = _restoreAuthBootstrap();
+    await Future.wait<void>([
+      _initializeDiagnostics(),
+      _initializeDataMode(),
+    ]);
+    final restoredBootstrap = await authFuture;
+
+    if (!mounted) return;
+    setState(() {
+      _bootstrap = restoredBootstrap;
+      _runtimeReady = true;
     });
-    unawaited(_loadRuntimeVisibility());
-    unawaited(_bootstrapPush());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _markStartupUsable();
+      unawaited(_loadRuntimeVisibility());
+      unawaited(_bootstrapPush());
+    });
+  }
+
+  Future<void> _initializeDiagnostics() async {
+    try {
+      await widget.diagnostics.initialize().timeout(_startupTaskTimeout);
+    } on TimeoutException {
+      widget.diagnostics.record('diagnostics_startup_timeout', {
+        'timeout_ms': _startupTaskTimeout.inMilliseconds,
+      });
+    } catch (error) {
+      widget.diagnostics.record('diagnostics_startup_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
+  Future<void> _initializeDataMode() async {
+    try {
+      await CustomerDataModeController.instance
+          .initialize()
+          .timeout(_startupTaskTimeout);
+    } on TimeoutException {
+      widget.diagnostics.record('data_mode_startup_timeout', {
+        'timeout_ms': _startupTaskTimeout.inMilliseconds,
+      });
+    } catch (error) {
+      widget.diagnostics.record('data_mode_startup_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
+  Future<CustomerAuthBootstrap> _restoreAuthBootstrap() async {
+    try {
+      return await restoreCustomerAuthBootstrap(
+        sessionStore: widget.sessionStore,
+        preferenceStore: widget.authPreferenceStore,
+      ).timeout(_startupTaskTimeout);
+    } on TimeoutException {
+      widget.diagnostics.record('session_restore_timeout', {
+        'timeout_ms': _startupTaskTimeout.inMilliseconds,
+      });
+    } catch (error) {
+      widget.diagnostics.record('session_restore_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+    return widget.bootstrap;
+  }
+
+  void _markStartupUsable() {
+    if (_startupMarkedUsable) return;
+    _startupMarkedUsable = true;
+    widget.startup.stop();
+    widget.diagnostics.markStartupUsable(widget.startup.elapsed);
+    widget.diagnostics.record('startup_usable', {
+      'elapsed_ms': widget.startup.elapsedMilliseconds,
+    });
   }
 
   Future<void> _loadRuntimeVisibility() async {
@@ -121,12 +190,17 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
 
   Future<void> _bootstrapPush() async {
     try {
-      final service = await CustomerFirebasePushService.bootstrap();
+      final service = await CustomerFirebasePushService.bootstrap()
+          .timeout(_pushBootstrapTimeout);
       if (!mounted) {
         await service.dispose();
         return;
       }
       setState(() => _pushService = service);
+    } on TimeoutException {
+      widget.diagnostics.record('push_bootstrap_timeout', {
+        'timeout_ms': _pushBootstrapTimeout.inMilliseconds,
+      });
     } catch (error, stack) {
       widget.diagnostics.record('push_bootstrap_error', {
         'error': error.toString(),
@@ -137,17 +211,35 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    final session = widget.bootstrap.session;
+    if (!_runtimeReady) {
+      return const Directionality(
+        textDirection: TextDirection.rtl,
+        child: ColoredBox(
+          color: CustomerUiColors.deepGreenStrong,
+          child: Center(
+            child: SizedBox(
+              width: 190,
+              child: Image(
+                image: AssetImage(
+                  'assets/branding/foodex-economical-group.webp',
+                ),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return FoodexCustomerApp(
-        session: session,
-        initialRoute: CustomerRoutePaths.entry,
-        sessionStore: widget.sessionStore,
-        authPreferences: widget.bootstrap.preferences,
-        authPreferenceStore: widget.authPreferenceStore,
-        biometricAuthenticator: LocalAuthCustomerBiometricAuthenticator(),
-        pushService: _pushService,
-        showPersistentFooter: _showPersistentFooter,
-      );
+      session: _bootstrap.session,
+      initialRoute: CustomerRoutePaths.entry,
+      sessionStore: widget.sessionStore,
+      authPreferences: _bootstrap.preferences,
+      authPreferenceStore: widget.authPreferenceStore,
+      biometricAuthenticator: LocalAuthCustomerBiometricAuthenticator(),
+      pushService: _pushService,
+      showPersistentFooter: _showPersistentFooter,
+    );
   }
 }

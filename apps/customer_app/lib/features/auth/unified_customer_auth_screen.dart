@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_auth_persistence.dart';
 import '../../core/auth/customer_session_store.dart';
+import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
@@ -268,24 +269,42 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         commerceContext != null &&
         commerceContext.isRetail &&
         commerceFactory != null) {
-      final commerce = commerceFactory(token);
-      await commerce.mergeGuestCartAfterAuthentication(
-        storeId: commerceContext.storeId,
-      );
+      // Authentication is already committed at this point. Guest-cart
+      // reconciliation is follow-up commerce work and must never downgrade a
+      // valid login into a misleading network/auth failure.
+      try {
+        final commerce = commerceFactory(token);
+        await commerce
+            .mergeGuestCartAfterAuthentication(
+              storeId: commerceContext.storeId,
+            )
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // The authenticated destination will load the authoritative cart and
+        // can retry reconciliation there. Preserve the valid session.
+      }
     }
 
     // The app-owned resume is intentionally allowed after this auth State has
     // been disposed by the authenticated rebuild. Only the local Navigator
     // fallback still requires [mounted].
     if (!mounted && appLevelResume == null) return;
-    await _resumeAfterAuthentication(
-      token: token,
-      nextRoute: nextRoute,
-      pendingStore: pendingStore,
-      pendingExecutor: pendingExecutor,
-      commerceContext: commerceContext,
-      appLevelResume: appLevelResume,
-    );
+    try {
+      await _resumeAfterAuthentication(
+        token: token,
+        nextRoute: nextRoute,
+        pendingStore: pendingStore,
+        pendingExecutor: pendingExecutor,
+        commerceContext: commerceContext,
+        appLevelResume: appLevelResume,
+      );
+    } catch (_) {
+      // A valid server token/session must not be reported as an offline login
+      // failure because a post-auth route handoff raced the authenticated
+      // rebuild. Fall back to the now-authenticated Navigator when available.
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(nextRoute);
+    }
   }
 
   Future<void> _authenticateWithBiometrics() async {
@@ -1105,7 +1124,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                 ),
                               ),
                               Text(
-                                isArabic ? 'الإصدار 1.0.54' : 'Version 1.0.54',
+                                isArabic
+                                    ? 'الإصدار $customerAppVersion'
+                                    : 'Version $customerAppVersion',
                                 key: const ValueKey(
                                   'c13-business-login-version',
                                 ),
