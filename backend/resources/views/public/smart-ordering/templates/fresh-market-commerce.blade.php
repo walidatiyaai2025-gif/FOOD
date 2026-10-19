@@ -58,7 +58,7 @@
             </a>
             @foreach($menu['categories'] as $category)
                 <a class="fm-category-card" href="#fm-category-{{ $category['public_key'] ?: $loop->index }}">
-                    @if($category['image_url'])
+                    @if($category['image_url'] && $category['image_url'] !== '/images/smart-ordering/menu-media-placeholder.svg')
                         <img src="{{ $category['image_url'] }}" alt="" loading="lazy" decoding="async">
                     @else
                         <span class="fm-category-icon" aria-hidden="true">{{ $categoryFallbacks[($loop->index - 1) % count($categoryFallbacks)] }}</span>
