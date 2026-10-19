@@ -2004,6 +2004,39 @@ SQL));
             }
         }
 
+        if ($apply) {
+            $earlyTargetCounts = [];
+            foreach ([
+                'orders',
+                'order_items',
+                'order_status_history',
+                'invoices',
+                'invoice_items',
+                'payments',
+                'customer_account_ledger_entries',
+            ] as $table) {
+                $earlyTargetCounts[$table] = (int) DB::table($table)->count();
+            }
+
+            if (array_sum($earlyTargetCounts) !== 0) {
+                throw new RuntimeException(
+                    'Sales history apply refused before source scan: target commerce/ledger tables are not empty. '.
+                    json_encode($earlyTargetCounts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            }
+
+            DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('phase', 'sales-history')
+                ->where('status', 'running')
+                ->update([
+                    'status' => 'aborted',
+                    'error' => 'Previous sales-history process terminated before completion; target commerce was clean on retry.',
+                    'finished_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        }
+
         $stage = static function (string $label, callable $callback) use ($progress): mixed {
             if ($progress !== null) {
                 $progress($label, 'start', null);
