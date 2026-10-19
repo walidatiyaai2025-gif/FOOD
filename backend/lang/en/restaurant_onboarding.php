@@ -68,6 +68,7 @@ return [
         'menu' => 'Build / review menu',
         'qr' => 'Configure QR',
         'settings' => 'Module settings',
+        'contact_channel' => 'Complete WhatsApp/contact routing',
     ],
     'import_title' => 'Menu import review',
     'import_description' => 'Upload CSV or XLSX into a private review stage. Imported rows never become authoritative menu data until they are reviewed in the Menu Builder.',
