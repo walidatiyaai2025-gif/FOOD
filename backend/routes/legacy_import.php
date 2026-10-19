@@ -135,6 +135,50 @@ Artisan::command(
 
 
 Artisan::command(
+    'foodex:legacy-customer360-backfill {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        try {
+            $result = $importer->backfillCustomer360((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex Customer 360 backfill failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        if (! (bool) $this->option('apply')) {
+            $this->info('Legacy Foodex Customer 360 backfill dry-run');
+            $this->table(
+                ['Planned entity', 'Rows'],
+                collect($result['planned'])
+                    ->map(fn ($count, $entity): array => [(string) $entity, (int) $count])
+                    ->values()
+                    ->all(),
+            );
+            $this->warn('Dry-run only. Run again with --apply after reviewing the mapping counts.');
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex Customer 360 backfill completed.');
+        $this->line('Run ID: '.$result['summary']['run_id']);
+        $this->line(
+            'Created='.$result['summary']['created'].
+            ' | Updated='.$result['summary']['updated'].
+            ' | Mapped='.$result['summary']['mapped']
+        );
+
+        return 0;
+    },
+)->purpose('Materialize provenance-owned legacy Foodex customers into Customer 360 without creating login users.');
+
+
+Artisan::command(
     'foodex:legacy-stock-diagnostics {--deep : Run the slower quantity/rebuild preview} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $deep = (bool) $this->option('deep');
