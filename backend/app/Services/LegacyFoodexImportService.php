@@ -26,6 +26,8 @@ final class LegacyFoodexImportService
             'wh_Stores',
             'wh_Cars',
             'wh_PriceTypes',
+            'wh_Suppliers',
+            'wh_SalesReps',
             'wh_ItemStockOnHand',
             'wh_TransHeader',
             'wh_TransDetails',
@@ -211,6 +213,460 @@ final class LegacyFoodexImportService
 
             throw $exception;
         }
+    }
+
+    public function importExtendedMasters(bool $apply): array
+    {
+        $preflight = $this->preflight();
+        $source = DB::connection('foodex_legacy');
+
+        $addressCandidates = (int) $source->table('wh_Customers')
+            ->whereRaw(
+                "NULLIF(LTRIM(RTRIM(COALESCE(Address, ''))), '') IS NOT NULL ".
+                "OR NULLIF(LTRIM(RTRIM(COALESCE(Address2, ''))), '') IS NOT NULL ".
+                "OR NULLIF(LTRIM(RTRIM(COALESCE(StreetName, ''))), '') IS NOT NULL ".
+                "OR COALESCE(Latitude, 0) <> 0 OR COALESCE(Longitude, 0) <> 0"
+            )
+            ->count();
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'extended-masters',
+                'planned' => [
+                    'customer_addresses' => $addressCandidates,
+                    'suppliers' => (int) $preflight['source_counts']['wh_Suppliers'],
+                    'vans' => (int) $preflight['source_counts']['wh_Cars'],
+                    'sales_rep_references' => (int) $preflight['source_counts']['wh_SalesReps'],
+                ],
+                'preflight' => $preflight,
+            ];
+        }
+
+        $this->assertTrackingTables();
+        if (! Schema::hasTable('legacy_import_reference_records')) {
+            throw new RuntimeException('Missing legacy_import_reference_records. Run php artisan migrate first.');
+        }
+
+        if (
+            ! $this->legacyMastersRerunReady($preflight['source_counts'])
+            && ! $this->legacyExtendedMastersRerunReady($preflight['source_counts'])
+        ) {
+            throw new RuntimeException(
+                'Extended legacy import requires the verified provenance-owned masters baseline.'
+            );
+        }
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'extended-masters',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use ($runId): array {
+                $storeId = app(WholesalePrincipal::class)->storeId();
+
+                return [
+                    'run_id' => $runId,
+                    'store_id' => $storeId,
+                    'addresses' => $this->importCustomerAddresses($runId),
+                    'suppliers' => $this->importSuppliers($storeId, $runId),
+                    'vans' => $this->importVans($runId),
+                    'sales_reps' => $this->preserveSalesRepReferences($runId),
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'extended-masters',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
+    private function importCustomerAddresses(string $runId): array
+    {
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        $cities = DB::connection('foodex_legacy')->table('fw_Cities')
+            ->get(['ID', 'Name_Ar', 'Name_En'])
+            ->keyBy('ID');
+        $regions = DB::connection('foodex_legacy')->table('fw_Regions')
+            ->get(['ID', 'Name_Ar', 'Name_En'])
+            ->keyBy('ID');
+        $districts = DB::connection('foodex_legacy')->table('fw_Districts')
+            ->get(['ID', 'Name_Ar', 'Name_En'])
+            ->keyBy('ID');
+
+        $rows = DB::connection('foodex_legacy')->table('wh_Customers')->orderBy('ID')->get();
+        foreach ($rows as $row) {
+            $customerId = $this->mappedTargetId('wh_Customers', (string) $row->ID, 'customers');
+            if ($customerId === null) {
+                $skipped++;
+                continue;
+            }
+
+            $line1 = $this->legacyText($row->Address ?? null);
+            $line2 = $this->legacyText($row->Address2 ?? null);
+            $street = $this->legacyText($row->StreetName ?? null);
+            $latitude = $row->Latitude === null ? null : (float) $row->Latitude;
+            $longitude = $row->Longitude === null ? null : (float) $row->Longitude;
+            $hasCoordinates = ($latitude !== null && abs($latitude) > 0.0000001)
+                || ($longitude !== null && abs($longitude) > 0.0000001);
+
+            if ($line1 === null && $line2 === null && $street === null && ! $hasCoordinates) {
+                $skipped++;
+                continue;
+            }
+
+            $cityId = (int) ($row->CityID ?? 0);
+            $regionId = (int) ($row->RegionID ?? 0);
+            $districtId = (int) ($row->DistrictID ?? 0);
+
+            $cityRow = $cityId > 0 ? $cities->get($cityId) : null;
+            $regionRow = $regionId > 0 ? $regions->get($regionId) : null;
+            $districtRow = $districtId > 0 ? $districts->get($districtId) : null;
+
+            $city = $cityRow === null
+                ? ($cityId > 0 ? 'Legacy city #'.$cityId : 'Unspecified')
+                : $this->name($cityRow->Name_Ar ?? null, $cityRow->Name_En ?? null, 'Legacy city #'.$cityId);
+            $region = $regionRow === null
+                ? ($regionId > 0 ? 'Legacy region #'.$regionId : null)
+                : $this->name($regionRow->Name_Ar ?? null, $regionRow->Name_En ?? null, 'Legacy region #'.$regionId);
+            $district = $districtRow === null
+                ? ($districtId > 0 ? 'Legacy district #'.$districtId : null)
+                : $this->name($districtRow->Name_Ar ?? null, $districtRow->Name_En ?? null, 'Legacy district #'.$districtId);
+
+            $targetId = $this->mappedTargetId('wh_Customers.Address', (string) $row->ID, 'addresses');
+            $payload = [
+                'customer_id' => $customerId,
+                'platform_customer_id' => null,
+                'label' => 'Legacy Foodex',
+                'recipient_name' => mb_substr(
+                    $this->name($row->Name_Ar ?? null, $row->Name_En ?? null, 'Legacy customer '.(int) $row->ID),
+                    0,
+                    255,
+                ),
+                'delivery_phone' => $this->legacyText($row->Mobile ?? null, true)
+                    ?? $this->legacyText($row->Phone1 ?? null, true),
+                'line1' => mb_substr($line1 ?? $street ?? $line2 ?? 'Legacy geocoded location', 0, 255),
+                'line2' => $line2 === null ? null : mb_substr($line2, 0, 255),
+                'city' => mb_substr($city, 0, 255),
+                'area' => $district === null ? ($region === null ? null : mb_substr($region, 0, 255)) : mb_substr($district, 0, 255),
+                'country_code' => 'ZZ',
+                'country' => null,
+                'governorate' => $region === null ? null : mb_substr($region, 0, 120),
+                'block' => null,
+                'street' => $street === null ? null : mb_substr($street, 0, 255),
+                'avenue' => null,
+                'building' => null,
+                'floor' => null,
+                'apartment' => null,
+                'landmark' => null,
+                'delivery_notes' => null,
+                'latitude' => $hasCoordinates ? $latitude : null,
+                'longitude' => $hasCoordinates ? $longitude : null,
+                'location_accuracy_meters' => null,
+                'location_source' => 'legacy_foodex',
+                'is_default' => true,
+                'deleted_at' => null,
+                'updated_at' => now(),
+            ];
+
+            if ($targetId !== null && DB::table('addresses')->where('id', $targetId)->exists()) {
+                DB::table('addresses')->where('id', $targetId)->update($payload);
+                $updated++;
+            } else {
+                $payload['created_at'] = now();
+                $targetId = (int) DB::table('addresses')->insertGetId($payload);
+                $created++;
+            }
+
+            $this->syncMapping(
+                'wh_Customers.Address',
+                (string) $row->ID,
+                'addresses',
+                $targetId,
+                $row,
+                $runId,
+                [
+                    'legacy_country_id' => (int) ($row->CountryID ?? 0),
+                    'legacy_region_id' => $regionId,
+                    'legacy_city_id' => $cityId,
+                    'legacy_district_id' => $districtId,
+                ],
+            );
+        }
+
+        return compact('created', 'updated', 'skipped');
+    }
+
+    private function importSuppliers(int $storeId, string $runId): array
+    {
+        $organizationId = (int) DB::table('enterprise_organizations')
+            ->where('code', \App\Enterprise\Organization\OrganizationHierarchyService::DEFAULT_ORGANIZATION)
+            ->value('id');
+        $companyId = (int) DB::table('enterprise_companies')
+            ->where('organization_id', $organizationId)
+            ->where('code', \App\Enterprise\Organization\OrganizationHierarchyService::DEFAULT_COMPANY)
+            ->value('id');
+
+        if ($organizationId <= 0 || $companyId <= 0) {
+            throw new RuntimeException('Default enterprise organization/company scope is missing.');
+        }
+
+        $created = 0;
+        $updated = 0;
+        $rows = DB::connection('foodex_legacy')->table('wh_Suppliers')->orderBy('ID')->get();
+
+        foreach ($rows as $row) {
+            $sourceId = (string) $row->ID;
+            $targetId = $this->mappedTargetId('wh_Suppliers', $sourceId, 'enterprise_suppliers');
+            $legacyCode = $this->legacyText($row->Code ?? null);
+            $nameAr = $this->legacyText($row->Name_Ar ?? null);
+            $nameEn = $this->legacyText($row->Name_En ?? null);
+            $displayName = $nameEn ?? $nameAr ?? 'Legacy supplier '.(int) $row->ID;
+            $creditPeriod = max(0, min(65535, (int) ($row->Creditperiod ?? 0)));
+
+            $payload = [
+                'organization_id' => $organizationId,
+                'company_id' => $companyId,
+                'store_id' => $storeId,
+                'scope_type' => 'store',
+                'code' => 'FDX-SUP-'.(int) $row->ID,
+                'name_en' => mb_substr($displayName, 0, 190),
+                'name_ar' => $nameAr === null ? null : mb_substr($nameAr, 0, 190),
+                'status' => (int) ($row->Status ?? 1) === 0 ? 'inactive' : 'active',
+                'contact_name' => null,
+                'email' => null,
+                'phone' => $this->legacyText($row->Mobile ?? null, true)
+                    ?? $this->legacyText($row->Phone1 ?? null, true),
+                'tax_registration_number' => $this->legacyText($row->RegistrationNumber ?? null, true),
+                'commercial_registration_number' => $this->legacyText($row->FileNumber ?? null, true),
+                'business_type' => null,
+                'payment_terms_days' => $creditPeriod > 0 ? $creditPeriod : null,
+                'notes' => $this->json([
+                    'legacy_code' => $legacyCode,
+                    'legacy_supplier_type' => (int) ($row->Suppliertype ?? 0),
+                    'legacy_contract_type' => (int) ($row->ContractType ?? 0),
+                    'legacy_supplier_group_id' => (int) ($row->SupplierGroupID ?? 0),
+                    'legacy_region_id' => (int) ($row->RegionID ?? 0),
+                    'legacy_city_id' => (int) ($row->CityID ?? 0),
+                    'address' => $this->legacyText($row->Address ?? null),
+                    'address_2' => $this->legacyText($row->Address2 ?? null),
+                    'phone_2' => $this->legacyText($row->Phone2 ?? null, true),
+                    'tax_office' => $this->legacyText($row->TaxOffice ?? null, true),
+                    'notification_period' => (int) ($row->NotificationPeriod ?? 0),
+                ]),
+                'created_by' => null,
+                'updated_by' => null,
+                'updated_at' => now(),
+            ];
+
+            if ($targetId !== null && DB::table('enterprise_suppliers')->where('id', $targetId)->exists()) {
+                DB::table('enterprise_suppliers')->where('id', $targetId)->update($payload);
+                $updated++;
+            } else {
+                $payload['created_at'] = now();
+                $targetId = (int) DB::table('enterprise_suppliers')->insertGetId($payload);
+                $created++;
+            }
+
+            $this->syncMapping('wh_Suppliers', $sourceId, 'enterprise_suppliers', $targetId, $row, $runId);
+        }
+
+        return compact('created', 'updated');
+    }
+
+    private function importVans(string $runId): array
+    {
+        $created = 0;
+        $updated = 0;
+        $rows = DB::connection('foodex_legacy')->table('wh_Cars')->orderBy('ID')->get();
+
+        foreach ($rows as $row) {
+            $sourceId = (string) $row->ID;
+            $targetId = $this->mappedTargetId('wh_Cars', $sourceId, 'vans');
+            $warehouseId = $this->mappedTargetId('wh_Cars', $sourceId, 'warehouses');
+            $plate = $this->legacyText($row->PlateNo ?? null, true);
+
+            if ($plate !== null) {
+                $duplicate = DB::table('vans')->where('plate_number', $plate);
+                if ($targetId !== null) {
+                    $duplicate->where('id', '<>', $targetId);
+                }
+                if ($duplicate->exists()) {
+                    $plate = null;
+                }
+            }
+
+            $payload = [
+                'code' => 'FDX-VAN-'.(int) $row->ID,
+                'plate_number' => $plate,
+                'vehicle_type' => 'legacy_foodex',
+                'status' => (int) ($row->Status ?? 1) === 0 ? 'inactive' : 'active',
+                'capacity_units' => null,
+                'capacity_weight' => null,
+                'capabilities' => $this->json([
+                    'legacy_car_id' => (int) $row->ID,
+                    'legacy_code' => $this->legacyText($row->Code ?? null),
+                    'legacy_name_ar' => $this->legacyText($row->Name_Ar ?? null),
+                    'legacy_name_en' => $this->legacyText($row->Name_En ?? null),
+                    'legacy_branch_id' => (int) ($row->BranchID ?? 0),
+                    'legacy_sales_rep_id' => (int) ($row->SalesRepID ?? 0),
+                    'legacy_driver_id' => (int) ($row->DriverId ?? 0),
+                    'legacy_owner' => (bool) ($row->Owner ?? false),
+                    'legacy_meter_reading' => (int) ($row->MeterReading ?? 0),
+                    'legacy_chassis_no' => $this->legacyText($row->ChassisNo ?? null),
+                    'legacy_motor_no' => $this->legacyText($row->MotorNo ?? null),
+                    'legacy_cost_center_id' => (int) ($row->CostCenterId ?? 0),
+                    'legacy_inventory_warehouse_id' => $warehouseId,
+                ]),
+                'home_warehouse_id' => $warehouseId,
+                'notes' => $this->legacyText($row->Notes ?? null),
+                'updated_at' => now(),
+            ];
+
+            if ($targetId !== null && DB::table('vans')->where('id', $targetId)->exists()) {
+                DB::table('vans')->where('id', $targetId)->update($payload);
+                $updated++;
+            } else {
+                $payload['public_id'] = (string) Str::uuid();
+                $payload['created_at'] = now();
+                $targetId = (int) DB::table('vans')->insertGetId($payload);
+                $created++;
+            }
+
+            $this->syncMapping('wh_Cars', $sourceId, 'vans', $targetId, $row, $runId, [
+                'inventory_warehouse_id' => $warehouseId,
+                'legacy_sales_rep_id' => (int) ($row->SalesRepID ?? 0),
+                'legacy_driver_id' => (int) ($row->DriverId ?? 0),
+            ]);
+        }
+
+        return compact('created', 'updated');
+    }
+
+    private function preserveSalesRepReferences(string $runId): array
+    {
+        $created = 0;
+        $updated = 0;
+        $rows = DB::connection('foodex_legacy')->table('wh_SalesReps')->orderBy('ID')->get();
+
+        foreach ($rows as $row) {
+            $sourceKey = (string) $row->ID;
+            $exists = DB::table('legacy_import_reference_records')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('source_table', 'wh_SalesReps')
+                ->where('source_key', $sourceKey)
+                ->exists();
+
+            $linkedCars = DB::connection('foodex_legacy')->table('wh_Cars')
+                ->where('SalesRepID', (int) $row->ID)
+                ->orderBy('ID')
+                ->pluck('ID')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            DB::table('legacy_import_reference_records')->updateOrInsert(
+                [
+                    'source_system' => self::SOURCE_SYSTEM,
+                    'source_table' => 'wh_SalesReps',
+                    'source_key' => $sourceKey,
+                ],
+                [
+                    'payload' => $this->json((array) $row),
+                    'metadata' => $this->json([
+                        'linked_legacy_car_ids' => $linkedCars,
+                        'canonical_target' => null,
+                        'reason' => 'FOODEX has no canonical sales representative entity; preserved without creating login identities.',
+                    ]),
+                    'last_run_id' => $runId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+
+            $exists ? $updated++ : $created++;
+        }
+
+        return compact('created', 'updated');
+    }
+
+    private function legacyExtendedMastersRerunReady(array $sourceCounts): bool
+    {
+        if (
+            ! Schema::hasTable('legacy_import_reference_records')
+            || ! DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('phase', 'extended-masters')
+                ->where('status', 'completed')
+                ->exists()
+        ) {
+            return false;
+        }
+
+        foreach ([
+            'addresses' => ['source' => 'wh_Customers.Address'],
+            'enterprise_suppliers' => ['source' => 'wh_Suppliers'],
+            'vans' => ['source' => 'wh_Cars'],
+        ] as $targetTable => $ownership) {
+            $mappedIds = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('source_table', $ownership['source'])
+                ->where('target_table', $targetTable)
+                ->pluck('target_id');
+
+            if (
+                (int) DB::table($targetTable)->count() !== $mappedIds->unique()->count()
+                || DB::table($targetTable)->whereNotIn('id', $mappedIds)->exists()
+            ) {
+                return false;
+            }
+        }
+
+        $salesRepReferences = (int) DB::table('legacy_import_reference_records')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_SalesReps')
+            ->count();
+
+        return $salesRepReferences === (int) $sourceCounts['wh_SalesReps'];
+    }
+
+    private function legacyText(mixed $value, bool $dropPlaceholderOne = false): ?string
+    {
+        $text = trim((string) $value);
+        if ($text === '' || $text === '0' || ($dropPlaceholderOne && $text === '1')) {
+            return null;
+        }
+
+        return $text;
     }
 
     private function ensureWholesaleCatalog(int $storeId): int
@@ -1209,6 +1665,7 @@ final class LegacyFoodexImportService
             'b2b_accounts',
             'addresses',
             'warehouses',
+            'vans',
             'categories',
             'brands',
             'products',
