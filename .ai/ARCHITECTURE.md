@@ -158,6 +158,10 @@ Runtime direction is Dashboard Assistant -> server identity/RBAC/tenant/channel/
 
 The agent orchestrator is a bounded compatibility layer inside the existing Assistant request path. Provider output can propose only allowlisted typed read tools; every proposal is re-authorized and audited through `AssistantToolExecutor` before execution. Multi-tool plans have hard server-owned limits for steps, calls, wall time and model/result bytes, duplicate calls are suppressed, and only numbered server evidence reaches grounded synthesis. Planning text/reasoning is transient and is never persisted or exposed as chain-of-thought. Provider/no-tool/failure paths degrade back to the existing Assistant brain rather than breaking FOODEX.
 
+### Deterministic analytics invariant
+
+FOODEX diagnostic arithmetic is server-authoritative and versioned by `foodex.analytics.diagnostic.v1`. Equal-period comparisons, trend/velocity, mix/contribution, exception rates and inventory cover are computed in deterministic Laravel code. Missing, sparse, stale or incomplete evidence is surfaced explicitly; model providers may explain results but cannot override computed values or infer causation from correlation.
+
 
 ## Assistant observability boundary
 
