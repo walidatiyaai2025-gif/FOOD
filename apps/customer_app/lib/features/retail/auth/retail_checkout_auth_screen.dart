@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../storefront/storefront_design_system.dart';
 
 import '../../../core/api/customer_action_api.dart';
 import '../../../core/auth/customer_session.dart';
@@ -144,13 +145,9 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
     return Scaffold(
       key: const ValueKey('retail-checkout-auth-screen'),
       backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: CustomerUiColors.deepGreen,
-        foregroundColor: CustomerUiColors.white,
-      ),
-      body: SafeArea(
-        top: false,
+      body: FoodexUnifiedHeaderSurface(
+        title: title,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             CustomerUiSpacing.page,
