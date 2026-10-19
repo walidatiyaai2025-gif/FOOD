@@ -226,8 +226,9 @@
                 <label>{{ $launchIsAr?'اللوجو':'Logo' }}
                     <input type="file" name="logo" accept="image/jpeg,image/png,image/webp">
                 </label>
-                <label>{{ $launchIsAr?'صورة الغلاف':'Cover image' }}
+                <label>{{ $launchIsAr?'صورة الهيرو للمنيو':'Menu hero image' }}
                     <input type="file" name="cover" accept="image/jpeg,image/png,image/webp">
+                    <small>{{ $launchIsAr?'نفس الصورة المستخدمة في خطوة هوية المطعم وتظهر أعلى واجهة المنيو.':'The same image used in Restaurant identity and shown at the top of the menu.' }}</small>
                 </label>
                 <label class="span-2">{{ $launchIsAr?'وصف المطعم بالعربي':'Arabic description' }}
                     <textarea name="description_ar">{{ $setupIdentity['description_ar'] ?? '' }}</textarea> {{-- localization-gate: allow — bilingual restaurant identity editor intentionally exposes the Arabic description value. --}}
