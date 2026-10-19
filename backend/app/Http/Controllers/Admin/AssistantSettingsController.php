@@ -55,6 +55,103 @@ final class AssistantSettingsController extends Controller
         ]);
     }
 
+    public function overview(Request $request): View
+    {
+        $actor = $this->actor($request);
+        abort_unless(
+            $actor->hasPermission('settings.view') || $actor->hasPermission('settings.manage'),
+            403,
+        );
+
+        $assistantSettings = $this->settings->snapshot();
+        $providerSettings = $this->providerSettings->snapshot();
+        $assistantToolKeys = $this->tools->keys();
+        $observabilitySummary = $this->observability->summary();
+
+        $providerConfigured = $providerSettings['api_url'] !== '' && $providerSettings['model'] !== '';
+        $providerGateEnabled = (bool) config('assistant.security.provider_enabled', true);
+        $toolsGateEnabled = (bool) config('assistant.security.tools_enabled', true);
+        $writeActionsEnabled = (bool) config('assistant.security.write_actions_enabled', false);
+        $assistantEnabled = (bool) $assistantSettings['enabled'];
+        $providerActive = $assistantEnabled
+            && $providerGateEnabled
+            && (bool) $providerSettings['enabled']
+            && $providerConfigured;
+        $toolsActive = $assistantEnabled && $toolsGateEnabled && $assistantToolKeys !== [];
+
+        $capabilities = [
+            [
+                'key' => 'agent',
+                'state' => class_exists(\App\Domain\Assistant\Agent\AssistantAgentOrchestrator::class)
+                    ? ($toolsActive ? 'active' : 'ready')
+                    : 'unavailable',
+            ],
+            [
+                'key' => 'analytics',
+                'state' => in_array('analytics.diagnose', $assistantToolKeys, true) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'knowledge',
+                'state' => in_array('knowledge.search', $assistantToolKeys, true) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'wholesale',
+                'state' => in_array('executive.wholesale', $assistantToolKeys, true) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'retailer360',
+                'state' => in_array('retailers.360', $assistantToolKeys, true) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'forecasting',
+                'state' => in_array('forecast.replenishment', $assistantToolKeys, true) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'signals',
+                'state' => class_exists(\App\Domain\Analytics\Signals\SignalDetectionEngine::class) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'proactive',
+                'state' => class_exists(\App\Domain\Assistant\Intelligence\AssistantIntelligenceService::class) ? 'ready' : 'unavailable',
+            ],
+            [
+                'key' => 'security',
+                'state' => class_exists(\App\Domain\Assistant\Security\AssistantAiSecurityGuardrails::class) ? 'active' : 'unavailable',
+            ],
+            [
+                'key' => 'safe_actions',
+                'state' => in_array('procurement.purchase_request.create_draft', $assistantToolKeys, true)
+                    ? ($writeActionsEnabled ? 'active' : 'guarded')
+                    : 'unavailable',
+            ],
+        ];
+
+        $providerState = match (true) {
+            $providerActive => 'active',
+            $providerConfigured => 'configured',
+            default => 'off',
+        };
+
+        return view('admin.assistant-overview', [
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'administration_hub',
+            'assistantSettings' => $assistantSettings,
+            'providerSettings' => $providerSettings,
+            'assistantToolCount' => count($assistantToolKeys),
+            'observabilitySummary' => $observabilitySummary,
+            'capabilities' => $capabilities,
+            'assistantState' => $assistantEnabled ? 'active' : 'off',
+            'providerState' => $providerState,
+            'toolsState' => $toolsActive ? 'active' : ($toolsGateEnabled && $assistantToolKeys !== [] ? 'ready' : 'off'),
+            'observabilityState' => ($observabilitySummary['available'] ?? false) ? 'active' : 'degraded',
+            'actionsState' => $writeActionsEnabled ? 'active' : 'guarded',
+            'operatingMode' => ! $assistantEnabled
+                ? 'disabled'
+                : ($providerActive ? 'agentic' : 'deterministic'),
+        ]);
+    }
+
     public function update(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
