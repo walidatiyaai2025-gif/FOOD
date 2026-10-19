@@ -1192,7 +1192,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             fn (string $theme): string => (string) $themes->productionDefinition($theme)['view'],
             $productionIds,
         )));
-        $this->assertCount(6, array_unique(array_map(
+        $this->assertCount(7, array_unique(array_map(
             fn (string $theme): string => (string) $themes->productionDefinition($theme)['layout'],
             $productionIds,
         )));
