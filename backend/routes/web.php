@@ -420,6 +420,7 @@ Route::prefix('admin')
             });
         Route::prefix('smart-ordering/qr')
             ->name('smart-ordering.qr.')
+            ->middleware('restaurant.setup:qr')
             ->group(function (): void {
                 Route::get('/', [SmartOrderingQrController::class, 'index'])->name('index');
                 Route::post('/', [SmartOrderingQrController::class, 'store'])->middleware('throttle:30,1')->name('store');
