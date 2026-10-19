@@ -132,3 +132,121 @@ Artisan::command(
         return 0;
     },
 )->purpose('Idempotently migrate legacy Foodex master data into canonical FOODEX tables with provenance and quarantine.');
+
+
+Artisan::command(
+    'foodex:legacy-stock-diagnostics {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        try {
+            $report = $importer->stockDiagnostics();
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex stock diagnostics failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex stock reconstruction diagnostics');
+        $this->line(
+            'Posted source: headers='.$report['source']['posted_headers'].
+            ' | details='.$report['source']['posted_details'].
+            ' | recognized headers='.$report['source']['recognized_stock_headers'].
+            ' | recognized details='.$report['source']['recognized_stock_details']
+        );
+        $this->line(
+            'Opening balances='.$report['source']['opening_balance_headers'].
+            ' | car wrappers 17/18='.$report['source']['car_wrapper_headers_17_18'].
+            ' | linked car headers='.$report['source']['linked_car_headers'].
+            ' | car source headers='.$report['source']['car_source_headers']
+        );
+
+        $this->table(
+            ['Type', 'Name', 'Headers', 'Posted', 'Details', 'Sign', 'First', 'Last'],
+            collect($report['types'])->map(static fn (array $row): array => [
+                $row['type'],
+                $row['name'],
+                $row['headers'],
+                $row['posted_headers'],
+                $row['details'],
+                $row['recognized_stock_type'] ? $row['stock_sign'] : 'n/a',
+                $row['first_date'] ?? 'n/a',
+                $row['last_date'] ?? 'n/a',
+            ])->all(),
+        );
+
+        $this->line(
+            'Mapping coverage: locations='.$report['mapping_coverage']['used_locations'].
+            ' | unmapped_locations='.count($report['mapping_coverage']['unmapped_locations']).
+            ' | items='.$report['mapping_coverage']['used_items'].
+            ' | unmapped_items='.count($report['mapping_coverage']['unmapped_items'])
+        );
+
+        $this->line(
+            'Quantity basis: lines='.$report['quantity']['lines'].
+            ' | TransPkgQty1='.$report['quantity']['using_trans_pkg_qty1'].
+            ' | fallback='.$report['quantity']['using_fallback'].
+            ' | negative_raw='.$report['quantity']['negative_raw_qty'].
+            ' | conversion_mismatch='.$report['quantity']['transpkg_vs_conversion_mismatch']
+        );
+
+        $this->table(
+            ['Pair', 'Groups', 'Complete', 'Missing A', 'Missing B', 'Duplicate sides'],
+            collect($report['pairing'])->map(static fn (array $row): array => [
+                $row['label'].' ('.$row['type_a'].'/'.$row['type_b'].')',
+                $row['groups'],
+                $row['complete_groups'],
+                $row['missing_type_a'],
+                $row['missing_type_b'],
+                $row['duplicate_side_groups'],
+            ])->all(),
+        );
+
+        $this->line(
+            'Rebuild preview: positions='.$report['rebuild_preview']['positions'].
+            ' | positive='.$report['rebuild_preview']['positive_positions'].
+            ' | zero='.$report['rebuild_preview']['zero_positions'].
+            ' | negative='.$report['rebuild_preview']['negative_positions']
+        );
+
+        if ($report['unknown_posted_types'] !== []) {
+            $this->warn('Posted transaction types outside the provisional stock rules exist. Apply remains disabled.');
+            $this->table(
+                ['Type', 'Name', 'Posted headers', 'Details'],
+                collect($report['unknown_posted_types'])->map(static fn (array $row): array => [
+                    $row['type'],
+                    $row['name'],
+                    $row['posted_headers'],
+                    $row['details'],
+                ])->all(),
+            );
+        }
+
+        if ($report['mapping_coverage']['unmapped_locations'] !== []) {
+            $this->warn('Unmapped source locations: '.implode(', ', array_slice($report['mapping_coverage']['unmapped_locations'], 0, 30)));
+        }
+        if ($report['mapping_coverage']['unmapped_items'] !== []) {
+            $this->warn('Unmapped source items: '.implode(', ', array_slice($report['mapping_coverage']['unmapped_items'], 0, 30)));
+        }
+        if ($report['rebuild_preview']['negative_samples'] !== []) {
+            $this->warn('Negative reconstructed positions exist; review is required before stock apply.');
+            $this->table(
+                ['Store', 'Item', 'Quantity', 'Lines'],
+                collect($report['rebuild_preview']['negative_samples'])->map(static fn (array $row): array => [
+                    $row['store_id'],
+                    $row['item_id'],
+                    $row['quantity'],
+                    $row['movement_lines'],
+                ])->all(),
+            );
+        }
+
+        $this->warn('Read-only diagnostics only. Stock apply is intentionally disabled.');
+
+        return 0;
+    },
+)->purpose('Diagnose legacy Foodex transaction semantics before rebuilding 2026 inventory.');
