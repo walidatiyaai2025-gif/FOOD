@@ -73,6 +73,7 @@ final class LegacyFoodexImportService
 
         $targetBusinessCounts = $this->targetBusinessCounts();
         $targetBusinessTotal = array_sum($targetBusinessCounts);
+        $legacyMastersRerunReady = $this->legacyMastersRerunReady($sourceCounts);
 
         return [
             'source_connection' => 'foodex_legacy',
@@ -98,6 +99,7 @@ final class LegacyFoodexImportService
                 'business_counts' => $targetBusinessCounts,
                 'business_total' => $targetBusinessTotal,
                 'clean_baseline_ready' => $targetBusinessTotal === 0,
+                'legacy_masters_rerun_ready' => $legacyMastersRerunReady,
                 'b2b_stores' => $b2bStores->map(static fn ($row): array => [
                     'id' => (int) $row->id,
                     'code' => (string) $row->code,
@@ -142,10 +144,13 @@ final class LegacyFoodexImportService
 
         $this->assertTrackingTables();
 
-        if (! ($preflight['target']['clean_baseline_ready'] ?? false)) {
+        if (
+            ! ($preflight['target']['clean_baseline_ready'] ?? false)
+            && ! ($preflight['target']['legacy_masters_rerun_ready'] ?? false)
+        ) {
             throw new RuntimeException(
-                'Refusing to merge legacy Foodex data into a non-empty FOODEX business dataset. '.
-                'Run a fresh database rebuild and core seed first.'
+                'Refusing to merge legacy Foodex data into an unowned FOODEX business dataset. '.
+                'Use a fresh database baseline, or rerun only against a fully provenance-owned legacy masters dataset.'
             );
         }
 
@@ -1044,6 +1049,155 @@ final class LegacyFoodexImportService
         }
 
         return $fallback;
+    }
+
+    private function legacyMastersRerunReady(array $sourceCounts): bool
+    {
+        if (
+            ! Schema::hasTable('legacy_import_runs')
+            || ! Schema::hasTable('legacy_import_mappings')
+            || ! DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('phase', 'masters')
+                ->where('status', 'completed')
+                ->exists()
+        ) {
+            return false;
+        }
+
+        $ownedTargets = [
+            'warehouses' => [
+                'sources' => ['wh_Stores', 'wh_Cars'],
+                'expected' => (int) $sourceCounts['wh_Stores'] + (int) $sourceCounts['wh_Cars'],
+            ],
+            'categories' => [
+                'sources' => ['wh_ItemGroups', 'wh_ItemSubGroups'],
+                'expected' => (int) $sourceCounts['wh_ItemGroups'] + (int) $sourceCounts['wh_ItemSubGroups'],
+            ],
+            'products' => [
+                'sources' => ['wh_Items'],
+                'expected' => (int) $sourceCounts['wh_Items'],
+            ],
+            'customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_accounts' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+        ];
+
+        foreach ($ownedTargets as $targetTable => $ownership) {
+            if (! Schema::hasTable($targetTable)) {
+                return false;
+            }
+
+            $mappedCount = (int) DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('target_table', $targetTable)
+                ->whereIn('source_table', $ownership['sources'])
+                ->distinct()
+                ->count('target_id');
+
+            if (
+                $mappedCount !== $ownership['expected']
+                || (int) DB::table($targetTable)->count() !== $mappedCount
+            ) {
+                return false;
+            }
+        }
+
+        $mappedPriceRules = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Items.PriceTier')
+            ->where('target_table', 'b2b_price_rules')
+            ->distinct()
+            ->count('target_id');
+
+        if ((int) DB::table('b2b_price_rules')->count() !== $mappedPriceRules) {
+            return false;
+        }
+
+        $mappedTierCount = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_PriceTypes')
+            ->where('target_table', 'b2b_price_tiers')
+            ->distinct()
+            ->count('target_id');
+
+        if ($mappedTierCount !== (int) $sourceCounts['wh_PriceTypes']) {
+            return false;
+        }
+
+        if (
+            DB::table('units')
+                ->whereNotIn('code', ['PC', 'KG', 'G', 'L', 'ML', 'PACK', 'BOX', 'FDX-BASE'])
+                ->exists()
+        ) {
+            return false;
+        }
+
+        $legacyProductIds = DB::table('legacy_import_mappings')
+            ->select('target_id')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Items')
+            ->where('target_table', 'products');
+
+        foreach (['product_selling_units', 'store_products'] as $table) {
+            if (
+                Schema::hasTable($table)
+                && DB::table($table)->whereNotIn('product_id', clone $legacyProductIds)->exists()
+            ) {
+                return false;
+            }
+        }
+
+        if (
+            Schema::hasTable('product_selling_unit_tier_prices')
+            && DB::table('product_selling_unit_tier_prices')
+                ->whereNotIn(
+                    'product_selling_unit_id',
+                    DB::table('product_selling_units')
+                        ->select('id')
+                        ->whereIn('product_id', clone $legacyProductIds)
+                )
+                ->exists()
+        ) {
+            return false;
+        }
+
+        foreach ([
+            'b2c_customers',
+            'addresses',
+            'brands',
+            'inventories',
+            'stock_movements',
+            'orders',
+            'order_items',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'enterprise_suppliers',
+        ] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->exists()) {
+                return false;
+            }
+        }
+
+        if (
+            (int) DB::table('stores')->count() !== 1
+            || ! DB::table('stores')->where('code', WholesalePrincipal::STORE_CODE)->exists()
+            || (int) DB::table('catalogs')->count() !== 1
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     private function targetBusinessCounts(): array
