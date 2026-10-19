@@ -4,12 +4,14 @@ namespace App\Http\Middleware;
 
 use App\Domain\RestaurantSaaS\Models\RestaurantLocationProfile;
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Models\Store;
 use App\Models\User;
 use App\Support\TenantContextResolver;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -82,6 +84,40 @@ final class EnsureRestaurantSetupStage
     private function resolveStore(Request $request, User $actor): ?Store
     {
         $storeId = (int) $request->integer('store_id');
+
+        $routeBranch = $request->route('branch');
+        if ($storeId <= 0 && $routeBranch instanceof SmartOrderingBranch) {
+            $storeId = (int) (SmartOrderingSite::query()
+                ->whereKey((int) $routeBranch->site_id)
+                ->value('store_id') ?? 0);
+        } elseif ($storeId <= 0 && is_string($routeBranch) && $routeBranch !== '') {
+            $branchSiteId = (int) (SmartOrderingBranch::query()
+                ->where('public_id', $routeBranch)
+                ->value('site_id') ?? 0);
+            if ($branchSiteId > 0) {
+                $storeId = (int) (SmartOrderingSite::query()
+                    ->whereKey($branchSiteId)
+                    ->value('store_id') ?? 0);
+            }
+        }
+
+        $routeReference = trim((string) $request->route('reference', ''));
+        if ($storeId <= 0 && $routeReference !== '') {
+            $storeId = (int) (DB::table('smart_ordering_order_contexts as soc')
+                ->join('orders as o', 'o.id', '=', 'soc.order_id')
+                ->where('soc.public_reference', $routeReference)
+                ->value('o.store_id') ?? 0);
+        }
+
+        $routePayment = $request->route('payment');
+        if ($storeId <= 0 && $routePayment !== null) {
+            $paymentId = is_object($routePayment) && method_exists($routePayment, 'getKey')
+                ? (int) $routePayment->getKey()
+                : (int) $routePayment;
+            if ($paymentId > 0) {
+                $storeId = (int) (DB::table('payments')->where('id', $paymentId)->value('store_id') ?? 0);
+            }
+        }
 
         $routeSite = $request->route('site');
         if ($storeId <= 0 && $routeSite instanceof SmartOrderingSite) {
