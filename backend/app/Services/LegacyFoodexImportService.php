@@ -215,6 +215,185 @@ final class LegacyFoodexImportService
         }
     }
 
+    public function backfillCustomer360(bool $apply): array
+    {
+        $this->assertTrackingTables();
+
+        if (! Schema::hasTable('platform_customers')) {
+            throw new RuntimeException('Missing platform_customers. Run php artisan migrate first.');
+        }
+
+        $source = DB::connection('foodex_legacy');
+        $sourceCount = (int) $source->table('wh_Customers')->count();
+        $customerMappings = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Customers')
+            ->where('target_table', 'customers')
+            ->orderBy('source_key')
+            ->get(['source_key', 'target_id']);
+
+        if ($customerMappings->count() !== $sourceCount) {
+            throw new RuntimeException(
+                'Customer 360 backfill requires a complete provenance-owned legacy customer masters import first.'
+            );
+        }
+
+        $existingMapped = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Customers')
+            ->where('target_table', 'platform_customers')
+            ->distinct()
+            ->count('target_id');
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'customer360-backfill',
+                'planned' => [
+                    'source_customers' => $sourceCount,
+                    'customer_mappings' => $customerMappings->count(),
+                    'existing_platform_customer_mappings' => $existingMapped,
+                    'missing_platform_customer_mappings' => max(0, $sourceCount - $existingMapped),
+                ],
+            ];
+        }
+
+        $sourceRows = $source->table('wh_Customers')
+            ->orderBy('ID')
+            ->get()
+            ->keyBy(static fn (object $row): string => (string) $row->ID);
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $runId = (string) Str::uuid();
+
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'customer360-backfill',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use (
+                $customerMappings,
+                $sourceRows,
+                $storeId,
+                $runId,
+            ): array {
+                $created = 0;
+                $updated = 0;
+
+                foreach ($customerMappings as $mapping) {
+                    $sourceKey = (string) $mapping->source_key;
+                    $sourceRow = $sourceRows->get($sourceKey);
+                    if (! is_object($sourceRow)) {
+                        throw new RuntimeException("Legacy customer {$sourceKey} disappeared during Customer 360 backfill.");
+                    }
+
+                    $customerId = (int) $mapping->target_id;
+                    $customer = DB::table('customers')->where('id', $customerId)->first([
+                        'id',
+                        'name',
+                        'phone',
+                        'email',
+                    ]);
+                    if ($customer === null) {
+                        throw new RuntimeException(
+                            "Mapped canonical customer {$customerId} is missing for legacy customer {$sourceKey}."
+                        );
+                    }
+
+                    $accountStatus = DB::table('b2b_accounts')
+                        ->where('customer_id', $customerId)
+                        ->value('status');
+                    $active = strtolower((string) ($accountStatus ?? 'active')) === 'active';
+
+                    $platform = DB::table('platform_customers')
+                        ->where('legacy_customer_id', $customerId)
+                        ->first(['id']);
+
+                    $payload = [
+                        'name' => (string) $customer->name,
+                        'phone' => $customer->phone,
+                        'email' => $customer->email,
+                        'is_active' => $active,
+                        'updated_at' => now(),
+                    ];
+
+                    if ($platform === null) {
+                        $platformId = (int) DB::table('platform_customers')->insertGetId([
+                            'user_id' => null,
+                            'legacy_customer_id' => $customerId,
+                            ...$payload,
+                            'origin_channel' => 'b2b',
+                            'origin_store_id' => $storeId,
+                            'registration_source' => 'import',
+                            'registered_at' => null,
+                            'created_at' => now(),
+                        ]);
+                        $created++;
+                    } else {
+                        $platformId = (int) $platform->id;
+                        DB::table('platform_customers')
+                            ->where('id', $platformId)
+                            ->update($payload);
+                        $updated++;
+                    }
+
+                    $this->syncMapping(
+                        'wh_Customers',
+                        $sourceKey,
+                        'platform_customers',
+                        $platformId,
+                        $sourceRow,
+                        $runId,
+                        [
+                            'registration_source' => 'import',
+                            'origin_channel' => 'b2b',
+                            'origin_store_id' => $storeId,
+                            'login_identity' => 'not_materialized',
+                            'backfill' => true,
+                        ],
+                    );
+                }
+
+                return [
+                    'run_id' => $runId,
+                    'store_id' => $storeId,
+                    'created' => $created,
+                    'updated' => $updated,
+                    'mapped' => $customerMappings->count(),
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'customer360-backfill',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function stockDiagnostics(bool $deep = false, ?callable $progress = null): array
     {
         $source = DB::connection('foodex_legacy');
