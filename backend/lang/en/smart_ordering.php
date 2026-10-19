@@ -180,7 +180,6 @@ return [
         ],
     ],
     'workspace' => [
-        'sidebar_group' => 'Restaurant',
         'title' => 'Restaurant Management workspace',
         'help' => 'All authorized restaurant tools in one place',
         'tasks_label' => 'Primary restaurant tasks',
