@@ -42,6 +42,23 @@ final class SmartOrderingStorefrontTest extends TestCase
         }
     }
 
+    public function test_fresh_market_template_matches_grocery_commerce_structure_in_arabic(): void
+    {
+        $snapshot = $this->snapshot('fresh-market-commerce', 'light');
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
+
+        $this->get('/smart-ordering/demo?lang=ar')
+            ->assertOk()
+            ->assertSee('data-fresh-market-template', false)
+            ->assertSee('جميع المنتجات')
+            ->assertSee('المنتجات المميزة')
+            ->assertSee('data-theme="fresh-market-commerce"', false)
+            ->assertSee('data-menu-search', false)
+            ->assertSee('data-open-item', false)
+            ->assertSee('fm-product-grid', false)
+            ->assertSee('fm-header-menu', false);
+    }
+
     public function test_public_item_dialog_and_icon_only_actions_keep_accessible_item_context(): void
     {
         foreach (['quick-bite', 'signature-brand'] as $theme) {
@@ -177,6 +194,9 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString('[data-theme=dark]', $stylesheet);
         $this->assertStringContainsString('html[data-template="fine-dining-dark-luxury"]', $templateStylesheet);
         $this->assertStringContainsString('html[data-template="premium-arabic-dining"]', $templateStylesheet);
+        $this->assertStringContainsString('html[data-template="fresh-market-commerce"]', $templateStylesheet);
+        $this->assertStringContainsString('.fm-product-grid', $templateStylesheet);
+        $this->assertStringContainsString('@media(max-width:620px)', $templateStylesheet);
         $this->assertStringContainsString('@media(max-width:460px)', $templateStylesheet);
         $this->assertStringContainsString('[dir="rtl"] .rm-template', $templateStylesheet);
         $this->assertStringContainsString(':focus-visible', $templateStylesheet);
@@ -184,7 +204,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     public function test_public_search_exposes_localized_accessible_feedback_across_templates(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting', 'fresh-market-commerce'] as $theme) {
             foreach (['en', 'ar'] as $locale) {
                 $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
 
@@ -288,7 +308,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting', 'fresh-market-commerce'] as $theme) {
             $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
 
             $this->get('/smart-ordering/demo')
