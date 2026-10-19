@@ -2057,6 +2057,7 @@ SQL));
         ];
 
         $headerCursor = static fn () => $source->table('wh_TransHeader')
+            ->select($headerColumns)
             ->where('Status', 1)
             ->whereIn('TransType', [...$salesTypes, ...$returnTypes])
             ->orderBy('HeaderId')
