@@ -139,7 +139,7 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
             @endif
                     <span class="restaurant-setup-step-number">{{ $step['number'] }}</span>
                     <span>
-                        <strong>{{ $step['number'] }} · {{ __('restaurant_onboarding.flow.steps.'.$step['key'].'.title') }}</strong>
+                        <strong>{{ __('restaurant_onboarding.flow.steps.'.$step['key'].'.title') }}</strong>
                         <small>{{ $stepState === 'complete' ? __('restaurant_onboarding.flow.complete') : ($stepState === 'current' ? __('restaurant_onboarding.flow.current') : __('restaurant_onboarding.flow.locked')) }}</small>
                         <small class="restaurant-setup-step-rule">
                             @if($loop->first)
