@@ -135,10 +135,34 @@ Artisan::command(
 
 
 Artisan::command(
-    'foodex:legacy-stock-diagnostics {--json : Output machine-readable JSON}',
+    'foodex:legacy-stock-diagnostics {--deep : Run the slower quantity/rebuild preview} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
+        $deep = (bool) $this->option('deep');
+
+        if (! (bool) $this->option('json')) {
+            $this->info('Legacy Foodex stock diagnostics: '.($deep ? 'DEEP' : 'QUICK').' mode');
+            if (! $deep) {
+                $this->line('Heavy quantity/rebuild aggregation is skipped. Use --deep only after quick diagnostics pass.');
+            }
+        }
+
         try {
-            $report = $importer->stockDiagnostics();
+            $report = $importer->stockDiagnostics(
+                $deep,
+                function (string $stage, string $state, ?float $elapsed): void {
+                    if ((bool) $this->option('json')) {
+                        return;
+                    }
+
+                    if ($state === 'start') {
+                        $this->line('>> '.$stage.' ...');
+
+                        return;
+                    }
+
+                    $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+                },
+            );
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex stock diagnostics failed: '.$exception->getMessage());
 
@@ -151,7 +175,6 @@ Artisan::command(
             return 0;
         }
 
-        $this->info('Legacy Foodex stock reconstruction diagnostics');
         $this->line(
             'Posted source: headers='.$report['source']['posted_headers'].
             ' | details='.$report['source']['posted_details'].
@@ -186,13 +209,17 @@ Artisan::command(
             ' | unmapped_items='.count($report['mapping_coverage']['unmapped_items'])
         );
 
-        $this->line(
-            'Quantity basis: lines='.$report['quantity']['lines'].
-            ' | TransPkgQty1='.$report['quantity']['using_trans_pkg_qty1'].
-            ' | fallback='.$report['quantity']['using_fallback'].
-            ' | negative_raw='.$report['quantity']['negative_raw_qty'].
-            ' | conversion_mismatch='.$report['quantity']['transpkg_vs_conversion_mismatch']
-        );
+        if ($report['quantity'] !== null) {
+            $this->line(
+                'Quantity basis: lines='.$report['quantity']['lines'].
+                ' | TransPkgQty1='.$report['quantity']['using_trans_pkg_qty1'].
+                ' | fallback='.$report['quantity']['using_fallback'].
+                ' | negative_raw='.$report['quantity']['negative_raw_qty'].
+                ' | conversion_mismatch='.$report['quantity']['transpkg_vs_conversion_mismatch']
+            );
+        } else {
+            $this->line('Quantity basis: skipped in QUICK mode.');
+        }
 
         $this->table(
             ['Pair', 'Groups', 'Complete', 'Missing A', 'Missing B', 'Duplicate sides'],
@@ -206,12 +233,16 @@ Artisan::command(
             ])->all(),
         );
 
-        $this->line(
-            'Rebuild preview: positions='.$report['rebuild_preview']['positions'].
-            ' | positive='.$report['rebuild_preview']['positive_positions'].
-            ' | zero='.$report['rebuild_preview']['zero_positions'].
-            ' | negative='.$report['rebuild_preview']['negative_positions']
-        );
+        if ($report['rebuild_preview'] !== null) {
+            $this->line(
+                'Rebuild preview: positions='.$report['rebuild_preview']['positions'].
+                ' | positive='.$report['rebuild_preview']['positive_positions'].
+                ' | zero='.$report['rebuild_preview']['zero_positions'].
+                ' | negative='.$report['rebuild_preview']['negative_positions']
+            );
+        } else {
+            $this->line('Rebuild preview: skipped in QUICK mode.');
+        }
 
         if ($report['unknown_posted_types'] !== []) {
             $this->warn('Posted transaction types outside the provisional stock rules exist. Apply remains disabled.');
@@ -232,7 +263,7 @@ Artisan::command(
         if ($report['mapping_coverage']['unmapped_items'] !== []) {
             $this->warn('Unmapped source items: '.implode(', ', array_slice($report['mapping_coverage']['unmapped_items'], 0, 30)));
         }
-        if ($report['rebuild_preview']['negative_samples'] !== []) {
+        if (($report['rebuild_preview']['negative_samples'] ?? []) !== []) {
             $this->warn('Negative reconstructed positions exist; review is required before stock apply.');
             $this->table(
                 ['Store', 'Item', 'Quantity', 'Lines'],
@@ -245,7 +276,19 @@ Artisan::command(
             );
         }
 
-        $this->warn('Read-only diagnostics only. Stock apply is intentionally disabled.');
+        $this->table(
+            ['Stage', 'Seconds'],
+            collect($report['timings_seconds'])
+                ->map(static fn ($seconds, $stage): array => [$stage, number_format((float) $seconds, 3)])
+                ->values()
+                ->all(),
+        );
+
+        $this->warn(
+            $deep
+                ? 'DEEP diagnostics completed. Stock apply remains intentionally disabled.'
+                : 'QUICK diagnostics completed. No stock was written.'
+        );
 
         return 0;
     },
