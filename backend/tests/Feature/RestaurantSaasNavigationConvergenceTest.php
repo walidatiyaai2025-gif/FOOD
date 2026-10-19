@@ -165,6 +165,47 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         }
     }
 
+    public function test_restaurant_settings_page_uses_focused_tabbed_information_architecture(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/smart-ordering.blade.php'));
+        $launcher = file_get_contents(resource_path('views/admin/_restaurant-management-launcher.blade.php'));
+        $onboarding = file_get_contents(resource_path('views/admin/_restaurant-onboarding.blade.php'));
+        $content = file_get_contents(resource_path('views/admin/_smart-ordering-content-editor.blade.php'));
+
+        $this->assertIsString($view);
+        foreach (['overview', 'launch', 'site', 'content', 'modules'] as $tab) {
+            $this->assertStringContainsString('data-so-settings-tab="'.$tab.'"', $view);
+            $this->assertStringContainsString('data-so-settings-panel="'.$tab.'"', $view);
+        }
+        $this->assertStringContainsString('data-so-settings-summary', $view);
+        $this->assertStringContainsString('restaurantManagementCompact = true', $view);
+        $this->assertStringContainsString('so-quick-links', $view);
+        $this->assertStringContainsString('sessionStorage.setItem(storageKey, name)', $view);
+        $this->assertStringContainsString('foodex:restaurant-settings-tab:', $view);
+        $this->assertStringContainsString('$analyticsQuery = array_filter([', $view);
+        $this->assertStringContainsString('$operationsQuery = array_filter([', $view);
+        $this->assertStringContainsString("\$ovTrend = is_array(\$ov['trend'] ?? null)", $view);
+        $this->assertStringContainsString("\$ovOrderStatus = is_array(\$ov['order_status'] ?? null)", $view);
+        $this->assertStringContainsString("\$ovBranches = \$ov['branches'] ?? collect()", $view);
+        $this->assertStringNotContainsString('@php\n            $ov = $restaurantOverview;', $view);
+        $analyticsDefinition = strpos($view, '$analyticsQuery = array_filter([');
+        $analyticsUsage = strpos($view, "route('admin.smart-ordering.analytics.export',\$analyticsQuery)");
+        $this->assertNotFalse($analyticsDefinition);
+        $this->assertNotFalse($analyticsUsage);
+        $this->assertLessThan($analyticsUsage, $analyticsDefinition);
+        $this->assertStringContainsString("['restaurantOnboardingCompact'=>true]", $view);
+        $this->assertStringContainsString("['restaurantContentCompact'=>true]", $view);
+
+        $this->assertStringContainsString('restaurant-primary-tasks.is-compact', $launcher);
+        $this->assertStringContainsString('so-onboarding-gates-disclosure', $onboarding);
+        $this->assertStringNotContainsString('@forelse', $view);
+        $this->assertStringNotContainsString('@endforelse', $view);
+        $this->assertStringNotContainsString('@forelse', $onboarding);
+        $this->assertStringNotContainsString('@endforelse', $onboarding);
+        $this->assertStringContainsString('data-so-content-tabs', $content);
+        $this->assertStringContainsString('data-so-content-panel="story"', $content);
+    }
+
     public function test_qr_and_analytics_keep_restaurant_saas_sidebar_active(): void
     {
         foreach ([

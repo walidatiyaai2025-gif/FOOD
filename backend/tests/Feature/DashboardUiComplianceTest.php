@@ -42,8 +42,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
         $this->assertStringNotContainsString('channel={{ $detail[\'channel\'] }}', $view);
         $this->assertStringContainsString('$businessLabel', $view);
-        $this->assertStringContainsString('<select name="driver_id">', $view);
-        $this->assertStringContainsString('$driver->name ?: __(\'order_operations.filters.unnamed_driver\')', $view);
+        $filters = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
+        $this->assertIsString($filters);
+        $this->assertStringContainsString('<select name="driver_id"', $filters);
+        $this->assertStringContainsString('$driver->name ?: __(\'order_operations.filters.unnamed_driver\')', $filters);
         $this->assertStringNotContainsString('#{{ $assignment[\'id\'] }}', $view);
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
@@ -78,7 +80,9 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertIsString($controller);
         $this->assertIsString($routes);
 
-        $this->assertStringContainsString('name="dispatch_status"', $view);
+        $orderFilters = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
+        $this->assertIsString($orderFilters);
+        $this->assertStringContainsString('name="dispatch_status"', $orderFilters);
         $this->assertStringContainsString('data-order-dispatch-status', $view);
         $this->assertStringContainsString('data-order-dispatch-driver', $view);
         $this->assertStringContainsString('data-order-dispatch-van', $view);
@@ -206,10 +210,12 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('__(\'order_operations.title\')', $view);
-        $this->assertStringContainsString("__('order_operations.filters.channel')", $view);
-        $this->assertStringContainsString("__('order_operations.filters.store')", $view);
-        $this->assertStringContainsString('type="hidden" name="channel"', $view);
-        $this->assertStringContainsString('<select name="store_id">', $view);
+        $filters = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
+        $this->assertIsString($filters);
+        $this->assertStringContainsString('data-order-channel-tabs', $view);
+        $this->assertStringContainsString("__('order_operations.filters.store')", $filters);
+        $this->assertStringContainsString('type="hidden" name="channel"', $filters);
+        $this->assertStringContainsString('<select name="store_id">', $filters);
         $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
         $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
         $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
@@ -224,8 +230,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed', $view);
         $this->assertStringContainsString('@media(max-width:1500px) and (min-width:1001px)', $view);
-        $this->assertStringContainsString('.table-wrap{overflow:visible}', $view);
-        $this->assertStringContainsString('colspan="11"', $view);
+        $this->assertStringContainsString('.table-wrap{overflow:visible', $view);
+        $this->assertStringContainsString('colspan="7"', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.store\') }}</th>', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.channel\') }}</th>', $view);
     }
@@ -325,7 +331,11 @@ class DashboardUiComplianceTest extends TestCase
             $this->assertStringContainsString('foodex-admin-layout', $view, $viewName);
             $this->assertStringContainsString('foodex-admin-main', $view, $viewName);
             $this->assertStringContainsString('admin._sidebar', $view, $viewName);
-            $this->assertStringContainsString('foodex-page-toolbar', $view, $viewName);
+            if ($viewName === 'order-operations.blade.php') {
+                $this->assertStringContainsString("@include('admin._global-header')", $view, $viewName);
+            } else {
+                $this->assertStringContainsString('foodex-page-toolbar', $view, $viewName);
+            }
         }
     }
 

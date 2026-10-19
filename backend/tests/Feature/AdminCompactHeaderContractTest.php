@@ -41,14 +41,19 @@ final class AdminCompactHeaderContractTest extends TestCase
         $search = file_get_contents(resource_path('views/admin/_global-search.blade.php'));
         $notifications = file_get_contents(resource_path('views/admin/_live-notifications.blade.php'));
         $account = file_get_contents(resource_path('views/admin/_account-menu.blade.php'));
+        $searchScript = file_get_contents(public_path('assets/admin/global-search.js'));
 
         $this->assertIsString($search);
         $this->assertIsString($notifications);
         $this->assertIsString($account);
+        $this->assertIsString($searchScript);
 
-        $this->assertStringContainsString('height:var(--foodex-header-control-height)', $search);
-        $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)', $search);
+        $this->assertStringContainsString('input.foodex-global-search-input{height:var(--foodex-header-control-height)!important;min-height:var(--foodex-header-control-height)!important', $search);
+        $this->assertStringContainsString('height:var(--foodex-header-control-height-mobile)!important;min-height:var(--foodex-header-control-height-mobile)!important', $search);
         $this->assertStringContainsString('font-size:16px', $search);
+        $this->assertStringContainsString('data-foodex-global-search-form', $search);
+        $this->assertStringContainsString('name="q"', $search);
+        $this->assertStringContainsString("?v={{ @filemtime(public_path('assets/admin/global-search.js')) ?: '1' }}", $search);
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $notifications);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $notifications);
@@ -56,6 +61,11 @@ final class AdminCompactHeaderContractTest extends TestCase
 
         $this->assertStringContainsString('width:var(--foodex-header-control-height)', $account);
         $this->assertStringContainsString('width:var(--foodex-touch-target)', $account);
+
+        $this->assertStringContainsString("form.addEventListener('submit', async (event) =>", $searchScript);
+        $this->assertStringContainsString('await search(term, currentGeneration);', $searchScript);
+        $this->assertStringContainsString('setActive(0);', $searchScript);
+        $this->assertStringContainsString("event.key === 'Enter' && activeIndex >= 0", $searchScript);
     }
 
     public function test_canonical_admin_shell_uses_shared_global_header_partial(): void

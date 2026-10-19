@@ -55,7 +55,7 @@ class SalesOrderOperationsDashboardTest extends TestCase
                 && $dashboard['kpis']['cancelled_refunded'] === 1
             )
             ->assertSee('data-sales-operations-dashboard', false)
-            ->assertSee('data-foodex-module-kpi', false)
+            ->assertSee('data-order-kpi-card', false)
             ->assertSee('data-sales-exception="delayed"', false);
 
         $this->actingAs($admin)

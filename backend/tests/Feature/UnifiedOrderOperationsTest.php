@@ -122,9 +122,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $response->assertOk()
             ->assertViewHas('selectedChannel', 'b2c')
             ->assertViewHas('selectedStoreId', $selectedStore)
-            ->assertSee('data-order-workspace-context', false)
-            ->assertSee('data-channel="b2c"', false)
-            ->assertSee('data-store-id="'.$selectedStore.'"', false)
+            ->assertSee('data-order-grid-filter-controls', false)
+            ->assertSee('data-order-grid-filter', false)
+            ->assertDontSee('data-order-workspace-context', false)
             ->assertSee('name="channel" value="b2c"', false)
             ->assertSee('<option value="'.$selectedStore.'" selected>', false)
             ->assertSee(
@@ -168,6 +168,122 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('#'.$order)
             ->assertSee('data-order-row-actions', false)
             ->assertSee('data-order-edit', false);
+    }
+
+    public function test_order_operations_uses_compact_single_card_kpi_summary(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-order-kpi-card', $view);
+        $this->assertStringContainsString('data-order-tabs', $view);
+        $this->assertStringContainsString('data-order-tab="analytics"', $view);
+        $this->assertStringContainsString('data-order-tab="orders"', $view);
+        $this->assertStringContainsString('data-order-panel="analytics"', $view);
+        $this->assertStringContainsString('data-order-panel="orders"', $view);
+        $this->assertStringContainsString('class="order-workspace-tab-count"', $view);
+        $this->assertStringContainsString("history.replaceState(null, '', '#order-tab-' + name)", $view);
+        $this->assertStringContainsString('.order-tab-panel[hidden]{display:none!important}', $view);
+        $dashboardStart = strpos($view, '<?php if ($dashboardVisible && is_array($dashboard ?? null)): ?>');
+        $dashboardEnd = strpos($view, '<?php endif; ?>', $dashboardStart + 1);
+        $this->assertNotFalse($dashboardStart);
+        $this->assertNotFalse($dashboardEnd);
+        $dashboardBlock = substr($view, $dashboardStart, $dashboardEnd - $dashboardStart);
+        $this->assertStringNotContainsString('@if(', $dashboardBlock);
+        $this->assertStringNotContainsString('@foreach(', $dashboardBlock);
+        $this->assertStringNotContainsString('@forelse(', $dashboardBlock);
+        $this->assertStringNotContainsString("foodexGlobalHeaderExtraPartial = 'admin._order-operations-header-filters'", $view);
+        $this->assertStringContainsString('data-order-workspace-bar', $view);
+        $this->assertStringContainsString('data-order-workspace-filter', $view);
+        $this->assertStringContainsString('data-default-tab="orders"', $view);
+        $this->assertStringContainsString('data-order-filter-mode="analytics" hidden', $view);
+        $this->assertStringContainsString('data-order-filter-mode="orders"', $view);
+        $this->assertStringContainsString("@include('admin._order-operations-order-filters')", $view);
+        $this->assertStringNotContainsString('class="filters foodex-card"', $view);
+        $this->assertStringContainsString('data-order-action-tab', $view);
+        $this->assertStringContainsString('order-grid-row', $view);
+        $this->assertStringContainsString('order-attention-chip', $view);
+        $this->assertStringContainsString('order-status-chip', $view);
+        $this->assertStringContainsString('colspan="7"', $view);
+        $this->assertStringContainsString('position:sticky;top:0', $view);
+        $this->assertStringContainsString('data-action-required="{{ $rowActionRequired ? \'1\' : \'0\' }}"', $view);
+        $this->assertStringContainsString("@include('admin._order-operations-header-filters')", $view);
+        $this->assertStringContainsString('@keyframes orderChartGrow', $view);
+        $this->assertStringContainsString('@keyframes orderRankGrow', $view);
+        $this->assertStringContainsString('charts-animate', $view);
+        $this->assertStringContainsString('--order-chart-color:var(--foodex-palette-2563eb)', $view);
+        $this->assertStringContainsString('--order-chart-color:var(--foodex-palette-7c3aed)', $view);
+        $this->assertStringContainsString('data-order-analytics-tabs', $view);
+        $this->assertStringContainsString('data-analytics-tab="performance"', $view);
+        $this->assertStringContainsString('data-analytics-tab="operations"', $view);
+        $this->assertStringContainsString('data-analytics-tab="channels"', $view);
+        $this->assertStringContainsString('data-analytics-tab="commerce"', $view);
+        $this->assertStringContainsString('data-analytics-group="performance"', $view);
+        $this->assertStringContainsString('data-analytics-group="operations" hidden', $view);
+        $this->assertStringContainsString('data-analytics-group="channels" hidden', $view);
+        $this->assertStringContainsString('data-analytics-group="commerce" hidden', $view);
+        $this->assertStringContainsString('background:linear-gradient(180deg,var(--order-chart-color-2)', $view);
+        $this->assertStringContainsString('background:linear-gradient(90deg,var(--order-rank-color),var(--order-rank-color-2))', $view);
+        $this->assertStringContainsString('orderChartGrow 1.65s', $view);
+        $this->assertStringContainsString('orderRankGrow 1.85s', $view);
+        $this->assertStringContainsString('const duration = 1200;', $view);
+        $this->assertStringContainsString('.foodex-module-overview{display:grid;gap:6px}', $view);
+        $this->assertStringContainsString('.order-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:6px', $view);
+        $this->assertStringNotContainsString('class="foodex-page-toolbar"', $view);
+        $this->assertStringNotContainsString('data-order-workspace-context', $view);
+        $this->assertStringNotContainsString("@include('admin._module-dashboard-filters'", $view);
+        $this->assertStringContainsString('data-order-counter', $view);
+        $this->assertStringContainsString('data-counter-target', $view);
+        $this->assertStringContainsString('window.requestAnimationFrame(tick)', $view);
+        $this->assertStringContainsString('white-space:nowrap', $view);
+        $this->assertStringContainsString('class="order-kpi-item"', $view);
+        $this->assertStringContainsString('class="order-kpi-icon"', $view);
+        $this->assertStringContainsString('data-tone="{{ $metric[\'tone\'] }}"', $view);
+        $this->assertStringContainsString('.order-kpi-card::before{content:""', $view);
+        $this->assertStringContainsString('@keyframes orderKpiEdge', $view);
+        $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$metric['icon']])", $view);
+        $this->assertStringNotContainsString("@include('admin._module-dashboard-kpi', ['metric' => \$metric])", $view);
+        $this->assertStringNotContainsString("__('order_operations.description')", $view);
+        $this->assertStringNotContainsString("__('order_operations.dashboard.subtitle')", $view);
+        $this->assertStringNotContainsString("__('order_operations.dashboard.generated_at'", $view);
+        $orderFilter = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
+        $this->assertIsString($orderFilter);
+        $this->assertStringContainsString('data-order-grid-filter-controls', $orderFilter);
+        $this->assertStringContainsString('data-order-grid-filter', $orderFilter);
+        $this->assertStringContainsString('name="order_number"', $orderFilter);
+        $this->assertStringContainsString('name="status"', $orderFilter);
+        $this->assertStringContainsString('name="driver_id"', $orderFilter);
+        $this->assertStringContainsString('name="exception"', $orderFilter);
+        $this->assertStringContainsString('#order-tab-orders', $orderFilter);
+
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/OrderOperationsController.php'));
+        $this->assertIsString($controller);
+        $this->assertStringContainsString("'action_required' => ['nullable', 'boolean']", $controller);
+        $this->assertStringContainsString('usesCustomerServiceDashboardProfile($actor)', $controller);
+        $this->assertStringContainsString("'awaiting_dispatch'", $controller);
+        $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
+        $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
+
+        $headerFilter = file_get_contents(resource_path('views/admin/_order-operations-header-filters.blade.php'));
+        $this->assertIsString($headerFilter);
+        $this->assertStringContainsString('data-order-header-controls', $headerFilter);
+        $this->assertStringContainsString('data-order-header-filter', $headerFilter);
+        $this->assertStringContainsString('name="from"', $headerFilter);
+        $this->assertStringContainsString('name="to"', $headerFilter);
+        $this->assertStringContainsString('order-header-new-order', $headerFilter);
+        $this->assertStringContainsString('.order-header-filter{display:flex', $headerFilter);
+        $this->assertStringContainsString('height:34px!important', $headerFilter);
+    }
+
+    public function test_order_grid_is_fixed_to_ten_rows_per_page(): void
+    {
+        $super = $this->superAdmin('unified-ten-rows@example.test');
+        app(WholesalePrincipal::class)->storeId();
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b&per_page=25')
+            ->assertOk()
+            ->assertViewHas('orders', fn ($orders) => $orders->perPage() === 25);
     }
 
     private function retailStore(string $code): int

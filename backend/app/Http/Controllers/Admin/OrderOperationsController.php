@@ -87,18 +87,25 @@ final class OrderOperationsController extends Controller
             'driver_id' => ['nullable', 'integer', 'min:1'],
             'dispatch_status' => ['nullable', 'string', Rule::in(['awaiting_dispatch', 'assigned'])],
             'exception' => ['nullable', 'string', Rule::in(SalesOrderOperationsDashboardService::EXCEPTIONS)],
+            'action_required' => ['nullable', 'boolean'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
+        $customerServiceProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
+        $actionRequiredExplicit = array_key_exists('action_required', $data);
+        $selectedActionRequired = $actionRequiredExplicit
+            ? (bool) $data['action_required']
+            : $customerServiceProfile;
+
         $operationalChannel = isset($data['channel'])
             ? (string) $data['channel']
             : $this->defaultOperationalChannel($actor);
         $this->assertOperationalChannelAllowed($availableChannels, $operationalChannel);
         $data['channel'] = $operationalChannel;
-        $perPage = isset($data['per_page']) ? (int) $data['per_page'] : 25;
+        $perPage = (int) ($data['per_page'] ?? 25);
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
@@ -164,12 +171,35 @@ final class OrderOperationsController extends Controller
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
-        $statusCounts = (clone $orderQuery)
+        $statusBaseQuery = clone $orderQuery;
+        $actionRequiredCount = (clone $statusBaseQuery)
+            ->whereExists(function ($dispatch): void {
+                $dispatch->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
+            })
+            ->count();
+
+        if ($selectedActionRequired && ! $actionRequiredExplicit && $actionRequiredCount === 0) {
+            $selectedActionRequired = false;
+        }
+
+        $statusCounts = (clone $statusBaseQuery)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status')
             ->map(static fn ($count): int => (int) $count)
             ->all();
+
+        if ($selectedActionRequired) {
+            $orderQuery->whereExists(function ($dispatch): void {
+                $dispatch->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
+            });
+        }
 
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
         $orders = (clone $orderQuery)
@@ -263,6 +293,140 @@ final class OrderOperationsController extends Controller
             )
             : null;
 
+        $dashboardBaseQuery = [];
+        $dashboardKpis = [];
+        $dashboardMoney = static fn ($value): string => '—';
+        $dailyMax = 1;
+        $statusMax = 1;
+
+        if ($dashboardVisible && is_array($dashboard)) {
+            $dashboardBaseQuery = [
+                'channel' => $operationalChannel,
+                'from' => $dashboard['period']['from'],
+                'to' => $dashboard['period']['to'],
+                'action_required' => 0,
+            ];
+            if ($selectedStoreId !== null) {
+                $dashboardBaseQuery['store_id'] = $selectedStoreId;
+            }
+
+            $dashboardCurrency = $dashboard['currency'];
+            $dashboardMoney = static fn ($value): string => $value === null || $dashboardCurrency === null
+                ? __('order_operations.dashboard.multiple_currencies')
+                : DisplayNumber::money((float) $value, $dashboardCurrency).' '.$dashboardCurrency;
+
+            $dashboardKpis = [
+                [
+                    'key' => 'orders',
+                    'icon' => 'orders',
+                    'tone' => 'green',
+                    'label' => __('order_operations.dashboard.kpis.orders'),
+                    'value' => number_format((int) $dashboard['kpis']['orders']),
+                    'raw' => (float) $dashboard['kpis']['orders'],
+                    'decimals' => 0,
+                    'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
+                ],
+                [
+                    'key' => 'recognized_revenue',
+                    'icon' => 'revenue',
+                    'tone' => 'blue',
+                    'label' => __('order_operations.dashboard.kpis.recognized_revenue'),
+                    'value' => $dashboardMoney($dashboard['kpis']['recognized_revenue']),
+                    'raw' => $dashboard['kpis']['recognized_revenue'],
+                    'decimals' => 2,
+                    'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
+                ],
+                [
+                    'key' => 'aov',
+                    'icon' => 'reports',
+                    'tone' => 'violet',
+                    'label' => __('order_operations.dashboard.kpis.aov'),
+                    'value' => $dashboardMoney($dashboard['kpis']['average_order_value']),
+                    'raw' => $dashboard['kpis']['average_order_value'],
+                    'decimals' => 2,
+                    'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
+                ],
+                [
+                    'key' => 'open_orders',
+                    'icon' => 'orders',
+                    'tone' => 'orange',
+                    'label' => __('order_operations.dashboard.kpis.open_orders'),
+                    'value' => number_format((int) $dashboard['kpis']['open_orders']),
+                    'raw' => (float) $dashboard['kpis']['open_orders'],
+                    'decimals' => 0,
+                    'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
+                ],
+                [
+                    'key' => 'delayed_orders',
+                    'icon' => 'bell',
+                    'tone' => 'red',
+                    'label' => __('order_operations.dashboard.kpis.delayed_orders'),
+                    'value' => number_format((int) $dashboard['kpis']['delayed_orders']),
+                    'raw' => (float) $dashboard['kpis']['delayed_orders'],
+                    'decimals' => 0,
+                    'status' => ['label' => __('order_operations.dashboard.exceptions.delayed'), 'state' => $dashboard['kpis']['delayed_orders'] > 0 ? 'warning' : 'success'],
+                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
+                ],
+                [
+                    'key' => 'awaiting_dispatch',
+                    'icon' => 'delivery',
+                    'tone' => 'amber',
+                    'label' => __('order_operations.dashboard.kpis.awaiting_dispatch'),
+                    'value' => number_format((int) $dashboard['kpis']['awaiting_dispatch']),
+                    'raw' => (float) $dashboard['kpis']['awaiting_dispatch'],
+                    'decimals' => 0,
+                    'status' => ['label' => __('order_operations.dashboard.exceptions.awaiting_dispatch'), 'state' => $dashboard['kpis']['awaiting_dispatch'] > 0 ? 'warning' : 'success'],
+                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'awaiting_dispatch'])),
+                ],
+                [
+                    'key' => 'payment_exceptions',
+                    'icon' => 'revenue',
+                    'tone' => 'cyan',
+                    'label' => __('order_operations.dashboard.kpis.payment_exceptions'),
+                    'value' => number_format((int) $dashboard['kpis']['payment_exceptions']),
+                    'raw' => (float) $dashboard['kpis']['payment_exceptions'],
+                    'decimals' => 0,
+                    'status' => ['label' => __('order_operations.dashboard.exceptions.payment'), 'state' => $dashboard['kpis']['payment_exceptions'] > 0 ? 'danger' : 'success'],
+                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'payment'])),
+                ],
+                [
+                    'key' => 'invoice_exceptions',
+                    'icon' => 'content',
+                    'tone' => 'rose',
+                    'label' => __('order_operations.dashboard.kpis.invoice_exceptions'),
+                    'value' => number_format((int) $dashboard['kpis']['invoice_exceptions']),
+                    'raw' => (float) $dashboard['kpis']['invoice_exceptions'],
+                    'decimals' => 0,
+                    'status' => ['label' => __('order_operations.dashboard.exceptions.invoice'), 'state' => $dashboard['kpis']['invoice_exceptions'] > 0 ? 'danger' : 'success'],
+                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'invoice'])),
+                ],
+                [
+                    'key' => 'fulfillment_minutes',
+                    'icon' => 'delivery',
+                    'tone' => 'blue',
+                    'label' => __('order_operations.dashboard.kpis.fulfillment_minutes'),
+                    'value' => $dashboard['kpis']['average_fulfillment_minutes'] === null ? '—' : number_format((float) $dashboard['kpis']['average_fulfillment_minutes'], 1),
+                    'raw' => $dashboard['kpis']['average_fulfillment_minutes'],
+                    'decimals' => 1,
+                    'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'operations'])),
+                ],
+                [
+                    'key' => 'sla',
+                    'icon' => 'inspector',
+                    'tone' => 'green',
+                    'label' => __('order_operations.dashboard.kpis.sla'),
+                    'value' => $dashboard['kpis']['open_within_sla_percent'] === null ? '—' : number_format((float) $dashboard['kpis']['open_within_sla_percent'], 1).'%',
+                    'raw' => $dashboard['kpis']['open_within_sla_percent'],
+                    'decimals' => 1,
+                    'status' => ['label' => __('order_operations.dashboard.sla_help'), 'state' => ($dashboard['kpis']['open_within_sla_percent'] ?? 100) >= 90 ? 'success' : 'warning'],
+                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
+                ],
+            ];
+
+            $dailyMax = max(1, (int) collect($dashboard['daily'])->max('orders'));
+            $statusMax = max(1, (int) collect($dashboard['status_breakdown'])->max('orders'));
+        }
+
         $canAssignCustomerService = $this->customerServiceTeam->canManage($actor);
         $customerServiceAgents = $canAssignCustomerService
             ? $this->customerServiceTeam->members($actor)->where('is_active', true)->values()
@@ -312,11 +476,19 @@ final class OrderOperationsController extends Controller
             'statusOptions' => $statusOptions,
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
+            'actionRequiredCount' => $actionRequiredCount,
+            'selectedActionRequired' => $selectedActionRequired,
+            'customerServiceProfile' => $customerServiceProfile,
             'selectedStatus' => $selectedStatus,
             'selectedException' => $selectedException,
             'exceptionOptions' => SalesOrderOperationsDashboardService::EXCEPTIONS,
             'dashboard' => $dashboard,
             'dashboardVisible' => $dashboardVisible,
+            'dashboardBaseQuery' => $dashboardBaseQuery,
+            'dashboardKpis' => $dashboardKpis,
+            'dashboardMoney' => $dashboardMoney,
+            'dailyMax' => $dailyMax,
+            'statusMax' => $statusMax,
             'selectedStoreId' => $selectedStoreId,
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,

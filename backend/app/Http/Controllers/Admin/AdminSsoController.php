@@ -87,7 +87,9 @@ final class AdminSsoController extends Controller
             $request,
         );
 
-        $defaultTarget = $this->workspaceLanding->urlFor($user, $request) ?? route('admin.index');
+        $defaultTarget = $this->navigation->usesCustomerServiceDashboardProfile($user)
+            ? $this->navigation->defaultWorkspaceUrl($user, 'b2b')
+            : ($this->workspaceLanding->urlFor($user, $request) ?? route('admin.index'));
 
         if ($this->policy->requiresMfa($user)) {
             $request->session()->put('mfa_intended', $defaultTarget);

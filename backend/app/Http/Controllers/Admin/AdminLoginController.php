@@ -260,6 +260,10 @@ class AdminLoginController extends Controller
             $intended = $this->authorizedIntendedUrl($request, $user);
             $defaultTarget = $this->defaultWorkspaceUrl($user, $target, $request);
 
+            if ($this->navigation->usesCustomerServiceDashboardProfile($user)) {
+                $intended = null;
+            }
+
             if ($this->securityPolicy->requiresMfa($user)) {
                 $request->session()->put('mfa_intended', $intended ?? $defaultTarget);
                 $hasMfa = AdminMfaCredential::query()

@@ -196,7 +196,7 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_customer_service_management_login_lands_on_customer_service_workspace(): void
+    public function test_customer_service_manager_login_always_lands_on_customer_service_workspace(): void
     {
         $user = $this->userWithGlobalRole('CUSTOMER_SERVICE_MANAGER');
 
@@ -206,6 +206,39 @@ class AdminWebLoginTest extends TestCase
         ])->assertRedirect(route('admin.erp.customer-service'));
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_customer_service_supervisor_and_agent_login_always_land_on_customer_service_workspace(): void
+    {
+        foreach (['CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+            $user = $this->userWithGlobalRole($roleCode);
+
+            $this->post('/admin/b2b/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])->assertRedirect(route('admin.erp.customer-service'));
+
+            $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
+            $this->assertGuest();
+        }
+    }
+
+    public function test_customer_service_dashboard_roles_ignore_stale_intended_workspace_after_login(): void
+    {
+        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+            $user = $this->userWithGlobalRole($roleCode);
+            $intended = route('admin.b2b.dashboard');
+
+            $this->withSession(['url.intended' => $intended])
+                ->post('/admin/b2b/login', [
+                    'email' => $user->email,
+                    'password' => 'correct-password',
+                ])
+                ->assertRedirect(route('admin.erp.customer-service'));
+
+            $this->post('/admin/logout')->assertRedirect(route('admin.b2c.login'));
+            $this->assertGuest();
+        }
     }
 
     public function test_operations_login_lands_on_order_operations_workspace(): void
