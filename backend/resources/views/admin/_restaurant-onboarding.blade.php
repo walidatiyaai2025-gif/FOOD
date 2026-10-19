@@ -19,14 +19,7 @@
         ? $onboardingStatus['storefront_identity']
         : [];
     $heroPath = trim((string) ($storefrontIdentity['cover_url'] ?? ''));
-    $heroUrl = null;
-    if ($heroPath !== '') {
-        $heroUrl = str_starts_with($heroPath, '/')
-            || str_starts_with($heroPath, 'http://')
-            || str_starts_with($heroPath, 'https://')
-                ? $heroPath
-                : \Illuminate\Support\Facades\Storage::disk('public')->url($heroPath);
-    }
+    $heroUrl = app(\App\Services\SmartOrderingMediaService::class)->publicUrl($heroPath);
 @endphp
 <section class="panel so-onboarding {{ $onboardingCompact ? 'is-compact' : '' }}" aria-labelledby="restaurant-onboarding-title">
     <style>
