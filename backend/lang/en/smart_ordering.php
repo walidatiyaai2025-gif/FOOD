@@ -184,6 +184,7 @@ return [
         'help' => 'All authorized restaurant tools in one place',
         'tasks_label' => 'Primary restaurant tasks',
         'tasks' => [
+            'overview' => 'Overview',
             'customer_orders' => 'Customer Orders',
             'menu' => 'Menu',
             'operations' => 'Operations',
