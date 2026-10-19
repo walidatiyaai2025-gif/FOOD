@@ -231,7 +231,7 @@ final class AssistantController extends Controller
                 'actor_user_id' => $user->getKey(),
                 'store_id' => $principal->activeStoreId ?? $traceStoreId,
                 'phase' => 'turn',
-                'outcome' => (string) ($payload['_trace_outcome'] ?? 'COMPLETE'),
+                'outcome' => (string) $payload['_trace_outcome'],
                 'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
             ]);
             unset($payload['_trace_outcome']);
