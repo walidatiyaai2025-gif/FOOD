@@ -37,6 +37,16 @@ final class SmartOrderingMediaService
         return '/smart-ordering/media/'.implode('/', $segments);
     }
 
+    public function absoluteUrl(mixed $value): ?string
+    {
+        $publicUrl = $this->publicUrl($value);
+        if ($publicUrl === null || str_starts_with($publicUrl, 'https://') || str_starts_with($publicUrl, 'http://')) {
+            return $publicUrl;
+        }
+
+        return url($publicUrl);
+    }
+
     public function response(string $path): StreamedResponse
     {
         $path = ltrim(trim($path), '/');
