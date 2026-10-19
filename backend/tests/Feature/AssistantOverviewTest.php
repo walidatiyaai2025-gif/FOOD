@@ -50,23 +50,18 @@ class AssistantOverviewTest extends TestCase
             ->assertSee('qwen3:4b')
             ->assertSee('Demand forecasting & replenishment')
             ->assertSee(route('admin.assistant-settings.index'), false)
-            ->assertSee(route('admin.assistant-intelligence.index'), false)
+            ->assertDontSee(route('admin.assistant-intelligence.index'), false)
             ->assertDontSee('overview-provider-secret')
             ->assertDontSee('overview-url-secret')
             ->assertDontSee('https://ai.example.test/v1/chat/completions');
     }
 
-    public function test_ai_overview_is_discoverable_from_existing_assistant_surfaces(): void
+    public function test_ai_overview_is_discoverable_from_assistant_settings(): void
     {
         $user = $this->settingsViewer();
 
         $this->actingAs($user)
             ->get(route('admin.assistant-settings.index'))
-            ->assertOk()
-            ->assertSee(route('admin.assistant-overview.index'), false);
-
-        $this->actingAs($user)
-            ->get(route('admin.assistant-intelligence.index'))
             ->assertOk()
             ->assertSee(route('admin.assistant-overview.index'), false);
     }
