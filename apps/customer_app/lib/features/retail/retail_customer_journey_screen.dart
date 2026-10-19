@@ -463,11 +463,12 @@ class _RetailContextMissing extends StatelessWidget {
           title: 'FOODEX',
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
           child: Center(
-          child: FilledButton(
-            key: const ValueKey('retail-context-return-marketplace'),
-            onPressed: () => Navigator.of(context)
-                .pushReplacementNamed(CustomerRoutePaths.marketplace),
-            child: const Text('Back to marketplace'),
+            child: FilledButton(
+              key: const ValueKey('retail-context-return-marketplace'),
+              onPressed: () => Navigator.of(context)
+                  .pushReplacementNamed(CustomerRoutePaths.marketplace),
+              child: const Text('Back to marketplace'),
+            ),
           ),
         ),
       );
