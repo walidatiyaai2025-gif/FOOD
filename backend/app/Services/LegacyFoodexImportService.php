@@ -4419,8 +4419,9 @@ SQL));
                         ): void {
                             $detailChunkNumber++;
                             $startedAt = microtime(true);
+                            $writeTimestamp = date('Y-m-d H:i:s');
                             $insertRows = [];
-                            $mappingSource = [];
+                            $mappingPayloads = [];
 
                             foreach ($rows as $line) {
                                 $detailRowsScanned++;
@@ -4505,7 +4506,7 @@ SQL));
                                 }
 
                                 $linesCreated += count($insertRows);
-                                if (count($mappingRows) >= 1000) {
+                                if (count($mappingRows) >= 500) {
                                     $flushMappings();
                                 }
                             }
@@ -5056,6 +5057,30 @@ SQL));
             );
         }
 
+        DB::table('legacy_import_runs')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('phase', 'operational-history')
+            ->where('status', 'running')
+            ->update([
+                'status' => 'aborted',
+                'error' => 'Previous operational-history process terminated before completion; target history was clean on retry.',
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        unset(
+            $headerTypes,
+            $detailCounts,
+            $usedItems,
+            $detailsByType,
+            $unmappedLocations,
+            $invalidLocationHeaderSamples,
+            $invalidHeaderDates,
+            $pairGroups,
+            $pairAnomalySamples,
+        );
+        gc_collect_cycles();
+
         $runId = (string) Str::uuid();
         DB::table('legacy_import_runs')->insert([
             'id' => $runId,
@@ -5316,7 +5341,7 @@ SQL));
                     ])
                     ->orderBy('DetailId')
                     ->chunkById(
-                        10000,
+                        1000,
                         function ($rows) use (
                             &$detailChunkNumber,
                             &$detailsScanned,
@@ -5359,9 +5384,13 @@ SQL));
                                     3,
                                 );
 
+                                $sourceArray = (array) $line;
+                                $sourceJson = $this->json($sourceArray);
+                                $sourceDetailId = (int) $line->DetailId;
+
                                 $insertRows[] = [
                                     'document_id' => $documentIds[$headerId],
-                                    'source_detail_id' => (int) $line->DetailId,
+                                    'source_detail_id' => $sourceDetailId,
                                     'source_item_id' => $sourceItemId,
                                     'product_id' => $maps['products'][$sourceItemId],
                                     'package' => $line->Package === null ? null : (int) $line->Package,
@@ -5373,11 +5402,20 @@ SQL));
                                     'cost_price' => round((float) ($line->CostPrice ?? 0), 3),
                                     'discount_total' => $discount,
                                     'tax_total' => round((float) ($line->DetailTax ?? 0), 3),
-                                    'source_payload' => $this->json((array) $line),
-                                    'created_at' => now(),
-                                    'updated_at' => now(),
+                                    'source_payload' => $sourceJson,
+                                    'created_at' => $writeTimestamp,
+                                    'updated_at' => $writeTimestamp,
                                 ];
-                                $mappingSource[(int) $line->DetailId] = (array) $line;
+                                $mappingPayloads[$sourceDetailId] = [
+                                    'source_hash' => hash('sha256', $sourceJson),
+                                    'metadata' => $this->json([
+                                        'source' => $sourceArray,
+                                        '_migration' => [
+                                            'phase' => 'operational-history',
+                                            'stock_effect_replayed' => false,
+                                        ],
+                                    ]),
+                                ];
                             }
 
                             if ($insertRows !== []) {
@@ -5399,24 +5437,18 @@ SQL));
                                         );
                                     }
 
-                                    $sourceArray = $mappingSource[$sourceDetailId];
+                                    $payload = $mappingPayloads[$sourceDetailId];
                                     $mappingRows[] = [
                                         'source_system' => self::SOURCE_SYSTEM,
                                         'source_table' => 'wh_TransDetails',
                                         'source_key' => (string) $sourceDetailId,
                                         'target_table' => 'legacy_operational_document_lines',
                                         'target_id' => (int) $target->id,
-                                        'source_hash' => hash('sha256', $this->json($sourceArray)),
-                                        'metadata' => $this->json([
-                                            'source' => $sourceArray,
-                                            '_migration' => [
-                                                'phase' => 'operational-history',
-                                                'stock_effect_replayed' => false,
-                                            ],
-                                        ]),
+                                        'source_hash' => $payload['source_hash'],
+                                        'metadata' => $payload['metadata'],
                                         'last_run_id' => $runId,
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
+                                        'created_at' => $writeTimestamp,
+                                        'updated_at' => $writeTimestamp,
                                     ];
                                 }
 
