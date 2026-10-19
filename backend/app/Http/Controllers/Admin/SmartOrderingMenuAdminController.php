@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenu;
@@ -19,9 +20,13 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Domain\SmartOrdering\Themes\RestaurantTemplateSelectionService;
 use App\Domain\SmartOrdering\Themes\ThemeRegistry;
 use App\Http\Controllers\Controller;
+use App\Models\SmartOrderingQrCode;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
+use App\Services\SmartOrderingQrAssetService;
+use App\Services\SmartOrderingQrManager;
 use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -34,6 +39,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 final class SmartOrderingMenuAdminController extends Controller
 {
@@ -202,7 +208,7 @@ final class SmartOrderingMenuAdminController extends Controller
             'site' => $site,
             'draft' => $draft,
             'publishedRevision' => $publishedRevision,
-            'publicMenuUrl' => $publishedRevision instanceof SmartOrderingRevision
+            'publicMenuUrl' => $publishedRevision instanceof SmartOrderingRevision && (bool) $site->master_enabled
                 ? route('public.smart-ordering.storefront', ['siteKey' => $site->slug])
                 : null,
             'scheduledRevision' => $scheduledRevision,
@@ -1138,27 +1144,125 @@ final class SmartOrderingMenuAdminController extends Controller
         TenantContextResolver $tenants,
         SmartOrderingSiteService $sites,
         SmartOrderingMenuRevisionService $revisions,
+        SmartOrderingQrManager $qrManager,
+        RestaurantOnboardingService $onboarding,
+        AuditLogger $audit,
     ): RedirectResponse {
         [$actor, $site] = $this->context($request, $tenants, $sites, 'smart_ordering.publish');
         abort_unless((int) $revision->site_id === (int) $site->id, 404);
 
-        if ($request->boolean('guided')) {
+        $guided = $request->boolean('guided');
+        if ($guided) {
             abort_unless($actor->hasPermission('smart_ordering.manage', (int) $site->store_id), 403);
         }
 
-        // Publishing the menu completes menu readiness only. It must never
-        // activate restaurant runtime; final activation belongs exclusively to
-        // RestaurantOnboardingService::launch after all setup stages pass.
         $revisions->publish($actor, $site->fresh(), $revision, $request);
 
-        if ($request->boolean('guided')) {
+        if ($guided) {
+            $site = $site->fresh();
+            $publicUrl = route('public.smart-ordering.storefront', ['siteKey' => $site->slug], true);
+            $targetPath = (string) parse_url($publicUrl, PHP_URL_PATH);
+            $qr = SmartOrderingQrCode::query()
+                ->where('store_id', $site->store_id)
+                ->where('type', 'generic')
+                ->where('source', 'restaurant-launch')
+                ->first();
+
+            $qrData = [
+                'store_id' => (int) $site->store_id,
+                'promotion_id' => null,
+                'type' => 'generic',
+                'label' => app()->getLocale() === 'ar' ? 'رابط المطعم الرئيسي' : 'Restaurant website',
+                'notes' => app()->getLocale() === 'ar'
+                    ? 'تم إنشاؤه تلقائياً عند نشر واجهة المطعم.'
+                    : 'Generated automatically when the restaurant storefront is published.',
+                'target_path' => $targetPath,
+                'source' => 'restaurant-launch',
+                'medium' => 'qr',
+                'campaign' => null,
+                'branch_reference' => null,
+                'table_reference' => null,
+                'valid_from' => null,
+                'valid_until' => null,
+                'is_enabled' => true,
+            ];
+
+            if ($qr instanceof SmartOrderingQrCode) {
+                $before = $qr->toArray();
+                $qr = $qrManager->update($qr, $qrData, (int) $actor->getKey());
+                if (! $qr->is_enabled) {
+                    $qr = $qrManager->setEnabled($qr, true, (int) $actor->getKey());
+                }
+                $qr->loadMissing('activeToken');
+                if ($qr->activeToken === null) {
+                    $qrManager->rotate($qr, (int) $actor->getKey(), false);
+                    $qr->refresh()->loadMissing('activeToken');
+                }
+                $audit->record('smart_ordering.qr.launch_synced', $actor, $qr, $before, $qr->toArray(), $request);
+            } else {
+                $created = $qrManager->create($qrData, (int) $actor->getKey());
+                $qr = $created['qr'];
+                $audit->record('smart_ordering.qr.launch_created', $actor, $qr, null, $qr->toArray(), $request);
+            }
+
+            $store = Store::query()->findOrFail((int) $site->store_id);
+            $status = $onboarding->status($store, $actor);
+            $launched = false;
+            if ((bool) ($status['can_launch'] ?? false)) {
+                $onboarding->launch($store, $actor, $request);
+                $launched = true;
+            }
+
+            $message = $launched
+                ? (app()->getLocale() === 'ar'
+                    ? 'تم النشر وتفعيل الموقع وإنشاء QR للمطعم.'
+                    : 'Published, activated the live site, and created the restaurant QR.')
+                : (app()->getLocale() === 'ar'
+                    ? 'تم نشر المنيو وإنشاء QR، لكن تشغيل الموقع ما زال ينتظر إكمال متطلبات الإطلاق الظاهرة.'
+                    : 'The menu was published and its QR created, but the live site is still waiting for the remaining launch requirements.');
+
             return redirect()->route('admin.smart-ordering.menu.index', [
                 'store_id' => $site->store_id,
                 'setup' => 'publish',
-            ])->with('status', __('smart_ordering_menu.published'));
+            ])->with('status', $message)
+                ->with('open_live_storefront', $launched);
         }
 
         return back()->with('status', __('smart_ordering_menu.published'));
+    }
+
+    public function siteQrSvg(
+        Request $request,
+        SmartOrderingSite $site,
+        SmartOrderingQrAssetService $assets,
+    ): Response {
+        $this->authorizeSiteQr($request, $site);
+        $url = route('public.smart-ordering.storefront', ['siteKey' => $site->slug], true);
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return response($assets->svg($url), 200, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Content-Disposition' => $disposition.'; filename="foodex-restaurant-'.$site->public_id.'.svg"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function siteQrPdf(
+        Request $request,
+        SmartOrderingSite $site,
+        SmartOrderingQrAssetService $assets,
+    ): Response {
+        $this->authorizeSiteQr($request, $site);
+        $url = route('public.smart-ordering.storefront', ['siteKey' => $site->slug], true);
+        $label = (string) ($site->store()->value('name') ?: 'FOODEX Restaurant');
+
+        return response($assets->pdf($url, $label), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="foodex-restaurant-'.$site->public_id.'.pdf"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function unpublish(
@@ -1485,6 +1589,28 @@ final class SmartOrderingMenuAdminController extends Controller
     }
 
     /** @return array{0:User,1:SmartOrderingSite,2:Collection<int,Store>} */
+    private function authorizeSiteQr(Request $request, SmartOrderingSite $site): User
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        app(RestaurantSaasStoreAccess::class)->assertStore(
+            $actor,
+            (int) $site->store_id,
+            'smart_ordering.view',
+            'b2c',
+        );
+        abort_unless((bool) $site->master_enabled, 409);
+        abort_unless(
+            SmartOrderingRevision::query()
+                ->where('site_id', $site->id)
+                ->where('status', 'published')
+                ->exists(),
+            409,
+        );
+
+        return $actor;
+    }
+
     private function context(
         Request $request,
         TenantContextResolver $tenants,
