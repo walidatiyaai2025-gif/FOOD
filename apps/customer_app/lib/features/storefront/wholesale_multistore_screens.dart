@@ -500,7 +500,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               body: SafeArea(
                 child: Column(
                   children: [
-                    _WholesaleHeader(
+                    FoodexWholesaleHeader(
                       title: title,
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
@@ -532,180 +532,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   : null,
             );
           },
-        ),
-      );
-}
-
-class _WholesaleHeader extends StatelessWidget {
-  const _WholesaleHeader({
-    required this.title,
-    required this.onCart,
-    required this.palette,
-    required this.searchController,
-    required this.searchHint,
-    required this.onSearchSubmitted,
-    this.searchKey = const ValueKey('wholesale-home-search'),
-    this.onSearchChanged,
-    this.onClearSearch,
-    this.logoUrl,
-    this.address,
-  });
-
-  final String title;
-  final String? logoUrl;
-  final String? address;
-  final VoidCallback onCart;
-  final FoodexPalette palette;
-  final TextEditingController searchController;
-  final String searchHint;
-  final ValueChanged<String> onSearchSubmitted;
-  final Key searchKey;
-  final ValueChanged<String>? onSearchChanged;
-  final VoidCallback? onClearSearch;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        color: palette.primaryDark,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  logoUrl!,
-                  width: 28,
-                  height: 28,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const SizedBox(width: 28, height: 28),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 72),
-              child: Tooltip(
-                message: address == null || address!.trim().isEmpty
-                    ? title
-                    : '$title\n$address',
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.3,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 36,
-                child: TextField(
-                  key: searchKey,
-                  controller: searchController,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: onSearchSubmitted,
-                  onChanged: onSearchChanged,
-                  style: const TextStyle(fontSize: 12),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.white,
-                    hintText: searchHint,
-                    hintStyle: const TextStyle(fontSize: 11),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
-                    prefixIconConstraints: const BoxConstraints(
-                      minWidth: 34,
-                      minHeight: 34,
-                    ),
-                    suffixIcon: onClearSearch == null
-                        ? const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            size: 16,
-                          )
-                        : IconButton(
-                            key: const ValueKey(
-                              'wholesale-catalog-clear-search',
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 34,
-                              minHeight: 34,
-                            ),
-                            onPressed: searchController.text.trim().isEmpty
-                                ? null
-                                : onClearSearch,
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                          ),
-                    suffixIconConstraints: const BoxConstraints(
-                      minWidth: 34,
-                      minHeight: 34,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide(
-                        color: palette.accent,
-                        width: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const _RoundHeaderIcon(
-              icon: Icons.notifications_none_rounded,
-            ),
-            const SizedBox(width: 4),
-            _RoundHeaderIcon(
-              icon: Icons.shopping_cart_outlined,
-              onTap: onCart,
-            ),
-          ],
-        ),
-      );
-}
-
-class _RoundHeaderIcon extends StatelessWidget {
-  const _RoundHeaderIcon({required this.icon, this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
-            ),
-          ),
         ),
       );
 }
@@ -2258,7 +2084,7 @@ class _WholesaleFavoritesDesignScreenState
             body: SafeArea(
               child: Column(
                 children: [
-                  _WholesaleHeader(
+                  FoodexWholesaleHeader(
                     title: title,
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
@@ -2268,7 +2094,10 @@ class _WholesaleFavoritesDesignScreenState
                     searchHint: context.tr('b2b.catalog.search_hint'),
                     onSearchSubmitted: (_) => setState(() {}),
                     onSearchChanged: (_) => setState(() {}),
-                    onClearSearch: () => setState(search.clear),
+                    onClearSearch: () {
+                      search.clear();
+                      setState(() {});
+                    },
                     onCart: () => Navigator.of(context).pushNamed(
                       '/b2b/cart?store_id=' + storeId.toString(),
                     ),
@@ -2694,7 +2523,7 @@ class _WholesaleCatalogDesignScreenState
               body: SafeArea(
                 child: Column(
                   children: [
-                    _WholesaleHeader(
+                    FoodexWholesaleHeader(
                       title: title,
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
@@ -2803,7 +2632,7 @@ class _WholesaleCatalogDesignScreenState
             body: SafeArea(
               child: Column(
                 children: [
-                  _WholesaleHeader(
+                  FoodexWholesaleHeader(
                     title: title,
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
@@ -6171,11 +6000,26 @@ class _WholesaleOrdersDesignScreenState
 
                         return Column(
                           children: [
-                            _WholesaleOrdersHeader(
-                              pageInset: pageInset,
-                              loading: loading,
-                              onBack: _goBack,
-                              onRefresh: () => unawaited(_refresh()),
+                            FoodexWholesaleHeader(
+                              title: context.tr('b2b.app.title'),
+                              palette: FoodexPalette.wholesale,
+                              searchHint: context.tr(
+                                'customer.products.search_name_sku_barcode',
+                              ),
+                              onNotifications: () =>
+                                  Navigator.of(context).pushNamed(
+                                CustomerRoutePaths.b2bNotifications,
+                              ),
+                              onCart: () {
+                                final scopedStoreId =
+                                    wholesaleStoreId(widget.location);
+                                Navigator.of(context).pushNamed(
+                                  scopedStoreId > 0
+                                      ? '/b2b/cart?store_id=' +
+                                          scopedStoreId.toString()
+                                      : CustomerRoutePaths.b2bCart,
+                                );
+                              },
                             ),
                             _OrderTabs(
                               selected: status,
