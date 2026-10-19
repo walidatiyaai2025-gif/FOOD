@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_auth_persistence.dart';
 import '../../core/auth/customer_session_store.dart';
+import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
@@ -1105,7 +1106,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                 ),
                               ),
                               Text(
-                                isArabic ? 'الإصدار 1.0.54' : 'Version 1.0.54',
+                                isArabic ? 'الإصدار $customerAppVersion' : 'Version $customerAppVersion',
                                 key: const ValueKey(
                                   'c13-business-login-version',
                                 ),
