@@ -20,13 +20,16 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
         $storeId = $this->retailStore();
         $user = $this->retailAdmin($storeId);
 
-        $items = collect(app(AdminNavigation::class)->groupsFor($user))
+        $groups = collect(app(AdminNavigation::class)->groupsFor($user));
+        $items = $groups
             ->flatMap(fn (array $group) => $group['children'])
             ->values();
 
         $restaurant = $items->where('key', 'smart_ordering')->values();
 
         $this->assertCount(1, $restaurant);
+        $this->assertSame('restaurant', $groups->first()['key']);
+        $this->assertSame('smart_ordering.workspace.title', $restaurant->first()['label']);
         $this->assertSame('admin.smart-ordering.index', $restaurant->first()['route']);
         $this->assertFalse($items->contains('key', 'smart_ordering_qr'));
         $this->assertFalse($items->contains('key', 'smart_ordering_analytics'));
