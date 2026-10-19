@@ -4571,106 +4571,111 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
-            child: Column(
-              key: const ValueKey('b2b-account-hub'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _FinanceCard(
-                  future: finance,
-                  ar: ar,
-                  dashboardRoute: widget.dashboardRoute,
-                  statementRoute: widget.statementRoute,
-                  open: _open,
-                  retry: () => setState(
-                    () => finance = widget.api.get(widget.financeEndpoint),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (_, constraints) {
-                    const gap = 6.0;
-                    const columns = 5;
-                    final width =
-                        (constraints.maxWidth - gap * (columns - 1)) / columns;
-                    final textScale = MediaQuery.textScalerOf(context).scale(1);
-                    final scaledDelta =
-                        (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                    final cardHeight = 66.0 + (scaledDelta * 32.0);
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        for (final item in items)
-                          SizedBox(
-                            width: width,
-                            height: cardHeight,
-                            child: _MoreCard(item: item),
+                  child: Column(
+                    key: const ValueKey('b2b-account-hub'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _FinanceCard(
+                        future: finance,
+                        ar: ar,
+                        dashboardRoute: widget.dashboardRoute,
+                        statementRoute: widget.statementRoute,
+                        open: _open,
+                        retry: () => setState(
+                          () => finance = widget.api.get(widget.financeEndpoint),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (_, constraints) {
+                          const gap = 6.0;
+                          const columns = 5;
+                          final width =
+                              (constraints.maxWidth - gap * (columns - 1)) /
+                                  columns;
+                          final textScale =
+                              MediaQuery.textScalerOf(context).scale(1);
+                          final scaledDelta =
+                              (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                          final cardHeight = 66.0 + (scaledDelta * 32.0);
+                          return Wrap(
+                            spacing: gap,
+                            runSpacing: gap,
+                            children: [
+                              for (final item in items)
+                                SizedBox(
+                                  width: width,
+                                  height: cardHeight,
+                                  child: _MoreCard(item: item),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      if (widget.onLocaleChanged != null)
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(
+                              value: 'ar',
+                              label: Text(
+                                'العربية', // localization-gate: allow — language self-name selector
+                              ),
+                            ),
+                            ButtonSegment(
+                              value: 'en',
+                              label: Text(
+                                'English', // localization-gate: allow — language self-name selector
+                              ),
+                            ),
+                          ],
+                          selected: {ar ? 'ar' : 'en'},
+                          onSelectionChanged: (value) {
+                            widget.onLocaleChanged!(Locale(value.first));
+                          },
+                        ),
+                      if (widget.onLogout != null) ...[
+                        const SizedBox(height: 10),
+                        Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            key: const ValueKey(
+                              'b2b-profile-security-action',
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.security_outlined),
+                            title: Text(context.tr('b2b.profile.security')),
+                            trailing:
+                                const Icon(Icons.chevron_left_rounded),
+                            onTap: _showSettings,
                           ),
+                        ),
+                        OutlinedButton.icon(
+                          key: const ValueKey('b2b-profile-logout'),
+                          onPressed: widget.onLogout,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: Text(context.tr('customer.logout')),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${context.tr('customer.version')} $customerAppVersion',
+                          key: const ValueKey('b2b-more-app-version'),
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: _B2bMorePageState.muted,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
                       ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (widget.onLocaleChanged != null)
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'ar',
-                        label: Text(
-                          'العربية', // localization-gate: allow — language self-name selector
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: 'en',
-                        label: Text(
-                          'English', // localization-gate: allow — language self-name selector
-                        ),
-                      ),
                     ],
-                    selected: {ar ? 'ar' : 'en'},
-                    onSelectionChanged: (value) {
-                      widget.onLocaleChanged!(Locale(value.first));
-                    },
                   ),
-                if (widget.onLogout != null) ...[
-                  const SizedBox(height: 10),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      key: const ValueKey('b2b-profile-security-action'),
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.security_outlined),
-                      title: Text(context.tr('b2b.profile.security')),
-                      trailing: const Icon(Icons.chevron_left_rounded),
-                      onTap: _showSettings,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-profile-logout'),
-                    onPressed: widget.onLogout,
-                    icon: const Icon(Icons.logout_rounded),
-                    label: Text(context.tr('customer.logout')),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${context.tr('customer.version')} $customerAppVersion',
-                    key: const ValueKey('b2b-more-app-version'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: _B2bMorePageState.muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
-    ),
-  ),
-),
       ),
     );
   }
