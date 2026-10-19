@@ -177,7 +177,7 @@ Artisan::command(
 
         $this->line(
             'Posted source: headers='.$report['source']['posted_headers'].
-            ' | details='.$report['source']['posted_details'].
+            ' | details='.($report['source']['posted_details'] ?? 'n/a').
             ' | recognized headers='.$report['source']['recognized_stock_headers'].
             ' | recognized details='.($report['source']['recognized_stock_details'] ?? 'n/a')
         );
@@ -205,7 +205,8 @@ Artisan::command(
         $this->line(
             'Mapping coverage: locations='.$report['mapping_coverage']['used_locations'].
             ' | unmapped_locations='.count($report['mapping_coverage']['unmapped_locations']).
-            ' | items='.$report['mapping_coverage']['used_items'].
+            ' | items='.($report['mapping_coverage']['used_items'] ?? 'n/a').
+            ' | mapped_products='.($report['mapping_coverage']['mapped_products'] ?? 'n/a').
             ' | unmapped_items='.count($report['mapping_coverage']['unmapped_items'])
         );
 
