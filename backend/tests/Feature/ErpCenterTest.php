@@ -27,6 +27,7 @@ final class ErpCenterTest extends TestCase
     public function test_disabled_module_is_explicit_and_never_exposes_an_operational_cta(): void
     {
         $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-owner@example.test');
+        $this->app['env'] = 'production';
 
         $response = $this->actingAs($actor)->get(route('admin.erp.index'));
 
@@ -36,6 +37,39 @@ final class ErpCenterTest extends TestCase
             ->assertSee('data-erp-key="procurement" data-erp-status="setup_required"', false)
             ->assertSee('Setup required')
             ->assertSee('dir="ltr"', false);
+    }
+
+    public function test_local_super_admin_bootstraps_all_erp_modules_and_platform_entitlements(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-local-modules@example.test');
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+
+        $response->assertOk();
+
+        foreach ([
+            'procurement' => 'procurement',
+            'wms' => 'inventory_wms',
+            'finance' => 'finance',
+            'treasury' => 'treasury',
+            'bi' => 'enterprise_bi',
+        ] as $cardKey => $moduleCode) {
+            $response->assertSee(
+                'data-erp-key="'.$cardKey.'" data-erp-status="available"',
+                false,
+            );
+
+            $this->assertDatabaseHas('enterprise_modules', [
+                'code' => $moduleCode,
+                'state' => 'ENABLED',
+            ]);
+
+            $this->assertDatabaseHas('enterprise_module_entitlements', [
+                'module_code' => $moduleCode,
+                'scope_key' => 'platform:0',
+                'is_enabled' => true,
+            ]);
+        }
     }
 
     public function test_local_super_admin_bootstraps_missing_enabled_erp_entitlement(): void
