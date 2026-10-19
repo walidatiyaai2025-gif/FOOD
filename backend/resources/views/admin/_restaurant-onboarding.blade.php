@@ -15,6 +15,18 @@
     $restaurantMenuStepAvailable = (bool) ($setupSteps->get('menu')['available'] ?? false);
     $restaurantEntryStepAvailable = (bool) ($setupSteps->get('entry')['available'] ?? false);
     $hardBlockerKeys = collect($onboardingStatus['hard_blockers'] ?? [])->pluck('key');
+    $storefrontIdentity = is_array($onboardingStatus['storefront_identity'] ?? null)
+        ? $onboardingStatus['storefront_identity']
+        : [];
+    $heroPath = trim((string) ($storefrontIdentity['cover_url'] ?? ''));
+    $heroUrl = null;
+    if ($heroPath !== '') {
+        $heroUrl = str_starts_with($heroPath, '/')
+            || str_starts_with($heroPath, 'http://')
+            || str_starts_with($heroPath, 'https://')
+                ? $heroPath
+                : \Illuminate\Support\Facades\Storage::disk('public')->url($heroPath);
+    }
 @endphp
 <section class="panel so-onboarding {{ $onboardingCompact ? 'is-compact' : '' }}" aria-labelledby="restaurant-onboarding-title">
     <style>
@@ -40,6 +52,12 @@
         .so-onboarding-import:first-child{border-top:0;padding-top:0}
         .so-onboarding-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3)}
         .so-onboarding-form-grid .span-2{grid-column:1/-1}
+        .so-identity-order{grid-column:1/-1;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}
+        .so-identity-order strong{font-size:.72rem}.so-identity-order span{font-size:.68rem;color:var(--foodex-muted)}.so-identity-order b{color:var(--foodex-green-dark)}
+        .so-hero-field{grid-column:1/-1;display:grid;grid-template-columns:minmax(220px,360px) minmax(0,1fr);gap:14px;align-items:center;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:linear-gradient(135deg,var(--foodex-green-soft),var(--foodex-surface))}
+        .so-hero-preview{aspect-ratio:16/9;width:100%;overflow:hidden;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background);display:grid;place-items:center;color:var(--foodex-muted);font-size:.72rem;font-weight:800}
+        .so-hero-preview img{width:100%;height:100%;object-fit:cover}
+        .so-hero-copy{display:grid;gap:7px}.so-hero-copy strong{font-size:.82rem}.so-hero-copy small{color:var(--foodex-muted);line-height:1.55}.so-hero-required{color:var(--foodex-danger-text);font-weight:800}
         .so-onboarding.is-compact{gap:8px;padding:12px!important}
         .so-onboarding.is-compact .so-onboarding-head{align-items:center}
         .so-onboarding.is-compact .so-onboarding-progress{min-width:min(100%,220px)}
@@ -57,6 +75,7 @@
         @media (max-width:767px){
             .so-onboarding-form-grid{grid-template-columns:1fr}
             .so-onboarding-form-grid .span-2{grid-column:auto}
+            .so-hero-field{grid-template-columns:1fr}
             .so-onboarding-actions>*{flex:1 1 100%}
         }
     </style>
@@ -141,9 +160,18 @@
             <h3>{{ __('restaurant_onboarding.profile_title') }}</h3>
             <p>{{ __('restaurant_onboarding.profile_description') }}</p>
             @if($canManageOnboarding)
-                <form class="foodex-form js-onboarding-submit-lock" method="post" action="{{ route('admin.smart-ordering.onboarding.profile', [$site] + $supportParams) }}">
+                <form class="foodex-form js-onboarding-submit-lock" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.onboarding.profile', [$site] + $supportParams) }}">
                     @csrf @method('PUT')
                     <div class="so-onboarding-form-grid">
+                        <div class="so-identity-order" aria-label="{{ __('restaurant_onboarding.flow.sequence_title') }}">
+                            <strong>{{ __('restaurant_onboarding.flow.sequence_title') }}:</strong>
+                            <b>1 · {{ __('restaurant_onboarding.flow.steps.identity.title') }}</b>
+                            <span>→ 2 · {{ __('restaurant_onboarding.flow.steps.channels.title') }}</span>
+                            <span>→ 3 · {{ __('restaurant_onboarding.flow.steps.operations.title') }}</span>
+                            <span>→ 4 · {{ __('restaurant_onboarding.flow.steps.menu.title') }}</span>
+                            <span>→ 5 · {{ __('restaurant_onboarding.flow.steps.entry.title') }}</span>
+                            <span>→ 6 · {{ __('restaurant_onboarding.flow.steps.review.title') }}</span>
+                        </div>
                         <label>
                             {{ __('restaurant_onboarding.business_name') }}
                             <input class="foodex-control" name="business_name" maxlength="160" required value="{{ old('business_name', $profile?->business_name ?? $site->store?->name) }}">
@@ -172,6 +200,22 @@
                             {{ __('restaurant_onboarding.tax_registration_number') }}
                             <input class="foodex-control" name="tax_registration_number" maxlength="80" value="{{ old('tax_registration_number', $profile?->tax_registration_number) }}">
                         </label>
+                        <div class="so-hero-field">
+                            <div class="so-hero-preview" data-restaurant-hero-preview>
+                                @if($heroUrl)
+                                    <img src="{{ $heroUrl }}" alt="{{ __('restaurant_onboarding.hero_image_current') }}">
+                                @else
+                                    <span>{{ __('restaurant_onboarding.hero_image') }}</span>
+                                @endif
+                            </div>
+                            <label class="so-hero-copy">
+                                <strong>{{ __('restaurant_onboarding.hero_image') }}</strong>
+                                <small>{{ __('restaurant_onboarding.hero_image_hint') }}</small>
+                                @if(!$heroUrl)<small class="so-hero-required">{{ __('restaurant_onboarding.hero_image_required') }}</small>@endif
+                                <span>{{ $heroUrl ? __('restaurant_onboarding.hero_image_replace') : __('restaurant_onboarding.hero_image') }}</span>
+                                <input class="foodex-control" type="file" name="hero_image" accept="image/jpeg,image/png,image/webp" data-restaurant-hero-input @required(!$heroUrl)>
+                            </label>
+                        </div>
                     </div>
                     <button class="primary" type="submit" data-busy-label="{{ __('restaurant_onboarding.saving') }}">
                         {{ __('restaurant_onboarding.save_profile') }}
@@ -240,6 +284,20 @@
     @endif
 
     <script>
+        const restaurantHeroInput = document.querySelector('[data-restaurant-hero-input]');
+        const restaurantHeroPreview = document.querySelector('[data-restaurant-hero-preview]');
+        restaurantHeroInput?.addEventListener('change', () => {
+            const file = restaurantHeroInput.files?.[0];
+            if (!file || !restaurantHeroPreview) return;
+            const url = URL.createObjectURL(file);
+            restaurantHeroPreview.innerHTML = '';
+            const image = document.createElement('img');
+            image.src = url;
+            image.alt = '';
+            image.onload = () => URL.revokeObjectURL(url);
+            restaurantHeroPreview.append(image);
+        });
+
         document.querySelectorAll('.js-onboarding-submit-lock').forEach((form) => {
             form.addEventListener('submit', () => {
                 const button = form.querySelector('button[type="submit"]');
