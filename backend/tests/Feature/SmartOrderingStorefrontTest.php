@@ -173,6 +173,27 @@ final class SmartOrderingStorefrontTest extends TestCase
             ->assertDontSee('secret-token');
     }
 
+    public function test_all_menu_templates_use_the_shared_tajawal_google_font(): void
+    {
+        $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot('fresh-market-commerce', 'light')));
+
+        $this->get('/smart-ordering/demo?lang=ar')
+            ->assertOk()
+            ->assertSee('fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&amp;display=swap', false);
+
+        $storefrontCss = file_get_contents(public_path('css/smart-ordering-storefront.css'));
+        $templateCss = file_get_contents(public_path('css/restaurant-menu-templates-v2.css'));
+
+        $this->assertIsString($storefrontCss);
+        $this->assertIsString($templateCss);
+        $this->assertStringContainsString('--so-storefront-font:"Tajawal",Tahoma,Arial,sans-serif', $storefrontCss);
+        $this->assertStringContainsString('font-family:var(--so-storefront-font)', $storefrontCss);
+        $this->assertStringContainsString('--rm-font-display:var(--so-storefront-font', $templateCss);
+        $this->assertStringContainsString('--rm-font-body:var(--so-storefront-font', $templateCss);
+        $this->assertStringNotContainsString('font-family:Georgia', $storefrontCss);
+        $this->assertStringNotContainsString('"Noto Naskh Arabic"', $templateCss);
+    }
+
     public function test_public_asset_budget_and_responsive_contract(): void
     {
         $css = public_path('css/smart-ordering-storefront.css');
