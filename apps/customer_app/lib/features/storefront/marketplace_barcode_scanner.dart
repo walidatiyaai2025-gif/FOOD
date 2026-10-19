@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'storefront_design_system.dart';
 
 import '../../core/localization/app_translations.dart';
 
@@ -46,12 +47,10 @@ class _MarketplaceBarcodeScannerPageState
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(context.tr('customer.marketplace.scan')),
-        ),
-        body: Stack(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.marketplace.scan'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          child: Stack(
           fit: StackFit.expand,
           children: [
             MobileScanner(
