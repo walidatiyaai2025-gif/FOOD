@@ -6148,9 +6148,13 @@ SQL));
         $invalidDates = [];
         $nonPositiveAmounts = [];
         $missingDirectPayments = [];
+        $missingDirectPaymentCount = 0;
         $directPaymentAmountMismatches = [];
+        $directPaymentAmountMismatchCount = 0;
         $missingReturnLinks = [];
+        $missingReturnLinkCount = 0;
         $customerIdentityMismatches = [];
+        $customerIdentityMismatchCount = 0;
         $prRows = 0;
         $bankRows = 0;
         $ledgerCreditRows = 0;
@@ -6185,9 +6189,13 @@ SQL));
             &$invalidDates,
             &$nonPositiveAmounts,
             &$missingDirectPayments,
+            &$missingDirectPaymentCount,
             &$directPaymentAmountMismatches,
+            &$directPaymentAmountMismatchCount,
             &$missingReturnLinks,
+            &$missingReturnLinkCount,
             &$customerIdentityMismatches,
+            &$customerIdentityMismatchCount,
             &$prRows,
             &$ledgerCreditRows,
             &$ledgerCreditValue,
@@ -6256,6 +6264,7 @@ SQL));
                     $invoiceId = $maps['invoices'][$invoiceHeaderId] ?? null;
 
                     if ($payment === null || $invoiceId === null) {
+                        $missingDirectPaymentCount++;
                         if (count($missingDirectPayments) < 30) {
                             $missingDirectPayments[] = [
                                 'pr_id' => $id,
@@ -6267,14 +6276,17 @@ SQL));
                         }
                     } else {
                         $difference = round($amount - (float) $payment['amount'], 3);
-                        if (abs($difference) > 0.010 && count($directPaymentAmountMismatches) < 30) {
-                            $directPaymentAmountMismatches[] = [
+                        if (abs($difference) > 0.010) {
+                            $directPaymentAmountMismatchCount++;
+                            if (count($directPaymentAmountMismatches) < 30) {
+                                $directPaymentAmountMismatches[] = [
                                 'pr_id' => $id,
                                 'invoice_header_id' => $invoiceHeaderId,
                                 'pr_amount' => $amount,
                                 'payment_amount' => $payment['amount'],
                                 'difference' => $difference,
-                            ];
+                                ];
+                            }
                         }
                     }
 
@@ -6300,6 +6312,7 @@ SQL));
                             : ($maps['return_ledger_rows'][$returnLedgerId] ?? null);
 
                         if ($returnLedger === null) {
+                            $missingReturnLinkCount++;
                             if (count($missingReturnLinks) < 30) {
                                 $missingReturnLinks[] = [
                                     'pr_id' => $id,
@@ -6312,6 +6325,7 @@ SQL));
                             && isset($maps['customers'][$customerId])
                             && (int) $maps['customers'][$customerId] !== (int) $returnLedger['b2b_customer_id']
                         ) {
+                            $customerIdentityMismatchCount++;
                             if (count($customerIdentityMismatches) < 30) {
                                 $customerIdentityMismatches[] = [
                                     'pr_id' => $id,
@@ -6390,10 +6404,10 @@ SQL));
             'unmapped_stores_nonblocking' => count($unmappedStores),
             'invalid_dates' => count($invalidDates),
             'nonpositive_amounts' => count($nonPositiveAmounts),
-            'missing_direct_payments' => count($missingDirectPayments),
-            'direct_payment_amount_mismatches' => count($directPaymentAmountMismatches),
-            'missing_return_links' => count($missingReturnLinks),
-            'customer_identity_mismatches' => count($customerIdentityMismatches),
+            'missing_direct_payments' => $missingDirectPaymentCount,
+            'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
+            'missing_return_links' => $missingReturnLinkCount,
+            'customer_identity_mismatches' => $customerIdentityMismatchCount,
             'unsupported_types' => array_sum($unknownTypes),
             'existing_finance_history_rows' => $targetFinanceRows,
             'existing_bank_history_rows' => $targetBankRows,
@@ -6439,10 +6453,10 @@ SQL));
             'unmapped_suppliers' => count($unmappedSuppliers),
             'invalid_dates' => count($invalidDates),
             'nonpositive_amounts' => count($nonPositiveAmounts),
-            'missing_direct_payments' => count($missingDirectPayments),
-            'direct_payment_amount_mismatches' => count($directPaymentAmountMismatches),
-            'missing_return_links' => count($missingReturnLinks),
-            'customer_identity_mismatches' => count($customerIdentityMismatches),
+            'missing_direct_payments' => $missingDirectPaymentCount,
+            'direct_payment_amount_mismatches' => $directPaymentAmountMismatchCount,
+            'missing_return_links' => $missingReturnLinkCount,
+            'customer_identity_mismatches' => $customerIdentityMismatchCount,
             'unsupported_types' => array_sum($unknownTypes),
         ];
 
