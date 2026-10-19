@@ -4663,12 +4663,14 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         ),
                   ),
                 ],
-              ),
+              ],
             ),
-              ),
-            ],
           ),
         ),
+      ],
+    ),
+  ),
+),
       ),
     );
   }
