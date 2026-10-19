@@ -39,6 +39,31 @@ final class LegacyFoodexImportService
             ->selectRaw('MIN(TransDate) AS first_date, MAX(TransDate) AS last_date')
             ->first();
 
+        $stockSnapshot = $source->table('wh_ItemStockOnHand')
+            ->selectRaw('MIN(StockDate) AS first_date, MAX(StockDate) AS last_date, COUNT(DISTINCT StoreID) AS stores, COUNT(DISTINCT ItemID) AS items')
+            ->first();
+
+        $priceMatrixConsistency = [];
+        foreach ([2, 3] as $package) {
+            $qtyField = 'Pkg'.$package.'Qty';
+            foreach ([2, 3, 4, 5] as $tier) {
+                $baseField = 'Pkg1Price'.$tier;
+                $packageField = 'Pkg'.$package.'Price'.$tier;
+                $result = $source->table('wh_Items')
+                    ->selectRaw(
+                        "SUM(CASE WHEN COALESCE({$qtyField}, 0) > 0 AND COALESCE({$packageField}, 0) > 0 AND COALESCE({$baseField}, 0) > 0 THEN 1 ELSE 0 END) AS candidate_rows, ".
+                        "SUM(CASE WHEN COALESCE({$qtyField}, 0) > 0 AND COALESCE({$packageField}, 0) > 0 AND COALESCE({$baseField}, 0) > 0 ".
+                        "AND ABS({$packageField} - ({$baseField} * {$qtyField})) > 0.050 THEN 1 ELSE 0 END) AS mismatch_rows"
+                    )
+                    ->first();
+
+                $priceMatrixConsistency['pkg'.$package.'_tier'.$tier] = [
+                    'candidate_rows' => (int) ($result->candidate_rows ?? 0),
+                    'mismatch_rows' => (int) ($result->mismatch_rows ?? 0),
+                ];
+            }
+        }
+
         $b2bStores = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('store_types.code', 'B2B')
@@ -54,6 +79,14 @@ final class LegacyFoodexImportService
                 'first' => $dateRange?->first_date === null ? null : (int) $dateRange->first_date,
                 'last' => $dateRange?->last_date === null ? null : (int) $dateRange->last_date,
             ],
+            'stock_snapshot' => [
+                'first_date' => $stockSnapshot?->first_date === null ? null : (int) $stockSnapshot->first_date,
+                'last_date' => $stockSnapshot?->last_date === null ? null : (int) $stockSnapshot->last_date,
+                'stores' => (int) ($stockSnapshot?->stores ?? 0),
+                'items' => (int) ($stockSnapshot?->items ?? 0),
+                'rows' => $sourceCounts['wh_ItemStockOnHand'],
+            ],
+            'price_matrix_consistency' => $priceMatrixConsistency,
             'target' => [
                 'database_driver' => DB::connection()->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME),
                 'b2b_stores' => $b2bStores->map(static fn ($row): array => [
@@ -92,7 +125,7 @@ final class LegacyFoodexImportService
                     'barcodes' => $preflight['source_counts']['wh_ItemBarCodes'],
                     'customers' => $preflight['source_counts']['wh_Customers'],
                     'price_tiers' => $preflight['source_counts']['wh_PriceTypes'],
-                    'stock_snapshots' => $preflight['source_counts']['wh_ItemStockOnHand'],
+                    'deferred_stock_snapshots' => $preflight['source_counts']['wh_ItemStockOnHand'],
                 ],
                 'preflight' => $preflight,
             ];
@@ -114,19 +147,21 @@ final class LegacyFoodexImportService
 
         try {
             $storeId = app(WholesalePrincipal::class)->storeId();
+            $catalogId = $this->ensureWholesaleCatalog($storeId);
 
             $summary = [
                 'run_id' => $runId,
                 'store_id' => $storeId,
+                'catalog_id' => $catalogId,
                 'price_tiers' => $this->importPriceTiers($runId),
                 'warehouses' => $this->importWarehousesAndVans($storeId, $runId),
-                'categories' => $this->importCategories($runId),
+                'categories' => $this->importCategories($catalogId, $runId),
             ];
 
             $unitId = $this->ensureLegacyBaseUnit();
-            $summary['products'] = $this->importProducts($storeId, $unitId, $runId);
+            $summary['products'] = $this->importProducts($storeId, $catalogId, $unitId, $runId);
+            $summary['pricing'] = $this->importB2bPrices($storeId, $runId);
             $summary['customers'] = $this->importCustomers($runId);
-            $summary['stock'] = $this->importStock($runId);
 
             DB::table('legacy_import_runs')->where('id', $runId)->update([
                 'status' => 'completed',
@@ -236,7 +271,7 @@ final class LegacyFoodexImportService
         return compact('created', 'updated');
     }
 
-    private function importCategories(string $runId): array
+    private function importCategories(int $catalogId, string $runId): array
     {
         $created = 0;
         $updated = 0;
@@ -246,6 +281,7 @@ final class LegacyFoodexImportService
             [$wasCreated] = $this->upsertCategory(
                 'wh_ItemGroups',
                 (string) $row->ID,
+                $catalogId,
                 null,
                 'legacy-foodex-group-'.(int) $row->ID,
                 $this->name($row->Name_AR ?? null, $row->Name_En ?? null, 'Legacy group '.(int) $row->ID),
@@ -265,6 +301,7 @@ final class LegacyFoodexImportService
             [$wasCreated] = $this->upsertCategory(
                 'wh_ItemSubGroups',
                 (string) $row->ID,
+                $catalogId,
                 $parentId,
                 'legacy-foodex-subgroup-'.(int) $row->ID,
                 $this->name($row->Name_AR ?? null, $row->Name_En ?? null, 'Legacy subgroup '.(int) $row->ID),
@@ -281,6 +318,7 @@ final class LegacyFoodexImportService
     private function upsertCategory(
         string $sourceTable,
         string $sourceId,
+        int $catalogId,
         ?int $parentId,
         string $slug,
         string $name,
@@ -290,6 +328,7 @@ final class LegacyFoodexImportService
     ): array {
         $targetId = $this->mappedTargetId($sourceTable, $sourceId, 'categories');
         $payload = [
+            'catalog_id' => $catalogId,
             'parent_id' => $parentId,
             'name' => mb_substr($name, 0, 255),
             'slug' => $slug,
@@ -327,7 +366,7 @@ final class LegacyFoodexImportService
         ]);
     }
 
-    private function importProducts(int $storeId, int $unitId, string $runId): array
+    private function importProducts(int $storeId, int $catalogId, int $unitId, string $runId): array
     {
         $barcodes = [];
         foreach (DB::connection('foodex_legacy')->table('wh_ItemBarCodes')->orderBy('ID')->get() as $barcode) {
@@ -366,6 +405,7 @@ final class LegacyFoodexImportService
             }
 
             $payload = [
+                'catalog_id' => $catalogId,
                 'category_id' => $categoryId,
                 'brand_id' => null,
                 'unit_id' => $unitId,
@@ -385,10 +425,13 @@ final class LegacyFoodexImportService
                 $created++;
             }
 
+            $defaultPrice = $this->legacyPackagePrice($row, 1, 5)
+                ?? $this->firstPositivePackagePrice($row, 1);
+
             DB::table('store_products')->updateOrInsert(
                 ['store_id' => $storeId, 'product_id' => $targetId],
                 [
-                    'price' => null,
+                    'price' => $defaultPrice,
                     'is_active' => $payload['is_active'],
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -435,7 +478,8 @@ final class LegacyFoodexImportService
                         'unit_id' => $package === 1 ? $unitId : null,
                         'name' => mb_substr($packageName, 0, 255),
                         'conversion_factor' => round($conversion, 3),
-                        'price' => null,
+                        'price' => $this->legacyPackagePrice($row, $package, 5)
+                            ?? $this->firstPositivePackagePrice($row, $package),
                         'sku' => $legacyCode === '' ? null : mb_substr($legacyCode.'-P'.$package, 0, 255),
                         'barcode' => $barcode === null ? null : mb_substr($barcode, 0, 255),
                         'is_base' => $package === 1,
@@ -577,7 +621,7 @@ final class LegacyFoodexImportService
         return compact('created', 'updated');
     }
 
-    private function importStock(string $runId): array
+    private function applyStock(string $runId): array
     {
         $created = 0;
         $updated = 0;
