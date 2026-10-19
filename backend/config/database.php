@@ -4,6 +4,10 @@ use Illuminate\Support\Str;
 
 return [
     'default' => env('DB_CONNECTION', 'mysql'),
+
+    // Emergency opt-in only. Persistent FOODEX databases prohibit destructive
+    // Artisan database commands by default; disposable testing/SQLite is exempt.
+    'allow_destructive_commands' => env('FOODEX_ALLOW_DESTRUCTIVE_DB_COMMANDS', false),
     'connections' => [
         'sqlite' => [
             'driver' => 'sqlite',
