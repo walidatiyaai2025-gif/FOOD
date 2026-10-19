@@ -58,7 +58,7 @@ final class RestaurantTemplateGalleryPreviewTest extends TestCase
         ]);
     }
 
-    public function test_gallery_exposes_all_six_production_templates_before_restaurant_content_is_selected(): void
+    public function test_gallery_exposes_all_seven_production_templates_before_restaurant_content_is_selected(): void
     {
         $response = $this->actingAs($this->admin)->get('/admin/smart-ordering/appearance');
 
@@ -142,6 +142,7 @@ final class RestaurantTemplateGalleryPreviewTest extends TestCase
             'premium-arabic-dining',
             'modern-minimal',
             'chef-tasting',
+            'fresh-market-commerce',
         ];
     }
 }
