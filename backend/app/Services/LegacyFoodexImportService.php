@@ -418,30 +418,36 @@ final class LegacyFoodexImportService
             ];
         });
 
-        $pairing = $stage('transfer_pairing', fn () => [
-            $this->legacyPairDiagnostics('CarHeaderId', 13, 15, 'store_to_van'),
-            $this->legacyPairDiagnostics('CarHeaderId', 14, 16, 'van_to_store'),
-            $this->legacyPairDiagnostics('TransferHeaderID', 7, 8, 'warehouse_transfer'),
-        ]);
+        $pairing = $stage('transfer_pairing', function () use ($source): array {
+            $rows = $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->whereIn('TransType', [7, 8, 13, 14, 15, 16])
+                ->get(['TransType', 'CarHeaderId', 'TransferHeaderID']);
 
-        $sourceMeta = $stage('source_meta', fn () => [
-            'opening_balance_headers' => (int) $source->table('wh_TransHeader')
+            return [
+                $this->legacyPairDiagnosticsFromRows($rows, 'CarHeaderId', 13, 15, 'store_to_van'),
+                $this->legacyPairDiagnosticsFromRows($rows, 'CarHeaderId', 14, 16, 'van_to_store'),
+                $this->legacyPairDiagnosticsFromRows($rows, 'TransferHeaderID', 7, 8, 'warehouse_transfer'),
+            ];
+        });
+
+        $sourceMeta = $stage('source_meta', function () use ($source): array {
+            $headerMeta = $source->table('wh_TransHeader')
                 ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->where('b_OpeningBal', 1)
-                ->count(),
-            'car_wrapper_headers_17_18' => (int) $source->table('wh_TransHeader')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->whereIn('TransType', [17, 18])
-                ->count(),
-            'linked_car_headers' => (int) $source->table('wh_TransHeader')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->where('CarHeaderId', '>', 0)
-                ->distinct()
-                ->count('CarHeaderId'),
-            'car_source_headers' => (int) $source->table('wh_CarTransHeader')
-                ->whereRaw('COALESCE(Status, 1) <> 0')
-                ->count(),
-        ]);
+                ->selectRaw(
+                    'SUM(CASE WHEN COALESCE(b_OpeningBal, 0) = 1 THEN 1 ELSE 0 END) AS opening_balance_headers, '.
+                    'SUM(CASE WHEN TransType IN (17, 18) THEN 1 ELSE 0 END) AS car_wrapper_headers_17_18, '.
+                    'COUNT(DISTINCT CASE WHEN COALESCE(CarHeaderId, 0) > 0 THEN CarHeaderId ELSE NULL END) AS linked_car_headers'
+                )
+                ->first();
+
+            return [
+                'opening_balance_headers' => (int) ($headerMeta->opening_balance_headers ?? 0),
+                'car_wrapper_headers_17_18' => (int) ($headerMeta->car_wrapper_headers_17_18 ?? 0),
+                'linked_car_headers' => (int) ($headerMeta->linked_car_headers ?? 0),
+                'car_source_headers' => (int) $source->table('wh_CarTransHeader')->count(),
+            ];
+        });
 
         $quantity = null;
         $rebuildPreview = null;
@@ -556,6 +562,73 @@ final class LegacyFoodexImportService
                 'apply_enabled' => false,
                 'deep_reconstruction_enabled' => $deep,
             ],
+        ];
+    }
+
+    private function legacyPairDiagnosticsFromRows(
+        \Illuminate\Support\Collection $rows,
+        string $linkField,
+        int $typeA,
+        int $typeB,
+        string $label,
+    ): array {
+        $groups = [];
+
+        foreach ($rows as $row) {
+            $type = (int) $row->TransType;
+            if ($type !== $typeA && $type !== $typeB) {
+                continue;
+            }
+
+            $linkId = (int) ($row->{$linkField} ?? 0);
+            if ($linkId <= 0) {
+                continue;
+            }
+
+            if (! isset($groups[$linkId])) {
+                $groups[$linkId] = ['a' => 0, 'b' => 0];
+            }
+
+            if ($type === $typeA) {
+                $groups[$linkId]['a']++;
+            } else {
+                $groups[$linkId]['b']++;
+            }
+        }
+
+        $complete = 0;
+        $missingA = 0;
+        $missingB = 0;
+        $duplicates = 0;
+
+        foreach ($groups as $group) {
+            $a = (int) $group['a'];
+            $b = (int) $group['b'];
+
+            if ($a > 0 && $b > 0) {
+                $complete++;
+            }
+            if ($a === 0) {
+                $missingA++;
+            }
+            if ($b === 0) {
+                $missingB++;
+            }
+            if ($a > 1 || $b > 1) {
+                $duplicates++;
+            }
+        }
+
+        return [
+            'label' => $label,
+            'link_field' => $linkField,
+            'type_a' => $typeA,
+            'type_b' => $typeB,
+            'groups' => count($groups),
+            'complete_groups' => $complete,
+            'missing_type_a' => $missingA,
+            'missing_type_b' => $missingB,
+            'duplicate_side_groups' => $duplicates,
         ];
     }
 
