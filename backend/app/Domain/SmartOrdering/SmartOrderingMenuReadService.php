@@ -10,8 +10,8 @@ use App\Domain\SmartOrdering\Models\SmartOrderingModifierGroup;
 use App\Domain\SmartOrdering\Models\SmartOrderingModifierOption;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Services\SmartOrderingMediaService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 final class SmartOrderingMenuReadService
@@ -23,6 +23,7 @@ final class SmartOrderingMenuReadService
         private readonly SmartOrderingRevisionService $revisions,
         private readonly SmartOrderingPriceResolver $prices,
         private readonly SmartOrderingAvailabilityService $availability,
+        private readonly SmartOrderingMediaService $media,
     ) {}
 
     public function publishedRevision(SmartOrderingSite $site): SmartOrderingRevision
@@ -592,15 +593,6 @@ final class SmartOrderingMenuReadService
 
     private function publicMediaUrl(?string $path): ?string
     {
-        $path = trim((string) $path);
-        if ($path === '') {
-            return null;
-        }
-
-        if (str_starts_with($path, 'https://') || str_starts_with($path, 'http://')) {
-            return $path;
-        }
-
-        return Storage::disk('public')->url(ltrim($path, '/'));
+        return $this->media->publicUrl($path);
     }
 }
