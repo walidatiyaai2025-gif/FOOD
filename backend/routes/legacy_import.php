@@ -216,7 +216,8 @@ Artisan::command(
                 ' | TransPkgQty1='.$report['quantity']['using_trans_pkg_qty1'].
                 ' | fallback='.$report['quantity']['using_fallback'].
                 ' | negative_raw='.$report['quantity']['negative_raw_qty'].
-                ' | conversion_mismatch='.$report['quantity']['transpkg_vs_conversion_mismatch']
+                ' | conversion_mismatch='.$report['quantity']['transpkg_vs_conversion_mismatch'].
+                ' | unresolved_package_conversions='.($report['quantity']['unresolved_package_conversions'] ?? 0)
             );
         } else {
             $this->line('Quantity basis: skipped in QUICK mode.');
@@ -273,6 +274,19 @@ Artisan::command(
                     $row['item_id'],
                     $row['quantity'],
                     $row['movement_lines'],
+                ])->all(),
+            );
+        }
+        if (($report['quantity']['unresolved_package_samples'] ?? []) !== []) {
+            $this->warn('Package 4/5 lines without TransPkgQty1 cannot be reconstructed safely.');
+            $this->table(
+                ['Detail', 'Header', 'Item', 'Package', 'Qty'],
+                collect($report['quantity']['unresolved_package_samples'])->map(static fn (array $row): array => [
+                    $row['detail_id'],
+                    $row['header_id'],
+                    $row['item_id'],
+                    $row['package'],
+                    $row['qty'],
                 ])->all(),
             );
         }
