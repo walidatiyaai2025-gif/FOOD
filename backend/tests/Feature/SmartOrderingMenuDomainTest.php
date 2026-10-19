@@ -144,6 +144,83 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertNotNull($burger->image_path);
         Storage::disk('public')->assertExists((string) $burger->image_path);
         $this->assertSame(2.25, (float) $cola->price_override);
+
+        $originalMenuImage = (string) $menu->image_path;
+        $originalCategoryImage = (string) $main->image_path;
+        $originalItemImage = (string) $burger->image_path;
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'menu',
+            ]))
+            ->assertOk()
+            ->assertSee('data-qm-edit-menu="'.$menu->id.'"', false)
+            ->assertSee(route('admin.smart-ordering.menu.quick-update', $menu), false)
+            ->assertSee('Edit menu', false);
+
+        $this->actingAs($fixture['admin'])
+            ->put(route('admin.smart-ordering.menu.quick-update', $menu), [
+                'store_id' => $fixture['store_id'],
+                '_quick_menu' => '1',
+                '_quick_menu_mode' => 'edit',
+                'quick_menu_id' => $menu->id,
+                'return_to' => 'menu_setup',
+                'menu_name_ar' => 'منيو الغداء',
+                'menu_name_en' => 'Lunch Menu',
+                'categories' => [
+                    '0' => [
+                        'id' => $main->id,
+                        'name_ar' => 'الرئيسية',
+                        'name_en' => 'Mains',
+                    ],
+                    '1' => [
+                        'id' => $drinks->id,
+                        'name_ar' => 'المشروبات الباردة',
+                        'name_en' => 'Cold Drinks',
+                    ],
+                ],
+                'items' => [
+                    '0' => [
+                        'id' => $burger->id,
+                        'category_key' => '0',
+                        'name_ar' => 'برجر لحم خاص',
+                        'name_en' => 'Signature Beef Burger',
+                        'price' => '8.250',
+                        'featured' => '1',
+                    ],
+                    '1' => [
+                        'id' => $cola->id,
+                        'category_key' => '1',
+                        'name_ar' => 'كولا',
+                        'name_en' => 'Cola',
+                        'price' => '2.500',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'setup' => 'menu',
+            ]));
+
+        $this->assertDatabaseHas('smart_ordering_menus', [
+            'id' => $menu->id,
+            'name_en' => 'Lunch Menu',
+            'image_path' => $originalMenuImage,
+        ]);
+        $this->assertDatabaseHas('smart_ordering_menu_categories', [
+            'id' => $main->id,
+            'name_en' => 'Mains',
+            'image_path' => $originalCategoryImage,
+        ]);
+        $this->assertDatabaseHas('smart_ordering_menu_items', [
+            'id' => $burger->id,
+            'name_en' => 'Signature Beef Burger',
+            'image_path' => $originalItemImage,
+            'featured' => true,
+        ]);
+        $this->assertSame(8.25, (float) $burger->fresh()->price_override);
+        $this->assertSame(2.5, (float) $cola->fresh()->price_override);
     }
 
     public function test_guided_restaurant_launch_flow_keeps_menu_design_identity_review_and_publish_in_one_workspace(): void
