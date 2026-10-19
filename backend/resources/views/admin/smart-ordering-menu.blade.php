@@ -58,6 +58,15 @@
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
     <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._global-header')
+        @if($setupFlow)
+        <div class="foodex-page-toolbar">
+            <div>
+                <h1>{{ $isAr ? 'تجهيز واجهة المطعم' : 'Restaurant storefront setup' }}</h1>
+                <p>{{ $isAr ? 'كل خطوات إنشاء المطعم والمنيو والمظهر والنشر في مسار واحد.' : 'One guided flow for menu, design, restaurant info, review and publishing.' }}</p>
+            </div>
+            <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id,'legacy'=>1]) }}">{{ $isAr ? 'أدوات متقدمة' : 'Advanced tools' }}</a>
+        </div>
+        @else
         <div class="foodex-page-toolbar">
             <div>
                 <h1>{{ __('smart_ordering_menu.title') }}</h1>
@@ -73,11 +82,18 @@
             </div>
         </div>
 
+
         @include('admin._smart-ordering-workspace-nav')
+        @endif
+
+
 
         @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
 
+        @if($setupFlow)
+            @include('admin._smart-ordering-launch-wizard')
+        @else
         <section class="panel">
             <div class="so-toolbar">
                 <form method="get" action="{{ route('admin.smart-ordering.menu.index') }}" class="so-inline">
@@ -621,6 +637,7 @@
                 @endif
             </div>
         </div>
+        @endif
     </main>
 </div>
 <script src="{{ asset('assets/admin/entity-lookup.js') }}"></script>

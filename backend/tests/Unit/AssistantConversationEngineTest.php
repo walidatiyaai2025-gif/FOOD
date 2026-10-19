@@ -77,6 +77,8 @@ class AssistantConversationEngineTest extends TestCase
         $yesterday = $parser->parse('orders yesterday', $now);
         $thisWeek = $parser->parse('sales this week', $now);
         $lastWeek = $parser->parse('sales last week', $now);
+        $thisMonth = $parser->parse('sales this month', $now);
+        $lastMonth = $parser->parse('sales last month', $now);
 
         $this->assertSame('today', $today['key']);
         $this->assertSame('2026-10-01T00:00:00+03:00', $today['start']);
@@ -86,6 +88,10 @@ class AssistantConversationEngineTest extends TestCase
         $this->assertSame('2026-09-28T00:00:00+03:00', $thisWeek['start']);
         $this->assertSame('last_week', $lastWeek['key']);
         $this->assertSame('2026-09-21T00:00:00+03:00', $lastWeek['start']);
+        $this->assertSame('this_month', $thisMonth['key']);
+        $this->assertSame('2026-10-01T00:00:00+03:00', $thisMonth['start']);
+        $this->assertSame('last_month', $lastMonth['key']);
+        $this->assertSame('2026-09-01T00:00:00+03:00', $lastMonth['start']);
     }
 
     public function test_multi_turn_reference_resolves_authorized_entities_and_comparison(): void
@@ -103,6 +109,28 @@ class AssistantConversationEngineTest extends TestCase
         $this->assertSame(['store_id' => 12], $result->state['entities']);
         $this->assertTrue($result->state['reference_resolved']);
         $this->assertSame('last_week', $result->state['period']['key']);
+    }
+
+    public function test_compare_it_with_last_month_reuses_entity_and_changes_window(): void
+    {
+        $result = $this->brain(['sales.compare'])->respond(new AssistantBrainRequest(
+            message: 'compare it with last month',
+            locale: 'en',
+            state: [
+                'last_intent' => 'sales.summary',
+                'last_authorized_entities' => ['store_id' => 12, 'account_id' => 44],
+                'last_period' => [
+                    'key' => 'this_month',
+                    'start' => '2026-10-01T00:00:00+03:00',
+                    'end' => '2026-11-01T00:00:00+03:00',
+                ],
+            ],
+        ));
+
+        $this->assertSame('sales.compare', $result->intent);
+        $this->assertSame(['store_id' => 12, 'account_id' => 44], $result->state['entities']);
+        $this->assertSame('last_month', $result->state['period']['key']);
+        $this->assertTrue($result->state['reference_resolved']);
     }
 
     public function test_medium_confidence_asks_one_focused_clarification(): void
