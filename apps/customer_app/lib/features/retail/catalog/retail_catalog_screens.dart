@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 
@@ -114,30 +115,11 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
     final navigation = widget.navigation;
     return Scaffold(
       key: const ValueKey('retail-catalog-home'),
-      appBar: AppBar(
-        title: Text(context.tr('customer.home.title')),
-        actions: [
-          if (navigation.openNotifications != null)
-            IconButton(
-              key: const ValueKey('retail-catalog-notifications'),
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: () => navigation.openNotifications!(
-                context,
-                storeId: widget.storeId,
-              ),
-              icon: const Icon(Icons.notifications_none_rounded),
-            ),
-          if (navigation.openCart != null)
-            IconButton(
-              key: const ValueKey('retail-catalog-cart'),
-              tooltip: context.tr('customer.nav.cart'),
-              onPressed: () =>
-                  navigation.openCart!(context, storeId: widget.storeId),
-              icon: const Icon(Icons.shopping_cart_outlined),
-            ),
-        ],
-      ),
-      body: FutureBuilder<_RetailCatalogHomeData>(
+      
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        child: FutureBuilder<_RetailCatalogHomeData>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -242,6 +224,7 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
             ),
           );
         },
+      ),
       ),
     );
   }
@@ -357,20 +340,11 @@ class _RetailCatalogCategoriesScreenState
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-categories'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.home.categories')),
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-categories-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<B2cCatalogPage<B2cCategory>>(
+        
+        body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        child: FutureBuilder<B2cCatalogPage<B2cCategory>>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -462,6 +436,7 @@ class _RetailCatalogCategoriesScreenState
             );
           },
         ),
+      ),
       );
 }
 
@@ -571,20 +546,11 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-offers'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.home.offers')),
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-offers-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<B2cCatalogPage<B2cOffer>>(
+        
+        body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        child: FutureBuilder<B2cCatalogPage<B2cOffer>>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -713,6 +679,7 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
             );
           },
         ),
+      ),
       );
 
   String _offerTypeLabel(String value) {
@@ -930,24 +897,11 @@ class _RetailCatalogProductsScreenState
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-products'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.products.title')),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-products-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: Column(
+        
+        body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -1056,6 +1010,7 @@ class _RetailCatalogProductsScreenState
             ),
           ],
         ),
+      ),
       );
 
   static String? _normalized(String? value) {
@@ -1445,24 +1400,11 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-product'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.product.title')),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-product-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<_RetailProductDetailData>(
+        
+        body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        child: FutureBuilder<_RetailProductDetailData>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -1762,6 +1704,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
             );
           },
         ),
+      ),
       );
 }
 
