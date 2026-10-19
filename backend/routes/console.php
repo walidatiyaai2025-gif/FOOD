@@ -2,6 +2,7 @@
 
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
 use App\Domain\Assistant\Intelligence\AssistantBriefService;
+use App\Domain\Assistant\Performance\RefreshAssistantAnalyticsJob;
 use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
@@ -52,7 +53,7 @@ Artisan::command(
     },
 )->purpose('Materialize bounded canonical AI analytics facts without granting the model SQL access.');
 
-Schedule::command('foodex:analytics-refresh')
+Schedule::job(new RefreshAssistantAnalyticsJob)
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
 

@@ -523,6 +523,7 @@ Route::prefix('admin')
                 Route::post('/conversations', [AssistantController::class, 'storeConversation'])->name('conversations.store');
                 Route::get('/conversations/{conversationId}/messages', [AssistantController::class, 'messages'])->whereUuid('conversationId')->name('conversations.messages.index');
                 Route::post('/conversations/{conversationId}/messages', [AssistantController::class, 'storeMessage'])->whereUuid('conversationId')->name('conversations.messages.store');
+                Route::post('/conversations/{conversationId}/cancel', [AssistantController::class, 'cancel'])->whereUuid('conversationId')->name('conversations.cancel');
                 Route::post('/conversations/{conversationId}/clear', [AssistantController::class, 'clear'])->whereUuid('conversationId')->name('conversations.clear');
                 Route::delete('/conversations/{conversationId}', [AssistantController::class, 'destroy'])->whereUuid('conversationId')->name('conversations.destroy');
                 Route::post('/actions', [AssistantActionController::class, 'store'])->name('actions.store');

@@ -115,6 +115,8 @@ final class AssistantAiSecurityGuardrails
             timeoutSeconds: $request->timeoutSeconds,
             correlationId: $request->correlationId,
             useCase: $request->useCase,
+            actorUserId: $request->actorUserId,
+            tenantKey: $request->tenantKey,
         );
     }
 

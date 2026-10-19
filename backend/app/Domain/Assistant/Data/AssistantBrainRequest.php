@@ -9,5 +9,8 @@ final readonly class AssistantBrainRequest
         public string $locale,
         public array $context = [],
         public array $state = [],
+        public ?int $actorUserId = null,
+        public ?string $correlationId = null,
+        public ?string $tenantKey = null,
     ) {}
 }
