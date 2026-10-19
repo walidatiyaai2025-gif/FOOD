@@ -215,9 +215,27 @@ final class LegacyFoodexImportService
         }
     }
 
-    public function stockDiagnostics(): array
+    public function stockDiagnostics(bool $deep = false, ?callable $progress = null): array
     {
         $source = DB::connection('foodex_legacy');
+        $timings = [];
+
+        $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+            $timings[$label] = $elapsed;
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
 
         $movementSigns = [
             1 => 1,   // Purchase
@@ -240,11 +258,11 @@ final class LegacyFoodexImportService
         ];
         $recognizedTypes = array_keys($movementSigns);
 
-        $typeNames = $source->table('wh_TransTypes')
+        $typeNames = $stage('transaction_type_names', fn () => $source->table('wh_TransTypes')
             ->get(['ID', 'Name', 'Caption_En', 'Caption_Ar'])
-            ->keyBy('ID');
+            ->keyBy('ID'));
 
-        $headerStats = $source->table('wh_TransHeader')
+        $headerStats = $stage('header_type_stats', fn () => $source->table('wh_TransHeader')
             ->selectRaw(
                 'TransType, COUNT(*) AS headers, '.
                 'SUM(CASE WHEN COALESCE(Status, 1) <> 0 THEN 1 ELSE 0 END) AS posted_headers, '.
@@ -252,9 +270,9 @@ final class LegacyFoodexImportService
             )
             ->groupBy('TransType')
             ->orderBy('TransType')
-            ->get();
+            ->get());
 
-        $detailStats = $source->table('wh_TransDetails as d')
+        $detailStats = $stage('detail_type_stats', fn () => $source->table('wh_TransDetails as d')
             ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
             ->whereRaw('COALESCE(h.Status, 1) <> 0')
             ->whereRaw('COALESCE(d.Status, 1) <> 0')
@@ -265,7 +283,7 @@ final class LegacyFoodexImportService
             )
             ->groupBy('h.TransType')
             ->get()
-            ->keyBy('TransType');
+            ->keyBy('TransType'));
 
         $types = [];
         foreach ($headerStats as $row) {
@@ -291,25 +309,28 @@ final class LegacyFoodexImportService
             ];
         }
 
-        $postedHeaderCount = (int) $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->count();
-        $postedDetailCount = (int) $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->count();
-
-        $recognizedHeaderCount = (int) $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->whereIn('TransType', $recognizedTypes)
-            ->count();
-        $recognizedDetailCount = (int) $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->whereIn('h.TransType', $recognizedTypes)
-            ->count();
+        $sourceCounts = $stage('posted_source_counts', function () use ($source, $recognizedTypes): array {
+            return [
+                'posted_headers' => (int) $source->table('wh_TransHeader')
+                    ->whereRaw('COALESCE(Status, 1) <> 0')
+                    ->count(),
+                'posted_details' => (int) $source->table('wh_TransDetails as d')
+                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                    ->count(),
+                'recognized_stock_headers' => (int) $source->table('wh_TransHeader')
+                    ->whereRaw('COALESCE(Status, 1) <> 0')
+                    ->whereIn('TransType', $recognizedTypes)
+                    ->count(),
+                'recognized_stock_details' => (int) $source->table('wh_TransDetails as d')
+                    ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                    ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                    ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                    ->whereIn('h.TransType', $recognizedTypes)
+                    ->count(),
+            ];
+        });
 
         $unknownPostedTypes = collect($types)
             ->filter(static fn (array $row): bool => $row['posted_headers'] > 0 && ! $row['recognized_stock_type'])
@@ -322,180 +343,188 @@ final class LegacyFoodexImportService
             ->values()
             ->all();
 
-        $usedLocationIds = $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->whereIn('TransType', $recognizedTypes)
-            ->whereNotNull('StoreId')
-            ->where('StoreId', '<>', 0)
-            ->distinct()
-            ->orderBy('StoreId')
-            ->pluck('StoreId')
-            ->map(static fn ($id): int => (int) $id)
-            ->all();
+        $mappingCoverage = $stage('mapping_coverage', function () use ($source, $recognizedTypes): array {
+            $usedLocationIds = $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->whereIn('TransType', $recognizedTypes)
+                ->whereNotNull('StoreId')
+                ->where('StoreId', '<>', 0)
+                ->distinct()
+                ->pluck('StoreId')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
 
-        $warehouseMappings = DB::table('legacy_import_mappings')
-            ->where('source_system', self::SOURCE_SYSTEM)
-            ->where('target_table', 'warehouses')
-            ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
-            ->get(['source_key', 'target_id'])
-            ->keyBy(static fn ($row): int => (int) $row->source_key);
+            $warehouseMappings = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('target_table', 'warehouses')
+                ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
+                ->pluck('target_id', 'source_key');
 
-        $unmappedLocations = collect($usedLocationIds)
-            ->reject(static fn (int $id): bool => $warehouseMappings->has($id))
-            ->values()
-            ->all();
+            $unmappedLocations = collect($usedLocationIds)
+                ->reject(static fn (int $id): bool => $warehouseMappings->has((string) $id) || $warehouseMappings->has($id))
+                ->values()
+                ->all();
 
-        $usedItemIds = $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->whereIn('h.TransType', $recognizedTypes)
-            ->distinct()
-            ->orderBy('d.ItemID')
-            ->pluck('d.ItemID')
-            ->map(static fn ($id): int => (int) $id)
-            ->all();
+            $usedItemIds = $source->table('wh_TransDetails as d')
+                ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                ->whereIn('h.TransType', $recognizedTypes)
+                ->distinct()
+                ->pluck('d.ItemID')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
 
-        $productMappingKeys = DB::table('legacy_import_mappings')
-            ->where('source_system', self::SOURCE_SYSTEM)
-            ->where('source_table', 'wh_Items')
-            ->where('target_table', 'products')
-            ->pluck('source_key')
-            ->map(static fn ($id): int => (int) $id)
-            ->flip();
+            $productMappingKeys = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('source_table', 'wh_Items')
+                ->where('target_table', 'products')
+                ->pluck('source_key')
+                ->map(static fn ($id): int => (int) $id)
+                ->flip();
 
-        $unmappedItems = collect($usedItemIds)
-            ->reject(static fn (int $id): bool => $productMappingKeys->has($id))
-            ->values()
-            ->all();
+            $unmappedItems = collect($usedItemIds)
+                ->reject(static fn (int $id): bool => $productMappingKeys->has($id))
+                ->values()
+                ->all();
 
-        $fallbackBaseQuantity = "CASE ".
-            "WHEN COALESCE(d.Package, 1) <= 1 THEN ABS(COALESCE(d.Qty, 0)) ".
-            "WHEN d.Package = 2 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(d.Pkg2Qty, 0), NULLIF(i.Pkg2Qty, 0), 1) ".
-            "WHEN d.Package = 3 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(d.Pkg3Qty, 0), NULLIF(i.Pkg3Qty, 0), 1) ".
-            "WHEN d.Package = 4 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(i.Pkg4Qty, 0), 1) ".
-            "WHEN d.Package = 5 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(i.Pkg5Qty, 0), 1) ".
-            "ELSE ABS(COALESCE(d.Qty, 0)) END";
-        $baseQuantity = "CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 ".
-            "THEN ABS(d.TransPkgQty1) ELSE ({$fallbackBaseQuantity}) END";
-
-        $quantityDiagnostics = $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->join('wh_Items as i', 'i.ID', '=', 'd.ItemID')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->whereIn('h.TransType', $recognizedTypes)
-            ->selectRaw(
-                'COUNT(*) AS lines, '.
-                'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 THEN 1 ELSE 0 END) AS using_trans_pkg_qty1, '.
-                'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) = 0 AND ABS(COALESCE(d.Qty, 0)) > 0 THEN 1 ELSE 0 END) AS using_fallback, '.
-                'SUM(CASE WHEN COALESCE(d.Qty, 0) < 0 THEN 1 ELSE 0 END) AS negative_raw_qty, '.
-                'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 '.
-                    "AND ABS((ABS(d.TransPkgQty1)) - ({$fallbackBaseQuantity})) > 0.001 THEN 1 ELSE 0 END) AS transpkg_vs_conversion_mismatch"
-            )
-            ->first();
-
-        $signCase = 'CASE h.TransType '.
-            collect($movementSigns)
-                ->map(static fn (int $sign, int $type): string => 'WHEN '.$type.' THEN '.$sign)
-                ->implode(' ').
-            ' ELSE 0 END';
-
-        $positions = $source->table('wh_TransDetails as d')
-            ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
-            ->join('wh_Items as i', 'i.ID', '=', 'd.ItemID')
-            ->whereRaw('COALESCE(h.Status, 1) <> 0')
-            ->whereRaw('COALESCE(d.Status, 1) <> 0')
-            ->whereIn('h.TransType', $recognizedTypes)
-            ->whereNotNull('h.StoreId')
-            ->where('h.StoreId', '<>', 0)
-            ->groupBy('h.StoreId', 'd.ItemID')
-            ->selectRaw(
-                "h.StoreId AS store_id, d.ItemID AS item_id, ".
-                "SUM(({$signCase}) * ({$baseQuantity})) AS rebuilt_quantity, COUNT(*) AS movement_lines"
-            )
-            ->get();
-
-        $positivePositions = 0;
-        $zeroPositions = 0;
-        $negativePositions = 0;
-        $negativeSamples = [];
-        foreach ($positions as $position) {
-            $qty = round((float) $position->rebuilt_quantity, 3);
-            if ($qty > 0.0005) {
-                $positivePositions++;
-            } elseif ($qty < -0.0005) {
-                $negativePositions++;
-                if (count($negativeSamples) < 20) {
-                    $negativeSamples[] = [
-                        'store_id' => (int) $position->store_id,
-                        'item_id' => (int) $position->item_id,
-                        'quantity' => $qty,
-                        'movement_lines' => (int) $position->movement_lines,
-                    ];
-                }
-            } else {
-                $zeroPositions++;
-            }
-        }
-
-        $openingHeaders = (int) $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->where('b_OpeningBal', 1)
-            ->count();
-
-        $pairing = [
-            $this->legacyPairDiagnostics('CarHeaderId', 13, 15, 'store_to_van'),
-            $this->legacyPairDiagnostics('CarHeaderId', 14, 16, 'van_to_store'),
-            $this->legacyPairDiagnostics('TransferHeaderID', 7, 8, 'warehouse_transfer'),
-        ];
-
-        $carWrapperHeaders = (int) $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->whereIn('TransType', [17, 18])
-            ->count();
-        $linkedCarHeaders = (int) $source->table('wh_TransHeader')
-            ->whereRaw('COALESCE(Status, 1) <> 0')
-            ->where('CarHeaderId', '>', 0)
-            ->distinct()
-            ->count('CarHeaderId');
-
-        return [
-            'source' => [
-                'posted_headers' => $postedHeaderCount,
-                'posted_details' => $postedDetailCount,
-                'recognized_stock_headers' => $recognizedHeaderCount,
-                'recognized_stock_details' => $recognizedDetailCount,
-                'opening_balance_headers' => $openingHeaders,
-                'car_wrapper_headers_17_18' => $carWrapperHeaders,
-                'linked_car_headers' => $linkedCarHeaders,
-                'car_source_headers' => (int) $source->table('wh_CarTransHeader')
-                    ->whereRaw('COALESCE(Status, 1) <> 0')
-                    ->count(),
-            ],
-            'types' => $types,
-            'unknown_posted_types' => $unknownPostedTypes,
-            'mapping_coverage' => [
+            return [
                 'used_locations' => count($usedLocationIds),
                 'unmapped_locations' => $unmappedLocations,
                 'used_items' => count($usedItemIds),
                 'unmapped_items' => $unmappedItems,
-            ],
-            'quantity' => [
+            ];
+        });
+
+        $pairing = $stage('transfer_pairing', fn () => [
+            $this->legacyPairDiagnostics('CarHeaderId', 13, 15, 'store_to_van'),
+            $this->legacyPairDiagnostics('CarHeaderId', 14, 16, 'van_to_store'),
+            $this->legacyPairDiagnostics('TransferHeaderID', 7, 8, 'warehouse_transfer'),
+        ]);
+
+        $sourceMeta = $stage('source_meta', fn () => [
+            'opening_balance_headers' => (int) $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->where('b_OpeningBal', 1)
+                ->count(),
+            'car_wrapper_headers_17_18' => (int) $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->whereIn('TransType', [17, 18])
+                ->count(),
+            'linked_car_headers' => (int) $source->table('wh_TransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->where('CarHeaderId', '>', 0)
+                ->distinct()
+                ->count('CarHeaderId'),
+            'car_source_headers' => (int) $source->table('wh_CarTransHeader')
+                ->whereRaw('COALESCE(Status, 1) <> 0')
+                ->count(),
+        ]);
+
+        $quantity = null;
+        $rebuildPreview = null;
+
+        if ($deep) {
+            $fallbackBaseQuantity = "CASE ".
+                "WHEN COALESCE(d.Package, 1) <= 1 THEN ABS(COALESCE(d.Qty, 0)) ".
+                "WHEN d.Package = 2 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(d.Pkg2Qty, 0), NULLIF(i.Pkg2Qty, 0), 1) ".
+                "WHEN d.Package = 3 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(d.Pkg3Qty, 0), NULLIF(i.Pkg3Qty, 0), 1) ".
+                "WHEN d.Package = 4 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(i.Pkg4Qty, 0), 1) ".
+                "WHEN d.Package = 5 THEN ABS(COALESCE(d.Qty, 0)) * COALESCE(NULLIF(i.Pkg5Qty, 0), 1) ".
+                "ELSE ABS(COALESCE(d.Qty, 0)) END";
+            $baseQuantity = "CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 ".
+                "THEN ABS(d.TransPkgQty1) ELSE ({$fallbackBaseQuantity}) END";
+
+            $quantityDiagnostics = $stage('deep_quantity_basis', fn () => $source->table('wh_TransDetails as d')
+                ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                ->join('wh_Items as i', 'i.ID', '=', 'd.ItemID')
+                ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                ->whereIn('h.TransType', $recognizedTypes)
+                ->selectRaw(
+                    'COUNT(*) AS lines, '.
+                    'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 THEN 1 ELSE 0 END) AS using_trans_pkg_qty1, '.
+                    'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) = 0 AND ABS(COALESCE(d.Qty, 0)) > 0 THEN 1 ELSE 0 END) AS using_fallback, '.
+                    'SUM(CASE WHEN COALESCE(d.Qty, 0) < 0 THEN 1 ELSE 0 END) AS negative_raw_qty, '.
+                    'SUM(CASE WHEN ABS(COALESCE(d.TransPkgQty1, 0)) > 0 '.
+                        "AND ABS((ABS(d.TransPkgQty1)) - ({$fallbackBaseQuantity})) > 0.001 THEN 1 ELSE 0 END) AS transpkg_vs_conversion_mismatch"
+                )
+                ->first());
+
+            $quantity = [
                 'lines' => (int) ($quantityDiagnostics->lines ?? 0),
                 'using_trans_pkg_qty1' => (int) ($quantityDiagnostics->using_trans_pkg_qty1 ?? 0),
                 'using_fallback' => (int) ($quantityDiagnostics->using_fallback ?? 0),
                 'negative_raw_qty' => (int) ($quantityDiagnostics->negative_raw_qty ?? 0),
                 'transpkg_vs_conversion_mismatch' => (int) ($quantityDiagnostics->transpkg_vs_conversion_mismatch ?? 0),
-            ],
-            'pairing' => $pairing,
-            'rebuild_preview' => [
+            ];
+
+            $signCase = 'CASE h.TransType '.
+                collect($movementSigns)
+                    ->map(static fn (int $sign, int $type): string => 'WHEN '.$type.' THEN '.$sign)
+                    ->implode(' ').
+                ' ELSE 0 END';
+
+            $positions = $stage('deep_rebuild_positions', fn () => $source->table('wh_TransDetails as d')
+                ->join('wh_TransHeader as h', 'h.HeaderId', '=', 'd.HeaderId')
+                ->join('wh_Items as i', 'i.ID', '=', 'd.ItemID')
+                ->whereRaw('COALESCE(h.Status, 1) <> 0')
+                ->whereRaw('COALESCE(d.Status, 1) <> 0')
+                ->whereIn('h.TransType', $recognizedTypes)
+                ->whereNotNull('h.StoreId')
+                ->where('h.StoreId', '<>', 0)
+                ->groupBy('h.StoreId', 'd.ItemID')
+                ->selectRaw(
+                    "h.StoreId AS store_id, d.ItemID AS item_id, ".
+                    "SUM(({$signCase}) * ({$baseQuantity})) AS rebuilt_quantity, COUNT(*) AS movement_lines"
+                )
+                ->get());
+
+            $positivePositions = 0;
+            $zeroPositions = 0;
+            $negativePositions = 0;
+            $negativeSamples = [];
+            foreach ($positions as $position) {
+                $qty = round((float) $position->rebuilt_quantity, 3);
+                if ($qty > 0.0005) {
+                    $positivePositions++;
+                } elseif ($qty < -0.0005) {
+                    $negativePositions++;
+                    if (count($negativeSamples) < 20) {
+                        $negativeSamples[] = [
+                            'store_id' => (int) $position->store_id,
+                            'item_id' => (int) $position->item_id,
+                            'quantity' => $qty,
+                            'movement_lines' => (int) $position->movement_lines,
+                        ];
+                    }
+                } else {
+                    $zeroPositions++;
+                }
+            }
+
+            $rebuildPreview = [
                 'positions' => $positions->count(),
                 'positive_positions' => $positivePositions,
                 'zero_positions' => $zeroPositions,
                 'negative_positions' => $negativePositions,
                 'negative_samples' => $negativeSamples,
+            ];
+        }
+
+        return [
+            'mode' => $deep ? 'deep' : 'quick',
+            'source' => [
+                ...$sourceCounts,
+                ...$sourceMeta,
             ],
+            'types' => $types,
+            'unknown_posted_types' => $unknownPostedTypes,
+            'mapping_coverage' => $mappingCoverage,
+            'quantity' => $quantity,
+            'pairing' => $pairing,
+            'rebuild_preview' => $rebuildPreview,
+            'timings_seconds' => $timings,
             'rules' => [
                 'source_tables_for_stock' => ['wh_TransHeader', 'wh_TransDetails'],
                 'car_tables_are_audit_only' => true,
@@ -503,6 +532,7 @@ final class LegacyFoodexImportService
                 'quantity_prefers_trans_pkg_qty1' => true,
                 'fallback_uses_package_conversion' => true,
                 'apply_enabled' => false,
+                'deep_reconstruction_enabled' => $deep,
             ],
         ];
     }
