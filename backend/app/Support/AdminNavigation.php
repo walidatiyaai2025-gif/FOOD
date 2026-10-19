@@ -36,7 +36,7 @@ class AdminNavigation
     /** @return array<string, array<string, mixed>> */
     public function for(User $user): array
     {
-        $memoKey = spl_object_id($user);
+        $memoKey = (int) $user->getKey();
         if (array_key_exists($memoKey, $this->visibleChannelsMemo)) {
             return $this->visibleChannelsMemo[$memoKey];
         }
@@ -743,7 +743,7 @@ class AdminNavigation
 
     private function isSuperAdmin(User $user): bool
     {
-        $memoKey = spl_object_id($user);
+        $memoKey = (int) $user->getKey();
 
         return $this->superAdminMemo[$memoKey]
             ??= $user->hasRole('SUPER_ADMIN');
@@ -755,7 +755,7 @@ class AdminNavigation
             return true;
         }
 
-        $memoKey = spl_object_id($user).'|'.$permission;
+        $memoKey = (int) $user->getKey().'|'.$permission;
 
         return $this->permissionMemo[$memoKey]
             ??= $user->hasPermission($permission);
