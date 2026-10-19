@@ -24,6 +24,7 @@
         .so-settings-tab{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.73rem;font-weight:900;white-space:nowrap;cursor:pointer;transition:.18s ease}
         .so-settings-tab:hover{border-color:var(--foodex-palette-b9d8c1);color:var(--foodex-green-dark);transform:translateY(-1px)}
         .so-settings-tab[aria-selected="true"]{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff;box-shadow:0 6px 18px rgba(21,138,58,.14)}
+        .so-settings-tab:disabled{opacity:.42;cursor:not-allowed;transform:none!important}
         .so-settings-panel{display:grid;gap:7px;min-width:0}.so-settings-panel[hidden]{display:none!important}
         .so-settings-panel>.panel,.so-settings-panel>.foodex-card,.so-settings-panel>.foodex-module-overview{margin:0!important}
         .so-settings-panel .panel{padding:12px!important}
@@ -57,6 +58,12 @@
 @include('admin._global-header')
         @php($isAr = app()->getLocale() === 'ar')
         @php($restaurantManagementCompact = false)
+        @php($restaurantSetupSteps = collect($onboardingStatus['setup_flow'] ?? [])->keyBy('key'))
+        @php($restaurantLaunched = (bool)($onboardingStatus['launched'] ?? false))
+        @php($restaurantChannelsAvailable = (bool)($restaurantSetupSteps->get('channels')['available'] ?? false))
+        @php($restaurantOperationsAvailable = (bool)($restaurantSetupSteps->get('operations')['available'] ?? false))
+        @php($restaurantMenuAvailable = (bool)($restaurantSetupSteps->get('menu')['available'] ?? false))
+        @php($restaurantCoreModules = ['public_menu','ordering','dine_in','pickup','delivery','whatsapp','campaign_qr'])
         <div class="so-settings-page" data-so-settings-page>
             <header class="so-settings-head">
                 <div class="so-settings-head-main">
@@ -67,7 +74,9 @@
                     </div>
                 </div>
                 <div class="so-settings-head-actions">
-                    <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'فتح التشغيل' : 'Open operations' }}</a>
+                    @if($restaurantLaunched || $restaurantOperationsAvailable)
+                        <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>$site->store_id,'tab'=>$restaurantLaunched?'orders':'branches']) }}">{{ $restaurantLaunched ? ($isAr ? 'فتح التشغيل' : 'Open operations') : ($isAr ? 'إكمال إعداد التشغيل' : 'Continue operations setup') }}</a>
+                    @endif
                 </div>
             </header>
             @include('admin._smart-ordering-workspace-nav')
@@ -91,12 +100,12 @@
                 </div>
             </div>
 
-            <nav class="so-settings-tabs" role="tablist" aria-label="{{ $isAr ? 'أقسام الإعدادات' : 'Settings sections' }}" data-so-settings-tabs data-default-tab="overview">
-                <button class="so-settings-tab" type="button" role="tab" aria-selected="true" data-so-settings-tab="overview">{{ $isAr ? 'الملخص' : 'Overview' }}</button>
-                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="launch">{{ $isAr ? 'التجهيز والإطلاق' : 'Setup & launch' }}</button>
-                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="site">{{ $isAr ? 'التشغيل والموقع' : 'Runtime & site' }}</button>
-                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="content">{{ $isAr ? 'المحتوى' : 'Content' }}</button>
-                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="modules">{{ $isAr ? 'الصلاحيات والنشر' : 'Modules & publish' }}</button>
+            <nav class="so-settings-tabs" role="tablist" aria-label="{{ $isAr ? 'أقسام الإعدادات' : 'Settings sections' }}" data-so-settings-tabs data-default-tab="{{ $restaurantLaunched ? 'overview' : 'launch' }}">
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="{{ $restaurantLaunched ? 'true' : 'false' }}" data-so-settings-tab="overview" @disabled(!$restaurantLaunched) aria-disabled="{{ $restaurantLaunched ? 'false' : 'true' }}">{{ $isAr ? 'الملخص' : 'Overview' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="{{ $restaurantLaunched ? 'false' : 'true' }}" data-so-settings-tab="launch">{{ $isAr ? 'التجهيز والإطلاق' : 'Setup & launch' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="site" @disabled(!$restaurantLaunched) aria-disabled="{{ $restaurantLaunched ? 'false' : 'true' }}">{{ $isAr ? 'التشغيل والموقع' : 'Runtime & site' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="content" @disabled(!$restaurantMenuAvailable) aria-disabled="{{ $restaurantMenuAvailable ? 'false' : 'true' }}">{{ $isAr ? 'المحتوى' : 'Content' }}</button>
+                <button class="so-settings-tab" type="button" role="tab" aria-selected="false" data-so-settings-tab="modules" @disabled(!$restaurantChannelsAvailable) aria-disabled="{{ $restaurantChannelsAvailable ? 'false' : 'true' }}">{{ $isAr ? 'قنوات ووحدات المطعم' : 'Restaurant channels & modules' }}</button>
             </nav>
 
             @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
@@ -377,7 +386,12 @@
                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <div class="so-list">
                     @foreach($modules as $module)
-                    <label><input type="checkbox" name="modules[]" value="{{ $module }}" @checked($entitlements[$module] ?? false)> {{ __('smart_ordering.modules.'.$module) }}</label>
+                    @php($advancedDuringSetup = !$restaurantLaunched && !in_array($module, $restaurantCoreModules, true))
+                    <label @if($advancedDuringSetup) title="{{ __('restaurant_onboarding.flow.locked') }}" @endif>
+                        <input type="checkbox" name="modules[]" value="{{ $module }}" @checked($entitlements[$module] ?? false) @disabled($advancedDuringSetup)>
+                        {{ __('smart_ordering.modules.'.$module) }}
+                        @if($advancedDuringSetup)<small>{{ __('restaurant_onboarding.flow.locked') }}</small>@endif
+                    </label>
                     @endforeach
                 </div>
                 <button class="primary" type="submit">{{ __('smart_ordering.save') }}</button>
@@ -416,7 +430,7 @@
 
             const buttons = [...tabs.querySelectorAll('[data-so-settings-tab]')];
             const panels = [...root.querySelectorAll('[data-so-settings-panel]')];
-            const available = new Set(buttons.map((button) => button.dataset.soSettingsTab));
+            const available = new Set(buttons.filter((button) => !button.disabled).map((button) => button.dataset.soSettingsTab));
             const storageKey = 'foodex:restaurant-settings-tab:{{ (int)$site->store_id }}';
             const hashValue = window.location.hash.startsWith('#settings-')
                 ? window.location.hash.slice('#settings-'.length)
@@ -445,7 +459,10 @@
                 }
             };
 
-            buttons.forEach((button) => button.addEventListener('click', () => activate(button.dataset.soSettingsTab)));
+            buttons.forEach((button) => button.addEventListener('click', () => {
+                if (button.disabled) return;
+                activate(button.dataset.soSettingsTab);
+            }));
             activate(defaultTab, false);
         })();
         </script>
