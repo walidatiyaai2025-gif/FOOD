@@ -35,12 +35,13 @@ final class AssistantToolDefinitionCatalog
             int $rowLimit = 100,
             int $timeoutMs = 2500,
             array $freshness = [],
+            string $mode = 'READ',
         ) use (&$definitions): void {
             $definitions[$key] = new AssistantToolDefinition(
                 key: $key,
                 schemaVersion: '1.0',
                 labels: ['en' => $en, 'ar' => $ar],
-                mode: 'READ',
+                mode: $mode,
                 requiredPermissions: $permissions,
                 permissionMode: $permissionMode,
                 channels: $channels,
@@ -120,6 +121,36 @@ final class AssistantToolDefinitionCatalog
         $add('forecast.replenishment', 'Forecast retailer demand and compute governed replenishment recommendations with backtesting.', 'توقع طلب تجار التجزئة وحساب توصيات إعادة التوريد المصرح بها مع الاختبار الخلفي.', ['reports.view'], 'all', ['b2b', 'b2c'], $forecastSchema, 'DemandForecastReplenishmentService', 'SELL_OUT', true, 1000, 3500, ['stale_after_minutes' => 20]);
         $add('margin.summary', 'Compute authorized gross margin only where cost coverage exists.', 'حساب هامش الربح المصرح به فقط عند توفر تغطية التكلفة.', ['reports.view', 'catalog.view'], 'all', ['b2b', 'b2c'], $period, 'AssistantAnalyticsReadService', rowLimit: 1000);
         $add('support.summary', 'Summarize authorized customer-service workload and SLA risk.', 'تلخيص عبء خدمة العملاء ومخاطر اتفاقية مستوى الخدمة المصرح بها.', ['customers.view', 'b2b.accounts.view', 'whatsapp.inbox.view'], 'any', ['b2b', 'b2c'], $period, 'CustomerServiceCaseManager', rowLimit: 100);
+
+        $actionDraftSchema = self::schema([
+            'supplier_id' => self::integer(),
+            'currency_code' => self::string(3),
+            'needed_by' => ['type' => 'string', 'format' => 'date'],
+            'reason' => self::string(2000),
+            'notes' => self::string(4000),
+            'lines' => [
+                'type' => 'array',
+                'minItems' => 1,
+                'maxItems' => 100,
+                'items' => ['type' => 'object'],
+            ],
+        ]);
+        $add(
+            'procurement.purchase_request.create_draft',
+            'Prepare an approval-gated enterprise purchase-request draft. Never submit, approve or issue it automatically.',
+            'تجهيز مسودة طلب شراء مؤسسي خاضعة للموافقة. لا يتم إرسالها أو اعتمادها أو إصدارها تلقائياً.',
+            ['procurement.purchase_requests.manage'],
+            'all',
+            ['b2b', 'b2c'],
+            $actionDraftSchema,
+            'AssistantActionApprovalService',
+            'INTERNAL',
+            false,
+            100,
+            2500,
+            [],
+            'DRAFT',
+        );
 
         $add(
             'knowledge.search',
