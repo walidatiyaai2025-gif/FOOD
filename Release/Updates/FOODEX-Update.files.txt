@@ -1676,3 +1676,5 @@ preview/driver/manifest.json
 preview/driver/version.json
 backend/app/Domain/Assistant/Security/AssistantAiSecurityGuardrails.php
 backend/app/Domain/Assistant/Security/AssistantToolExecutor.php
+backend/app/Domain/Assistant/Evaluation/AssistantEvaluationHarness.php
+backend/app/Domain/Assistant/Evaluation/AssistantEvaluationProfileCatalog.php

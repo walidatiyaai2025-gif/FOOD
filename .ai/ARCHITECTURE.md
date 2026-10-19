@@ -181,3 +181,9 @@ The existing Management Assistant correlation id is also the AI trace id. Operat
 ### AI security guardrail invariant
 
 The Assistant provider and typed-tool boundaries are wrapped by a server-owned security layer. User/provider/RAG text is never authority; prompt-injection and unsafe tool arguments fail closed, provider/tool/write layers have independent kill switches, tool results are minimized/redacted before becoming model evidence, and privacy-sensitive benchmark tools must enforce cohort minimum/differencing protection. These controls are additive to current RBAC, tenant/store/channel scope and retailer sell-out consent, and disabling AI must not disable ordinary FOODEX commerce. Authoritative threat model: `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.
+
+### AI evaluation invariant
+
+FOODEX AI quality is versioned and CI-gated through deterministic golden business cases. Numeric parity, tool choice, evidence, authorization/scope, refusal behavior, unavailable-data suppression and approval-governed action safety are blocking at 100% for every supported capability profile. Arabic/English language quality is measured separately so wording may vary while facts, permissions and safety may not. OpenAI-compatible/Ollama model changes and deterministic fallback are evaluated against explicit versioned profiles; provider capability never changes business authority.
+
+Authority: `docs/testing/FOODEX_AI_EVALUATION_GATES.md`, #2230.
