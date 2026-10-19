@@ -27,6 +27,7 @@
     $menuItemCount = $setupItemCount;
     $quickMenuCurrency = $checkoutCurrency;
     $canApply = $canManageSetup;
+    $openLiveAfterPublish = (bool) session('open_live_storefront', false);
 @endphp
 
 <style>
@@ -42,9 +43,13 @@
 .rl-inline-add{margin:0 10px 10px}.rl-inline-add summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border:1px dashed var(--foodex-palette-8abd96);border-radius:9px;color:var(--foodex-green-dark);font-size:.66rem;font-weight:900}.rl-inline-add summary::-webkit-details-marker{display:none}.rl-inline-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:7px;align-items:end;margin-top:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:11px;background:var(--foodex-palette-f8faf9)}.rl-inline-form label{display:grid;gap:4px;color:var(--foodex-palette-475569);font-size:.62rem;font-weight:800}.rl-inline-form input,.rl-inline-form select{width:100%;min-width:0;min-height:38px;border:1px solid var(--foodex-border);border-radius:9px;padding-inline:9px;background:#fff;font:inherit}.rl-inline-form button{min-height:38px}
 .rl-design-grid{display:grid;grid-template-columns:minmax(330px,.72fr) minmax(0,1.28fr);gap:10px}.rl-theme-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}.rl-theme{display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.rl-theme.is-current{border-color:var(--foodex-palette-78ba87);box-shadow:0 0 0 2px var(--foodex-palette-e7f6eb)}.rl-theme-preview{height:54px;border-radius:9px;border:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-palette-eef7f0),#fff 55%,var(--foodex-palette-f7efe6))}.rl-theme[data-dark="1"] .rl-theme-preview{background:linear-gradient(135deg,var(--foodex-palette-111827),var(--foodex-palette-14532d) 60%,var(--foodex-palette-d97706))}.rl-theme strong{font-size:.69rem}.rl-theme button{min-height:34px}.rl-preview{min-height:560px;padding:10px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-palette-111827)}.rl-preview iframe{display:block;width:100%;height:540px;border:0;border-radius:10px;background:#fff}
 .rl-form-card{padding:13px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}.rl-form-card h3{margin:0 0 10px;font-size:.82rem}.rl-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.rl-form-grid label{display:grid;gap:4px;font-size:.65rem;font-weight:900;color:var(--foodex-palette-475569)}.rl-form-grid input,.rl-form-grid select,.rl-form-grid textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:9px;padding:9px;background:#fff;font:inherit}.rl-form-grid textarea{min-height:76px}.rl-form-grid .span-2{grid-column:1/-1}.rl-form-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}
-.rl-review-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:10px}.rl-checks{display:grid;gap:7px}.rl-check{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid var(--foodex-border);border-radius:11px;background:#fff}.rl-check span{font-size:.69rem;font-weight:800}.rl-check strong{font-size:.65rem}.rl-check.is-ok strong{color:var(--foodex-green-dark)}.rl-check.is-warn strong{color:var(--foodex-palette-b45309)}.rl-publish-card{display:grid;gap:12px;padding:18px;border:1px solid var(--foodex-palette-b9d8c1);border-radius:16px;background:linear-gradient(135deg,var(--foodex-palette-f3fbf5),#fff);text-align:center}.rl-publish-card h2{margin:0;font-size:1.05rem}.rl-publish-card p{margin:0;color:var(--foodex-muted);font-size:.72rem}.rl-publish-card form{display:flex;justify-content:center}.rl-publish-card button{min-height:44px;padding:0 22px;font-size:.77rem}.rl-public-url{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
-@media(max-width:1050px){.rl-design-grid,.rl-review-grid{grid-template-columns:1fr}.rl-preview{min-height:440px}.rl-preview iframe{height:420px}.rl-inline-form{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-inline-form button{grid-column:1/-1}.rl-theme-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:760px){.rl-steps{display:flex;overflow-x:auto}.rl-step{flex:0 0 auto;min-width:130px}.rl-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-theme-list{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-form-grid,.rl-inline-form{grid-template-columns:1fr}.rl-form-grid .span-2{grid-column:auto}.rl-item-list{grid-template-columns:1fr}}
+.rl-review-checks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.rl-checks{display:grid;gap:7px}.rl-check{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid var(--foodex-border);border-radius:11px;background:#fff}.rl-check span{font-size:.69rem;font-weight:800}.rl-check strong{font-size:.65rem}.rl-check.is-ok strong{color:var(--foodex-green-dark)}.rl-check.is-warn strong{color:var(--foodex-palette-b45309)}
+.rl-device-review{display:grid;gap:9px;padding:12px;border:1px solid var(--foodex-border);border-radius:15px;background:#fff}.rl-device-review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.rl-device-review-head h3{margin:0;font-size:.82rem}.rl-device-review-head p{margin:3px 0 0;color:var(--foodex-muted);font-size:.65rem}.rl-device-grid{display:grid;grid-template-columns:minmax(280px,390px) minmax(500px,768px);gap:14px;justify-content:center;align-items:start}.rl-device-card{min-width:0;display:grid;gap:7px}.rl-device-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.68rem;font-weight:900}.rl-device-label small{color:var(--foodex-muted);font-weight:700}.rl-device-shell{width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-palette-111827);box-shadow:0 10px 28px rgba(15,23,42,.12)}.rl-device-shell iframe{display:block;width:100%;height:720px;border:0;border-radius:10px;background:#fff}.rl-device-shell.is-mobile iframe{height:760px}
+.rl-publish-card{display:grid;gap:12px;padding:18px;border:1px solid var(--foodex-palette-b9d8c1);border-radius:16px;background:linear-gradient(135deg,var(--foodex-palette-f3fbf5),#fff);text-align:center}.rl-publish-card h2{margin:0;font-size:1.05rem}.rl-publish-card p{margin:0;color:var(--foodex-muted);font-size:.72rem}.rl-public-url{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}.rl-site-qr{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:center;max-width:720px;margin:4px auto 0;padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff;text-align:start}.rl-site-qr img{width:180px;height:180px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;padding:7px}.rl-site-qr-copy{display:grid;gap:8px}.rl-site-qr-copy h3{margin:0;font-size:.86rem}.rl-site-qr-copy code{display:block;max-width:100%;padding:8px;border-radius:9px;background:var(--foodex-background);font-size:.64rem;direction:ltr;overflow-wrap:anywhere}
+.rl-panel-title form{margin:0}.rl-panel-title .rl-next:disabled{opacity:.65;cursor:wait}
+@media(max-width:1220px){.rl-device-grid{grid-template-columns:1fr}.rl-device-card{width:min(100%,768px);justify-self:center}.rl-device-card:first-child{width:min(100%,390px)}}
+@media(max-width:1050px){.rl-design-grid{grid-template-columns:1fr}.rl-review-checks{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-preview{min-height:440px}.rl-preview iframe{height:420px}.rl-inline-form{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-inline-form button{grid-column:1/-1}.rl-theme-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.rl-steps{display:flex;overflow-x:auto}.rl-step{flex:0 0 auto;min-width:130px}.rl-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-theme-list{grid-template-columns:repeat(2,minmax(0,1fr))}.rl-form-grid,.rl-inline-form{grid-template-columns:1fr}.rl-form-grid .span-2{grid-column:auto}.rl-item-list{grid-template-columns:1fr}.rl-review-checks{grid-template-columns:1fr}.rl-site-qr{grid-template-columns:1fr;text-align:center}.rl-site-qr img{margin:auto}.rl-device-shell iframe,.rl-device-shell.is-mobile iframe{height:640px}}
 </style>
 
 <div class="restaurant-launch" data-restaurant-launch>
@@ -93,13 +98,10 @@
                         </div>
                         <div class="rl-actions">
                             <button class="rl-secondary" type="button" data-qm-edit-menu="{{ $menu->id }}">{{ $launchIsAr?'تعديل المنيو':'Edit menu' }}</button>
-                            <div class="rl-actions">
-                                <button class="rl-secondary" type="button" data-qm-edit-menu="{{ $menu->id }}">{{ $launchIsAr?'تعديل المنيو':'Edit menu' }}</button>
-                                <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
-                                    @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
-                                    <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
-                                </form>
-                            </div>
+                            <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
+                                @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
+                            </form>
                         </div>
                     </header>
 
@@ -258,111 +260,101 @@
 
     @if($setupStep==='review')
     <section class="rl-panel" id="so-draft-review" data-launch-step="review">
-        <div class="rl-panel-title"><div><h2>{{ $launchIsAr?'4. مراجعة كل شيء قبل النشر':'4. Review before publishing' }}</h2><p>{{ $launchIsAr?'راجع الجاهزية والواجهة الفعلية قبل الخطوة الأخيرة.':'Review readiness and the real storefront before the final step.' }}</p></div></div>
-
-        @php($quickMenuReturnTo = 'menu_setup')
-        @include('admin._smart-ordering-quick-menu-wizard')
-
-        <details class="rl-form-card" open>
-            <summary style="cursor:pointer;font-weight:900">{{ $launchIsAr?'إضافة وحذف سريع قبل النشر':'Quick add / delete before publishing' }}</summary>
-            <div class="rl-menu-list" style="margin-top:10px">
-                @foreach($menus as $menu)
-                    <article class="rl-menu-card">
-                        <header class="rl-menu-head">
-                            <div class="rl-menu-title"><div><strong>{{ $localized($menu,'name') }}</strong><small>{{ $menu->categories->count() }} {{ $launchIsAr?'تصنيف':'categories' }}</small></div></div>
-                            <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
-                                @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
-                                <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
-                            </form>
-                        </header>
-
-                        <details class="rl-inline-add">
-                            <summary>+ {{ $launchIsAr?'إضافة تصنيف':'Add category' }}</summary>
-                            <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}" data-setup-mirror-form>
-                                @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $menu->categories->count()*10 }}"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="sold_out" value="0">
-                                <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
-                                <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
-                                <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
-                                <span></span><button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
-                            </form>
-                        </details>
-
-                        <div class="rl-category-list">
-                            @foreach($menu->categories as $category)
-                                <section class="rl-category">
-                                    <div class="rl-category-head">
-                                        <div class="rl-menu-title"><div><strong>{{ $localized($category,'name') }}</strong><small>{{ $category->items->count() }} {{ $launchIsAr?'صنف':'items' }}</small></div></div>
-                                        <form method="post" action="{{ route('admin.smart-ordering.menu.categories.destroy',$category) }}" data-launch-delete>
-                                            @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="rl-danger" type="submit">{{ $launchIsAr?'حذف':'Delete' }}</button>
-                                        </form>
-                                    </div>
-
-                                    <div class="rl-item-list">
-                                        @foreach($category->items as $item)
-                                            <div class="rl-item">
-                                                <div class="rl-item-main"><div><strong>{{ $localized($item,'name') }}</strong><small>{{ $itemPrices[$item->id]['display'] ?? '' }}</small></div></div>
-                                                <form method="post" action="{{ route('admin.smart-ordering.menu.items.destroy',$item) }}" data-launch-delete>
-                                                    @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="rl-danger" type="submit">×</button>
-                                                </form>
-                                            </div>
-                                        @endforeach
-                                    </div>
-
-                                    <details class="rl-inline-add">
-                                        <summary>+ {{ $launchIsAr?'إضافة صنف':'Add item' }}</summary>
-                                        <form class="rl-inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.store',$category) }}" data-setup-mirror-form>
-                                            @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="sort_order" value="{{ $category->items->count()*10 }}"><input type="hidden" name="spicy_level" value="0"><input type="hidden" name="is_visible" value="1"><input type="hidden" name="allow_customer_notes" value="1">
-                                            <label>{{ $launchIsAr?'الاسم بالعربي':'Arabic name' }}<input name="name_ar" data-mirror-ar></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the Arabic name field. --}}
-                                            <label>{{ $launchIsAr?'الاسم بالإنجليزي':'English name' }}<input name="name_en" data-mirror-en></label> {{-- localization-gate: allow — bilingual authoring intentionally exposes the English name field. --}}
-                                            <label>{{ $launchIsAr?'السعر':'Price' }}<input type="number" min="0" step="{{ $moneyStep }}" name="price_override" required></label>
-                                            <label>{{ $launchIsAr?'الصورة':'Image' }}<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
-                                            <button class="rl-next" type="submit">{{ $launchIsAr?'إضافة':'Add' }}</button>
-                                        </form>
-                                    </details>
-                                </section>
-                            @endforeach
-                        </div>
-                    </article>
-                @endforeach
+        <div class="rl-panel-title">
+            <div>
+                <h2>{{ $launchIsAr?'4. مراجعة كل شيء قبل النشر':'4. Review before publishing' }}</h2>
+                <p>{{ $launchIsAr?'المراجعة أولاً: افحص الجاهزية ثم شاهد الموبايل والتابلت قبل الانتقال للنشر.':'Review first: verify readiness, then inspect mobile and tablet before publishing.' }}</p>
             </div>
-        </details>
-
-        <div class="rl-review-grid">
-            <div class="rl-preview"><iframe src="{{ $setupPreviewUrl }}" title="{{ $launchIsAr?'معاينة نهائية':'Final preview' }}"></iframe></div>
-            <div class="rl-checks">
-                <div class="rl-check {{ $launchReady['menu']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'المنيو والتصنيفات والأصناف':'Menu structure' }}</span><strong>{{ $launchReady['menu']?'✓':'!' }}</strong></div>
-                <div class="rl-check {{ $launchReady['design']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'المظهر':'Design' }}</span><strong>{{ $launchReady['design']?'✓':'!' }}</strong></div>
-                <div class="rl-check {{ $launchReady['identity']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'بيانات المطعم والرابط':'Restaurant identity' }}</span><strong>{{ $launchReady['identity']?'✓':'!' }}</strong></div>
-                <div class="rl-check {{ empty($itemPriceErrors)?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'أسعار الأصناف':'Item prices' }}</span><strong>{{ empty($itemPriceErrors)?'✓':count($itemPriceErrors) }}</strong></div>
-                <div class="rl-check is-ok"><span>{{ $launchIsAr?'التشغيل النهائي':'Final runtime' }}</span><strong>{{ $launchIsAr?'بعد اكتمال الإطلاق':'After launch' }}</strong></div>
-                @if(!empty($itemPriceErrors))<div class="foodex-alert error">{{ $launchIsAr?'يوجد أصناف بدون سعر صالح. ارجع للخطوة الأولى وأكمل الأسعار.':'Some items need a valid price before publishing.' }}</div>@endif
+            <div class="rl-actions">
+                <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'identity']) }}">{{ $launchIsAr?'السابق':'Back' }}</a>
+                <a class="rl-next" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'publish']) }}">{{ $launchIsAr?'التالي: النشر النهائي':'Next: Publish' }}</a>
             </div>
         </div>
-        <div class="rl-actions"><a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'identity']) }}">{{ $launchIsAr?'السابق':'Back' }}</a><a class="rl-next" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'publish']) }}">{{ $launchIsAr?'التالي: النشر النهائي':'Next: Publish' }}</a></div>
+
+        <div class="rl-review-checks">
+            <div class="rl-check {{ $launchReady['menu']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'المنيو والتصنيفات والأصناف':'Menu structure' }}</span><strong>{{ $launchReady['menu']?'✓':'!' }}</strong></div>
+            <div class="rl-check {{ $launchReady['design']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'المظهر':'Design' }}</span><strong>{{ $launchReady['design']?'✓':'!' }}</strong></div>
+            <div class="rl-check {{ $launchReady['identity']?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'بيانات المطعم والرابط':'Restaurant identity' }}</span><strong>{{ $launchReady['identity']?'✓':'!' }}</strong></div>
+            <div class="rl-check {{ empty($itemPriceErrors)?'is-ok':'is-warn' }}"><span>{{ $launchIsAr?'أسعار الأصناف':'Item prices' }}</span><strong>{{ empty($itemPriceErrors)?'✓':count($itemPriceErrors) }}</strong></div>
+            <div class="rl-check is-ok"><span>{{ $launchIsAr?'التشغيل النهائي':'Final runtime' }}</span><strong>{{ $launchIsAr?'بعد النشر':'After publish' }}</strong></div>
+        </div>
+
+        @if(!empty($itemPriceErrors))
+            <div class="foodex-alert error">{{ $launchIsAr?'يوجد أصناف بدون سعر صالح. ارجع للمنيو وأكمل الأسعار قبل النشر.':'Some items need a valid price. Return to the menu and complete prices before publishing.' }}</div>
+        @endif
+
+        <section class="rl-device-review" aria-label="{{ $launchIsAr?'معاينة الموبايل والتابلت':'Mobile and tablet review' }}">
+            <div class="rl-device-review-head">
+                <div>
+                    <h3>{{ $launchIsAr?'معاينة حقيقية على جهازين':'Real preview on two devices' }}</h3>
+                    <p>{{ $launchIsAr?'نفس المسودة الحالية بدون أدوات تعديل داخل شاشة المراجعة.':'The current draft only, with no editing tools inside the review step.' }}</p>
+                </div>
+            </div>
+            <div class="rl-device-grid">
+                <article class="rl-device-card">
+                    <div class="rl-device-label"><span>{{ $launchIsAr?'موبايل':'Mobile' }}</span><small>390px</small></div>
+                    <div class="rl-device-shell is-mobile">
+                        <iframe src="{{ $setupPreviewUrl }}" title="{{ $launchIsAr?'معاينة الموبايل':'Mobile preview' }}"></iframe>
+                    </div>
+                </article>
+                <article class="rl-device-card">
+                    <div class="rl-device-label"><span>{{ $launchIsAr?'تابلت':'Tablet' }}</span><small>768px</small></div>
+                    <div class="rl-device-shell is-tablet">
+                        <iframe src="{{ $setupPreviewUrl }}" title="{{ $launchIsAr?'معاينة التابلت':'Tablet preview' }}"></iframe>
+                    </div>
+                </article>
+            </div>
+        </section>
     </section>
     @endif
 
     @if($setupStep==='publish')
     <section class="rl-panel" data-launch-step="publish">
+        <div class="rl-panel-title">
+            <div>
+                <h2>{{ $publishedRevision ? ($launchIsAr?'الموقع منشور وجاهز للمشاركة':'The site is published and ready to share') : ($launchIsAr?'5. النشر النهائي':'5. Final publish') }}</h2>
+                <p>{{ $launchIsAr?'النشر يثبت المسودة، ينشئ QR للموقع، ثم يفتح الموقع الحقيقي في تبويب جديد.':'Publishing commits the draft, creates the site QR, then opens the live site in a new tab.' }}</p>
+            </div>
+            <div class="rl-actions">
+                <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'review']) }}">{{ $launchIsAr?'السابق':'Back' }}</a>
+                @if(empty($itemPriceErrors) && $canPublishSetup && $canManageSetup && $scheduledRevision===null)
+                    <form method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}" data-guided-publish-form>
+                        @csrf
+                        <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                        <input type="hidden" name="guided" value="1">
+                        <button class="rl-next" type="submit" data-guided-publish-submit data-busy-label="{{ $launchIsAr?'جاري النشر...':'Publishing...' }}">{{ $publishedRevision ? ($launchIsAr?'نشر التحديثات الآن':'Publish updates now') : ($launchIsAr?'نشر وفتح الموقع':'Publish & open site') }}</button>
+                    </form>
+                @endif
+            </div>
+        </div>
+
         <div class="rl-publish-card">
-            <h2>{{ $publishedRevision ? ($launchIsAr?'المطعم منشور ويمكن تحديثه':'Restaurant is published and can be updated') : ($launchIsAr?'جاهز للنشر النهائي؟':'Ready to publish?') }}</h2>
-            <p>{{ $launchIsAr?'النشر هو الخطوة الوحيدة التي تجعل المسودة الحالية ظاهرة للعملاء.':'Publishing is the only step that makes the current draft visible to customers.' }}</p>
-            @if(empty($itemPriceErrors) && $canPublishSetup && $canManageSetup && $scheduledRevision===null)
-                <form method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
-                    @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}"><input type="hidden" name="guided" value="1">
-                    <button class="rl-next" type="submit">{{ $publishedRevision ? ($launchIsAr?'نشر التحديثات الآن':'Publish updates now') : ($launchIsAr?'نشر المطعم الآن':'Publish restaurant now') }}</button>
-                </form>
-            @else
+            @if(!empty($itemPriceErrors) || !$canPublishSetup || !$canManageSetup || $scheduledRevision!==null)
                 <div class="foodex-alert error">{{ $launchIsAr?'أكمل المشاكل الظاهرة في المراجعة قبل النشر.':'Complete the review issues before publishing.' }}</div>
+            @elseif(!$publishedRevision)
+                <h2>{{ $launchIsAr?'جاهز للنشر':'Ready to publish' }}</h2>
+                <p>{{ $launchIsAr?'اضغط زر النشر بالأعلى. بعد النجاح سيتم فتح الموقع الحقيقي تلقائياً في تبويب جديد ويظهر QR هنا مباشرة.':'Use the publish button above. After success the live site opens automatically in a new tab and its QR appears here.' }}</p>
             @endif
+
             @if($publishedRevision && $publicMenuUrl)
-                <div class="rl-public-url">
-                    <a class="rl-next" href="{{ $publicMenuUrl }}" target="_blank" rel="noopener">{{ $launchIsAr?'فتح المطعم الحقيقي':'Open live restaurant' }}</a>
-                    <button class="rl-secondary" type="button" data-copy-public-url="{{ $publicMenuUrl }}">{{ $launchIsAr?'نسخ الرابط':'Copy URL' }}</button>
+                <h2>{{ $launchIsAr?'تم النشر بنجاح':'Published successfully' }}</h2>
+                <p>{{ $launchIsAr?'استخدم الرابط أو امسح QR. الرمز أدناه يفتح رابط المطعم الحقيقي مباشرة.':'Use the URL or scan the QR. The code below points directly to the live restaurant URL.' }}</p>
+
+                <div class="rl-site-qr">
+                    <img src="{{ route('admin.smart-ordering.menu.site-qr.svg', ['site'=>$site,'store_id'=>$site->store_id]) }}" alt="{{ $launchIsAr?'QR رابط المطعم':'Restaurant URL QR' }}">
+                    <div class="rl-site-qr-copy">
+                        <h3>{{ $launchIsAr?'QR الموقع الحقيقي':'Live site QR' }}</h3>
+                        <code>{{ $publicMenuUrl }}</code>
+                        <div class="rl-public-url">
+                            <a class="rl-next" href="{{ $publicMenuUrl }}" target="_blank" rel="noopener">{{ $launchIsAr?'فتح الموقع الحقيقي':'Open live site' }}</a>
+                            <button class="rl-secondary" type="button" data-copy-public-url="{{ $publicMenuUrl }}">{{ $launchIsAr?'نسخ الرابط':'Copy URL' }}</button>
+                            <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.site-qr.svg', ['site'=>$site,'store_id'=>$site->store_id,'download'=>1]) }}">{{ $launchIsAr?'تنزيل QR SVG':'Download QR SVG' }}</a>
+                            <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.site-qr.pdf', ['site'=>$site,'store_id'=>$site->store_id]) }}">{{ $launchIsAr?'تنزيل QR PDF':'Download QR PDF' }}</a>
+                        </div>
+                    </div>
                 </div>
             @endif
         </div>
-        <div class="rl-actions"><a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'review']) }}">{{ $launchIsAr?'السابق':'Back' }}</a></div>
     </section>
     @endif
 </div>
@@ -385,6 +377,25 @@
             }
         });
     });
+
+    const guidedPublishForm = document.querySelector('[data-guided-publish-form]');
+    guidedPublishForm?.addEventListener('submit', () => {
+        const liveTab = window.open('about:blank', 'foodex-live-storefront');
+        if (liveTab) {
+            liveTab.document.title = @json($launchIsAr ? 'جاري نشر المطعم...' : 'Publishing restaurant...');
+            liveTab.document.body.innerHTML = '<p style="font-family:system-ui;padding:24px;text-align:center">'+@json($launchIsAr ? 'جاري نشر الموقع، سيتم فتحه تلقائياً بعد اكتمال النشر.' : 'Publishing the site. It will open automatically when publishing completes.')+'</p>';
+        }
+        const button = guidedPublishForm.querySelector('[data-guided-publish-submit]');
+        if (button) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.textContent = button.dataset.busyLabel || button.textContent;
+        }
+    }, {once:true});
+
+    @if($openLiveAfterPublish && $publicMenuUrl)
+        window.open(@json($publicMenuUrl), 'foodex-live-storefront');
+    @endif
 
     document.querySelectorAll('[data-copy-public-url]').forEach(button => {
         button.addEventListener('click', async () => {
