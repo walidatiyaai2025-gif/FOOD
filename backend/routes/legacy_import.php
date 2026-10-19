@@ -1545,6 +1545,219 @@ Artisan::command(
 
 
 Artisan::command(
+    'foodex:legacy-finance-history-verify {--json : Output machine-readable JSON}',
+    function (): int {
+        $latestRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'finance-history')
+            ->orderByDesc('started_at')
+            ->first(['id', 'status', 'summary', 'error']);
+
+        if ($latestRun === null) {
+            $this->error('No finance-history import run exists.');
+
+            return 1;
+        }
+
+        $summary = $latestRun->summary === null
+            ? []
+            : (json_decode((string) $latestRun->summary, true) ?: []);
+        $planned = (array) ($summary['planned'] ?? []);
+
+        $expectedFinance = (int) ($planned['active_pr_transactions'] ?? 0);
+        $expectedBank = (int) ($planned['active_bank_transactions'] ?? 0);
+        $expectedLedger = (int) ($planned['new_customer_ledger_entries'] ?? 0);
+        $expectedLedgerCredits = round((float) ($planned['new_customer_ledger_credit_value'] ?? 0), 3);
+        $expectedLedgerDebits = round((float) ($planned['new_customer_ledger_debit_value'] ?? 0), 3);
+        $expectedPaymentLinks = (int) ($planned['invoice_receipt_duplicates'] ?? 0);
+
+        $actualFinance = (int) DB::table('legacy_finance_transactions')->count();
+        $actualBank = (int) DB::table('legacy_bank_transactions')->count();
+        $actualLedger = (int) DB::table('customer_account_ledger_entries')
+            ->where('source', 'legacy_foodex_finance')
+            ->count();
+        $ledgerTotals = DB::table('customer_account_ledger_entries')
+            ->where('source', 'legacy_foodex_finance')
+            ->selectRaw('COALESCE(SUM(credit), 0) as credits')
+            ->selectRaw('COALESCE(SUM(debit), 0) as debits')
+            ->first();
+        $actualLedgerCredits = round((float) ($ledgerTotals->credits ?? 0), 3);
+        $actualLedgerDebits = round((float) ($ledgerTotals->debits ?? 0), 3);
+
+        $financeMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_PrTrans')
+            ->where('target_table', 'legacy_finance_transactions')
+            ->count();
+
+        $bankMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_InOutBank')
+            ->where('target_table', 'legacy_bank_transactions')
+            ->count();
+
+        $ledgerMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_PrTrans')
+            ->where('target_table', 'customer_account_ledger_entries')
+            ->count();
+
+        $paymentMappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_PrTrans')
+            ->where('target_table', 'payments')
+            ->count();
+
+        $orphanFinanceMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('legacy_finance_transactions as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_PrTrans')
+            ->where('m.target_table', 'legacy_finance_transactions')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanBankMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('legacy_bank_transactions as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_InOutBank')
+            ->where('m.target_table', 'legacy_bank_transactions')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanLedgerMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('customer_account_ledger_entries as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_PrTrans')
+            ->where('m.target_table', 'customer_account_ledger_entries')
+            ->whereNull('t.id')
+            ->count();
+
+        $orphanPaymentMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('payments as t', 't.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_PrTrans')
+            ->where('m.target_table', 'payments')
+            ->whereNull('t.id')
+            ->count();
+
+        $latestSalesRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'sales-history')
+            ->where('status', 'completed')
+            ->orderByDesc('started_at')
+            ->first(['summary']);
+        $salesSummary = $latestSalesRun?->summary === null
+            ? []
+            : (json_decode((string) $latestSalesRun->summary, true) ?: []);
+        $expectedPayments = (int) data_get($salesSummary, 'payments.created', 0);
+        $actualPayments = (int) DB::table('payments')->count();
+
+        $latestStockRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'stock')
+            ->where('status', 'completed')
+            ->orderByDesc('started_at')
+            ->first(['summary']);
+        $stockSummary = $latestStockRun?->summary === null
+            ? []
+            : (json_decode((string) $latestStockRun->summary, true) ?: []);
+        $expectedInventory = (int) data_get($stockSummary, 'inventories.target_total', 0);
+        $currentInventory = (int) DB::table('inventories')->count();
+        $negativeInventory = (int) DB::table('inventories')->where('quantity', '<', 0)->count();
+
+        $healthy = (string) $latestRun->status === 'completed'
+            && $actualFinance === $expectedFinance
+            && $actualBank === $expectedBank
+            && $actualLedger === $expectedLedger
+            && abs($actualLedgerCredits - $expectedLedgerCredits) <= 0.010
+            && abs($actualLedgerDebits - $expectedLedgerDebits) <= 0.010
+            && $financeMappings === $expectedFinance
+            && $bankMappings === $expectedBank
+            && $ledgerMappings === $expectedLedger
+            && $paymentMappings === $expectedPaymentLinks
+            && $orphanFinanceMappings === 0
+            && $orphanBankMappings === 0
+            && $orphanLedgerMappings === 0
+            && $orphanPaymentMappings === 0
+            && $actualPayments === $expectedPayments
+            && $currentInventory === $expectedInventory
+            && $negativeInventory === 0;
+
+        $report = [
+            'run_id' => (string) $latestRun->id,
+            'status' => (string) $latestRun->status,
+            'expected_finance_history' => $expectedFinance,
+            'actual_finance_history' => $actualFinance,
+            'expected_bank_history' => $expectedBank,
+            'actual_bank_history' => $actualBank,
+            'expected_customer_ledger_entries' => $expectedLedger,
+            'actual_customer_ledger_entries' => $actualLedger,
+            'expected_customer_ledger_credits' => $expectedLedgerCredits,
+            'actual_customer_ledger_credits' => $actualLedgerCredits,
+            'expected_customer_ledger_debits' => $expectedLedgerDebits,
+            'actual_customer_ledger_debits' => $actualLedgerDebits,
+            'finance_mappings' => $financeMappings,
+            'bank_mappings' => $bankMappings,
+            'ledger_mappings' => $ledgerMappings,
+            'payment_dedup_mappings' => $paymentMappings,
+            'expected_payment_dedup_mappings' => $expectedPaymentLinks,
+            'orphan_finance_mappings' => $orphanFinanceMappings,
+            'orphan_bank_mappings' => $orphanBankMappings,
+            'orphan_ledger_mappings' => $orphanLedgerMappings,
+            'orphan_payment_mappings' => $orphanPaymentMappings,
+            'expected_existing_payments' => $expectedPayments,
+            'actual_existing_payments' => $actualPayments,
+            'expected_inventories' => $expectedInventory,
+            'current_inventories' => $currentInventory,
+            'negative_inventories' => $negativeInventory,
+            'healthy' => $healthy,
+            'error' => $latestRun->error,
+        ];
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $healthy ? 0 : 1;
+        }
+
+        $this->info('Legacy Foodex finance-history verification');
+        $this->line('Latest run: '.$report['run_id'].' | status='.$report['status']);
+        $this->table(
+            ['Metric', 'Expected', 'Actual'],
+            [
+                ['finance_history', $expectedFinance, $actualFinance],
+                ['bank_history', $expectedBank, $actualBank],
+                ['customer_ledger_entries', $expectedLedger, $actualLedger],
+                ['customer_ledger_credits', $expectedLedgerCredits, $actualLedgerCredits],
+                ['customer_ledger_debits', $expectedLedgerDebits, $actualLedgerDebits],
+                ['finance_mappings', $expectedFinance, $financeMappings],
+                ['bank_mappings', $expectedBank, $bankMappings],
+                ['ledger_mappings', $expectedLedger, $ledgerMappings],
+                ['payment_dedup_mappings', $expectedPaymentLinks, $paymentMappings],
+                ['existing_payments_unchanged', $expectedPayments, $actualPayments],
+                ['inventories_unchanged', $expectedInventory, $currentInventory],
+                ['negative_inventories', 0, $negativeInventory],
+                ['orphan_finance_mappings', 0, $orphanFinanceMappings],
+                ['orphan_bank_mappings', 0, $orphanBankMappings],
+                ['orphan_ledger_mappings', 0, $orphanLedgerMappings],
+                ['orphan_payment_mappings', 0, $orphanPaymentMappings],
+            ],
+        );
+
+        if ($healthy) {
+            $this->info('Finance-history verification PASSED.');
+
+            return 0;
+        }
+
+        $this->error('Finance-history verification FAILED. Do not declare final cutover complete.');
+
+        return 1;
+    },
+)->purpose('Verify Foodex finance history, customer balances, payment deduplication, and stock preservation.');
+
+
+Artisan::command(
     'foodex:legacy-finance-diagnostics {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $progress = function (string $stage, string $state, ?float $elapsed): void {
