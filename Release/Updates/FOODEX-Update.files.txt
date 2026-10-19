@@ -1686,3 +1686,15 @@ backend/app/Domain/Assistant/Actions/AssistantSafeActionToolSet.php
 backend/app/Domain/Assistant/Actions/Models/AssistantActionApproval.php
 backend/app/Http/Controllers/Admin/AssistantActionController.php
 backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php
+backend/app/Domain/Assistant/Intelligence/AssistantBriefDispatcher.php
+backend/app/Domain/Assistant/Intelligence/AssistantBriefService.php
+backend/app/Domain/Assistant/Intelligence/AssistantIntelligenceAuthorization.php
+backend/app/Domain/Assistant/Intelligence/AssistantIntelligenceService.php
+backend/app/Domain/Assistant/Intelligence/Models/AssistantIntelligenceBrief.php
+backend/app/Domain/Assistant/Intelligence/Models/AssistantIntelligenceFinding.php
+backend/app/Domain/Assistant/Intelligence/Models/AssistantIntelligenceSubscription.php
+backend/app/Http/Controllers/Admin/AssistantIntelligenceController.php
+backend/database/migrations/2026_10_19_000100_create_assistant_intelligence_center.php
+backend/lang/ar/assistant_intelligence.php
+backend/lang/en/assistant_intelligence.php
+backend/resources/views/admin/assistant-intelligence.blade.php
