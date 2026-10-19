@@ -699,6 +699,40 @@ final class LegacyFoodexImportService
                         'updated_at' => now(),
                     ],
                 );
+
+                $sellingUnitId = (int) DB::table('product_selling_units')
+                    ->where('product_id', $targetId)
+                    ->where('code', 'PKG'.$package)
+                    ->value('id');
+
+                foreach ([1, 2, 3, 4, 5] as $legacyPriceId) {
+                    $exactPackagePrice = $this->legacyPackagePrice($row, $package, $legacyPriceId);
+                    if ($exactPackagePrice === null) {
+                        continue;
+                    }
+
+                    $targetTierId = $this->mappedTargetId(
+                        'wh_PriceTypes',
+                        (string) $legacyPriceId,
+                        'b2b_price_tiers',
+                    );
+
+                    DB::table('product_selling_unit_tier_prices')->updateOrInsert(
+                        [
+                            'store_id' => $storeId,
+                            'product_selling_unit_id' => $sellingUnitId,
+                            'legacy_price_id' => $legacyPriceId,
+                        ],
+                        [
+                            'price_tier_id' => $targetTierId,
+                            'price' => $exactPackagePrice,
+                            'is_active' => $payload['is_active'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ],
+                    );
+                }
+
                 $sellingUnits++;
                 $packageMetadata['PKG'.$package] = [
                     'name' => $packageName,
