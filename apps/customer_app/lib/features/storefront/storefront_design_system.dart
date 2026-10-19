@@ -319,6 +319,66 @@ class FoodexWholesaleHeader extends StatelessWidget {
       );
 }
 
+class FoodexUnifiedHeaderSurface extends StatelessWidget {
+  const FoodexUnifiedHeaderSurface({
+    required this.title,
+    required this.child,
+    this.palette = FoodexPalette.wholesale,
+    this.location,
+    this.searchController,
+    this.searchHint,
+    this.onSearchSubmitted,
+    this.onSearchChanged,
+    this.onClearSearch,
+    this.onNotifications,
+    this.onCart,
+    this.logoUrl,
+    this.address,
+    super.key,
+  });
+
+  final String title;
+  final Widget child;
+  final FoodexPalette palette;
+  final String? location;
+  final TextEditingController? searchController;
+  final String? searchHint;
+  final ValueChanged<String>? onSearchSubmitted;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onClearSearch;
+  final VoidCallback? onNotifications;
+  final VoidCallback? onCart;
+  final String? logoUrl;
+  final String? address;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: palette.background,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              FoodexWholesaleHeader(
+                title: title,
+                palette: palette,
+                location: location,
+                searchController: searchController,
+                searchHint: searchHint,
+                onSearchSubmitted: onSearchSubmitted,
+                onSearchChanged: onSearchChanged,
+                onClearSearch: onClearSearch,
+                onNotifications: onNotifications,
+                onCart: onCart,
+                logoUrl: logoUrl,
+                address: address,
+              ),
+              Expanded(child: child),
+            ],
+          ),
+        ),
+      );
+}
+
 class _FoodexWholesaleHeaderIcon extends StatelessWidget {
   const _FoodexWholesaleHeaderIcon({
     required this.icon,
