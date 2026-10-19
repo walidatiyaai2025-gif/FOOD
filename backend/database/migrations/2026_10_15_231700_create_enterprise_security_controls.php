@@ -50,8 +50,8 @@ return new class extends Migration {
             $table->string('scope_type', 40);
             $table->unsignedBigInteger('scope_id')->nullable();
             $table->string('scope_key', 96);
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
 
