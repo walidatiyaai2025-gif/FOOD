@@ -140,7 +140,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
 
-## D-021 — Wholesale executive intelligence ranks server facts; it never pools sell-in and sell-out
+## D-021 — Assistant memory carries context, never transactional truth
+**Decision (#2216 / AI-08, 2026-10-18):** FOODEX reuses the existing Assistant conversation/state tables and adds a bounded session policy. Server-resolved page context may travel in a short-lived HMAC-authenticated envelope bound to the authenticated user, but the envelope is not authorization: every turn re-runs page visibility and AI principal/RBAC/tenant/channel/retailer-consent resolution. Durable Assistant memory is limited to allowlisted presentation preferences; short conversation state contains identifiers/windows needed for follow-ups only.
+
+**Reason:** browser IDs and chat history are stale and attacker-controlled inputs if treated as authority. Keeping business values or permission snapshots in memory could answer from obsolete revenue/stock/sell-out facts or survive access revocation.
+
+**Consequences:** forged or cross-user context tokens fail closed; expired session state is discarded; secrets are redacted before message persistence; follow-ups may reuse only still-authorized entity/window identifiers; transactional facts are freshly read from typed tools/read models; provider-disabled FOODEX keeps its deterministic Assistant path; no second chat database and no public `/api/v1` contract are introduced.
+
+**Authority:** `docs/architecture/FOODEX_AI_CONTEXT_MEMORY.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2216.
+
+## D-022 — Wholesale executive intelligence ranks server facts; it never pools sell-in and sell-out
 **Decision (#2219 / AI-11, 2026-10-18):** Executive wholesale analysis is a deterministic composition inside the existing FOODEX Assistant. `executive.wholesale` is B2B/sell-in only, ranks intervention facts with metric/time/entity/source evidence, and emits recommendations as a separately typed layer. Retailer sell-out remains a separate consent-gated read and is never pooled into wholesale totals.
 
 **Reason:** owners need concise intervention priorities, but allowing a provider to calculate, silently mix commercial flows, invent targets, or infer bottom-client rankings from truncated data would create non-auditable business truth.
