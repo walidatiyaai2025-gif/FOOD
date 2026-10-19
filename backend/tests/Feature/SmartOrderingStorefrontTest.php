@@ -21,7 +21,7 @@ final class SmartOrderingStorefrontTest extends TestCase
 
     public function test_public_storefront_renders_all_supported_templates_in_both_languages_and_modes(): void
     {
-        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting'] as $theme) {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand', 'fine-dining-elegant-light', 'fine-dining-dark-luxury', 'contemporary-bistro', 'premium-arabic-dining', 'modern-minimal', 'chef-tasting', 'fresh-market-commerce'] as $theme) {
             foreach (['en', 'ar'] as $locale) {
                 $snapshot = $this->snapshot($theme, $locale === 'ar' ? 'dark' : 'light');
                 $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
