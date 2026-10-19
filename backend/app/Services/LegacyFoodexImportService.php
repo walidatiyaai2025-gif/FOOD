@@ -1057,12 +1057,10 @@ final class LegacyFoodexImportService
             'warehouses',
             'categories',
             'brands',
-            'units',
             'products',
             'product_selling_units',
             'product_selling_unit_tier_prices',
             'store_products',
-            'b2b_price_tiers',
             'b2b_price_rules',
             'inventories',
             'stock_movements',
@@ -1079,6 +1077,21 @@ final class LegacyFoodexImportService
             if (Schema::hasTable($table)) {
                 $counts[$table] = (int) DB::table($table)->count();
             }
+        }
+
+        // Fresh FOODEX intentionally seeds seven canonical measurement units and
+        // three canonical B2B price tiers. They are platform reference data, not
+        // business/demo records, so they must not block a clean legacy cutover.
+        if (Schema::hasTable('units')) {
+            $counts['units_non_reference'] = (int) DB::table('units')
+                ->whereNotIn('code', ['PC', 'KG', 'G', 'L', 'ML', 'PACK', 'BOX'])
+                ->count();
+        }
+
+        if (Schema::hasTable('b2b_price_tiers')) {
+            $counts['b2b_price_tiers_non_reference'] = (int) DB::table('b2b_price_tiers')
+                ->whereNotIn('code', ['STANDARD', 'WHOLESALE', 'VIP'])
+                ->count();
         }
 
         return $counts;
