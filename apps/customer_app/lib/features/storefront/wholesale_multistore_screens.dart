@@ -26,6 +26,35 @@ import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
 import 'storefront_design_system.dart';
 
+Future<int> resolveWholesaleStoreId({
+  required String location,
+  required StorefrontApi? storefrontApi,
+  int rememberedStoreId = 0,
+}) async {
+  final scopedStoreId = wholesaleStoreId(location);
+  if (scopedStoreId > 0) return scopedStoreId;
+  if (rememberedStoreId > 0) return rememberedStoreId;
+
+  if (storefrontApi == null) return 0;
+
+  final selection = await storefrontApi.selection();
+  final entitlements = selection['entitlements'] is Map
+      ? Map<String, dynamic>.from(selection['entitlements'] as Map)
+      : const <String, dynamic>{};
+
+  final principalFromEntitlements =
+      intValue(entitlements['principal_wholesale_store_id']);
+  if (principalFromEntitlements > 0) return principalFromEntitlements;
+
+  for (final row in mapRows(selection['wholesale_stores'])) {
+    if (row['is_platform_principal'] != true) continue;
+    final candidate = intValue(row['id'] ?? row['store_id']);
+    if (candidate > 0) return candidate;
+  }
+
+  return 0;
+}
+
 class WholesaleHomeDesignScreen extends StatefulWidget {
   const WholesaleHomeDesignScreen({
     required this.location,
@@ -79,35 +108,13 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   }
 
   Future<int> _resolveWholesaleHomeStoreId() async {
-    final scopedStoreId = wholesaleStoreId(widget.location);
-    if (scopedStoreId > 0) return scopedStoreId;
-    if (_resolvedStoreId > 0) return _resolvedStoreId;
-
-    final storefrontApi = widget.storefrontApi;
-    if (storefrontApi == null) return 0;
-
-    final selection = await storefrontApi.selection();
-    final entitlements = selection['entitlements'] is Map
-        ? Map<String, dynamic>.from(selection['entitlements'] as Map)
-        : const <String, dynamic>{};
-
-    final principalFromEntitlements =
-        intValue(entitlements['principal_wholesale_store_id']);
-    if (principalFromEntitlements > 0) {
-      _resolvedStoreId = principalFromEntitlements;
-      return _resolvedStoreId;
-    }
-
-    for (final row in mapRows(selection['wholesale_stores'])) {
-      if (row['is_platform_principal'] != true) continue;
-      final candidate = intValue(row['id'] ?? row['store_id']);
-      if (candidate > 0) {
-        _resolvedStoreId = candidate;
-        return _resolvedStoreId;
-      }
-    }
-
-    return 0;
+    final resolved = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+      rememberedStoreId: _resolvedStoreId,
+    );
+    if (resolved > 0) _resolvedStoreId = resolved;
+    return resolved;
   }
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
@@ -1617,6 +1624,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.noResults = false,
     this.showCommerceActions = false,
     this.homeWholeNumberPrice = false,
+    this.onRemoveFavorite,
   });
 
   final List<Map<String, dynamic>> rows;
@@ -1631,6 +1639,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final bool noResults;
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
+  final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -1674,6 +1683,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         showCommerceActions: showCommerceActions,
         homeWholeNumberPrice: homeWholeNumberPrice,
         gridColumns: columns,
+        onRemoveFavorite: onRemoveFavorite,
       ),
     );
   }
@@ -1692,6 +1702,7 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.showCommerceActions,
     required this.homeWholeNumberPrice,
     required this.gridColumns,
+    this.onRemoveFavorite,
   });
 
   final Map<String, dynamic> row;
@@ -1705,6 +1716,7 @@ class _WholesaleProductCard extends StatefulWidget {
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
   final int gridColumns;
+  final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
   State<_WholesaleProductCard> createState() => _WholesaleProductCardState();
@@ -1712,6 +1724,20 @@ class _WholesaleProductCard extends StatefulWidget {
 
 class _WholesaleProductCardState extends State<_WholesaleProductCard> {
   bool busy = false;
+  bool removingFavorite = false;
+
+  Future<void> _removeFavorite() async {
+    final callback = widget.onRemoveFavorite;
+    final id = intValue(widget.row['id']);
+    if (callback == null || id <= 0 || removingFavorite) return;
+
+    setState(() => removingFavorite = true);
+    try {
+      await callback(id);
+    } finally {
+      if (mounted) setState(() => removingFavorite = false);
+    }
+  }
 
   Future<void> _addToCart() async {
     final id = intValue(widget.row['id']);
@@ -1892,6 +1918,37 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           ),
                         ),
                       ),
+                    if (widget.onRemoveFavorite != null)
+                      PositionedDirectional(
+                        end: 0,
+                        bottom: 0,
+                        child: Material(
+                          color: Colors.white.withOpacity(.96),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            key: ValueKey(
+                              'wholesale-favorite-remove-$id',
+                            ),
+                            customBorder: const CircleBorder(),
+                            onTap: removingFavorite ? null : _removeFavorite,
+                            child: SizedBox.square(
+                              dimension: 30,
+                              child: removingFavorite
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.favorite_rounded,
+                                      size: 17,
+                                      color: Color(0xFFB42318),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -2015,6 +2072,269 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
   }
 }
 
+class WholesaleFavoritesDesignScreen extends StatefulWidget {
+  const WholesaleFavoritesDesignScreen({
+    required this.location,
+    required this.session,
+    required this.favoritesApi,
+    required this.storefrontApi,
+    required this.actionApi,
+    this.pendingActionStore,
+    super.key,
+  });
+
+  final String location;
+  final CustomerSession session;
+  final B2cRetailFavoritesApi favoritesApi;
+  final StorefrontApi? storefrontApi;
+  final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
+
+  @override
+  State<WholesaleFavoritesDesignScreen> createState() =>
+      _WholesaleFavoritesDesignScreenState();
+}
+
+class _WholesaleFavoritesDesignScreenState
+    extends State<WholesaleFavoritesDesignScreen> with WidgetsBindingObserver {
+  final search = TextEditingController();
+  int storeId = 0;
+  late Future<Map<String, dynamic>> future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    search.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final resolvedStoreId = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+      rememberedStoreId: storeId,
+    );
+    if (resolvedStoreId <= 0) {
+      return const {
+        'store_required': true,
+        'favorites': <Object>[],
+        'storefront': <String, Object?>{},
+      };
+    }
+    storeId = resolvedStoreId;
+
+    final values = await Future.wait<Object?>([
+      widget.favoritesApi.favoritesForStore(storeId),
+      if (widget.storefrontApi != null)
+        widget.storefrontApi!.wholesaleHome(storeId)
+      else
+        Future<Object?>.value(const <String, Object?>{}),
+    ]);
+
+    return <String, dynamic>{
+      'favorites': values[0],
+      'storefront': values[1] is Map
+          ? Map<String, dynamic>.from(values[1] as Map)
+          : <String, dynamic>{},
+    };
+  }
+
+  void _reload() => setState(() => future = _load());
+
+  List<Map<String, dynamic>> _rows(Object? raw) {
+    final needle = search.text.trim().toLowerCase();
+    return dataRows(raw).map((favorite) {
+      final product = favorite['product'] is Map
+          ? Map<String, dynamic>.from(favorite['product'] as Map)
+          : Map<String, dynamic>.from(favorite);
+      if (product['currency'] == null && favorite['currency'] != null) {
+        product['currency'] = favorite['currency'];
+      }
+      return product;
+    }).where((product) {
+      if (needle.isEmpty) return true;
+      final name = product['name']?.toString().toLowerCase() ?? '';
+      final sku = product['sku']?.toString().toLowerCase() ?? '';
+      final barcode = product['barcode']?.toString().toLowerCase() ?? '';
+      return name.contains(needle) ||
+          sku.contains(needle) ||
+          barcode.contains(needle);
+    }).toList(growable: false);
+  }
+
+  Future<void> _removeFavorite(int productId) async {
+    try {
+      await widget.favoritesApi.removeFavoriteForStore(storeId, productId);
+      if (mounted) _reload();
+    } catch (error) {
+      if (mounted) await showOperationalError(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Scaffold(
+              body: SafeArea(
+                child: FoodexLoading(
+                  key: ValueKey('wholesale-favorites-loading'),
+                ),
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: SafeArea(
+                child: FoodexErrorState(
+                  key: const ValueKey('wholesale-favorites-error'),
+                  message: context.tr('customer.error.action_failed'),
+                  onRetry: _reload,
+                ),
+              ),
+            );
+          }
+
+          final payload = snapshot.data ?? const <String, dynamic>{};
+          if (payload['store_required'] == true) {
+            return Scaffold(
+              backgroundColor: FoodexPalette.wholesale.background,
+              body: SafeArea(
+                child: FoodexErrorState(
+                  key: const ValueKey('wholesale-favorites-store-error'),
+                  message: context.tr('b2b.catalog.load_error'),
+                  onRetry: _reload,
+                ),
+              ),
+            );
+          }
+
+          final storefront = payload['storefront'] is Map
+              ? Map<String, dynamic>.from(payload['storefront'] as Map)
+              : <String, dynamic>{};
+          final branding = storefront['branding'] is Map
+              ? Map<String, dynamic>.from(storefront['branding'] as Map)
+              : <String, dynamic>{};
+          final custom = branding['custom'] is Map
+              ? Map<String, dynamic>.from(branding['custom'] as Map)
+              : <String, dynamic>{};
+          final store = storefront['store'] is Map
+              ? Map<String, dynamic>.from(storefront['store'] as Map)
+              : <String, dynamic>{};
+          final theme = storefront['theme'] is Map
+              ? Map<String, dynamic>.from(storefront['theme'] as Map)
+              : <String, dynamic>{};
+          final palette = _wholesalePalette(theme);
+          final title =
+              custom['brand_title_ar']?.toString().trim().isNotEmpty == true
+                  ? custom['brand_title_ar'].toString()
+                  : (store['name']?.toString().trim().isNotEmpty == true
+                      ? store['name'].toString()
+                      : 'متجر الجملة');
+          final rows = _rows(payload['favorites']);
+          final scopedLocation = Uri(
+            path: CustomerRoutePaths.b2bFavorites,
+            queryParameters: <String, String>{
+              'channel': 'wholesale',
+              'store_id': storeId.toString(),
+            },
+          ).toString();
+
+          return Scaffold(
+            key: const ValueKey('wholesale-favorites-screen'),
+            backgroundColor: palette.background,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _WholesaleHeader(
+                    title: title,
+                    logoUrl: branding['logo_url']?.toString(),
+                    address: branding['address']?.toString(),
+                    palette: palette,
+                    searchController: search,
+                    searchKey: const ValueKey('wholesale-favorites-search'),
+                    searchHint: context.tr('b2b.catalog.search_hint'),
+                    onSearchSubmitted: (_) => setState(() {}),
+                    onSearchChanged: (_) => setState(() {}),
+                    onClearSearch: () => setState(search.clear),
+                    onCart: () => Navigator.of(context).pushNamed(
+                      '/b2b/cart?store_id=' + storeId.toString(),
+                    ),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        _reload();
+                        await future;
+                      },
+                      child: ListView(
+                        key: const ValueKey(
+                          'wholesale-favorites-scroll-body',
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(0, 14, 0, 28),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              context.tr('customer.profile.favorites'),
+                              style: const TextStyle(
+                                color: CustomerUiColors.ink,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (rows.isEmpty)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              child: FoodexEmptyState(
+                                key: const ValueKey(
+                                  'wholesale-favorites-empty',
+                                ),
+                                title: context.tr('customer.favorites.empty'),
+                                subtitle:
+                                    context.tr('customer.favorites.subtitle'),
+                              ),
+                            )
+                          else
+                            _WholesaleProductGrid(
+                              rows: rows,
+                              storeId: storeId,
+                              sourceLocation: scopedLocation,
+                              session: widget.session,
+                              actionApi: widget.actionApi,
+                              pendingActionStore: widget.pendingActionStore,
+                              palette: palette,
+                              showCommerceActions: true,
+                              onRemoveFavorite: _removeFavorite,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+}
+
 Future<void> _beginWholesaleAddHandoff({
   required BuildContext context,
   required CustomerPendingActionStore? pendingActionStore,
@@ -2091,7 +2411,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
 class _WholesaleCatalogDesignScreenState
     extends State<WholesaleCatalogDesignScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
-  late final int storeId = wholesaleStoreId(widget.location);
+  int storeId = 0;
   late Future<Map<String, dynamic>> future = _load();
   int? selectedCategoryId;
   int? selectedBrandId;
@@ -2132,6 +2452,13 @@ class _WholesaleCatalogDesignScreenState
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
     try {
+      final resolvedStoreId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+        rememberedStoreId: storeId,
+      );
+      if (resolvedStoreId > 0) storeId = resolvedStoreId;
+
       if (storeId <= 0) {
         return const {
           'store_required': true,
