@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "program": "AI-PROGRAM",
+  "issue": 2232,
+  "gate_id": "AI-23",
+  "title": "Agentic AI production acceptance",
+  "source_policy": "Repository-owned gates are PASS only when backed by merged dependency source and exact-head required CI. Real production/cPanel facts remain EXTERNAL_REQUIRED and must never be invented.",
+  "dependencies": [
+    2224,
+    2225,
+    2226,
+    2228,
+    2229,
+    2230,
+    2231
+  ],
+  "allowed_statuses": [
+    "PENDING",
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "EXTERNAL_REQUIRED"
+  ],
+  "gates": [
+    {
+      "id": "dependencies",
+      "status": "PASS",
+      "requirement": "All declared dependencies are integrated into main with their required CI/evaluation/security gates green.",
+      "evidence": [
+        "GitHub main: #2224, #2225, #2226, #2228, #2229, #2230 and #2231 are merged/closed",
+        "FOODEX Required CI Gate and Repository Policy on the exact #2232 candidate head"
+      ]
+    },
+    {
+      "id": "wholesale-owner-journey",
+      "status": "PASS",
+      "requirement": "Wholesale owner receives deterministic sell-in intelligence, multi-tool analysis, evidence/freshness, RAG and governed actions within authorized scope.",
+      "evidence": [
+        "backend/tests/Feature/WholesaleExecutiveToolRegistryTest.php",
+        "backend/tests/Unit/WholesaleExecutiveAnalysisEngineTest.php",
+        "backend/tests/Feature/AssistantKnowledgeRagTest.php",
+        "docs/architecture/FOODEX_AI_WHOLESALE_EXECUTIVE_INTELLIGENCE.md"
+      ]
+    },
+    {
+      "id": "retailer-manager-journey",
+      "status": "PASS",
+      "requirement": "Retailer manager sees only authorized retail facts; sell-out sharing is explicit, revocable and never inferred from wholesale sell-in.",
+      "evidence": [
+        "backend/tests/Feature/Retailer360IntelligenceTest.php",
+        "backend/tests/Feature/AssistantSecurityBoundaryTest.php",
+        "docs/architecture/FOODEX_AI_RETAILER_360.md"
+      ]
+    },
+    {
+      "id": "platform-admin-journey",
+      "status": "PASS",
+      "requirement": "Platform admin can operate provider/model health, redacted traces, kill switches and diagnostics without receiving secrets or unnecessary customer payloads.",
+      "evidence": [
+        "backend/tests/Feature/AssistantObservabilityTest.php",
+        "backend/tests/Feature/AssistantSettingsTest.php",
+        "docs/architecture/FOODEX_AI_OBSERVABILITY.md"
+      ]
+    },
+    {
+      "id": "unauthorized-user-journey",
+      "status": "PASS",
+      "requirement": "Unauthorized, cross-store, cross-tenant and revoked-consent requests fail closed before tool/action execution.",
+      "evidence": [
+        "backend/tests/Feature/AssistantSecurityBoundaryTest.php",
+        "backend/tests/Feature/AssistantAiSecurityHardeningTest.php",
+        "docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md"
+      ]
+    },
+    {
+      "id": "approval-actions",
+      "status": "PASS",
+      "requirement": "No model text executes a write. Draft, explicit approval, re-authorization, conflict/idempotency checks and audit govern every supported action.",
+      "evidence": [
+        "backend/tests/Feature/AssistantSafeActionsTest.php",
+        "docs/architecture/FOODEX_AI_SAFE_ACTIONS.md"
+      ]
+    },
+    {
+      "id": "provider-real-behavior",
+      "status": "PASS",
+      "requirement": "OpenAI-compatible/Ollama behavior is exercised through the real FOODEX provider gateway, including outage, malformed response, circuit/recovery and deterministic fallback.",
+      "evidence": [
+        "backend/tests/Feature/AssistantProviderRecoveryTest.php",
+        "backend/tests/Feature/AssistantSettingsTest.php",
+        "docs/architecture/FOODEX_AI_PROVIDER_GATEWAY.md"
+      ]
+    },
+    {
+      "id": "security-regression",
+      "status": "PASS",
+      "requirement": "Prompt injection, malicious RAG, secret exfiltration, tool abuse, cohort privacy and tenant isolation regressions pass on the integrated source.",
+      "evidence": [
+        "backend/tests/Feature/AssistantAiSecurityHardeningTest.php",
+        "backend/tests/Feature/AssistantSecurityBoundaryTest.php",
+        "backend/tests/Feature/AssistantKnowledgeRagTest.php",
+        "backend/tests/Unit/AssistantEvaluationHarnessTest.php"
+      ]
+    },
+    {
+      "id": "performance-resilience",
+      "status": "PASS",
+      "requirement": "Documented load/concurrency/cache/queue/cancellation/degraded-mode targets pass without one tenant exhausting provider capacity.",
+      "evidence": [
+        "backend/tests/Feature/AssistantPerformanceResilienceTest.php",
+        "backend/tests/Feature/AssistantProviderRecoveryTest.php",
+        "docs/architecture/FOODEX_AI_PERFORMANCE_RESILIENCE.md"
+      ]
+    },
+    {
+      "id": "upgrade-install",
+      "status": "PASS",
+      "requirement": "Production-like install/upgrade migrations and backfills complete safely using repository deployment acceptance.",
+      "evidence": [
+        "backend/tests/Deployment/ProductionServicesTest.php",
+        "FOODEX Required CI Gate: Backend validation / MySQL Redis deployment acceptance"
+      ]
+    },
+    {
+      "id": "disabled-core",
+      "status": "PASS",
+      "requirement": "Core FOODEX commerce remains functional with Assistant and provider disabled.",
+      "evidence": [
+        "backend/tests/Feature/AssistantProviderRecoveryTest.php",
+        "backend/tests/Feature/AssistantSettingsTest.php",
+        "docs/testing/FOODEX_ASSISTANT_V1_ACCEPTANCE.md"
+      ]
+    },
+    {
+      "id": "rollback-kill-switch",
+      "status": "PASS",
+      "requirement": "Global Assistant, provider, tools and write-action kill switches have an operator-tested recovery path that does not require destructive database rollback.",
+      "evidence": [
+        "backend/tests/Feature/AssistantAiSecurityHardeningTest.php",
+        "backend/config/assistant.php",
+        "docs/operations/FOODEX_AI_PRODUCTION_RUNBOOK.md"
+      ]
+    },
+    {
+      "id": "observability",
+      "status": "PASS",
+      "requirement": "Trace, provider/tool latency, failures, fallback, retention and export evidence is redacted and role-scoped.",
+      "evidence": [
+        "backend/tests/Feature/AssistantObservabilityTest.php",
+        "docs/architecture/FOODEX_AI_OBSERVABILITY.md"
+      ]
+    },
+    {
+      "id": "pilot-rollout",
+      "status": "PASS",
+      "requirement": "Pilot activation uses feature flags, named acceptance metrics and rollback thresholds, with no unresolved AI P0/P1 defect.",
+      "evidence": [
+        "backend/config/assistant.php",
+        "docs/operations/FOODEX_AI_PRODUCTION_RUNBOOK.md",
+        "Final #2232 PR evidence comment records the open AI-PROGRAM issue reconciliation and exact-head CI"
+      ]
+    },
+    {
+      "id": "external-production-record",
+      "status": "EXTERNAL_REQUIRED",
+      "requirement": "If production deployment is explicitly authorized, the operator records real backup identifiers, deployed SHA, migration result, HTTPS smoke and activation/rollback decision outside fabricated repository evidence.",
+      "evidence": [
+        "docs/operations/FOODEX_AI_PRODUCTION_RUNBOOK.md"
+      ]
+    }
+  ]
+}
