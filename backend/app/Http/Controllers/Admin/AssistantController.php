@@ -347,22 +347,6 @@ final class AssistantController extends Controller
         ];
     }
 
-    /** @param array<string,mixed> $state
-     * @return array<string,mixed>
-     */
-    private function toolEntities(array $state): array
-    {
-        $entities = is_array($state['entities'] ?? null) ? $state['entities'] : [];
-        $period = is_array($state['period'] ?? null) ? $state['period'] : null;
-
-        if ($period !== null && isset($period['start'], $period['end'])) {
-            $entities['from'] = CarbonImmutable::parse((string) $period['start'])->setTimezone('Asia/Kuwait')->toDateString();
-            $entities['to'] = CarbonImmutable::parse((string) $period['end'])->subSecond()->setTimezone('Asia/Kuwait')->toDateString();
-        }
-
-        return $entities;
-    }
-
     private function persistState(
         AssistantConversation $conversation,
         ?AssistantConversationState $state,
@@ -469,15 +453,6 @@ final class AssistantController extends Controller
             'data' => $scalars,
             'labels' => $this->cardLabels(array_keys($scalars), $locale),
         ]];
-    }
-
-    private function resultMessage(?string $intent, string $locale): string
-    {
-        $label = $this->intentLabel($intent, $locale);
-
-        return $locale === 'ar'
-            ? 'تمام، جهزت لك '.$label.' من بيانات FOODEX الحالية.'
-            : 'Done — I prepared the '.$label.' from the current FOODEX data.';
     }
 
     private function intentLabel(?string $intent, string $locale): string
