@@ -6,6 +6,7 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_auth_persistence.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/auth/customer_session_store.dart';
+import 'package:foodex_customer_app/core/config/customer_app_release.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
@@ -317,7 +318,7 @@ void main() {
     );
     expect(find.text('نسيت كلمة المرور؟'), findsOneWidget);
     expect(find.text('تواصل معنا'), findsOneWidget);
-    expect(find.text('الإصدار 1.0.54'), findsOneWidget);
+    expect(find.text('الإصدار $customerAppVersion'), findsOneWidget);
 
     final rememberMe = find.byKey(const ValueKey('customer-auth-remember-me'));
     await tester.ensureVisible(rememberMe);
