@@ -185,7 +185,7 @@ final class LegacyFoodexImportService
                 $unitId = $this->ensureLegacyBaseUnit();
                 $summary['products'] = $this->importProducts($storeId, $catalogId, $unitId, $runId);
                 $summary['pricing'] = $this->importB2bPrices($storeId, $runId);
-                $summary['customers'] = $this->importCustomers($runId);
+                $summary['customers'] = $this->importCustomers($runId, $storeId);
 
                 return $summary;
             }, 3);
@@ -2275,10 +2275,12 @@ SQL));
         return compact('created', 'updated', 'sellingUnits');
     }
 
-    private function importCustomers(string $runId): array
+    private function importCustomers(string $runId, int $storeId): array
     {
         $created = 0;
         $updated = 0;
+        $platformCreated = 0;
+        $platformUpdated = 0;
         $rows = DB::connection('foodex_legacy')->table('wh_Customers')->orderBy('ID')->get();
 
         foreach ($rows as $row) {
@@ -2377,9 +2379,56 @@ SQL));
                     'longitude' => $row->Longitude ?? null,
                 ],
             );
+
+            $platformCustomer = DB::table('platform_customers')
+                ->where('legacy_customer_id', $customerId)
+                ->first(['id']);
+
+            $platformPayload = [
+                'name' => mb_substr($name, 0, 255),
+                'phone' => $phone === '' ? null : mb_substr($phone, 0, 255),
+                'email' => $email,
+                'is_active' => $active,
+                'updated_at' => now(),
+            ];
+
+            if ($platformCustomer === null) {
+                $platformCustomerId = (int) DB::table('platform_customers')->insertGetId([
+                    'user_id' => null,
+                    'legacy_customer_id' => $customerId,
+                    ...$platformPayload,
+                    'origin_channel' => 'b2b',
+                    'origin_store_id' => $storeId,
+                    'registration_source' => 'import',
+                    'registered_at' => null,
+                    'created_at' => now(),
+                ]);
+                $platformCreated++;
+            } else {
+                $platformCustomerId = (int) $platformCustomer->id;
+                DB::table('platform_customers')
+                    ->where('id', $platformCustomerId)
+                    ->update($platformPayload);
+                $platformUpdated++;
+            }
+
+            $this->syncMapping(
+                'wh_Customers',
+                $sourceId,
+                'platform_customers',
+                $platformCustomerId,
+                $row,
+                $runId,
+                [
+                    'registration_source' => 'import',
+                    'origin_channel' => 'b2b',
+                    'origin_store_id' => $storeId,
+                    'login_identity' => 'not_materialized',
+                ],
+            );
         }
 
-        return compact('created', 'updated');
+        return compact('created', 'updated', 'platformCreated', 'platformUpdated');
     }
 
     private function applyStock(string $runId): array
@@ -2590,6 +2639,10 @@ SQL));
                 'sources' => ['wh_Customers'],
                 'expected' => (int) $sourceCounts['wh_Customers'],
             ],
+            'platform_customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
             'b2b_customers' => [
                 'sources' => ['wh_Customers'],
                 'expected' => (int) $sourceCounts['wh_Customers'],
@@ -2712,6 +2765,7 @@ SQL));
     {
         $tables = [
             'customers',
+            'platform_customers',
             'b2b_customers',
             'b2c_customers',
             'b2b_accounts',
