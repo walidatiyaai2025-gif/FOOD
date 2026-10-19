@@ -1986,6 +1986,1165 @@ SQL));
         }
     }
 
+    public function importSalesHistory(bool $apply, ?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        foreach ([
+            'orders',
+            'order_items',
+            'order_status_history',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'customer_account_ledger_entries',
+        ] as $table) {
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException("Missing {$table}. Run php artisan migrate first.");
+            }
+        }
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+        $salesTypes = [3, 19];
+        $returnTypes = [4, 20];
+
+        $headers = $stage('load_sales_return_headers', fn () => $source->table('wh_TransHeader')
+            ->where('Status', 1)
+            ->whereIn('TransType', [...$salesTypes, ...$returnTypes])
+            ->orderBy('HeaderId')
+            ->get([
+                'HeaderId',
+                'TransType',
+                'TransDate',
+                'BranchID',
+                'CustomerId',
+                'StoreId',
+                'SalesRepId',
+                'CarHeaderId',
+                'SalesHeaderId',
+                'Code',
+                'DocTransNo',
+                'ReferenceNo',
+                'HdrDiscount',
+                'HdrAddition',
+                'HdrTax',
+                'PriceType',
+                'PayType',
+                'Paid',
+                'PaidCash',
+                'PaidByVisa',
+                'Total',
+                'NetTotal',
+                'Balance',
+                'CurrencyId',
+                'CurrencyRate',
+                'TotalCurrency',
+                'Periodterm',
+                'Notes',
+                'Status',
+            ]));
+
+        $salesHeaders = [];
+        $returnHeaders = [];
+        $headerTypes = [];
+        $typeCounts = [];
+
+        foreach ($headers as $header) {
+            $headerId = (int) $header->HeaderId;
+            $type = (int) $header->TransType;
+            $headerTypes[$headerId] = $type;
+            $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+
+            if (in_array($type, $salesTypes, true)) {
+                $salesHeaders[$headerId] = $header;
+            } elseif (in_array($type, $returnTypes, true)) {
+                $returnHeaders[$headerId] = $header;
+            }
+        }
+
+        ksort($typeCounts);
+
+        $maps = $stage('load_sales_history_mappings', function (): array {
+            $mapping = static function (string $sourceTable, string $targetTable, ?array $sourceTables = null): array {
+                $query = DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->where('target_table', $targetTable);
+
+                if ($sourceTables !== null) {
+                    $query->whereIn('source_table', $sourceTables);
+                } else {
+                    $query->where('source_table', $sourceTable);
+                }
+
+                $result = [];
+                foreach ($query->get(['source_key', 'target_id']) as $row) {
+                    $result[(int) $row->source_key] = (int) $row->target_id;
+                }
+
+                return $result;
+            };
+
+            $customers = $mapping('wh_Customers', 'customers');
+            $b2bCustomers = $mapping('wh_Customers', 'b2b_customers');
+            $platformCustomers = $mapping('wh_Customers', 'platform_customers');
+            $b2bAccounts = $mapping('wh_Customers', 'b2b_accounts');
+            $warehouses = $mapping('', 'warehouses', ['wh_Stores', 'wh_Cars']);
+            $products = $mapping('wh_Items', 'products');
+            $priceTiers = $mapping('wh_PriceTypes', 'b2b_price_tiers');
+
+            $warehouseRows = $warehouses === []
+                ? collect()
+                : DB::table('warehouses')
+                    ->whereIn('id', array_values($warehouses))
+                    ->get(['id', 'store_id', 'code', 'name']);
+            $warehouseMeta = [];
+            foreach ($warehouseRows as $row) {
+                $warehouseMeta[(int) $row->id] = [
+                    'store_id' => $row->store_id === null ? null : (int) $row->store_id,
+                    'code' => (string) $row->code,
+                    'name' => (string) $row->name,
+                ];
+            }
+
+            $productRows = $products === []
+                ? collect()
+                : DB::table('products')
+                    ->whereIn('id', array_values($products))
+                    ->get(['id', 'sku', 'name']);
+            $productMetaByTarget = [];
+            foreach ($productRows as $row) {
+                $productMetaByTarget[(int) $row->id] = [
+                    'sku' => (string) $row->sku,
+                    'name' => (string) $row->name,
+                ];
+            }
+
+            $customerRows = $customers === []
+                ? collect()
+                : DB::table('customers')
+                    ->whereIn('id', array_values($customers))
+                    ->get(['id', 'name', 'phone', 'email']);
+            $customerMetaByTarget = [];
+            foreach ($customerRows as $row) {
+                $customerMetaByTarget[(int) $row->id] = [
+                    'name' => (string) $row->name,
+                    'phone' => $row->phone,
+                    'email' => $row->email,
+                ];
+            }
+
+            $tierRows = $priceTiers === []
+                ? collect()
+                : DB::table('b2b_price_tiers')
+                    ->whereIn('id', array_values($priceTiers))
+                    ->get(['id', 'code']);
+            $tierCodes = [];
+            foreach ($tierRows as $row) {
+                $tierCodes[(int) $row->id] = (string) $row->code;
+            }
+
+            $storeIds = collect($warehouseMeta)
+                ->pluck('store_id')
+                ->filter()
+                ->map(static fn ($id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+            $storeNames = $storeIds === []
+                ? []
+                : DB::table('stores')->whereIn('id', $storeIds)->pluck('name', 'id')
+                    ->map(static fn ($name): string => (string) $name)
+                    ->all();
+
+            return [
+                'customers' => $customers,
+                'b2b_customers' => $b2bCustomers,
+                'platform_customers' => $platformCustomers,
+                'b2b_accounts' => $b2bAccounts,
+                'warehouses' => $warehouses,
+                'warehouse_meta' => $warehouseMeta,
+                'products' => $products,
+                'product_meta' => $productMetaByTarget,
+                'price_tiers' => $priceTiers,
+                'tier_codes' => $tierCodes,
+                'customer_meta' => $customerMetaByTarget,
+                'store_names' => $storeNames,
+            ];
+        });
+
+        $unmappedCustomers = [];
+        $unmappedB2bCustomers = [];
+        $unmappedLocations = [];
+        $invalidHeaderDates = [];
+        $headerDateTimes = [];
+        $returnAmounts = [];
+        $returnNonzeroCount = 0;
+        $paidSalesCount = 0;
+        $paymentBalanceMismatches = 0;
+
+        $parseDate = static function (mixed $value): ?string {
+            $date = (int) $value;
+            if ($date <= 0) {
+                return null;
+            }
+
+            $raw = str_pad((string) $date, 8, '0', STR_PAD_LEFT);
+            $parsed = \DateTimeImmutable::createFromFormat('!Ymd', $raw);
+            if ($parsed === false || $parsed->format('Ymd') !== $raw) {
+                return null;
+            }
+
+            return $parsed->format('Y-m-d 00:00:00');
+        };
+
+        foreach ($headers as $header) {
+            $headerId = (int) $header->HeaderId;
+            $customerId = (int) ($header->CustomerId ?? 0);
+            $locationId = (int) ($header->StoreId ?? 0);
+
+            if ($customerId <= 0 || ! isset($maps['customers'][$customerId])) {
+                $unmappedCustomers[$customerId] = true;
+            }
+            if ($customerId <= 0 || ! isset($maps['b2b_customers'][$customerId])) {
+                $unmappedB2bCustomers[$customerId] = true;
+            }
+
+            $warehouseId = $maps['warehouses'][$locationId] ?? null;
+            if (
+                $locationId <= 0
+                || $warehouseId === null
+                || ! isset($maps['warehouse_meta'][$warehouseId])
+                || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
+            ) {
+                $unmappedLocations[$locationId] = true;
+            }
+
+            $dateTime = $parseDate($header->TransDate ?? null);
+            if ($dateTime === null) {
+                $invalidHeaderDates[$headerId] = (int) ($header->TransDate ?? 0);
+            } else {
+                $headerDateTimes[$headerId] = $dateTime;
+            }
+
+            $type = (int) $header->TransType;
+            if (in_array($type, $salesTypes, true)) {
+                $paid = round((float) ($header->Paid ?? 0), 3);
+                if ($paid > 0.0005) {
+                    $paidSalesCount++;
+                }
+
+                $net = round((float) ($header->NetTotal ?? 0), 3);
+                $balance = round((float) ($header->Balance ?? 0), 3);
+                if (abs(($net - $paid) - $balance) > 0.050) {
+                    $paymentBalanceMismatches++;
+                }
+            } else {
+                $net = abs(round((float) ($header->NetTotal ?? 0), 3));
+                $total = abs(round((float) ($header->Total ?? 0), 3));
+                $amount = $net > 0.0005 ? $net : $total;
+                $returnAmounts[$headerId] = $amount;
+                if ($amount > 0.0005) {
+                    $returnNonzeroCount++;
+                }
+            }
+        }
+
+        unset($unmappedCustomers[0], $unmappedB2bCustomers[0], $unmappedLocations[0]);
+
+        $detailCounts = [];
+        $detailValueSums = [];
+        $usedSalesItems = [];
+        $sourceDetailRowsScanned = 0;
+        $salesDetails = 0;
+        $returnDetails = 0;
+        $salesZeroQtyLines = 0;
+        $salesNegativeQtyLines = 0;
+        $invalidSalesItemRows = 0;
+        $chunkNumber = 0;
+
+        $stage('stream_sales_return_details', function () use (
+            $source,
+            $progress,
+            $headerTypes,
+            $salesTypes,
+            &$detailCounts,
+            &$detailValueSums,
+            &$usedSalesItems,
+            &$sourceDetailRowsScanned,
+            &$salesDetails,
+            &$returnDetails,
+            &$salesZeroQtyLines,
+            &$salesNegativeQtyLines,
+            &$invalidSalesItemRows,
+            &$chunkNumber,
+        ): void {
+            $source->table('wh_TransDetails')
+                ->select([
+                    'DetailId',
+                    'HeaderId',
+                    'ItemID',
+                    'Qty',
+                    'Value',
+                    'Status',
+                ])
+                ->orderBy('DetailId')
+                ->chunkById(
+                    10000,
+                    function ($rows) use (
+                        $progress,
+                        $headerTypes,
+                        $salesTypes,
+                        &$detailCounts,
+                        &$detailValueSums,
+                        &$usedSalesItems,
+                        &$sourceDetailRowsScanned,
+                        &$salesDetails,
+                        &$returnDetails,
+                        &$salesZeroQtyLines,
+                        &$salesNegativeQtyLines,
+                        &$invalidSalesItemRows,
+                        &$chunkNumber,
+                    ): void {
+                        $startedAt = microtime(true);
+                        $chunkNumber++;
+
+                        foreach ($rows as $row) {
+                            $sourceDetailRowsScanned++;
+
+                            if ((int) ($row->Status ?? 0) !== 1) {
+                                continue;
+                            }
+
+                            $headerId = (int) ($row->HeaderId ?? 0);
+                            $type = $headerTypes[$headerId] ?? null;
+                            if ($type === null) {
+                                continue;
+                            }
+
+                            $detailCounts[$headerId] = ($detailCounts[$headerId] ?? 0) + 1;
+                            $detailValueSums[$headerId] = ($detailValueSums[$headerId] ?? 0.0)
+                                + (float) ($row->Value ?? 0);
+
+                            if (in_array($type, $salesTypes, true)) {
+                                $salesDetails++;
+                                $itemId = (int) ($row->ItemID ?? 0);
+                                if ($itemId <= 0) {
+                                    $invalidSalesItemRows++;
+                                } else {
+                                    $usedSalesItems[$itemId] = true;
+                                }
+
+                                $qty = (float) ($row->Qty ?? 0);
+                                if ($qty < -0.0005) {
+                                    $salesNegativeQtyLines++;
+                                } elseif (abs($qty) <= 0.0005) {
+                                    $salesZeroQtyLines++;
+                                }
+                            } else {
+                                $returnDetails++;
+                            }
+                        }
+
+                        if ($progress !== null) {
+                            $progress(
+                                'sales_history_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRowsScanned,
+                                'done',
+                                round(microtime(true) - $startedAt, 3),
+                            );
+                        }
+                    },
+                    'DetailId',
+                    'DetailId',
+                );
+        });
+
+        $unmappedItems = [];
+        foreach (array_keys($usedSalesItems) as $itemId) {
+            if (! isset($maps['products'][$itemId])) {
+                $unmappedItems[$itemId] = true;
+            }
+        }
+
+        $salesHeadersWithoutLines = 0;
+        $returnHeadersWithoutLines = 0;
+        $lineTotalMismatches = 0;
+
+        foreach ($salesHeaders as $headerId => $header) {
+            if (($detailCounts[$headerId] ?? 0) === 0) {
+                $salesHeadersWithoutLines++;
+            }
+
+            $lineTotal = round((float) ($detailValueSums[$headerId] ?? 0), 3);
+            $headerTotal = round((float) ($header->Total ?? 0), 3);
+            if (abs($lineTotal - $headerTotal) > 0.050) {
+                $lineTotalMismatches++;
+            }
+        }
+
+        foreach ($returnHeaders as $headerId => $header) {
+            if (($detailCounts[$headerId] ?? 0) === 0) {
+                $returnHeadersWithoutLines++;
+            }
+        }
+
+        $targetCounts = [];
+        foreach ([
+            'orders',
+            'order_items',
+            'order_status_history',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'customer_account_ledger_entries',
+        ] as $table) {
+            $targetCounts[$table] = (int) DB::table($table)->count();
+        }
+
+        $planned = [
+            'sales_headers' => count($salesHeaders),
+            'sales_details' => $salesDetails,
+            'return_headers' => count($returnHeaders),
+            'return_details' => $returnDetails,
+            'payments' => $paidSalesCount,
+            'return_ledger_entries' => $returnNonzeroCount,
+            'source_detail_rows_scanned' => $sourceDetailRowsScanned,
+            'unmapped_customers' => count($unmappedCustomers),
+            'unmapped_b2b_customers' => count($unmappedB2bCustomers),
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+            'invalid_sales_item_rows' => $invalidSalesItemRows,
+            'sales_headers_without_lines' => $salesHeadersWithoutLines,
+            'return_headers_without_lines' => $returnHeadersWithoutLines,
+            'sales_negative_qty_lines' => $salesNegativeQtyLines,
+            'sales_zero_qty_lines' => $salesZeroQtyLines,
+            'line_total_mismatches' => $lineTotalMismatches,
+            'payment_balance_mismatches' => $paymentBalanceMismatches,
+            'existing_orders' => $targetCounts['orders'],
+            'existing_invoices' => $targetCounts['invoices'],
+            'existing_payments' => $targetCounts['payments'],
+            'existing_customer_ledger_entries' => $targetCounts['customer_account_ledger_entries'],
+        ];
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'sales-history',
+                'planned' => $planned,
+                'type_counts' => $typeCounts,
+                'samples' => [
+                    'unmapped_customers' => array_slice(array_keys($unmappedCustomers), 0, 30),
+                    'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
+                    'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                ],
+                'rules' => [
+                    'sales_types' => $salesTypes,
+                    'return_types' => $returnTypes,
+                    'historical_import_does_not_mutate_inventory' => true,
+                    'sales_materialize_as_completed_b2b_orders_and_issued_invoices' => true,
+                    'paid_amounts_materialize_as_payments' => true,
+                    'returns_materialize_as_customer_ledger_credits' => true,
+                    'target_commerce_must_be_clean' => true,
+                ],
+            ];
+        }
+
+        $blocking = [
+            'unmapped_customers' => count($unmappedCustomers),
+            'unmapped_b2b_customers' => count($unmappedB2bCustomers),
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+            'invalid_sales_item_rows' => $invalidSalesItemRows,
+            'sales_headers_without_lines' => $salesHeadersWithoutLines,
+            'sales_negative_qty_lines' => $salesNegativeQtyLines,
+        ];
+
+        if (array_sum($blocking) !== 0) {
+            throw new RuntimeException(
+                'Sales history apply refused: source-to-target validation has blocking issues. '.
+                json_encode($blocking, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        if (array_sum($targetCounts) !== 0) {
+            throw new RuntimeException(
+                'Sales history apply refused: target commerce/ledger tables are not empty. '.
+                'Clean cutover forbids merging legacy history into existing target commerce data.'
+            );
+        }
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'sales-history',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $paymentMethod = static function (object $header): string {
+            $paidCash = (float) ($header->PaidCash ?? 0);
+            $paidVisa = (float) ($header->PaidByVisa ?? 0);
+            $payType = (int) ($header->PayType ?? 0);
+
+            if ($paidCash > 0.0005 && $paidVisa > 0.0005) {
+                return 'legacy_mixed';
+            }
+            if ($paidVisa > 0.0005) {
+                return 'card';
+            }
+            if ($paidCash > 0.0005) {
+                return 'cash';
+            }
+
+            return $payType > 0 ? 'legacy_pay_type_'.$payType : 'legacy_unspecified';
+        };
+
+        try {
+            $summary = DB::transaction(function () use (
+                $source,
+                $progress,
+                $salesHeaders,
+                $returnHeaders,
+                $headerDateTimes,
+                $returnAmounts,
+                $maps,
+                $runId,
+                $paymentMethod,
+                $planned,
+            ): array {
+                $ordersCreated = 0;
+                $orderItemsCreated = 0;
+                $invoicesCreated = 0;
+                $invoiceItemsCreated = 0;
+                $paymentsCreated = 0;
+                $returnLedgerCreated = 0;
+                $historyCreated = 0;
+                $mappingRows = [];
+                $sourceOrderIds = [];
+                $sourceInvoiceIds = [];
+                $salesBatchNumber = 0;
+
+                foreach (array_chunk(array_keys($salesHeaders), 250) as $headerIds) {
+                    $salesBatchNumber++;
+                    $batchHeaders = [];
+                    foreach ($headerIds as $headerId) {
+                        $batchHeaders[$headerId] = $salesHeaders[$headerId];
+                    }
+
+                    $orderRows = [];
+                    $orderNumberToSource = [];
+
+                    foreach ($batchHeaders as $headerId => $header) {
+                        $customerSourceId = (int) $header->CustomerId;
+                        $customerId = $maps['customers'][$customerSourceId];
+                        $b2bCustomerId = $maps['b2b_customers'][$customerSourceId];
+                        $warehouseId = $maps['warehouses'][(int) $header->StoreId];
+                        $storeId = (int) $maps['warehouse_meta'][$warehouseId]['store_id'];
+                        $priceTierId = $maps['price_tiers'][(int) ($header->PriceType ?? 0)] ?? null;
+                        $accountId = $maps['b2b_accounts'][$customerSourceId] ?? null;
+                        $dateTime = $headerDateTimes[$headerId];
+                        $orderNumber = 'FDX-ORDER-'.((int) $header->TransType).'-'.$headerId;
+                        $method = $paymentMethod($header);
+
+                        $orderRows[] = [
+                            'store_id' => $storeId,
+                            'warehouse_id' => $warehouseId,
+                            'customer_id' => $customerId,
+                            'b2b_customer_id' => $b2bCustomerId,
+                            'b2c_customer_id' => null,
+                            'address_id' => null,
+                            'order_number' => $orderNumber,
+                            'channel' => 'b2b',
+                            'status' => 'completed',
+                            'currency' => 'EGP',
+                            'subtotal' => round((float) ($header->Total ?? 0), 3),
+                            'discount_total' => abs(round((float) ($header->HdrDiscount ?? 0), 3)),
+                            'delivery_total' => 0,
+                            'tax_total' => round((float) ($header->HdrTax ?? 0), 3),
+                            'grand_total' => round((float) ($header->NetTotal ?? 0), 3),
+                            'b2b_account_id_snapshot' => $accountId,
+                            'price_tier_id_snapshot' => $priceTierId,
+                            'price_tier_code_snapshot' => $priceTierId === null
+                                ? null
+                                : ($maps['tier_codes'][$priceTierId] ?? null),
+                            'pricing_snapshot' => $this->json([
+                                'source_system' => self::SOURCE_SYSTEM,
+                                'source_table' => 'wh_TransHeader',
+                                'source_header_id' => $headerId,
+                                'source_trans_type' => (int) $header->TransType,
+                                'doc_trans_no' => $header->DocTransNo,
+                                'code' => $header->Code,
+                                'reference_no' => $header->ReferenceNo,
+                                'header_discount' => (float) ($header->HdrDiscount ?? 0),
+                                'header_addition' => (float) ($header->HdrAddition ?? 0),
+                                'header_tax' => (float) ($header->HdrTax ?? 0),
+                                'legacy_price_type' => (int) ($header->PriceType ?? 0),
+                                'legacy_pay_type' => (int) ($header->PayType ?? 0),
+                                'legacy_paid' => (float) ($header->Paid ?? 0),
+                                'legacy_balance' => (float) ($header->Balance ?? 0),
+                            ]),
+                            'payment_method' => $method,
+                            'customer_note' => $this->legacyText($header->Notes ?? null),
+                            'commercial_locked_at' => $dateTime,
+                            'created_at' => $dateTime,
+                            'updated_at' => $dateTime,
+                        ];
+                        $orderNumberToSource[$orderNumber] = $headerId;
+                    }
+
+                    foreach (array_chunk($orderRows, 500) as $rows) {
+                        DB::table('orders')->insert($rows);
+                    }
+                    $ordersCreated += count($orderRows);
+
+                    $orders = DB::table('orders')
+                        ->whereIn('order_number', array_keys($orderNumberToSource))
+                        ->get(['id', 'order_number'])
+                        ->keyBy('order_number');
+
+                    $invoiceRows = [];
+                    $invoiceNumberToSource = [];
+
+                    foreach ($batchHeaders as $headerId => $header) {
+                        $orderNumber = 'FDX-ORDER-'.((int) $header->TransType).'-'.$headerId;
+                        $order = $orders->get($orderNumber);
+                        if ($order === null) {
+                            throw new RuntimeException("Inserted legacy order {$orderNumber} could not be resolved.");
+                        }
+
+                        $orderId = (int) $order->id;
+                        $sourceOrderIds[$headerId] = $orderId;
+                        $customerSourceId = (int) $header->CustomerId;
+                        $customerId = $maps['customers'][$customerSourceId];
+                        $b2bCustomerId = $maps['b2b_customers'][$customerSourceId];
+                        $platformCustomerId = $maps['platform_customers'][$customerSourceId] ?? null;
+                        $warehouseId = $maps['warehouses'][(int) $header->StoreId];
+                        $storeId = (int) $maps['warehouse_meta'][$warehouseId]['store_id'];
+                        $priceTierId = $maps['price_tiers'][(int) ($header->PriceType ?? 0)] ?? null;
+                        $accountId = $maps['b2b_accounts'][$customerSourceId] ?? null;
+                        $dateTime = $headerDateTimes[$headerId];
+                        $period = max(0, (int) ($header->Periodterm ?? 0));
+                        $date = new \DateTimeImmutable($dateTime);
+                        $dueAt = $period > 0 ? $date->modify('+'.$period.' days')->format('Y-m-d H:i:s') : null;
+                        $invoiceNumber = 'FDX-INVOICE-'.((int) $header->TransType).'-'.$headerId;
+                        $paid = round((float) ($header->Paid ?? 0), 3);
+                        $net = round((float) ($header->NetTotal ?? 0), 3);
+                        $balance = round((float) ($header->Balance ?? 0), 3);
+                        $paymentStatus = $paid <= 0.0005
+                            ? 'unpaid'
+                            : (($balance <= 0.0005 || $paid >= $net - 0.0005) ? 'paid' : 'partial');
+                        $method = $paymentMethod($header);
+                        $customerMeta = $maps['customer_meta'][$customerId] ?? [
+                            'name' => 'Legacy customer '.$customerSourceId,
+                            'phone' => null,
+                            'email' => null,
+                        ];
+
+                        $invoiceRows[] = [
+                            'order_id' => $orderId,
+                            'store_id' => $storeId,
+                            'customer_id' => $customerId,
+                            'platform_customer_id' => $platformCustomerId,
+                            'b2b_customer_id' => $b2bCustomerId,
+                            'b2c_customer_id' => null,
+                            'invoice_number' => $invoiceNumber,
+                            'status' => 'issued',
+                            'channel' => 'b2b',
+                            'currency' => 'EGP',
+                            'total' => $net,
+                            'issued_at' => $dateTime,
+                            'due_at' => $dueAt,
+                            'order_number_snapshot' => $orderNumber,
+                            'store_name_snapshot' => $maps['store_names'][$storeId] ?? null,
+                            'customer_name_snapshot' => $customerMeta['name'],
+                            'customer_email_snapshot' => $customerMeta['email'],
+                            'customer_phone_snapshot' => $customerMeta['phone'],
+                            'subtotal' => round((float) ($header->Total ?? 0), 3),
+                            'discount_total' => abs(round((float) ($header->HdrDiscount ?? 0), 3)),
+                            'delivery_total' => 0,
+                            'tax_total' => round((float) ($header->HdrTax ?? 0), 3),
+                            'payment_method_snapshot' => $method,
+                            'payment_status_snapshot' => $paymentStatus,
+                            'b2b_account_id_snapshot' => $accountId,
+                            'price_tier_id_snapshot' => $priceTierId,
+                            'price_tier_code_snapshot' => $priceTierId === null
+                                ? null
+                                : ($maps['tier_codes'][$priceTierId] ?? null),
+                            'commercial_snapshot' => $this->json([
+                                'source_system' => self::SOURCE_SYSTEM,
+                                'source_table' => 'wh_TransHeader',
+                                'source_header_id' => $headerId,
+                                'source_trans_type' => (int) $header->TransType,
+                                'source_store_id' => (int) $header->StoreId,
+                                'source_customer_id' => $customerSourceId,
+                                'source_sales_rep_id' => (int) ($header->SalesRepId ?? 0),
+                                'source_car_header_id' => (int) ($header->CarHeaderId ?? 0),
+                                'doc_trans_no' => $header->DocTransNo,
+                                'code' => $header->Code,
+                                'reference_no' => $header->ReferenceNo,
+                                'legacy_total' => (float) ($header->Total ?? 0),
+                                'legacy_net_total' => (float) ($header->NetTotal ?? 0),
+                                'legacy_paid' => (float) ($header->Paid ?? 0),
+                                'legacy_balance' => (float) ($header->Balance ?? 0),
+                                'legacy_currency_id' => (int) ($header->CurrencyId ?? 0),
+                                'legacy_currency_rate' => (float) ($header->CurrencyRate ?? 0),
+                                'run_id' => $runId,
+                            ]),
+                            'revision' => 1,
+                            'created_at' => $dateTime,
+                            'updated_at' => $dateTime,
+                        ];
+                        $invoiceNumberToSource[$invoiceNumber] = $headerId;
+                    }
+
+                    foreach (array_chunk($invoiceRows, 500) as $rows) {
+                        DB::table('invoices')->insert($rows);
+                    }
+                    $invoicesCreated += count($invoiceRows);
+
+                    $invoices = DB::table('invoices')
+                        ->whereIn('invoice_number', array_keys($invoiceNumberToSource))
+                        ->get(['id', 'invoice_number'])
+                        ->keyBy('invoice_number');
+
+                    foreach ($invoiceNumberToSource as $invoiceNumber => $headerId) {
+                        $invoice = $invoices->get($invoiceNumber);
+                        if ($invoice === null) {
+                            throw new RuntimeException("Inserted legacy invoice {$invoiceNumber} could not be resolved.");
+                        }
+                        $sourceInvoiceIds[$headerId] = (int) $invoice->id;
+                    }
+
+                    $detailRows = $source->table('wh_TransDetails')
+                        ->where('Status', 1)
+                        ->whereIn('HeaderId', $headerIds)
+                        ->orderBy('DetailId')
+                        ->get([
+                            'DetailId',
+                            'HeaderId',
+                            'ItemID',
+                            'ItemBarCode',
+                            'Package',
+                            'Qty',
+                            'TransPkgQty1',
+                            'TransPkgPrice1',
+                            'Price',
+                            'Value',
+                            'CostPrice',
+                            'DetailDiscount1',
+                            'DetailDiscount2',
+                            'DetailDiscount3',
+                            'DetailTax',
+                            'DetailRemark',
+                        ]);
+
+                    $orderItemRows = [];
+                    $invoiceItemRows = [];
+
+                    foreach ($detailRows as $line) {
+                        $headerId = (int) $line->HeaderId;
+                        $header = $batchHeaders[$headerId] ?? null;
+                        if ($header === null) {
+                            continue;
+                        }
+
+                        $sourceItemId = (int) $line->ItemID;
+                        $productId = $maps['products'][$sourceItemId];
+                        $productMeta = $maps['product_meta'][$productId];
+                        $orderId = $sourceOrderIds[$headerId];
+                        $invoiceId = $sourceInvoiceIds[$headerId];
+                        $customerSourceId = (int) $header->CustomerId;
+                        $priceTierId = $maps['price_tiers'][(int) ($header->PriceType ?? 0)] ?? null;
+                        $accountId = $maps['b2b_accounts'][$customerSourceId] ?? null;
+                        $rawQty = abs((float) ($line->Qty ?? 0));
+                        $baseQty = abs((float) ($line->TransPkgQty1 ?? 0));
+                        $quantity = $rawQty > 0.0005 ? $rawQty : $baseQty;
+                        $conversion = $rawQty > 0.0005 && $baseQty > 0.0005
+                            ? round($baseQty / $rawQty, 3)
+                            : 1.0;
+                        $unitPrice = (float) ($line->Price ?? 0);
+                        $lineTotal = round((float) ($line->Value ?? 0), 3);
+                        if (abs($unitPrice) <= 0.0005 && $quantity > 0.0005) {
+                            $unitPrice = round($lineTotal / $quantity, 3);
+                        }
+                        $lineDiscount = round(
+                            (float) ($line->DetailDiscount1 ?? 0)
+                            + (float) ($line->DetailDiscount2 ?? 0)
+                            + (float) ($line->DetailDiscount3 ?? 0),
+                            3,
+                        );
+                        $lineTax = round((float) ($line->DetailTax ?? 0), 3);
+                        $dateTime = $headerDateTimes[$headerId];
+
+                        $orderItemRows[] = [
+                            'order_id' => $orderId,
+                            'product_id' => $productId,
+                            'sku_snapshot' => $productMeta['sku'],
+                            'name_snapshot' => $productMeta['name'],
+                            'quantity' => round($quantity, 3),
+                            'unit_price' => round($unitPrice, 3),
+                            'line_total' => $lineTotal,
+                            'selling_unit_code_snapshot' => 'LEGACY-PKG-'.((int) ($line->Package ?? 1)),
+                            'quantity_conversion_factor' => $conversion,
+                            'base_unit_price_snapshot' => round((float) ($line->TransPkgPrice1 ?? 0), 3),
+                            'line_discount_total' => $lineDiscount,
+                            'line_tax_total' => $lineTax,
+                            'currency' => 'EGP',
+                            'b2b_account_id_snapshot' => $accountId,
+                            'price_tier_id_snapshot' => $priceTierId,
+                            'price_tier_code_snapshot' => $priceTierId === null
+                                ? null
+                                : ($maps['tier_codes'][$priceTierId] ?? null),
+                            'created_at' => $dateTime,
+                            'updated_at' => $dateTime,
+                        ];
+
+                        $invoiceItemRows[] = [
+                            'invoice_id' => $invoiceId,
+                            'product_id' => $productId,
+                            'description' => $productMeta['name'],
+                            'quantity' => round($quantity, 3),
+                            'unit_price' => round($unitPrice, 3),
+                            'line_total' => $lineTotal,
+                            'sku_snapshot' => $productMeta['sku'],
+                            'base_unit_price_snapshot' => round((float) ($line->TransPkgPrice1 ?? 0), 3),
+                            'line_discount_total' => $lineDiscount,
+                            'line_tax_total' => $lineTax,
+                            'currency' => 'EGP',
+                            'quantity_conversion_factor' => $conversion,
+                            'b2b_account_id_snapshot' => $accountId,
+                            'price_tier_id_snapshot' => $priceTierId,
+                            'price_tier_code_snapshot' => $priceTierId === null
+                                ? null
+                                : ($maps['tier_codes'][$priceTierId] ?? null),
+                            'line_snapshot' => $this->json([
+                                'source_system' => self::SOURCE_SYSTEM,
+                                'source_table' => 'wh_TransDetails',
+                                'source_detail_id' => (int) $line->DetailId,
+                                'source_header_id' => $headerId,
+                                'source_item_id' => $sourceItemId,
+                                'item_barcode' => $line->ItemBarCode,
+                                'package' => (int) ($line->Package ?? 0),
+                                'raw_qty' => (float) ($line->Qty ?? 0),
+                                'base_qty' => (float) ($line->TransPkgQty1 ?? 0),
+                                'raw_price' => (float) ($line->Price ?? 0),
+                                'base_price' => (float) ($line->TransPkgPrice1 ?? 0),
+                                'legacy_value' => (float) ($line->Value ?? 0),
+                                'legacy_cost_price' => (float) ($line->CostPrice ?? 0),
+                                'detail_remark' => $line->DetailRemark,
+                            ]),
+                            'created_at' => $dateTime,
+                            'updated_at' => $dateTime,
+                        ];
+                    }
+
+                    foreach (array_chunk($orderItemRows, 1000) as $rows) {
+                        DB::table('order_items')->insert($rows);
+                    }
+                    foreach (array_chunk($invoiceItemRows, 1000) as $rows) {
+                        DB::table('invoice_items')->insert($rows);
+                    }
+                    $orderItemsCreated += count($orderItemRows);
+                    $invoiceItemsCreated += count($invoiceItemRows);
+
+                    $statusRows = [];
+                    $paymentRows = [];
+
+                    foreach ($batchHeaders as $headerId => $header) {
+                        $orderId = $sourceOrderIds[$headerId];
+                        $invoiceId = $sourceInvoiceIds[$headerId];
+                        $customerSourceId = (int) $header->CustomerId;
+                        $warehouseId = $maps['warehouses'][(int) $header->StoreId];
+                        $storeId = (int) $maps['warehouse_meta'][$warehouseId]['store_id'];
+                        $dateTime = $headerDateTimes[$headerId];
+
+                        $statusRows[] = [
+                            'order_id' => $orderId,
+                            'store_id' => $storeId,
+                            'user_id' => null,
+                            'from_status' => null,
+                            'to_status' => 'completed',
+                            'note' => 'legacy_foodex_import',
+                            'created_at' => $dateTime,
+                            'updated_at' => $dateTime,
+                        ];
+
+                        $paid = round((float) ($header->Paid ?? 0), 3);
+                        if ($paid > 0.0005) {
+                            $paymentRows[] = [
+                                'order_id' => $orderId,
+                                'invoice_id' => $invoiceId,
+                                'provider' => 'legacy_foodex',
+                                'provider_reference' => 'FDX-PAY-'.$headerId,
+                                'status' => 'paid',
+                                'amount' => $paid,
+                                'currency' => 'EGP',
+                                'metadata' => $this->json([
+                                    'source_system' => self::SOURCE_SYSTEM,
+                                    'source_header_id' => $headerId,
+                                    'legacy_pay_type' => (int) ($header->PayType ?? 0),
+                                    'paid_cash' => (float) ($header->PaidCash ?? 0),
+                                    'paid_by_visa' => (float) ($header->PaidByVisa ?? 0),
+                                    'legacy_balance' => (float) ($header->Balance ?? 0),
+                                ]),
+                                'created_at' => $dateTime,
+                                'updated_at' => $dateTime,
+                            ];
+                        }
+
+                        $sourceArray = (array) $header;
+                        $sourceJson = $this->json($sourceArray);
+                        $mappingBase = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_key' => (string) $headerId,
+                            'source_hash' => hash('sha256', $sourceJson),
+                            'last_run_id' => $runId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+
+                        $mappingRows[] = [
+                            ...$mappingBase,
+                            'target_table' => 'orders',
+                            'target_id' => $orderId,
+                            'metadata' => $this->json([
+                                'source' => $sourceArray,
+                                '_migration' => ['phase' => 'sales-history', 'role' => 'sales_order'],
+                            ]),
+                        ];
+                        $mappingRows[] = [
+                            ...$mappingBase,
+                            'target_table' => 'invoices',
+                            'target_id' => $invoiceId,
+                            'metadata' => $this->json([
+                                'source' => $sourceArray,
+                                '_migration' => ['phase' => 'sales-history', 'role' => 'sales_invoice'],
+                            ]),
+                        ];
+                    }
+
+                    foreach (array_chunk($statusRows, 1000) as $rows) {
+                        DB::table('order_status_history')->insert($rows);
+                    }
+                    foreach (array_chunk($paymentRows, 1000) as $rows) {
+                        DB::table('payments')->insert($rows);
+                    }
+                    $historyCreated += count($statusRows);
+                    $paymentsCreated += count($paymentRows);
+
+                    if (count($mappingRows) >= 1000) {
+                        DB::table('legacy_import_mappings')->upsert(
+                            $mappingRows,
+                            ['source_system', 'source_table', 'source_key', 'target_table'],
+                            ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                        );
+                        $mappingRows = [];
+                    }
+
+                    if ($progress !== null) {
+                        $progress(
+                            'materialize_sales_batch_'.$salesBatchNumber.'_headers_'.$ordersCreated,
+                            'done',
+                            0.0,
+                        );
+                    }
+                }
+
+                if ($mappingRows !== []) {
+                    DB::table('legacy_import_mappings')->upsert(
+                        $mappingRows,
+                        ['source_system', 'source_table', 'source_key', 'target_table'],
+                        ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                    );
+                    $mappingRows = [];
+                }
+
+                $returnRows = [];
+                $returnReferenceToSource = [];
+
+                foreach ($returnHeaders as $headerId => $header) {
+                    $amount = (float) ($returnAmounts[$headerId] ?? 0);
+                    if ($amount <= 0.0005) {
+                        continue;
+                    }
+
+                    $customerSourceId = (int) $header->CustomerId;
+                    $b2bCustomerId = $maps['b2b_customers'][$customerSourceId];
+                    $warehouseId = $maps['warehouses'][(int) $header->StoreId];
+                    $storeId = (int) $maps['warehouse_meta'][$warehouseId]['store_id'];
+                    $dateTime = $headerDateTimes[$headerId];
+                    $salesHeaderId = (int) ($header->SalesHeaderId ?? 0);
+                    $linkedOrderId = $salesHeaderId > 0 ? ($sourceOrderIds[$salesHeaderId] ?? null) : null;
+                    $linkedInvoiceId = $salesHeaderId > 0 ? ($sourceInvoiceIds[$salesHeaderId] ?? null) : null;
+                    $reference = 'FDX-RETURN-'.((int) $header->TransType).'-'.$headerId;
+
+                    $returnRows[] = [
+                        'b2b_customer_id' => $b2bCustomerId,
+                        'store_id' => $storeId,
+                        'invoice_id' => $linkedInvoiceId,
+                        'order_id' => $linkedOrderId,
+                        'entry_type' => 'return',
+                        'reference' => $reference,
+                        'description' => 'Legacy Foodex return / source header '.$headerId,
+                        'debit' => 0,
+                        'credit' => round($amount, 3),
+                        'currency' => 'EGP',
+                        'actor_user_id' => null,
+                        'source' => 'legacy_foodex_import',
+                        'metadata' => $this->json([
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_header_id' => $headerId,
+                            'source_trans_type' => (int) $header->TransType,
+                            'source_sales_header_id' => $salesHeaderId,
+                            'doc_trans_no' => $header->DocTransNo,
+                            'legacy_total' => (float) ($header->Total ?? 0),
+                            'legacy_net_total' => (float) ($header->NetTotal ?? 0),
+                            'run_id' => $runId,
+                        ]),
+                        'occurred_at' => $dateTime,
+                        'created_at' => $dateTime,
+                    ];
+                    $returnReferenceToSource[$reference] = $headerId;
+                }
+
+                foreach (array_chunk($returnRows, 1000) as $rows) {
+                    DB::table('customer_account_ledger_entries')->insert($rows);
+                }
+                $returnLedgerCreated = count($returnRows);
+
+                if ($returnReferenceToSource !== []) {
+                    $ledgerRows = DB::table('customer_account_ledger_entries')
+                        ->whereIn('reference', array_keys($returnReferenceToSource))
+                        ->get(['id', 'reference'])
+                        ->keyBy('reference');
+
+                    foreach ($returnReferenceToSource as $reference => $headerId) {
+                        $ledgerRow = $ledgerRows->get($reference);
+                        if ($ledgerRow === null) {
+                            throw new RuntimeException("Inserted legacy return ledger entry {$reference} could not be resolved.");
+                        }
+
+                        $header = $returnHeaders[$headerId];
+                        $sourceArray = (array) $header;
+                        $sourceJson = $this->json($sourceArray);
+                        $mappingRows[] = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_key' => (string) $headerId,
+                            'target_table' => 'customer_account_ledger_entries',
+                            'target_id' => (int) $ledgerRow->id,
+                            'source_hash' => hash('sha256', $sourceJson),
+                            'metadata' => $this->json([
+                                'source' => $sourceArray,
+                                '_migration' => ['phase' => 'sales-history', 'role' => 'return_credit'],
+                            ]),
+                            'last_run_id' => $runId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+
+                if ($mappingRows !== []) {
+                    DB::table('legacy_import_mappings')->upsert(
+                        $mappingRows,
+                        ['source_system', 'source_table', 'source_key', 'target_table'],
+                        ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                    );
+                }
+
+                $target = [
+                    'orders' => (int) DB::table('orders')->count(),
+                    'order_items' => (int) DB::table('order_items')->count(),
+                    'order_status_history' => (int) DB::table('order_status_history')->count(),
+                    'invoices' => (int) DB::table('invoices')->count(),
+                    'invoice_items' => (int) DB::table('invoice_items')->count(),
+                    'payments' => (int) DB::table('payments')->count(),
+                    'return_ledger_entries' => (int) DB::table('customer_account_ledger_entries')
+                        ->where('source', 'legacy_foodex_import')
+                        ->where('entry_type', 'return')
+                        ->count(),
+                ];
+
+                if (
+                    $target['orders'] !== $ordersCreated
+                    || $target['invoices'] !== $invoicesCreated
+                    || $target['order_items'] !== $orderItemsCreated
+                    || $target['invoice_items'] !== $invoiceItemsCreated
+                    || $target['order_status_history'] !== $historyCreated
+                    || $target['payments'] !== $paymentsCreated
+                    || $target['return_ledger_entries'] !== $returnLedgerCreated
+                ) {
+                    throw new RuntimeException(
+                        'Sales history target validation failed: target counts do not match materialized counts.'
+                    );
+                }
+
+                return [
+                    'run_id' => $runId,
+                    'store_id' => app(WholesalePrincipal::class)->storeId(),
+                    'planned' => $planned,
+                    'orders' => ['created' => $ordersCreated],
+                    'order_items' => ['created' => $orderItemsCreated],
+                    'order_status_history' => ['created' => $historyCreated],
+                    'invoices' => ['created' => $invoicesCreated],
+                    'invoice_items' => ['created' => $invoiceItemsCreated],
+                    'payments' => ['created' => $paymentsCreated],
+                    'returns' => ['ledger_entries_created' => $returnLedgerCreated],
+                    'target' => $target,
+                    'inventory_mutations' => 0,
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'sales-history',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
