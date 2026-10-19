@@ -234,9 +234,21 @@ final class ManagementReportService
         $leastByQuantity = $ranked->sortBy('quantity')->values();
         $leastByRevenue = $ranked->sortBy('revenue')->values();
 
+        $soldProductIds = DB::table('order_items as sold_items')
+            ->join('orders', 'orders.id', '=', 'sold_items.order_id')
+            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES)
+            ->select('sold_items.product_id')
+            ->distinct();
+
+        $this->applyOrderFilters($soldProductIds, $filters, false);
+
         $zeroSalesQuery = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->leftJoinSub($soldProductIds, 'sold_products', function ($join): void {
+                $join->on('sold_products.product_id', '=', 'products.id');
+            })
+            ->whereNull('sold_products.product_id')
             ->where('products.is_active', true)
             ->when(
                 $filters['product_id'] !== null,
@@ -263,16 +275,7 @@ final class ManagementReportService
                         ->where('store_products.store_id', $filters['store_id'])
                         ->where('store_products.is_active', true);
                 }),
-            )
-            ->whereNotExists(function (Builder $sub) use ($filters): void {
-                $sub->selectRaw('1')
-                    ->from('order_items')
-                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
-                    ->whereColumn('order_items.product_id', 'products.id')
-                    ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES);
-
-                $this->applyOrderFilters($sub, $filters, false);
-            });
+            );
 
         $zeroSalesCount = (clone $zeroSalesQuery)->count('products.id');
         $zeroSales = $zeroSalesQuery
@@ -809,9 +812,16 @@ final class ManagementReportService
 
         $this->applyOrderFilters($query, $filters, false);
 
+        $totals = $query
+            ->selectRaw(
+                'COALESCE(SUM(order_items.quantity), 0) as quantity, '.
+                'COALESCE(SUM(order_items.line_total), 0) as revenue',
+            )
+            ->first();
+
         return [
-            'quantity' => round((float) (clone $query)->sum('order_items.quantity'), 3),
-            'revenue' => round((float) (clone $query)->sum('order_items.line_total'), 3),
+            'quantity' => round((float) ($totals->quantity ?? 0), 3),
+            'revenue' => round((float) ($totals->revenue ?? 0), 3),
         ];
     }
 
