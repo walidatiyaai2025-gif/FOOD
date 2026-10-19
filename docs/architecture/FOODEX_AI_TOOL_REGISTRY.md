@@ -46,6 +46,7 @@ Compatibility tools remain registered for sales, order summaries/lookups, stores
 #2214 adds:
 
 - `analytics.summary` — #2213 materialized facts with #2212 metric semantics and explicit freshness;
+- `analytics.diagnose` — #2218 deterministic period comparison, trend, mix/contribution, exception and inventory diagnostics with confidence/evidence metadata;
 - `inventory.snapshot` — latest materialized inventory snapshots;
 - `refunds.summary` — refunds, refunded payments and cancellations;
 - `retailers.performance` — consented B2C sell-out comparison;

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Assistant\Analytics;
 
+use App\Domain\Analytics\Diagnostics\DeterministicAnalyticsEngine;
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
 use App\Domain\Analytics\ReadModel\AnalyticsReadModelService;
 use App\Domain\Assistant\Data\AssistantToolRequest;
@@ -17,6 +18,7 @@ final readonly class AssistantAnalyticsReadService
 {
     public function __construct(
         private AnalyticsReadModelService $readModel,
+        private DeterministicAnalyticsEngine $diagnostics,
         private OperationalTenantScope $scope,
         private CustomerServiceCaseManager $customerService,
     ) {}
@@ -25,6 +27,7 @@ final readonly class AssistantAnalyticsReadService
     {
         return match ($tool) {
             'analytics.summary' => $this->analyticsSummary($request),
+            'analytics.diagnose' => $this->analyticsDiagnose($request),
             'inventory.snapshot' => $this->inventorySnapshot($request),
             'refunds.summary' => $this->refundsSummary($request),
             'retailers.performance' => $this->retailersPerformance($request),
@@ -33,6 +36,83 @@ final readonly class AssistantAnalyticsReadService
             'support.summary' => $this->supportSummary($request),
             default => throw new \InvalidArgumentException("Unsupported Assistant analytics tool [{$tool}]."),
         };
+    }
+
+    private function analyticsDiagnose(AssistantToolRequest $request): AssistantToolResult
+    {
+        $actor = $this->actor($request);
+        $requestChannel = $this->requiredChannel($request);
+        $retailerStoreIds = $this->retailerStoreIds($request);
+        $channel = $retailerStoreIds !== [] && $requestChannel === 'b2b' ? 'b2c' : $requestChannel;
+        $storeIds = $retailerStoreIds !== [] ? $retailerStoreIds : $this->requestedStoreIds($request);
+        [, , $from, $to] = $this->window($request);
+        $wholesaleStoreId = $this->positiveInt($request->entities['wholesale_store_id'] ?? null);
+
+        if ($wholesaleStoreId === null && $requestChannel === 'b2b') {
+            $wholesaleStoreId = $request->storeId;
+        }
+
+        $current = $this->readModel->read(
+            $actor,
+            $channel,
+            $storeIds,
+            $from,
+            $to,
+            $wholesaleStoreId,
+            $request->locale,
+        );
+
+        $fromDate = CarbonImmutable::parse($from, AnalyticsFactMaterializer::TIMEZONE)->startOfDay();
+        $toDate = CarbonImmutable::parse($to, AnalyticsFactMaterializer::TIMEZONE)->startOfDay();
+        $days = (int) $fromDate->diffInDays($toDate) + 1;
+        $previousTo = $fromDate->subDay();
+        $previousFrom = $previousTo->subDays($days - 1);
+        $previous = null;
+        $previousUnavailableReason = null;
+
+        try {
+            $previous = $this->readModel->read(
+                $actor,
+                $channel,
+                $current['store_ids'],
+                $previousFrom->toDateString(),
+                $previousTo->toDateString(),
+                $wholesaleStoreId,
+                $request->locale,
+            );
+        } catch (ValidationException) {
+            $previousUnavailableReason = 'comparison_window_not_authorized_or_available';
+        }
+
+        [$fromUtc, $toUtc] = $this->utcRange($fromDate, $toDate);
+        [$previousFromUtc, $previousToUtc] = $this->utcRange($previousFrom, $previousTo);
+        $previousRangeAvailable = $previous !== null;
+
+        $breakdowns = $previousRangeAvailable
+            ? $this->diagnosticBreakdowns(
+                $actor,
+                $current['store_ids'],
+                $channel,
+                $fromUtc,
+                $toUtc,
+                $previousFromUtc,
+                $previousToUtc,
+            )
+            : [];
+
+        $currentMargin = $this->diagnosticMargin($actor, $current['store_ids'], $channel, $fromUtc, $toUtc);
+        $previousMargin = $previousRangeAvailable
+            ? $this->diagnosticMargin($actor, $current['store_ids'], $channel, $previousFromUtc, $previousToUtc)
+            : null;
+
+        return new AssistantToolResult(data: $this->diagnostics->analyze(
+            $current,
+            $previous,
+            $breakdowns,
+            $currentMargin,
+            $previousMargin,
+            $previousUnavailableReason,
+        ));
     }
 
     private function analyticsSummary(AssistantToolRequest $request): AssistantToolResult
@@ -276,6 +356,271 @@ final readonly class AssistantAnalyticsReadService
             'store_ids' => $allowed,
             'generated_at' => now(AnalyticsFactMaterializer::TIMEZONE)->toIso8601String(),
         ]);
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return array<string,list<array<string,mixed>>>
+     */
+    private function diagnosticBreakdowns(
+        User $actor,
+        array $storeIds,
+        string $channel,
+        string $fromUtc,
+        string $toUtc,
+        ?string $previousFromUtc,
+        ?string $previousToUtc,
+    ): array {
+        $breakdowns = [];
+        foreach (['retailer', 'channel'] as $dimension) {
+            $breakdowns[$dimension] = $this->mergeDimensionRows(
+                $this->dimensionRows($dimension, $storeIds, $channel, $fromUtc, $toUtc),
+                $previousFromUtc === null || $previousToUtc === null
+                    ? []
+                    : $this->dimensionRows($dimension, $storeIds, $channel, $previousFromUtc, $previousToUtc),
+            );
+        }
+
+        $catalogStores = $this->scope->allowedStoreIds($actor, 'catalog.view', $channel);
+        if (array_diff($storeIds, $catalogStores) === []) {
+            foreach (['sku', 'category'] as $dimension) {
+                $breakdowns[$dimension] = $this->mergeDimensionRows(
+                    $this->dimensionRows($dimension, $storeIds, $channel, $fromUtc, $toUtc),
+                    $previousFromUtc === null || $previousToUtc === null
+                        ? []
+                        : $this->dimensionRows($dimension, $storeIds, $channel, $previousFromUtc, $previousToUtc),
+                );
+            }
+        }
+
+        return $breakdowns;
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return list<array{key:string,label:string,revenue:float,units:float,orders:int}>
+     */
+    private function dimensionRows(
+        string $dimension,
+        array $storeIds,
+        string $channel,
+        string $fromUtc,
+        string $toUtc,
+    ): array {
+        $query = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->whereIn('orders.store_id', $storeIds)
+            ->where('orders.channel', $channel)
+            ->whereBetween('orders.created_at', [$fromUtc, $toUtc])
+            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
+
+        if ($dimension === 'retailer') {
+            $keyColumn = $channel === 'b2b' ? 'orders.b2b_customer_id' : 'orders.store_id';
+            $rows = $query
+                ->select([$keyColumn.' as dimension_key'])
+                ->selectRaw(
+                    'COALESCE(SUM(order_items.line_total), 0) as revenue, '.
+                    'COALESCE(SUM(order_items.quantity), 0) as units, '.
+                    'COUNT(DISTINCT orders.id) as orders_count',
+                )
+                ->groupBy($keyColumn)
+                ->orderByDesc('revenue')
+                ->limit(100)
+                ->get();
+
+            return $rows->map(static function (object $row): array {
+                $key = (int) ($row->dimension_key ?? 0);
+
+                return [
+                    'key' => (string) $key,
+                    'label' => $key > 0 ? 'retailer:'.$key : 'retailer:unassigned',
+                    'revenue' => round((float) $row->revenue, 3),
+                    'units' => round((float) $row->units, 3),
+                    'orders' => (int) $row->orders_count,
+                ];
+            })->all();
+        }
+
+        if ($dimension === 'sku') {
+            $rows = $query
+                ->select(['products.id as dimension_key', 'products.sku as dimension_label'])
+                ->selectRaw(
+                    'COALESCE(SUM(order_items.line_total), 0) as revenue, '.
+                    'COALESCE(SUM(order_items.quantity), 0) as units, '.
+                    'COUNT(DISTINCT orders.id) as orders_count',
+                )
+                ->groupBy('products.id', 'products.sku')
+                ->orderByDesc('revenue')
+                ->limit(100)
+                ->get();
+
+            return $this->mapDimensionRows($rows->all(), 'sku');
+        }
+
+        if ($dimension === 'category') {
+            $rows = $query
+                ->select(['products.category_id as dimension_key', 'categories.name as dimension_label'])
+                ->selectRaw(
+                    'COALESCE(SUM(order_items.line_total), 0) as revenue, '.
+                    'COALESCE(SUM(order_items.quantity), 0) as units, '.
+                    'COUNT(DISTINCT orders.id) as orders_count',
+                )
+                ->groupBy('products.category_id', 'categories.name')
+                ->orderByDesc('revenue')
+                ->limit(100)
+                ->get();
+
+            return $this->mapDimensionRows($rows->all(), 'category');
+        }
+
+        if ($dimension === 'channel') {
+            $rows = $query
+                ->select(['orders.channel as dimension_key'])
+                ->selectRaw(
+                    'COALESCE(SUM(order_items.line_total), 0) as revenue, '.
+                    'COALESCE(SUM(order_items.quantity), 0) as units, '.
+                    'COUNT(DISTINCT orders.id) as orders_count',
+                )
+                ->groupBy('orders.channel')
+                ->get();
+
+            return $rows->map(static fn (object $row): array => [
+                'key' => (string) $row->dimension_key,
+                'label' => (string) $row->dimension_key,
+                'revenue' => round((float) $row->revenue, 3),
+                'units' => round((float) $row->units, 3),
+                'orders' => (int) $row->orders_count,
+            ])->all();
+        }
+
+        throw new \InvalidArgumentException("Unsupported diagnostic dimension [{$dimension}].");
+    }
+
+    /**
+     * @param  list<object>  $rows
+     * @return list<array{key:string,label:string,revenue:float,units:float,orders:int}>
+     */
+    private function mapDimensionRows(array $rows, string $prefix): array
+    {
+        return array_map(static function (object $row) use ($prefix): array {
+            $rawKey = $row->dimension_key ?? null;
+            $key = $rawKey === null ? 'unassigned' : (string) $rawKey;
+            $label = trim((string) ($row->dimension_label ?? ''));
+
+            return [
+                'key' => $key,
+                'label' => $label !== '' ? $label : $prefix.':'.$key,
+                'revenue' => round((float) $row->revenue, 3),
+                'units' => round((float) $row->units, 3),
+                'orders' => (int) $row->orders_count,
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @param  list<array{key:string,label:string,revenue:float,units:float,orders:int}>  $current
+     * @param  list<array{key:string,label:string,revenue:float,units:float,orders:int}>  $previous
+     * @return list<array<string,mixed>>
+     */
+    private function mergeDimensionRows(array $current, array $previous): array
+    {
+        $merged = [];
+
+        foreach ($previous as $row) {
+            $merged[$row['key']] = [
+                'key' => $row['key'],
+                'label' => $row['label'],
+                'current_revenue' => 0.0,
+                'previous_revenue' => $row['revenue'],
+                'current_units' => 0.0,
+                'previous_units' => $row['units'],
+                'current_orders' => 0,
+                'previous_orders' => $row['orders'],
+            ];
+        }
+
+        foreach ($current as $row) {
+            $existing = $merged[$row['key']] ?? [
+                'key' => $row['key'],
+                'label' => $row['label'],
+                'current_revenue' => 0.0,
+                'previous_revenue' => 0.0,
+                'current_units' => 0.0,
+                'previous_units' => 0.0,
+                'current_orders' => 0,
+                'previous_orders' => 0,
+            ];
+            $existing['label'] = $row['label'];
+            $existing['current_revenue'] = $row['revenue'];
+            $existing['current_units'] = $row['units'];
+            $existing['current_orders'] = $row['orders'];
+            $merged[$row['key']] = $existing;
+        }
+
+        return array_values($merged);
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return array<string,mixed>|null
+     */
+    private function diagnosticMargin(
+        User $actor,
+        array $storeIds,
+        string $channel,
+        string $fromUtc,
+        string $toUtc,
+    ): ?array {
+        $catalogStores = $this->scope->allowedStoreIds($actor, 'catalog.view', $channel);
+        if (array_diff($storeIds, $catalogStores) !== []) {
+            return null;
+        }
+
+        $query = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.store_id', '=', 'orders.store_id')
+                    ->on('store_products.product_id', '=', 'order_items.product_id');
+            })
+            ->whereIn('orders.store_id', $storeIds)
+            ->where('orders.channel', $channel)
+            ->whereBetween('orders.created_at', [$fromUtc, $toUtc])
+            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
+
+        $recognizedRevenue = round((float) (clone $query)->sum('order_items.line_total'), 3);
+        $coveredRevenue = round((float) (clone $query)
+            ->whereNotNull('store_products.cost_price')
+            ->sum('order_items.line_total'), 3);
+        $cogs = round((float) (clone $query)
+            ->whereNotNull('store_products.cost_price')
+            ->selectRaw('COALESCE(SUM(order_items.quantity * store_products.cost_price), 0) as cogs')
+            ->value('cogs'), 3);
+        $grossMargin = round($coveredRevenue - $cogs, 3);
+        $coverage = $recognizedRevenue <= 0.0 ? 100.0 : round(($coveredRevenue / $recognizedRevenue) * 100, 1);
+
+        return [
+            'recognized_revenue' => $recognizedRevenue,
+            'cost_covered_revenue' => $coveredRevenue,
+            'cogs' => $cogs,
+            'gross_margin' => $grossMargin,
+            'gross_margin_percent_on_costed_revenue' => $coveredRevenue <= 0.0
+                ? null
+                : round(($grossMargin / $coveredRevenue) * 100, 1),
+            'cost_coverage_percent' => $coverage,
+            'quality_state' => $coverage >= 99.999 ? 'complete' : 'incomplete',
+            'incomplete_reason' => $coverage >= 99.999 ? null : 'missing_product_cost',
+        ];
+    }
+
+    /** @return array{0:string,1:string} */
+    private function utcRange(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        return [
+            $from->startOfDay()->utc()->toDateTimeString(),
+            $to->endOfDay()->utc()->toDateTimeString(),
+        ];
     }
 
     /** @param list<int> $storeIds

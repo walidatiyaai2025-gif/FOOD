@@ -104,7 +104,16 @@ Compose existing channel-specific customer identities and source records through
 **Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
 
 
-## D-017 — Agent planning is bounded; server evidence is the only synthesis authority
+## D-017 — Retail sell-out ingestion accepts actual sales only
+**Decision (#2217 / AI-09, 2026-10-18):** Canonical sell-out is composed only from actual retailer-to-customer transactions: native FOODEX B2C orders plus explicitly connected external POS/API/CSV sell-out events. Retail replenishment and wholesale purchases remain separate sell-in/procurement facts and are never inferred, relabelled or substituted as sell-out.
+
+**Reason:** purchase-to-retail timing, stock holding, returns and unsold inventory make wholesale replenishment an invalid proxy for consumer demand. AI decisions must distinguish absent/partial retail feeds from genuine zero sales.
+
+**Consequences:** external rows are tenant-owned, SKU-mapped, timezone-normalized, idempotent and reconciled; rejected rows are reported without persisting raw rejected payloads; active retailer consent is re-authorized on analytical reads; feed state exposes no/partial/available coverage and quality; the deterministic analytics layer combines actual sources while the LLM remains an interpreter only.
+
+**Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.
+
+## D-018 — Agent planning is bounded; server evidence is the only synthesis authority
 **Decision (#2215 / AI-07, 2026-10-18):** Multi-tool Assistant turns use the existing provider gateway only to propose allowlisted typed reads and synthesize from numbered server evidence. `AssistantToolExecutor` remains the mandatory authorization/audit gate for every proposed call. The orchestrator enforces hard step, call, time and result-size budgets, suppresses duplicate tool signatures and never persists/exposes provider reasoning.
 
 **Reason:** an unconstrained agent loop could turn model output into authority, amplify accidental repeated reads, leak scope through tool arguments or create unbounded latency/cost. FOODEX already has authoritative typed tools, semantic metrics, read models and security controls.
@@ -113,7 +122,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
 
-## D-018 — RAG documents are governed evidence, never instructions
+## D-019 — AI diagnostics are deterministic evidence, not model arithmetic or causation
+**Decision (#2218 / AI-10, 2026-10-18):** FOODEX period comparisons, trend/velocity, mix/contribution, refund/cancellation rates, inventory cover and margin diagnostics are computed by versioned server-side software before model narration. The reusable result contract is `foodex.analytics.diagnostic.v1`; model providers may explain it but cannot replace its values, submit SQL or promote correlation into a causal claim.
+
+**Reason:** business diagnostics must remain reproducible across Arabic/English narration, model/provider changes and provider outages. Missing comparison periods, sparse samples, stale/incomplete facts, zero denominators and incompatible currencies must produce explicit evidence limitations rather than invented percentages or causes.
+
+**Consequences:** `analytics.diagnose` reuses the #2213 authorized read model, independently authorizes the prior period, preserves live sell-out consent and retention boundaries, gates SKU/category/margin detail behind catalog permission, and returns machine-readable confidence/quality reasons. Missing prior evidence suppresses comparative breakdowns rather than treating absence as zero.
+
+**Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
+
+## D-020 — RAG documents are governed evidence, never instructions
 **Decision (#2223 / AI-15, 2026-10-18):** Approved FOODEX document knowledge is exposed to the existing Assistant only through the typed `knowledge.search` read tool. Sources carry exact version, locale and global-or-store scope; superseded, revoked, deleted and expired sources are excluded. Weak retrieval evidence is refused. Document excerpts are always untrusted data and cannot authorize, select or execute tools.
 
 **Reason:** mixing document text with agent instructions would allow indirect prompt injection, while allowing unscoped or stale documents would create cross-tenant and grounding failures. Live business facts also have different freshness/authority semantics from policy/manual content.
@@ -122,7 +140,7 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
 
-## D-018 — AI security is enforced at provider and tool boundaries, not by prompt trust
+## D-021 — AI security is enforced at provider and tool boundaries, not by prompt trust
 **Decision (#2229 / AI-20, 2026-10-19):** FOODEX treats model/user/RAG text as untrusted and enforces AI-specific security in server code at the outbound provider boundary and the existing `AssistantToolExecutor`. The security layer owns prompt-injection blocking, output/secret filtering, tool/write kill switches, unsafe argument rejection, result minimization and cohort/differencing privacy protection.
 
 **Reason:** prompt wording alone cannot guarantee isolation against malicious user text, poisoned documents, compromised model output or approval spoofing. Controls must remain authoritative even when the model ignores instructions or AI is disabled.
