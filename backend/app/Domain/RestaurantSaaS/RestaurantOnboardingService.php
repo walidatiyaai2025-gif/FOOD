@@ -44,6 +44,12 @@ final class RestaurantOnboardingService
         }
 
         $published = $this->revisions->published($site);
+        $brandingRevision = $this->revisions->draft($site) ?? $published;
+        $brandingPayload = $brandingRevision === null ? [] : (array) $brandingRevision->payload;
+        $brandingContent = is_array($brandingPayload['content'] ?? null) ? $brandingPayload['content'] : [];
+        $storefrontIdentity = is_array($brandingContent['identity'] ?? null) ? $brandingContent['identity'] : [];
+        $heroImageReady = trim((string) ($storefrontIdentity['cover_url'] ?? '')) !== '';
+
         $branches = SmartOrderingBranch::query()
             ->where('site_id', $site->getKey())
             ->where('is_active', true)
@@ -117,6 +123,7 @@ final class RestaurantOnboardingService
         $gates = [
             $this->gate('control_plane', true, true, (bool) ($context['provisioned'] ?? false)),
             $this->gate('location_identity', true, true, $profileReady),
+            $this->gate('hero_image', true, true, $heroImageReady),
             $this->gate('opening_hours', true, true, $openingHoursReady),
             $this->gate('public_menu_entitlement', true, true, $publicMenuEntitled),
             $this->gate('sales_channels', true, true, $salesChannelsSelected),
@@ -150,6 +157,7 @@ final class RestaurantOnboardingService
             'site' => $site,
             'context' => $context,
             'entitlements' => $entitlements,
+            'storefront_identity' => $storefrontIdentity,
             'imports' => $this->recentImports((int) $store->getKey()),
         ];
     }
@@ -343,7 +351,7 @@ final class RestaurantOnboardingService
     {
         $gateMap = collect($gates)->keyBy('key');
         $definitions = [
-            ['key' => 'identity', 'gates' => ['control_plane', 'location_identity', 'operator']],
+            ['key' => 'identity', 'gates' => ['control_plane', 'location_identity', 'hero_image', 'operator']],
             ['key' => 'channels', 'gates' => ['public_menu_entitlement', 'sales_channels']],
             ['key' => 'operations', 'gates' => ['opening_hours', 'fulfillment', 'delivery_rules']],
             ['key' => 'menu', 'gates' => ['menu_published', 'prices', 'language']],
