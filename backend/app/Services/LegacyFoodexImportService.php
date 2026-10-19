@@ -2024,59 +2024,74 @@ SQL));
         $salesTypes = [3, 19];
         $returnTypes = [4, 20];
 
-        $headers = $stage('load_sales_return_headers', fn () => $source->table('wh_TransHeader')
+        $headerColumns = [
+            'HeaderId',
+            'TransType',
+            'TransDate',
+            'BranchID',
+            'CustomerId',
+            'StoreId',
+            'SalesRepId',
+            'CarHeaderId',
+            'SalesHeaderId',
+            'Code',
+            'DocTransNo',
+            'ReferenceNo',
+            'HdrDiscount',
+            'HdrAddition',
+            'HdrTax',
+            'PriceType',
+            'PayType',
+            'Paid',
+            'PaidCash',
+            'PaidByVisa',
+            'Total',
+            'NetTotal',
+            'Balance',
+            'CurrencyId',
+            'CurrencyRate',
+            'TotalCurrency',
+            'Periodterm',
+            'Notes',
+            'Status',
+        ];
+
+        $headerCursor = static fn () => $source->table('wh_TransHeader')
             ->where('Status', 1)
             ->whereIn('TransType', [...$salesTypes, ...$returnTypes])
             ->orderBy('HeaderId')
-            ->get([
-                'HeaderId',
-                'TransType',
-                'TransDate',
-                'BranchID',
-                'CustomerId',
-                'StoreId',
-                'SalesRepId',
-                'CarHeaderId',
-                'SalesHeaderId',
-                'Code',
-                'DocTransNo',
-                'ReferenceNo',
-                'HdrDiscount',
-                'HdrAddition',
-                'HdrTax',
-                'PriceType',
-                'PayType',
-                'Paid',
-                'PaidCash',
-                'PaidByVisa',
-                'Total',
-                'NetTotal',
-                'Balance',
-                'CurrencyId',
-                'CurrencyRate',
-                'TotalCurrency',
-                'Periodterm',
-                'Notes',
-                'Status',
-            ]));
+            ->cursor();
 
-        $salesHeaders = [];
+        $salesHeaderIds = [];
+        $salesHeaderTotals = [];
         $returnHeaders = [];
         $headerTypes = [];
         $typeCounts = [];
 
-        foreach ($headers as $header) {
-            $headerId = (int) $header->HeaderId;
-            $type = (int) $header->TransType;
-            $headerTypes[$headerId] = $type;
-            $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+        $stage('stream_sales_return_header_index', function () use (
+            $headerCursor,
+            $salesTypes,
+            $returnTypes,
+            &$salesHeaderIds,
+            &$salesHeaderTotals,
+            &$returnHeaders,
+            &$headerTypes,
+            &$typeCounts,
+        ): void {
+            foreach ($headerCursor() as $header) {
+                $headerId = (int) $header->HeaderId;
+                $type = (int) $header->TransType;
+                $headerTypes[$headerId] = $type;
+                $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
 
-            if (in_array($type, $salesTypes, true)) {
-                $salesHeaders[$headerId] = $header;
-            } elseif (in_array($type, $returnTypes, true)) {
-                $returnHeaders[$headerId] = $header;
+                if (in_array($type, $salesTypes, true)) {
+                    $salesHeaderIds[] = $headerId;
+                    $salesHeaderTotals[$headerId] = round((float) ($header->Total ?? 0), 3);
+                } elseif (in_array($type, $returnTypes, true)) {
+                    $returnHeaders[$headerId] = $header;
+                }
             }
-        }
+        });
 
         ksort($typeCounts);
 
@@ -2213,57 +2228,73 @@ SQL));
             return $parsed->format('Y-m-d 00:00:00');
         };
 
-        foreach ($headers as $header) {
-            $headerId = (int) $header->HeaderId;
-            $customerId = (int) ($header->CustomerId ?? 0);
-            $locationId = (int) ($header->StoreId ?? 0);
+        $stage('validate_sales_return_headers', function () use (
+            $headerCursor,
+            $maps,
+            $parseDate,
+            $salesTypes,
+            &$unmappedCustomers,
+            &$unmappedB2bCustomers,
+            &$unmappedLocations,
+            &$invalidHeaderDates,
+            &$headerDateTimes,
+            &$returnAmounts,
+            &$returnNonzeroCount,
+            &$paidSalesCount,
+            &$paymentBalanceMismatches,
+        ): void {
+            foreach ($headerCursor() as $header) {
+                $headerId = (int) $header->HeaderId;
+                $customerId = (int) ($header->CustomerId ?? 0);
+                $locationId = (int) ($header->StoreId ?? 0);
 
-            if ($customerId <= 0 || ! isset($maps['customers'][$customerId])) {
-                $unmappedCustomers[$customerId] = true;
-            }
-            if ($customerId <= 0 || ! isset($maps['b2b_customers'][$customerId])) {
-                $unmappedB2bCustomers[$customerId] = true;
-            }
-
-            $warehouseId = $maps['warehouses'][$locationId] ?? null;
-            if (
-                $locationId <= 0
-                || $warehouseId === null
-                || ! isset($maps['warehouse_meta'][$warehouseId])
-                || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
-            ) {
-                $unmappedLocations[$locationId] = true;
-            }
-
-            $dateTime = $parseDate($header->TransDate ?? null);
-            if ($dateTime === null) {
-                $invalidHeaderDates[$headerId] = (int) ($header->TransDate ?? 0);
-            } else {
-                $headerDateTimes[$headerId] = $dateTime;
-            }
-
-            $type = (int) $header->TransType;
-            if (in_array($type, $salesTypes, true)) {
-                $paid = round((float) ($header->Paid ?? 0), 3);
-                if ($paid > 0.0005) {
-                    $paidSalesCount++;
+                if ($customerId <= 0 || ! isset($maps['customers'][$customerId])) {
+                    $unmappedCustomers[$customerId] = true;
+                }
+                if ($customerId <= 0 || ! isset($maps['b2b_customers'][$customerId])) {
+                    $unmappedB2bCustomers[$customerId] = true;
                 }
 
-                $net = round((float) ($header->NetTotal ?? 0), 3);
-                $balance = round((float) ($header->Balance ?? 0), 3);
-                if (abs(($net - $paid) - $balance) > 0.050) {
-                    $paymentBalanceMismatches++;
+                $warehouseId = $maps['warehouses'][$locationId] ?? null;
+                if (
+                    $locationId <= 0
+                    || $warehouseId === null
+                    || ! isset($maps['warehouse_meta'][$warehouseId])
+                    || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
+                ) {
+                    $unmappedLocations[$locationId] = true;
                 }
-            } else {
-                $net = abs(round((float) ($header->NetTotal ?? 0), 3));
-                $total = abs(round((float) ($header->Total ?? 0), 3));
-                $amount = $net > 0.0005 ? $net : $total;
-                $returnAmounts[$headerId] = $amount;
-                if ($amount > 0.0005) {
-                    $returnNonzeroCount++;
+
+                $dateTime = $parseDate($header->TransDate ?? null);
+                if ($dateTime === null) {
+                    $invalidHeaderDates[$headerId] = (int) ($header->TransDate ?? 0);
+                } else {
+                    $headerDateTimes[$headerId] = $dateTime;
+                }
+
+                $type = (int) $header->TransType;
+                if (in_array($type, $salesTypes, true)) {
+                    $paid = round((float) ($header->Paid ?? 0), 3);
+                    if ($paid > 0.0005) {
+                        $paidSalesCount++;
+                    }
+
+                    $net = round((float) ($header->NetTotal ?? 0), 3);
+                    $balance = round((float) ($header->Balance ?? 0), 3);
+                    if (abs(($net - $paid) - $balance) > 0.050) {
+                        $paymentBalanceMismatches++;
+                    }
+                } else {
+                    $net = abs(round((float) ($header->NetTotal ?? 0), 3));
+                    $total = abs(round((float) ($header->Total ?? 0), 3));
+                    $amount = $net > 0.0005 ? $net : $total;
+                    $returnAmounts[$headerId] = $amount;
+                    if ($amount > 0.0005) {
+                        $returnNonzeroCount++;
+                    }
                 }
             }
-        }
+        });
 
         unset($unmappedCustomers[0], $unmappedB2bCustomers[0], $unmappedLocations[0]);
 
@@ -2385,13 +2416,13 @@ SQL));
         $returnHeadersWithoutLines = 0;
         $lineTotalMismatches = 0;
 
-        foreach ($salesHeaders as $headerId => $header) {
+        foreach ($salesHeaderIds as $headerId) {
             if (($detailCounts[$headerId] ?? 0) === 0) {
                 $salesHeadersWithoutLines++;
             }
 
             $lineTotal = round((float) ($detailValueSums[$headerId] ?? 0), 3);
-            $headerTotal = round((float) ($header->Total ?? 0), 3);
+            $headerTotal = (float) ($salesHeaderTotals[$headerId] ?? 0);
             if (abs($lineTotal - $headerTotal) > 0.050) {
                 $lineTotalMismatches++;
             }
@@ -2417,7 +2448,7 @@ SQL));
         }
 
         $planned = [
-            'sales_headers' => count($salesHeaders),
+            'sales_headers' => count($salesHeaderIds),
             'sales_details' => $salesDetails,
             'return_headers' => count($returnHeaders),
             'return_details' => $returnDetails,
@@ -2525,7 +2556,8 @@ SQL));
             $summary = DB::transaction(function () use (
                 $source,
                 $progress,
-                $salesHeaders,
+                $salesHeaderIds,
+                $headerColumns,
                 $returnHeaders,
                 $headerDateTimes,
                 $returnAmounts,
@@ -2546,11 +2578,20 @@ SQL));
                 $sourceInvoiceIds = [];
                 $salesBatchNumber = 0;
 
-                foreach (array_chunk(array_keys($salesHeaders), 250) as $headerIds) {
+                foreach (array_chunk($salesHeaderIds, 250) as $headerIds) {
                     $salesBatchNumber++;
-                    $batchHeaders = [];
-                    foreach ($headerIds as $headerId) {
-                        $batchHeaders[$headerId] = $salesHeaders[$headerId];
+                    $batchHeaders = $source->table('wh_TransHeader')
+                        ->where('Status', 1)
+                        ->whereIn('HeaderId', $headerIds)
+                        ->whereIn('TransType', [3, 19])
+                        ->get($headerColumns)
+                        ->keyBy(static fn ($row): int => (int) $row->HeaderId)
+                        ->all();
+
+                    if (count($batchHeaders) !== count($headerIds)) {
+                        throw new RuntimeException(
+                            'Sales history source changed during apply: a validated sales header is no longer available.'
+                        );
                     }
 
                     $orderRows = [];
