@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\Models\RestaurantLocationProfile;
 use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\LifecycleService;
@@ -68,9 +69,10 @@ final class SmartOrderingOperationsController extends Controller
             : (int) ($setupStoreIds[0] ?? 0);
         $setupStore = Store::query()->findOrFail($setupStoreId);
         $restaurantSetupStatus = $this->onboarding->status($setupStore, $actor);
-        $restaurantLaunched = (bool) ($restaurantSetupStatus['launched'] ?? false);
+        $restaurantSetupManaged = ($restaurantSetupStatus['profile'] ?? null) instanceof RestaurantLocationProfile;
+        $restaurantLaunched = ! $restaurantSetupManaged || (bool) ($restaurantSetupStatus['launched'] ?? false);
 
-        if (! $restaurantLaunched && $tab !== 'branches') {
+        if ($restaurantSetupManaged && ! $restaurantLaunched && $tab !== 'branches') {
             return redirect()->to(route('admin.smart-ordering.operations.index', array_filter([
                 'store_id' => $setupStoreId,
                 'tab' => 'branches',
