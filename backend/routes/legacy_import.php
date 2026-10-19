@@ -331,7 +331,21 @@ Artisan::command(
     'foodex:legacy-stock-source-diagnostics {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         try {
-            $report = $importer->stockSourceDiagnostics();
+            $report = $importer->stockSourceDiagnostics(
+                function (string $stage, string $state, ?float $elapsed): void {
+                    if ((bool) $this->option('json')) {
+                        return;
+                    }
+
+                    if ($state === 'start') {
+                        $this->line('>> '.$stage.' ...');
+
+                        return;
+                    }
+
+                    $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+                },
+            );
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex stock source diagnostics failed: '.$exception->getMessage());
 
@@ -379,16 +393,24 @@ Artisan::command(
             $this->warn('No stock-related SQL view/procedure/function was discovered from module metadata.');
         } else {
             $this->table(
-                ['Schema', 'Object', 'Type', 'Snapshot', 'TransDetails', 'TransPkgQty1', 'CurrentStock'],
+                ['Schema', 'Object', 'Type', 'Reason', 'References'],
                 collect($report['stock_related_modules'])->map(static fn (array $row): array => [
                     $row['schema'],
                     $row['name'],
                     $row['type'],
-                    $row['refs_itemstockonhand'] ? 'yes' : '',
-                    $row['refs_transdetails'] ? 'yes' : '',
-                    $row['refs_transpkgqty1'] ? 'yes' : '',
-                    $row['refs_currentstock'] ? 'yes' : '',
+                    $row['reason'],
+                    implode(', ', $row['references'] ?? []),
                 ])->all(),
+            );
+        }
+
+        if (($report['timings_seconds'] ?? []) !== []) {
+            $this->table(
+                ['Stage', 'Seconds'],
+                collect($report['timings_seconds'])
+                    ->map(static fn ($seconds, $stage): array => [$stage, number_format((float) $seconds, 3)])
+                    ->values()
+                    ->all(),
             );
         }
 
