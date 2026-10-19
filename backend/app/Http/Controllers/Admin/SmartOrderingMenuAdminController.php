@@ -1188,7 +1188,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ];
 
             if ($qr instanceof SmartOrderingQrCode) {
-                $before = $qr->toArray();
+                $before = $this->launchQrAuditState($qr);
                 $qr = $qrManager->update($qr, $qrData, (int) $actor->getKey());
                 if (! $qr->is_enabled) {
                     $qr = $qrManager->setEnabled($qr, true, (int) $actor->getKey());
@@ -1198,11 +1198,25 @@ final class SmartOrderingMenuAdminController extends Controller
                     $qrManager->rotate($qr, (int) $actor->getKey(), false);
                     $qr->refresh()->loadMissing('activeToken');
                 }
-                $audit->record('smart_ordering.qr.launch_synced', $actor, $qr, $before, $qr->toArray(), $request);
+                $audit->record(
+                    'smart_ordering.qr.launch_synced',
+                    $actor,
+                    $qr,
+                    $before,
+                    $this->launchQrAuditState($qr),
+                    $request,
+                );
             } else {
                 $created = $qrManager->create($qrData, (int) $actor->getKey());
                 $qr = $created['qr'];
-                $audit->record('smart_ordering.qr.launch_created', $actor, $qr, null, $qr->toArray(), $request);
+                $audit->record(
+                    'smart_ordering.qr.launch_created',
+                    $actor,
+                    $qr,
+                    null,
+                    $this->launchQrAuditState($qr),
+                    $request,
+                );
             }
 
             $store = Store::query()->findOrFail((int) $site->store_id);
@@ -1589,6 +1603,21 @@ final class SmartOrderingMenuAdminController extends Controller
     }
 
     /** @return array{0:User,1:SmartOrderingSite,2:Collection<int,Store>} */
+    /** @return array<string, mixed> */
+    private function launchQrAuditState(SmartOrderingQrCode $qr): array
+    {
+        return [
+            'public_id' => (string) $qr->public_id,
+            'store_id' => (int) $qr->store_id,
+            'type' => (string) $qr->type,
+            'label' => (string) $qr->label,
+            'target_path' => (string) $qr->target_path,
+            'source' => $qr->source,
+            'medium' => $qr->medium,
+            'is_enabled' => (bool) $qr->is_enabled,
+        ];
+    }
+
     private function authorizeSiteQr(Request $request, SmartOrderingSite $site): User
     {
         $actor = $request->user();
