@@ -135,10 +135,11 @@ final class RestaurantOnboardingService
         ];
 
         $result = $this->result($gates);
+        // Lifecycle marks completion of the guided launch. Runtime may later be
+        // paused for maintenance without sending an already-launched restaurant
+        // back through onboarding.
         $launched = $profile instanceof RestaurantLocationProfile
-            && (string) $profile->lifecycle_state === 'ACTIVE'
-            && (bool) $site->master_enabled
-            && (string) $site->runtime_state === 'ENABLED';
+            && (string) $profile->lifecycle_state === 'ACTIVE';
         $setupFlow = $this->setupFlow($gates, $launched);
 
         return $result + [
