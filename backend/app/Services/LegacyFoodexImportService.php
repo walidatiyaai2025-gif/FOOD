@@ -412,7 +412,16 @@ final class LegacyFoodexImportService
                     }
                 }
 
-                if ($packageName === '' && $package !== 1 && $prices === []) {
+                $barcode = $barcodes[(int) $row->ID.':'.$package] ?? null;
+                $hasPositivePrice = collect($prices)->contains(static fn (float $price): bool => $price > 0);
+
+                if (
+                    $package !== 1
+                    && $packageName === ''
+                    && $conversion === 1.0
+                    && ! $hasPositivePrice
+                    && $barcode === null
+                ) {
                     continue;
                 }
 
@@ -420,7 +429,6 @@ final class LegacyFoodexImportService
                     $packageName = $package === 1 ? 'Base' : 'Package '.$package;
                 }
 
-                $barcode = $barcodes[(int) $row->ID.':'.$package] ?? null;
                 DB::table('product_selling_units')->updateOrInsert(
                     ['product_id' => $targetId, 'code' => 'PKG'.$package],
                     [
