@@ -14,6 +14,61 @@
         $quickMenuItems = ['0' => ['category_key' => $firstCategoryKey, 'name_ar' => '', 'name_en' => '', 'price' => '', 'featured' => false]];
     }
     $quickMenuShouldOpen = old('_quick_menu') === '1';
+    $quickMenuMode = old('_quick_menu_mode', 'create') === 'edit' ? 'edit' : 'create';
+    $quickMenuEditingId = (int) old('quick_menu_id', 0);
+    $quickMediaUrl = static function ($path): ?string {
+        $path = trim((string) $path);
+        if ($path === '') return null;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+    };
+    $quickMenuEditPayloads = [];
+    foreach (($menus ?? collect()) as $editMenu) {
+        $categoryKeyById = [];
+        $editCategories = [];
+        foreach ($editMenu->categories as $categoryIndex => $editCategory) {
+            $categoryKey = (string) $categoryIndex;
+            $categoryKeyById[(int) $editCategory->id] = $categoryKey;
+            $editCategories[] = [
+                'key' => $categoryKey,
+                'id' => (int) $editCategory->id,
+                'name_ar' => (string) ($editCategory->name_ar ?? ''),
+                'name_en' => (string) ($editCategory->name_en ?? ''),
+                'image_url' => $quickMediaUrl($editCategory->image_path),
+            ];
+        }
+
+        $editItems = [];
+        foreach ($editMenu->categories as $editCategory) {
+            foreach ($editCategory->items as $editItem) {
+                $resolvedAmount = data_get($itemPrices ?? [], ((int) $editItem->id).'.amount');
+                $editItems[] = [
+                    'id' => (int) $editItem->id,
+                    'category_key' => $categoryKeyById[(int) $editCategory->id] ?? '0',
+                    'name_ar' => (string) ($editItem->name_ar ?? ''),
+                    'name_en' => (string) ($editItem->name_en ?? ''),
+                    'price' => $editItem->price_override !== null
+                        ? (string) $editItem->price_override
+                        : ($resolvedAmount !== null ? (string) $resolvedAmount : ''),
+                    'featured' => (bool) $editItem->featured,
+                    'image_url' => $quickMediaUrl($editItem->image_path),
+                ];
+            }
+        }
+
+        $quickMenuEditPayloads[(int) $editMenu->id] = [
+            'id' => (int) $editMenu->id,
+            'action' => route('admin.smart-ordering.menu.quick-update', $editMenu),
+            'name_ar' => (string) ($editMenu->name_ar ?? ''),
+            'name_en' => (string) ($editMenu->name_en ?? ''),
+            'image_url' => $quickMediaUrl($editMenu->image_path),
+            'categories' => $editCategories,
+            'items' => $editItems,
+        ];
+    }
+    $quickMenuInitialAction = $quickMenuMode === 'edit' && isset($quickMenuEditPayloads[$quickMenuEditingId])
+        ? $quickMenuEditPayloads[$quickMenuEditingId]['action']
+        : route('admin.smart-ordering.menu.quick-create');
 @endphp
 
 <style>
@@ -110,18 +165,21 @@ body.qm-open{overflow:hidden}
 </div>
 
 <div class="qm-modal" data-qm-modal role="dialog" aria-modal="true" aria-labelledby="qm-title" @if(!$quickMenuShouldOpen) hidden @endif>
-<form class="qm-dialog" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.quick-create') }}" data-qm-form novalidate>
+<form class="qm-dialog" method="post" enctype="multipart/form-data" action="{{ $quickMenuInitialAction }}" data-qm-form novalidate>
     @csrf
+    <input type="hidden" name="_method" value="PUT" data-qm-method @disabled($quickMenuMode !== 'edit')>
     <input type="hidden" name="store_id" value="{{ $site->store_id }}">
     <input type="hidden" name="_quick_menu" value="1">
+    <input type="hidden" name="_quick_menu_mode" value="{{ $quickMenuMode }}" data-qm-mode>
+    <input type="hidden" name="quick_menu_id" value="{{ $quickMenuEditingId ?: '' }}" data-qm-edit-id>
     @if(($quickMenuReturnTo ?? null) === 'menu_setup')
         <input type="hidden" name="return_to" value="menu_setup">
     @endif
 
     <header class="qm-head">
         <div>
-            <h2 id="qm-title">{{ $quickMenuIsAr ? 'إنشاء المنيو بسهولة' : 'Create menu easily' }}</h2>
-            <p>{{ $quickMenuIsAr ? 'كل شيء أساسي في 3 خطوات واضحة، بدون المحرر المعقد.' : 'Everything essential in 3 clear steps.' }}</p>
+            <h2 id="qm-title" data-qm-title>{{ $quickMenuMode === 'edit' ? ($quickMenuIsAr ? 'تعديل المنيو بسهولة' : 'Edit menu easily') : ($quickMenuIsAr ? 'إنشاء المنيو بسهولة' : 'Create menu easily') }}</h2>
+            <p data-qm-subtitle>{{ $quickMenuMode === 'edit' ? ($quickMenuIsAr ? 'عدّل المنيو الحالية والتصنيفات والأصناف من نفس الخطوات الثلاث.' : 'Edit the current menu, categories and items in the same three steps.') : ($quickMenuIsAr ? 'كل شيء أساسي في 3 خطوات واضحة، بدون المحرر المعقد.' : 'Everything essential in 3 clear steps.') }}</p>
         </div>
         <button class="qm-close" type="button" data-qm-close aria-label="{{ $quickMenuIsAr ? 'إغلاق' : 'Close' }}">×</button>
     </header>
@@ -228,7 +286,7 @@ body.qm-open{overflow:hidden}
         <button class="qm-back" type="button" data-qm-back hidden>{{ $quickMenuIsAr ? 'السابق' : 'Back' }}</button>
         <div class="qm-footer-actions">
             <button class="qm-next" type="button" data-qm-next>{{ $quickMenuIsAr ? 'التالي' : 'Next' }}</button>
-            <button class="qm-save" type="submit" data-qm-save hidden>{{ $quickMenuIsAr ? 'حفظ المنيو كمسودة' : 'Save menu as draft' }}</button>
+            <button class="qm-save" type="submit" data-qm-save hidden>{{ $quickMenuMode === 'edit' ? ($quickMenuIsAr ? 'حفظ التعديلات' : 'Save changes') : ($quickMenuIsAr ? 'حفظ المنيو كمسودة' : 'Save menu as draft') }}</button>
         </div>
     </footer>
 </form>
