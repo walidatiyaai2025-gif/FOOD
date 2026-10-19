@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -443,20 +444,16 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     return Scaffold(
       key: const ValueKey('customer-flash-offers-screen'),
       backgroundColor: CustomerUiColors.mint,
-      body: CustomerCurvedHeaderSurface(
-        header: CustomerAccountHeader(
-          title: _ar ? 'العروض السريعة' : 'Flash Offers',
-          subtitle: _ar
-              ? 'عروض محدودة بوقت وكمية واضحة'
-              : 'Limited-time offers with clear availability',
-          trailing: TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: CustomerUiColors.white,
-            ),
+      body: FoodexUnifiedHeaderSurface(
+        title: _ar ? 'العروض السريعة' : 'Flash Offers',
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        trailingActions: [
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: widget.onOpenNormalOffers,
-            child: Text(_ar ? 'العروض العادية' : 'Regular offers'),
+            child: Text(_ar ? 'العادية' : 'Regular'),
           ),
-        ),
+        ],
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(
@@ -782,13 +779,9 @@ class _CustomerFlashCheckoutScreenState
     return Scaffold(
       key: const ValueKey('customer-flash-checkout-screen'),
       backgroundColor: CustomerUiColors.mint,
-      body: CustomerCurvedHeaderSurface(
-        header: CustomerAccountHeader(
-          title: _ar ? 'إتمام العرض السريع' : 'Flash checkout',
-          subtitle: _ar
-              ? 'راجع العنوان والدفع قبل تأكيد الحجز'
-              : 'Review delivery and payment before confirmation',
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: _ar ? 'إتمام العرض السريع' : 'Flash checkout',
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
