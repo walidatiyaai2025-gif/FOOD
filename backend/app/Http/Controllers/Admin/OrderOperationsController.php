@@ -109,6 +109,7 @@ final class OrderOperationsController extends Controller
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
+        $editScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.edit');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
         $storeIds = array_values(array_unique(array_merge(
@@ -230,6 +231,7 @@ final class OrderOperationsController extends Controller
                 $activeStatusCodes,
                 $dispatchScopes,
                 $manageScopes,
+                $editScopes,
                 $financeScopes,
                 $rowContext,
             ))
@@ -445,6 +447,7 @@ final class OrderOperationsController extends Controller
                 $activeStatusCodes,
                 $dispatchScopes,
                 $manageScopes,
+                $editScopes,
                 $financeScopes,
             );
         }
@@ -678,7 +681,7 @@ final class OrderOperationsController extends Controller
         AdminOrderManagementService $orders,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.manage');
+        $model = $this->managedOrder($actor, $order, 'orders.edit');
         $orders->update($request, $actor, $model);
 
         return redirect()
@@ -1909,6 +1912,7 @@ final class OrderOperationsController extends Controller
         array $activeStatusCodes,
         array $dispatchScopes,
         array $manageScopes,
+        array $editScopes,
         array $financeScopes,
         ?OrderOperationsRowContext $context = null,
     ): array {
@@ -2013,20 +2017,25 @@ final class OrderOperationsController extends Controller
             $financeScopes[$channel] ?? [],
             true,
         );
+        $canEditOrder = in_array(
+            (int) $order->store_id,
+            $editScopes[$channel] ?? [],
+            true,
+        );
         $hasIssuedInvoice = $context === null
             ? DB::table('invoices')
                 ->where('order_id', $orderId)
                 ->whereIn('status', ['issued', 'reissued'])
                 ->exists()
             : isset($context->issuedInvoiceOrders[$orderId]);
-        $canEdit = $canManage
+        $canEdit = $canEditOrder
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
             && ($payment->status ?? null) !== 'paid'
             && $hasIssuedInvoice === false;
 
-        $settlement = $context?->settlements[$orderId] ?? null;
-        if ($context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
+        $settlement = $canViewInvoice ? ($context?->settlements[$orderId] ?? null) : null;
+        if ($canViewInvoice && $context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
             $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
             if (
                 $customer instanceof B2bCustomer
@@ -2155,6 +2164,7 @@ final class OrderOperationsController extends Controller
         array $activeStatusCodes,
         array $dispatchScopes,
         array $manageScopes,
+        array $editScopes,
         array $financeScopes,
     ): array {
         $row = $this->row(
@@ -2163,6 +2173,7 @@ final class OrderOperationsController extends Controller
             $activeStatusCodes,
             $dispatchScopes,
             $manageScopes,
+            $editScopes,
             $financeScopes,
         );
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
