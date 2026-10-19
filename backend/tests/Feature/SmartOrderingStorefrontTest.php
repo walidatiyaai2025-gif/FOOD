@@ -246,32 +246,44 @@ final class SmartOrderingStorefrontTest extends TestCase
 
         $snapshot = app(RestaurantMenuContentSnapshotService::class)->snapshot($site, $revision);
 
-        $this->assertSame('/storage/stores/17/branding/logo-example.webp', $snapshot['site']['logo_url']);
+        $this->assertSame(
+            '/smart-ordering/media/stores/17/branding/logo-example.webp',
+            $snapshot['site']['logo_url'],
+        );
 
         $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($snapshot));
         $this->get('/smart-ordering/demo')
             ->assertOk()
-            ->assertSee('src="/storage/stores/17/branding/logo-example.webp"', false)
+            ->assertSee('src="/smart-ordering/media/stores/17/branding/logo-example.webp"', false)
             ->assertSee('data-store-logo', false)
             ->assertSee('onerror="this.hidden=true"', false);
 
-        $reflection = new \ReflectionClass(RestaurantMenuContentSnapshotService::class);
-        $method = $reflection->getMethod('mediaUrl');
-        $method->setAccessible(true);
-        $service = $reflection->newInstanceWithoutConstructor();
-
+        $media = app(\App\Services\SmartOrderingMediaService::class);
         $this->assertSame(
-            '/storage/stores/17/branding/logo-example.webp',
-            $method->invoke($service, '/storage/stores/17/branding/logo-example.webp'),
+            '/smart-ordering/media/stores/17/branding/logo-example.webp',
+            $media->publicUrl('/storage/stores/17/branding/logo-example.webp'),
         );
         $this->assertSame(
             'https://cdn.example.test/store-logo.webp',
-            $method->invoke($service, 'https://cdn.example.test/store-logo.webp'),
+            $media->publicUrl('https://cdn.example.test/store-logo.webp'),
         );
         $this->assertSame(
-            Storage::disk('public')->url('menu/items/burger.webp'),
-            $method->invoke($service, 'menu/items/burger.webp'),
+            '/smart-ordering/media/menu/items/burger.webp',
+            $media->publicUrl('menu/items/burger.webp'),
         );
+    }
+
+    public function test_smart_ordering_media_is_served_from_the_current_origin_without_public_storage_symlink(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('smart-ordering/test/menu-photo.webp', 'menu-photo');
+
+        $this->get('/smart-ordering/media/smart-ordering/test/menu-photo.webp')
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $this->get('/smart-ordering/media/smart-ordering/test/missing.webp')
+            ->assertNotFound();
     }
 
     public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
