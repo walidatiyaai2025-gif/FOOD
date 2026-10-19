@@ -11,12 +11,14 @@
         ? route('admin.restaurant.wholesale-purchases.index', ['retail_store_id' => $restaurantStoreId])
         : null;
 
+    $restaurantOperationsTab = (string) request()->query('tab', '');
     $restaurantPrimaryTasks = [
-        ['key'=>'customer_orders','href'=>$restaurantOperationsUrl('orders'),'visible'=>$restaurantCanOrders],
-        ['key'=>'menu','href'=>route('admin.smart-ordering.menu.index',[...$restaurantWorkspaceQuery,'setup'=>'menu']),'visible'=>$restaurantCanManage],
-        ['key'=>'operations','href'=>route('admin.smart-ordering.operations.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanOrders],
-        ['key'=>'wholesale_purchases','href'=>$restaurantWholesalePurchasesUrl,'visible'=>$restaurantCanOrders && $restaurantWholesalePurchasesUrl],
-        ['key'=>'settings','href'=>route('admin.smart-ordering.index',$restaurantWorkspaceQuery),'visible'=>true],
+        ['key'=>'overview','href'=>route('admin.smart-ordering.index',$restaurantWorkspaceQuery),'visible'=>true,'active'=>request()->routeIs('admin.smart-ordering.index')],
+        ['key'=>'customer_orders','href'=>$restaurantOperationsUrl('orders'),'visible'=>$restaurantCanOrders,'active'=>request()->routeIs('admin.smart-ordering.operations.*') && in_array($restaurantOperationsTab, ['', 'orders'], true)],
+        ['key'=>'operations','href'=>route('admin.smart-ordering.operations.index',$restaurantWorkspaceQuery),'visible'=>$restaurantCanOrders,'active'=>request()->routeIs('admin.smart-ordering.operations.*') && ! in_array($restaurantOperationsTab, ['', 'orders'], true)],
+        ['key'=>'menu','href'=>route('admin.smart-ordering.menu.index',[...$restaurantWorkspaceQuery,'setup'=>'menu']),'visible'=>$restaurantCanManage,'active'=>request()->routeIs('admin.smart-ordering.menu.*')],
+        ['key'=>'wholesale_purchases','href'=>$restaurantWholesalePurchasesUrl,'visible'=>$restaurantCanOrders && $restaurantWholesalePurchasesUrl,'active'=>request()->routeIs('admin.restaurant.wholesale-purchases.*')],
+        ['key'=>'settings','href'=>route('admin.smart-ordering.index',$restaurantWorkspaceQuery).'#settings-site','visible'=>true,'active'=>false],
     ];
 
     $restaurantWorkspaceGroups = [
@@ -60,43 +62,46 @@
 @endphp
 
 <style>
-.restaurant-primary-tasks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0}
-.restaurant-primary-task{display:flex;align-items:center;justify-content:center;min-height:46px;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);color:inherit;text-decoration:none;font-weight:800;text-align:center}
-.restaurant-primary-task:hover,.restaurant-primary-task:focus-visible{background:var(--foodex-green-soft);outline:none}
-.restaurant-workspace-launcher{margin:12px 0 18px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);overflow:hidden}
-.restaurant-workspace-launcher>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:10px 14px;font-weight:800}
+.restaurant-primary-tasks{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:12px 0 8px;padding:8px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface)}
+.restaurant-primary-task{display:flex;align-items:center;justify-content:center;min-height:42px;padding:9px 15px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--foodex-ink);text-decoration:none;font-weight:800;text-align:center;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}
+.restaurant-primary-task:hover,.restaurant-primary-task:focus-visible{background:var(--foodex-green-soft);border-color:var(--foodex-border);color:var(--foodex-green-dark);outline:none}
+.restaurant-primary-task.is-active{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff;box-shadow:0 6px 16px rgba(21,138,58,.15)}
+.restaurant-workspace-launcher{margin:0 0 18px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);overflow:hidden}
+.restaurant-workspace-launcher>summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto 24px;align-items:center;gap:12px;min-height:48px;padding:10px 14px;font-weight:800}
 .restaurant-workspace-launcher>summary::-webkit-details-marker{display:none}
-.restaurant-workspace-launcher>summary::after{content:"+";font-size:1.15rem}
+.restaurant-workspace-launcher>summary::after{content:"+";font-size:1.15rem;text-align:center;color:var(--foodex-green-dark)}
 .restaurant-workspace-launcher[open]>summary::after{content:"−"}
-.restaurant-workspace-groups{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:0 12px 12px}
+.restaurant-workspace-launcher>summary small{font-size:.72rem;font-weight:600;color:var(--foodex-muted)}
+.restaurant-workspace-groups{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:2px 12px 12px}
 .restaurant-workspace-group{min-width:0;padding:10px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}
-.restaurant-workspace-group h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--foodex-muted);margin:0 0 8px}
-.restaurant-workspace-links{display:grid;gap:4px}
-.restaurant-workspace-link{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:7px 8px;border-radius:9px;text-decoration:none;color:inherit;font-size:.86rem;font-weight:700}
-a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{background:var(--foodex-green-soft);outline:none}
+.restaurant-workspace-group h3{font-size:.78rem;letter-spacing:.02em;color:var(--foodex-green-dark);margin:0 0 8px}
+.restaurant-workspace-links{display:grid;gap:3px}
+.restaurant-workspace-link{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:7px 8px;border-radius:9px;text-decoration:none;color:inherit;font-size:.84rem;font-weight:700}
+a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{background:var(--foodex-green-soft);color:var(--foodex-green-dark);outline:none}
 .restaurant-workspace-link.is-partial{border:1px dashed var(--foodex-border)}
 .restaurant-workspace-link.is-unavailable{color:var(--foodex-muted);cursor:default}
-.restaurant-workspace-state{font-size:.68rem;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--foodex-orange-soft);color:var(--foodex-ink)}
-.restaurant-primary-tasks.is-compact{display:flex;align-items:center;gap:6px;overflow-x:auto;margin:6px 0;padding:1px;scrollbar-width:thin}
-.restaurant-primary-tasks.is-compact .restaurant-primary-task{flex:0 0 auto;min-height:34px;padding:6px 10px;border-radius:999px;font-size:.74rem}
-.restaurant-workspace-launcher.is-compact{margin:6px 0 8px;border-radius:12px}
-.restaurant-workspace-launcher.is-compact>summary{min-height:36px;padding:7px 11px;font-size:.76rem}
-.restaurant-workspace-launcher.is-compact>summary small{font-size:.66rem;color:var(--foodex-muted)}
-.restaurant-workspace-launcher.is-compact .restaurant-workspace-groups{gap:6px;padding:0 8px 8px}
-.restaurant-workspace-launcher.is-compact .restaurant-workspace-group{padding:8px}
-
-@media(max-width:1280px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1024px){.restaurant-primary-task{min-height:44px}}
-@media(max-width:768px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}.restaurant-primary-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:430px){.restaurant-primary-tasks{grid-template-columns:1fr 1fr}.restaurant-primary-task{font-size:.82rem;padding:8px}}
+.restaurant-workspace-state{font-size:.66rem;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--foodex-orange-soft);color:var(--foodex-ink)}
+.restaurant-primary-tasks.is-compact{margin-block:8px}
+.restaurant-primary-tasks.is-compact .restaurant-primary-task{min-height:40px;padding:8px 13px}
+.restaurant-workspace-launcher.is-compact{margin-bottom:12px}
+.restaurant-workspace-launcher.is-compact>summary{min-height:44px}
+@media(max-width:1280px){.restaurant-workspace-groups{grid-template-columns:repeat(3,minmax(0,1fr))}.restaurant-primary-tasks{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}}
+@media(max-width:1024px){.restaurant-primary-task{min-height:44px}.restaurant-workspace-launcher>summary{grid-template-columns:minmax(0,1fr) 24px}.restaurant-workspace-launcher>summary small{display:none}}
+@media(max-width:768px){.restaurant-workspace-groups{grid-template-columns:1fr 1fr}.restaurant-primary-tasks{margin-top:8px}}
+@media(max-width:430px){.restaurant-primary-task{font-size:.82rem;padding:8px 11px}.restaurant-workspace-groups{grid-template-columns:1fr}}
 @media(max-width:390px){.restaurant-primary-task{min-height:42px}}
-@media(max-width:360px){.restaurant-workspace-groups,.restaurant-primary-tasks{grid-template-columns:1fr}}
+@media(max-width:360px){.restaurant-workspace-groups{grid-template-columns:1fr}}
 </style>
 
 <nav class="restaurant-primary-tasks {{ ($restaurantManagementCompact ?? false) ? 'is-compact' : '' }}" data-restaurant-task-first-nav aria-label="{{ __('smart_ordering.workspace.tasks_label') }}">
     @foreach($restaurantPrimaryTasks as $task)
         @if($task['visible'] && $task['href'])
-            <a class="restaurant-primary-task" data-restaurant-primary-task="{{ $task['key'] }}" href="{{ $task['href'] }}">{{ __('smart_ordering.workspace.tasks.'.$task['key']) }}</a>
+            <a class="restaurant-primary-task {{ ($task['active'] ?? false) ? 'is-active' : '' }}"
+                data-restaurant-primary-task="{{ $task['key'] }}"
+                href="{{ $task['href'] }}"
+                @if($task['active'] ?? false) aria-current="page" @endif>
+                {{ __('smart_ordering.workspace.tasks.'.$task['key']) }}
+            </a>
         @endif
     @endforeach
 </nav>
