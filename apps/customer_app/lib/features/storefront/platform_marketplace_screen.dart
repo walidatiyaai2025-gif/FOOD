@@ -945,10 +945,14 @@ class _MarketplaceHeader extends StatelessWidget {
 
 
     return FoodexWholesaleHeader(
+      key: const ValueKey('marketplace-compact-header'),
       title: 'FOODEX',
       palette: FoodexPalette.wholesale,
       searchController: searchController,
+      searchKey: const ValueKey('marketplace-search'),
       searchHint: context.tr('customer.marketplace.search_hint'),
+      notificationKey: const ValueKey('marketplace-notifications'),
+      cartKey: const ValueKey('marketplace-cart'),
       onSearchSubmitted: onSearchSubmitted,
       onClearSearch: onSearchClear,
       leading: accountAction(),
@@ -964,6 +968,9 @@ class _MarketplaceHeader extends StatelessWidget {
           icon: Icons.storefront_rounded,
           tooltip: context.tr('customer.nav.home'),
           onPressed: onStore,
+        ),
+        const SizedBox.shrink(
+          key: ValueKey('marketplace-brand-title'),
         ),
       ],
       onNotifications: onNotifications,
