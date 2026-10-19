@@ -254,6 +254,13 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertOk()
             ->assertSee('data-launch-step="design"', false)
             ->assertSee(route('admin.smart-ordering.appearance.apply'), false)
+            ->assertSee('data-theme-confirm-form', false)
+            ->assertSee('data-theme-preview-card', false)
+            ->assertSee('data-theme-preview-iframe', false)
+            ->assertSee('data-theme-device="mobile"', false)
+            ->assertSee('data-theme-device="tablet"', false)
+            ->assertSee('data-theme-device="desktop"', false)
+            ->assertSee('Apply template &amp; continue', false)
             ->assertSee('name="return_to" value="menu_setup"', false)
             ->assertSee(route('admin.smart-ordering.appearance.preview'), false);
 
