@@ -7,6 +7,13 @@
     $readyGateCount = $onboardingGates->where('state', 'ready')->count();
     $blockedGateCount = $onboardingGates->where('state', 'blocked')->count();
     $attentionGateCount = $onboardingGates->where('state', 'attention')->count();
+    $setupSteps = collect($onboardingStatus['setup_flow'] ?? [])->keyBy('key');
+    $currentSetupKey = (string) ($onboardingStatus['current_step'] ?? 'identity');
+    $currentSetupStep = $setupSteps->get($currentSetupKey);
+    $restaurantChannelsStepAvailable = (bool) ($setupSteps->get('channels')['available'] ?? false);
+    $restaurantOperationsStepAvailable = (bool) ($setupSteps->get('operations')['available'] ?? false);
+    $restaurantMenuStepAvailable = (bool) ($setupSteps->get('menu')['available'] ?? false);
+    $restaurantEntryStepAvailable = (bool) ($setupSteps->get('entry')['available'] ?? false);
 @endphp
 <section class="panel so-onboarding {{ $onboardingCompact ? 'is-compact' : '' }}" aria-labelledby="restaurant-onboarding-title">
     <style>
@@ -23,6 +30,9 @@
         .so-onboarding-state[data-state="ready"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .so-onboarding-state[data-state="blocked"]{background:var(--foodex-danger-soft);color:var(--foodex-danger-text)}
         .so-onboarding-state[data-state="attention"]{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
+        .so-onboarding-current{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--foodex-action-green);border-radius:14px;background:var(--foodex-green-soft)}
+        .so-onboarding-current-number{width:44px;height:44px;border-radius:999px;display:grid;place-items:center;background:var(--foodex-action-green);color:#fff;font-weight:900}
+        .so-onboarding-current h3{margin:0;font-size:.9rem}.so-onboarding-current p{margin:3px 0 0;color:var(--foodex-muted);font-size:.72rem}
         .so-onboarding-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap}
         .so-onboarding-imports{display:grid;gap:var(--foodex-space-2)}
         .so-onboarding-import{border-top:1px solid var(--foodex-border);padding-top:var(--foodex-space-2);display:grid;gap:var(--foodex-space-1)}
@@ -68,6 +78,17 @@
         </div>
     </div>
 
+    @if(!($onboardingStatus['launched'] ?? false) && is_array($currentSetupStep))
+        <div class="so-onboarding-current" data-restaurant-current-setup="{{ $currentSetupKey }}">
+            <span class="so-onboarding-current-number">{{ $currentSetupStep['number'] ?? 1 }}</span>
+            <div>
+                <h3>{{ __('restaurant_onboarding.flow.steps.'.$currentSetupKey.'.title') }}</h3>
+                <p>{{ __('restaurant_onboarding.flow.steps.'.$currentSetupKey.'.description') }}</p>
+            </div>
+            <strong>{{ __('restaurant_onboarding.flow.current') }}</strong>
+        </div>
+    @endif
+
     @if($onboardingCompact)
         <details class="so-onboarding-gates-disclosure">
             <summary>
@@ -98,17 +119,19 @@
         </details>
     @endif
 
-    <div class="so-onboarding-actions">
-        <a class="button" href="{{ route('admin.smart-ordering.operations.index', ['store_id' => $site->store_id] + $supportParams) }}">
-            {{ __('restaurant_onboarding.actions.operations') }}
-        </a>
-        <a class="button" href="{{ route('admin.smart-ordering.menu.index', ['store_id' => $site->store_id] + $supportParams) }}">
-            {{ __('restaurant_onboarding.actions.menu') }}
-        </a>
-        <a class="button" href="{{ route('admin.smart-ordering.qr.index', ['store_id' => $site->store_id] + $supportParams) }}">
-            {{ __('restaurant_onboarding.actions.qr') }}
-        </a>
-    </div>
+    @if(!($onboardingStatus['launched'] ?? false))
+        <div class="so-onboarding-actions" data-restaurant-next-action>
+            @if($currentSetupKey === 'channels' && $restaurantChannelsStepAvailable)
+                <a class="button primary" href="#settings-modules">{{ __('restaurant_onboarding.flow.open_step') }} · {{ __('restaurant_onboarding.flow.steps.channels.title') }}</a>
+            @elseif($currentSetupKey === 'operations' && $restaurantOperationsStepAvailable)
+                <a class="button primary" href="{{ route('admin.smart-ordering.operations.index', ['store_id' => $site->store_id, 'tab' => 'branches'] + $supportParams) }}">{{ __('restaurant_onboarding.actions.operations') }}</a>
+            @elseif($currentSetupKey === 'menu' && $restaurantMenuStepAvailable)
+                <a class="button primary" href="{{ route('admin.smart-ordering.menu.index', ['store_id' => $site->store_id, 'setup' => 'menu'] + $supportParams) }}">{{ __('restaurant_onboarding.actions.menu') }}</a>
+            @elseif($currentSetupKey === 'entry' && $restaurantEntryStepAvailable)
+                <a class="button primary" href="{{ route('admin.smart-ordering.qr.index', ['store_id' => $site->store_id] + $supportParams) }}">{{ __('restaurant_onboarding.actions.qr') }}</a>
+            @endif
+        </div>
+    @endif
 
     <div class="so-onboarding-grid">
         <section>
@@ -154,6 +177,7 @@
             @endif
         </section>
 
+        @if($restaurantMenuStepAvailable)
         <section>
             <h3>{{ __('restaurant_onboarding.import_title') }}</h3>
             <p>{{ __('restaurant_onboarding.import_description') }}</p>
@@ -196,6 +220,7 @@
                 <?php endif; ?>
             </div>
         </section>
+        @endif
     </div>
 
     <div class="{{ ($onboardingStatus['can_launch'] ?? false) ? 'foodex-alert success' : 'foodex-alert error' }}" role="status">
