@@ -419,3 +419,102 @@ Artisan::command(
         return 0;
     },
 )->purpose('Discover the legacy Foodex authoritative current-stock calculation/source.');
+
+
+Artisan::command(
+    'foodex:legacy-stock-routine-diagnostics {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        try {
+            $report = $importer->stockRoutineDiagnostics(
+                function (string $stage, string $state, ?float $elapsed): void {
+                    if ((bool) $this->option('json')) {
+                        return;
+                    }
+
+                    if ($state === 'start') {
+                        $this->line('>> '.$stage.' ...');
+
+                        return;
+                    }
+
+                    $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+                },
+            );
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex stock routine diagnostics failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex stock routine diagnostics');
+
+        foreach ($report['objects'] as $object) {
+            $this->newLine();
+            $this->line('=== '.$object['schema'].'.'.$object['name'].' ['.$object['type'].'] ===');
+            $this->line(
+                'definition_length='.$object['definition_length'].
+                ' | transaction_types='.
+                ($object['transaction_types_detected'] === []
+                    ? 'n/a'
+                    : implode(',', $object['transaction_types_detected']))
+            );
+
+            $activeSignals = collect($object['signals'])
+                ->filter(static fn ($enabled): bool => (bool) $enabled)
+                ->keys()
+                ->implode(', ');
+            $this->line('signals: '.($activeSignals !== '' ? $activeSignals : 'none'));
+
+            if ($object['parameters'] !== []) {
+                $this->table(
+                    ['#', 'Parameter', 'Type', 'Length', 'Precision', 'Scale', 'Output'],
+                    collect($object['parameters'])->map(static fn (array $row): array => [
+                        $row['id'],
+                        $row['name'],
+                        $row['type'],
+                        $row['max_length'],
+                        $row['precision'],
+                        $row['scale'],
+                        $row['is_output'] ? 'yes' : '',
+                    ])->all(),
+                );
+            }
+
+            if ($object['columns'] !== []) {
+                $this->table(
+                    ['#', 'Column', 'Type'],
+                    collect($object['columns'])->map(static fn (array $row): array => [
+                        $row['id'],
+                        $row['name'],
+                        $row['type'],
+                    ])->all(),
+                );
+            }
+
+            $this->line('--- definition ---');
+            $this->line($object['definition'] !== '' ? $object['definition'] : '[definition unavailable]');
+            $this->line('--- end definition ---');
+        }
+
+        if (($report['timings_seconds'] ?? []) !== []) {
+            $this->newLine();
+            $this->table(
+                ['Stage', 'Seconds'],
+                collect($report['timings_seconds'])
+                    ->map(static fn ($seconds, $stage): array => [$stage, number_format((float) $seconds, 3)])
+                    ->values()
+                    ->all(),
+            );
+        }
+
+        $this->warn('Read-only routine inspection only. No FOODEX inventory rows were written.');
+
+        return 0;
+    },
+)->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
