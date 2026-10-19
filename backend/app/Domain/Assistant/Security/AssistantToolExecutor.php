@@ -4,6 +4,7 @@ namespace App\Domain\Assistant\Security;
 
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
+use App\Domain\Assistant\Performance\AssistantToolCache;
 use App\Domain\Assistant\Tools\AssistantToolDefinition;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Models\User;
@@ -21,6 +22,7 @@ final class AssistantToolExecutor
         private readonly AuditLogger $audit,
         private readonly AssistantObservability $observability,
         private readonly ?AssistantAiSecurityGuardrails $guardrails = null,
+        private readonly ?AssistantToolCache $cache = null,
     ) {}
 
     public function execute(
@@ -95,6 +97,10 @@ final class AssistantToolExecutor
             );
         }
 
+        $cache = $this->cache ?? app(AssistantToolCache::class);
+        $cached = $cache->get($definition, $request, $principal);
+        $cacheHit = $cached instanceof AssistantToolResult;
+
         $this->audit->record(
             'assistant.tool.read',
             $actor,
@@ -109,13 +115,14 @@ final class AssistantToolExecutor
                 'source' => $definition->source,
                 'row_limit' => $definition->rowLimit,
                 'correlation_id' => $correlationId,
+                'cache_hit' => $cacheHit,
             ],
         );
 
         $startedAt = hrtime(true);
 
         try {
-            $result = $this->tools->get($toolKey)->execute($request);
+            $result = $cached ?? $this->tools->get($toolKey)->execute($request);
         } catch (Throwable $exception) {
             $elapsedMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
 
@@ -137,7 +144,13 @@ final class AssistantToolExecutor
             throw $exception;
         }
 
-        $result = $guardrails->sanitizeToolResult($result, $actor, $toolKey, $correlationId);
+        if (! $cacheHit) {
+            $result = $guardrails->sanitizeToolResult($result, $actor, $toolKey, $correlationId);
+            $cacheTtl = $cache->put($definition, $request, $principal, $result);
+        } else {
+            $cacheTtl = $cache->ttlSeconds($definition);
+        }
+
         $elapsedMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
 
         $this->observability->record($correlationId, 'tool.completed', [
@@ -152,6 +165,8 @@ final class AssistantToolExecutor
                 'data_class' => $dataClass,
                 'source' => $definition->source,
                 'row_limit' => $definition->rowLimit,
+                'cache_hit' => $cacheHit,
+                'cache_ttl_seconds' => $cacheTtl,
             ],
         ]);
 
@@ -169,6 +184,8 @@ final class AssistantToolExecutor
                     'timeout_ms' => $definition->timeoutMs,
                     'elapsed_ms' => $elapsedMs,
                     'correlation_id' => $correlationId,
+                    'cache_hit' => $cacheHit,
+                    'cache_ttl_seconds' => $cacheTtl,
                     'model_sql_allowed' => false,
                 ],
             ],

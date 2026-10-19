@@ -15,6 +15,7 @@ use App\Domain\Assistant\Data\AssistantProviderRequest;
 use App\Domain\Assistant\Data\AssistantProviderResult;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
+use App\Domain\Assistant\Performance\AssistantPerformanceManager;
 use App\Domain\Assistant\Security\AssistantToolExecutor;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use Carbon\CarbonImmutable;
@@ -29,6 +30,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         private readonly AssistantProviderGatewayInterface $provider,
         private readonly AssistantToolRegistry $tools,
         private readonly AssistantToolExecutor $executor,
+        private readonly ?AssistantPerformanceManager $performance = null,
     ) {}
 
     public function run(AgentTurnRequest $request): AgentTurnResult
@@ -39,6 +41,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             locale: $request->locale,
             context: $request->context,
             state: $request->state,
+            actorUserId: $request->actorUserId,
+            correlationId: $request->correlationId,
+            tenantKey: $this->performance()->tenantKey($request->principal),
         ));
 
         $plan = $this->plan($request, $base, $startedAt);
@@ -89,8 +94,24 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         $seenTools = [];
         $totalBytes = 0;
 
+        $hardLatencyBudgetMs = min(
+            $request->budget->maxElapsedMs,
+            $this->performance()->hardLatencyBudgetMs(count($steps)),
+        );
+
         foreach ($steps as $index => $step) {
-            if ($this->elapsedMs($startedAt) > $request->budget->maxElapsedMs) {
+            if ($this->performance()->isCancelled($request->actorUserId, $request->correlationId)) {
+                $failed++;
+                $toolExecutions[] = [
+                    'call_id' => 'call-'.($index + 1),
+                    'tool' => $step['tool'],
+                    'status' => 'FAILED',
+                    'failure_code' => 'REQUEST_CANCELLED',
+                ];
+                break;
+            }
+
+            if ($this->elapsedMs($startedAt) > $hardLatencyBudgetMs) {
                 $failed++;
                 $toolExecutions[] = [
                     'call_id' => 'call-'.($index + 1),
@@ -117,7 +138,8 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             }
             $seenTools[$toolKey] = true;
 
-            if ($this->tools->definition($toolKey)->mode !== 'READ') {
+            $toolMode = strtoupper($this->tools->definition($toolKey)->mode);
+            if (! in_array($toolMode, ['READ', 'DRAFT'], true)) {
                 $failed++;
                 $toolExecutions[] = [
                     'call_id' => $callId,
@@ -163,7 +185,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $toolExecutions[] = [
                     'call_id' => $callId,
                     'tool' => $toolKey,
-                    'status' => $isPartial ? 'PARTIAL' : 'COMPLETE',
+                    'status' => $toolMode === 'DRAFT'
+                        ? 'APPROVAL_REQUIRED'
+                        : ($isPartial ? 'PARTIAL' : 'COMPLETE'),
                     'evidence_id' => $evidenceItem->evidenceId,
                 ];
             } catch (HttpExceptionInterface $exception) {
@@ -268,6 +292,10 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                         'max_result_bytes' => $request->budget->maxTotalResultBytes,
                         'elapsed_ms' => $this->elapsedMs($startedAt),
                     ],
+                    'performance' => $this->performance()->latencyMetadata(
+                        count($steps),
+                        $this->elapsedMs($startedAt),
+                    ),
                     'chain_of_thought_stored' => false,
                 ],
             ],
@@ -297,7 +325,14 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         AssistantBrainResult $base,
         int $startedAt,
     ): array {
-        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt);
+        if ($this->performance()->isCancelled($request->actorUserId, $request->correlationId)) {
+            return [
+                'kind' => 'fallback',
+                'provider' => ['failure' => 'REQUEST_CANCELLED'],
+            ];
+        }
+
+        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt, 2);
         if ($timeoutSeconds === null) {
             return [
                 'kind' => 'fallback',
@@ -305,9 +340,19 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ];
         }
 
+        $allowedTools = array_values(array_filter(
+            $this->tools->providerTools($request->locale),
+            static function (array $tool): bool {
+                $mode = strtoupper((string) data_get($tool, 'x-foodex.mode', 'READ'));
+
+                return $mode === 'READ'
+                    || ($mode === 'DRAFT' && (bool) config('assistant.security.write_actions_enabled', false));
+            },
+        ));
+
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->planningInstructions($request->locale),
-            taskInstructions: 'Select only the minimum registered READ tools needed. Use no more than the server step budget.',
+            taskInstructions: 'Select only the minimum registered READ or approval-gated DRAFT tools needed. A DRAFT is a preview only and never means the business action executed.',
             userContent: $request->userMessage,
             context: [
                 'scope' => $this->scopeSummary($request),
@@ -316,11 +361,13 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 'max_steps' => $request->budget->maxSteps,
                 'max_tool_calls' => $request->budget->maxToolCalls,
             ],
-            allowedTools: $this->tools->providerTools($request->locale),
+            allowedTools: $allowedTools,
             maxTokens: $request->budget->maxPlanningTokens,
             timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
             useCase: 'agent_planning',
+            actorUserId: $request->actorUserId,
+            tenantKey: $this->performance()->tenantKey($request->principal),
         ));
 
         $provider = $this->providerMetadata($providerResult);
@@ -613,7 +660,15 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 : 'There is not enough approved FOODEX source evidence to answer this document question safely.';
         }
 
-        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt);
+        if ($this->performance()->isCancelled($request->actorUserId, $request->correlationId)) {
+            return $this->withKnowledgeCitations(
+                $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
+                $results,
+                $request->locale,
+            );
+        }
+
+        $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt, count($results));
         if ($timeoutSeconds === null) {
             return $this->withKnowledgeCitations(
                 $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
@@ -624,7 +679,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->synthesisInstructions($request->locale),
-            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids.',
+            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids. If a result contains approval_draft, clearly say it is only a pending approval preview and has not executed.',
             userContent: $request->userMessage,
             context: [
                 'status' => $status,
@@ -646,6 +701,8 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
             useCase: 'grounded_synthesis',
+            actorUserId: $request->actorUserId,
+            tenantKey: $this->performance()->tenantKey($request->principal),
         ));
 
         $payload = $providerResult->structuredPayload;
@@ -986,14 +1043,26 @@ PROMPT;
         return (int) round((hrtime(true) - $startedAt) / 1_000_000);
     }
 
-    private function remainingProviderTimeoutSeconds(AgentTurnRequest $request, int $startedAt): ?int
-    {
-        $remainingMs = $request->budget->maxElapsedMs - $this->elapsedMs($startedAt);
+    private function remainingProviderTimeoutSeconds(
+        AgentTurnRequest $request,
+        int $startedAt,
+        int $plannedToolCount,
+    ): ?int {
+        $hardBudgetMs = min(
+            $request->budget->maxElapsedMs,
+            $this->performance()->hardLatencyBudgetMs($plannedToolCount),
+        );
+        $remainingMs = $hardBudgetMs - $this->elapsedMs($startedAt);
         if ($remainingMs < 3000) {
             return null;
         }
 
         return min(12, max(3, intdiv($remainingMs, 1000)));
+    }
+
+    private function performance(): AssistantPerformanceManager
+    {
+        return $this->performance ?? app(AssistantPerformanceManager::class);
     }
 
     private function positiveInt(mixed $value): ?int

@@ -12,6 +12,8 @@ final readonly class AssistantProviderResult
 
     public const FAILURE_MALFORMED = 'PROVIDER_MALFORMED';
 
+    public const FAILURE_OVERLOADED = 'PROVIDER_OVERLOADED';
+
     /**
      * @param  array<string, mixed>|null  $structuredPayload
      * @param  array<int, array{name:string,arguments:array<string,mixed>,id:?string}>  $toolCalls

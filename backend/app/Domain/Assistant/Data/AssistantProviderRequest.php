@@ -21,5 +21,7 @@ final readonly class AssistantProviderRequest
         public ?int $timeoutSeconds = null,
         public ?string $correlationId = null,
         public string $useCase = 'agent_planning',
+        public ?int $actorUserId = null,
+        public ?string $tenantKey = null,
     ) {}
 }

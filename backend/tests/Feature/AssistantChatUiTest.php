@@ -117,19 +117,50 @@ class AssistantChatUiTest extends TestCase
         $this->assertStringContainsString('aria-live="polite"', $view);
         $this->assertStringContainsString('data-assistant-new', $view);
         $this->assertStringContainsString('data-assistant-clear', $view);
+        $this->assertStringContainsString('data-assistant-scope', $view);
+        $this->assertStringContainsString('data-label-context-open', $view);
+        $this->assertStringContainsString("__('assistant_ui.scope_label')", $view);
 
         $this->assertStringContainsString('width:min(410px,calc(100vw - 24px))', $css);
         $this->assertStringContainsString('@media(max-width:1023px)', $css);
         $this->assertStringContainsString('width:100vw', $css);
         $this->assertStringContainsString('inset-inline-end:0', $css);
+        $this->assertStringContainsString('.foodex-assistant-context-entry', $css);
+        $this->assertStringContainsString('min-height:44px', $css);
+        $this->assertStringContainsString('body.foodex-assistant-open-mobile', $css);
 
         $this->assertStringContainsString('foodex.assistant.conversation.', $js);
         $this->assertStringContainsString('/messages', $js);
         $this->assertStringContainsString('renderCards', $js);
         $this->assertStringContainsString('renderActions', $js);
+        $this->assertStringContainsString('renderEvidence', $js);
+        $this->assertStringContainsString('renderFindings', $js);
+        $this->assertStringContainsString('renderApproval', $js);
+        $this->assertStringContainsString('context_token', $js);
+        $this->assertStringContainsString('data-dashboard-assistant-open', $js);
+        $this->assertStringContainsString('data-assistant-context-open', $js);
+        $this->assertStringContainsString('trapFocus', $js);
+        $this->assertStringContainsString('INTERNAL_KEY_PATTERN', $js);
         $this->assertStringContainsString('window.location.origin', $js);
         $this->assertStringContainsString("event.key === 'Escape'", $js);
         $this->assertStringNotContainsString('.innerHTML', $js);
+    }
+
+    public function test_assistant_ui_translation_catalogs_have_arabic_english_key_parity(): void
+    {
+        $english = require lang_path('en/assistant_ui.php');
+        $arabic = require lang_path('ar/assistant_ui.php');
+
+        $englishKeys = array_keys($english);
+        $arabicKeys = array_keys($arabic);
+        sort($englishKeys);
+        sort($arabicKeys);
+
+        $this->assertSame($englishKeys, $arabicKeys);
+        $this->assertSame('Ask about this page', $english['context_open']);
+        $this->assertSame('اسأل عن هذه الصفحة', $arabic['context_open']);
+        $this->assertStringContainsString('FOODEX', $english['scope_denied']);
+        $this->assertStringContainsString('FOODEX', $arabic['scope_denied']);
     }
 
     private function userWithGlobalRole(string $roleCode, string $locale = 'ar'): User

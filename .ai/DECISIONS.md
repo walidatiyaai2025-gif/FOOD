@@ -166,3 +166,18 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** provider failures/injection degrade to the deterministic Assistant where safe; tool/tenant/consent denial never widens scope; writes remain disabled by default; protected benchmarks require server-emitted privacy metadata; security events record bounded reasons without raw malicious prompts/secrets; no public API contract changes.
 
 **Authority:** `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2229.
+
+## D-024 — Proactive intelligence briefs are deterministic snapshots with delivery-time authorization
+**Decision (#2226 / AI-18, 2026-10-19):** The FOODEX Intelligence Center persists recipient-scoped deterministic findings and creates daily/weekly snapshot briefs without requiring an external model. Brief generation is idempotent by user/scope/cadence/business period/locale, stale findings are excluded, and existing `in_app` notifications are the only delivery transport introduced by this scope. Authorization is re-evaluated for the recipient and every referenced finding immediately before delivery.
+
+**Reason:** proactive alerts must not turn a provider narrative, old role assignment or retry into business truth. Durable evidence snapshots let FOODEX explain what triggered a brief while current server-side RBAC prevents a previously authorized snapshot from being delivered after access is revoked.
+
+**Consequences:** upstream #2219/#2220/#2222 services publish findings through the Assistant intelligence ingestion seam; #2224 remains the only authority for executing approved actions; no generic SQL/model credential path or parallel notification system is introduced; provider outages do not stop deterministic generation/deduplication.
+
+**Authority:** `docs/architecture/FOODEX_AI_PROACTIVE_INTELLIGENCE.md`, #2208 and #2226.
+
+## D-024 — AI capacity is isolated; cache never bypasses authorization
+**Decision (#2231 / AI-22, 2026-10-19):** FOODEX treats provider capacity, deterministic result caching and long-running AI work as bounded infrastructure around the existing Assistant. Provider admission is capped globally and per tenant/user with immediate load shedding; deterministic READ results may be cached only for explicit freshness-bearing allowlisted sources after current authorization/consent checks; scheduled AI materialization uses a dedicated background queue; active Assistant turns support cooperative actor/conversation-scoped cancellation and hard latency budgets.
+**Reason:** retry/circuit logic alone does not prevent one tenant or user from exhausting a local provider, stale cross-scope cache reuse can violate authorization, and long-running materialization can starve interactive work. Core commerce must also remain available when Ollama/external AI is slow, saturated or offline.
+**Consequences:** cache identity includes actor, business scope, effective permissions/grants, tenant/store/channel and request arguments; cross-user reuse is intentionally sacrificed for isolation. Saturation returns a provider-overloaded failure that follows the deterministic degraded path instead of waiting. Provider/circuit outages never become a dependency of canonical FOODEX commerce. No public `/api/v1` contract changes are introduced; the cancellation route remains inside the authenticated Management Assistant surface.
+**Authority:** `docs/architecture/FOODEX_AI_PERFORMANCE_RESILIENCE.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2231.
