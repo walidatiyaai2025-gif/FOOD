@@ -24,7 +24,27 @@ Artisan::command(
         $this->line('Source DB: '.$report['source_database']);
         $this->line('Target driver: '.$report['target']['database_driver']);
         $this->line('Transaction range: '.($report['transaction_date_range']['first'] ?? 'n/a').' -> '.($report['transaction_date_range']['last'] ?? 'n/a'));
+        $this->line(
+            'Stock snapshot: '.
+            ($report['stock_snapshot']['first_date'] ?? 'n/a').' -> '.
+            ($report['stock_snapshot']['last_date'] ?? 'n/a').
+            ' | rows='.$report['stock_snapshot']['rows'].
+            ' | stores='.$report['stock_snapshot']['stores'].
+            ' | items='.$report['stock_snapshot']['items']
+        );
         $this->line('Tracking schema ready: '.($report['target']['tracking_ready'] ? 'yes' : 'no'));
+
+        $this->table(
+            ['Price matrix check', 'Candidates', 'Non-linear'],
+            collect($report['price_matrix_consistency'])
+                ->map(fn (array $row, string $key): array => [
+                    $key,
+                    (int) $row['candidate_rows'],
+                    (int) $row['mismatch_rows'],
+                ])
+                ->values()
+                ->all(),
+        );
 
         $this->table(
             ['Source table', 'Rows'],
