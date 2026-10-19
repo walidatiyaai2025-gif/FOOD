@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->text('narrative_en');
             $table->json('evidence');
             $table->json('proposed_action')->nullable();
-            $table->timestamp('snapshot_at');
+            $table->dateTime('snapshot_at');
             $table->timestamp('stale_after_at')->nullable();
             $table->timestamp('acknowledged_at')->nullable();
             $table->timestamp('resolved_at')->nullable();
@@ -66,7 +66,7 @@ return new class extends Migration {
             $table->string('cadence', 16);
             $table->date('period_start');
             $table->date('period_end');
-            $table->timestamp('snapshot_at');
+            $table->dateTime('snapshot_at');
             $table->string('locale', 5);
             $table->string('idempotency_key', 96)->unique();
             $table->json('payload');
