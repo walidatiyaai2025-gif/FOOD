@@ -42,20 +42,34 @@ final class CustomerServiceRoleClosureTest extends TestCase
             'orders.approve',
             'orders.manage',
             'orders.dispatch',
+            'finance.view',
         ] as $permission) {
             $this->assertTrue($manager->hasPermission($permission), $permission);
         }
 
         foreach ([$supervisor, $agent] as $staff) {
-            $this->assertTrue($staff->hasPermission('orders.view'));
-            $this->assertTrue($staff->hasPermission('drivers.tracking.view'));
-            $this->assertTrue($staff->hasPermission('orders.create'));
-            $this->assertFalse($staff->hasPermission('orders.manage'));
+            foreach ([
+                'orders.view',
+                'orders.create',
+                'orders.manage',
+                'orders.dispatch',
+                'finance.view',
+                'drivers.tracking.view',
+            ] as $permission) {
+                $this->assertTrue($staff->hasPermission($permission), $permission);
+            }
+
+            $this->assertFalse($staff->hasPermission('orders.edit'));
+            $this->assertFalse($staff->hasPermission('finance.manage'));
             $this->assertFalse($staff->hasPermission('customer_service.team.manage'));
-            $this->assertContains(
-                $principalStoreId,
-                app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.create', 'b2b'),
-            );
+
+            foreach (['orders.create', 'orders.manage', 'orders.dispatch', 'finance.view'] as $permission) {
+                $this->assertContains(
+                    $principalStoreId,
+                    app(OperationalTenantScope::class)->allowedStoreIds($staff, $permission, 'b2b'),
+                    $permission,
+                );
+            }
         }
 
         $this->assertTrue($manager->hasPermission('drivers.tracking.view'));
@@ -218,29 +232,79 @@ final class CustomerServiceRoleClosureTest extends TestCase
         }
     }
 
-    public function test_agent_can_reach_new_order_workflow_without_receiving_order_management(): void
+    public function test_agent_sees_status_dispatch_and_invoice_actions_without_commercial_or_finance_mutation(): void
     {
         $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
         $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $customer = app(B2bCustomerService::class)->create(['name' => 'Service Action Customer']);
+
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $principalStoreId,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => (int) $customer->getKey(),
+            'order_number' => 'CS-ACTIONS-1001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $invoiceId = (int) DB::table('invoices')->insertGetId([
+            'order_id' => $orderId,
+            'store_id' => $principalStoreId,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => (int) $customer->getKey(),
+            'invoice_number' => 'CS-INV-1001',
+            'status' => 'issued',
+            'channel' => 'b2b',
+            'currency' => 'KWD',
+            'total' => 10,
+            'issued_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->actingAs($agent)
-            ->get(route('admin.operations.orders.index', ['channel' => 'b2b']))
+            ->get(route('admin.operations.orders.index', [
+                'channel' => 'b2b',
+                'order' => $orderId,
+                'action_required' => 0,
+            ]))
             ->assertOk()
             ->assertViewHas('newOrderWizard', function (array $wizard): bool {
                 return collect($wizard['channels'])->contains(
                     fn (array $channel): bool => $channel['code'] === 'b2b'
                 );
-            });
+            })
+            ->assertSee('data-order-invoice', false)
+            ->assertSee('data-order-dispatch-workspace', false)
+            ->assertSee('data-b2b-customer-service-approval', false)
+            ->assertDontSee('data-order-edit', false);
 
         $this->actingAs($agent)
-            ->withHeader('Accept', 'application/json')
-            ->post(route('admin.operations.orders.quote'), [
-                'channel' => 'b2b',
-                'store_id' => $principalStoreId,
-            ])
-            ->assertStatus(422);
+            ->get(route('admin.invoices.show', ['invoice' => $invoiceId]))
+            ->assertOk();
 
-        $this->assertFalse($agent->hasPermission('orders.manage'));
+        $this->actingAs($agent)
+            ->post(route('admin.invoices.settle', ['invoice' => $invoiceId]), [
+                'amount' => 1,
+            ])
+            ->assertNotFound();
+
+        $this->actingAs($agent)
+            ->patch(route('admin.operations.orders.update', ['order' => $orderId]), [])
+            ->assertNotFound();
+
+        $this->assertTrue($agent->hasPermission('orders.manage'));
+        $this->assertTrue($agent->hasPermission('orders.dispatch'));
+        $this->assertTrue($agent->hasPermission('finance.view'));
+        $this->assertFalse($agent->hasPermission('orders.edit'));
+        $this->assertFalse($agent->hasPermission('finance.manage'));
     }
 
     public function test_manager_can_assign_and_unassign_order_followup_only_to_customer_service_team(): void
