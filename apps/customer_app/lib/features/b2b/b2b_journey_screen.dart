@@ -222,67 +222,47 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           key: const ValueKey('b2b-invoices-screen'),
-          backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            header: KeyedSubtree(
-              key: const ValueKey('b2b-invoices-app-bar'),
-              child: Row(
-                key: const ValueKey('b2b-invoices-header-row'),
-                children: [
-                  CustomerOutlineIconButton(
-                    key: const ValueKey('b2b-invoices-back'),
-                    icon: Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_forward_rounded
-                        : Icons.arrow_back_rounded,
-                    tooltip:
-                        MaterialLocalizations.of(context).backButtonTooltip,
-                    onPressed: () => Navigator.of(context).maybePop(),
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                FoodexWholesaleHeader(
+                  title: context.tr('b2b.app.title'),
+                  palette: FoodexPalette.wholesale,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Flexible(
-                    child: Text(
-                      content.$1,
-                      key: const ValueKey('b2b-invoices-header-title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: CustomerUiColors.white,
-                                fontWeight: FontWeight.w900,
-                                height: 1,
-                              ),
-                    ),
+                  onSearchSubmitted: (value) {
+                    final query = value.trim();
+                    if (query.isEmpty) return;
+                    Navigator.of(context).pushNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          if (commerceContext?.storeId != null)
+                            'store_id': commerceContext!.storeId.toString(),
+                          'channel': 'wholesale',
+                          'q': query,
+                        },
+                      ).toString(),
+                    );
+                  },
+                  onNotifications: () => Navigator.of(context).pushNamed(
+                    _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Container(
-                    width: CustomerUiStroke.hairline,
-                    height: 30,
-                    color: CustomerUiColors.white,
+                  onCart: () =>
+                      Navigator.of(context).pushNamed(_b2bCartRoute()),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey('b2b-invoices-scroll'),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child:
+                        _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      content.$2,
-                      key: const ValueKey('b2b-invoices-header-subtitle'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: CustomerUiColors.white,
-                            fontWeight: FontWeight.w500,
-                            height: 1,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                key: const ValueKey('b2b-invoices-scroll'),
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -4560,49 +4540,37 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       child: Scaffold(
         key: const ValueKey('b2b-more-redesign'),
         backgroundColor: bg,
-        body: CustomerCurvedHeaderSurface(
-          header: CustomerAccountHeader(
-            key: const ValueKey('b2b-more-header-title'),
-            title: context.tr('customer.nav.more'),
-            subtitle: '',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FutureBuilder<Object?>(
-                  future: cart,
-                  builder: (_, snap) => _HeaderCircle(
-                    icon: Icons.shopping_cart_outlined,
-                    onTap: () => _open(widget.cartRoute),
-                    badge: snap.hasData ? _cartCount(snap.data) : null,
-                  ),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              FoodexWholesaleHeader(
+                title: context.tr('b2b.app.title'),
+                palette: FoodexPalette.wholesale,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
                 ),
-                const SizedBox(width: CustomerUiSpacing.xs),
-                FutureBuilder<Object?>(
-                  future: notifications,
-                  builder: (_, snap) {
-                    final count = snap.hasData ? _unreadCount(snap.data) : null;
-                    return _HeaderCircle(
-                      icon: Icons.notifications_none_rounded,
-                      onTap: () => _open(widget.notificationsRoute),
-                      dot: count != null && count > 0,
-                    );
-                  },
-                ),
-                const SizedBox(width: CustomerUiSpacing.xs),
-                IconButton(
-                  key: const ValueKey('b2b-more-back'),
-                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: Icon(
-                    ar ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
-                    color: CustomerUiColors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                onSearchSubmitted: (value) {
+                  final query = value.trim();
+                  if (query.isEmpty) return;
+                  _open(
+                    Uri(
+                      path: CustomerRoutePaths.b2bProducts,
+                      queryParameters: <String, String>{
+                        if (widget.storeId != null && widget.storeId! > 0)
+                          'store_id': widget.storeId.toString(),
+                        'channel': 'wholesale',
+                        'q': query,
+                      },
+                    ).toString(),
+                  );
+                },
+                onNotifications: () => _open(widget.notificationsRoute),
+                onCart: () => _open(widget.cartRoute),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
             child: Column(
               key: const ValueKey('b2b-account-hub'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4695,8 +4663,10 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         ),
                   ),
                 ],
-              ],
+              ),
             ),
+              ),
+            ],
           ),
         ),
       ),
