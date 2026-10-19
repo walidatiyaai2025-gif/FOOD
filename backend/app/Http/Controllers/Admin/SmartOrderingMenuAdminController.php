@@ -771,8 +771,6 @@ final class SmartOrderingMenuAdminController extends Controller
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'slug' => ['required', 'string', 'max:64'],
-            'runtime_state' => ['required', 'string', Rule::in((array) config('smart_ordering.runtime_states', []))],
-            'master_enabled' => ['nullable', 'boolean'],
         ]);
 
         $payload = (array) $draft->payload;
@@ -806,13 +804,8 @@ final class SmartOrderingMenuAdminController extends Controller
 
         DB::transaction(function () use ($actor, $site, $sites, $revisions, $draft, $payload, $data, $request): void {
             $sites->renameSlug($actor, $site, (string) $data['slug'], $request);
-            $sites->updateRuntime(
-                $actor,
-                $site->fresh(),
-                (string) $data['runtime_state'],
-                $request->boolean('master_enabled'),
-                $request,
-            );
+            // Guided setup never enables runtime here. Runtime is activated only
+            // by the final restaurant launch gate after every prerequisite passes.
             $revisions->updateDraft($actor, $draft->fresh(), $payload, $request);
         });
 
