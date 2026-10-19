@@ -1294,7 +1294,7 @@ void main() {
       );
       expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('b2b-product-detail-header')),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
       expect(
@@ -1702,7 +1702,7 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
     expect(find.text('سلة الجملة'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1891,8 +1891,10 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(find.text('Wholesale cart'), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-header')), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       expect(find.text('Bulk Water'), findsOneWidget);
       expect(find.text('W-101'), findsNothing);
       expect(find.text('Case 12'), findsOneWidget);
