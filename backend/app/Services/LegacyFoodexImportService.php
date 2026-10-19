@@ -3293,7 +3293,7 @@ SQL));
         }
     }
 
-    public function salesHistoryHeaderDiagnostics(array $headerIds): array
+    public function salesHistoryHeaderDiagnostics(array $headerIds, ?callable $progress = null): array
     {
         $source = DB::connection('foodex_legacy');
 
@@ -3308,62 +3308,76 @@ SQL));
             throw new RuntimeException('At least one positive legacy HeaderId is required.');
         }
 
-        $headers = $source->table('wh_TransHeader')
-            ->whereIn('HeaderId', $ids)
-            ->orderBy('HeaderId')
-            ->get([
-                'HeaderId',
-                'TransType',
-                'TransDate',
-                'CustomerId',
-                'StoreId',
-                'SalesRepId',
-                'CarHeaderId',
-                'SalesHeaderId',
-                'Code',
-                'DocTransNo',
-                'ReferenceNo',
-                'PriceType',
-                'PayType',
-                'Paid',
-                'PaidCash',
-                'PaidByVisa',
-                'Total',
-                'NetTotal',
-                'Balance',
-                'HdrDiscount',
-                'HdrTax',
-                'HdrAddtions',
-                'Periodterm',
-                'Status',
-                'Notes',
-            ]);
-
-        $details = $source->table('wh_TransDetails')
-            ->whereIn('HeaderId', $ids)
-            ->orderBy('HeaderId')
-            ->orderBy('DetailId')
-            ->get([
-                'DetailId',
-                'HeaderId',
-                'ItemID',
-                'Package',
-                'Qty',
-                'TransPkgQty1',
-                'Price',
-                'TransPkgPrice1',
-                'Value',
-                'DetailDiscount1',
-                'DetailDiscount2',
-                'DetailDiscount3',
-                'DetailTax',
-                'Status',
-            ]);
-
         $byHeader = [];
+
         foreach ($ids as $id) {
-            $header = $headers->firstWhere('HeaderId', $id);
-            $rows = $details->where('HeaderId', $id)->values();
+            if ($progress !== null) {
+                $progress('header_'.$id, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+
+            $header = $source->table('wh_TransHeader')
+                ->where('HeaderId', $id)
+                ->first([
+                    'HeaderId',
+                    'TransType',
+                    'TransDate',
+                    'CustomerId',
+                    'StoreId',
+                    'SalesRepId',
+                    'CarHeaderId',
+                    'SalesHeaderId',
+                    'Code',
+                    'DocTransNo',
+                    'ReferenceNo',
+                    'PriceType',
+                    'PayType',
+                    'Paid',
+                    'PaidCash',
+                    'PaidByVisa',
+                    'Total',
+                    'NetTotal',
+                    'Balance',
+                    'HdrDiscount',
+                    'HdrTax',
+                    'HdrAddtions',
+                    'Periodterm',
+                    'Status',
+                    'Notes',
+                ]);
+
+            if ($progress !== null) {
+                $progress('header_'.$id, 'done', round(microtime(true) - $startedAt, 3));
+                $progress('details_'.$id, 'start', null);
+            }
+
+            $detailsStartedAt = microtime(true);
+
+            $rows = $source->table('wh_TransDetails')
+                ->where('HeaderId', $id)
+                ->orderBy('DetailId')
+                ->get([
+                    'DetailId',
+                    'HeaderId',
+                    'ItemID',
+                    'Package',
+                    'Qty',
+                    'TransPkgQty1',
+                    'Price',
+                    'TransPkgPrice1',
+                    'Value',
+                    'DetailDiscount1',
+                    'DetailDiscount2',
+                    'DetailDiscount3',
+                    'DetailTax',
+                    'Status',
+                ]);
+
+            if ($progress !== null) {
+                $progress('details_'.$id, 'done', round(microtime(true) - $detailsStartedAt, 3));
+            }
+
             $active = $rows->filter(static fn ($row): bool => (int) ($row->Status ?? 0) === 1)->values();
 
             $byHeader[$id] = [
