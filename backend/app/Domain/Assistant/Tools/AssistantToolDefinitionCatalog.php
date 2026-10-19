@@ -71,6 +71,9 @@ final class AssistantToolDefinitionCatalog
             'sort' => ['type' => 'string', 'enum' => ['top', 'slow']],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 25],
         ]);
+        $wholesaleExecutive = self::schema([
+            'target_revenue' => ['type' => 'number', 'minimum' => 0],
+        ]);
         $drivers = self::schema([
             'driver_id' => self::integer(),
             'driver_name' => self::string(120),
@@ -88,6 +91,7 @@ final class AssistantToolDefinitionCatalog
         $add('customers.summary', 'Summarize authorized customer activity.', 'تلخيص نشاط العملاء المصرح به.', ['customers.view', 'b2b.accounts.view'], 'any', ['b2b', 'b2c'], $customers, 'AssistantBusinessReadService', rowLimit: 25);
         $add('customers.activity', 'Read bounded activity for one authorized customer.', 'قراءة نشاط محدود لعميل واحد مصرح به.', ['customers.view', 'b2b.accounts.view'], 'any', ['b2b', 'b2c'], $customers, 'AssistantBusinessReadService', rowLimit: 25);
         $add('products.performance', 'Return top or slow selling authorized SKUs for a bounded period.', 'عرض المنتجات الأعلى أو الأبطأ مبيعًا لفترة محدودة ومصرح بها.', ['catalog.view'], 'all', ['b2b', 'b2c'], $products, 'AssistantBusinessReadService', rowLimit: 25);
+        $add('executive.wholesale', 'Analyze authorized wholesale sell-in performance and rank intervention priorities with evidence.', 'تحليل أداء البيع بالجملة المصرح به وترتيب أولويات التدخل مع الأدلة.', ['reports.view', 'catalog.view', 'b2b.accounts.view'], 'all', ['b2b'], $wholesaleExecutive, 'WholesaleExecutiveIntelligenceService', rowLimit: 100, timeoutMs: 5000);
 
         $add('orders.late', 'List bounded late orders in the authorized scope.', 'عرض الطلبات المتأخرة ضمن النطاق المصرح به.', ['orders.view'], 'all', ['b2b', 'b2c'], $orders, 'AssistantOperationsReadService', rowLimit: 50);
         $add('orders.cancelled', 'List bounded cancelled orders in the authorized scope.', 'عرض الطلبات الملغاة ضمن النطاق المصرح به.', ['orders.view'], 'all', ['b2b', 'b2c'], $orders, 'AssistantOperationsReadService', rowLimit: 50);
