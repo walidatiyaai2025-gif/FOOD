@@ -128,10 +128,10 @@ final class RestaurantOnboardingService
             $this->gate('qr', true, $qrRequired, $qrReady),
             $this->gate('operator', true, true, $operatorReady),
             $this->gate('legal_contact', false, true, $legalReady),
-            $this->gate('contact_channel', false, $contactRequired, $contactReady),
+            $this->gate('contact_channel', true, $contactRequired, $contactReady),
             $this->gate('payment', false, false, true),
             $this->gate('launch_preview', false, true, $previewReady),
-            $this->gate('health', false, true, $healthReady),
+            $this->gate('health', true, true, $healthReady),
         ];
 
         $result = $this->result($gates);
