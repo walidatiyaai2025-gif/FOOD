@@ -201,6 +201,7 @@ final class SmartOrderingController extends Controller
         SmartOrderingSite $site,
         SmartOrderingRevisionService $revisions,
         TenantContextResolver $tenants,
+        SmartOrderingWhatsAppLinkService $whatsAppLinks,
     ): RedirectResponse {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
         $revisions->createOrReuseDraft($actor, $site, $request);
@@ -226,7 +227,6 @@ final class SmartOrderingController extends Controller
             'description_en' => ['nullable', 'string', 'max:1000'],
             'description_ar' => ['nullable', 'string', 'max:1000'],
             'phone' => ['nullable', 'string', 'max:40'],
-            'whatsapp_url' => ['nullable', 'url', 'max:500'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'about_en' => ['nullable', 'string', 'max:1600'],
@@ -250,10 +250,12 @@ final class SmartOrderingController extends Controller
 
         foreach ([
             'name_en', 'name_ar', 'tagline_en', 'tagline_ar',
-            'description_en', 'description_ar', 'phone', 'whatsapp_url',
+            'description_en', 'description_ar', 'phone',
         ] as $field) {
             $identity[$field] = trim((string) ($data[$field] ?? ''));
         }
+
+        $identity['whatsapp_url'] = $whatsAppLinks->fromPhone($identity['phone'] ?? null) ?? '';
 
         foreach ([
             'about_en', 'about_ar', 'chef_note_en', 'chef_note_ar',
