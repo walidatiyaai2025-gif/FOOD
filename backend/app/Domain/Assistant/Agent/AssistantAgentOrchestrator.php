@@ -876,7 +876,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
      */
     private function knowledgeEvidenceInsufficient(array $results): bool
     {
-        if (count($results) !== 1 || ! isset($results['knowledge.search']) || ! is_array($results['knowledge.search'])) {
+        if (count($results) !== 1 || ! isset($results['knowledge.search'])) {
             return false;
         }
 
