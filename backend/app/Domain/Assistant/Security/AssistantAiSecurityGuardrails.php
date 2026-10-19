@@ -362,15 +362,15 @@ final class AssistantAiSecurityGuardrails
         $limit = min(250, max(10, (int) config('assistant.security.max_collection_items', 100)));
         $items = array_slice($items, 0, $limit);
 
-        return array_values(array_map(
+        return array_map(
             fn (array $item): array => $this->sanitizeArray($item, $redacted),
             $items,
-        ));
+        );
     }
 
     /**
-     * @param  array<string,mixed>  $values
-     * @return array<string,mixed>
+     * @param  array<array-key,mixed>  $values
+     * @return array<array-key,mixed>
      */
     private function sanitizeArray(array $values, int &$redacted, int $depth = 0, bool $untrusted = false): array
     {
@@ -521,7 +521,7 @@ final class AssistantAiSecurityGuardrails
             return false;
         }
 
-        foreach ($matches[0] ?? [] as $candidate) {
+        foreach ($matches[0] as $candidate) {
             $decoded = base64_decode($candidate, true);
             if (! is_string($decoded) || $decoded === '') {
                 continue;
