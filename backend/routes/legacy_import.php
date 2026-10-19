@@ -787,3 +787,84 @@ Artisan::command(
         return 1;
     },
 )->purpose('Verify the committed legacy Foodex stock baseline after import.');
+
+
+Artisan::command(
+    'foodex:legacy-sales-header-diagnostics {headerId* : Legacy wh_TransHeader IDs} {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        try {
+            $report = $importer->salesHistoryHeaderDiagnostics((array) $this->argument('headerId'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex sales header diagnostics failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex sales header diagnostics');
+
+        foreach ($report['headers'] as $headerId => $row) {
+            $this->newLine();
+            $this->line('=== Header '.$headerId.' ===');
+
+            if ($row['header'] === null) {
+                $this->error('Header not found.');
+                continue;
+            }
+
+            $h = $row['header'];
+            $this->table(
+                ['Type', 'Date', 'Customer', 'Store', 'PayType', 'Paid', 'Cash', 'Visa', 'Total', 'NetTotal', 'Balance', 'Status'],
+                [[
+                    $h['TransType'] ?? '',
+                    $h['TransDate'] ?? '',
+                    $h['CustomerId'] ?? '',
+                    $h['StoreId'] ?? '',
+                    $h['PayType'] ?? '',
+                    $h['Paid'] ?? '',
+                    $h['PaidCash'] ?? '',
+                    $h['PaidByVisa'] ?? '',
+                    $h['Total'] ?? '',
+                    $h['NetTotal'] ?? '',
+                    $h['Balance'] ?? '',
+                    $h['Status'] ?? '',
+                ]],
+            );
+
+            $this->line(
+                'details_total='.$row['details_total'].
+                ' | active='.$row['details_active'].
+                ' | value_sum_all='.$row['detail_value_sum_all'].
+                ' | value_sum_active='.$row['detail_value_sum_active'].
+                ' | base_qty_sum_active='.$row['detail_base_qty_sum_active']
+            );
+
+            if ($row['details'] !== []) {
+                $this->table(
+                    ['Detail', 'Status', 'Item', 'Pkg', 'Qty', 'BaseQty', 'Price', 'BasePrice', 'Value', 'Tax'],
+                    collect($row['details'])->map(static fn (array $d): array => [
+                        $d['DetailId'] ?? '',
+                        $d['Status'] ?? '',
+                        $d['ItemID'] ?? '',
+                        $d['Package'] ?? '',
+                        $d['Qty'] ?? '',
+                        $d['TransPkgQty1'] ?? '',
+                        $d['Price'] ?? '',
+                        $d['TransPkgPrice1'] ?? '',
+                        $d['Value'] ?? '',
+                        $d['DetailTax'] ?? '',
+                    ])->all(),
+                );
+            }
+        }
+
+        $this->warn('Read-only source inspection only.');
+
+        return 0;
+    },
+)->purpose('Inspect specific legacy Foodex sales/return headers and their detail rows.');
