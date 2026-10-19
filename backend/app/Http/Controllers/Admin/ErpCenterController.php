@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EnterpriseModuleEntitlement;
 use App\Models\User;
 use App\Services\EnterpriseActionCenter;
+use App\Services\EnterpriseModuleAdministration;
 use App\Services\EnterpriseMyWork;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -50,6 +51,7 @@ final class ErpCenterController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
+        private readonly EnterpriseModuleAdministration $moduleAdministration,
         private readonly ModuleEntitlementManager $entitlementManager,
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly TenantContextResolver $tenants,
@@ -63,7 +65,7 @@ final class ErpCenterController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $this->bootstrapLocalSuperAdminEntitlements($actor);
+        $this->bootstrapLocalSuperAdminModules($actor);
 
         $cards = array_values(array_filter([
             $this->moduleCard(
@@ -218,7 +220,7 @@ final class ErpCenterController extends Controller
         ]);
     }
 
-    private function bootstrapLocalSuperAdminEntitlements(User $actor): void
+    private function bootstrapLocalSuperAdminModules(User $actor): void
     {
         if (! app()->environment(['local', 'testing']) || ! $actor->hasRole('SUPER_ADMIN')) {
             return;
@@ -226,7 +228,7 @@ final class ErpCenterController extends Controller
 
         foreach (self::LOCAL_SUPER_ADMIN_MODULES as $moduleCode) {
             if ($this->modules->state($moduleCode) !== ModuleState::ENABLED) {
-                continue;
+                $this->moduleAdministration->perform($moduleCode, 'enable', $actor);
             }
 
             $platformScope = EntitlementScope::platform();
