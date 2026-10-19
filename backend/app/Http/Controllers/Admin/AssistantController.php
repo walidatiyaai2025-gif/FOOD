@@ -16,6 +16,7 @@ use App\Domain\Assistant\Support\AssistantMemoryPolicy;
 use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AssistantObservability;
 use App\Services\AssistantRuntimeSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ final class AssistantController extends Controller
         private readonly AssistantContextToken $contextToken,
         private readonly AssistantMemoryPolicy $memoryPolicy,
         private readonly AssistantRuntimeSettings $runtimeSettings,
+        private readonly AssistantObservability $observability,
     ) {}
 
     public function bootstrap(Request $request): JsonResponse
@@ -154,14 +156,23 @@ final class AssistantController extends Controller
             $message,
             $this->locale($data['locale'] ?? $conversation->locale ?? $user->locale),
         );
-        $contextInput = isset($data['context_token'])
-            ? $this->contextToken->pageContext($user, (string) $data['context_token'])
-            : (array) ($data['context'] ?? []);
-        $context = $this->pageContext->resolve($user, $contextInput);
         $correlationId = (string) Str::uuid();
+        $turnStartedAt = hrtime(true);
+        $traceStoreId = null;
+
+        $this->observability->record($correlationId, 'turn.started', [
+            'actor_user_id' => $user->getKey(),
+            'phase' => 'turn',
+            'outcome' => 'started',
+        ]);
 
         try {
+            $contextInput = isset($data['context_token'])
+                ? $this->contextToken->pageContext($user, (string) $data['context_token'])
+                : (array) ($data['context'] ?? []);
+            $context = $this->pageContext->resolve($user, $contextInput);
             $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
+            $traceStoreId = $principal->activeStoreId;
             $contextEnvelope = $this->contextToken->issue($principal);
             $preferences = $this->memoryPolicy->safePreferences((array) ($data['preferences'] ?? []), $locale);
 
@@ -246,16 +257,56 @@ final class AssistantController extends Controller
                     'context_token' => $contextEnvelope['token'],
                     'context_expires_at' => $contextEnvelope['expires_at'],
                     'context' => $contextEnvelope['context'],
+                    '_trace_outcome' => $agentResult->status,
                 ];
             });
+
+            $this->observability->record($correlationId, 'turn.completed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $principal->activeStoreId ?? $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => (string) $payload['_trace_outcome'],
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+            unset($payload['_trace_outcome']);
         } catch (HttpExceptionInterface|ValidationException $exception) {
+            $status = $exception instanceof HttpExceptionInterface
+                ? 'HTTP_'.$exception->getStatusCode()
+                : 'VALIDATION_FAILED';
+
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => $status,
+                'status_code' => $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 422,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+
             throw $exception;
         } catch (InvalidArgumentException $exception) {
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => 'REQUEST_INVALID',
+                'status_code' => 422,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
+
             return response()->json(['error' => [
                 'code' => 'ASSISTANT_REQUEST_INVALID',
                 'message' => $locale === 'ar' ? 'تعذر تنفيذ هذا الطلب بالمدخلات الحالية.' : 'This request cannot be completed with the current inputs.',
             ]], 422);
         } catch (Throwable $exception) {
+            $this->observability->record($correlationId, 'turn.failed', [
+                'actor_user_id' => $user->getKey(),
+                'store_id' => $traceStoreId,
+                'phase' => 'turn',
+                'outcome' => 'UNAVAILABLE',
+                'status_code' => 503,
+                'latency_ms' => (int) round((hrtime(true) - $turnStartedAt) / 1_000_000),
+            ]);
             report($exception);
 
             return response()->json(['error' => [

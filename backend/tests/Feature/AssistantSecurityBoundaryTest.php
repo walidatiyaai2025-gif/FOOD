@@ -11,6 +11,7 @@ use App\Domain\Assistant\Security\RetailerSellOutAccessPolicy;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AssistantObservability;
 use App\Services\AuditLogger;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
@@ -232,6 +233,7 @@ class AssistantSecurityBoundaryTest extends TestCase
             app(AiPrincipalContextResolver::class),
             app(RetailerSellOutAccessPolicy::class),
             app(AuditLogger::class),
+            app(AssistantObservability::class),
         );
 
         try {
