@@ -5,6 +5,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
+
 class FoodexPalette {
   const FoodexPalette({
     required this.primary,
@@ -67,6 +70,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.location,
     this.logoUrl,
     this.address,
     super.key,
@@ -77,6 +81,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
   final String? address;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final String? location;
   final FoodexPalette palette;
   final TextEditingController? searchController;
   final String? searchHint;
@@ -84,6 +89,114 @@ class FoodexWholesaleHeader extends StatelessWidget {
   final Key searchKey;
   final ValueChanged<String>? onSearchChanged;
   final VoidCallback? onClearSearch;
+
+  String? _currentLocation(BuildContext context) =>
+      location ?? ModalRoute.of(context)?.settings.name;
+
+  CustomerCommerceContext? _scope(BuildContext context) =>
+      CustomerCommerceContext.tryParseLocation(_currentLocation(context));
+
+  void _defaultSearch(BuildContext context, String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    final current = _currentLocation(context);
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bProducts,
+          queryParameters: <String, String>{
+            ...scope!.toQueryParameters(),
+            'q': query,
+          },
+        ).toString(),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailProducts(scope!, query: query),
+      );
+      return;
+    }
+    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bProducts,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+            'q': query,
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  void _defaultNotifications(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleNotifications(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailNotifications(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bNotifications,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  void _defaultCart(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleCart(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailCart(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bCart,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Container(
@@ -133,7 +246,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
                   key: searchKey,
                   controller: searchController,
                   textInputAction: TextInputAction.search,
-                  onSubmitted: onSearchSubmitted,
+                  onSubmitted: onSearchSubmitted ?? (value) => _defaultSearch(context, value),
                   onChanged: onSearchChanged,
                   style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(
@@ -194,12 +307,12 @@ class FoodexWholesaleHeader extends StatelessWidget {
             const SizedBox(width: 6),
             _FoodexWholesaleHeaderIcon(
               icon: Icons.notifications_none_rounded,
-              onTap: onNotifications,
+              onTap: onNotifications ?? () => _defaultNotifications(context),
             ),
             const SizedBox(width: 4),
             _FoodexWholesaleHeaderIcon(
               icon: Icons.shopping_cart_outlined,
-              onTap: onCart,
+              onTap: onCart ?? () => _defaultCart(context),
             ),
           ],
         ),
