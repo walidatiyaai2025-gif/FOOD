@@ -2065,6 +2065,7 @@ SQL));
 
         $salesHeaderIds = [];
         $salesHeaderTotals = [];
+        $salesHeaderFinancials = [];
         $returnHeaders = [];
         $headerTypes = [];
         $typeCounts = [];
@@ -2075,6 +2076,7 @@ SQL));
             $returnTypes,
             &$salesHeaderIds,
             &$salesHeaderTotals,
+            &$salesHeaderFinancials,
             &$returnHeaders,
             &$headerTypes,
             &$typeCounts,
@@ -2088,6 +2090,12 @@ SQL));
                 if (in_array($type, $salesTypes, true)) {
                     $salesHeaderIds[] = $headerId;
                     $salesHeaderTotals[$headerId] = round((float) ($header->Total ?? 0), 3);
+                    $salesHeaderFinancials[$headerId] = [
+                        'total' => round((float) ($header->Total ?? 0), 3),
+                        'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                        'paid' => round((float) ($header->Paid ?? 0), 3),
+                        'balance' => round((float) ($header->Balance ?? 0), 3),
+                    ];
                 } elseif (in_array($type, $returnTypes, true)) {
                     $returnHeaders[$headerId] = $header;
                 }
@@ -2491,22 +2499,41 @@ SQL));
         }
 
         $salesHeadersWithoutLines = 0;
+        $zeroEffectSalesHeadersSkipped = 0;
         $returnHeadersWithoutLines = 0;
         $lineTotalMismatches = 0;
         $salesHeadersWithoutLinesSamples = [];
+        $zeroEffectSalesHeaderIds = [];
         $lineTotalMismatchSamples = [];
 
         foreach ($salesHeaderIds as $headerId) {
             if (($detailCounts[$headerId] ?? 0) === 0) {
-                $salesHeadersWithoutLines++;
-                if (count($salesHeadersWithoutLinesSamples) < 20) {
-                    $salesHeadersWithoutLinesSamples[] = $headerId;
+                $financials = $salesHeaderFinancials[$headerId] ?? [
+                    'total' => 0.0,
+                    'net_total' => 0.0,
+                    'paid' => 0.0,
+                    'balance' => 0.0,
+                ];
+
+                $zeroEffect = abs((float) $financials['total']) <= 0.0005
+                    && abs((float) $financials['net_total']) <= 0.0005
+                    && abs((float) $financials['paid']) <= 0.0005
+                    && abs((float) $financials['balance']) <= 0.0005;
+
+                if ($zeroEffect) {
+                    $zeroEffectSalesHeadersSkipped++;
+                    $zeroEffectSalesHeaderIds[] = $headerId;
+                } else {
+                    $salesHeadersWithoutLines++;
+                    if (count($salesHeadersWithoutLinesSamples) < 20) {
+                        $salesHeadersWithoutLinesSamples[] = $headerId;
+                    }
                 }
             }
 
             $lineTotal = round((float) ($detailValueSums[$headerId] ?? 0), 3);
             $headerTotal = (float) ($salesHeaderTotals[$headerId] ?? 0);
-            if (abs($lineTotal - $headerTotal) > 0.050) {
+            if (($detailCounts[$headerId] ?? 0) > 0 && abs($lineTotal - $headerTotal) > 0.050) {
                 $lineTotalMismatches++;
                 if (count($lineTotalMismatchSamples) < 20) {
                     $lineTotalMismatchSamples[] = [
@@ -2519,6 +2546,8 @@ SQL));
                 }
             }
         }
+
+        $materializableSalesHeaderIds = array_values(array_diff($salesHeaderIds, $zeroEffectSalesHeaderIds));
 
         foreach ($returnHeaders as $headerId => $header) {
             if (($detailCounts[$headerId] ?? 0) === 0) {
@@ -2540,7 +2569,9 @@ SQL));
         }
 
         $planned = [
-            'sales_headers' => count($salesHeaderIds),
+            'sales_headers_source' => count($salesHeaderIds),
+            'sales_headers_materialized' => count($materializableSalesHeaderIds),
+            'zero_effect_sales_headers_skipped' => $zeroEffectSalesHeadersSkipped,
             'sales_details' => $salesDetails,
             'return_headers' => count($returnHeaders),
             'return_details' => $returnDetails,
@@ -2577,6 +2608,7 @@ SQL));
                     'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
                     'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
                     'sales_headers_without_lines' => $salesHeadersWithoutLinesSamples,
+                    'zero_effect_sales_headers_skipped' => $zeroEffectSalesHeaderIds,
                     'line_total_mismatches' => $lineTotalMismatchSamples,
                     'sales_zero_qty_lines' => $zeroQtyLineSamples,
                     'payment_balance_mismatches' => $paymentBalanceMismatchSamples,
@@ -2595,6 +2627,9 @@ SQL));
                     'return_types' => $returnTypes,
                     'historical_import_does_not_mutate_inventory' => true,
                     'sales_materialize_as_completed_b2b_orders_and_issued_invoices' => true,
+                    'zero_effect_header_without_lines_is_skipped_with_quarantine_provenance' => true,
+                    'invoice_total_authority_is_net_total' => true,
+                    'subtotal_prefers_active_detail_value_sum' => true,
                     'paid_amounts_materialize_as_payments' => true,
                     'legacy_balance_is_provenance_only_not_invoice_outstanding' => true,
                     'payment_status_uses_paid_vs_net_total' => true,
@@ -2663,7 +2698,8 @@ SQL));
             $summary = DB::transaction(function () use (
                 $source,
                 $progress,
-                $salesHeaderIds,
+                $materializableSalesHeaderIds,
+                $zeroEffectSalesHeaderIds,
                 $headerColumns,
                 $returnHeaders,
                 $headerDateTimes,
@@ -2685,7 +2721,7 @@ SQL));
                 $sourceInvoiceIds = [];
                 $salesBatchNumber = 0;
 
-                foreach (array_chunk($salesHeaderIds, 250) as $headerIds) {
+                foreach (array_chunk($materializableSalesHeaderIds, 250) as $headerIds) {
                     $salesBatchNumber++;
                     $batchHeaders = $source->table('wh_TransHeader')
                         ->where('Status', 1)
@@ -2698,6 +2734,39 @@ SQL));
                     if (count($batchHeaders) !== count($headerIds)) {
                         throw new RuntimeException(
                             'Sales history source changed during apply: a validated sales header is no longer available.'
+                        );
+                    }
+
+                    $detailRows = $source->table('wh_TransDetails')
+                        ->where('Status', 1)
+                        ->whereIn('HeaderId', $headerIds)
+                        ->orderBy('DetailId')
+                        ->get([
+                            'DetailId',
+                            'HeaderId',
+                            'ItemID',
+                            'ItemBarCode',
+                            'Package',
+                            'Qty',
+                            'TransPkgQty1',
+                            'TransPkgPrice1',
+                            'Price',
+                            'Value',
+                            'CostPrice',
+                            'DetailDiscount1',
+                            'DetailDiscount2',
+                            'DetailDiscount3',
+                            'DetailTax',
+                            'DetailRemark',
+                        ]);
+
+                    $batchDetailValueSums = [];
+                    foreach ($detailRows as $detailRow) {
+                        $detailHeaderId = (int) $detailRow->HeaderId;
+                        $batchDetailValueSums[$detailHeaderId] = round(
+                            (float) ($batchDetailValueSums[$detailHeaderId] ?? 0)
+                            + (float) ($detailRow->Value ?? 0),
+                            3,
                         );
                     }
 
@@ -2727,7 +2796,10 @@ SQL));
                             'channel' => 'b2b',
                             'status' => 'completed',
                             'currency' => 'EGP',
-                            'subtotal' => round((float) ($header->Total ?? 0), 3),
+                            'subtotal' => round(
+                                (float) ($batchDetailValueSums[$headerId] ?? ($header->Total ?? 0)),
+                                3,
+                            ),
                             'discount_total' => abs(round((float) ($header->HdrDiscount ?? 0), 3)),
                             'delivery_total' => 0,
                             'tax_total' => round((float) ($header->HdrTax ?? 0), 3),
@@ -2829,7 +2901,10 @@ SQL));
                             'customer_name_snapshot' => $customerMeta['name'],
                             'customer_email_snapshot' => $customerMeta['email'],
                             'customer_phone_snapshot' => $customerMeta['phone'],
-                            'subtotal' => round((float) ($header->Total ?? 0), 3),
+                            'subtotal' => round(
+                                (float) ($batchDetailValueSums[$headerId] ?? ($header->Total ?? 0)),
+                                3,
+                            ),
                             'discount_total' => abs(round((float) ($header->HdrDiscount ?? 0), 3)),
                             'delivery_total' => 0,
                             'tax_total' => round((float) ($header->HdrTax ?? 0), 3),
@@ -2853,6 +2928,7 @@ SQL));
                                 'code' => $header->Code,
                                 'reference_no' => $header->ReferenceNo,
                                 'legacy_total' => (float) ($header->Total ?? 0),
+                                'detail_value_sum' => (float) ($batchDetailValueSums[$headerId] ?? 0),
                                 'legacy_net_total' => (float) ($header->NetTotal ?? 0),
                                 'legacy_paid' => (float) ($header->Paid ?? 0),
                                 'legacy_balance' => (float) ($header->Balance ?? 0),
@@ -2884,29 +2960,6 @@ SQL));
                         }
                         $sourceInvoiceIds[$headerId] = (int) $invoice->id;
                     }
-
-                    $detailRows = $source->table('wh_TransDetails')
-                        ->where('Status', 1)
-                        ->whereIn('HeaderId', $headerIds)
-                        ->orderBy('DetailId')
-                        ->get([
-                            'DetailId',
-                            'HeaderId',
-                            'ItemID',
-                            'ItemBarCode',
-                            'Package',
-                            'Qty',
-                            'TransPkgQty1',
-                            'TransPkgPrice1',
-                            'Price',
-                            'Value',
-                            'CostPrice',
-                            'DetailDiscount1',
-                            'DetailDiscount2',
-                            'DetailDiscount3',
-                            'DetailTax',
-                            'DetailRemark',
-                        ]);
 
                     $orderItemRows = [];
                     $invoiceItemRows = [];
@@ -3225,6 +3278,40 @@ SQL));
                     );
                 }
 
+                $zeroEffectQuarantined = 0;
+                if ($zeroEffectSalesHeaderIds !== []) {
+                    $skippedHeaders = $source->table('wh_TransHeader')
+                        ->whereIn('HeaderId', $zeroEffectSalesHeaderIds)
+                        ->get($headerColumns);
+
+                    foreach ($skippedHeaders as $skippedHeader) {
+                        $sourceKey = (string) ((int) $skippedHeader->HeaderId);
+                        DB::table('legacy_import_quarantine')->updateOrInsert(
+                            [
+                                'source_system' => self::SOURCE_SYSTEM,
+                                'source_table' => 'wh_TransHeader',
+                                'source_key' => $sourceKey,
+                                'reason' => 'zero_effect_empty_sales_header_skipped',
+                            ],
+                            [
+                                'payload' => $this->json([
+                                    'source' => (array) $skippedHeader,
+                                    '_migration' => [
+                                        'phase' => 'sales-history',
+                                        'decision' => 'skip',
+                                        'reason' => 'No detail rows and zero Total/NetTotal/Paid/Balance; no business effect.',
+                                    ],
+                                ]),
+                                'run_id' => $runId,
+                                'resolved_at' => now(),
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ],
+                        );
+                        $zeroEffectQuarantined++;
+                    }
+                }
+
                 $target = [
                     'orders' => (int) DB::table('orders')->count(),
                     'order_items' => (int) DB::table('order_items')->count(),
@@ -3263,6 +3350,10 @@ SQL));
                     'invoice_items' => ['created' => $invoiceItemsCreated],
                     'payments' => ['created' => $paymentsCreated],
                     'returns' => ['ledger_entries_created' => $returnLedgerCreated],
+                    'skipped_zero_effect_sales_headers' => [
+                        'count' => $zeroEffectQuarantined,
+                        'source_header_ids' => $zeroEffectSalesHeaderIds,
+                    ],
                     'target' => $target,
                     'inventory_mutations' => 0,
                 ];
