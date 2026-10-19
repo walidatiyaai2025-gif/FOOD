@@ -36,7 +36,7 @@ class AdminNavigation
     /** @return array<string, array<string, mixed>> */
     public function for(User $user): array
     {
-        $memoKey = spl_object_id($user);
+        $memoKey = (int) $user->getKey();
         if (array_key_exists($memoKey, $this->visibleChannelsMemo)) {
             return $this->visibleChannelsMemo[$memoKey];
         }
@@ -66,17 +66,26 @@ class AdminNavigation
         $isSuperAdmin = $this->isSuperAdmin($user);
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
+        $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index') : null,
-                $canAccessPlatformNavigation ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index') : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
+                    : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
+                    : null,
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
+                $useCustomerServiceDashboardProfile
+                    ? ($this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
+                        ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'))
+                    : null,
             ]),
-            $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp ? [
+            $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile ? [
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
                 $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
@@ -156,7 +165,9 @@ class AdminNavigation
                 $this->routeItem($user, 'mobile_van_download', 'admin.mobile_apps.van_download', 'admin.mobile-apps.van.download', 'platform.manage'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
-                $canAccessPlatformNavigation ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index') : null,
+                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index')
+                    : null,
             ]),
         ];
 
@@ -210,6 +221,10 @@ class AdminNavigation
 
         if (! is_array($channelDefinition) || ! is_string($channelDefinition['route'] ?? null)) {
             return route('admin.index');
+        }
+
+        if ($this->usesCustomerServiceDashboardProfile($user)) {
+            return route('admin.erp.customer-service');
         }
 
         $visibleItems = [];
@@ -441,6 +456,19 @@ class AdminNavigation
         return $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->exists();
+    }
+
+    public function usesCustomerServiceDashboardProfile(User $user): bool
+    {
+        if ($this->isSuperAdmin($user)) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', ['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'])
             ->exists();
     }
 
@@ -715,7 +743,7 @@ class AdminNavigation
 
     private function isSuperAdmin(User $user): bool
     {
-        $memoKey = spl_object_id($user);
+        $memoKey = (int) $user->getKey();
 
         return $this->superAdminMemo[$memoKey]
             ??= $user->hasRole('SUPER_ADMIN');
@@ -727,7 +755,7 @@ class AdminNavigation
             return true;
         }
 
-        $memoKey = spl_object_id($user).'|'.$permission;
+        $memoKey = (int) $user->getKey().'|'.$permission;
 
         return $this->permissionMemo[$memoKey]
             ??= $user->hasPermission($permission);

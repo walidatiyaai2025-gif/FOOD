@@ -23,6 +23,7 @@ class AssistantConversationState extends Model
             'last_authorized_entities' => 'array',
             'result_references' => 'array',
             'pending_clarification_slots' => 'array',
+            'safe_preferences' => 'array',
         ];
     }
 }

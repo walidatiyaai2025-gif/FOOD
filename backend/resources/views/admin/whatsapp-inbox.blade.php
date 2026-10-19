@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ __('whatsapp.inbox.page_title') }}</title>
+<script>if(window.self!==window.top){document.documentElement.classList.add('wa-embedded')}</script>
 @include('admin._brand-components')
 <style>
 .wa-shell{display:grid;gap:14px}.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}.wa-toolbar,.wa-profile{padding:16px}
@@ -102,6 +103,18 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
     .wa-meta-cell:last-child{border-bottom:0}
     .wa-compose-bottom{flex-wrap:wrap}
 }
+
+html.wa-embedded,html.wa-embedded body{height:100%;min-height:100%;overflow:hidden;background:var(--foodex-background)}
+html.wa-embedded .wa-inbox-layout{display:block!important;width:100%!important;height:100dvh!important;min-height:0!important}
+html.wa-embedded .wa-inbox-layout>.sidebar,html.wa-embedded .foodex-global-header{display:none!important}
+html.wa-embedded .wa-inbox-main{width:100%!important;max-width:none!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:10px!important;overflow:hidden!important}
+html.wa-embedded .wa-shell{height:100%;min-height:0;gap:0}
+html.wa-embedded .wa-workspace{height:100%;min-height:0}
+html.wa-embedded .wa-conversation-pane,html.wa-embedded .wa-thread-pane,html.wa-embedded .wa-context{height:100%;min-height:0}
+html.wa-embedded .wa-conversation-pane>.wa-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+html.wa-embedded .wa-list-pagination{flex:0 0 auto;max-height:84px;overflow:auto}
+html.wa-embedded .wa-thread-pane .wa-timeline{min-height:0}
+@media(max-width:1180px){html.wa-embedded .wa-inbox-main{overflow:auto!important}html.wa-embedded .wa-shell{height:auto;min-height:100%}html.wa-embedded .wa-workspace{height:auto;min-height:calc(100dvh - 20px)}}
 
 </style>
 </head>
@@ -1035,5 +1048,22 @@ html[dir=ltr] .wa-golden-workspace{grid-template-areas:"rail thread context"}
 })();
 </script>
 @endif
+<script>
+(() => {
+    if (window.self === window.top) return;
+
+    const requestClose = () => {
+        window.parent.postMessage({type:'foodex:close-customer-service-inbox'}, window.location.origin);
+    };
+
+    document.querySelector('.wa-inbox-back')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        requestClose();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') requestClose();
+    });
+})();
+</script>
 </body>
 </html>

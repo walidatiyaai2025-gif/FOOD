@@ -51,6 +51,7 @@ class SmartOrderingScheduledPublishTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('type="datetime-local"', false)
@@ -113,6 +114,7 @@ class SmartOrderingScheduledPublishTest extends TestCase
             ->get(route('admin.smart-ordering.menu.index', [
                 'store_id' => $fixture['store_id'],
                 'review' => 1,
+                'legacy' => 1,
             ]))
             ->assertOk()
             ->assertSee('id="so-scheduled-publish-state"', false)

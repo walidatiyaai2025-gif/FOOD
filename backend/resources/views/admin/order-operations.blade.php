@@ -6,10 +6,102 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.workspace-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:10px 14px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-surface,#fff);font-size:.82rem}.workspace-context span{display:inline-flex;align-items:center;gap:6px}.workspace-context strong{color:var(--foodex-muted)}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
-.status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
-.table-wrap{overflow:visible}.ops-table{width:100%;min-width:0;table-layout:fixed;font-size:.78rem}.ops-table th,.ops-table td{padding:8px 6px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.ops-table th:nth-child(1){width:9%}.ops-table th:nth-child(2){width:8%}.ops-table th:nth-child(3){width:11%}.ops-table th:nth-child(4){width:10%}.ops-table th:nth-child(5){width:12%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:10%}.ops-table th:nth-child(8){width:9%}.ops-table th:nth-child(9){width:11%}.ops-table th:nth-child(10){width:5%}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:#fff7e6;border:1px solid #f3c36b;font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sales-ops-bars{height:180px;align-items:flex-end}.sales-ops-bar-link{min-height:8px;text-decoration:none}.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:8px}.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--foodex-border);border-radius:10px;color:inherit;text-decoration:none}.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto}.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:var(--foodex-green-soft);overflow:hidden}.sales-ops-ranked-bars b{display:block;height:100%;background:var(--foodex-green);border-radius:inherit}
-@media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
+.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(132px,1fr));min-width:0;margin:6px 0;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
+.order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,var(--foodex-palette-158a3a) 0%,var(--foodex-palette-2563eb) 18%,var(--foodex-palette-7c3aed) 34%,var(--foodex-palette-ea580c) 50%,var(--foodex-palette-dc2626) 66%,var(--foodex-palette-0891b2) 82%,var(--foodex-palette-be123c) 100%);background-size:180% 100%;animation:orderKpiEdge 7.5s linear infinite}
+.order-kpi-item{--order-kpi-accent:var(--foodex-palette-158a3a);--order-kpi-soft:var(--foodex-palette-eaf7ef);position:relative;min-width:132px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 12px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
+.order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
+.order-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}.order-kpi-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:17px;height:17px}
+.order-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.63rem;font-weight:800;line-height:1.35}.order-kpi-value{align-self:center;display:block;width:100%;max-width:100%;font-size:1.22rem;line-height:1.12;color:var(--foodex-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;text-overflow:clip}
+.order-kpi-state{position:absolute;inset-inline-end:10px;bottom:10px;width:7px;height:7px;border-radius:999px;background:var(--foodex-border)}.order-kpi-state[data-state="success"]{background:var(--foodex-palette-16a34a)}.order-kpi-state[data-state="warning"]{background:var(--foodex-palette-ea580c)}.order-kpi-state[data-state="danger"],.order-kpi-state[data-state="error"]{background:var(--foodex-palette-dc2626)}
+.order-kpi-item[data-tone="green"]{--order-kpi-accent:var(--foodex-palette-158a3a);--order-kpi-soft:var(--foodex-palette-eaf7ef)}.order-kpi-item[data-tone="blue"]{--order-kpi-accent:var(--foodex-palette-2563eb);--order-kpi-soft:var(--foodex-palette-eff6ff)}.order-kpi-item[data-tone="violet"]{--order-kpi-accent:var(--foodex-palette-7c3aed);--order-kpi-soft:var(--foodex-palette-f5f3ff)}.order-kpi-item[data-tone="orange"]{--order-kpi-accent:var(--foodex-palette-ea580c);--order-kpi-soft:var(--foodex-palette-fff7ed)}.order-kpi-item[data-tone="red"]{--order-kpi-accent:var(--foodex-palette-dc2626);--order-kpi-soft:var(--foodex-palette-fef2f2)}.order-kpi-item[data-tone="amber"]{--order-kpi-accent:var(--foodex-palette-b45309);--order-kpi-soft:var(--foodex-palette-fffbeb)}.order-kpi-item[data-tone="cyan"]{--order-kpi-accent:var(--foodex-palette-0e7490);--order-kpi-soft:var(--foodex-palette-ecfeff)}.order-kpi-item[data-tone="rose"]{--order-kpi-accent:var(--foodex-palette-be123c);--order-kpi-soft:var(--foodex-palette-fff1f2)}
+@keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:8px;margin-bottom:6px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
+.status-tabs{display:flex;gap:6px;overflow:auto;padding:2px 0 6px;margin-bottom:0}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
+.order-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;margin:0 0 6px}
+.order-workspace-tabs{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;margin:0;overflow-x:auto;overflow-y:hidden;padding:2px;scrollbar-width:thin;flex:0 1 auto}
+.order-workspace-filter-slot{display:flex;align-items:center;justify-content:flex-end;min-width:0;margin-inline-start:auto;flex:0 1 auto}
+.order-workspace-tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.78rem;font-weight:900;white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.035);transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+.order-workspace-tab:hover{transform:translateY(-1px);border-color:var(--foodex-palette-b8d9c2);color:var(--foodex-green-dark)}
+.order-workspace-tab[aria-selected="true"]{border-color:var(--foodex-action-green);background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 22px rgba(21,138,58,.16)}
+.order-workspace-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:var(--foodex-palette-dbeafe);color:var(--foodex-palette-1d4ed8);font-size:.68rem;font-weight:900;font-variant-numeric:tabular-nums}
+.order-workspace-tab[aria-selected="true"] .order-workspace-tab-count{background:rgba(255,255,255,.2);color:#fff}
+.order-tab-panel{min-width:0;width:100%}.order-tab-panel[hidden]{display:none!important}
+.foodex-module-overview{display:grid;gap:6px}
+.order-tab-panel[data-order-panel="analytics"]{display:grid;gap:6px}
+.order-analytics-tabs{display:flex;align-items:center;gap:5px;overflow-x:auto;padding:0 0 2px;margin:0;scrollbar-width:thin}
+.order-analytics-subtab{min-height:34px;padding:0 13px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.7rem;font-weight:900;white-space:nowrap;cursor:pointer;transition:background .22s ease,color .22s ease,border-color .22s ease,transform .22s ease}
+.order-analytics-subtab:hover{transform:translateY(-1px);border-color:var(--foodex-palette-bfd5c6);color:var(--foodex-green-dark)}
+.order-analytics-subtab[aria-selected="true"]{border-color:var(--foodex-palette-146c36);background:var(--foodex-palette-eaf7ef);color:var(--foodex-palette-146c36);box-shadow:inset 0 0 0 1px rgba(20,108,54,.08)}
+[data-analytics-group][hidden]{display:none!important}
+.foodex-module-panels,.sales-ops-chart-grid{gap:6px!important;margin:0!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-card{padding:10px!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{margin-bottom:5px!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-module-chart-summary{margin:5px 0!important}
+.table-wrap{overflow:visible;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.045)}
+.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.74rem}
+.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
+.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
+.ops-table tbody tr:last-child td{border-bottom:0}
+.ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
+.ops-table th:nth-child(1){width:15%}.ops-table th:nth-child(2){width:17%}.ops-table th:nth-child(3){width:13%}.ops-table th:nth-child(4){width:18%}.ops-table th:nth-child(5){width:15%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:7%}
+.order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
+.order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
+.order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
+.order-grid-row.is-action-required td{background:linear-gradient(90deg,rgba(245,158,11,.045),rgba(255,255,255,0) 38%)}
+.order-grid-row.is-action-required:hover td{background:linear-gradient(90deg,rgba(245,158,11,.085),rgba(249,251,250,.92) 42%)}
+.order-grid-primary{display:grid;gap:4px;min-width:0}.order-grid-primary>a{color:var(--foodex-green-dark);font-size:.82rem;font-weight:900;text-decoration:none}.order-grid-primary>a:hover{text-decoration:underline}
+.order-grid-title{font-weight:900;color:var(--foodex-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-grid-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--foodex-muted);font-size:.63rem}
+.order-mini-chip{display:inline-flex;align-items:center;min-height:20px;padding:0 7px;border-radius:999px;background:var(--foodex-palette-f1f5f9);color:var(--foodex-palette-475569);font-size:.59rem;font-weight:800;white-space:nowrap}
+.order-status-chip{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:0 9px;border:1px solid var(--status-border);border-radius:999px;background:var(--status-bg);color:var(--status-fg);font-size:.63rem;font-weight:900;white-space:nowrap}
+.order-status-chip[data-state="pending"],.order-status-chip[data-state="waiting"],.order-status-chip[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}
+.order-status-chip[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}
+.order-status-chip[data-state="preparing"],.order-status-chip[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}
+.order-status-chip[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}
+.order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
+.order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
+.order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
+.order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
+.order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.order-execution{display:grid;gap:5px;min-width:0}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
+.order-grid-actions{text-align:center}
+.status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
+.status-tab[data-order-action-tab]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fdba74)}
+.status-tab[data-order-status-tab="pending"]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fed7aa)}
+.status-tab[data-order-status-tab="confirmed"]{--status-tab-bg:var(--foodex-palette-eff6ff);--status-tab-fg:var(--foodex-palette-1d4ed8);--status-tab-border:var(--foodex-palette-bfdbfe)}
+.status-tab[data-order-status-tab="preparing"]{--status-tab-bg:var(--foodex-palette-f5f3ff);--status-tab-fg:var(--foodex-palette-6d28d9);--status-tab-border:var(--foodex-palette-ddd6fe)}
+.status-tab[data-order-status-tab="ready"]{--status-tab-bg:var(--foodex-palette-ecfeff);--status-tab-fg:var(--foodex-palette-0e7490);--status-tab-border:var(--foodex-palette-a5f3fc)}
+.status-tab[data-order-status-tab="out_for_delivery"]{--status-tab-bg:var(--foodex-palette-eef2ff);--status-tab-fg:var(--foodex-palette-4338ca);--status-tab-border:var(--foodex-palette-c7d2fe)}
+.status-tab[data-order-status-tab="delivered"]{--status-tab-bg:var(--foodex-palette-ecfdf5);--status-tab-fg:var(--foodex-palette-15803d);--status-tab-border:var(--foodex-palette-bbf7d0)}
+.status-tab[data-order-status-tab="cancelled"],.status-tab[data-order-status-tab="failed"]{--status-tab-bg:var(--foodex-palette-fff1f2);--status-tab-fg:var(--foodex-palette-be123c);--status-tab-border:var(--foodex-palette-fecdd3)}
+.status-tab[aria-current="page"]{outline:2px solid color-mix(in srgb,var(--status-tab-fg) 38%,transparent);outline-offset:1px}
+.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,var(--foodex-palette-179c52));border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,var(--foodex-palette-179c52));color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:310px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:var(--foodex-palette-f6f8fa)}.row-action-menu form{display:grid;gap:8px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--foodex-border)}.row-action-menu select,.row-action-menu input{min-width:0;width:100%;box-sizing:border-box}.row-action-menu button{width:100%}.dispatch-cell{display:grid;gap:4px;min-width:0}.dispatch-cell strong,.dispatch-cell span{overflow-wrap:anywhere}.dispatch-warning{padding:7px 9px;border-radius:9px;background:var(--foodex-palette-fff7e6);border:1px solid var(--foodex-palette-f3c36b);font-weight:800}.dispatch-meta{color:var(--foodex-muted);font-size:.78rem}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}.sales-ops-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sales-ops-bars{height:180px;align-items:flex-end}
+.sales-ops-bar-link{--order-chart-color:var(--foodex-palette-158a3a);--order-chart-color-2:var(--foodex-palette-38bdf8);min-height:8px;text-decoration:none;background:linear-gradient(180deg,var(--order-chart-color-2) 0%,var(--order-chart-color) 72%,color-mix(in srgb,var(--order-chart-color) 80%,var(--foodex-palette-0f172a)) 100%)!important;border-radius:8px 8px 3px 3px;box-shadow:0 5px 14px color-mix(in srgb,var(--order-chart-color) 20%,transparent);transform-origin:bottom center;transform:scaleY(0);opacity:.72}
+.sales-ops-bar-link:nth-child(8n+1){--order-chart-color:var(--foodex-palette-158a3a);--order-chart-color-2:var(--foodex-palette-22c55e)}.sales-ops-bar-link:nth-child(8n+2){--order-chart-color:var(--foodex-palette-2563eb);--order-chart-color-2:var(--foodex-palette-38bdf8)}.sales-ops-bar-link:nth-child(8n+3){--order-chart-color:var(--foodex-palette-7c3aed);--order-chart-color-2:var(--foodex-palette-c084fc)}.sales-ops-bar-link:nth-child(8n+4){--order-chart-color:var(--foodex-palette-ea580c);--order-chart-color-2:var(--foodex-palette-facc15)}.sales-ops-bar-link:nth-child(8n+5){--order-chart-color:var(--foodex-palette-dc2626);--order-chart-color-2:var(--foodex-palette-fb7185)}.sales-ops-bar-link:nth-child(8n+6){--order-chart-color:var(--foodex-palette-0891b2);--order-chart-color-2:var(--foodex-palette-2dd4bf)}.sales-ops-bar-link:nth-child(8n+7){--order-chart-color:var(--foodex-palette-be123c);--order-chart-color-2:var(--foodex-palette-f472b6)}.sales-ops-bar-link:nth-child(8n+8){--order-chart-color:var(--foodex-palette-ca8a04);--order-chart-color-2:var(--foodex-palette-fdba74)}
+.order-tab-panel.charts-animate .sales-ops-bar-link{animation:orderChartGrow 1.65s cubic-bezier(.16,.84,.22,1) forwards}
+.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(2){animation-delay:.08s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(3){animation-delay:.16s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(4){animation-delay:.24s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(5){animation-delay:.32s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(6){animation-delay:.40s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(7){animation-delay:.48s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(8){animation-delay:.56s}
+.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:5px}
+.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--foodex-border);border-radius:9px;color:inherit;text-decoration:none}
+.sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto;--order-rank-color:var(--foodex-palette-158a3a);--order-rank-color-2:var(--foodex-palette-38bdf8)}
+.sales-ops-ranked-bars a:nth-child(8n+1){--order-rank-color:var(--foodex-palette-158a3a);--order-rank-color-2:var(--foodex-palette-22c55e)}.sales-ops-ranked-bars a:nth-child(8n+2){--order-rank-color:var(--foodex-palette-2563eb);--order-rank-color-2:var(--foodex-palette-38bdf8)}.sales-ops-ranked-bars a:nth-child(8n+3){--order-rank-color:var(--foodex-palette-7c3aed);--order-rank-color-2:var(--foodex-palette-c084fc)}.sales-ops-ranked-bars a:nth-child(8n+4){--order-rank-color:var(--foodex-palette-ea580c);--order-rank-color-2:var(--foodex-palette-facc15)}.sales-ops-ranked-bars a:nth-child(8n+5){--order-rank-color:var(--foodex-palette-dc2626);--order-rank-color-2:var(--foodex-palette-fb7185)}.sales-ops-ranked-bars a:nth-child(8n+6){--order-rank-color:var(--foodex-palette-0891b2);--order-rank-color-2:var(--foodex-palette-2dd4bf)}.sales-ops-ranked-bars a:nth-child(8n+7){--order-rank-color:var(--foodex-palette-be123c);--order-rank-color-2:var(--foodex-palette-f472b6)}.sales-ops-ranked-bars a:nth-child(8n+8){--order-rank-color:var(--foodex-palette-ca8a04);--order-rank-color-2:var(--foodex-palette-fdba74)}
+.sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:linear-gradient(90deg,var(--foodex-palette-f8fafc),var(--foodex-palette-e2e8f0));overflow:hidden}
+.sales-ops-ranked-bars b{display:block;height:100%;background:linear-gradient(90deg,var(--order-rank-color),var(--order-rank-color-2));border-radius:inherit;transform:scaleX(0)}
+html[dir="rtl"] .sales-ops-ranked-bars b{transform-origin:right center}html[dir="ltr"] .sales-ops-ranked-bars b{transform-origin:left center}
+.order-tab-panel.charts-animate .sales-ops-ranked-bars b{animation:orderRankGrow 1.85s cubic-bezier(.16,.84,.22,1) forwards}
+.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:orderChartCardIn .85s ease-out both}
+.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(2){animation-delay:.12s}.order-tab-panel.charts-animate [data-foodex-module-chart]:nth-child(3){animation-delay:.24s}
+@keyframes orderChartGrow{0%{transform:scaleY(0);opacity:.2}55%{opacity:.86}100%{transform:scaleY(1);opacity:1}}
+@keyframes orderRankGrow{0%{transform:scaleX(0);filter:saturate(.75)}100%{transform:scaleX(1);filter:saturate(1)}}
+@keyframes orderChartCardIn{0%{opacity:.35;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}
+@media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}
+@media(max-width:1180px){.order-workspace-bar{align-items:center}.order-workspace-tabs{flex:1 1 auto}.order-workspace-filter-slot{flex:0 0 auto}}
+@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.order-workspace-bar{gap:5px}.order-workspace-tab{min-height:36px;padding-inline:11px}.order-workspace-tabs,.order-analytics-tabs{gap:4px}.order-analytics-subtab{min-height:32px;padding-inline:10px}}
+@media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.order-kpi-card::before,.order-tab-panel.charts-animate .sales-ops-bar-link,.order-tab-panel.charts-animate .sales-ops-ranked-bars b,.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:none}.order-kpi-item,.order-workspace-tab,.order-analytics-subtab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover,.order-analytics-subtab:hover{transform:none}.sales-ops-bar-link{transform:none;opacity:1}.sales-ops-ranked-bars b{transform:none}}
 </style>
 </head>
 <body>
@@ -30,262 +122,217 @@ $businessLabel = static function ($value): string {
 <div class="shell foodex-admin-layout">
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
-<div class="foodex-page-toolbar"><div><h1>{{ __('order_operations.title') }}</h1><p>{{ __('order_operations.description') }}</p></div>@if(count($newOrderWizard['channels'] ?? []))<button type="button" class="foodex-primary" data-new-order-open style="font-size:1rem;padding:12px 18px;white-space:nowrap">+ {{ __('order_operations.new_order') }}</button>@endif</div>
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 @include('admin._order-new-wizard')
 
-@php
-    $selectedStore = $selectedStoreId === null
-        ? null
-        : collect($availableStores ?? [])->firstWhere('id', $selectedStoreId);
-    $visibleStore = $selectedStore
-        ?? (count($availableStores ?? []) === 1 ? ($availableStores[0] ?? null) : null);
-    $selectedChannelOption = collect($availableChannels ?? [])->firstWhere('code', $selectedChannel);
-    $selectedChannelLabel = $selectedChannelOption['label'] ?? $businessLabel($selectedChannel);
-    $workspaceContextQuery = ['channel' => $selectedChannel];
-    if ($selectedStoreId !== null) {
-        $workspaceContextQuery['store_id'] = $selectedStoreId;
-    }
-@endphp
-<div class="workspace-context" data-order-workspace-context data-channel="{{ $selectedChannel }}" data-store-id="{{ $selectedStoreId ?? '' }}">
-    <span><strong>{{ __('order_operations.filters.channel') }}</strong>{{ $selectedChannelLabel }}</span>
-    <span><strong>{{ __('order_operations.filters.store') }}</strong>{{ $visibleStore['name'] ?? __('order_operations.filters.all_authorized') }}</span>
-</div>
+<?php
+$dashboardKpis = $dashboardKpis ?? [];
+$dashboardBaseQuery = $dashboardBaseQuery ?? [];
+$dashboardMoney = $dashboardMoney ?? static fn ($value): string => '—';
+$dailyMax = isset($dailyMax) ? max(1, (int) $dailyMax) : 1;
+$statusMax = isset($statusMax) ? max(1, (int) $statusMax) : 1;
+$dashboardVisible = (bool) ($dashboardVisible ?? false);
+?>
+<?php if ($dashboardVisible && is_array($dashboard ?? null)): ?>
+<section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-label="{{ __('order_operations.dashboard.title') }}">
+    <div class="order-kpi-card" data-order-kpi-card aria-label="{{ __('order_operations.dashboard.title') }}">
+        <?php foreach ($dashboardKpis as $metric): ?>
+            <a class="order-kpi-item"
+               data-order-kpi="{{ $metric['key'] }}"
+               data-tone="{{ $metric['tone'] }}"
+               href="{{ $metric['drilldown_url'] }}">
+                <span class="order-kpi-head">
+                    <span class="order-kpi-icon" aria-hidden="true">@include('admin._premium-icon',['name'=>$metric['icon']])</span>
+                    <span class="order-kpi-label">{{ $metric['label'] }}</span>
+                </span>
+                <strong class="order-kpi-value foodex-number"
+                        data-order-counter
+                        data-counter-target="{{ $metric['value'] }}"
+                        <?php if (is_numeric($metric['raw'] ?? null)): ?> data-counter-raw="{{ $metric['raw'] }}" data-counter-decimals="{{ $metric['decimals'] ?? 0 }}" <?php endif; ?>>{{ $metric['value'] }}</strong>
+                <?php if (is_array($metric['status'] ?? null)): ?>
+                    <span class="order-kpi-state"
+                          data-state="{{ data_get($metric,'status.state','current') }}"
+                          title="{{ data_get($metric,'status.label','') }}"
+                          aria-label="{{ data_get($metric,'status.label','') }}"></span>
+                <?php endif; ?>
+            </a>
+        <?php endforeach; ?>
+    </div>
 
-@if($dashboardVisible)
-@php
-    $dashboardBaseQuery = [
-        'channel' => $selectedChannel,
-        'from' => $dashboard['period']['from'],
-        'to' => $dashboard['period']['to'],
-    ];
-    if ($selectedStoreId !== null) {
-        $dashboardBaseQuery['store_id'] = $selectedStoreId;
-    }
-    $dashboardCurrency = $dashboard['currency'];
-    $dashboardMoney = static fn ($value) => $value === null || $dashboardCurrency === null
-        ? __('order_operations.dashboard.multiple_currencies')
-        : \App\Support\DisplayNumber::money((float) $value, $dashboardCurrency).' '.$dashboardCurrency;
-    $dashboardKpis = [
-        [
-            'label' => __('order_operations.dashboard.kpis.orders'),
-            'value' => number_format((int) $dashboard['kpis']['orders']),
-            'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.recognized_revenue'),
-            'value' => $dashboardMoney($dashboard['kpis']['recognized_revenue']),
-            'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.aov'),
-            'value' => $dashboardMoney($dashboard['kpis']['average_order_value']),
-            'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.open_orders'),
-            'value' => number_format((int) $dashboard['kpis']['open_orders']),
-            'drilldown_url' => route('admin.operations.orders.index', $dashboardBaseQuery),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.delayed_orders'),
-            'value' => number_format((int) $dashboard['kpis']['delayed_orders']),
-            'status' => ['label' => __('order_operations.dashboard.exceptions.delayed'), 'state' => $dashboard['kpis']['delayed_orders'] > 0 ? 'warning' : 'success'],
-            'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.awaiting_dispatch'),
-            'value' => number_format((int) $dashboard['kpis']['awaiting_dispatch']),
-            'status' => ['label' => __('order_operations.dashboard.exceptions.awaiting_dispatch'), 'state' => $dashboard['kpis']['awaiting_dispatch'] > 0 ? 'warning' : 'success'],
-            'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'awaiting_dispatch'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.payment_exceptions'),
-            'value' => number_format((int) $dashboard['kpis']['payment_exceptions']),
-            'status' => ['label' => __('order_operations.dashboard.exceptions.payment'), 'state' => $dashboard['kpis']['payment_exceptions'] > 0 ? 'danger' : 'success'],
-            'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'payment'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.invoice_exceptions'),
-            'value' => number_format((int) $dashboard['kpis']['invoice_exceptions']),
-            'status' => ['label' => __('order_operations.dashboard.exceptions.invoice'), 'state' => $dashboard['kpis']['invoice_exceptions'] > 0 ? 'danger' : 'success'],
-            'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'invoice'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.fulfillment_minutes'),
-            'value' => $dashboard['kpis']['average_fulfillment_minutes'] === null ? '—' : number_format((float) $dashboard['kpis']['average_fulfillment_minutes'], 1),
-            'drilldown_url' => route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'operations'])),
-        ],
-        [
-            'label' => __('order_operations.dashboard.kpis.sla'),
-            'value' => $dashboard['kpis']['open_within_sla_percent'] === null ? '—' : number_format((float) $dashboard['kpis']['open_within_sla_percent'], 1).'%',
-            'status' => ['label' => __('order_operations.dashboard.sla_help'), 'state' => ($dashboard['kpis']['open_within_sla_percent'] ?? 100) >= 90 ? 'success' : 'warning'],
-            'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'delayed'])),
-        ],
-    ];
-    $dailyMax = max(1, (int) collect($dashboard['daily'])->max('orders'));
-    $statusMax = max(1, (int) collect($dashboard['status_breakdown'])->max('orders'));
-@endphp
-<section class="foodex-module-overview" data-sales-operations-dashboard data-state="current" aria-labelledby="sales-ops-dashboard-title">
-    <div class="foodex-viz-header">
-        <div>
-            <h2 class="foodex-viz-title" id="sales-ops-dashboard-title">{{ __('order_operations.dashboard.title') }}</h2>
-            <p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.subtitle') }}</p>
+    <div class="order-workspace-bar" data-order-workspace-bar>
+        <nav class="order-workspace-tabs"
+             role="tablist"
+             aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
+             data-order-tabs
+             data-default-tab="orders">
+            <button class="order-workspace-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    data-order-tab="analytics">{{ $isAr ? 'التحليلات' : 'Analytics' }}</button>
+            <button class="order-workspace-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$statusTotal) }}</span></button>
+        </nav>
+        <div class="order-workspace-filter-slot" data-order-workspace-filter>
+            <div data-order-filter-mode="orders">
+                @include('admin._order-operations-order-filters')
+            </div>
+            <div data-order-filter-mode="analytics" hidden>
+                @include('admin._order-operations-header-filters')
+            </div>
         </div>
-        <small class="foodex-module-updated">{{ __('order_operations.dashboard.generated_at', ['time' => $dashboard['generated_at']]) }}</small>
     </div>
 
-    @php
-        $moduleDashboardFilters = [
-            'action' => route('admin.operations.orders.index'),
-            'scope_name' => 'store_id',
-            'scope_value' => $selectedStoreId ?? '',
-            'scope_options' => count($availableStores ?? []) > 1
-                ? ['' => __('order_operations.filters.all_authorized')]
-                    + collect($availableStores)->mapWithKeys(fn ($store) => [(string) $store['id'] => $store['name']])->all()
-                : [],
-            'from_value' => $dashboard['period']['from'],
-            'to_value' => $dashboard['period']['to'],
-            'hidden' => ['channel' => $selectedChannel],
-            'reset_url' => route('admin.operations.orders.index', ['channel' => $selectedChannel]),
-            'export_url' => route('admin.reports.export', array_merge($dashboardBaseQuery, ['report' => 'orders', 'format' => 'xlsx'])),
-        ];
-    @endphp
-    @include('admin._module-dashboard-filters', ['moduleDashboardFilters' => $moduleDashboardFilters])
-
-    <div class="foodex-module-kpis">
-        @foreach($dashboardKpis as $metric)
-            @include('admin._module-dashboard-kpi', ['metric' => $metric])
-        @endforeach
-    </div>
-
+    <div class="order-tab-panel" role="tabpanel" data-order-panel="analytics" hidden>
+    <nav class="order-analytics-tabs"
+         role="tablist"
+         aria-label="{{ $isAr ? 'أقسام التحليلات' : 'Analytics sections' }}"
+         data-order-analytics-tabs
+         data-default-analytics-tab="performance">
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="true" data-analytics-tab="performance">{{ $isAr ? 'الأداء' : 'Performance' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="operations">{{ $isAr ? 'التشغيل' : 'Operations' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="channels">{{ $isAr ? 'القنوات والدفع' : 'Channels & Payment' }}</button>
+        <button class="order-analytics-subtab" type="button" role="tab" aria-selected="false" data-analytics-tab="commerce">{{ $isAr ? 'العملاء والمنتجات' : 'Customers & Products' }}</button>
+    </nav>
     <div class="foodex-module-panels">
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-trend-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="performance" aria-labelledby="sales-trend-title">
             <div class="foodex-viz-header">
                 <div><h3 class="foodex-viz-title" id="sales-trend-title">{{ __('order_operations.dashboard.charts.trend') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.trend_help') }}</p></div>
                 <a class="foodex-action-secondary button secondary" href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report' => 'orders'])) }}">{{ __('order_operations.dashboard.open_report') }}</a>
             </div>
-            @if($dashboard['daily'] === [])
+            <?php if (($dashboard['daily'] ?? []) === []): ?>
                 <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
-            @else
+            <?php else: ?>
                 <div class="foodex-viz-bars sales-ops-bars" role="img" aria-label="{{ __('order_operations.dashboard.charts.trend') }}">
-                    @foreach($dashboard['daily'] as $point)
+                    <?php foreach (($dashboard['daily'] ?? []) as $point): ?>
                         <a class="foodex-viz-bar sales-ops-bar-link" style="height:{{ max(8, round(((int)$point['orders'] / $dailyMax) * 100)) }}%" href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['from'=>$point['day'],'to'=>$point['day']])) }}" aria-label="{{ $point['day'] }} · {{ $point['orders'] }} {{ __('order_operations.dashboard.columns.orders') }}"></a>
-                    @endforeach
+                    <?php endforeach; ?>
                 </div>
                 <p class="foodex-module-chart-summary">{{ __('order_operations.dashboard.period') }}: {{ $dashboard['period']['from'] }} → {{ $dashboard['period']['to'] }}</p>
-                <details><summary>{{ __('order_operations.dashboard.details') }}</summary><div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table" data-pagination-exempt="bounded-sales-daily-summary"><thead><tr><th>{{ __('order_operations.dashboard.columns.day') }}</th><th>{{ __('order_operations.dashboard.columns.orders') }}</th><th>{{ __('order_operations.dashboard.columns.revenue') }}</th></tr></thead><tbody>@foreach($dashboard['daily'] as $point)<tr><td>{{ $point['day'] }}</td><td>{{ number_format((int)$point['orders']) }}</td><td>{{ $point['revenue'] === null ? __('order_operations.dashboard.multiple_currencies') : $dashboardMoney($point['revenue']) }}</td></tr>@endforeach</tbody></table></div></details>
-            @endif
+                <details><summary>{{ __('order_operations.dashboard.details') }}</summary><div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table" data-pagination-exempt="bounded-sales-daily-summary"><thead><tr><th>{{ __('order_operations.dashboard.columns.day') }}</th><th>{{ __('order_operations.dashboard.columns.orders') }}</th><th>{{ __('order_operations.dashboard.columns.revenue') }}</th></tr></thead><tbody><?php foreach (($dashboard['daily'] ?? []) as $point): ?><tr><td>{{ $point['day'] }}</td><td>{{ number_format((int)$point['orders']) }}</td><td>{{ $point['revenue'] === null ? __('order_operations.dashboard.multiple_currencies') : $dashboardMoney($point['revenue']) }}</td></tr><?php endforeach; ?></tbody></table></div></details>
+            <?php endif; ?>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-exception-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="performance" aria-labelledby="sales-exception-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-exception-title">{{ __('order_operations.dashboard.charts.exceptions') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.exceptions_help') }}</p></div></div>
             <div class="sales-ops-exceptions">
-                @foreach($dashboard['exceptions'] as $exception)
+                <?php foreach (($dashboard['exceptions'] ?? []) as $exception): ?>
                     <a data-sales-exception="{{ $exception['key'] }}" href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception'=>$exception['key']])) }}"><span>{{ __('order_operations.dashboard.exceptions.'.$exception['key']) }}</span><strong>{{ number_format((int)$exception['count']) }}</strong></a>
-                @endforeach
+                <?php endforeach; ?>
             </div>
         </article>
     </div>
 
     <div class="sales-ops-chart-grid">
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-status-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-status-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-status-title">{{ __('order_operations.dashboard.charts.status') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.status_help') }}</p></div></div>
-            @if($dashboard['status_breakdown'] === [])
+            <?php if (($dashboard['status_breakdown'] ?? []) === []): ?>
                 <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
-            @else
+            <?php else: ?>
                 <div class="sales-ops-ranked-bars">
-                    @foreach($dashboard['status_breakdown'] as $point)
-                        @php
-                            $statusFilterCode = (string) $point['status'];
-                            $statusDrilldownUrl = route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['status' => $statusFilterCode]));
-                            $statusDisplayLabel = $businessLabel($statusFilterCode);
-                        @endphp
-                        {{-- localization-gate: allow raw status code only for the non-visible drill-down filter; display label is localized above --}}
-                        <a href="{{ $statusDrilldownUrl }}"><span>{{ $statusDisplayLabel }}</span><i><b style="width:{{ round(((int)$point['orders'] / $statusMax) * 100) }}%"></b></i><strong>{{ number_format((int)$point['orders']) }}</strong></a>
-                    @endforeach
+                    <?php foreach (($dashboard['status_breakdown'] ?? []) as $point): ?>
+                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['status' => (string)$point['status']])) }}"><span>{{ $businessLabel((string)$point['status']) }}</span><i><b style="width:{{ round(((int)$point['orders'] / $statusMax) * 100) }}%"></b></i><strong>{{ number_format((int)$point['orders']) }}</strong></a> {{-- localization-gate: allow — status token inside route query is technical; visible status uses $businessLabel. --}}
+                    <?php endforeach; ?>
                 </div>
-            @endif
+            <?php endif; ?>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-channel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-channel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-channel-title">{{ __('order_operations.dashboard.charts.channels') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.channels_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
-                @forelse($dashboard['channel_breakdown'] as $point)
-                    @php
-                        $channelFilterCode = (string) $point['channel'];
-                        $channelDrilldownUrl = route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['channel' => $channelFilterCode]));
-                        $channelDisplayLabel = $businessLabel($channelFilterCode);
-                    @endphp
-                    {{-- localization-gate: allow raw channel code only for the non-visible drill-down filter; display label is localized above --}}
-                    <a href="{{ $channelDrilldownUrl }}"><span>{{ $channelDisplayLabel }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>
-                @empty
+                <?php if (($dashboard['channel_breakdown'] ?? []) === []): ?>
                     <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
-                @endforelse
+                <?php else: ?>
+                    <?php foreach (($dashboard['channel_breakdown'] ?? []) as $point): ?>
+                        <a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['channel' => (string)$point['channel']])) }}"><span>{{ $businessLabel((string)$point['channel']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a> {{-- localization-gate: allow — channel token inside route query is technical; visible channel uses $businessLabel. --}}
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-payment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-payment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-payment-title">{{ __('order_operations.dashboard.charts.payments') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.payments_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@forelse($dashboard['payment_breakdown'] as $point)<div><span>{{ $point['provider'] }} · {{ $businessLabel($point['status']) }}</span><strong>{{ number_format((int)$point['payments']) }}</strong></div>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
+            <div class="sales-ops-simple-list"><?php if (($dashboard['payment_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['payment_breakdown'] ?? []) as $point): ?><div><span>{{ $point['provider'] }} · {{ $businessLabel($point['status']) }}</span><strong>{{ number_format((int)$point['payments']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-products-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-products-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-products-title">{{ __('order_operations.dashboard.charts.products') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.products_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@forelse($dashboard['top_products'] as $point)<a href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report'=>'products','product_id'=>$point['product_id']])) }}"><span>{{ $point['sku'] }} · {{ $point['name'] }}</span><strong>{{ \App\Support\DisplayNumber::quantity((float)$point['quantity']) }}</strong></a>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
+            <div class="sales-ops-simple-list"><?php if (($dashboard['top_products'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['top_products'] ?? []) as $point): ?><a href="{{ route('admin.reports.index', array_merge($dashboardBaseQuery, ['report'=>'products','product_id'=>$point['product_id']])) }}"><span>{{ $point['sku'] }} · {{ $point['name'] }}</span><strong>{{ \App\Support\DisplayNumber::quantity((float)$point['quantity']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-stores-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-stores-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-stores-title">{{ __('order_operations.dashboard.charts.stores') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.stores_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@forelse($dashboard['store_breakdown'] as $point)<a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['store_id'=>$point['store_id']])) }}"><span>{{ $point['store'] }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
+            <div class="sales-ops-simple-list"><?php if (($dashboard['store_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['store_breakdown'] ?? []) as $point): ?><a href="{{ route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['store_id'=>$point['store_id']])) }}"><span>{{ $point['store'] }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-customers-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="commerce" hidden aria-labelledby="sales-customers-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-customers-title">{{ __('order_operations.dashboard.charts.customers') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.customers_help') }}</p></div></div>
             <div class="sales-ops-simple-list">
-                @forelse($dashboard['top_customers'] as $point)
-                    @php
-                        $customerChannelCode = (string) $point['channel'];
-                        $customerChannelLabel = $businessLabel($customerChannelCode);
-                        $customerReportParams = array_merge(
-                            $dashboardBaseQuery,
-                            ['report' => 'customers', 'channel' => $customerChannelCode],
-                            $point['customer_id'] ? ['customer_id' => $point['customer_id']] : [],
-                        );
-                        $customerDrilldownUrl = route('admin.reports.index', $customerReportParams);
-                    @endphp
-                    {{-- localization-gate: allow raw channel code only in the non-visible report filter; display label is localized above --}}
-                    <a href="{{ $customerDrilldownUrl }}"><span>{{ $point['customer'] }} · {{ $customerChannelLabel }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>
-                @empty
+                <?php if (($dashboard['top_customers'] ?? []) === []): ?>
                     <div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>
-                @endforelse
+                <?php else: ?>
+                    <?php foreach (($dashboard['top_customers'] ?? []) as $point): ?>
+                        <?php
+                            $customerChannelCode = (string) $point['channel'];
+                            $customerReportParams = array_merge(
+                                $dashboardBaseQuery,
+                                ['report' => 'customers', 'channel' => $customerChannelCode],
+                                $point['customer_id'] ? ['customer_id' => $point['customer_id']] : [],
+                            );
+                        ?>
+                        <a href="{{ route('admin.reports.index', $customerReportParams) }}"><span>{{ $point['customer'] }} · {{ $businessLabel($customerChannelCode) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-cancel-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-cancel-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-cancel-title">{{ __('order_operations.dashboard.charts.cancellations') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.cancellations_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@forelse($dashboard['cancellation_reasons'] as $point)<div><span>{{ $point['reason']==='unspecified' ? __('order_operations.dashboard.unspecified_reason') : $businessLabel($point['reason']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
+            <div class="sales-ops-simple-list"><?php if (($dashboard['cancellation_reasons'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['cancellation_reasons'] ?? []) as $point): ?><div><span>{{ $point['reason']==='unspecified' ? __('order_operations.dashboard.unspecified_reason') : $businessLabel($point['reason']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
 
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-fulfillment-title">
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="operations" hidden aria-labelledby="sales-fulfillment-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-fulfillment-title">{{ __('order_operations.dashboard.charts.fulfillment') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.fulfillment_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@foreach($dashboard['fulfillment_breakdown'] as $point)<div><span>{{ __('order_operations.dashboard.fulfillment_buckets.'.$point['bucket']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div>@endforeach</div>
+            <div class="sales-ops-simple-list"><?php foreach (($dashboard['fulfillment_breakdown'] ?? []) as $point): ?><div><span>{{ __('order_operations.dashboard.fulfillment_buckets.'.$point['bucket']) }}</span><strong>{{ number_format((int)$point['count']) }}</strong></div><?php endforeach; ?></div>
         </article>
 
-        @if(is_array($dashboard['source_breakdown']))
-        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart aria-labelledby="sales-source-title">
+        <?php if (is_array($dashboard['source_breakdown'] ?? null)): ?>
+        <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart data-analytics-group="channels" hidden aria-labelledby="sales-source-title">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title" id="sales-source-title">{{ __('order_operations.dashboard.charts.sources') }}</h3><p class="foodex-viz-subtitle">{{ __('order_operations.dashboard.charts.sources_help') }}</p></div></div>
-            <div class="sales-ops-simple-list">@forelse($dashboard['source_breakdown'] as $point)<div><span>{{ $businessLabel($point['source']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></div>@empty<div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div>@endforelse</div>
+            <div class="sales-ops-simple-list"><?php if (($dashboard['source_breakdown'] ?? []) === []): ?><div class="foodex-viz-empty">{{ __('order_operations.dashboard.empty_chart') }}</div><?php else: ?><?php foreach (($dashboard['source_breakdown'] ?? []) as $point): ?><div><span>{{ $businessLabel($point['source']) }}</span><strong>{{ number_format((int)$point['orders']) }}</strong></div><?php endforeach; ?><?php endif; ?></div>
         </article>
-        @endif
+        <?php endif; ?>
+    </div>
     </div>
 </section>
-@endif
+<?php endif; ?>
 
+<?php if (!$dashboardVisible): ?>
+<div class="order-workspace-bar" data-order-workspace-bar>
+    <nav class="order-workspace-tabs"
+         role="tablist"
+         aria-label="{{ $isAr ? 'أقسام إدارة الطلبات' : 'Order management sections' }}"
+         data-order-tabs
+         data-default-tab="orders">
+        <button class="order-workspace-tab" type="button" role="tab" aria-selected="true" data-order-tab="orders">{{ $isAr ? 'الطلبات' : 'Orders' }} <span class="order-workspace-tab-count">{{ number_format((int)$orders->total()) }}</span></button>
+    </nav>
+    <div class="order-workspace-filter-slot" data-order-workspace-filter>
+        <div data-order-filter-mode="orders">
+            @include('admin._order-operations-order-filters')
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
 @php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
 @php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
+@php($orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []))
 @if(count($availableChannels ?? []) > 1)
 <nav class="status-tabs" aria-label="{{ $isAr ? 'قنوات الطلبات' : 'Order channels' }}" data-order-channel-tabs data-order-channel-selected="{{ $selectedChannel }}">
 @foreach($availableChannels as $channelOption)
@@ -294,70 +341,104 @@ $businessLabel = static function ($value): string {
 </nav>
 @endif
 
-@php($tabQuery=request()->except(['status','page','order','edit']))
-@php($dispatchQueueQuery=request()->except(['status','dispatch_status','channel','page','order','edit']))
+@php($tabQuery=request()->except(['status','page','order','edit','action_required']))
+@php($actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']))
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
-<a class="status-tab" data-order-status-tab="all" href="{{ route('admin.operations.orders.index',$tabQuery) }}" @if($selectedStatus===null) aria-current="page" @endif>
+<a class="status-tab"
+   data-order-action-tab
+   href="{{ route('admin.operations.orders.index',array_merge($actionQuery,['action_required'=>1])) }}#order-tab-orders"
+   @if($selectedActionRequired) aria-current="page" @endif>
+<span>{{ $isAr ? 'تحتاج إجراء' : 'Action required' }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
+</a>
+<a class="status-tab"
+   data-order-status-tab="all"
+   href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['action_required'=>0])) }}#order-tab-orders"
+   @if($selectedStatus===null && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ __('order_operations.all') }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
 </a>
 @foreach($statusTabs as $tab)
-<a class="status-tab" data-order-status-tab="{{ $tab['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code']])) }}" @if($selectedStatus===$tab['code']) aria-current="page" @endif>
+<a class="status-tab"
+   data-order-status-tab="{{ $tab['code'] }}"
+   href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code'],'action_required'=>0])) }}#order-tab-orders"
+   @if($selectedStatus===$tab['code'] && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
-@if($channelCodes->contains('b2b') && $selectedChannel !== 'b2c')
-<a class="status-tab" data-order-dispatch-workspace href="{{ route('admin.operations.orders.index',array_merge($dispatchQueueQuery,['channel'=>'b2b','dispatch_status'=>'awaiting_dispatch'])) }}" @if($selectedChannel==='b2b' && request('dispatch_status')==='awaiting_dispatch') aria-current="page" @endif><span>{{ __('order_operations.dispatch.awaiting_queue') }}</span></a>
-@endif
 </nav>
-
-<form method="get" class="filters foodex-card" data-order-filter-context data-selected-channel="{{ $selectedChannel }}" data-selected-store="{{ $selectedStoreId ?? '' }}">
-<input type="hidden" name="channel" value="{{ $selectedChannel }}">
-@if(count($availableStores ?? []) > 1)
-<label>{{ __('order_operations.filters.store') }}<select name="store_id"><option value="">{{ __('order_operations.filters.all_authorized') }}</option>@foreach($availableStores as $storeOption)<option value="{{ $storeOption['id'] }}" @selected($selectedStoreId===$storeOption['id'])>{{ $storeOption['name'] }}{{ $storeOption['code'] !== '' ? ' · '.$storeOption['code'] : '' }}</option>@endforeach</select></label>
-@elseif($selectedStoreId !== null)
-<input type="hidden" name="store_id" value="{{ $selectedStoreId }}">
-@endif
-<label>{{ __('order_operations.filters.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
-<label>{{ __('order_operations.filters.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
-<label>{{ __('order_operations.filters.order_number') }}<input name="order_number" value="{{ request('order_number') }}"></label>
-<label>{{ __('order_operations.filters.status') }}<select name="status"><option value="">{{ __('order_operations.all') }}</option>@foreach($statusOptions as $status)<option value="{{ $status['code'] }}" @selected(request('status')===$status['code'])>{{ $status['label'] }}</option>@endforeach</select></label>
-<label>{{ __('order_operations.filters.driver') }}<select name="driver_id"><option value="">{{ __('order_operations.all') }}</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string)request('driver_id')===(string)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>@endforeach</select></label>
-<label>{{ __('order_operations.filters.dispatch_status') }}<select name="dispatch_status"><option value="">{{ __('order_operations.all') }}</option><option value="awaiting_dispatch" @selected(request('dispatch_status')==='awaiting_dispatch')>{{ __('order_operations.dispatch.awaiting_queue') }}</option><option value="assigned" @selected(request('dispatch_status')==='assigned')>{{ $businessLabel('assigned') }}</option></select></label>
-<label>{{ __('order_operations.filters.exception') }}<select name="exception"><option value="">{{ __('order_operations.all') }}</option>@foreach($exceptionOptions as $exceptionOption)<option value="{{ $exceptionOption }}" @selected($selectedException===$exceptionOption)>{{ __('order_operations.dashboard.exceptions.'.$exceptionOption) }}</option>@endforeach</select></label>
-<div><button class="foodex-filter-action">{{ __('order_operations.filters.apply') }}</button> <a class="btn secondary" data-order-filter-reset-context href="{{ route('admin.operations.orders.index',$workspaceContextQuery) }}">{{ __('order_operations.filters.reset') }}</a></div>
-</form>
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.customer_service_owner.column') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
+<th>{{ $isAr ? 'الطلب' : 'Order' }}</th>
+<th>{{ $isAr ? 'العميل' : 'Customer' }}</th>
+<th>{{ __('order_operations.columns.status') }}</th>
+<th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
+<th>{{ __('order_operations.customer_service_owner.column') }}</th>
+<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
+<th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
-<tr>
-<td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
-<td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td> {{-- localization-gate: source resolved through localized businessLabel --}}
-<td>@if($row['customer_service_owner'])<strong>{{ $row['customer_service_owner'] }}</strong>@if($row['customer_service_owner_email'])<br><small>{{ $row['customer_service_owner_email'] }}</small>@endif @else {{ __('order_operations.unassigned') }} @endif</td>
-@php($badgeState=strtolower((string) $row['status']))
-<td><span class="badge foodex-status-badge" data-state="{{ $badgeState }}">{{ $row['status_label'] }}</span></td>
+@php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
+@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
+@php($rowStatusState = strtolower((string) $row['status']))
+<tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
-@if($row['channel']==='b2b')
-{{ $row['dispatch_assignee_type']==='van' && $row['dispatch_assignee'] ? $row['dispatch_assignee'] : __('order_operations.unassigned') }}
-@else
-{{ $row['driver'] ?? __('order_operations.unassigned') }}
-@if($row['assignment_status'])<small>· {{ $businessLabel($row['assignment_status']) }}</small>@endif
-@endif
+    <div class="order-grid-primary">
+        <a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a>
+        <div class="order-grid-meta">
+            <span class="order-mini-chip">{{ $businessLabel($row['source']) }}</span>
+            <span>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('m-d H:i') ?? '—' }}</span>
+        </div>
+    </div>
 </td>
-<td><div class="dispatch-cell" data-order-dispatch-status="{{ $row['dispatch_status'] }}">
-@php($dispatchBadgeState=strtolower((string) $row['dispatch_status']))
-@if($row['dispatch_status']==='awaiting_dispatch')<div class="dispatch-warning">{{ __('order_operations.dispatch.warning') }}</div>@else<span class="badge foodex-status-badge" data-state="{{ $dispatchBadgeState }}">{{ $businessLabel($row['dispatch_status']) }}</span>@endif
-@if($row['dispatch_assignee'])<strong>{{ $businessLabel($row['dispatch_assignee_type']) }} · {{ $row['dispatch_assignee'] }}</strong>@endif
-@if($row['dispatch_territory'])<span class="dispatch-meta">{{ __('order_operations.dispatch.territory') }}: {{ $row['dispatch_territory'] }}</span>@endif
-@if($row['dispatch_source'])<span class="dispatch-meta">{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($row['dispatch_source']) }}</span>@endif
-@if($row['dispatch_reason'])<span class="dispatch-meta">{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($row['dispatch_reason']) }}</span>@endif
-</div></td>
-<td>{{ $businessLabel($row['payment_status']) }} @if($row['payment_provider'])<small>· {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}</small>@endif</td>
-<td>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</td>
-<td>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</td>
 <td>
+    <div class="order-grid-primary">
+        <span class="order-grid-title">{{ $row['customer'] }}</span>
+        <div class="order-grid-meta">
+            <span>{{ $row['store'] }}</span>
+            <span class="order-mini-chip">{{ $businessLabel((string)$row['channel']) }}</span>
+        </div>
+    </div>
+</td>
+<td>
+    <div class="order-grid-primary">
+        <span class="order-status-chip" data-state="{{ $rowStatusState }}">{{ $row['status_label'] }}</span>
+        @if($rowActionRequired)
+            <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-execution">
+        @if($rowActionRequired)
+            <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
+        @elseif($rowExecutor)
+            <strong>{{ $rowExecutor }}</strong>
+            <small>{{ $businessLabel($row['dispatch_assignee_type'] ?: ($row['assignment_status'] ? 'driver' : 'unassigned')) }}</small>
+        @else
+            <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
+        @endif
+        @if($row['dispatch_territory'])
+            <small>{{ $row['dispatch_territory'] }}</small>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-owner">
+        @if($row['customer_service_owner'])
+            <strong>{{ $row['customer_service_owner'] }}</strong>
+            @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
+        @else
+            <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
+        @endif
+    </div>
+</td>
+<td>
+    <div class="order-financial">
+        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+    </div>
+</td>
+<td class="order-grid-actions">
 <details class="row-actions" data-order-row-actions>
 <summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
 <div class="row-action-menu">
@@ -421,6 +502,10 @@ $businessLabel = static function ($value): string {
 @endif
 
 @if($row['can_dispatch'])
+<div data-order-dispatch-workspace>
+@if($row['dispatch_status']==='awaiting_dispatch')
+<div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
+@endif
 @if($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
@@ -454,6 +539,7 @@ $businessLabel = static function ($value): string {
 </form>
 @endif
 @endif
+</div>
 @if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
@@ -468,10 +554,11 @@ $businessLabel = static function ($value): string {
 </details>
 </td>
 </tr>
-@empty<tr><td colspan="11"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
+@empty<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
 </tbody></table>
 </section>
 {{ $orders->links() }}
+</div>
 
 @if($detail)
 @php($detailCloseQuery=request()->except(['order','edit']))
@@ -740,6 +827,163 @@ $businessLabel = static function ($value): string {
 </main>
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
+<script>
+(() => {
+    const tabs = document.querySelector('[data-order-tabs]');
+    if (!tabs) return;
+
+    const buttons = [...tabs.querySelectorAll('[data-order-tab]')];
+    const panels = [...document.querySelectorAll('[data-order-panel]')];
+    if (!buttons.length || !panels.length) return;
+
+    const available = new Set(buttons.map((button) => button.dataset.orderTab));
+    const defaultTab = available.has(tabs.dataset.defaultTab) ? tabs.dataset.defaultTab : buttons[0].dataset.orderTab;
+    const hashTab = window.location.hash.startsWith('#order-tab-')
+        ? window.location.hash.slice('#order-tab-'.length)
+        : null;
+
+    const activate = (name, updateHistory = true) => {
+        if (!available.has(name)) name = defaultTab;
+
+        buttons.forEach((button) => {
+            const active = button.dataset.orderTab === name;
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.orderPanel !== name;
+        });
+        document.querySelectorAll('[data-order-filter-mode]').forEach((filter) => {
+            filter.hidden = filter.dataset.orderFilterMode !== name;
+        });
+
+        const analyticsPanel = panels.find((panel) => panel.dataset.orderPanel === 'analytics');
+        if (name === 'analytics' && analyticsPanel) {
+            analyticsPanel.classList.remove('charts-animate');
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                void analyticsPanel.offsetWidth;
+                analyticsPanel.classList.add('charts-animate');
+            }
+        }
+
+        if (updateHistory) {
+            history.replaceState(null, '', '#order-tab-' + name);
+        }
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => activate(button.dataset.orderTab));
+    });
+
+    activate(hashTab && available.has(hashTab) ? hashTab : defaultTab, false);
+})();
+
+(() => {
+    const tabs = document.querySelector('[data-order-analytics-tabs]');
+    const panel = document.querySelector('[data-order-panel="analytics"]');
+    if (!tabs || !panel) return;
+
+    const buttons = [...tabs.querySelectorAll('[data-analytics-tab]')];
+    const cards = [...panel.querySelectorAll('[data-analytics-group]')];
+    if (!buttons.length || !cards.length) return;
+
+    const available = new Set(buttons.map((button) => button.dataset.analyticsTab));
+    const defaultTab = available.has(tabs.dataset.defaultAnalyticsTab)
+        ? tabs.dataset.defaultAnalyticsTab
+        : buttons[0].dataset.analyticsTab;
+
+    const animateVisible = () => {
+        panel.classList.remove('charts-animate');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        void panel.offsetWidth;
+        panel.classList.add('charts-animate');
+    };
+
+    const activate = (name) => {
+        if (!available.has(name)) name = defaultTab;
+
+        buttons.forEach((button) => {
+            const active = button.dataset.analyticsTab === name;
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.tabIndex = active ? 0 : -1;
+        });
+
+        cards.forEach((card) => {
+            card.hidden = card.dataset.analyticsGroup !== name;
+        });
+
+        animateVisible();
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => activate(button.dataset.analyticsTab));
+    });
+
+    activate(defaultTab);
+})();
+
+(() => {
+    const values = [...document.querySelectorAll('[data-order-counter]')];
+    if (!values.length) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const formatLikeTarget = (element, value) => {
+        const target = element.dataset.counterTarget || String(value);
+        const decimals = Number.parseInt(element.dataset.counterDecimals || '0', 10);
+        const formatted = new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        }).format(value);
+        return target.replace(/[-+]?\d[\d,]*(?:\.\d+)?/, formatted);
+    };
+
+    const fit = (element) => {
+        element.style.fontSize = '';
+        let size = Number.parseFloat(getComputedStyle(element).fontSize);
+        const minimum = 11;
+        let guard = 0;
+        while (element.scrollWidth > element.clientWidth && size > minimum && guard < 24) {
+            size -= .5;
+            element.style.fontSize = size + 'px';
+            guard += 1;
+        }
+    };
+
+    const fitAll = () => values.forEach(fit);
+    const duration = 1200;
+
+    values.forEach((element) => {
+        const raw = Number.parseFloat(element.dataset.counterRaw ?? '');
+        if (!Number.isFinite(raw) || reducedMotion) {
+            fit(element);
+            return;
+        }
+
+        const started = performance.now();
+        const tick = (now) => {
+            const progress = Math.min(1, (now - started) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            element.textContent = formatLikeTarget(element, raw * eased);
+            fit(element);
+            if (progress < 1) {
+                window.requestAnimationFrame(tick);
+            } else {
+                element.textContent = element.dataset.counterTarget || element.textContent;
+                fit(element);
+            }
+        };
+
+        element.textContent = formatLikeTarget(element, 0);
+        window.requestAnimationFrame(tick);
+    });
+
+    let resizeFrame = 0;
+    window.addEventListener('resize', () => {
+        window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = window.requestAnimationFrame(fitAll);
+    }, {passive:true});
+})();
+</script>
 </body></html>
 @if($detail)
 <script>

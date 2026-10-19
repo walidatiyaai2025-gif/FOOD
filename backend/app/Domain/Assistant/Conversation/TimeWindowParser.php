@@ -14,6 +14,8 @@ final class TimeWindowParser
         $now ??= CarbonImmutable::now();
 
         foreach ([
+            'last_month' => ['last month', 'previous month', 'الشهر اللي فات', 'بالشهر اللي فات', 'الشهر الماضي', 'بالشهر الماضي', 'الشهر السابق'],
+            'this_month' => ['this month', 'current month', 'هذا الشهر', 'الشهر الحالي'],
             'last_week' => ['last week', 'previous week', 'الاسبوع اللي فات', 'بالاسبوع اللي فات', 'الاسبوع الماضي', 'بالاسبوع الماضي', 'الاسبوع السابق'],
             'this_week' => ['this week', 'current week', 'هذا الاسبوع', 'الاسبوع الحالي'],
             'yesterday' => ['yesterday', 'امس'],
@@ -45,6 +47,8 @@ final class TimeWindowParser
             'yesterday' => [$now->startOfDay()->subDay(), $now->startOfDay()],
             'this_week' => [$now->startOfWeek(), $now->startOfWeek()->addWeek()],
             'last_week' => [$now->startOfWeek()->subWeek(), $now->startOfWeek()],
+            'this_month' => [$now->startOfMonth(), $now->startOfMonth()->addMonth()],
+            'last_month' => [$now->startOfMonth()->subMonth(), $now->startOfMonth()],
             default => [$now->startOfDay(), $now->startOfDay()->addDay()],
         };
     }

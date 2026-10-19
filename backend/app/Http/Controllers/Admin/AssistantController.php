@@ -11,6 +11,8 @@ use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
 use App\Domain\Assistant\Security\AiPrincipalContextResolver;
+use App\Domain\Assistant\Support\AssistantContextToken;
+use App\Domain\Assistant\Support\AssistantMemoryPolicy;
 use App\Domain\Assistant\Support\AssistantPageContext;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -42,6 +44,8 @@ final class AssistantController extends Controller
         private readonly AgentOrchestratorInterface $orchestrator,
         private readonly AssistantPageContext $pageContext,
         private readonly AiPrincipalContextResolver $principalContext,
+        private readonly AssistantContextToken $contextToken,
+        private readonly AssistantMemoryPolicy $memoryPolicy,
         private readonly AssistantRuntimeSettings $runtimeSettings,
     ) {}
 
@@ -84,24 +88,29 @@ final class AssistantController extends Controller
         $data = $request->validate([
             'locale' => ['nullable', Rule::in(['ar', 'en'])],
             'context' => ['nullable', 'array'],
+            'preferences' => ['nullable', 'array'],
+            'preferences.response_style' => ['nullable', Rule::in(['concise', 'detailed'])],
         ]);
         $locale = $this->locale($data['locale'] ?? $user->locale);
         $context = $this->pageContext->resolve($user, (array) ($data['context'] ?? []));
+        $correlationId = (string) Str::uuid();
+        $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
+        $contextEnvelope = $this->contextToken->issue($principal);
+        $preferences = $this->memoryPolicy->safePreferences((array) ($data['preferences'] ?? []), $locale);
 
-        $conversation = DB::transaction(function () use ($user, $locale, $context): AssistantConversation {
+        $conversation = DB::transaction(function () use ($user, $locale, $context, $preferences): AssistantConversation {
             $conversation = AssistantConversation::query()->create([
                 'public_id' => (string) Str::uuid(),
                 'user_id' => $user->getKey(),
                 'locale' => $locale,
             ]);
 
-            if ($context['authorized_entities'] !== []) {
-                AssistantConversationState::query()->create([
-                    'conversation_id' => $conversation->getKey(),
-                    'last_authorized_entities' => $context['authorized_entities'],
-                    'locale' => $locale,
-                ]);
-            }
+            AssistantConversationState::query()->create([
+                'conversation_id' => $conversation->getKey(),
+                'last_authorized_entities' => $context['authorized_entities'],
+                'locale' => $locale,
+                'safe_preferences' => $preferences,
+            ]);
 
             return $conversation;
         });
@@ -110,6 +119,9 @@ final class AssistantController extends Controller
             'conversation' => $this->conversationPayload($conversation),
             'messages' => [],
             'suggested_prompts' => $this->suggestedPrompts($locale),
+            'context_token' => $contextEnvelope['token'],
+            'context_expires_at' => $contextEnvelope['expires_at'],
+            'context' => $contextEnvelope['context'],
         ]], 201);
     }
 
@@ -133,19 +145,27 @@ final class AssistantController extends Controller
             'message' => ['required', 'string', 'max:2000'],
             'locale' => ['nullable', Rule::in(['ar', 'en'])],
             'context' => ['nullable', 'array'],
+            'context_token' => ['nullable', 'string', 'max:12000'],
+            'preferences' => ['nullable', 'array'],
+            'preferences.response_style' => ['nullable', Rule::in(['concise', 'detailed'])],
         ]);
         $message = trim((string) $data['message']);
         $locale = $this->messageLocale(
             $message,
             $this->locale($data['locale'] ?? $conversation->locale ?? $user->locale),
         );
-        $context = $this->pageContext->resolve($user, (array) ($data['context'] ?? []));
+        $contextInput = isset($data['context_token'])
+            ? $this->contextToken->pageContext($user, (string) $data['context_token'])
+            : (array) ($data['context'] ?? []);
+        $context = $this->pageContext->resolve($user, $contextInput);
         $correlationId = (string) Str::uuid();
 
         try {
             $principal = $this->principalContext->resolve($user, $locale, $context, $correlationId);
+            $contextEnvelope = $this->contextToken->issue($principal);
+            $preferences = $this->memoryPolicy->safePreferences((array) ($data['preferences'] ?? []), $locale);
 
-            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId, $principal): array {
+            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId, $principal, $contextEnvelope, $preferences): array {
                 $locked = AssistantConversation::query()
                     ->whereKey($conversation->getKey())
                     ->where('user_id', $user->getKey())
@@ -155,10 +175,21 @@ final class AssistantController extends Controller
                     ->where('conversation_id', $locked->getKey())
                     ->first();
 
+                if ($state !== null && ! $this->memoryPolicy->stateFresh($state)) {
+                    $state = $this->memoryPolicy->expireTransientState($state);
+                }
+
+                $effectivePreferences = array_merge(
+                    $state === null ? [] : (array) $state->safe_preferences,
+                    $preferences,
+                );
+                $brainState = $this->brainState($state);
+                $brainState['safe_preferences'] = $effectivePreferences;
+
                 AssistantMessage::query()->create([
                     'conversation_id' => $locked->getKey(),
                     'role' => AssistantMessage::ROLE_USER,
-                    'content' => $message,
+                    'content' => $this->memoryPolicy->redact($message),
                     'correlation_id' => $correlationId,
                 ]);
 
@@ -169,7 +200,7 @@ final class AssistantController extends Controller
                     principal: $principal,
                     correlationId: $correlationId,
                     context: $context,
-                    state: $this->brainState($state),
+                    state: $brainState,
                     conversationPublicId: (string) $locked->public_id,
                     budget: AgentExecutionBudget::fromConfig(),
                 ));
@@ -193,18 +224,18 @@ final class AssistantController extends Controller
                 $assistantMessage = AssistantMessage::query()->create([
                     'conversation_id' => $locked->getKey(),
                     'role' => AssistantMessage::ROLE_ASSISTANT,
-                    'content' => $content,
+                    'content' => $this->memoryPolicy->redact($content),
                     'intent' => $brainResult->intent,
                     'confidence' => $brainResult->confidence,
                     'payload' => $assistantPayload,
                     'correlation_id' => $correlationId,
                 ]);
 
-                $this->persistState($locked, $state, $brainResult->state, $toolResult, $toolRequest, $context, $locale);
+                $this->persistState($locked, $state, $brainResult->state, $toolResult, $toolRequest, $context, $locale, $effectivePreferences);
 
                 $locked->forceFill([
                     'locale' => $locale,
-                    'title' => $locked->title ?: Str::limit($message, 120, ''),
+                    'title' => $locked->title ?: Str::limit($this->memoryPolicy->redact($message), 120, ''),
                     'last_message_at' => now(),
                 ])->save();
 
@@ -212,6 +243,9 @@ final class AssistantController extends Controller
                     'conversation' => $this->conversationPayload($locked->fresh()),
                     'assistant_message' => $this->messagePayload($assistantMessage),
                     'suggested_prompts' => $suggested,
+                    'context_token' => $contextEnvelope['token'],
+                    'context_expires_at' => $contextEnvelope['expires_at'],
+                    'context' => $contextEnvelope['context'],
                 ];
             });
         } catch (HttpExceptionInterface|ValidationException $exception) {
@@ -268,6 +302,7 @@ final class AssistantController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         abort_unless($this->canUse($user), 403);
+        $this->memoryPolicy->pruneExpiredConversations($user);
 
         return $user;
     }
@@ -308,6 +343,7 @@ final class AssistantController extends Controller
             'result_references' => $state->result_references,
             'pending_clarification_slots' => $state->pending_clarification_slots,
             'locale' => $state->locale,
+            'safe_preferences' => $state->safe_preferences ?? [],
         ];
     }
 
@@ -319,6 +355,7 @@ final class AssistantController extends Controller
         ?AssistantToolRequest $toolRequest,
         array $context,
         string $locale,
+        array $safePreferences,
     ): void {
         $preserveContext = (bool) ($brainState['preserve_context'] ?? false);
         $authorized = is_array($context['authorized_entities'] ?? null) ? $context['authorized_entities'] : [];
@@ -342,7 +379,7 @@ final class AssistantController extends Controller
         foreach ($references as $reference) {
             $type = is_string($reference['type'] ?? null) ? $reference['type'] : null;
             $id = $this->positiveInt($reference['id'] ?? null);
-            if ($type !== null && $id !== null && in_array($type, ['order', 'customer', 'driver', 'product', 'store'], true)) {
+            if ($type !== null && $id !== null && in_array($type, ['order', 'customer', 'driver', 'product', 'store', 'account'], true)) {
                 $authorized[$type.'_id'] = $id;
             }
             if (($storeId = $this->positiveInt($reference['store_id'] ?? null)) !== null) {
@@ -369,6 +406,7 @@ final class AssistantController extends Controller
                     ? [['intent' => $brainState['last_intent'] ?? null]]
                     : [],
                 'locale' => $locale,
+                'safe_preferences' => $safePreferences,
             ])
             ->save();
     }

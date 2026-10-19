@@ -169,3 +169,7 @@ The Assistant knowledge layer is a governed read tool, not a second chatbot or d
 Agent routing keeps live transactional questions on deterministic FOODEX tools and document questions on `knowledge.search`; hybrid turns may use both. Document excerpts are untrusted data: they are unavailable during planning, cannot select/enable tools, and synthesis has no callable tools. Weak retrieval evidence fails closed rather than inviting the provider to invent an answer. Knowledge-backed answers expose server-derived exact source/version citations and freshness metadata.
 
 Authority: `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, #2223.
+
+### Assistant context and governed memory invariant
+
+Assistant page/session memory is a bounded continuation aid, never business authority. Browser context is first normalized against current FOODEX visibility rules and may be carried by a short-lived user-bound HMAC envelope, but every turn re-resolves the page context, principal, roles, permissions, tenant/store/channel scope and retailer sell-out consent before tool execution. Conversation state keeps only still-authorized entity identifiers/references, normalized time windows, intent/tool keys, clarification state, locale and allowlisted presentation preferences. It expires independently of conversation retention, redacts common secret patterns before persistence, and never stores transactional totals, balances, stock facts, provider secrets or model reasoning as durable memory. Business facts are always re-read from authoritative tools/read models.
