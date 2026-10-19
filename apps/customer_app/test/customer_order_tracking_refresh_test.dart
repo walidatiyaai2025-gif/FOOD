@@ -79,7 +79,7 @@ void main() {
 
       expect(find.text('Collection receipts'), findsOneWidget);
       expect(find.text('Collection receipt #44'), findsOneWidget);
-      expect(find.text('Remaining balance'), findsOneWidget);
+      expect(find.text('Debt'), findsOneWidget);
       expect(find.text('7.500 KWD'), findsOneWidget);
       expect(find.text('5.000 KWD'), findsOneWidget);
 
@@ -137,9 +137,8 @@ class _FakeOrdersApi implements CustomerOrdersApi {
     required int orderId,
     CustomerOrderContext? context,
   }) async {
-    final index = detailCalls < details.length
-        ? detailCalls
-        : details.length - 1;
+    final index =
+        detailCalls < details.length ? detailCalls : details.length - 1;
     detailCalls += 1;
     return details[index];
   }
