@@ -2640,10 +2640,6 @@ SQL));
                 'sources' => ['wh_Customers'],
                 'expected' => (int) $sourceCounts['wh_Customers'],
             ],
-            'platform_customers' => [
-                'sources' => ['wh_Customers'],
-                'expected' => (int) $sourceCounts['wh_Customers'],
-            ],
             'b2b_customers' => [
                 'sources' => ['wh_Customers'],
                 'expected' => (int) $sourceCounts['wh_Customers'],
@@ -2672,6 +2668,27 @@ SQL));
             ) {
                 return false;
             }
+        }
+
+        if (! Schema::hasTable('platform_customers')) {
+            return false;
+        }
+
+        $platformCustomerCount = (int) DB::table('platform_customers')->count();
+        $mappedPlatformCustomerCount = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Customers')
+            ->where('target_table', 'platform_customers')
+            ->distinct()
+            ->count('target_id');
+
+        $platformCustomerBackfillPending = $platformCustomerCount === 0
+            && $mappedPlatformCustomerCount === 0;
+        $platformCustomerFullyOwned = $mappedPlatformCustomerCount === (int) $sourceCounts['wh_Customers']
+            && $platformCustomerCount === $mappedPlatformCustomerCount;
+
+        if (! $platformCustomerBackfillPending && ! $platformCustomerFullyOwned) {
+            return false;
         }
 
         $mappedPriceRules = (int) DB::table('legacy_import_mappings')
