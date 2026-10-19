@@ -148,3 +148,12 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** forged or cross-user context tokens fail closed; expired session state is discarded; secrets are redacted before message persistence; follow-ups may reuse only still-authorized entity/window identifiers; transactional facts are freshly read from typed tools/read models; provider-disabled FOODEX keeps its deterministic Assistant path; no second chat database and no public `/api/v1` contract are introduced.
 
 **Authority:** `docs/architecture/FOODEX_AI_CONTEXT_MEMORY.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2216.
+
+## D-022 — Wholesale executive intelligence ranks server facts; it never pools sell-in and sell-out
+**Decision (#2219 / AI-11, 2026-10-18):** Executive wholesale analysis is a deterministic composition inside the existing FOODEX Assistant. `executive.wholesale` is B2B/sell-in only, ranks intervention facts with metric/time/entity/source evidence, and emits recommendations as a separately typed layer. Retailer sell-out remains a separate consent-gated read and is never pooled into wholesale totals.
+
+**Reason:** owners need concise intervention priorities, but allowing a provider to calculate, silently mix commercial flows, invent targets, or infer bottom-client rankings from truncated data would create non-auditable business truth.
+
+**Consequences:** missing targets are reported as unavailable rather than fabricated; bounded customer sources suppress bottom/lost-momentum claims when incomplete; authoritative drill-through routes accompany facts; provider failure cannot change the computed executive evidence.
+
+**Authority:** `docs/architecture/FOODEX_AI_WHOLESALE_EXECUTIVE_INTELLIGENCE.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2219.

@@ -8,6 +8,7 @@ use App\Domain\Assistant\Business\AssistantBusinessToolSet;
 use App\Domain\Assistant\Contracts\AgentOrchestratorInterface;
 use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
+use App\Domain\Assistant\Executive\WholesaleExecutiveToolSet;
 use App\Domain\Assistant\Knowledge\AssistantKnowledgeToolSet;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
@@ -60,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
             return new AssistantToolRegistry([
                 ...$app->make(AssistantBusinessToolSet::class)->all(),
                 ...$app->make(AssistantAnalyticsToolSet::class)->all(),
+                ...$app->make(WholesaleExecutiveToolSet::class)->all(),
                 ...$app->make(AssistantKnowledgeToolSet::class)->all(),
                 ...$app->make(AssistantOperationsToolSet::class)->all(),
             ]);
