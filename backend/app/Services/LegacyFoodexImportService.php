@@ -1447,6 +1447,401 @@ SQL));
         ];
     }
 
+    public function importStock(bool $apply, ?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+
+        $sourceRows = $stage('load_canonical_stock_view', fn () => $source
+            ->table('wh_vw_ItemStock2Now')
+            ->get(['ItemID', 'stocK', 'StoreId', 'StoreCode', 'IsCarTrans']));
+
+        $positions = [];
+        $invalidRows = [];
+
+        foreach ($sourceRows as $row) {
+            $itemId = (int) ($row->ItemID ?? 0);
+            $storeId = (int) ($row->StoreId ?? 0);
+            $quantity = round((float) ($row->stocK ?? 0), 3);
+
+            if ($itemId <= 0 || $storeId <= 0) {
+                if (count($invalidRows) < 20) {
+                    $invalidRows[] = [
+                        'item_id' => $itemId,
+                        'store_id' => $storeId,
+                        'quantity' => $quantity,
+                    ];
+                }
+
+                continue;
+            }
+
+            $key = $storeId.':'.$itemId;
+            if (! isset($positions[$key])) {
+                $positions[$key] = [
+                    'store_id' => $storeId,
+                    'item_id' => $itemId,
+                    'quantity' => 0.0,
+                    'store_code' => $row->StoreCode ?? null,
+                    'is_car_trans' => $row->IsCarTrans ?? null,
+                ];
+            }
+
+            $positions[$key]['quantity'] = round(
+                (float) $positions[$key]['quantity'] + $quantity,
+                3,
+            );
+        }
+
+        $warehouseMappings = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('target_table', 'warehouses')
+            ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
+            ->get(['source_table', 'source_key', 'target_id']);
+
+        $warehouseMap = [];
+        foreach ($warehouseMappings as $mapping) {
+            $warehouseMap[(int) $mapping->source_key] = (int) $mapping->target_id;
+        }
+
+        $productMap = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Items')
+            ->where('target_table', 'products')
+            ->get(['source_key', 'target_id'])
+            ->mapWithKeys(static fn ($row): array => [(int) $row->source_key => (int) $row->target_id])
+            ->all();
+
+        $positive = [];
+        $zero = 0;
+        $negative = [];
+        $unmappedLocations = [];
+        $unmappedItems = [];
+
+        foreach ($positions as $key => $position) {
+            $quantity = (float) $position['quantity'];
+
+            if (! isset($warehouseMap[$position['store_id']])) {
+                $unmappedLocations[$position['store_id']] = true;
+            }
+            if (! isset($productMap[$position['item_id']])) {
+                $unmappedItems[$position['item_id']] = true;
+            }
+
+            if ($quantity > 0.0005) {
+                $positive[$key] = $position;
+            } elseif ($quantity < -0.0005) {
+                $negative[$key] = $position;
+            } else {
+                $zero++;
+            }
+        }
+
+        $existingInventoryCount = (int) DB::table('inventories')->count();
+        $mappedLegacyInventoryCount = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_vw_ItemStock2Now')
+            ->where('target_table', 'inventories')
+            ->distinct()
+            ->count('target_id');
+
+        $existingMovementCount = (int) DB::table('stock_movements')->count();
+        $legacyMovementCount = (int) DB::table('stock_movements')
+            ->where('type', 'legacy_opening_balance')
+            ->where('reference_type', 'legacy_foodex_stock_baseline')
+            ->count();
+
+        $planned = [
+            'source_view_rows' => $sourceRows->count(),
+            'aggregated_positions' => count($positions),
+            'positive_positions' => count($positive),
+            'zero_positions' => $zero,
+            'negative_positions' => count($negative),
+            'invalid_source_rows' => count($invalidRows),
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'existing_inventories' => $existingInventoryCount,
+            'existing_stock_movements' => $existingMovementCount,
+        ];
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'stock',
+                'planned' => $planned,
+                'samples' => [
+                    'negative' => array_slice(array_values($negative), 0, 20),
+                    'invalid' => $invalidRows,
+                    'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
+                ],
+                'rules' => [
+                    'authority' => 'dbo.wh_vw_ItemStock2Now',
+                    'only_positive_positions_are_materialized' => true,
+                    'zero_positions_are_not_materialized' => true,
+                    'negative_positions_block_apply' => true,
+                    'foreign_target_stock_blocks_apply' => true,
+                ],
+            ];
+        }
+
+        if ($invalidRows !== []) {
+            throw new RuntimeException(
+                'Stock apply refused: canonical Foodex stock view returned invalid item/store identifiers.'
+            );
+        }
+
+        if ($negative !== []) {
+            throw new RuntimeException(
+                'Stock apply refused: canonical Foodex stock view contains negative current-stock positions.'
+            );
+        }
+
+        if ($unmappedLocations !== [] || $unmappedItems !== []) {
+            throw new RuntimeException(
+                'Stock apply refused: canonical Foodex stock contains unmapped locations or products.'
+            );
+        }
+
+        $safeEmptyTarget = $existingInventoryCount === 0 && $existingMovementCount === 0;
+        $safeLegacyRerun = $existingInventoryCount === $mappedLegacyInventoryCount
+            && $existingMovementCount === $legacyMovementCount
+            && $existingInventoryCount === $existingMovementCount;
+
+        if (! $safeEmptyTarget && ! $safeLegacyRerun) {
+            throw new RuntimeException(
+                'Stock apply refused: target inventory contains stock not wholly owned by the legacy Foodex baseline.'
+            );
+        }
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'stock',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use (
+                $positive,
+                $warehouseMap,
+                $productMap,
+                $runId,
+                $planned,
+            ): array {
+                $created = 0;
+                $updated = 0;
+                $movementCreated = 0;
+                $movementUpdated = 0;
+                $sourceKeys = [];
+
+                foreach ($positive as $sourceKey => $position) {
+                    $warehouseId = $warehouseMap[$position['store_id']];
+                    $productId = $productMap[$position['item_id']];
+                    $quantity = round((float) $position['quantity'], 3);
+                    $sourceKeys[] = $sourceKey;
+
+                    $inventory = DB::table('inventories')
+                        ->where('warehouse_id', $warehouseId)
+                        ->where('product_id', $productId)
+                        ->first(['id']);
+
+                    if ($inventory === null) {
+                        $inventoryId = (int) DB::table('inventories')->insertGetId([
+                            'warehouse_id' => $warehouseId,
+                            'product_id' => $productId,
+                            'quantity' => $quantity,
+                            'reserved_quantity' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $created++;
+                    } else {
+                        $inventoryId = (int) $inventory->id;
+                        DB::table('inventories')->where('id', $inventoryId)->update([
+                            'quantity' => $quantity,
+                            'reserved_quantity' => 0,
+                            'updated_at' => now(),
+                        ]);
+                        $updated++;
+                    }
+
+                    $storeId = (int) DB::table('warehouses')
+                        ->where('id', $warehouseId)
+                        ->value('store_id');
+
+                    $existingMovement = DB::table('stock_movements')
+                        ->where('inventory_id', $inventoryId)
+                        ->where('type', 'legacy_opening_balance')
+                        ->where('reference_type', 'legacy_foodex_stock_baseline')
+                        ->where('reference_id', $inventoryId)
+                        ->first(['id']);
+
+                    $movementPayload = [
+                        'store_id' => $storeId,
+                        'user_id' => null,
+                        'quantity' => $quantity,
+                        'reason' => 'Legacy Foodex cutover opening balance from dbo.wh_vw_ItemStock2Now',
+                        'notes' => $this->json([
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_view' => 'dbo.wh_vw_ItemStock2Now',
+                            'legacy_store_id' => $position['store_id'],
+                            'legacy_item_id' => $position['item_id'],
+                            'store_code' => $position['store_code'],
+                            'is_car_trans' => $position['is_car_trans'],
+                            'run_id' => $runId,
+                        ]),
+                        'updated_at' => now(),
+                    ];
+
+                    if ($existingMovement === null) {
+                        DB::table('stock_movements')->insert([
+                            'inventory_id' => $inventoryId,
+                            'type' => 'legacy_opening_balance',
+                            'reference_type' => 'legacy_foodex_stock_baseline',
+                            'reference_id' => $inventoryId,
+                            ...$movementPayload,
+                            'created_at' => now(),
+                        ]);
+                        $movementCreated++;
+                    } else {
+                        DB::table('stock_movements')
+                            ->where('id', $existingMovement->id)
+                            ->update($movementPayload);
+                        $movementUpdated++;
+                    }
+
+                    $sourceRow = (object) [
+                        'StoreId' => $position['store_id'],
+                        'ItemID' => $position['item_id'],
+                        'CurrentStock' => $quantity,
+                        'StoreCode' => $position['store_code'],
+                        'IsCarTrans' => $position['is_car_trans'],
+                    ];
+
+                    $this->syncMapping(
+                        'wh_vw_ItemStock2Now',
+                        $sourceKey,
+                        'inventories',
+                        $inventoryId,
+                        $sourceRow,
+                        $runId,
+                        [
+                            'authority' => 'dbo.wh_vw_ItemStock2Now',
+                            'quantity' => $quantity,
+                        ],
+                    );
+                }
+
+                $staleMappings = DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->where('source_table', 'wh_vw_ItemStock2Now')
+                    ->where('target_table', 'inventories')
+                    ->when(
+                        $sourceKeys !== [],
+                        fn ($query) => $query->whereNotIn('source_key', $sourceKeys),
+                    )
+                    ->get(['id', 'target_id']);
+
+                $zeroed = 0;
+                foreach ($staleMappings as $mapping) {
+                    $inventoryId = (int) $mapping->target_id;
+                    DB::table('inventories')->where('id', $inventoryId)->update([
+                        'quantity' => 0,
+                        'reserved_quantity' => 0,
+                        'updated_at' => now(),
+                    ]);
+                    DB::table('stock_movements')
+                        ->where('inventory_id', $inventoryId)
+                        ->where('type', 'legacy_opening_balance')
+                        ->where('reference_type', 'legacy_foodex_stock_baseline')
+                        ->where('reference_id', $inventoryId)
+                        ->update([
+                            'quantity' => 0,
+                            'reason' => 'Legacy Foodex cutover opening balance reset to zero on baseline rerun',
+                            'updated_at' => now(),
+                        ]);
+                    $zeroed++;
+                }
+
+                $targetInventoryCount = (int) DB::table('inventories')->count();
+                $targetPositiveCount = (int) DB::table('inventories')
+                    ->where('quantity', '>', 0)
+                    ->count();
+                $targetNegativeCount = (int) DB::table('inventories')
+                    ->where('quantity', '<', 0)
+                    ->count();
+
+                return [
+                    'run_id' => $runId,
+                    'authority' => 'dbo.wh_vw_ItemStock2Now',
+                    'planned' => $planned,
+                    'inventories' => [
+                        'created' => $created,
+                        'updated' => $updated,
+                        'zeroed_on_rerun' => $zeroed,
+                        'target_total' => $targetInventoryCount,
+                        'target_positive' => $targetPositiveCount,
+                        'target_negative' => $targetNegativeCount,
+                    ],
+                    'stock_movements' => [
+                        'created' => $movementCreated,
+                        'updated' => $movementUpdated,
+                    ],
+                ];
+            }, 3);
+
+            if (($summary['inventories']['target_negative'] ?? 0) !== 0) {
+                throw new RuntimeException('Stock apply validation failed: target contains negative inventory.');
+            }
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'stock',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
