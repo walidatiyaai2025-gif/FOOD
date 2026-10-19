@@ -1617,6 +1617,102 @@ Artisan::command(
             ])->all(),
         );
 
+        $this->newLine();
+        $this->info('PrTrans type lookup (source authority)');
+        $this->table(
+            ['Type', 'Arabic', 'English', 'Status'],
+            collect($report['pr_semantics']['type_lookup'] ?? [])->map(static fn (array $row): array => [
+                $row['type'],
+                $row['name_ar'],
+                $row['name_en'],
+                $row['status'],
+            ])->all(),
+        );
+
+        $this->newLine();
+        $this->info('PrTrans payment shape');
+        $this->table(
+            ['Type', 'PaymentType', 'PayType', 'Rows', 'Value'],
+            collect($report['pr_semantics']['payment_shapes'] ?? [])->map(static fn (array $row): array => [
+                $row['type'],
+                $row['payment_type'] ?? 'NULL',
+                $row['pay_type'] ?? 'NULL',
+                $row['rows'],
+                $row['value'],
+            ])->all(),
+        );
+
+        $this->newLine();
+        $this->info('PrTrans direct invoice links');
+        $this->table(
+            ['PrType', 'Invoice TransType', 'Rows', 'Value'],
+            collect($report['pr_semantics']['direct_invoice_links'] ?? [])->map(static fn (array $row): array => [
+                $row['pr_type'],
+                $row['invoice_trans_type'] ?? 'NULL',
+                $row['rows'],
+                $row['value'],
+            ])->all(),
+        );
+
+        $this->newLine();
+        $this->info('PrTrans detail allocation links');
+        $this->table(
+            ['PrType', 'Linked TransType', 'Rows', 'Value'],
+            collect($report['pr_semantics']['detail_links'] ?? [])->map(static fn (array $row): array => [
+                $row['pr_type'],
+                $row['linked_trans_type'] ?? 'NULL',
+                $row['rows'],
+                $row['value'],
+            ])->all(),
+        );
+
+        $detailIntegrity = $report['pr_semantics']['detail_integrity'] ?? [];
+        $this->line(
+            'PrTransDtl integrity: rows='.($detailIntegrity['rows'] ?? 0).
+            ' | orphan_parent_rows='.($detailIntegrity['orphan_parent_rows'] ?? 0).
+            ' | linked_transaction_rows='.($detailIntegrity['linked_transaction_rows'] ?? 0).
+            ' | value='.($detailIntegrity['value'] ?? 0)
+        );
+
+        $this->newLine();
+        $this->info('Bank in/out transaction types');
+        $this->table(
+            ['Type', 'Rows', 'Value', 'Customer', 'Supplier', 'Account', 'GL posted'],
+            collect($report['pr_semantics']['bank_types'] ?? [])->map(static fn (array $row): array => [
+                $row['type'],
+                $row['rows'],
+                $row['value'],
+                $row['customer_rows'],
+                $row['supplier_rows'],
+                $row['account_rows'],
+                $row['gl_posted_rows'],
+            ])->all(),
+        );
+
+        foreach (($report['pr_semantics']['samples'] ?? []) as $type => $samples) {
+            $this->newLine();
+            $this->info('PrTrans sample type '.$type);
+            $this->table(
+                ['ID', 'Receipt', 'Date', 'Value', 'Customer', 'Supplier', 'Account', 'InvHdr', 'PaymentType', 'PayType', 'GL', 'CashBox', 'Bank', 'Notes'],
+                collect($samples)->map(static fn (array $row): array => [
+                    $row['id'],
+                    $row['receipt'],
+                    $row['date'],
+                    $row['value'],
+                    $row['customer_id'],
+                    $row['supplier_id'],
+                    $row['account_id'],
+                    $row['invoice_header_id'],
+                    $row['payment_type'] ?? 'NULL',
+                    $row['pay_type'] ?? 'NULL',
+                    $row['gl_posted'],
+                    $row['cashbox_no'],
+                    $row['bank_id'],
+                    $row['notes'],
+                ])->all(),
+            );
+        }
+
         $this->line(
             'Commercial GL links: any='.$report['commercial_gl_links']['posted_commercial_headers_with_any_gl_link'].
             ' | primary='.$report['commercial_gl_links']['with_primary_gl_link'].
