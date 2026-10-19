@@ -1,3 +1,4 @@
+import '../../features/storefront/storefront_design_system.dart';
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
@@ -378,7 +379,10 @@ class _CustomerPreviewBrowserHostState
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: Center(
+        body: FoodexUnifiedHeaderSurface(
+          title: 'FOODEX',
+          searchHint: '',
+          child: Center(
           child: Semantics(
             liveRegion: true,
             child: Text(
