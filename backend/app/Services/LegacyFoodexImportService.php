@@ -2321,6 +2321,16 @@ SQL));
                     || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
                 ) {
                     $unmappedLocations[$locationId] = true;
+                    if (count($invalidLocationHeaderSamples) < 20) {
+                        $invalidLocationHeaderSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'supplier_id' => $supplierId,
+                            'location_id' => $locationId,
+                            'total' => round((float) ($header->Total ?? 0), 3),
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                        ];
+                    }
                 }
 
                 $dateTime = $parseDate($header->TransDate ?? null);
@@ -3782,6 +3792,8 @@ SQL));
         $typeCounts = [];
         $unmappedSuppliers = [];
         $unmappedLocations = [];
+        $invalidSupplierHeaderSamples = [];
+        $invalidLocationHeaderSamples = [];
         $invalidHeaderDates = [];
         $headerCount = 0;
 
@@ -3796,6 +3808,8 @@ SQL));
             &$typeCounts,
             &$unmappedSuppliers,
             &$unmappedLocations,
+            &$invalidSupplierHeaderSamples,
+            &$invalidLocationHeaderSamples,
             &$invalidHeaderDates,
             &$headerCount,
         ): void {
@@ -3834,6 +3848,16 @@ SQL));
 
                 if ($supplierId <= 0 || ! isset($maps['suppliers'][$supplierId])) {
                     $unmappedSuppliers[$supplierId] = true;
+                    if (count($invalidSupplierHeaderSamples) < 20) {
+                        $invalidSupplierHeaderSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'supplier_id' => $supplierId,
+                            'location_id' => $locationId,
+                            'total' => round((float) ($header->Total ?? 0), 3),
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                        ];
+                    }
                 }
 
                 $warehouseId = $maps['warehouses'][$locationId] ?? null;
@@ -4041,6 +4065,8 @@ SQL));
                 'samples' => [
                     'unmapped_suppliers' => array_slice(array_keys($unmappedSuppliers), 0, 30),
                     'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'invalid_supplier_headers' => $invalidSupplierHeaderSamples,
+                    'invalid_location_headers' => $invalidLocationHeaderSamples,
                     'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
                     'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
                     'nonzero_headers_without_lines' => array_slice($nonzeroHeadersWithoutLines, 0, 20),
