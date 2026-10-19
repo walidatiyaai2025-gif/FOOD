@@ -2596,6 +2596,8 @@ SQL));
                     'historical_import_does_not_mutate_inventory' => true,
                     'sales_materialize_as_completed_b2b_orders_and_issued_invoices' => true,
                     'paid_amounts_materialize_as_payments' => true,
+                    'legacy_balance_is_provenance_only_not_invoice_outstanding' => true,
+                    'payment_status_uses_paid_vs_net_total' => true,
                     'returns_materialize_as_customer_ledger_credits' => true,
                     'target_commerce_must_be_clean' => true,
                 ],
@@ -2800,7 +2802,7 @@ SQL));
                         $balance = round((float) ($header->Balance ?? 0), 3);
                         $paymentStatus = $paid <= 0.0005
                             ? 'unpaid'
-                            : (($balance <= 0.0005 || $paid >= $net - 0.0005) ? 'paid' : 'partial');
+                            : ($paid >= $net - 0.0005 ? 'paid' : 'partial');
                         $method = $paymentMethod($header);
                         $customerMeta = $maps['customer_meta'][$customerId] ?? [
                             'name' => 'Legacy customer '.$customerSourceId,
