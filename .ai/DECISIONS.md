@@ -131,7 +131,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
 
-## D-020 — Wholesale executive intelligence ranks server facts; it never pools sell-in and sell-out
+## D-020 — RAG documents are governed evidence, never instructions
+**Decision (#2223 / AI-15, 2026-10-18):** Approved FOODEX document knowledge is exposed to the existing Assistant only through the typed `knowledge.search` read tool. Sources carry exact version, locale and global-or-store scope; superseded, revoked, deleted and expired sources are excluded. Weak retrieval evidence is refused. Document excerpts are always untrusted data and cannot authorize, select or execute tools.
+
+**Reason:** mixing document text with agent instructions would allow indirect prompt injection, while allowing unscoped or stale documents would create cross-tenant and grounding failures. Live business facts also have different freshness/authority semantics from policy/manual content.
+
+**Consequences:** planning routes live facts to deterministic domain/read-model tools and documents to `knowledge.search`; hybrid questions may use both. Planning never sees retrieved document text, synthesis has no callable tools, every knowledge read is re-authorized/audited through `AssistantToolExecutor`, and final knowledge answers append server-derived exact source/version citations. Provider-disabled behavior remains additive/degraded and cannot take core FOODEX down.
+
+**Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
+
+## D-021 — Wholesale executive intelligence ranks server facts; it never pools sell-in and sell-out
 **Decision (#2219 / AI-11, 2026-10-18):** Executive wholesale analysis is a deterministic composition inside the existing FOODEX Assistant. `executive.wholesale` is B2B/sell-in only, ranks intervention facts with metric/time/entity/source evidence, and emits recommendations as a separately typed layer. Retailer sell-out remains a separate consent-gated read and is never pooled into wholesale totals.
 
 **Reason:** owners need concise intervention priorities, but allowing a provider to calculate, silently mix commercial flows, invent targets, or infer bottom-client rankings from truncated data would create non-auditable business truth.
