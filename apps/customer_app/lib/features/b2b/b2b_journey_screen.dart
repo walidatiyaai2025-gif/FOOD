@@ -4290,14 +4290,29 @@ class _B2bMorePageState extends State<_B2bMorePage> {
             expand: false,
             initialChildSize: .82,
             maxChildSize: .94,
-            builder: (_, controller) => SingleChildScrollView(
-              controller: controller,
-              padding: const EdgeInsets.all(16),
-              child: B2bBusinessAccountProfile(
-                api: widget.api,
-                endpoint: widget.profileEndpoint,
-                addressesRoute: widget.addressesRoute,
-              ),
+            builder: (_, controller) => Column(
+              children: [
+                FoodexWholesaleHeader(
+                  title: context.tr('b2b.app.title'),
+                  palette: FoodexPalette.wholesale,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
+                  onNotifications: () => _open(widget.notificationsRoute),
+                  onCart: () => _open(widget.cartRoute),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    padding: const EdgeInsets.all(16),
+                    child: B2bBusinessAccountProfile(
+                      api: widget.api,
+                      endpoint: widget.profileEndpoint,
+                      addressesRoute: widget.addressesRoute,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -4307,13 +4322,25 @@ class _B2bMorePageState extends State<_B2bMorePage> {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      showDragHandle: false,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FoodexWholesaleHeader(
+              title: context.tr('b2b.app.title'),
+              palette: FoodexPalette.wholesale,
+              searchHint: context.tr(
+                'customer.products.search_name_sku_barcode',
+              ),
+              onNotifications: () => _open(widget.notificationsRoute),
+              onCart: () => _open(widget.cartRoute),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
               if (widget.onLocaleChanged != null)
                 ListTile(
                   leading: const Icon(Icons.language_rounded),
@@ -4350,8 +4377,10 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                     await widget.onLogout!();
                   },
                 ),
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
