@@ -112,6 +112,31 @@ final class AssistantToolDefinitionCatalog
         $add('margin.summary', 'Compute authorized gross margin only where cost coverage exists.', 'حساب هامش الربح المصرح به فقط عند توفر تغطية التكلفة.', ['reports.view', 'catalog.view'], 'all', ['b2b', 'b2c'], $period, 'AssistantAnalyticsReadService', rowLimit: 1000);
         $add('support.summary', 'Summarize authorized customer-service workload and SLA risk.', 'تلخيص عبء خدمة العملاء ومخاطر اتفاقية مستوى الخدمة المصرح بها.', ['customers.view', 'b2b.accounts.view', 'whatsapp.inbox.view'], 'any', ['b2b', 'b2c'], $period, 'CustomerServiceCaseManager', rowLimit: 100);
 
+        $add(
+            'knowledge.search',
+            'Search approved FOODEX manuals, policies, procedures, FAQs and product knowledge. Use for document knowledge, not live transactional facts.',
+            'البحث في أدلة وسياسات وإجراءات وأسئلة FOODEX الشائعة ومعرفة المنتجات المعتمدة. يستخدم لمعرفة المستندات وليس للبيانات التشغيلية الحية.',
+            ['assistant.use'],
+            'all',
+            ['b2b', 'b2c'],
+            [
+                'type' => 'object',
+                'required' => ['query'],
+                'properties' => [
+                    'channel' => ['type' => 'string', 'enum' => ['b2b', 'b2c', 'B2B', 'B2C']],
+                    'store_id' => self::integer(),
+                    'query' => self::string(500),
+                    'max_results' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 8],
+                ],
+                'additionalProperties' => false,
+            ],
+            'AssistantKnowledgeIndex',
+            'KNOWLEDGE',
+            rowLimit: 8,
+            timeoutMs: 2500,
+            freshness: ['source_version_required' => true],
+        );
+
         return $definitions;
     }
 
