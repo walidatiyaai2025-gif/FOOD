@@ -1,3 +1,4 @@
+import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
@@ -553,11 +554,9 @@ class _CustomerAddressBookScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-address-book-screen'),
-      body: CustomerCurvedHeaderSurface(
-        header: CustomerAccountHeader(
-          title: context.tr('customer.profile.addresses'),
-          subtitle: context.tr('customer.addresses.subtitle'),
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.profile.addresses'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: RefreshIndicator(
           onRefresh: () async {
             _reload();
