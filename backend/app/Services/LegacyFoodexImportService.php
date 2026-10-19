@@ -1097,6 +1097,176 @@ SQL));
         ];
     }
 
+    public function stockRoutineDiagnostics(?callable $progress = null): array
+    {
+        $source = DB::connection('foodex_legacy');
+        $timings = [];
+
+        $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+            $timings[$label] = $elapsed;
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $candidateNames = [
+            'Fn_Wh_GetItemStock',
+            'wh_GetItemStock',
+            'sp_GetItemStock',
+            'GetItemStockAPI',
+            'fn_wh_getstock',
+            'fn_wh_getstockinbranch',
+            'fn_wh_getStockstore',
+            'wh_getStock',
+            'Vw_wh_ItemCurrentStock',
+            'wh_vw_ItemStock2Now',
+            'sp_vw_ItemStock2Now',
+            'wh_vw_itemstock',
+            'ProductStock',
+            'Vw_ItemsServerStock',
+            'MobileItemStockOnCar',
+            'wh_vw_ItemStock2NowCAR',
+            'wh_getStockcAR',
+            'wh_getStockCAR2',
+        ];
+
+        $objects = $stage('resolve_stock_objects', function () use ($source, $candidateNames) {
+            return $source->table('sys.objects as o')
+                ->join('sys.schemas as s', 's.schema_id', '=', 'o.schema_id')
+                ->whereIn('o.name', $candidateNames)
+                ->whereIn('o.type', ['P', 'V', 'FN', 'IF', 'TF'])
+                ->orderBy('o.name')
+                ->get([
+                    'o.object_id',
+                    'o.name',
+                    'o.type',
+                    'o.type_desc',
+                    's.name as schema_name',
+                ]);
+        });
+
+        $results = [];
+
+        foreach ($objects as $object) {
+            $schema = (string) $object->schema_name;
+            $name = (string) $object->name;
+            $objectId = (int) $object->object_id;
+
+            $parameters = $stage(
+                'params_'.$name,
+                fn () => $source->table('sys.parameters as p')
+                    ->leftJoin('sys.types as t', 't.user_type_id', '=', 'p.user_type_id')
+                    ->where('p.object_id', $objectId)
+                    ->orderBy('p.parameter_id')
+                    ->get([
+                        'p.parameter_id',
+                        'p.name',
+                        't.name as type_name',
+                        'p.max_length',
+                        'p.precision',
+                        'p.scale',
+                        'p.is_output',
+                    ])
+                    ->map(static fn ($row): array => [
+                        'id' => (int) $row->parameter_id,
+                        'name' => (string) ($row->name ?? ''),
+                        'type' => (string) ($row->type_name ?? ''),
+                        'max_length' => (int) ($row->max_length ?? 0),
+                        'precision' => (int) ($row->precision ?? 0),
+                        'scale' => (int) ($row->scale ?? 0),
+                        'is_output' => (bool) $row->is_output,
+                    ])
+                    ->values()
+                    ->all(),
+            );
+
+            $columns = [];
+            if ((string) $object->type === 'V') {
+                $columns = $stage(
+                    'columns_'.$name,
+                    fn () => $source->table('sys.columns as c')
+                        ->leftJoin('sys.types as t', 't.user_type_id', '=', 'c.user_type_id')
+                        ->where('c.object_id', $objectId)
+                        ->orderBy('c.column_id')
+                        ->get([
+                            'c.column_id',
+                            'c.name',
+                            't.name as type_name',
+                        ])
+                        ->map(static fn ($row): array => [
+                            'id' => (int) $row->column_id,
+                            'name' => (string) $row->name,
+                            'type' => (string) ($row->type_name ?? ''),
+                        ])
+                        ->values()
+                        ->all(),
+                );
+            }
+
+            $definitionRow = $stage(
+                'definition_'.$name,
+                fn () => $source->table('sys.sql_modules')
+                    ->where('object_id', $objectId)
+                    ->first(['definition']),
+            );
+
+            $definition = trim((string) ($definitionRow->definition ?? ''));
+
+            $signals = [
+                'wh_TransHeader' => stripos($definition, 'wh_TransHeader') !== false,
+                'wh_TransDetails' => stripos($definition, 'wh_TransDetails') !== false,
+                'wh_CarTransHeader' => stripos($definition, 'wh_CarTransHeader') !== false,
+                'wh_CarTransDetails' => stripos($definition, 'wh_CarTransDetails') !== false,
+                'wh_ItemStockOnHand' => stripos($definition, 'wh_ItemStockOnHand') !== false,
+                'TransPkgQty1' => stripos($definition, 'TransPkgQty1') !== false,
+                'CurrentStock' => stripos($definition, 'CurrentStock') !== false,
+                'PrevYear' => stripos($definition, 'PrevYear') !== false,
+                'b_OpeningBal' => stripos($definition, 'b_OpeningBal') !== false,
+                'TransType' => stripos($definition, 'TransType') !== false,
+                'StoreId' => stripos($definition, 'StoreId') !== false
+                    || stripos($definition, 'StoreID') !== false,
+                'CarId' => stripos($definition, 'CarId') !== false
+                    || stripos($definition, 'CarID') !== false,
+            ];
+
+            preg_match_all('/\\b(?:TransType\\s*(?:=|IN\\s*\\()\\s*)?([0-9]{1,2})\\b/i', $definition, $typeMatches);
+            $transactionTypes = collect($typeMatches[1] ?? [])
+                ->map(static fn ($value): int => (int) $value)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            $results[] = [
+                'schema' => $schema,
+                'name' => $name,
+                'type' => (string) $object->type_desc,
+                'parameters' => $parameters,
+                'columns' => $columns,
+                'definition_length' => strlen($definition),
+                'signals' => $signals,
+                'transaction_types_detected' => $transactionTypes,
+                'definition' => $definition,
+            ];
+        }
+
+        return [
+            'objects' => $results,
+            'timings_seconds' => $timings,
+            'read_only' => true,
+        ];
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
