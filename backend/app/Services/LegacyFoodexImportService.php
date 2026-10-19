@@ -3881,6 +3881,19 @@ SQL));
 
         ksort($typeCounts);
 
+        if ($apply && ($unmappedSuppliers !== [] || $unmappedLocations !== [] || $invalidHeaderDates !== [])) {
+            throw new RuntimeException(
+                'Purchase history apply refused before detail scan: invalid supplier/location/date mappings exist. '.
+                json_encode([
+                    'unmapped_suppliers' => array_keys($unmappedSuppliers),
+                    'unmapped_locations' => array_keys($unmappedLocations),
+                    'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                    'invalid_supplier_headers' => $invalidSupplierHeaderSamples,
+                    'invalid_location_headers' => $invalidLocationHeaderSamples,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
         $detailCounts = [];
         $detailValueSums = [];
         $usedItems = [];
