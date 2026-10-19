@@ -309,3 +309,5 @@ Artisan::command(
         return $result['status'] === 'partial_rollback' ? 3 : 0;
     }
 )->purpose('Safely cut over open B2B fulfillment from Driver to Van with snapshots and rollback.');
+
+require __DIR__.'/legacy_import.php';
