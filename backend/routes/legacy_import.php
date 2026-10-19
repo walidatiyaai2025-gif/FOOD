@@ -2,6 +2,7 @@
 
 use App\Services\LegacyFoodexImportService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 Artisan::command(
     'foodex:legacy-preflight {--json : Output machine-readable JSON}',
