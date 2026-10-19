@@ -4,16 +4,34 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.94",
   "minimum_current_version": "1.0.90",
-  "sha256": "91eea6a9af981ed08f5fadbee4c2fc033e3f7e0ebf39cfbd752eadfa782f6c87",
+  "source_base": "66857a1a5079baa78264b83cdb57e2cff112a727",
+  "source_commit": "373104742f77377afb40603123f9bfa45006db87",
+  "sha256": "990cf18557e7f53dde605d7742be41fda3ceacce680714ba1e28156ad41096e6",
   "contains_migrations": true,
+  "migrations": [
+    "backend/database/migrations/2026_10_18_172000_create_assistant_retailer_data_grants.php",
+    "backend/database/migrations/2026_10_18_221500_create_ai_analytics_read_models.php",
+    "backend/database/migrations/2026_10_18_234500_add_governed_memory_to_assistant_state.php",
+    "backend/database/migrations/2026_10_18_234500_create_retail_sellout_ingestion.php",
+    "backend/database/migrations/2026_10_19_000100_create_assistant_intelligence_center.php",
+    "backend/database/migrations/2026_10_19_000100_create_assistant_knowledge_index.php",
+    "backend/database/migrations/2026_10_19_000100_create_assistant_observability_events.php",
+    "backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php"
+  ],
+  "delta": {
+    "file_count": 596,
+    "source_file_count": 490,
+    "files_manifest": "FOODEX-Update.files.txt"
+  },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: promote FOODEX 1.0.94",
+  "release_notes": "Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94. Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology. Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior. Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source. Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact. Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`.",
   "dashboard_fields": {
     "target_version": "1.0.94",
     "minimum_current_version": "1.0.90",
-    "sha256": "91eea6a9af981ed08f5fadbee4c2fc033e3f7e0ebf39cfbd752eadfa782f6c87",
+    "source_commit": "373104742f77377afb40603123f9bfa45006db87",
+    "sha256": "990cf18557e7f53dde605d7742be41fda3ceacce680714ba1e28156ad41096e6",
     "contains_migrations": true,
-    "release_notes": "release: promote FOODEX 1.0.94"
+    "release_notes": "Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94. Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology. Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior. Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source. Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact. Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`."
   }
 }
