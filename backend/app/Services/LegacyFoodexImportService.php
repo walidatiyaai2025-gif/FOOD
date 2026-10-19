@@ -4614,6 +4614,894 @@ SQL));
         }
     }
 
+    public function importOperationalHistory(bool $apply, ?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        foreach (['legacy_operational_documents', 'legacy_operational_document_lines'] as $table) {
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException(
+                    "Missing {$table}. Run php artisan migrate before operational-history import."
+                );
+            }
+        }
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+
+        $typeRules = [
+            5 => ['kind' => 'damaged', 'sign' => -1, 'pair_family' => null, 'pair_role' => null],
+            7 => ['kind' => 'warehouse_transfer', 'sign' => 1, 'pair_family' => 'warehouse_transfer', 'pair_role' => 'to'],
+            8 => ['kind' => 'warehouse_transfer', 'sign' => -1, 'pair_family' => 'warehouse_transfer', 'pair_role' => 'from'],
+            11 => ['kind' => 'inventory_addition', 'sign' => 1, 'pair_family' => null, 'pair_role' => null],
+            12 => ['kind' => 'inventory_deficit', 'sign' => -1, 'pair_family' => null, 'pair_role' => null],
+            13 => ['kind' => 'car_transfer', 'sign' => 1, 'pair_family' => 'car_to', 'pair_role' => 'car_in'],
+            14 => ['kind' => 'car_transfer', 'sign' => -1, 'pair_family' => 'car_from', 'pair_role' => 'car_out'],
+            15 => ['kind' => 'car_transfer', 'sign' => -1, 'pair_family' => 'car_to', 'pair_role' => 'store_out'],
+            16 => ['kind' => 'car_transfer', 'sign' => 1, 'pair_family' => 'car_from', 'pair_role' => 'store_in'],
+            17 => ['kind' => 'car_wrapper', 'sign' => 0, 'pair_family' => 'car_wrapper', 'pair_role' => 'upload'],
+            18 => ['kind' => 'car_wrapper', 'sign' => 0, 'pair_family' => 'car_wrapper', 'pair_role' => 'download'],
+            22 => ['kind' => 'production', 'sign' => 1, 'pair_family' => 'production', 'pair_role' => 'output'],
+            23 => ['kind' => 'production', 'sign' => -1, 'pair_family' => 'production', 'pair_role' => 'material_issue'],
+        ];
+        $operationalTypes = array_keys($typeRules);
+
+        $maps = $stage('load_operational_history_mappings', function (): array {
+            $warehouseMappings = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('target_table', 'warehouses')
+                ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
+                ->get(['source_key', 'target_id']);
+
+            $warehouses = [];
+            foreach ($warehouseMappings as $row) {
+                $warehouses[(int) $row->source_key] = (int) $row->target_id;
+            }
+
+            $warehouseMeta = [];
+            if ($warehouses !== []) {
+                foreach (
+                    DB::table('warehouses')
+                        ->whereIn('id', array_values($warehouses))
+                        ->get(['id', 'store_id']) as $row
+                ) {
+                    $warehouseMeta[(int) $row->id] = [
+                        'store_id' => $row->store_id === null ? null : (int) $row->store_id,
+                    ];
+                }
+            }
+
+            $products = [];
+            foreach (
+                DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->where('source_table', 'wh_Items')
+                    ->where('target_table', 'products')
+                    ->get(['source_key', 'target_id']) as $row
+            ) {
+                $products[(int) $row->source_key] = (int) $row->target_id;
+            }
+
+            return [
+                'warehouses' => $warehouses,
+                'warehouse_meta' => $warehouseMeta,
+                'products' => $products,
+            ];
+        });
+
+        $parseDate = static function (mixed $value): ?string {
+            $date = (int) $value;
+            if ($date <= 0) {
+                return null;
+            }
+
+            $raw = str_pad((string) $date, 8, '0', STR_PAD_LEFT);
+            $parsed = \DateTimeImmutable::createFromFormat('!Ymd', $raw);
+            if ($parsed === false || $parsed->format('Ymd') !== $raw) {
+                return null;
+            }
+
+            return $parsed->format('Y-m-d');
+        };
+
+        $headerTypes = [];
+        $headerDates = [];
+        $headerPairMeta = [];
+        $typeCounts = [];
+        $unmappedLocations = [];
+        $invalidLocationHeaderSamples = [];
+        $invalidHeaderDates = [];
+        $pairGroups = [];
+        $headerCount = 0;
+
+        $stage('stream_operational_header_index', function () use (
+            $source,
+            $operationalTypes,
+            $typeRules,
+            $maps,
+            $parseDate,
+            &$headerTypes,
+            &$headerDates,
+            &$headerPairMeta,
+            &$typeCounts,
+            &$unmappedLocations,
+            &$invalidLocationHeaderSamples,
+            &$invalidHeaderDates,
+            &$pairGroups,
+            &$headerCount,
+        ): void {
+            foreach (
+                $source->table('wh_TransHeader')
+                    ->select([
+                        'HeaderId',
+                        'TransType',
+                        'TransDate',
+                        'StoreId',
+                        'toStoreId',
+                        'TransferHeaderID',
+                        'CarHeaderId',
+                        'ProductionId',
+                        'Status',
+                    ])
+                    ->where('Status', 1)
+                    ->whereIn('TransType', $operationalTypes)
+                    ->orderBy('HeaderId')
+                    ->cursor() as $header
+            ) {
+                $headerId = (int) $header->HeaderId;
+                $type = (int) $header->TransType;
+                $rule = $typeRules[$type];
+                $locationId = (int) ($header->StoreId ?? 0);
+                $headerCount++;
+                $headerTypes[$headerId] = $type;
+                $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+
+                $warehouseId = $maps['warehouses'][$locationId] ?? null;
+                $locationRequired = (int) $rule['sign'] !== 0;
+                if (
+                    $locationRequired
+                    && (
+                        $locationId <= 0
+                        || $warehouseId === null
+                        || ! isset($maps['warehouse_meta'][$warehouseId])
+                        || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
+                    )
+                ) {
+                    $unmappedLocations[$locationId] = true;
+                    if (count($invalidLocationHeaderSamples) < 20) {
+                        $invalidLocationHeaderSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'location_id' => $locationId,
+                        ];
+                    }
+                }
+
+                $date = $parseDate($header->TransDate ?? null);
+                if ($date === null) {
+                    $invalidHeaderDates[$headerId] = (int) ($header->TransDate ?? 0);
+                } else {
+                    $headerDates[$headerId] = $date;
+                }
+
+                $pairFamily = $rule['pair_family'];
+                $pairKey = null;
+                if ($pairFamily === 'warehouse_transfer') {
+                    $value = (int) ($header->TransferHeaderID ?? 0);
+                    $pairKey = $value > 0 ? (string) $value : null;
+                } elseif (in_array($pairFamily, ['car_to', 'car_from', 'car_wrapper'], true)) {
+                    $value = (int) ($header->CarHeaderId ?? 0);
+                    $pairKey = $value > 0 ? (string) $value : null;
+                } elseif ($pairFamily === 'production') {
+                    $value = (int) ($header->ProductionId ?? 0);
+                    $pairKey = $value > 0 ? (string) $value : null;
+                }
+
+                $headerPairMeta[$headerId] = [
+                    'pair_family' => $pairFamily,
+                    'pair_group_key' => $pairKey,
+                    'pair_role' => $rule['pair_role'],
+                ];
+
+                if ($pairFamily !== null && $pairKey !== null) {
+                    $groupKey = $pairFamily.':'.$pairKey;
+                    if (! isset($pairGroups[$groupKey])) {
+                        $pairGroups[$groupKey] = [
+                            'family' => $pairFamily,
+                            'key' => $pairKey,
+                            'types' => [],
+                            'headers' => 0,
+                        ];
+                    }
+                    $pairGroups[$groupKey]['headers']++;
+                    $pairGroups[$groupKey]['types'][$type] = ($pairGroups[$groupKey]['types'][$type] ?? 0) + 1;
+                }
+            }
+        });
+
+        ksort($typeCounts);
+
+        if ($apply && ($unmappedLocations !== [] || $invalidHeaderDates !== [])) {
+            throw new RuntimeException(
+                'Operational history apply refused before detail scan: invalid location/date mappings exist. '.
+                json_encode([
+                    'unmapped_locations' => array_keys($unmappedLocations),
+                    'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                    'invalid_location_headers' => $invalidLocationHeaderSamples,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        $detailCounts = [];
+        $usedItems = [];
+        $detailsByType = [];
+        $sourceDetailRowsScanned = 0;
+        $zeroQtyLines = 0;
+        $negativeQtyLines = 0;
+        $chunkNumber = 0;
+
+        $stage('stream_operational_details', function () use (
+            $source,
+            $progress,
+            $headerTypes,
+            &$detailCounts,
+            &$usedItems,
+            &$detailsByType,
+            &$sourceDetailRowsScanned,
+            &$zeroQtyLines,
+            &$negativeQtyLines,
+            &$chunkNumber,
+        ): void {
+            $source->table('wh_TransDetails')
+                ->select(['DetailId', 'HeaderId', 'ItemID', 'Qty', 'TransPkgQty1', 'Status'])
+                ->orderBy('DetailId')
+                ->chunkById(
+                    10000,
+                    function ($rows) use (
+                        $progress,
+                        $headerTypes,
+                        &$detailCounts,
+                        &$usedItems,
+                        &$detailsByType,
+                        &$sourceDetailRowsScanned,
+                        &$zeroQtyLines,
+                        &$negativeQtyLines,
+                        &$chunkNumber,
+                    ): void {
+                        $startedAt = microtime(true);
+                        $chunkNumber++;
+
+                        foreach ($rows as $row) {
+                            $sourceDetailRowsScanned++;
+
+                            if ((int) ($row->Status ?? 0) !== 1) {
+                                continue;
+                            }
+
+                            $headerId = (int) ($row->HeaderId ?? 0);
+                            $type = $headerTypes[$headerId] ?? null;
+                            if ($type === null) {
+                                continue;
+                            }
+
+                            $detailCounts[$headerId] = ($detailCounts[$headerId] ?? 0) + 1;
+                            $detailsByType[$type] = ($detailsByType[$type] ?? 0) + 1;
+
+                            $itemId = (int) ($row->ItemID ?? 0);
+                            if ($itemId > 0) {
+                                $usedItems[$itemId] = true;
+                            }
+
+                            $rawQty = (float) ($row->Qty ?? 0);
+                            $baseQty = (float) ($row->TransPkgQty1 ?? 0);
+                            if ($rawQty < -0.0005 || $baseQty < -0.0005) {
+                                $negativeQtyLines++;
+                            } elseif (abs($rawQty) <= 0.0005 && abs($baseQty) <= 0.0005) {
+                                $zeroQtyLines++;
+                            }
+                        }
+
+                        if ($progress !== null) {
+                            $progress(
+                                'operational_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRowsScanned,
+                                'done',
+                                round(microtime(true) - $startedAt, 3),
+                            );
+                        }
+                    },
+                    'DetailId',
+                    'DetailId',
+                );
+        });
+
+        $unmappedItems = [];
+        foreach (array_keys($usedItems) as $itemId) {
+            if (! isset($maps['products'][$itemId])) {
+                $unmappedItems[$itemId] = true;
+            }
+        }
+
+        $headersWithoutLines = 0;
+        foreach ($headerTypes as $headerId => $type) {
+            if (($detailCounts[$headerId] ?? 0) === 0) {
+                $headersWithoutLines++;
+            }
+        }
+
+        $pairDiagnostics = [
+            'warehouse_transfer_complete' => 0,
+            'warehouse_transfer_incomplete' => 0,
+            'car_to_complete' => 0,
+            'car_to_incomplete' => 0,
+            'car_from_complete' => 0,
+            'car_from_incomplete' => 0,
+            'production_groups' => 0,
+            'car_wrapper_groups' => 0,
+        ];
+        $pairAnomalySamples = [];
+
+        foreach ($pairGroups as $group) {
+            $types = $group['types'];
+            $family = $group['family'];
+            $complete = true;
+
+            if ($family === 'warehouse_transfer') {
+                $complete = ($types[7] ?? 0) === 1 && ($types[8] ?? 0) === 1;
+                $pairDiagnostics[$complete ? 'warehouse_transfer_complete' : 'warehouse_transfer_incomplete']++;
+            } elseif ($family === 'car_to') {
+                $complete = ($types[13] ?? 0) === 1 && ($types[15] ?? 0) === 1;
+                $pairDiagnostics[$complete ? 'car_to_complete' : 'car_to_incomplete']++;
+            } elseif ($family === 'car_from') {
+                $complete = ($types[14] ?? 0) === 1 && ($types[16] ?? 0) === 1;
+                $pairDiagnostics[$complete ? 'car_from_complete' : 'car_from_incomplete']++;
+            } elseif ($family === 'production') {
+                $pairDiagnostics['production_groups']++;
+            } elseif ($family === 'car_wrapper') {
+                $pairDiagnostics['car_wrapper_groups']++;
+            }
+
+            if (! $complete && count($pairAnomalySamples) < 20) {
+                $pairAnomalySamples[] = [
+                    'family' => $family,
+                    'key' => $group['key'],
+                    'types' => $types,
+                    'headers' => $group['headers'],
+                ];
+            }
+        }
+
+        $targetDocuments = (int) DB::table('legacy_operational_documents')->count();
+        $targetLines = (int) DB::table('legacy_operational_document_lines')->count();
+        $operationalDetailCount = array_sum($detailsByType);
+
+        $planned = [
+            'source_headers' => $headerCount,
+            'materialized_documents' => $headerCount,
+            'operational_details' => $operationalDetailCount,
+            'source_detail_rows_scanned' => $sourceDetailRowsScanned,
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+            'headers_without_lines' => $headersWithoutLines,
+            'zero_quantity_lines' => $zeroQtyLines,
+            'negative_quantity_lines' => $negativeQtyLines,
+            'warehouse_transfer_complete_pairs' => $pairDiagnostics['warehouse_transfer_complete'],
+            'warehouse_transfer_incomplete_pairs' => $pairDiagnostics['warehouse_transfer_incomplete'],
+            'car_to_complete_pairs' => $pairDiagnostics['car_to_complete'],
+            'car_to_incomplete_pairs' => $pairDiagnostics['car_to_incomplete'],
+            'car_from_complete_pairs' => $pairDiagnostics['car_from_complete'],
+            'car_from_incomplete_pairs' => $pairDiagnostics['car_from_incomplete'],
+            'production_groups' => $pairDiagnostics['production_groups'],
+            'existing_operational_documents' => $targetDocuments,
+            'existing_operational_lines' => $targetLines,
+        ];
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'operational-history',
+                'planned' => $planned,
+                'type_counts' => $typeCounts,
+                'detail_counts_by_type' => $detailsByType,
+                'pairing' => $pairDiagnostics,
+                'samples' => [
+                    'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
+                    'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                    'invalid_location_headers' => $invalidLocationHeaderSamples,
+                    'pair_anomalies' => $pairAnomalySamples,
+                ],
+                'rules' => [
+                    'historical_operational_data_is_immutable' => true,
+                    'does_not_mutate_inventory' => true,
+                    'does_not_create_historical_stock_movements' => true,
+                    'does_not_post_to_finance' => true,
+                    'paired_movements_are_preserved_as_source_documents_not_reposted' => true,
+                    'stock_signs_match_canonical_foodex_semantics' => true,
+                ],
+            ];
+        }
+
+        $blocking = [
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+        ];
+
+        if (array_sum($blocking) !== 0) {
+            throw new RuntimeException(
+                'Operational history apply refused: source-to-target validation has blocking issues. '.
+                json_encode($blocking, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        if ($targetDocuments !== 0 || $targetLines !== 0) {
+            throw new RuntimeException(
+                'Operational history apply refused: immutable operational history tables are not empty.'
+            );
+        }
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'operational-history',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use (
+                $source,
+                $progress,
+                $operationalTypes,
+                $typeRules,
+                $headerDates,
+                $headerPairMeta,
+                $maps,
+                $runId,
+                $planned,
+            ): array {
+                $documentsCreated = 0;
+                $linesCreated = 0;
+                $documentIds = [];
+                $mappingRows = [];
+                $headerBatch = [];
+                $headerBatchNumber = 0;
+
+                $flushMappings = function () use (&$mappingRows): void {
+                    if ($mappingRows === []) {
+                        return;
+                    }
+
+                    DB::table('legacy_import_mappings')->upsert(
+                        $mappingRows,
+                        ['source_system', 'source_table', 'source_key', 'target_table'],
+                        ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                    );
+                    $mappingRows = [];
+                };
+
+                $flushHeaders = function (array $batch) use (
+                    &$documentsCreated,
+                    &$documentIds,
+                    &$mappingRows,
+                    &$headerBatchNumber,
+                    $typeRules,
+                    $headerDates,
+                    $headerPairMeta,
+                    $maps,
+                    $runId,
+                    $progress,
+                    $flushMappings,
+                ): void {
+                    if ($batch === []) {
+                        return;
+                    }
+
+                    $headerBatchNumber++;
+                    $startedAt = microtime(true);
+                    if ($progress !== null) {
+                        $progress('materialize_operational_headers_batch_'.$headerBatchNumber, 'start', null);
+                    }
+
+                    $rows = [];
+                    foreach ($batch as $header) {
+                        $headerId = (int) $header->HeaderId;
+                        $type = (int) $header->TransType;
+                        $rule = $typeRules[$type];
+                        $locationId = (int) ($header->StoreId ?? 0);
+                        $warehouseId = $maps['warehouses'][$locationId] ?? null;
+                        $storeId = $warehouseId === null
+                            ? null
+                            : ($maps['warehouse_meta'][$warehouseId]['store_id'] ?? null);
+                        $pair = $headerPairMeta[$headerId] ?? [
+                            'pair_family' => null,
+                            'pair_group_key' => null,
+                            'pair_role' => null,
+                        ];
+
+                        $rows[] = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_header_id' => $headerId,
+                            'source_trans_type' => $type,
+                            'movement_kind' => $rule['kind'],
+                            'stock_sign' => (int) $rule['sign'],
+                            'document_date' => $headerDates[$headerId],
+                            'source_location_id' => $locationId > 0 ? $locationId : null,
+                            'warehouse_id' => $warehouseId,
+                            'store_id' => $storeId,
+                            'source_target_location_id' => (int) ($header->toStoreId ?? 0) > 0
+                                ? (int) $header->toStoreId
+                                : null,
+                            'source_transfer_header_id' => (int) ($header->TransferHeaderID ?? 0) > 0
+                                ? (int) $header->TransferHeaderID
+                                : null,
+                            'source_car_header_id' => (int) ($header->CarHeaderId ?? 0) > 0
+                                ? (int) $header->CarHeaderId
+                                : null,
+                            'source_production_id' => (int) ($header->ProductionId ?? 0) > 0
+                                ? (int) $header->ProductionId
+                                : null,
+                            'pair_family' => $pair['pair_family'],
+                            'pair_group_key' => $pair['pair_group_key'],
+                            'pair_role' => $pair['pair_role'],
+                            'gross_total' => round((float) ($header->Total ?? 0), 3),
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                            'document_number' => $this->legacyText($header->DocTransNo ?? null),
+                            'source_code' => $this->legacyText($header->Code ?? null),
+                            'reference_number' => $this->legacyText($header->ReferenceNo ?? null),
+                            'notes' => $this->legacyText($header->Notes ?? null),
+                            'source_payload' => $this->json((array) $header),
+                            'last_run_id' => $runId,
+                            'created_at' => $headerDates[$headerId].' 00:00:00',
+                            'updated_at' => $headerDates[$headerId].' 00:00:00',
+                        ];
+                    }
+
+                    foreach (array_chunk($rows, 500) as $chunk) {
+                        DB::table('legacy_operational_documents')->insert($chunk);
+                    }
+                    $documentsCreated += count($rows);
+
+                    $sourceHeaderIds = array_map(
+                        static fn ($header): int => (int) $header->HeaderId,
+                        $batch,
+                    );
+                    $inserted = DB::table('legacy_operational_documents')
+                        ->where('source_system', self::SOURCE_SYSTEM)
+                        ->whereIn('source_header_id', $sourceHeaderIds)
+                        ->get(['id', 'source_header_id'])
+                        ->keyBy('source_header_id');
+
+                    foreach ($batch as $header) {
+                        $headerId = (int) $header->HeaderId;
+                        $document = $inserted->get($headerId);
+                        if ($document === null) {
+                            throw new RuntimeException(
+                                "Inserted legacy operational document {$headerId} could not be resolved."
+                            );
+                        }
+
+                        $documentId = (int) $document->id;
+                        $documentIds[$headerId] = $documentId;
+                        $sourceArray = (array) $header;
+                        $mappingRows[] = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_key' => (string) $headerId,
+                            'target_table' => 'legacy_operational_documents',
+                            'target_id' => $documentId,
+                            'source_hash' => hash('sha256', $this->json($sourceArray)),
+                            'metadata' => $this->json([
+                                'source' => $sourceArray,
+                                '_migration' => [
+                                    'phase' => 'operational-history',
+                                    'movement_kind' => $typeRules[(int) $header->TransType]['kind'],
+                                    'stock_effect_replayed' => false,
+                                ],
+                            ]),
+                            'last_run_id' => $runId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+
+                    if (count($mappingRows) >= 1000) {
+                        $flushMappings();
+                    }
+
+                    if ($progress !== null) {
+                        $progress(
+                            'materialize_operational_headers_batch_'.$headerBatchNumber.'_headers_'.$documentsCreated,
+                            'done',
+                            round(microtime(true) - $startedAt, 3),
+                        );
+                    }
+                };
+
+                $headersStartedAt = microtime(true);
+                if ($progress !== null) {
+                    $progress('stream_materialize_operational_headers', 'start', null);
+                }
+
+                foreach (
+                    $source->table('wh_TransHeader')
+                        ->select([
+                            'HeaderId',
+                            'TransType',
+                            'TransDate',
+                            'StoreId',
+                            'toStoreId',
+                            'TransferHeaderID',
+                            'CarHeaderId',
+                            'ProductionId',
+                            'Code',
+                            'DocTransNo',
+                            'ReferenceNo',
+                            'Total',
+                            'NetTotal',
+                            'Notes',
+                            'Status',
+                        ])
+                        ->where('Status', 1)
+                        ->whereIn('TransType', $operationalTypes)
+                        ->orderBy('HeaderId')
+                        ->cursor() as $header
+                ) {
+                    $headerBatch[] = $header;
+                    if (count($headerBatch) >= 500) {
+                        $flushHeaders($headerBatch);
+                        $headerBatch = [];
+                    }
+                }
+
+                if ($headerBatch !== []) {
+                    $flushHeaders($headerBatch);
+                }
+
+                if ($progress !== null) {
+                    $progress(
+                        'stream_materialize_operational_headers',
+                        'done',
+                        round(microtime(true) - $headersStartedAt, 3),
+                    );
+                }
+
+                $flushMappings();
+
+                $detailsStartedAt = microtime(true);
+                $detailChunkNumber = 0;
+                $detailsScanned = 0;
+                if ($progress !== null) {
+                    $progress('stream_materialize_operational_details', 'start', null);
+                }
+
+                $source->table('wh_TransDetails')
+                    ->select([
+                        'DetailId',
+                        'HeaderId',
+                        'ItemID',
+                        'Package',
+                        'Qty',
+                        'TransPkgQty1',
+                        'Price',
+                        'TransPkgPrice1',
+                        'Value',
+                        'CostPrice',
+                        'DetailDiscount1',
+                        'DetailDiscount2',
+                        'DetailDiscount3',
+                        'DetailTax',
+                        'DetailRemark',
+                        'Status',
+                    ])
+                    ->orderBy('DetailId')
+                    ->chunkById(
+                        10000,
+                        function ($rows) use (
+                            &$detailChunkNumber,
+                            &$detailsScanned,
+                            &$linesCreated,
+                            &$mappingRows,
+                            $documentIds,
+                            $maps,
+                            $runId,
+                            $progress,
+                            $flushMappings,
+                        ): void {
+                            $detailChunkNumber++;
+                            $startedAt = microtime(true);
+                            $insertRows = [];
+                            $mappingSource = [];
+
+                            foreach ($rows as $line) {
+                                $detailsScanned++;
+
+                                if ((int) ($line->Status ?? 0) !== 1) {
+                                    continue;
+                                }
+
+                                $headerId = (int) ($line->HeaderId ?? 0);
+                                if (! isset($documentIds[$headerId])) {
+                                    continue;
+                                }
+
+                                $sourceItemId = (int) $line->ItemID;
+                                if (! isset($maps['products'][$sourceItemId])) {
+                                    throw new RuntimeException(
+                                        "Validated operational item {$sourceItemId} lost its product mapping during apply."
+                                    );
+                                }
+
+                                $discount = round(
+                                    (float) ($line->DetailDiscount1 ?? 0)
+                                    + (float) ($line->DetailDiscount2 ?? 0)
+                                    + (float) ($line->DetailDiscount3 ?? 0),
+                                    3,
+                                );
+
+                                $insertRows[] = [
+                                    'document_id' => $documentIds[$headerId],
+                                    'source_detail_id' => (int) $line->DetailId,
+                                    'source_item_id' => $sourceItemId,
+                                    'product_id' => $maps['products'][$sourceItemId],
+                                    'package' => $line->Package === null ? null : (int) $line->Package,
+                                    'raw_quantity' => round((float) ($line->Qty ?? 0), 3),
+                                    'base_quantity' => round((float) ($line->TransPkgQty1 ?? 0), 3),
+                                    'unit_price' => round((float) ($line->Price ?? 0), 3),
+                                    'base_unit_price' => round((float) ($line->TransPkgPrice1 ?? 0), 3),
+                                    'line_value' => round((float) ($line->Value ?? 0), 3),
+                                    'cost_price' => round((float) ($line->CostPrice ?? 0), 3),
+                                    'discount_total' => $discount,
+                                    'tax_total' => round((float) ($line->DetailTax ?? 0), 3),
+                                    'source_payload' => $this->json((array) $line),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ];
+                                $mappingSource[(int) $line->DetailId] = (array) $line;
+                            }
+
+                            if ($insertRows !== []) {
+                                foreach (array_chunk($insertRows, 500) as $chunk) {
+                                    DB::table('legacy_operational_document_lines')->insert($chunk);
+                                }
+
+                                $sourceIds = array_column($insertRows, 'source_detail_id');
+                                $inserted = DB::table('legacy_operational_document_lines')
+                                    ->whereIn('source_detail_id', $sourceIds)
+                                    ->get(['id', 'source_detail_id'])
+                                    ->keyBy('source_detail_id');
+
+                                foreach ($sourceIds as $sourceDetailId) {
+                                    $target = $inserted->get($sourceDetailId);
+                                    if ($target === null) {
+                                        throw new RuntimeException(
+                                            "Inserted legacy operational line {$sourceDetailId} could not be resolved."
+                                        );
+                                    }
+
+                                    $sourceArray = $mappingSource[$sourceDetailId];
+                                    $mappingRows[] = [
+                                        'source_system' => self::SOURCE_SYSTEM,
+                                        'source_table' => 'wh_TransDetails',
+                                        'source_key' => (string) $sourceDetailId,
+                                        'target_table' => 'legacy_operational_document_lines',
+                                        'target_id' => (int) $target->id,
+                                        'source_hash' => hash('sha256', $this->json($sourceArray)),
+                                        'metadata' => $this->json([
+                                            'source' => $sourceArray,
+                                            '_migration' => [
+                                                'phase' => 'operational-history',
+                                                'stock_effect_replayed' => false,
+                                            ],
+                                        ]),
+                                        'last_run_id' => $runId,
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ];
+                                }
+
+                                $linesCreated += count($insertRows);
+                                if (count($mappingRows) >= 1000) {
+                                    $flushMappings();
+                                }
+                            }
+
+                            if ($progress !== null) {
+                                $progress(
+                                    'materialize_operational_details_chunk_'.$detailChunkNumber.'_rows_'.$detailsScanned,
+                                    'done',
+                                    round(microtime(true) - $startedAt, 3),
+                                );
+                            }
+                        },
+                        'DetailId',
+                        'DetailId',
+                    );
+
+                if ($progress !== null) {
+                    $progress(
+                        'stream_materialize_operational_details',
+                        'done',
+                        round(microtime(true) - $detailsStartedAt, 3),
+                    );
+                }
+
+                $flushMappings();
+
+                $targetDocuments = (int) DB::table('legacy_operational_documents')->count();
+                $targetLines = (int) DB::table('legacy_operational_document_lines')->count();
+
+                if (
+                    $targetDocuments !== $documentsCreated
+                    || $targetLines !== $linesCreated
+                    || $documentsCreated !== (int) ($planned['materialized_documents'] ?? -1)
+                    || $linesCreated !== (int) ($planned['operational_details'] ?? -1)
+                ) {
+                    throw new RuntimeException(
+                        'Operational history target validation failed: target counts do not match planned/materialized counts.'
+                    );
+                }
+
+                return [
+                    'run_id' => $runId,
+                    'planned' => $planned,
+                    'documents' => ['created' => $documentsCreated],
+                    'lines' => ['created' => $linesCreated],
+                    'target' => [
+                        'documents' => $targetDocuments,
+                        'lines' => $targetLines,
+                    ],
+                    'inventory_mutations' => 0,
+                    'stock_movement_mutations' => 0,
+                    'finance_mutations' => 0,
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'operational-history',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
