@@ -36,6 +36,7 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.location,
     required this.actionApi,
     this.api,
+    this.accountApi,
     this.storefrontApi,
     this.onLocaleChanged,
     this.onLogout,
@@ -45,6 +46,7 @@ class B2bJourneyScreen extends StatelessWidget {
   final CustomerRouteDefinition definition;
   final String location;
   final B2bApi? api;
+  final B2cAccountApi? accountApi;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final ValueChanged<Locale>? onLocaleChanged;
@@ -4281,14 +4283,12 @@ class _B2bMorePage extends StatefulWidget {
     required this.notificationsRoute,
     required this.addressesRoute,
     required this.cartRoute,
-    this.accountApi,
     this.storeId,
     this.onLocaleChanged,
     this.onLogout,
   });
 
   final B2bApi api;
-  final B2cAccountApi? accountApi;
   final String profileEndpoint;
   final String financeEndpoint;
   final String dashboardRoute;
@@ -4510,7 +4510,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         statementRoute: widget.statementRoute,
                         open: _open,
                         retry: () => setState(
-                          () => finance = widget.api.get(widget.financeEndpoint),
+                          () =>
+                              finance = widget.api.get(widget.financeEndpoint),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -4573,8 +4574,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.security_outlined),
                             title: Text(context.tr('b2b.profile.security')),
-                            trailing:
-                                const Icon(Icons.chevron_left_rounded),
+                            trailing: const Icon(Icons.chevron_left_rounded),
                             onTap: _showSettings,
                           ),
                         ),
