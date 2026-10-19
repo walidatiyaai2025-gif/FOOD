@@ -6384,6 +6384,23 @@ SQL));
                     $invoiceReceiptVarianceAbsoluteValue + abs($difference),
                     3,
                 );
+
+                $varianceRows = (int) $aggregate['rows'];
+                $classificationCounts['invoice_receipt_duplicate'] = max(
+                    0,
+                    (int) ($classificationCounts['invoice_receipt_duplicate'] ?? 0) - $varianceRows,
+                );
+                $classificationValues['invoice_receipt_duplicate'] = round(
+                    (float) ($classificationValues['invoice_receipt_duplicate'] ?? 0) - $aggregateAmount,
+                    3,
+                );
+                $classificationCounts['invoice_receipt_variance'] =
+                    (int) ($classificationCounts['invoice_receipt_variance'] ?? 0) + $varianceRows;
+                $classificationValues['invoice_receipt_variance'] = round(
+                    (float) ($classificationValues['invoice_receipt_variance'] ?? 0) + $aggregateAmount,
+                    3,
+                );
+
                 if (count($directPaymentAmountMismatches) < 30) {
                     $directPaymentAmountMismatches[] = [
                         'invoice_header_id' => (int) $invoiceHeaderId,
@@ -6459,8 +6476,10 @@ SQL));
         $planned = [
             'active_pr_transactions' => $prRows,
             'active_bank_transactions' => $bankRows,
-            'invoice_receipt_duplicates' => $duplicatePaymentRows,
-            'invoice_receipt_duplicate_value' => $duplicatePaymentValue,
+            'existing_payment_links' => $duplicatePaymentRows,
+            'existing_payment_link_source_value' => $duplicatePaymentValue,
+            'invoice_receipt_exact_matches' => max(0, $duplicatePaymentRows - $directPaymentAmountMismatchCount),
+            'invoice_receipt_variances_nonblocking' => $directPaymentAmountMismatchCount,
             'new_customer_ledger_credits' => $ledgerCreditRows,
             'new_customer_ledger_credit_value' => $ledgerCreditValue,
             'new_customer_ledger_debits' => $ledgerDebitRows,
@@ -6474,7 +6493,6 @@ SQL));
             'negative_amounts' => $negativeAmountCount,
             'invoice_receipt_groups' => count($invoiceReceiptAggregates),
             'missing_direct_payments' => $missingDirectPaymentCount,
-            'invoice_receipt_variances_nonblocking' => $directPaymentAmountMismatchCount,
             'invoice_receipt_variance_absolute_value' => $invoiceReceiptVarianceAbsoluteValue,
             'missing_return_links' => $missingReturnLinkCount,
             'customer_identity_mismatches' => $customerIdentityMismatchCount,
@@ -7107,7 +7125,7 @@ SQL));
                     $targetFinanceRows !== (int) $planned['active_pr_transactions']
                     || $targetBankRows !== (int) $planned['active_bank_transactions']
                     || $targetLedgerRows !== (int) $planned['new_customer_ledger_entries']
-                    || $duplicatePaymentMappings !== (int) $planned['invoice_receipt_duplicates']
+                    || $duplicatePaymentMappings !== (int) $planned['existing_payment_links']
                 ) {
                     throw new RuntimeException(
                         'Finance history target validation failed: target counts do not match planned counts.'
