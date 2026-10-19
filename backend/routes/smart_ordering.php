@@ -19,7 +19,7 @@ Route::prefix('admin/smart-ordering')
     ->name('admin.smart-ordering.')
     ->middleware('management.dashboard')
     ->group(function (): void {
-        Route::get('/appearance', [SmartOrderingThemePreviewController::class, 'index'])->name('appearance.index');
+        Route::get('/appearance', [SmartOrderingThemePreviewController::class, 'index'])->middleware('restaurant.setup:menu')->name('appearance.index');
         Route::post('/appearance/apply', [SmartOrderingThemePreviewController::class, 'apply'])
             ->middleware('throttle:30,1')
             ->name('appearance.apply');
