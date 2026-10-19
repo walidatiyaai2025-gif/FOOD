@@ -38,6 +38,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -82,6 +83,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Protect persistent FOODEX databases from accidental destructive Artisan commands.
+        // Disposable testing environments and SQLite databases may still rebuild freely.
+        $allowDestructiveDatabaseCommands = $this->app->environment('testing')
+            || config('database.default') === 'sqlite'
+            || (bool) config('database.allow_destructive_commands', false);
+
+        DB::prohibitDestructiveCommands(! $allowDestructiveDatabaseCommands);
+
         Paginator::defaultView('pagination.foodex');
         Paginator::defaultSimpleView('pagination.foodex-simple');
 
