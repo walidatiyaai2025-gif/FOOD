@@ -7,6 +7,7 @@
 - Increase bounded Assistant provider completion budgets so short reasoning output cannot consume the whole response before the final routing JSON or probe sentinel.
 - Preserve deterministic fail-safe fallback, read-only Assistant tools, RBAC and authoritative store/channel scope with no new write capability.
 - Publish 1.0.91 as the direct cumulative Dashboard hotfix path for installed 1.0.90 systems; no full redeploy is required.
+- Converge the final 1.0.91 release candidate on authoritative `main` through completed AI-PROGRAM production acceptance (#2208/#2232), so no later main change is dropped from the cumulative package.
 - Keep the published 1.0.90 registry/update artifacts immutable in the release candidate; generate and register the 1.0.91 bundle through the canonical release distribution flow.
 - Synchronize Customer, Driver and Van source identities at 1.0.91+91 per the release contract; the Dashboard update remains cumulative and independently deployable.
 
