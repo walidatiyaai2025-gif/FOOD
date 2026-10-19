@@ -376,18 +376,26 @@
             const draft = drafts.find(item => item && typeof item === 'object');
             if (!draft) return;
 
+            const structuredPreview = draft.preview && typeof draft.preview === 'object' && !Array.isArray(draft.preview)
+                ? draft.preview
+                : {};
             const preview = safeText(draft.localized_preview)
                 || safeText(draft.human_preview)
+                || safeText(structuredPreview.summary)
                 || safeText(draft.preview)
                 || safeText(draft.message);
             const warnings = Array.isArray(draft.warnings)
                 ? draft.warnings.filter(item => typeof item === 'string' && item.trim() !== '').slice(0, 4)
                 : [];
+            const approveUrl = safeActionUrl(draft.approve_url || '');
+            const executeUrl = safeActionUrl(draft.execute_url || '');
+            const canControl = Boolean(approveUrl && executeUrl && typeof draft.payload_hash === 'string' && draft.payload_hash !== '');
 
-            if (!preview && warnings.length === 0) return;
+            if (!preview && warnings.length === 0 && !canControl) return;
 
             const panel = document.createElement('section');
             panel.className = 'foodex-assistant-approval';
+            panel.dataset.assistantApproval = String(draft.id || '');
 
             const heading = document.createElement('strong');
             heading.textContent = label('labelApprovalRequired');
@@ -397,6 +405,30 @@
                 const p = document.createElement('p');
                 p.textContent = preview;
                 panel.appendChild(p);
+            }
+
+            if (structuredPreview.target || structuredPreview.payload) {
+                const exact = document.createElement('pre');
+                exact.className = 'foodex-assistant-approval-payload';
+                exact.textContent = JSON.stringify({
+                    target: structuredPreview.target || {},
+                    payload: structuredPreview.payload || {},
+                }, null, 2);
+                panel.appendChild(exact);
+            }
+
+            const sideEffects = structuredPreview.side_effects && typeof structuredPreview.side_effects === 'object'
+                ? structuredPreview.side_effects[(locale || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en']
+                : [];
+            if (Array.isArray(sideEffects) && sideEffects.length > 0) {
+                const list = document.createElement('ul');
+                sideEffects.forEach(value => {
+                    if (typeof value !== 'string' || value === '') return;
+                    const item = document.createElement('li');
+                    item.textContent = value;
+                    list.appendChild(item);
+                });
+                if (list.childElementCount > 0) panel.appendChild(list);
             }
 
             warnings.forEach(value => {
@@ -409,6 +441,71 @@
                 const expiry = document.createElement('small');
                 expiry.textContent = label('labelExpires') + ': ' + formatDateish(draft.expires_at);
                 panel.appendChild(expiry);
+            }
+
+            if (canControl) {
+                const controls = document.createElement('div');
+                controls.className = 'foodex-assistant-actions';
+
+                const approve = document.createElement('button');
+                approve.type = 'button';
+                approve.className = 'foodex-assistant-action';
+                approve.textContent = locale.toLowerCase().startsWith('ar') ? 'موافقة' : 'Approve';
+
+                const execute = document.createElement('button');
+                execute.type = 'button';
+                execute.className = 'foodex-assistant-action';
+                execute.textContent = locale.toLowerCase().startsWith('ar') ? 'تنفيذ' : 'Execute';
+                execute.disabled = String(draft.status || '') !== 'approved';
+
+                const state = document.createElement('small');
+                state.textContent = label('labelApprovalRequired');
+
+                approve.addEventListener('click', async () => {
+                    if (busy) return;
+                    setBusy(true);
+                    try {
+                        const approved = await request(approveUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                confirmed: true,
+                                payload_hash: draft.payload_hash,
+                            }),
+                        });
+                        approve.disabled = true;
+                        execute.disabled = false;
+                        state.textContent = locale.toLowerCase().startsWith('ar') ? 'تم تسجيل الموافقة.' : 'Approval recorded.';
+                        if (approved?.payload_hash) draft.payload_hash = approved.payload_hash;
+                    } catch {
+                        state.textContent = label('labelError');
+                    } finally {
+                        setBusy(false);
+                    }
+                });
+
+                execute.addEventListener('click', async () => {
+                    if (busy || execute.disabled) return;
+                    setBusy(true);
+                    try {
+                        const executed = await request(executeUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({}),
+                        });
+                        approve.disabled = true;
+                        execute.disabled = true;
+                        const result = executed?.result && typeof executed.result === 'object' ? executed.result : {};
+                        state.textContent = locale.toLowerCase().startsWith('ar')
+                            ? 'تم التنفيذ عبر FOODEX: ' + String(result.request_number || '')
+                            : 'Executed by FOODEX: ' + String(result.request_number || '');
+                    } catch {
+                        state.textContent = label('labelError');
+                    } finally {
+                        setBusy(false);
+                    }
+                });
+
+                controls.append(approve, execute);
+                panel.append(controls, state);
             }
 
             container.appendChild(panel);

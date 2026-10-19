@@ -117,7 +117,8 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             }
             $seenTools[$toolKey] = true;
 
-            if ($this->tools->definition($toolKey)->mode !== 'READ') {
+            $toolMode = strtoupper($this->tools->definition($toolKey)->mode);
+            if (! in_array($toolMode, ['READ', 'DRAFT'], true)) {
                 $failed++;
                 $toolExecutions[] = [
                     'call_id' => $callId,
@@ -163,7 +164,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 $toolExecutions[] = [
                     'call_id' => $callId,
                     'tool' => $toolKey,
-                    'status' => $isPartial ? 'PARTIAL' : 'COMPLETE',
+                    'status' => $toolMode === 'DRAFT'
+                        ? 'APPROVAL_REQUIRED'
+                        : ($isPartial ? 'PARTIAL' : 'COMPLETE'),
                     'evidence_id' => $evidenceItem->evidenceId,
                 ];
             } catch (HttpExceptionInterface $exception) {
@@ -305,9 +308,19 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ];
         }
 
+        $allowedTools = array_values(array_filter(
+            $this->tools->providerTools($request->locale),
+            static function (array $tool): bool {
+                $mode = strtoupper((string) data_get($tool, 'x-foodex.mode', 'READ'));
+
+                return $mode === 'READ'
+                    || ($mode === 'DRAFT' && (bool) config('assistant.security.write_actions_enabled', false));
+            },
+        ));
+
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->planningInstructions($request->locale),
-            taskInstructions: 'Select only the minimum registered READ tools needed. Use no more than the server step budget.',
+            taskInstructions: 'Select only the minimum registered READ or approval-gated DRAFT tools needed. A DRAFT is a preview only and never means the business action executed.',
             userContent: $request->userMessage,
             context: [
                 'scope' => $this->scopeSummary($request),
@@ -316,7 +329,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 'max_steps' => $request->budget->maxSteps,
                 'max_tool_calls' => $request->budget->maxToolCalls,
             ],
-            allowedTools: $this->tools->providerTools($request->locale),
+            allowedTools: $allowedTools,
             maxTokens: $request->budget->maxPlanningTokens,
             timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
@@ -624,7 +637,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->synthesisInstructions($request->locale),
-            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids.',
+            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids. If a result contains approval_draft, clearly say it is only a pending approval preview and has not executed.',
             userContent: $request->userMessage,
             context: [
                 'status' => $status,

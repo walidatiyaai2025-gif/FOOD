@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AppPreviewConfigurationController;
 use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
 use App\Http\Controllers\Admin\AppVersionController;
+use App\Http\Controllers\Admin\AssistantActionController;
 use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AssistantSettingsController;
 use App\Http\Controllers\Admin\B2bWorkspaceController;
@@ -523,6 +524,10 @@ Route::prefix('admin')
                 Route::post('/conversations/{conversationId}/messages', [AssistantController::class, 'storeMessage'])->whereUuid('conversationId')->name('conversations.messages.store');
                 Route::post('/conversations/{conversationId}/clear', [AssistantController::class, 'clear'])->whereUuid('conversationId')->name('conversations.clear');
                 Route::delete('/conversations/{conversationId}', [AssistantController::class, 'destroy'])->whereUuid('conversationId')->name('conversations.destroy');
+                Route::post('/actions', [AssistantActionController::class, 'store'])->name('actions.store');
+                Route::get('/actions/{actionId}', [AssistantActionController::class, 'show'])->whereUuid('actionId')->name('actions.show');
+                Route::post('/actions/{actionId}/approve', [AssistantActionController::class, 'approve'])->whereUuid('actionId')->name('actions.approve');
+                Route::post('/actions/{actionId}/execute', [AssistantActionController::class, 'execute'])->whereUuid('actionId')->name('actions.execute');
             });
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::get('/app-preview', [AppPreviewController::class, 'index'])->name('app-preview.index');

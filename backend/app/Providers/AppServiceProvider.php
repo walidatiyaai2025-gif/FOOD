@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Actions\AssistantSafeActionToolSet;
 use App\Domain\Assistant\Agent\AssistantAgentOrchestrator;
 use App\Domain\Assistant\Analytics\AssistantAnalyticsToolSet;
 use App\Domain\Assistant\Business\AssistantBusinessToolSet;
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
                 ...$app->make(WholesaleExecutiveToolSet::class)->all(),
                 ...$app->make(AssistantKnowledgeToolSet::class)->all(),
                 ...$app->make(AssistantOperationsToolSet::class)->all(),
+                ...$app->make(AssistantSafeActionToolSet::class)->all(),
             ]);
         });
         $this->app->bind(AssistantBrainInterface::class, AssistantHybridBrain::class);

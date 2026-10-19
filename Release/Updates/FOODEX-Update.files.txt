@@ -1680,3 +1680,9 @@ backend/app/Domain/Assistant/Evaluation/AssistantEvaluationHarness.php
 backend/app/Domain/Assistant/Evaluation/AssistantEvaluationProfileCatalog.php
 backend/lang/ar/assistant_ui.php
 backend/lang/en/assistant_ui.php
+backend/app/Domain/Assistant/Actions/AssistantActionApprovalService.php
+backend/app/Domain/Assistant/Actions/AssistantSafeActionTool.php
+backend/app/Domain/Assistant/Actions/AssistantSafeActionToolSet.php
+backend/app/Domain/Assistant/Actions/Models/AssistantActionApproval.php
+backend/app/Http/Controllers/Admin/AssistantActionController.php
+backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php
