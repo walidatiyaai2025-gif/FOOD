@@ -912,6 +912,123 @@ final class LegacyFoodexImportService
         ];
     }
 
+    public function stockSourceDiagnostics(): array
+    {
+        $source = DB::connection('foodex_legacy');
+
+        $tableStats = [];
+        foreach ([
+            'wh_ItemStockOnHand',
+            'wh_TransHeaderInventory',
+            'wh_TransDetailsInventory',
+            'wh_invTransHeader',
+            'wh_invTransDetails',
+            'wh_OnlineStock',
+            'wh_VisitItemsStock',
+        ] as $table) {
+            try {
+                $tableStats[$table] = (int) $source->table($table)->count();
+            } catch (Throwable) {
+                $tableStats[$table] = null;
+            }
+        }
+
+        $snapshot = null;
+        if (($tableStats['wh_ItemStockOnHand'] ?? 0) > 0) {
+            $snapshot = $source->table('wh_ItemStockOnHand')
+                ->selectRaw(
+                    'COUNT(*) AS rows_count, '.
+                    'COUNT(DISTINCT StoreID) AS stores, '.
+                    'COUNT(DISTINCT ItemID) AS items, '.
+                    'MIN(StockDate) AS first_date, '.
+                    'MAX(StockDate) AS last_date, '.
+                    'SUM(CASE WHEN CurrentStock < 0 THEN 1 ELSE 0 END) AS negative_rows, '.
+                    'SUM(CASE WHEN CurrentStock = 0 THEN 1 ELSE 0 END) AS zero_rows, '.
+                    'SUM(CASE WHEN CurrentStock > 0 THEN 1 ELSE 0 END) AS positive_rows'
+                )
+                ->first();
+        }
+
+        $prevYear = $source->table('wh_TransHeader')
+            ->whereRaw('COALESCE(Status, 1) <> 0')
+            ->selectRaw(
+                'SUM(CASE WHEN COALESCE(PrevYear, 0) = 1 THEN 1 ELSE 0 END) AS prev_year_headers, '.
+                'SUM(CASE WHEN COALESCE(PrevYear, 0) = 0 THEN 1 ELSE 0 END) AS current_year_headers, '.
+                'SUM(CASE WHEN TransDate = 20251231 THEN 1 ELSE 0 END) AS headers_20251231, '.
+                'SUM(CASE WHEN TransDate = 20251231 AND TransType = 11 THEN 1 ELSE 0 END) AS type11_20251231, '.
+                'SUM(CASE WHEN TransDate = 20251231 AND COALESCE(PrevYear, 0) = 1 THEN 1 ELSE 0 END) AS prev_year_20251231'
+            )
+            ->first();
+
+        $moduleRows = $source->select(<<<'SQL'
+SELECT TOP 200
+    s.name AS schema_name,
+    o.name AS object_name,
+    o.type_desc,
+    CASE WHEN LOWER(o.name) LIKE '%stock%' THEN 1 ELSE 0 END AS name_has_stock,
+    CASE WHEN LOWER(o.name) LIKE '%invent%' THEN 1 ELSE 0 END AS name_has_inventory,
+    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%' THEN 1 ELSE 0 END AS refs_itemstockonhand,
+    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%wh_transdetails%' THEN 1 ELSE 0 END AS refs_transdetails,
+    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%' THEN 1 ELSE 0 END AS refs_transpkgqty1,
+    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%' THEN 1 ELSE 0 END AS refs_currentstock
+FROM sys.objects AS o
+INNER JOIN sys.schemas AS s ON s.schema_id = o.schema_id
+LEFT JOIN sys.sql_modules AS m ON m.object_id = o.object_id
+WHERE o.type IN ('P', 'V', 'FN', 'IF', 'TF')
+  AND (
+      LOWER(o.name) LIKE '%stock%'
+      OR LOWER(o.name) LIKE '%invent%'
+      OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%'
+      OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_transdetails%'
+      OR LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%'
+      OR LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%'
+  )
+ORDER BY
+    CASE
+        WHEN LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%'
+          OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%'
+          OR LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%'
+        THEN 0 ELSE 1
+    END,
+    s.name,
+    o.name
+SQL);
+
+        $modules = collect($moduleRows)->map(static fn ($row): array => [
+            'schema' => (string) $row->schema_name,
+            'name' => (string) $row->object_name,
+            'type' => (string) $row->type_desc,
+            'name_has_stock' => (bool) $row->name_has_stock,
+            'name_has_inventory' => (bool) $row->name_has_inventory,
+            'refs_itemstockonhand' => (bool) $row->refs_itemstockonhand,
+            'refs_transdetails' => (bool) $row->refs_transdetails,
+            'refs_transpkgqty1' => (bool) $row->refs_transpkgqty1,
+            'refs_currentstock' => (bool) $row->refs_currentstock,
+        ])->values()->all();
+
+        return [
+            'table_counts' => $tableStats,
+            'item_stock_snapshot' => $snapshot === null ? null : [
+                'rows' => (int) $snapshot->rows_count,
+                'stores' => (int) $snapshot->stores,
+                'items' => (int) $snapshot->items,
+                'first_date' => $snapshot->first_date === null ? null : (int) $snapshot->first_date,
+                'last_date' => $snapshot->last_date === null ? null : (int) $snapshot->last_date,
+                'negative_rows' => (int) $snapshot->negative_rows,
+                'zero_rows' => (int) $snapshot->zero_rows,
+                'positive_rows' => (int) $snapshot->positive_rows,
+            ],
+            'previous_year_flags' => [
+                'prev_year_headers' => (int) ($prevYear->prev_year_headers ?? 0),
+                'current_year_headers' => (int) ($prevYear->current_year_headers ?? 0),
+                'headers_20251231' => (int) ($prevYear->headers_20251231 ?? 0),
+                'type11_20251231' => (int) ($prevYear->type11_20251231 ?? 0),
+                'prev_year_20251231' => (int) ($prevYear->prev_year_20251231 ?? 0),
+            ],
+            'stock_related_modules' => $modules,
+        ];
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
