@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_auth_persistence.dart';
@@ -716,7 +717,39 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
         backgroundColor: CustomerUiColors.white,
-        body: SafeArea(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.app.identity'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          onSearchSubmitted: (_) {},
+          trailingActions: [
+            IconButton(
+              key: const ValueKey('customer-login-diagnostics'),
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context)
+                      .pushNamed(CustomerRoutePaths.diagnostics),
+              tooltip: context.tr('customer.diagnostics.open'),
+              icon: const Icon(Icons.bug_report_outlined, color: Colors.white),
+            ),
+            IconButton(
+              key: const ValueKey('customer-auth-guest'),
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context)
+                      .pushReplacementNamed(CustomerRoutePaths.marketplace),
+              tooltip: context.tr('customer.action.guest'),
+              icon: const Icon(Icons.storefront_outlined, color: Colors.white),
+            ),
+            if (widget.onLocaleChanged != null)
+              TextButton(
+                key: const ValueKey('customer-auth-language-header'),
+                onPressed: _busy ? null : _toggleLocale,
+                child: Text(
+                  isArabic ? 'EN' : 'ع',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+          ],
           child: Stack(
             children: [
               SingleChildScrollView(
@@ -1193,11 +1226,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(title),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          actions: [
+        body: FoodexUnifiedHeaderSurface(
+          title: title,
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          onSearchSubmitted: (_) {},
+          trailingActions: [
             IconButton(
               key: const ValueKey('customer-login-diagnostics'),
               onPressed: _busy
@@ -1205,7 +1238,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   : () => Navigator.of(context)
                       .pushNamed(CustomerRoutePaths.diagnostics),
               tooltip: context.tr('customer.diagnostics.open'),
-              icon: const Icon(Icons.bug_report_outlined),
+              icon: const Icon(Icons.bug_report_outlined, color: Colors.white),
             ),
             IconButton(
               key: const ValueKey('customer-auth-guest'),
@@ -1214,21 +1247,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   : () => Navigator.of(context)
                       .pushReplacementNamed(CustomerRoutePaths.marketplace),
               tooltip: context.tr('customer.action.guest'),
-              icon: const Icon(Icons.storefront_outlined),
+              icon: const Icon(Icons.storefront_outlined, color: Colors.white),
             ),
             if (widget.onLocaleChanged != null)
               TextButton(
                 key: const ValueKey('customer-auth-language-toggle'),
                 onPressed: _busy ? null : _toggleLocale,
                 child: Text(
-                  locale.languageCode == 'ar' ? 'English' : 'العربية',
-                  style: const TextStyle(color: CustomerUiColors.white),
+                  locale.languageCode == 'ar' ? 'EN' : 'ع',
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
           ],
-        ),
-        body: SafeArea(
-          top: false,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               CustomerUiSpacing.page,
