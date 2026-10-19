@@ -5630,24 +5630,6 @@ class _WholesaleOrdersDesignScreenState
     }
   }
 
-  void _goBack() {
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
-      return;
-    }
-
-    final commerceContext = CustomerCommerceContext.tryParseLocation(
-      widget.location,
-    );
-    final dashboardRoute = commerceContext?.isWholesale == true
-        ? Uri(
-            path: CustomerRoutePaths.b2bDashboard,
-            queryParameters: commerceContext!.toQueryParameters(),
-          ).toString()
-        : CustomerRoutePaths.b2bDashboard;
-    navigator.pushReplacementNamed(dashboardRoute);
-  }
 
   int _orderStoreId(Map<String, dynamic> order) {
     final nestedStore = order['store'];
@@ -7086,112 +7068,6 @@ class _OrderDetailCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      );
-}
-
-class _WholesaleOrdersHeader extends StatelessWidget {
-  const _WholesaleOrdersHeader({
-    required this.pageInset,
-    required this.loading,
-    required this.onBack,
-    required this.onRefresh,
-  });
-
-  final double pageInset;
-  final bool loading;
-  final VoidCallback onBack;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(pageInset, 4, pageInset, 0),
-        child: SizedBox(
-          width: double.infinity,
-          height: 58,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                context.tr('customer.profile.orders'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: CustomerUiColors.ink,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      height: 1.1,
-                    ),
-              ),
-              PositionedDirectional(
-                start: 0,
-                child: Semantics(
-                  button: true,
-                  label: MaterialLocalizations.of(context).backButtonTooltip,
-                  child: Tooltip(
-                    message:
-                        MaterialLocalizations.of(context).backButtonTooltip,
-                    child: Material(
-                      color: CustomerUiColors.mintStrong.withOpacity(.45),
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        key: const ValueKey('b2b-orders-back'),
-                        customBorder: const CircleBorder(),
-                        onTap: onBack,
-                        child: const SizedBox.square(
-                          dimension: 42,
-                          child: IconTheme(
-                            data: IconThemeData(
-                              size: 24,
-                              color: CustomerUiColors.ink,
-                            ),
-                            child: BackButtonIcon(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              PositionedDirectional(
-                end: 0,
-                child: Semantics(
-                  button: true,
-                  label: context.tr('customer.orders.refresh'),
-                  child: Tooltip(
-                    message: context.tr('customer.orders.refresh'),
-                    child: Material(
-                      color: CustomerUiColors.mintStrong.withOpacity(.45),
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        key: const ValueKey('b2b-orders-refresh'),
-                        customBorder: const CircleBorder(),
-                        onTap: loading ? null : onRefresh,
-                        child: SizedBox.square(
-                          dimension: 42,
-                          child: loading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: CustomerUiColors.deepGreenStrong,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 24,
-                                  color: CustomerUiColors.ink,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       );
 }
