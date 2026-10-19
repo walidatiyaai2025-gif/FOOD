@@ -3690,6 +3690,866 @@ SQL));
         ];
     }
 
+    public function importPurchaseHistory(bool $apply, ?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        foreach (['legacy_procurement_documents', 'legacy_procurement_document_lines'] as $table) {
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException(
+                    "Missing {$table}. Run php artisan migrate before purchase-history import."
+                );
+            }
+        }
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+        $purchaseTypes = [1, 2];
+
+        $maps = $stage('load_purchase_history_mappings', function (): array {
+            $map = static function (string $sourceTable, string $targetTable, ?array $sourceTables = null): array {
+                $query = DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->where('target_table', $targetTable);
+
+                $sourceTables === null
+                    ? $query->where('source_table', $sourceTable)
+                    : $query->whereIn('source_table', $sourceTables);
+
+                $result = [];
+                foreach ($query->get(['source_key', 'target_id']) as $row) {
+                    $result[(int) $row->source_key] = (int) $row->target_id;
+                }
+
+                return $result;
+            };
+
+            $warehouses = $map('', 'warehouses', ['wh_Stores', 'wh_Cars']);
+            $warehouseMeta = [];
+            if ($warehouses !== []) {
+                foreach (
+                    DB::table('warehouses')
+                        ->whereIn('id', array_values($warehouses))
+                        ->get(['id', 'store_id']) as $row
+                ) {
+                    $warehouseMeta[(int) $row->id] = [
+                        'store_id' => $row->store_id === null ? null : (int) $row->store_id,
+                    ];
+                }
+            }
+
+            return [
+                'suppliers' => $map('wh_Suppliers', 'enterprise_suppliers'),
+                'warehouses' => $warehouses,
+                'warehouse_meta' => $warehouseMeta,
+                'products' => $map('wh_Items', 'products'),
+            ];
+        });
+
+        $parseDate = static function (mixed $value): ?string {
+            $date = (int) $value;
+            if ($date <= 0) {
+                return null;
+            }
+
+            $raw = str_pad((string) $date, 8, '0', STR_PAD_LEFT);
+            $parsed = \DateTimeImmutable::createFromFormat('!Ymd', $raw);
+            if ($parsed === false || $parsed->format('Ymd') !== $raw) {
+                return null;
+            }
+
+            return $parsed->format('Y-m-d');
+        };
+
+        $headerTypes = [];
+        $headerFinancials = [];
+        $headerDates = [];
+        $typeCounts = [];
+        $unmappedSuppliers = [];
+        $unmappedLocations = [];
+        $invalidHeaderDates = [];
+        $headerCount = 0;
+
+        $stage('stream_purchase_return_header_index', function () use (
+            $source,
+            $purchaseTypes,
+            $maps,
+            $parseDate,
+            &$headerTypes,
+            &$headerFinancials,
+            &$headerDates,
+            &$typeCounts,
+            &$unmappedSuppliers,
+            &$unmappedLocations,
+            &$invalidHeaderDates,
+            &$headerCount,
+        ): void {
+            foreach (
+                $source->table('wh_TransHeader')
+                    ->select([
+                        'HeaderId',
+                        'TransType',
+                        'TransDate',
+                        'SupplierId',
+                        'StoreId',
+                        'Total',
+                        'NetTotal',
+                        'Paid',
+                        'Balance',
+                        'Status',
+                    ])
+                    ->where('Status', 1)
+                    ->whereIn('TransType', $purchaseTypes)
+                    ->orderBy('HeaderId')
+                    ->cursor() as $header
+            ) {
+                $headerId = (int) $header->HeaderId;
+                $type = (int) $header->TransType;
+                $supplierId = (int) ($header->SupplierId ?? 0);
+                $locationId = (int) ($header->StoreId ?? 0);
+                $headerCount++;
+                $headerTypes[$headerId] = $type;
+                $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+                $headerFinancials[$headerId] = [
+                    'total' => round((float) ($header->Total ?? 0), 3),
+                    'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                    'paid' => round((float) ($header->Paid ?? 0), 3),
+                    'balance' => round((float) ($header->Balance ?? 0), 3),
+                ];
+
+                if ($supplierId <= 0 || ! isset($maps['suppliers'][$supplierId])) {
+                    $unmappedSuppliers[$supplierId] = true;
+                }
+
+                $warehouseId = $maps['warehouses'][$locationId] ?? null;
+                if (
+                    $locationId <= 0
+                    || $warehouseId === null
+                    || ! isset($maps['warehouse_meta'][$warehouseId])
+                    || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
+                ) {
+                    $unmappedLocations[$locationId] = true;
+                }
+
+                $date = $parseDate($header->TransDate ?? null);
+                if ($date === null) {
+                    $invalidHeaderDates[$headerId] = (int) ($header->TransDate ?? 0);
+                } else {
+                    $headerDates[$headerId] = $date;
+                }
+            }
+        });
+
+        unset($unmappedSuppliers[0], $unmappedLocations[0]);
+        ksort($typeCounts);
+
+        $detailCounts = [];
+        $detailValueSums = [];
+        $usedItems = [];
+        $sourceDetailRowsScanned = 0;
+        $purchaseDetails = 0;
+        $returnDetails = 0;
+        $zeroQtyLines = 0;
+        $negativeQtyLines = 0;
+        $chunkNumber = 0;
+
+        $stage('stream_purchase_return_details', function () use (
+            $source,
+            $progress,
+            $headerTypes,
+            &$detailCounts,
+            &$detailValueSums,
+            &$usedItems,
+            &$sourceDetailRowsScanned,
+            &$purchaseDetails,
+            &$returnDetails,
+            &$zeroQtyLines,
+            &$negativeQtyLines,
+            &$chunkNumber,
+        ): void {
+            $source->table('wh_TransDetails')
+                ->select(['DetailId', 'HeaderId', 'ItemID', 'Qty', 'TransPkgQty1', 'Value', 'Status'])
+                ->orderBy('DetailId')
+                ->chunkById(
+                    10000,
+                    function ($rows) use (
+                        $progress,
+                        $headerTypes,
+                        &$detailCounts,
+                        &$detailValueSums,
+                        &$usedItems,
+                        &$sourceDetailRowsScanned,
+                        &$purchaseDetails,
+                        &$returnDetails,
+                        &$zeroQtyLines,
+                        &$negativeQtyLines,
+                        &$chunkNumber,
+                    ): void {
+                        $chunkStartedAt = microtime(true);
+                        $chunkNumber++;
+
+                        foreach ($rows as $row) {
+                            $sourceDetailRowsScanned++;
+
+                            if ((int) ($row->Status ?? 0) !== 1) {
+                                continue;
+                            }
+
+                            $headerId = (int) ($row->HeaderId ?? 0);
+                            $type = $headerTypes[$headerId] ?? null;
+                            if ($type === null) {
+                                continue;
+                            }
+
+                            $detailCounts[$headerId] = ($detailCounts[$headerId] ?? 0) + 1;
+                            $detailValueSums[$headerId] = round(
+                                (float) ($detailValueSums[$headerId] ?? 0)
+                                + (float) ($row->Value ?? 0),
+                                3,
+                            );
+
+                            $itemId = (int) ($row->ItemID ?? 0);
+                            if ($itemId > 0) {
+                                $usedItems[$itemId] = true;
+                            }
+
+                            $qty = (float) ($row->Qty ?? 0);
+                            $baseQty = (float) ($row->TransPkgQty1 ?? 0);
+                            if ($qty < -0.0005 || $baseQty < -0.0005) {
+                                $negativeQtyLines++;
+                            } elseif (abs($qty) <= 0.0005 && abs($baseQty) <= 0.0005) {
+                                $zeroQtyLines++;
+                            }
+
+                            if ($type === 1) {
+                                $purchaseDetails++;
+                            } else {
+                                $returnDetails++;
+                            }
+                        }
+
+                        if ($progress !== null) {
+                            $progress(
+                                'purchase_history_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRowsScanned,
+                                'done',
+                                round(microtime(true) - $chunkStartedAt, 3),
+                            );
+                        }
+                    },
+                    'DetailId',
+                    'DetailId',
+                );
+        });
+
+        $unmappedItems = [];
+        foreach (array_keys($usedItems) as $itemId) {
+            if (! isset($maps['products'][$itemId])) {
+                $unmappedItems[$itemId] = true;
+            }
+        }
+
+        $headersWithoutLines = 0;
+        $zeroEffectHeadersSkipped = [];
+        $nonzeroHeadersWithoutLines = [];
+        $lineTotalMismatches = 0;
+        $lineTotalMismatchSamples = [];
+
+        foreach ($headerTypes as $headerId => $type) {
+            $lineCount = (int) ($detailCounts[$headerId] ?? 0);
+            if ($lineCount === 0) {
+                $headersWithoutLines++;
+                $financial = $headerFinancials[$headerId];
+                $zeroEffect = abs((float) $financial['total']) <= 0.0005
+                    && abs((float) $financial['net_total']) <= 0.0005
+                    && abs((float) $financial['paid']) <= 0.0005
+                    && abs((float) $financial['balance']) <= 0.0005;
+
+                if ($zeroEffect) {
+                    $zeroEffectHeadersSkipped[] = $headerId;
+                } else {
+                    $nonzeroHeadersWithoutLines[] = $headerId;
+                }
+            }
+
+            if ($lineCount > 0) {
+                $headerTotal = round((float) ($headerFinancials[$headerId]['total'] ?? 0), 3);
+                $lineTotal = round((float) ($detailValueSums[$headerId] ?? 0), 3);
+                if (abs($headerTotal - $lineTotal) > 0.050) {
+                    $lineTotalMismatches++;
+                    if (count($lineTotalMismatchSamples) < 20) {
+                        $lineTotalMismatchSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'header_total' => $headerTotal,
+                            'detail_value_sum' => $lineTotal,
+                            'difference' => round($headerTotal - $lineTotal, 3),
+                            'detail_count' => $lineCount,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $materializableHeaderIds = array_values(
+            array_diff(array_keys($headerTypes), $zeroEffectHeadersSkipped)
+        );
+
+        $targetDocuments = (int) DB::table('legacy_procurement_documents')->count();
+        $targetLines = (int) DB::table('legacy_procurement_document_lines')->count();
+
+        $planned = [
+            'source_headers' => $headerCount,
+            'purchase_headers' => (int) ($typeCounts[1] ?? 0),
+            'purchase_return_headers' => (int) ($typeCounts[2] ?? 0),
+            'materialized_documents' => count($materializableHeaderIds),
+            'zero_effect_headers_skipped' => count($zeroEffectHeadersSkipped),
+            'purchase_details' => $purchaseDetails,
+            'purchase_return_details' => $returnDetails,
+            'source_detail_rows_scanned' => $sourceDetailRowsScanned,
+            'unmapped_suppliers' => count($unmappedSuppliers),
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+            'nonzero_headers_without_lines' => count($nonzeroHeadersWithoutLines),
+            'zero_quantity_lines' => $zeroQtyLines,
+            'negative_quantity_lines' => $negativeQtyLines,
+            'line_total_mismatches' => $lineTotalMismatches,
+            'existing_legacy_procurement_documents' => $targetDocuments,
+            'existing_legacy_procurement_lines' => $targetLines,
+        ];
+
+        if (! $apply) {
+            return [
+                'mode' => 'dry-run',
+                'phase' => 'purchase-history',
+                'planned' => $planned,
+                'type_counts' => $typeCounts,
+                'samples' => [
+                    'unmapped_suppliers' => array_slice(array_keys($unmappedSuppliers), 0, 30),
+                    'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
+                    'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                    'nonzero_headers_without_lines' => array_slice($nonzeroHeadersWithoutLines, 0, 20),
+                    'zero_effect_headers_skipped' => array_slice($zeroEffectHeadersSkipped, 0, 20),
+                    'line_total_mismatches' => $lineTotalMismatchSamples,
+                ],
+                'rules' => [
+                    'historical_procurement_is_immutable' => true,
+                    'does_not_create_synthetic_purchase_requests_or_users' => true,
+                    'does_not_mutate_inventory' => true,
+                    'does_not_post_to_finance_or_treasury' => true,
+                    'purchase_type' => 1,
+                    'purchase_return_type' => 2,
+                ],
+            ];
+        }
+
+        $blocking = [
+            'unmapped_suppliers' => count($unmappedSuppliers),
+            'unmapped_locations' => count($unmappedLocations),
+            'unmapped_items' => count($unmappedItems),
+            'invalid_header_dates' => count($invalidHeaderDates),
+            'nonzero_headers_without_lines' => count($nonzeroHeadersWithoutLines),
+        ];
+
+        if (array_sum($blocking) !== 0) {
+            throw new RuntimeException(
+                'Purchase history apply refused: source-to-target validation has blocking issues. '.
+                json_encode($blocking, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        if ($targetDocuments !== 0 || $targetLines !== 0) {
+            throw new RuntimeException(
+                'Purchase history apply refused: immutable legacy procurement history tables are not empty.'
+            );
+        }
+
+        $runId = (string) Str::uuid();
+        DB::table('legacy_import_runs')->insert([
+            'id' => $runId,
+            'source_system' => self::SOURCE_SYSTEM,
+            'phase' => 'purchase-history',
+            'mode' => 'apply',
+            'status' => 'running',
+            'started_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $summary = DB::transaction(function () use (
+                $source,
+                $progress,
+                $materializableHeaderIds,
+                $zeroEffectHeadersSkipped,
+                $headerDates,
+                $detailValueSums,
+                $maps,
+                $runId,
+                $planned,
+            ): array {
+                $materializable = array_fill_keys(
+                    array_map(static fn ($id): int => (int) $id, $materializableHeaderIds),
+                    true,
+                );
+
+                $documentsCreated = 0;
+                $linesCreated = 0;
+                $documentIds = [];
+                $headerBatch = [];
+                $headerBatchNumber = 0;
+                $mappingRows = [];
+
+                $flushMappings = function () use (&$mappingRows): void {
+                    if ($mappingRows === []) {
+                        return;
+                    }
+
+                    DB::table('legacy_import_mappings')->upsert(
+                        $mappingRows,
+                        ['source_system', 'source_table', 'source_key', 'target_table'],
+                        ['target_id', 'source_hash', 'metadata', 'last_run_id', 'updated_at'],
+                    );
+                    $mappingRows = [];
+                };
+
+                $flushHeaders = function (array $batch) use (
+                    &$documentsCreated,
+                    &$documentIds,
+                    &$headerBatchNumber,
+                    &$mappingRows,
+                    $maps,
+                    $headerDates,
+                    $detailValueSums,
+                    $runId,
+                    $progress,
+                    $flushMappings,
+                ): void {
+                    if ($batch === []) {
+                        return;
+                    }
+
+                    $headerBatchNumber++;
+                    $startedAt = microtime(true);
+                    if ($progress !== null) {
+                        $progress('materialize_purchase_headers_batch_'.$headerBatchNumber, 'start', null);
+                    }
+
+                    $rows = [];
+                    foreach ($batch as $header) {
+                        $headerId = (int) $header->HeaderId;
+                        $supplierSourceId = (int) $header->SupplierId;
+                        $sourceLocationId = (int) $header->StoreId;
+                        $warehouseId = $maps['warehouses'][$sourceLocationId];
+                        $storeId = (int) $maps['warehouse_meta'][$warehouseId]['store_id'];
+                        $grossTotal = round(
+                            (float) ($detailValueSums[$headerId] ?? ($header->Total ?? 0)),
+                            3,
+                        );
+
+                        $rows[] = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_header_id' => $headerId,
+                            'source_trans_type' => (int) $header->TransType,
+                            'document_kind' => (int) $header->TransType === 1 ? 'purchase' : 'purchase_return',
+                            'document_date' => $headerDates[$headerId],
+                            'source_supplier_id' => $supplierSourceId,
+                            'supplier_id' => $maps['suppliers'][$supplierSourceId],
+                            'source_location_id' => $sourceLocationId,
+                            'warehouse_id' => $warehouseId,
+                            'store_id' => $storeId,
+                            'currency_code' => 'EGP',
+                            'gross_total' => $grossTotal,
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                            'paid_amount' => round((float) ($header->Paid ?? 0), 3),
+                            'legacy_balance' => round((float) ($header->Balance ?? 0), 3),
+                            'legacy_price_type' => $header->PriceType === null ? null : (int) $header->PriceType,
+                            'legacy_pay_type' => $header->PayType === null ? null : (int) $header->PayType,
+                            'document_number' => $this->legacyText($header->DocTransNo ?? null),
+                            'source_code' => $this->legacyText($header->Code ?? null),
+                            'reference_number' => $this->legacyText($header->ReferenceNo ?? null),
+                            'notes' => $this->legacyText($header->Notes ?? null),
+                            'source_payload' => $this->json((array) $header),
+                            'last_run_id' => $runId,
+                            'created_at' => $headerDates[$headerId].' 00:00:00',
+                            'updated_at' => $headerDates[$headerId].' 00:00:00',
+                        ];
+                    }
+
+                    foreach (array_chunk($rows, 500) as $chunk) {
+                        DB::table('legacy_procurement_documents')->insert($chunk);
+                    }
+                    $documentsCreated += count($rows);
+
+                    $inserted = DB::table('legacy_procurement_documents')
+                        ->where('source_system', self::SOURCE_SYSTEM)
+                        ->whereIn('source_header_id', array_map(
+                            static fn ($header): int => (int) $header->HeaderId,
+                            $batch,
+                        ))
+                        ->get(['id', 'source_header_id'])
+                        ->keyBy('source_header_id');
+
+                    foreach ($batch as $header) {
+                        $headerId = (int) $header->HeaderId;
+                        $document = $inserted->get($headerId);
+                        if ($document === null) {
+                            throw new RuntimeException(
+                                "Inserted legacy procurement document {$headerId} could not be resolved."
+                            );
+                        }
+
+                        $documentId = (int) $document->id;
+                        $documentIds[$headerId] = $documentId;
+                        $sourceArray = (array) $header;
+                        $mappingRows[] = [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_key' => (string) $headerId,
+                            'target_table' => 'legacy_procurement_documents',
+                            'target_id' => $documentId,
+                            'source_hash' => hash('sha256', $this->json($sourceArray)),
+                            'metadata' => $this->json([
+                                'source' => $sourceArray,
+                                '_migration' => [
+                                    'phase' => 'purchase-history',
+                                    'role' => (int) $header->TransType === 1 ? 'purchase' : 'purchase_return',
+                                ],
+                            ]),
+                            'last_run_id' => $runId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+
+                    if (count($mappingRows) >= 1000) {
+                        $flushMappings();
+                    }
+
+                    if ($progress !== null) {
+                        $progress(
+                            'materialize_purchase_headers_batch_'.$headerBatchNumber.'_headers_'.$documentsCreated,
+                            'done',
+                            round(microtime(true) - $startedAt, 3),
+                        );
+                    }
+                };
+
+                $headersStartedAt = microtime(true);
+                if ($progress !== null) {
+                    $progress('stream_materialize_purchase_headers', 'start', null);
+                }
+
+                foreach (
+                    $source->table('wh_TransHeader')
+                        ->select([
+                            'HeaderId',
+                            'TransType',
+                            'TransDate',
+                            'SupplierId',
+                            'StoreId',
+                            'Code',
+                            'DocTransNo',
+                            'ReferenceNo',
+                            'PriceType',
+                            'PayType',
+                            'Paid',
+                            'Total',
+                            'NetTotal',
+                            'Balance',
+                            'Notes',
+                            'Status',
+                        ])
+                        ->where('Status', 1)
+                        ->whereIn('TransType', [1, 2])
+                        ->orderBy('HeaderId')
+                        ->cursor() as $header
+                ) {
+                    $headerId = (int) $header->HeaderId;
+                    if (! isset($materializable[$headerId])) {
+                        continue;
+                    }
+
+                    $headerBatch[] = $header;
+                    if (count($headerBatch) >= 500) {
+                        $flushHeaders($headerBatch);
+                        $headerBatch = [];
+                    }
+                }
+
+                if ($headerBatch !== []) {
+                    $flushHeaders($headerBatch);
+                }
+
+                if ($documentsCreated !== count($materializableHeaderIds)) {
+                    throw new RuntimeException(
+                        'Purchase history source changed during apply: header count no longer matches validation.'
+                    );
+                }
+
+                if ($progress !== null) {
+                    $progress(
+                        'stream_materialize_purchase_headers',
+                        'done',
+                        round(microtime(true) - $headersStartedAt, 3),
+                    );
+                }
+
+                $flushMappings();
+
+                $detailsStartedAt = microtime(true);
+                $detailChunkNumber = 0;
+                $detailRowsScanned = 0;
+                if ($progress !== null) {
+                    $progress('stream_materialize_purchase_details', 'start', null);
+                }
+
+                $source->table('wh_TransDetails')
+                    ->select([
+                        'DetailId',
+                        'HeaderId',
+                        'ItemID',
+                        'Package',
+                        'Qty',
+                        'TransPkgQty1',
+                        'Price',
+                        'TransPkgPrice1',
+                        'Value',
+                        'CostPrice',
+                        'DetailDiscount1',
+                        'DetailDiscount2',
+                        'DetailDiscount3',
+                        'DetailTax',
+                        'DetailRemark',
+                        'Status',
+                    ])
+                    ->orderBy('DetailId')
+                    ->chunkById(
+                        10000,
+                        function ($rows) use (
+                            &$detailChunkNumber,
+                            &$detailRowsScanned,
+                            &$linesCreated,
+                            &$mappingRows,
+                            $documentIds,
+                            $maps,
+                            $runId,
+                            $progress,
+                            $flushMappings,
+                        ): void {
+                            $detailChunkNumber++;
+                            $startedAt = microtime(true);
+                            $insertRows = [];
+                            $mappingSource = [];
+
+                            foreach ($rows as $line) {
+                                $detailRowsScanned++;
+
+                                if ((int) ($line->Status ?? 0) !== 1) {
+                                    continue;
+                                }
+
+                                $headerId = (int) ($line->HeaderId ?? 0);
+                                if (! isset($documentIds[$headerId])) {
+                                    continue;
+                                }
+
+                                $sourceItemId = (int) $line->ItemID;
+                                $productId = $maps['products'][$sourceItemId];
+                                $discount = round(
+                                    (float) ($line->DetailDiscount1 ?? 0)
+                                    + (float) ($line->DetailDiscount2 ?? 0)
+                                    + (float) ($line->DetailDiscount3 ?? 0),
+                                    3,
+                                );
+
+                                $insertRows[] = [
+                                    'document_id' => $documentIds[$headerId],
+                                    'source_detail_id' => (int) $line->DetailId,
+                                    'source_item_id' => $sourceItemId,
+                                    'product_id' => $productId,
+                                    'package' => $line->Package === null ? null : (int) $line->Package,
+                                    'raw_quantity' => round((float) ($line->Qty ?? 0), 3),
+                                    'base_quantity' => round((float) ($line->TransPkgQty1 ?? 0), 3),
+                                    'unit_price' => round((float) ($line->Price ?? 0), 3),
+                                    'base_unit_price' => round((float) ($line->TransPkgPrice1 ?? 0), 3),
+                                    'line_value' => round((float) ($line->Value ?? 0), 3),
+                                    'cost_price' => round((float) ($line->CostPrice ?? 0), 3),
+                                    'discount_total' => $discount,
+                                    'tax_total' => round((float) ($line->DetailTax ?? 0), 3),
+                                    'source_payload' => $this->json((array) $line),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ];
+                                $mappingSource[(int) $line->DetailId] = (array) $line;
+                            }
+
+                            if ($insertRows !== []) {
+                                foreach (array_chunk($insertRows, 500) as $chunk) {
+                                    DB::table('legacy_procurement_document_lines')->insert($chunk);
+                                }
+
+                                $sourceIds = array_column($insertRows, 'source_detail_id');
+                                $inserted = DB::table('legacy_procurement_document_lines')
+                                    ->whereIn('source_detail_id', $sourceIds)
+                                    ->get(['id', 'source_detail_id'])
+                                    ->keyBy('source_detail_id');
+
+                                foreach ($sourceIds as $sourceDetailId) {
+                                    $target = $inserted->get($sourceDetailId);
+                                    if ($target === null) {
+                                        throw new RuntimeException(
+                                            "Inserted legacy procurement line {$sourceDetailId} could not be resolved."
+                                        );
+                                    }
+
+                                    $sourceArray = $mappingSource[$sourceDetailId];
+                                    $mappingRows[] = [
+                                        'source_system' => self::SOURCE_SYSTEM,
+                                        'source_table' => 'wh_TransDetails',
+                                        'source_key' => (string) $sourceDetailId,
+                                        'target_table' => 'legacy_procurement_document_lines',
+                                        'target_id' => (int) $target->id,
+                                        'source_hash' => hash('sha256', $this->json($sourceArray)),
+                                        'metadata' => $this->json([
+                                            'source' => $sourceArray,
+                                            '_migration' => [
+                                                'phase' => 'purchase-history',
+                                                'role' => 'procurement_line',
+                                            ],
+                                        ]),
+                                        'last_run_id' => $runId,
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ];
+                                }
+
+                                $linesCreated += count($insertRows);
+                                if (count($mappingRows) >= 1000) {
+                                    $flushMappings();
+                                }
+                            }
+
+                            if ($progress !== null) {
+                                $progress(
+                                    'materialize_purchase_details_chunk_'.$detailChunkNumber.'_rows_'.$detailRowsScanned,
+                                    'done',
+                                    round(microtime(true) - $startedAt, 3),
+                                );
+                            }
+                        },
+                        'DetailId',
+                        'DetailId',
+                    );
+
+                if ($progress !== null) {
+                    $progress(
+                        'stream_materialize_purchase_details',
+                        'done',
+                        round(microtime(true) - $detailsStartedAt, 3),
+                    );
+                }
+
+                $flushMappings();
+
+                $skipped = 0;
+                foreach ($zeroEffectHeadersSkipped as $headerId) {
+                    DB::table('legacy_import_quarantine')->updateOrInsert(
+                        [
+                            'source_system' => self::SOURCE_SYSTEM,
+                            'source_table' => 'wh_TransHeader',
+                            'source_key' => (string) $headerId,
+                            'reason' => 'zero_effect_empty_procurement_header_skipped',
+                        ],
+                        [
+                            'payload' => $this->json([
+                                'source_header_id' => $headerId,
+                                '_migration' => [
+                                    'phase' => 'purchase-history',
+                                    'decision' => 'skip',
+                                    'reason' => 'No detail rows and zero Total/NetTotal/Paid/Balance.',
+                                ],
+                            ]),
+                            'run_id' => $runId,
+                            'resolved_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ],
+                    );
+                    $skipped++;
+                }
+
+                $targetDocuments = (int) DB::table('legacy_procurement_documents')->count();
+                $targetLines = (int) DB::table('legacy_procurement_document_lines')->count();
+
+                if (
+                    $targetDocuments !== $documentsCreated
+                    || $targetLines !== $linesCreated
+                ) {
+                    throw new RuntimeException(
+                        'Purchase history target validation failed: target counts do not match materialized counts.'
+                    );
+                }
+
+                return [
+                    'run_id' => $runId,
+                    'planned' => $planned,
+                    'documents' => ['created' => $documentsCreated],
+                    'lines' => ['created' => $linesCreated],
+                    'skipped_zero_effect_headers' => [
+                        'count' => $skipped,
+                        'source_header_ids' => $zeroEffectHeadersSkipped,
+                    ],
+                    'target' => [
+                        'documents' => $targetDocuments,
+                        'lines' => $targetLines,
+                    ],
+                    'inventory_mutations' => 0,
+                    'finance_mutations' => 0,
+                ];
+            }, 3);
+
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'completed',
+                'summary' => $this->json($summary),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'mode' => 'apply',
+                'phase' => 'purchase-history',
+                'status' => 'completed',
+                'summary' => $summary,
+            ];
+        } catch (Throwable $exception) {
+            DB::table('legacy_import_runs')->where('id', $runId)->update([
+                'status' => 'failed',
+                'error' => mb_substr($exception->getMessage(), 0, 60000),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
