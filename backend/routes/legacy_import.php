@@ -379,7 +379,10 @@ Artisan::command(
                 ] as $sampleKey) {
                     if (($samples[$sampleKey] ?? []) !== []) {
                         $this->newLine();
-                        $this->warn($sampleKey.': '.json_encode(
+                        $label = $sampleKey === 'direct_payment_amount_mismatches'
+                            ? 'invoice_receipt_variance_samples_nonblocking'
+                            : $sampleKey;
+                        $this->warn($label.': '.json_encode(
                             $samples[$sampleKey],
                             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
                         ));
@@ -1583,7 +1586,7 @@ Artisan::command(
         $expectedLedger = (int) ($planned['new_customer_ledger_entries'] ?? 0);
         $expectedLedgerCredits = round((float) ($planned['new_customer_ledger_credit_value'] ?? 0), 3);
         $expectedLedgerDebits = round((float) ($planned['new_customer_ledger_debit_value'] ?? 0), 3);
-        $expectedPaymentLinks = (int) ($planned['invoice_receipt_duplicates'] ?? 0);
+        $expectedPaymentLinks = (int) ($planned['existing_payment_links'] ?? $planned['invoice_receipt_duplicates'] ?? 0);
 
         $actualFinance = (int) DB::table('legacy_finance_transactions')->count();
         $actualBank = (int) DB::table('legacy_bank_transactions')->count();
