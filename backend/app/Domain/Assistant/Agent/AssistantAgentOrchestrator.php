@@ -685,7 +685,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $prefix = $status === AgentTurnResult::DEGRADED
             ? ($arabic ? 'النتيجة جزئية حسب البيانات المتاحة: ' : 'Partial result from available data: ')
-            : ($arabic ? 'النتيجة من بيانات FOODEX المعتمدة: ' : 'Result from authoritative FOODEX data: ');
+            : ($arabic ? 'جهزت لك النتيجة من بيانات FOODEX المعتمدة: ' : 'Result from authoritative FOODEX data: ');
 
         return $prefix.$summary;
     }
