@@ -411,6 +411,7 @@ class _FoodexWholesaleHeaderIcon extends StatelessWidget {
   const _FoodexWholesaleHeaderIcon({
     required this.icon,
     this.onTap,
+    super.key,
   });
 
   final IconData icon;
