@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantOnboardingService;
 use App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess;
 use App\Domain\SmartOrdering\LifecycleService;
 use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
@@ -14,6 +15,7 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\SmartOrderingOrderContext;
+use App\Models\Store;
 use App\Models\User;
 use App\Support\AdminNavigation;
 use Carbon\Carbon;
@@ -30,6 +32,7 @@ final class SmartOrderingOperationsController extends Controller
 {
     public function __construct(
         private readonly RestaurantSaasStoreAccess $restaurantAccess,
+        private readonly RestaurantOnboardingService $onboarding,
         private readonly AdminNavigation $navigation,
         private readonly LifecycleService $lifecycle,
         private readonly SmartOrderingSiteService $sites,
@@ -40,7 +43,7 @@ final class SmartOrderingOperationsController extends Controller
         private readonly RestaurantGuestService $restaurantGuests,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $actor = $this->actor($request);
 
@@ -57,6 +60,24 @@ final class SmartOrderingOperationsController extends Controller
         ]);
 
         $tab = (string) ($validated['tab'] ?? 'orders');
+
+        $setupStoreIds = $this->restaurantAccess->allowedStoreIds($actor, 'smart_ordering.view', $request);
+        $requestedStoreId = (int) $request->integer('store_id');
+        $setupStoreId = $requestedStoreId > 0 && in_array($requestedStoreId, $setupStoreIds, true)
+            ? $requestedStoreId
+            : (int) ($setupStoreIds[0] ?? 0);
+        $setupStore = Store::query()->findOrFail($setupStoreId);
+        $restaurantSetupStatus = $this->onboarding->status($setupStore, $actor);
+        $restaurantLaunched = (bool) ($restaurantSetupStatus['launched'] ?? false);
+
+        if (! $restaurantLaunched && $tab !== 'branches') {
+            return redirect()->to(route('admin.smart-ordering.operations.index', array_filter([
+                'store_id' => $setupStoreId,
+                'tab' => 'branches',
+                'support_access' => $request->boolean('support_access') ? 1 : null,
+            ])). '#restaurant-setup-operations');
+        }
+
         $permission = $tab === 'payments' ? 'finance.view' : 'orders.view';
         $storeIds = $this->restaurantAccess->allowedStoreIds($actor, $permission, $request);
 
@@ -257,6 +278,8 @@ final class SmartOrderingOperationsController extends Controller
             'paymentProviderOptions' => $paymentProviderOptions,
             'isAr' => app()->getLocale() === 'ar',
             'timezoneOptions' => $this->timezoneOptions(),
+            'restaurantSetupStatus' => $restaurantSetupStatus,
+            'restaurantLaunched' => $restaurantLaunched,
         ]);
     }
 
