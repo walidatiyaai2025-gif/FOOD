@@ -21,7 +21,7 @@ return [
     'hero_image_required' => 'Required to complete restaurant identity.',
     'hero_image_current' => 'Current image',
     'hero_image_replace' => 'Choose a new image',
-    'save_profile' => 'Save location identity',
+    'save_profile' => 'Save restaurant identity & continue',
     'saving' => 'Saving…',
     'checklist_title' => 'Launch checklist',
     'hard_gate' => 'Required',
