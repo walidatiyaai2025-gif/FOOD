@@ -1,4 +1,5 @@
 name: Diagnostic Customer Auth APK
+# rebuild after shared_preferences_android R8 pin
 
 on:
   push:
