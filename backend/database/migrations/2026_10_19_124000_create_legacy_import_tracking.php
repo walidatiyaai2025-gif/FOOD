@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->string('status', 24)->default('running');
             $table->json('summary')->nullable();
             $table->text('error')->nullable();
-            $table->timestamp('started_at');
+            $table->dateTime('started_at');
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
 
