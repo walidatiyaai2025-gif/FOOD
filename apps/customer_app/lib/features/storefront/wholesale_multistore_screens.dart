@@ -2333,6 +2333,7 @@ class _WholesaleCatalogDesignScreenState
                   : (fallbackName?.isNotEmpty == true
                       ? fallbackName
                       : context.tr('b2b.catalog.category') + ' $id'),
+              'image_url': row['category_image_url']?.toString().trim(),
             };
           }
           final categories = categoryMap.values.toList(growable: false);
@@ -2349,6 +2350,66 @@ class _WholesaleCatalogDesignScreenState
             };
           }
           final brands = brandMap.values.toList(growable: false);
+
+          if (browseMode == 'categories' && selectedCategoryId == null) {
+            return Scaffold(
+              key: const ValueKey('wholesale-category-browser-screen'),
+              backgroundColor: palette.background,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    _WholesaleHeader(
+                      title: title,
+                      logoUrl: branding['logo_url']?.toString(),
+                      address: branding['address']?.toString(),
+                      palette: palette,
+                      searchController: search,
+                      searchKey: const ValueKey('wholesale-category-browser-search'),
+                      searchHint: context.tr('b2b.catalog.search_hint'),
+                      onSearchSubmitted: (_) => _reload(),
+                      onSearchChanged: (_) => setState(() {}),
+                      onClearSearch: () {
+                        search.clear();
+                        _reload();
+                      },
+                      onCart: () => Navigator.of(context)
+                          .pushNamed('/b2b/cart?store=' + storeId.toString()),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+                        children: [
+                          Text(
+                            context.tr('b2b.catalog.categories_title'),
+                            style: const TextStyle(
+                              color: Color(0xFF10233F),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('b2b.catalog.categories_subtitle'),
+                            style: const TextStyle(
+                              color: Color(0xFF6B7785),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _WholesaleCategoryBrowserGrid(
+                            categories: categories,
+                            palette: palette,
+                            storeId: storeId,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
           final visibleRows = allRows.where((row) {
             if (selectedCategoryId != null &&
@@ -2403,8 +2464,7 @@ class _WholesaleCatalogDesignScreenState
             key: const ValueKey('wholesale-catalog-screen'),
             backgroundColor: palette.background,
             body: SafeArea(
-              child: ListView(
-                padding: EdgeInsets.zero,
+              child: Column(
                 children: [
                   _WholesaleHeader(
                     title: title,
@@ -2423,6 +2483,11 @@ class _WholesaleCatalogDesignScreenState
                     onCart: () => Navigator.of(context)
                         .pushNamed('/b2b/cart?store=' + storeId.toString()),
                   ),
+                  Expanded(
+                    child: ListView(
+                      key: const ValueKey('wholesale-catalog-scroll-body'),
+                      padding: EdgeInsets.zero,
+                      children: [
                   if (categories.isNotEmpty)
                     SizedBox(
                       key: const ValueKey('wholesale-catalog-categories'),
@@ -2650,12 +2715,126 @@ class _WholesaleCatalogDesignScreenState
                       ),
                     ),
                   const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         },
       );
+}
+
+class _WholesaleCategoryBrowserGrid extends StatelessWidget {
+  const _WholesaleCategoryBrowserGrid({
+    required this.categories,
+    required this.palette,
+    required this.storeId,
+  });
+
+  final List<Map<String, dynamic>> categories;
+  final FoodexPalette palette;
+  final int storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return FoodexEmptyState(
+        key: const ValueKey('wholesale-category-browser-empty'),
+        title: context.tr('b2b.catalog.categories_title'),
+        subtitle: context.tr('b2b.catalog.categories_subtitle'),
+      );
+    }
+
+    return GridView.builder(
+      key: const ValueKey('wholesale-category-browser-grid'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: 154,
+      ),
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        final id = intValue(category['id']);
+        final imageUrl = category['image_url']?.toString().trim() ?? '';
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            key: ValueKey('wholesale-category-browser-$id'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: id <= 0 || storeId <= 0
+                ? null
+                : () => Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                          'category_id': id.toString(),
+                        },
+                      ).toString(),
+                    ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.soft),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: imageUrl.isEmpty
+                          ? ColoredBox(
+                              color: palette.soft,
+                              child: Icon(
+                                Icons.category_outlined,
+                                color: palette.primary,
+                                size: 34,
+                              ),
+                            )
+                          : Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => ColoredBox(
+                                color: palette.soft,
+                                child: Icon(
+                                  Icons.category_outlined,
+                                  color: palette.primary,
+                                  size: 34,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    category['name']?.toString() ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF10233F),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _WholesaleBottomNav extends StatelessWidget {
