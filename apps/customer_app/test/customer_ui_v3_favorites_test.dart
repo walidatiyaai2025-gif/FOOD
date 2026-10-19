@@ -53,6 +53,12 @@ void main() {
 
       expect(api.favoriteLoads, <int>[19]);
       expect(find.byType(CustomerProductCard), findsOneWidget);
+      expect(
+        tester
+            .widget<CustomerProductCard>(find.byType(CustomerProductCard))
+            .compact,
+        isTrue,
+      );
       expect(find.text('Drinks'), findsOneWidget);
       expect(find.text('2.500 KWD'), findsOneWidget);
       expect(find.text('3.000 KWD'), findsOneWidget);
@@ -64,8 +70,9 @@ void main() {
       await tester.pump();
       expect(openedProduct, 8);
 
-      final remove =
-          find.byKey(const ValueKey('customer-favorite-remove-8'));
+      final remove = find.byKey(const ValueKey('customer-favorite-remove-8'));
+      final removeButton = tester.widget<CustomerOutlineIconButton>(remove);
+      expect(removeButton.selectedColor, CustomerUiColors.destructive);
       await tester.tap(remove);
       await tester.pumpAndSettle();
 
@@ -126,6 +133,5 @@ class _FavoritesFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      Future<Object?>.value(null);
+  dynamic noSuchMethod(Invocation invocation) => Future<Object?>.value(null);
 }
