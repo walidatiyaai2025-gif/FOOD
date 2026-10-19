@@ -83,55 +83,11 @@
     }
 @endphp
 
-<nav class="foodex-tabs" data-restaurant-saas-workspace-nav aria-label="{{ __('smart_ordering.nav_title') }}">
-    @if($restaurantCanView)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.index')) aria-current="page" @endif>
-            {{ __('smart_ordering.settings_tab') }}
-        </a>
-    @endif
-    @if($restaurantCanOrders)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.operations.*')) aria-current="page" @endif>
-            {{ __('smart_ordering.operations_tab') }}
-        </a>
-    @endif
-    @if($restaurantCanManage)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.menu.index', [...$restaurantStoreParams, 'setup' => 'menu']) }}" @if(request()->routeIs('admin.smart-ordering.menu.*')) aria-current="page" @endif>
-            {{ __('smart_ordering_menu.nav_title') }}
-        </a>
-    @endif
-    @if($restaurantCanView)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.appearance.index', $restaurantAppearanceParams) }}" @if(request()->routeIs('admin.smart-ordering.appearance.*')) aria-current="page" @endif>
-            {{ __('smart_ordering.appearance.heading') }}
-        </a>
-    @endif
-    @if($restaurantCanQr)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.qr.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.qr.*')) aria-current="page" @endif>
-            {{ __('smart_ordering_qr.nav_title') }}
-        </a>
-    @endif
-    @if($restaurantCanAnalytics)
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.analytics.index', $restaurantStoreParams) }}" @if(request()->routeIs('admin.smart-ordering.analytics.*')) aria-current="page" @endif>
-            {{ __('smart_ordering.analytics.nav_title') }}
-        </a>
-    @endif
-</nav>
-
-@if($restaurantCanView && $restaurantSiteParams)
-    <nav class="foodex-tabs" data-restaurant-saas-context-nav aria-label="{{ __('smart_ordering.title') }}">
-        @if($restaurantSupplyEnabled)
-            <a class="foodex-tab" href="{{ route('admin.smart-ordering.supply.index', $restaurantSiteParams) }}" @if(request()->routeIs('admin.smart-ordering.supply.*')) aria-current="page" @endif>
-                {{ __('smart_ordering_supply.title') }}
-            </a>
-        @endif
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.integrations.index', $restaurantSiteParams) }}" @if(request()->routeIs('admin.smart-ordering.integrations.*')) aria-current="page" @endif>
-            {{ __('restaurant_integrations.title') }}
-        </a>
-        <a class="foodex-tab" href="{{ route('admin.smart-ordering.growth.index', $restaurantSiteParams) }}" @if(request()->routeIs('admin.smart-ordering.growth.*')) aria-current="page" @endif>
-            {{ __('restaurant_growth.title') }}
-        </a>
-    </nav>
-@endif
-
 @if($restaurantCanView)
-    @include('admin._restaurant-management-launcher')
+    <section class="restaurant-saas-navigation-shell"
+        data-restaurant-saas-workspace-nav
+        data-restaurant-saas-context-nav
+        aria-label="{{ __('smart_ordering.workspace.title') }}">
+        @include('admin._restaurant-management-launcher')
+    </section>
 @endif
