@@ -913,33 +913,6 @@ class _RetailHomeBody extends StatelessWidget {
   }
 }
 
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.icon,
-    required this.palette,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final FoodexPalette palette;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, color: Colors.white),
-          ),
-        ),
-      );
-}
-
 class _HeroBanner extends StatelessWidget {
   const _HeroBanner({
     required this.palette,
