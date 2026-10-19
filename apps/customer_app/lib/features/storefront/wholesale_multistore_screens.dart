@@ -1960,19 +1960,20 @@ class _WholesaleFavoritesDesignScreenState
     }
     storeId = resolvedStoreId;
 
-    final values = await Future.wait<Object?>([
-      widget.favoritesApi.favoritesForStore(storeId),
-      if (widget.storefrontApi != null)
-        widget.storefrontApi!.wholesaleHome(storeId)
-      else
-        Future<Object?>.value(const <String, Object?>{}),
-    ]);
+    final favorites = await widget.favoritesApi.favoritesForStore(storeId);
+    Map<String, dynamic> storefront = <String, dynamic>{};
+    final storefrontApi = widget.storefrontApi;
+    if (storefrontApi != null) {
+      try {
+        storefront = await storefrontApi.wholesaleHome(storeId);
+      } catch (_) {
+        // Favorites remain usable even if optional storefront branding fails.
+      }
+    }
 
     return <String, dynamic>{
-      'favorites': values[0],
-      'storefront': values[1] is Map
-          ? Map<String, dynamic>.from(values[1] as Map)
-          : <String, dynamic>{},
+      'favorites': favorites,
+      'storefront': storefront,
     };
   }
 
