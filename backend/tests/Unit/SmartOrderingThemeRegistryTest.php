@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 final class SmartOrderingThemeRegistryTest extends TestCase
 {
-    public function test_registry_exposes_six_versioned_production_templates_and_preserves_legacy_ids(): void
+    public function test_registry_exposes_seven_versioned_production_templates_and_preserves_legacy_ids(): void
     {
         $registry = new ThemeRegistry;
 
@@ -19,14 +19,15 @@ final class SmartOrderingThemeRegistryTest extends TestCase
             'premium-arabic-dining',
             'modern-minimal',
             'chef-tasting',
+            'fresh-market-commerce',
         ], $registry->productionIds());
 
         $this->assertSame('modern-minimal', $registry->productionDefault());
         $this->assertSame(2, ThemeRegistry::SCHEMA_VERSION);
         $this->assertContains('quick-bite', $registry->ids());
         $this->assertContains('signature-brand', $registry->ids());
-        $this->assertCount(6, array_unique(array_column($registry->production(), 'view')));
-        $this->assertCount(6, array_unique(array_column($registry->production(), 'layout')));
+        $this->assertCount(7, array_unique(array_column($registry->production(), 'view')));
+        $this->assertCount(7, array_unique(array_column($registry->production(), 'layout')));
 
         foreach ($registry->production() as $definition) {
             $this->assertSame(1, $definition['version']);
