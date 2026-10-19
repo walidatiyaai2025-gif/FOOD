@@ -26,13 +26,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('setView([29.3759,47.9774]', $customer360);
     }
 
-    public function test_order_management_uses_compact_ellipsis_row_actions(): void
+    public function test_order_management_uses_inline_row_actions(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
 
         $this->assertIsString($view);
         $this->assertStringContainsString('data-order-row-actions', $view);
-        $this->assertStringContainsString('>⋮</summary>', $view);
+        $this->assertStringContainsString('data-order-actions-inline', $view);
+        $this->assertStringNotContainsString('<details class="row-actions" data-order-row-actions>', $view);
         $this->assertStringContainsString("__('order_operations.view_order')", $view);
         $this->assertStringContainsString('<dialog class="order-detail-drawer foodex-record-drawer" open', $view);
         $this->assertStringContainsString('order-detail-drawer-shell foodex-record-drawer-shell', $view);
