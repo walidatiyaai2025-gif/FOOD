@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
+use App\Domain\Assistant\Intelligence\AssistantBriefService;
 use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\SmartOrderingAnalyticsService;
 use App\Domain\SmartOrdering\SmartOrderingRevisionService;
@@ -54,6 +55,33 @@ Artisan::command(
 Schedule::command('foodex:analytics-refresh')
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
+
+Artisan::command(
+    'foodex:assistant-intelligence-briefs {cadence=daily : daily or weekly} {--limit=200 : Maximum subscriptions processed per run}',
+    function (AssistantBriefService $briefs): int {
+        $cadence = strtolower(trim((string) $this->argument('cadence')));
+        if (! in_array($cadence, ['daily', 'weekly'], true)) {
+            $this->error('Cadence must be daily or weekly.');
+
+            return 2;
+        }
+
+        $count = $briefs->runCadence($cadence, (int) $this->option('limit'));
+        $this->info("Delivered {$count} {$cadence} proactive intelligence brief(s).");
+
+        return 0;
+    },
+)->purpose('Generate and deliver idempotent FOODEX proactive intelligence briefs through authorized in-app notifications.');
+
+Schedule::command('foodex:assistant-intelligence-briefs daily --limit=200')
+    ->dailyAt('07:00')
+    ->timezone('Asia/Kuwait')
+    ->withoutOverlapping(30);
+
+Schedule::command('foodex:assistant-intelligence-briefs weekly --limit=200')
+    ->weeklyOn(1, '07:15')
+    ->timezone('Asia/Kuwait')
+    ->withoutOverlapping(30);
 
 Artisan::command('foodex:dispatch-scheduled-notifications', function (): void {
     $count = app(NotificationCampaignDispatcher::class)->dispatchDue();

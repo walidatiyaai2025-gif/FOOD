@@ -18,6 +18,7 @@ use App\Models\EnterpriseCashbox;
 use App\Models\Store;
 use App\Models\User;
 use App\Support\TenantContextResolver;
+use App\Services\AssistantRuntimeSettings;
 use App\Services\PlatformCustomerService;
 use App\Services\StoreBusinessProfileService;
 use Illuminate\Database\Seeder;
@@ -75,6 +76,11 @@ class ScreenshotEvidenceSeeder extends Seeder
             'updated_at' => $now,
         ]);
         DB::table('role_user')->insert(['role_id' => $superRoleId, 'user_id' => $englishAdminId]);
+
+        // Visual-QA exercises the Intelligence Center as the seeded SUPER_ADMIN.
+        // Persist the feature switch in this non-production fixture so the route
+        // proves its real authorized runtime instead of failing closed with 403.
+        app(AssistantRuntimeSettings::class)->persist(true);
 
         DB::table('notifications')->insert([
             'user_id' => null,

@@ -451,6 +451,7 @@
       "route": [
         "admin.settings.index",
         "admin.assistant-settings.index",
+        "admin.assistant-intelligence.index",
         "admin.app-versions.index",
         "admin.sms-settings.index",
         "admin.mobile-settings.index",
@@ -463,6 +464,7 @@
       "route_path": [
         "/admin/settings",
         "/admin/settings/assistant",
+        "/admin/assistant/intelligence",
         "/admin/settings/app-versions",
         "/admin/settings/sms",
         "/admin/settings/mobile",
@@ -488,7 +490,8 @@
       "status": "ADMIN_HUB_OK",
       "evidence": [
         "docs/execution/DASHBOARD_ADAPTIVE_ROUTE_INVENTORY.json",
-        "backend/app/Http/Controllers/Admin/SettingsCenterController.php"
+        "backend/app/Http/Controllers/Admin/SettingsCenterController.php",
+        "backend/app/Http/Controllers/Admin/AssistantIntelligenceController.php"
       ],
       "remediation_owner": null,
       "remediation_scope": null,

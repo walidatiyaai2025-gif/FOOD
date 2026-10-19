@@ -166,3 +166,12 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** provider failures/injection degrade to the deterministic Assistant where safe; tool/tenant/consent denial never widens scope; writes remain disabled by default; protected benchmarks require server-emitted privacy metadata; security events record bounded reasons without raw malicious prompts/secrets; no public API contract changes.
 
 **Authority:** `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`, `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, #2208 and #2229.
+
+## D-024 — Proactive intelligence briefs are deterministic snapshots with delivery-time authorization
+**Decision (#2226 / AI-18, 2026-10-19):** The FOODEX Intelligence Center persists recipient-scoped deterministic findings and creates daily/weekly snapshot briefs without requiring an external model. Brief generation is idempotent by user/scope/cadence/business period/locale, stale findings are excluded, and existing `in_app` notifications are the only delivery transport introduced by this scope. Authorization is re-evaluated for the recipient and every referenced finding immediately before delivery.
+
+**Reason:** proactive alerts must not turn a provider narrative, old role assignment or retry into business truth. Durable evidence snapshots let FOODEX explain what triggered a brief while current server-side RBAC prevents a previously authorized snapshot from being delivered after access is revoked.
+
+**Consequences:** upstream #2219/#2220/#2222 services publish findings through the Assistant intelligence ingestion seam; #2224 remains the only authority for executing approved actions; no generic SQL/model credential path or parallel notification system is introduced; provider outages do not stop deterministic generation/deduplication.
+
+**Authority:** `docs/architecture/FOODEX_AI_PROACTIVE_INTELLIGENCE.md`, #2208 and #2226.

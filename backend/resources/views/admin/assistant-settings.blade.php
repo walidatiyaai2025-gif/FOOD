@@ -56,6 +56,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <h1>{{ __('assistant_settings.title') }}</h1>
 <p>{{ __('assistant_settings.description') }}</p>
 </div>
+<div class="foodex-header-actions">
+<a class="secondary" href="{{ route('admin.assistant-intelligence.index') }}">{{ __('assistant_intelligence.title') }}</a>
+</div>
 </div>
 
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
