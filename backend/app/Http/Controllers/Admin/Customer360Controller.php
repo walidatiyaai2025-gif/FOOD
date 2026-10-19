@@ -1090,7 +1090,7 @@ final class Customer360Controller extends Controller
         }
 
         $allowed = $this->scope->allowedStoreIds($actor, 'customers.manage', 'b2c');
-        if ($allowed === []) {
+        if ($allowed === [] || $customer->user_id === null) {
             return false;
         }
 
@@ -1126,6 +1126,11 @@ final class Customer360Controller extends Controller
                     DB::table('b2b_customers')
                         ->select('user_id')
                         ->whereNotNull('user_id'),
+                )->orWhereIn(
+                    'platform_customers.legacy_customer_id',
+                    DB::table('b2b_customers')
+                        ->select('legacy_customer_id')
+                        ->whereNotNull('legacy_customer_id'),
                 )->orWhereIn(
                     'platform_customers.user_id',
                     DB::table('retail_wholesale_accounts')
@@ -1258,11 +1263,16 @@ final class Customer360Controller extends Controller
         }
 
         $user = $customer->user;
-        if (! $user instanceof User) {
-            return null;
+        if ($user instanceof User) {
+            $resolved = app(CustomerDomainResolver::class)->existingB2b($user);
+            if ($resolved instanceof B2bCustomer) {
+                return $resolved;
+            }
         }
 
-        return app(CustomerDomainResolver::class)->existingB2b($user);
+        return B2bCustomer::query()
+            ->where('legacy_customer_id', $customer->legacy_customer_id)
+            ->first();
     }
 
     /** @return array{b2b_id:?int,b2c_ids:list<int>} */
@@ -1271,13 +1281,16 @@ final class Customer360Controller extends Controller
         $domain = $this->wholesaleDomain($customer, $access);
         $b2bId = $domain instanceof B2bCustomer ? (int) $domain->getKey() : null;
 
-        $b2c = DB::table('b2c_customers')
-            ->where('user_id', $customer->user_id)
-            ->when($access['mode'] === 'b2c', fn ($q) => $q->whereIn('store_id', $access['b2c_store_ids']))
-            ->when($access['mode'] === 'b2b', fn ($q) => $q->whereRaw('1 = 0'))
-            ->pluck('id')
-            ->map(static fn ($id): int => (int) $id)
-            ->all();
+        $b2c = [];
+        if ($customer->user_id !== null) {
+            $b2c = DB::table('b2c_customers')
+                ->where('user_id', $customer->user_id)
+                ->when($access['mode'] === 'b2c', fn ($q) => $q->whereIn('store_id', $access['b2c_store_ids']))
+                ->when($access['mode'] === 'b2b', fn ($q) => $q->whereRaw('1 = 0'))
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        }
 
         return ['b2b_id' => $b2bId, 'b2c_ids' => $b2c];
     }
@@ -1412,11 +1425,14 @@ final class Customer360Controller extends Controller
             return [];
         }
 
-        $storeIds = DB::table('b2c_customers')
-            ->where('user_id', $customer->user_id)
-            ->pluck('store_id')
-            ->map(static fn ($id): int => (int) $id)
-            ->all();
+        $storeIds = [];
+        if ($customer->user_id !== null) {
+            $storeIds = DB::table('b2c_customers')
+                ->where('user_id', $customer->user_id)
+                ->pluck('store_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        }
 
         $user = $customer->user;
         if ($user instanceof User) {
