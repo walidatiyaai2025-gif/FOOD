@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AssistantExternalAiClient;
+use App\Services\AssistantObservability;
 use App\Services\AssistantProviderSettings;
 use App\Services\AssistantRuntimeSettings;
 use App\Services\AuditLogger;
@@ -13,6 +15,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class AssistantSettingsController extends Controller
 {
@@ -20,6 +23,8 @@ final class AssistantSettingsController extends Controller
         private readonly AssistantRuntimeSettings $settings,
         private readonly AssistantProviderSettings $providerSettings,
         private readonly AssistantExternalAiClient $externalAi,
+        private readonly AssistantObservability $observability,
+        private readonly AssistantToolRegistry $tools,
         private readonly AuditLogger $audit,
         private readonly AdminNavigation $navigation,
     ) {}
@@ -32,13 +37,21 @@ final class AssistantSettingsController extends Controller
             403,
         );
 
+        $canManage = $actor->hasPermission('settings.manage');
+        $traceId = $canManage ? trim((string) $request->query('trace', '')) : '';
+
         return view('admin.assistant-settings', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'administration_hub',
             'assistantSettings' => $this->settings->snapshot(),
             'providerSettings' => $this->providerSettings->snapshot(),
-            'canManage' => $actor->hasPermission('settings.manage'),
+            'canManage' => $canManage,
+            'observabilitySummary' => $this->observability->summary(),
+            'recentTraces' => $canManage ? $this->observability->recentTraces() : [],
+            'selectedTraceId' => $traceId,
+            'selectedTrace' => $traceId === '' ? [] : $this->observability->trace($traceId),
+            'assistantToolKeys' => $this->tools->keys(),
         ]);
     }
 
@@ -166,6 +179,63 @@ final class AssistantSettingsController extends Controller
                 $result['message'],
             )
             ->with('provider_probe', $result);
+    }
+
+    public function exportDiagnostics(Request $request): StreamedResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasPermission('settings.manage'), 403);
+
+        $rows = $this->observability->exportRows();
+        $filename = 'foodex-ai-diagnostics-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($rows): void {
+            $handle = fopen('php://output', 'wb');
+            if ($handle === false) {
+                return;
+            }
+
+            fputcsv($handle, [
+                'trace_id',
+                'event_time',
+                'phase',
+                'event',
+                'provider',
+                'model',
+                'tool',
+                'outcome',
+                'status_code',
+                'latency_ms',
+                'fallback',
+                'prompt_tokens',
+                'completion_tokens',
+                'total_tokens',
+            ]);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['trace_id'],
+                    $row['created_at'],
+                    $row['phase'],
+                    $row['event_name'],
+                    $row['provider'],
+                    $row['model'],
+                    $row['tool_key'],
+                    $row['outcome'],
+                    $row['status_code'],
+                    $row['latency_ms'],
+                    $row['fallback'] ? '1' : '0',
+                    $row['prompt_tokens'],
+                    $row['completion_tokens'],
+                    $row['total_tokens'],
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     private function actor(Request $request): User
