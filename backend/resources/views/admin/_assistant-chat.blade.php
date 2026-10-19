@@ -72,6 +72,48 @@
         data-label-you="{{ $assistantCopy['you'] }}"
         data-label-assistant="{{ $assistantCopy['assistant'] }}"
         data-label-open-action="{{ $assistantCopy['open_action'] }}"
+        data-label-scope="{{ __('assistant_ui.scope_label') }}"
+        data-label-scope-pending="{{ __('assistant_ui.scope_pending') }}"
+        data-label-current-page="{{ __('assistant_ui.current_page') }}"
+        data-label-context-open="{{ __('assistant_ui.context_open') }}"
+        data-label-context-prompt="{{ __('assistant_ui.context_prompt') }}"
+        data-label-purchase-plan-prompt="{{ __('assistant_ui.purchase_plan_prompt') }}"
+        data-label-domain-wholesale="{{ __('assistant_ui.domain_wholesale') }}"
+        data-label-domain-retail="{{ __('assistant_ui.domain_retail') }}"
+        data-label-domain-analytics="{{ __('assistant_ui.domain_analytics') }}"
+        data-label-domain-operations="{{ __('assistant_ui.domain_operations') }}"
+        data-label-domain-catalog="{{ __('assistant_ui.domain_catalog') }}"
+        data-label-domain-management="{{ __('assistant_ui.domain_management') }}"
+        data-label-evidence="{{ __('assistant_ui.evidence') }}"
+        data-label-evidence-items="{{ __('assistant_ui.evidence_items') }}"
+        data-label-evidence-domain="{{ __('assistant_ui.evidence_domain') }}"
+        data-label-evidence-metric="{{ __('assistant_ui.evidence_metric') }}"
+        data-label-evidence-authorized="{{ __('assistant_ui.evidence_authorized') }}"
+        data-label-fresh="{{ __('assistant_ui.fresh') }}"
+        data-label-stale="{{ __('assistant_ui.stale') }}"
+        data-label-partial="{{ __('assistant_ui.partial') }}"
+        data-label-complete="{{ __('assistant_ui.complete') }}"
+        data-label-degraded="{{ __('assistant_ui.degraded') }}"
+        data-label-denied="{{ __('assistant_ui.denied') }}"
+        data-label-needs-clarification="{{ __('assistant_ui.needs_clarification') }}"
+        data-label-findings="{{ __('assistant_ui.findings') }}"
+        data-label-recommendations="{{ __('assistant_ui.recommendations') }}"
+        data-label-approval-required="{{ __('assistant_ui.approval_required') }}"
+        data-label-approval-preview="{{ __('assistant_ui.approval_preview') }}"
+        data-label-expires="{{ __('assistant_ui.expires') }}"
+        data-label-scope-denied="{{ __('assistant_ui.scope_denied') }}"
+        data-label-consent-required="{{ __('assistant_ui.consent_required') }}"
+        data-label-invalid-request="{{ __('assistant_ui.invalid_request') }}"
+        data-label-data-unavailable="{{ __('assistant_ui.data_unavailable') }}"
+        data-label-network-error="{{ __('assistant_ui.network_error') }}"
+        data-label-retry-action="{{ __('assistant_ui.retry') }}"
+        data-label-critical="{{ __('assistant_ui.critical') }}"
+        data-label-warning="{{ __('assistant_ui.warning') }}"
+        data-label-watch="{{ __('assistant_ui.watch') }}"
+        data-label-sell-in="{{ __('assistant_ui.sell_in') }}"
+        data-label-sell-out="{{ __('assistant_ui.sell_out') }}"
+        data-label-yes="{{ __('assistant_ui.yes') }}"
+        data-label-no="{{ __('assistant_ui.no') }}"
     >
         <button
             class="foodex-assistant-launcher"
@@ -100,7 +142,7 @@
             id="foodex-assistant-drawer"
             class="foodex-assistant-drawer"
             role="dialog"
-            aria-label="{{ $assistantCopy['title'] }}"
+            aria-labelledby="foodex-assistant-title"
             aria-modal="false"
             aria-hidden="true"
             hidden
@@ -117,7 +159,7 @@
                         </svg>
                     </span>
                     <span>
-                        <strong>{{ $assistantCopy['title'] }}</strong>
+                        <strong id="foodex-assistant-title">{{ $assistantCopy['title'] }}</strong>
                         <small>{{ $assistantCopy['subtitle'] }}</small>
                     </span>
                 </div>
@@ -127,6 +169,12 @@
                     <button type="button" class="foodex-assistant-icon-button" data-assistant-close aria-label="{{ $assistantCopy['close'] }}">×</button>
                 </div>
             </header>
+
+            <div class="foodex-assistant-scope" data-assistant-scope aria-live="polite">
+                <span class="foodex-assistant-scope-label">{{ __('assistant_ui.scope_label') }}</span>
+                <strong data-assistant-scope-primary>{{ __('assistant_ui.current_page') }}</strong>
+                <span data-assistant-scope-secondary>{{ __('assistant_ui.scope_pending') }}</span>
+            </div>
 
             <div class="foodex-assistant-status" data-assistant-status role="status" aria-live="polite"></div>
 
