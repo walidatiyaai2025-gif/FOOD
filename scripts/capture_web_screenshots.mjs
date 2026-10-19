@@ -1457,6 +1457,7 @@ async function captureRestaurantTemplateRuntimeEvidence(page, locale) {
     'premium-arabic-dining',
     'modern-minimal',
     'chef-tasting',
+    'fresh-market-commerce',
   ];
   const viewports = [
     { width: 320, height: 780, label: 'mobile-320' },
