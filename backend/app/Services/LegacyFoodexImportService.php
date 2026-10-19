@@ -3855,7 +3855,6 @@ SQL));
             }
         });
 
-        unset($unmappedSuppliers[0], $unmappedLocations[0]);
         ksort($typeCounts);
 
         $detailCounts = [];
