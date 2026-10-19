@@ -122,6 +122,8 @@ final class AssistantToolDefinitionCatalog
                 'type' => 'object',
                 'required' => ['query'],
                 'properties' => [
+                    'channel' => ['type' => 'string', 'enum' => ['b2b', 'b2c', 'B2B', 'B2C']],
+                    'store_id' => self::integer(),
                     'query' => self::string(500),
                     'max_results' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 8],
                 ],
