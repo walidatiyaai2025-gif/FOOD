@@ -142,7 +142,7 @@ final class AssistantObservability
                     : round(($providerFallbacks / $providerRequests) * 100, 1),
                 'total_tokens' => (int) ((clone $base)
                     ->where('event_name', 'provider.result')
-                    ->sum('total_tokens') ?? 0),
+                    ->sum('total_tokens')),
                 'last_provider' => $lastProvider === null ? null : $this->safeRow($lastProvider),
             ];
         } catch (Throwable $exception) {
@@ -169,6 +169,7 @@ final class AssistantObservability
                 ->limit(min(2000, $limit * 40))
                 ->get();
 
+            /** @var array<string, array<string, mixed>> $traces */
             $traces = [];
 
             foreach ($rows as $row) {
@@ -201,7 +202,9 @@ final class AssistantObservability
                 $trace['last_event_at'] = max((string) $trace['last_event_at'], (string) $row->created_at);
                 $trace['provider'] ??= $row->provider;
                 $trace['model'] ??= $row->model;
-                $trace['fallback'] = $trace['fallback'] || (bool) $row->fallback;
+                if ((bool) $row->fallback) {
+                    $trace['fallback'] = true;
+                }
                 $trace['total_tokens'] += $row->event_name === 'provider.result' ? (int) ($row->total_tokens ?? 0) : 0;
 
                 if ($row->tool_key !== null && ! in_array($row->tool_key, $trace['tools'], true)) {
@@ -389,12 +392,12 @@ final class AssistantObservability
 
             if (is_array($value)) {
                 $safe[$key] = array_is_list($value)
-                    ? array_values(array_slice(array_map(
+                    ? array_slice(array_map(
                         fn (mixed $item): mixed => is_array($item)
                             ? $this->sanitizeMetadata($item, $depth + 1)
                             : $this->safeScalar($item),
                         $value,
-                    ), 0, 20))
+                    ), 0, 20)
                     : $this->sanitizeMetadata($value, $depth + 1);
 
                 continue;
