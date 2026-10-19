@@ -2589,7 +2589,7 @@ SQL));
             'sales_negative_qty_lines' => $salesNegativeQtyLines,
             'sales_zero_qty_lines' => $salesZeroQtyLines,
             'line_total_mismatches' => $lineTotalMismatches,
-            'payment_balance_mismatches' => $paymentBalanceMismatches,
+            'legacy_balance_not_outstanding_count' => $paymentBalanceMismatches,
             'existing_orders' => $targetCounts['orders'],
             'existing_invoices' => $targetCounts['invoices'],
             'existing_payments' => $targetCounts['payments'],
