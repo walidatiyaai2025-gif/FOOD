@@ -267,13 +267,30 @@ Artisan::command(
         }
         if (($report['rebuild_preview']['negative_samples'] ?? []) !== []) {
             $this->warn('Negative reconstructed positions exist; review is required before stock apply.');
+            if (($report['rebuild_preview']['negative_store_summary'] ?? []) !== []) {
+                $this->table(
+                    ['Store', 'Name', 'Negative positions', 'Total negative qty', 'By type'],
+                    collect($report['rebuild_preview']['negative_store_summary'])->map(static fn (array $row): array => [
+                        $row['store_id'],
+                        $row['name'],
+                        $row['negative_positions'],
+                        $row['total_negative_quantity'],
+                        json_encode($row['by_type'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    ])->all(),
+                );
+            }
+
             $this->table(
-                ['Store', 'Item', 'Quantity', 'Lines'],
+                ['Store', 'Name', 'Item', 'Quantity', 'Lines', 'First', 'Last', 'By type'],
                 collect($report['rebuild_preview']['negative_samples'])->map(static fn (array $row): array => [
                     $row['store_id'],
+                    $row['store_name'] ?? '',
                     $row['item_id'],
                     $row['quantity'],
                     $row['movement_lines'],
+                    $row['first_date'] ?? 'n/a',
+                    $row['last_date'] ?? 'n/a',
+                    json_encode($row['by_type'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ])->all(),
             );
         }
