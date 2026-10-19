@@ -130,3 +130,12 @@ Compose existing channel-specific customer identities and source records through
 **Consequences:** `analytics.diagnose` reuses the #2213 authorized read model, independently authorizes the prior period, preserves live sell-out consent and retention boundaries, gates SKU/category/margin detail behind catalog permission, and returns machine-readable confidence/quality reasons. Missing prior evidence suppresses comparative breakdowns rather than treating absence as zero.
 
 **Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
+
+## D-020 — RAG documents are governed evidence, never instructions
+**Decision (#2223 / AI-15, 2026-10-18):** Approved FOODEX document knowledge is exposed to the existing Assistant only through the typed `knowledge.search` read tool. Sources carry exact version, locale and global-or-store scope; superseded, revoked, deleted and expired sources are excluded. Weak retrieval evidence is refused. Document excerpts are always untrusted data and cannot authorize, select or execute tools.
+
+**Reason:** mixing document text with agent instructions would allow indirect prompt injection, while allowing unscoped or stale documents would create cross-tenant and grounding failures. Live business facts also have different freshness/authority semantics from policy/manual content.
+
+**Consequences:** planning routes live facts to deterministic domain/read-model tools and documents to `knowledge.search`; hybrid questions may use both. Planning never sees retrieved document text, synthesis has no callable tools, every knowledge read is re-authorized/audited through `AssistantToolExecutor`, and final knowledge answers append server-derived exact source/version citations. Provider-disabled behavior remains additive/degraded and cannot take core FOODEX down.
+
+**Authority:** `docs/architecture/FOODEX_AI_KNOWLEDGE_RAG.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2223.
