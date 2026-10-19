@@ -104,7 +104,16 @@ Compose existing channel-specific customer identities and source records through
 **Authority:** `docs/architecture/FOODEX_AI_SECURITY_CONTRACT.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2211.
 
 
-## D-017 — Agent planning is bounded; server evidence is the only synthesis authority
+## D-017 — Retail sell-out ingestion accepts actual sales only
+**Decision (#2217 / AI-09, 2026-10-18):** Canonical sell-out is composed only from actual retailer-to-customer transactions: native FOODEX B2C orders plus explicitly connected external POS/API/CSV sell-out events. Retail replenishment and wholesale purchases remain separate sell-in/procurement facts and are never inferred, relabelled or substituted as sell-out.
+
+**Reason:** purchase-to-retail timing, stock holding, returns and unsold inventory make wholesale replenishment an invalid proxy for consumer demand. AI decisions must distinguish absent/partial retail feeds from genuine zero sales.
+
+**Consequences:** external rows are tenant-owned, SKU-mapped, timezone-normalized, idempotent and reconciled; rejected rows are reported without persisting raw rejected payloads; active retailer consent is re-authorized on analytical reads; feed state exposes no/partial/available coverage and quality; the deterministic analytics layer combines actual sources while the LLM remains an interpreter only.
+
+**Authority:** `docs/architecture/FOODEX_AI_RETAIL_SELLOUT_INGESTION.md`, `docs/architecture/FOODEX_AI_ANALYTICS_READ_MODEL.md`, #2208 and #2217.
+
+## D-018 — Agent planning is bounded; server evidence is the only synthesis authority
 **Decision (#2215 / AI-07, 2026-10-18):** Multi-tool Assistant turns use the existing provider gateway only to propose allowlisted typed reads and synthesize from numbered server evidence. `AssistantToolExecutor` remains the mandatory authorization/audit gate for every proposed call. The orchestrator enforces hard step, call, time and result-size budgets, suppresses duplicate tool signatures and never persists/exposes provider reasoning.
 
 **Reason:** an unconstrained agent loop could turn model output into authority, amplify accidental repeated reads, leak scope through tool arguments or create unbounded latency/cost. FOODEX already has authoritative typed tools, semantic metrics, read models and security controls.
@@ -113,8 +122,16 @@ Compose existing channel-specific customer identities and source records through
 
 **Authority:** `docs/architecture/FOODEX_AI_AGENT_ORCHESTRATOR.md`, `docs/architecture/FOODEX_AI_AGENT_ARCHITECTURE.md`, #2208 and #2215.
 
+## D-019 — AI diagnostics are deterministic evidence, not model arithmetic or causation
+**Decision (#2218 / AI-10, 2026-10-18):** FOODEX period comparisons, trend/velocity, mix/contribution, refund/cancellation rates, inventory cover and margin diagnostics are computed by versioned server-side software before model narration. The reusable result contract is `foodex.analytics.diagnostic.v1`; model providers may explain it but cannot replace its values, submit SQL or promote correlation into a causal claim.
 
-## D-018 — Assistant memory carries context, never transactional truth
+**Reason:** business diagnostics must remain reproducible across Arabic/English narration, model/provider changes and provider outages. Missing comparison periods, sparse samples, stale/incomplete facts, zero denominators and incompatible currencies must produce explicit evidence limitations rather than invented percentages or causes.
+
+**Consequences:** `analytics.diagnose` reuses the #2213 authorized read model, independently authorizes the prior period, preserves live sell-out consent and retention boundaries, gates SKU/category/margin detail behind catalog permission, and returns machine-readable confidence/quality reasons. Missing prior evidence suppresses comparative breakdowns rather than treating absence as zero.
+
+**Authority:** `docs/architecture/FOODEX_AI_DETERMINISTIC_ANALYTICS.md`, `docs/architecture/FOODEX_AI_TOOL_REGISTRY.md`, #2208 and #2218.
+
+## D-020 — Assistant memory carries context, never transactional truth
 **Decision (#2216 / AI-08, 2026-10-18):** FOODEX reuses the existing Assistant conversation/state tables and adds a bounded session policy. Server-resolved page context may travel in a short-lived HMAC-authenticated envelope bound to the authenticated user, but the envelope is not authorization: every turn re-runs page visibility and AI principal/RBAC/tenant/channel/retailer-consent resolution. Durable Assistant memory is limited to allowlisted presentation preferences; short conversation state contains identifiers/windows needed for follow-ups only.
 
 **Reason:** browser IDs and chat history are stale and attacker-controlled inputs if treated as authority. Keeping business values or permission snapshots in memory could answer from obsolete revenue/stock/sell-out facts or survive access revocation.
