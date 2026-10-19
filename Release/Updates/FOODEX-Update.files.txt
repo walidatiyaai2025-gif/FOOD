@@ -35,6 +35,10 @@ backend/app/Domain/Assistant/Data/AssistantBrainRequest.php
 backend/app/Domain/Assistant/Data/AssistantBrainResult.php
 backend/app/Domain/Assistant/Data/AssistantToolRequest.php
 backend/app/Domain/Assistant/Data/AssistantToolResult.php
+backend/app/Domain/Assistant/Executive/WholesaleExecutiveAnalysisEngine.php
+backend/app/Domain/Assistant/Executive/WholesaleExecutiveIntelligenceService.php
+backend/app/Domain/Assistant/Executive/WholesaleExecutiveTool.php
+backend/app/Domain/Assistant/Executive/WholesaleExecutiveToolSet.php
 backend/app/Domain/Assistant/Models/AssistantConversation.php
 backend/app/Domain/Assistant/Models/AssistantConversationState.php
 backend/app/Domain/Assistant/Models/AssistantMessage.php
