@@ -69,6 +69,15 @@ final class ThemeRegistry
             'dark' => false,
             'supports' => ['hero', 'categories', 'featured', 'chef_note', 'tasting', 'beverages', 'desserts', 'hours', 'contact', 'reservation_cta'],
         ],
+        'fresh-market-commerce' => [
+            'label' => 'Fresh Market Commerce',
+            'view' => 'public.smart-ordering.templates.fresh-market-commerce',
+            'layout' => 'grocery-commerce-grid',
+            'version' => 1,
+            'generation' => self::PRODUCTION_GENERATION,
+            'dark' => false,
+            'supports' => ['hero', 'categories', 'featured', 'search', 'cart', 'product_grid', 'hours', 'contact'],
+        ],
 
         // Legacy storefront IDs remain supported so existing restaurants never lose their selected presentation.
         'quick-bite' => ['label' => 'Quick Bite', 'view' => 'public.smart-ordering.templates.quick-bite', 'layout' => 'fast-ordering', 'version' => 1, 'generation' => 'legacy', 'dark' => false, 'supports' => ['hero', 'categories']],
