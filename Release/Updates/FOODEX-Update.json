@@ -2,36 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.91",
+  "target_version": "1.0.94",
   "minimum_current_version": "1.0.90",
-  "source_base": "66857a1a5079baa78264b83cdb57e2cff112a727",
-  "source_commit": "8243612c2c80542cfe145f7ae78989b98db5b6d8",
-  "sha256": "3b227e1831516120dbdde5266ea3c8ea05cf5f28a1831ba5ec76fd65c458d002",
+  "sha256": "91eea6a9af981ed08f5fadbee4c2fc033e3f7e0ebf39cfbd752eadfa782f6c87",
   "contains_migrations": true,
-  "migrations": [
-    "backend/database/migrations/2026_10_18_172000_create_assistant_retailer_data_grants.php",
-    "backend/database/migrations/2026_10_18_221500_create_ai_analytics_read_models.php",
-    "backend/database/migrations/2026_10_18_234500_add_governed_memory_to_assistant_state.php",
-    "backend/database/migrations/2026_10_18_234500_create_retail_sellout_ingestion.php",
-    "backend/database/migrations/2026_10_19_000100_create_assistant_intelligence_center.php",
-    "backend/database/migrations/2026_10_19_000100_create_assistant_knowledge_index.php",
-    "backend/database/migrations/2026_10_19_000100_create_assistant_observability_events.php",
-    "backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php"
-  ],
-  "delta": {
-    "file_count": 594,
-    "source_file_count": 488,
-    "files_manifest": "FOODEX-Update.files.txt"
-  },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Promote the authoritative FOODEX main lineage after 1.0.90 with the Assistant Ollama/Qwen compatibility hotfix from #2204 / PR #2205. Normalize leading Qwen `<think>...</think>` reasoning wrappers and full markdown JSON fences before Assistant routing JSON is parsed, while preserving the existing intent allowlist and entity sanitization. Make the saved External AI provider connection test require the exact `FOODEX_OK` compatibility sentinel instead of accepting any non-empty model reply. Increase bounded Assistant provider completion budgets so short reasoning output cannot consume the whole response before the final routing JSON or probe sentinel. Preserve deterministic fail-safe fallback, read-only Assistant tools, RBAC and authoritative store/channel scope with no new write capability. Publish 1.0.91 as the direct cumulative Dashboard hotfix path for installed 1.0.90 systems; no full redeploy is required. Converge the final 1.0.91 release candidate on authoritative `main` through completed AI-PROGRAM production acceptance (#2208/#2232), so no later main change is dropped from the cumulative package. Keep the published 1.0.90 registry/update artifacts immutable in the release candidate; generate and register the 1.0.91 bundle through the canonical release distribution flow. Synchronize Customer, Driver and Van source identities at 1.0.91+91 per the release contract; the Dashboard update remains cumulative and independently deployable.",
+  "release_notes": "release: promote FOODEX 1.0.94",
   "dashboard_fields": {
-    "target_version": "1.0.91",
+    "target_version": "1.0.94",
     "minimum_current_version": "1.0.90",
-    "source_commit": "8243612c2c80542cfe145f7ae78989b98db5b6d8",
-    "sha256": "3b227e1831516120dbdde5266ea3c8ea05cf5f28a1831ba5ec76fd65c458d002",
+    "sha256": "91eea6a9af981ed08f5fadbee4c2fc033e3f7e0ebf39cfbd752eadfa782f6c87",
     "contains_migrations": true,
-    "release_notes": "Promote the authoritative FOODEX main lineage after 1.0.90 with the Assistant Ollama/Qwen compatibility hotfix from #2204 / PR #2205. Normalize leading Qwen `<think>...</think>` reasoning wrappers and full markdown JSON fences before Assistant routing JSON is parsed, while preserving the existing intent allowlist and entity sanitization. Make the saved External AI provider connection test require the exact `FOODEX_OK` compatibility sentinel instead of accepting any non-empty model reply. Increase bounded Assistant provider completion budgets so short reasoning output cannot consume the whole response before the final routing JSON or probe sentinel. Preserve deterministic fail-safe fallback, read-only Assistant tools, RBAC and authoritative store/channel scope with no new write capability. Publish 1.0.91 as the direct cumulative Dashboard hotfix path for installed 1.0.90 systems; no full redeploy is required. Converge the final 1.0.91 release candidate on authoritative `main` through completed AI-PROGRAM production acceptance (#2208/#2232), so no later main change is dropped from the cumulative package. Keep the published 1.0.90 registry/update artifacts immutable in the release candidate; generate and register the 1.0.91 bundle through the canonical release distribution flow. Synchronize Customer, Driver and Van source identities at 1.0.91+91 per the release contract; the Dashboard update remains cumulative and independently deployable."
+    "release_notes": "release: promote FOODEX 1.0.94"
   }
 }
