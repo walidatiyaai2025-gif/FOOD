@@ -912,30 +912,56 @@ final class LegacyFoodexImportService
         ];
     }
 
-    public function stockSourceDiagnostics(): array
+    public function stockSourceDiagnostics(?callable $progress = null): array
     {
         $source = DB::connection('foodex_legacy');
+        $timings = [];
 
-        $tableStats = [];
-        foreach ([
-            'wh_ItemStockOnHand',
-            'wh_TransHeaderInventory',
-            'wh_TransDetailsInventory',
-            'wh_invTransHeader',
-            'wh_invTransDetails',
-            'wh_OnlineStock',
-            'wh_VisitItemsStock',
-        ] as $table) {
-            try {
-                $tableStats[$table] = (int) $source->table($table)->count();
-            } catch (Throwable) {
-                $tableStats[$table] = null;
+        $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
             }
-        }
 
-        $snapshot = null;
-        if (($tableStats['wh_ItemStockOnHand'] ?? 0) > 0) {
-            $snapshot = $source->table('wh_ItemStockOnHand')
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+            $timings[$label] = $elapsed;
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $tableStats = $stage('table_counts', function () use ($source): array {
+            $stats = [];
+
+            foreach ([
+                'wh_ItemStockOnHand',
+                'wh_TransHeaderInventory',
+                'wh_TransDetailsInventory',
+                'wh_invTransHeader',
+                'wh_invTransDetails',
+                'wh_OnlineStock',
+                'wh_VisitItemsStock',
+            ] as $table) {
+                try {
+                    $stats[$table] = (int) $source->table($table)->count();
+                } catch (Throwable) {
+                    $stats[$table] = null;
+                }
+            }
+
+            return $stats;
+        });
+
+        $snapshot = $stage('stock_snapshot_summary', function () use ($source, $tableStats): ?object {
+            if (($tableStats['wh_ItemStockOnHand'] ?? 0) <= 0) {
+                return null;
+            }
+
+            return $source->table('wh_ItemStockOnHand')
                 ->selectRaw(
                     'COUNT(*) AS rows_count, '.
                     'COUNT(DISTINCT StoreID) AS stores, '.
@@ -947,9 +973,9 @@ final class LegacyFoodexImportService
                     'SUM(CASE WHEN CurrentStock > 0 THEN 1 ELSE 0 END) AS positive_rows'
                 )
                 ->first();
-        }
+        });
 
-        $prevYear = $source->table('wh_TransHeader')
+        $prevYear = $stage('previous_year_flags', fn () => $source->table('wh_TransHeader')
             ->whereRaw('COALESCE(Status, 1) <> 0')
             ->selectRaw(
                 'SUM(CASE WHEN COALESCE(PrevYear, 0) = 1 THEN 1 ELSE 0 END) AS prev_year_headers, '.
@@ -958,53 +984,89 @@ final class LegacyFoodexImportService
                 'SUM(CASE WHEN TransDate = 20251231 AND TransType = 11 THEN 1 ELSE 0 END) AS type11_20251231, '.
                 'SUM(CASE WHEN TransDate = 20251231 AND COALESCE(PrevYear, 0) = 1 THEN 1 ELSE 0 END) AS prev_year_20251231'
             )
-            ->first();
+            ->first());
 
-        $moduleRows = $source->select(<<<'SQL'
+        $namedObjects = $stage('named_stock_objects', fn () => $source->select(<<<'SQL'
 SELECT TOP 200
     s.name AS schema_name,
     o.name AS object_name,
-    o.type_desc,
-    CASE WHEN LOWER(o.name) LIKE '%stock%' THEN 1 ELSE 0 END AS name_has_stock,
-    CASE WHEN LOWER(o.name) LIKE '%invent%' THEN 1 ELSE 0 END AS name_has_inventory,
-    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%' THEN 1 ELSE 0 END AS refs_itemstockonhand,
-    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%wh_transdetails%' THEN 1 ELSE 0 END AS refs_transdetails,
-    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%' THEN 1 ELSE 0 END AS refs_transpkgqty1,
-    CASE WHEN LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%' THEN 1 ELSE 0 END AS refs_currentstock
+    o.type_desc
 FROM sys.objects AS o
 INNER JOIN sys.schemas AS s ON s.schema_id = o.schema_id
-LEFT JOIN sys.sql_modules AS m ON m.object_id = o.object_id
 WHERE o.type IN ('P', 'V', 'FN', 'IF', 'TF')
   AND (
       LOWER(o.name) LIKE '%stock%'
       OR LOWER(o.name) LIKE '%invent%'
-      OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%'
-      OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_transdetails%'
-      OR LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%'
-      OR LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%'
+      OR LOWER(o.name) LIKE '%onhand%'
+  )
+ORDER BY s.name, o.name
+SQL));
+
+        $dependencyRows = $stage('stock_object_dependencies', fn () => $source->select(<<<'SQL'
+SELECT DISTINCT TOP 200
+    OBJECT_SCHEMA_NAME(d.referencing_id) AS schema_name,
+    OBJECT_NAME(d.referencing_id) AS object_name,
+    o.type_desc,
+    d.referenced_schema_name,
+    d.referenced_entity_name
+FROM sys.sql_expression_dependencies AS d
+INNER JOIN sys.objects AS o ON o.object_id = d.referencing_id
+WHERE o.type IN ('P', 'V', 'FN', 'IF', 'TF')
+  AND LOWER(COALESCE(d.referenced_entity_name, '')) IN (
+      'wh_itemstockonhand',
+      'wh_transheader',
+      'wh_transdetails',
+      'wh_cartransheader',
+      'wh_cartransdetails'
   )
 ORDER BY
-    CASE
-        WHEN LOWER(COALESCE(m.definition, '')) LIKE '%currentstock%'
-          OR LOWER(COALESCE(m.definition, '')) LIKE '%wh_itemstockonhand%'
-          OR LOWER(COALESCE(m.definition, '')) LIKE '%transpkgqty1%'
-        THEN 0 ELSE 1
-    END,
-    s.name,
-    o.name
-SQL);
+    OBJECT_SCHEMA_NAME(d.referencing_id),
+    OBJECT_NAME(d.referencing_id),
+    d.referenced_entity_name
+SQL));
 
-        $modules = collect($moduleRows)->map(static fn ($row): array => [
-            'schema' => (string) $row->schema_name,
-            'name' => (string) $row->object_name,
-            'type' => (string) $row->type_desc,
-            'name_has_stock' => (bool) $row->name_has_stock,
-            'name_has_inventory' => (bool) $row->name_has_inventory,
-            'refs_itemstockonhand' => (bool) $row->refs_itemstockonhand,
-            'refs_transdetails' => (bool) $row->refs_transdetails,
-            'refs_transpkgqty1' => (bool) $row->refs_transpkgqty1,
-            'refs_currentstock' => (bool) $row->refs_currentstock,
-        ])->values()->all();
+        $objects = collect($namedObjects)
+            ->map(static fn ($row): array => [
+                'schema' => (string) $row->schema_name,
+                'name' => (string) $row->object_name,
+                'type' => (string) $row->type_desc,
+                'reason' => 'name_match',
+                'references' => [],
+            ])
+            ->keyBy(static fn (array $row): string => strtolower($row['schema'].'.'.$row['name']));
+
+        foreach ($dependencyRows as $row) {
+            $schema = (string) ($row->schema_name ?? 'dbo');
+            $name = (string) $row->object_name;
+            $key = strtolower($schema.'.'.$name);
+
+            if (! $objects->has($key)) {
+                $objects->put($key, [
+                    'schema' => $schema,
+                    'name' => $name,
+                    'type' => (string) $row->type_desc,
+                    'reason' => 'dependency',
+                    'references' => [],
+                ]);
+            }
+
+            $item = $objects->get($key);
+            $reference = trim(
+                ((string) ($row->referenced_schema_name ?? '')).'.'.
+                ((string) ($row->referenced_entity_name ?? '')),
+                '.',
+            );
+
+            if ($reference !== '' && ! in_array($reference, $item['references'], true)) {
+                $item['references'][] = $reference;
+            }
+
+            if ($item['reason'] === 'name_match') {
+                $item['reason'] = 'name_match+dependency';
+            }
+
+            $objects->put($key, $item);
+        }
 
         return [
             'table_counts' => $tableStats,
@@ -1025,7 +1087,13 @@ SQL);
                 'type11_20251231' => (int) ($prevYear->type11_20251231 ?? 0),
                 'prev_year_20251231' => (int) ($prevYear->prev_year_20251231 ?? 0),
             ],
-            'stock_related_modules' => $modules,
+            'stock_related_modules' => $objects->values()->all(),
+            'timings_seconds' => $timings,
+            'rules' => [
+                'module_discovery_uses_dependency_metadata' => true,
+                'module_definition_full_text_scan' => false,
+                'read_only' => true,
+            ],
         ];
     }
 
