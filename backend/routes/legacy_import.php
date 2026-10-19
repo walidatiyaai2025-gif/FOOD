@@ -81,14 +81,16 @@ Artisan::command(
     'foodex:legacy-import {phase=masters : Import phase} {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $phase = strtolower(trim((string) $this->argument('phase')));
-        if ($phase !== 'masters') {
-            $this->error('Supported phase right now: masters.');
+        if (! in_array($phase, ['masters', 'extended-masters'], true)) {
+            $this->error('Supported phases: masters, extended-masters.');
 
             return 2;
         }
 
         try {
-            $result = $importer->importMasters((bool) $this->option('apply'));
+            $result = $phase === 'masters'
+                ? $importer->importMasters((bool) $this->option('apply'))
+                : $importer->importExtendedMasters((bool) $this->option('apply'));
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex import failed: '.$exception->getMessage());
 
@@ -102,7 +104,7 @@ Artisan::command(
         }
 
         if (! (bool) $this->option('apply')) {
-            $this->info('Legacy Foodex masters dry-run');
+            $this->info('Legacy Foodex '.$phase.' dry-run');
             $this->table(
                 ['Planned entity', 'Rows'],
                 collect($result['planned'])
@@ -115,7 +117,7 @@ Artisan::command(
             return 0;
         }
 
-        $this->info('Legacy Foodex masters import completed.');
+        $this->info('Legacy Foodex '.$phase.' import completed.');
         $this->line('Run ID: '.$result['summary']['run_id']);
         $this->line('Wholesale store ID: '.$result['summary']['store_id']);
 
