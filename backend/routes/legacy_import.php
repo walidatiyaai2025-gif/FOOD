@@ -1503,3 +1503,133 @@ Artisan::command(
         return 1;
     },
 )->purpose('Verify immutable Foodex operational history and prove no historical stock replay occurred.');
+
+
+Artisan::command(
+    'foodex:legacy-finance-diagnostics {--json : Output machine-readable JSON}',
+    function (LegacyFoodexImportService $importer): int {
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
+
+        try {
+            $report = $importer->financeDiagnostics($progress);
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex finance diagnostics failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy Foodex finance diagnostics (READ ONLY)');
+
+        $this->table(
+            ['Source table', 'Rows'],
+            collect($report['tables'])->map(
+                static fn ($count, $table): array => [(string) $table, (int) $count],
+            )->values()->all(),
+        );
+
+        $this->line(
+            'GL headers: rows='.$report['gl_header']['rows'].
+            ' | posted='.$report['gl_header']['posted'].
+            ' | unposted='.$report['gl_header']['unposted'].
+            ' | range='.($report['gl_header']['first_date'] ?? 'n/a').
+            ' -> '.($report['gl_header']['last_date'] ?? 'n/a')
+        );
+
+        $this->newLine();
+        $this->info('GL detail Dr/Cr flag candidates');
+        $this->table(
+            ['Flag', 'Rows', 'Active rows', 'Active value'],
+            collect($report['gl_flags'])->map(static fn (array $row): array => [
+                $row['flag'] ?? 'NULL',
+                $row['rows'],
+                $row['active_rows'],
+                $row['active_value'],
+            ])->all(),
+        );
+
+        $this->newLine();
+        $this->info('Posted GL balance test');
+        $this->table(
+            ['Metric', 'Value'],
+            collect([
+                'posted_headers_with_active_details' => $report['gl_balance']['posted_headers_with_active_details'],
+                'balanced_if_flags_1_2_are_dr_cr' => $report['gl_balance']['balanced_if_flags_1_2_are_dr_cr'],
+                'unbalanced_if_flags_1_2_are_dr_cr' => $report['gl_balance']['unbalanced_if_flags_1_2_are_dr_cr'],
+                'other_flag_rows' => $report['gl_balance']['other_flag_rows'],
+                'absolute_difference_total' => $report['gl_balance']['absolute_difference_total'],
+            ])->map(static fn ($value, $metric): array => [(string) $metric, $value])->values()->all(),
+        );
+
+        if (($report['gl_balance']['unbalanced_samples'] ?? []) !== []) {
+            $this->warn('GL balance anomaly samples');
+            $this->table(
+                ['Header', 'Flag 1 total', 'Flag 2 total', 'Difference', 'Other flag rows'],
+                collect($report['gl_balance']['unbalanced_samples'])->map(static fn (array $row): array => [
+                    $row['header_id'],
+                    $row['flag_1_total'],
+                    $row['flag_2_total'],
+                    $row['difference'],
+                    $row['other_flag_rows'],
+                ])->all(),
+            );
+        }
+
+        $this->newLine();
+        $this->info('Party / GL account links');
+        $this->table(
+            ['Metric', 'Value'],
+            collect($report['party_account_links'])->filter(
+                static fn ($value): bool => ! is_array($value),
+            )->map(static fn ($value, $metric): array => [(string) $metric, $value])->values()->all(),
+        );
+
+        $this->newLine();
+        $this->info('Legacy receipts/payments by PrTransType');
+        $this->table(
+            ['Type', 'Rows', 'Value', 'Customer', 'Supplier', 'Account', 'GL posted', 'Opening'],
+            collect($report['pr_trans_types'])->map(static fn (array $row): array => [
+                $row['type'],
+                $row['rows'],
+                $row['trans_value'],
+                $row['customer_rows'],
+                $row['supplier_rows'],
+                $row['account_rows'],
+                $row['gl_posted_rows'],
+                $row['opening_rows'],
+            ])->all(),
+        );
+
+        $this->line(
+            'Commercial GL links: any='.$report['commercial_gl_links']['posted_commercial_headers_with_any_gl_link'].
+            ' | primary='.$report['commercial_gl_links']['with_primary_gl_link'].
+            ' | secondary='.$report['commercial_gl_links']['with_secondary_gl_link']
+        );
+
+        $this->line(
+            'GL account integrity: used='.$report['account_integrity']['used_active_accounts'].
+            ' | missing='.$report['account_integrity']['missing_account_ids']
+        );
+
+        $this->warn('Diagnostics only. No source or target rows were changed.');
+
+        return 0;
+    },
+)->purpose('Inspect legacy Foodex GL and receipt/payment authority before finance cutover; read-only only.');
