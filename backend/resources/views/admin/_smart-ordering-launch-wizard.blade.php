@@ -41,7 +41,9 @@
 .rl-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.rl-stat{padding:10px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.rl-stat small{display:block;color:var(--foodex-muted);font-size:.61rem;font-weight:800}.rl-stat strong{display:block;margin-top:4px;font-size:.9rem}
 .rl-menu-list{display:grid;gap:9px}.rl-menu-card{border:1px solid var(--foodex-border);border-radius:15px;background:#fff;overflow:hidden}.rl-menu-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;background:var(--foodex-palette-fbfcfb);border-bottom:1px solid var(--foodex-palette-edf1ee)}.rl-menu-title{display:flex;align-items:center;gap:9px;min-width:0}.rl-thumb{width:48px;height:48px;flex:0 0 48px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-palette-f3f6f4)}.rl-thumb.is-small{width:40px;height:40px;flex-basis:40px}.rl-menu-title strong{display:block;font-size:.79rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rl-menu-title small{color:var(--foodex-muted);font-size:.61rem}.rl-category-list{display:grid;gap:7px;padding:10px}.rl-category{border:1px solid var(--foodex-palette-e6ece8);border-radius:12px;background:#fff}.rl-category-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px}.rl-item-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;padding:0 10px 10px}.rl-item{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:8px;border:1px solid var(--foodex-palette-edf1ef);border-radius:10px;background:var(--foodex-palette-fbfcfb)}.rl-item-main{display:flex;align-items:center;gap:7px;min-width:0}.rl-item strong{display:block;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rl-item small{font-size:.59rem;color:var(--foodex-muted)}
 .rl-inline-add{margin:0 10px 10px}.rl-inline-add summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border:1px dashed var(--foodex-palette-8abd96);border-radius:9px;color:var(--foodex-green-dark);font-size:.66rem;font-weight:900}.rl-inline-add summary::-webkit-details-marker{display:none}.rl-inline-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:7px;align-items:end;margin-top:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:11px;background:var(--foodex-palette-f8faf9)}.rl-inline-form label{display:grid;gap:4px;color:var(--foodex-palette-475569);font-size:.62rem;font-weight:800}.rl-inline-form input,.rl-inline-form select{width:100%;min-width:0;min-height:38px;border:1px solid var(--foodex-border);border-radius:9px;padding-inline:9px;background:#fff;font:inherit}.rl-inline-form button{min-height:38px}
-.rl-design-grid{display:grid;grid-template-columns:minmax(330px,.72fr) minmax(0,1.28fr);gap:10px}.rl-theme-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}.rl-theme{display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.rl-theme.is-current{border-color:var(--foodex-palette-78ba87);box-shadow:0 0 0 2px var(--foodex-palette-e7f6eb)}.rl-theme-preview{height:54px;border-radius:9px;border:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-palette-eef7f0),#fff 55%,var(--foodex-palette-f7efe6))}.rl-theme[data-dark="1"] .rl-theme-preview{background:linear-gradient(135deg,var(--foodex-palette-111827),var(--foodex-palette-14532d) 60%,var(--foodex-palette-d97706))}.rl-theme strong{font-size:.69rem}.rl-theme button{min-height:34px}.rl-preview{min-height:560px;padding:10px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-palette-111827)}.rl-preview iframe{display:block;width:100%;height:540px;border:0;border-radius:10px;background:#fff}
+.rl-design-grid{display:grid;grid-template-columns:minmax(330px,.72fr) minmax(0,1.28fr);gap:10px}.rl-theme-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}.rl-theme{appearance:none;width:100%;display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;color:var(--foodex-ink);text-align:start;font:inherit;cursor:pointer}.rl-theme:hover,.rl-theme:focus-visible{border-color:var(--foodex-palette-78ba87);box-shadow:0 0 0 2px var(--foodex-palette-e7f6eb);outline:0}.rl-theme.is-current{border-color:var(--foodex-palette-b9d8c1)}.rl-theme.is-previewing{border-color:var(--foodex-action-green);box-shadow:0 0 0 2px var(--foodex-palette-e7f6eb)}.rl-theme-preview{height:54px;border-radius:9px;border:1px solid var(--foodex-border);background:linear-gradient(135deg,var(--foodex-palette-eef7f0),#fff 55%,var(--foodex-palette-f7efe6))}.rl-theme[data-dark="1"] .rl-theme-preview{background:linear-gradient(135deg,var(--foodex-palette-111827),var(--foodex-palette-14532d) 60%,var(--foodex-palette-d97706))}.rl-theme strong{font-size:.69rem}.rl-theme-state{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:.6rem;font-weight:900;color:var(--foodex-muted)}.rl-theme.is-previewing .rl-theme-state{color:var(--foodex-green-dark)}
+.rl-review-preview{display:grid;gap:8px;min-width:0}.rl-preview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.rl-preview-status{display:grid;gap:2px;min-width:0}.rl-preview-status strong{font-size:.72rem}.rl-preview-status small{font-size:.61rem;color:var(--foodex-muted)}.rl-device-switch{display:flex;gap:5px;flex-wrap:wrap}.rl-device-btn{min-height:34px;padding:0 10px;border:1px solid var(--foodex-border);border-radius:9px;background:#fff;color:var(--foodex-ink);font:inherit;font-size:.63rem;font-weight:900;cursor:pointer}.rl-device-btn.is-active{border-color:var(--foodex-action-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.rl-preview{min-height:560px;padding:10px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-palette-111827);display:flex;justify-content:center;align-items:flex-start;overflow:auto}.rl-preview-frame{width:100%;transition:width .18s ease}.rl-preview-frame[data-device="tablet"]{width:min(100%,768px)}.rl-preview-frame[data-device="mobile"]{width:min(100%,390px)}.rl-preview iframe{display:block;width:100%;height:540px;border:0;border-radius:10px;background:#fff}
 .rl-form-card{padding:13px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}.rl-form-card h3{margin:0 0 10px;font-size:.82rem}.rl-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.rl-form-grid label{display:grid;gap:4px;font-size:.65rem;font-weight:900;color:var(--foodex-palette-475569)}.rl-form-grid input,.rl-form-grid select,.rl-form-grid textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:9px;padding:9px;background:#fff;font:inherit}.rl-form-grid textarea{min-height:76px}.rl-form-grid .span-2{grid-column:1/-1}.rl-form-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}
 .rl-review-checks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.rl-checks{display:grid;gap:7px}.rl-check{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid var(--foodex-border);border-radius:11px;background:#fff}.rl-check span{font-size:.69rem;font-weight:800}.rl-check strong{font-size:.65rem}.rl-check.is-ok strong{color:var(--foodex-green-dark)}.rl-check.is-warn strong{color:var(--foodex-palette-b45309)}
 .rl-device-review{display:grid;gap:9px;padding:12px;border:1px solid var(--foodex-border);border-radius:15px;background:#fff}.rl-device-review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.rl-device-review-head h3{margin:0;font-size:.82rem}.rl-device-review-head p{margin:3px 0 0;color:var(--foodex-muted);font-size:.65rem}.rl-device-grid{display:grid;grid-template-columns:minmax(280px,390px) minmax(500px,768px);gap:14px;justify-content:center;align-items:start}.rl-device-card{min-width:0;display:grid;gap:7px}.rl-device-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.68rem;font-weight:900}.rl-device-label small{color:var(--foodex-muted);font-weight:700}.rl-device-shell{width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-palette-111827);box-shadow:0 10px 28px rgba(15,23,42,.12)}.rl-device-shell iframe{display:block;width:100%;height:720px;border:0;border-radius:10px;background:#fff}.rl-device-shell.is-mobile iframe{height:760px}
@@ -173,23 +175,63 @@
     @if($setupStep==='design')
     <section class="rl-panel" data-launch-step="design">
         <div class="rl-panel-title">
-            <div><h2>{{ $launchIsAr?'2. اختر شكل واجهة المطعم':'2. Choose storefront design' }}</h2><p>{{ $launchIsAr?'اختر قالباً وشاهد المعاينة الحقيقية للمسودة من نفس الصفحة.':'Choose a template and preview the real draft here.' }}</p></div>
+            <div>
+                <h2>{{ $launchIsAr?'2. اختر شكل واجهة المطعم':'2. Choose storefront design' }}</h2>
+                <p>{{ $launchIsAr?'اضغط على أي قالب لمعاينته أولاً. لن يتم حفظه إلا بعد الضغط على «اعتماد القالب والمتابعة».':'Click any template to review it first. It is not saved until you choose “Apply template & continue”.' }}</p>
+            </div>
+            <div class="rl-actions">
+                <a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'menu']) }}">{{ $launchIsAr?'السابق':'Back' }}</a>
+                <form method="post" action="{{ route('admin.smart-ordering.appearance.apply') }}" data-theme-confirm-form>
+                    @csrf
+                    <input type="hidden" name="site" value="{{ $site->public_id }}">
+                    <input type="hidden" name="theme" value="{{ $setupCurrentTheme }}" data-theme-confirm-value>
+                    <input type="hidden" name="lang" value="{{ $launchIsAr?'ar':'en' }}">
+                    <input type="hidden" name="device" value="desktop">
+                    <input type="hidden" name="return_to" value="menu_setup">
+                    <button class="rl-next" type="submit">{{ $launchIsAr?'اعتماد القالب والمتابعة':'Apply template & continue' }}</button>
+                </form>
+            </div>
         </div>
         <div class="rl-design-grid">
-            <div class="rl-theme-list">
+            <div class="rl-theme-list" data-theme-list>
                 @foreach($setupThemes as $themeId=>$definition)
-                    <form class="rl-theme {{ $setupCurrentTheme===$themeId?'is-current':'' }}" data-dark="{{ ($definition['dark']??false)?1:0 }}" method="post" action="{{ route('admin.smart-ordering.appearance.apply') }}">
-                        @csrf
-                        <input type="hidden" name="site" value="{{ $site->public_id }}"><input type="hidden" name="theme" value="{{ $themeId }}"><input type="hidden" name="lang" value="{{ $launchIsAr?'ar':'en' }}"><input type="hidden" name="device" value="mobile"><input type="hidden" name="return_to" value="menu_setup">
-                        <div class="rl-theme-preview"></div>
-                        <strong>{{ __('smart_ordering.appearance.production_themes.'.$themeId.'.label') }}</strong>
-                        <button class="{{ $setupCurrentTheme===$themeId?'rl-secondary':'rl-next' }}" type="submit">{{ $setupCurrentTheme===$themeId ? ($launchIsAr?'القالب الحالي':'Current theme') : ($launchIsAr?'اختيار هذا القالب':'Use this theme') }}</button>
-                    </form>
+                    @php($themeLabel = __('smart_ordering.appearance.production_themes.'.$themeId.'.label'))
+                    <button
+                        class="rl-theme {{ $setupCurrentTheme===$themeId?'is-current is-previewing':'' }}"
+                        type="button"
+                        data-theme-preview-card
+                        data-theme="{{ $themeId }}"
+                        data-theme-label="{{ $themeLabel }}"
+                        data-dark="{{ ($definition['dark']??false)?1:0 }}"
+                        aria-pressed="{{ $setupCurrentTheme===$themeId?'true':'false' }}">
+                        <span class="rl-theme-preview" aria-hidden="true"></span>
+                        <strong>{{ $themeLabel }}</strong>
+                        <span class="rl-theme-state">
+                            <span data-theme-state-label>{{ $setupCurrentTheme===$themeId ? ($launchIsAr?'القالب الحالي':'Current theme') : ($launchIsAr?'اضغط للمعاينة':'Click to preview') }}</span>
+                            <span>{{ $setupCurrentTheme===$themeId ? '✓' : '↗' }}</span>
+                        </span>
+                    </button>
                 @endforeach
             </div>
-            <div class="rl-preview"><iframe src="{{ $setupPreviewUrl }}" title="{{ $launchIsAr?'معاينة واجهة المطعم':'Restaurant preview' }}"></iframe></div>
+            <div class="rl-review-preview">
+                <div class="rl-preview-toolbar">
+                    <div class="rl-preview-status">
+                        <strong data-theme-preview-label>{{ __('smart_ordering.appearance.production_themes.'.$setupCurrentTheme.'.label') }}</strong>
+                        <small data-theme-preview-note>{{ $launchIsAr?'معاينة القالب الحالي — اختر أي قالب آخر للمقارنة قبل الحفظ.':'Reviewing the current template — choose another to compare before saving.' }}</small>
+                    </div>
+                    <div class="rl-device-switch" role="group" aria-label="{{ $launchIsAr?'حجم المعاينة':'Preview size' }}">
+                        <button class="rl-device-btn" type="button" data-theme-device="mobile">{{ $launchIsAr?'موبايل':'Mobile' }}</button>
+                        <button class="rl-device-btn" type="button" data-theme-device="tablet">{{ $launchIsAr?'تابلت':'Tablet' }}</button>
+                        <button class="rl-device-btn is-active" type="button" data-theme-device="desktop">{{ $launchIsAr?'ديسكتوب':'Desktop' }}</button>
+                    </div>
+                </div>
+                <div class="rl-preview">
+                    <div class="rl-preview-frame" data-theme-preview-frame data-device="desktop">
+                        <iframe src="{{ $setupPreviewUrl }}" data-theme-preview-iframe title="{{ $launchIsAr?'معاينة واجهة المطعم':'Restaurant preview' }}"></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="rl-actions"><a class="rl-secondary" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'menu']) }}">{{ $launchIsAr?'السابق':'Back' }}</a><a class="rl-next" href="{{ route('admin.smart-ordering.menu.index',$launchBase+['setup'=>'identity']) }}">{{ $launchIsAr?'التالي: بيانات المطعم':'Next: Restaurant info' }}</a></div>
     </section>
     @endif
 
@@ -375,6 +417,54 @@
                 if (!en.value.trim() && ar.value.trim()) en.value = ar.value.trim();
                 if (!ar.value.trim() && en.value.trim()) ar.value = en.value.trim();
             }
+        });
+    });
+
+    const themeCards = [...document.querySelectorAll('[data-theme-preview-card]')];
+    const themeFrame = document.querySelector('[data-theme-preview-iframe]');
+    const themeFrameShell = document.querySelector('[data-theme-preview-frame]');
+    const themeConfirmValue = document.querySelector('[data-theme-confirm-value]');
+    const themePreviewLabel = document.querySelector('[data-theme-preview-label]');
+    const themePreviewNote = document.querySelector('[data-theme-preview-note]');
+    const currentTheme = @json($setupCurrentTheme);
+    const previewingNote = @json($launchIsAr ? 'معاينة فقط — لم يتم حفظ هذا القالب بعد.' : 'Preview only — this template has not been saved yet.');
+    const currentNote = @json($launchIsAr ? 'معاينة القالب الحالي — اختر أي قالب آخر للمقارنة قبل الحفظ.' : 'Reviewing the current template — choose another to compare before saving.');
+    const previewCardLabel = @json($launchIsAr ? 'تتم معاينته الآن' : 'Previewing now');
+    const currentCardLabel = @json($launchIsAr ? 'القالب الحالي' : 'Current theme');
+    const idleCardLabel = @json($launchIsAr ? 'اضغط للمعاينة' : 'Click to preview');
+
+    const previewTheme = (card) => {
+        if (!card || !themeFrame) return;
+        const theme = card.dataset.theme || '';
+        const label = card.dataset.themeLabel || theme;
+        const dark = card.dataset.dark === '1';
+        const url = new URL(themeFrame.src, window.location.href);
+        url.searchParams.set('theme', theme);
+        url.searchParams.set('appearance', dark ? 'dark' : 'light');
+        url.searchParams.set('_preview', Date.now().toString());
+        themeFrame.src = url.toString();
+
+        if (themeConfirmValue) themeConfirmValue.value = theme;
+        if (themePreviewLabel) themePreviewLabel.textContent = label;
+        if (themePreviewNote) themePreviewNote.textContent = theme === currentTheme ? currentNote : previewingNote;
+
+        themeCards.forEach(item => {
+            const selected = item === card;
+            const isCurrent = item.dataset.theme === currentTheme;
+            item.classList.toggle('is-previewing', selected);
+            item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            const state = item.querySelector('[data-theme-state-label]');
+            if (state) state.textContent = selected ? (isCurrent ? currentCardLabel : previewCardLabel) : (isCurrent ? currentCardLabel : idleCardLabel);
+        });
+    };
+
+    themeCards.forEach(card => card.addEventListener('click', () => previewTheme(card)));
+
+    document.querySelectorAll('[data-theme-device]').forEach(button => {
+        button.addEventListener('click', () => {
+            const device = button.dataset.themeDevice || 'desktop';
+            if (themeFrameShell) themeFrameShell.dataset.device = device;
+            document.querySelectorAll('[data-theme-device]').forEach(item => item.classList.toggle('is-active', item === button));
         });
     });
 
