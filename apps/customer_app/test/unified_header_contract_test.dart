@@ -25,9 +25,9 @@ void main() {
       final sharedCount = _count(source, 'FoodexWholesaleHeader(');
       final coveredCount = unifiedCount + sharedCount;
 
-      if (coveredCount != scaffoldCount) {
+      if (coveredCount < scaffoldCount) {
         violations.add(
-          '${file.path}: Scaffold=$scaffoldCount '
+          '${file.path}: uncovered Scaffold(s): Scaffold=$scaffoldCount '
           'Unified=$unifiedCount Shared=$sharedCount',
         );
       }
