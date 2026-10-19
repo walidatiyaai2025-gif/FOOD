@@ -43,6 +43,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         'refunds.summary',
         'retailers.performance',
         'wholesale.purchases',
+        'forecast.replenishment',
         'margin.summary',
         'support.summary',
     ];

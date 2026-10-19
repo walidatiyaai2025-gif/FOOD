@@ -72,6 +72,13 @@ final class AssistantTypedToolRegistryTest extends TestCase
         $this->assertIsArray($retailer360Provider);
         $this->assertSame('retailers__360', $retailer360Provider['function']['name']);
 
+        $forecast = $registry->definition('forecast.replenishment');
+        $this->assertSame('DemandForecastReplenishmentService', $forecast->source);
+        $this->assertSame('SELL_OUT', $forecast->dataClass);
+        $this->assertTrue($forecast->sellOutConsent);
+        $this->assertSame(['reports.view'], $forecast->requiredPermissions);
+        $this->assertSame(90, $forecast->inputSchema['properties']['horizon_days']['maximum']);
+
         $margin = $registry->definition('margin.summary');
         $this->assertSame(['reports.view', 'catalog.view'], $margin->requiredPermissions);
         $this->assertSame('all', $margin->permissionMode);
