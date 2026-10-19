@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Analytics\Signals\SignalDetectionEngine;
+use App\Domain\Assistant\Agent\AssistantAgentOrchestrator;
 use App\Domain\Assistant\Intelligence\AssistantIntelligenceAuthorization;
+use App\Domain\Assistant\Intelligence\AssistantIntelligenceService;
+use App\Domain\Assistant\Security\AssistantAiSecurityGuardrails;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -84,7 +88,7 @@ final class AssistantSettingsController extends Controller
         $capabilities = [
             [
                 'key' => 'agent',
-                'state' => class_exists(\App\Domain\Assistant\Agent\AssistantAgentOrchestrator::class)
+                'state' => class_exists(AssistantAgentOrchestrator::class)
                     ? ($toolsActive ? 'active' : 'ready')
                     : 'unavailable',
             ],
@@ -110,15 +114,15 @@ final class AssistantSettingsController extends Controller
             ],
             [
                 'key' => 'signals',
-                'state' => class_exists(\App\Domain\Analytics\Signals\SignalDetectionEngine::class) ? 'ready' : 'unavailable',
+                'state' => class_exists(SignalDetectionEngine::class) ? 'ready' : 'unavailable',
             ],
             [
                 'key' => 'proactive',
-                'state' => class_exists(\App\Domain\Assistant\Intelligence\AssistantIntelligenceService::class) ? 'ready' : 'unavailable',
+                'state' => class_exists(AssistantIntelligenceService::class) ? 'ready' : 'unavailable',
             ],
             [
                 'key' => 'security',
-                'state' => class_exists(\App\Domain\Assistant\Security\AssistantAiSecurityGuardrails::class) ? 'active' : 'unavailable',
+                'state' => class_exists(AssistantAiSecurityGuardrails::class) ? 'active' : 'unavailable',
             ],
             [
                 'key' => 'safe_actions',
