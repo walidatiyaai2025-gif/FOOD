@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.94 - 2026-10-19
+- Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94.
+- Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology.
+- Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior.
+- Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source.
+- Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact.
+- Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`.
+
 ## 1.0.91 - 2026-10-18
 - Promote the authoritative FOODEX main lineage after 1.0.90 with the Assistant Ollama/Qwen compatibility hotfix from #2204 / PR #2205.
 - Normalize leading Qwen `<think>...</think>` reasoning wrappers and full markdown JSON fences before Assistant routing JSON is parsed, while preserving the existing intent allowlist and entity sanitization.
