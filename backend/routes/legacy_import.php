@@ -82,8 +82,8 @@ Artisan::command(
     'foodex:legacy-import {phase=masters : Import phase} {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $phase = strtolower(trim((string) $this->argument('phase')));
-        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history', 'purchase-history', 'operational-history'], true)) {
-            $this->error('Supported phases: masters, extended-masters, stock, sales-history, purchase-history, operational-history.');
+        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history', 'purchase-history', 'operational-history', 'finance-history'], true)) {
+            $this->error('Supported phases: masters, extended-masters, stock, sales-history, purchase-history, operational-history, finance-history.');
 
             return 2;
         }
@@ -110,6 +110,7 @@ Artisan::command(
                 'sales-history' => $importer->importSalesHistory((bool) $this->option('apply'), $progress),
                 'purchase-history' => $importer->importPurchaseHistory((bool) $this->option('apply'), $progress),
                 'operational-history' => $importer->importOperationalHistory((bool) $this->option('apply'), $progress),
+                'finance-history' => $importer->importFinanceHistory((bool) $this->option('apply'), $progress),
             };
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex import failed: '.$exception->getMessage());
@@ -351,6 +352,44 @@ Artisan::command(
                             $row['type'],
                             $row['location_id'],
                         ])->all(),
+                    );
+                }
+            }
+
+            if ($phase === 'finance-history') {
+                $this->newLine();
+                $this->info('Finance classification');
+                $this->table(
+                    ['Classification', 'Rows', 'Value'],
+                    collect($result['classification_counts'] ?? [])->map(
+                        static fn ($count, $classification): array => [
+                            (string) $classification,
+                            (int) $count,
+                            round((float) (($result['classification_values'][$classification] ?? 0)), 3),
+                        ],
+                    )->values()->all(),
+                );
+
+                $samples = $result['samples'] ?? [];
+                foreach ([
+                    'missing_direct_payments',
+                    'direct_payment_amount_mismatches',
+                    'missing_return_links',
+                    'customer_identity_mismatches',
+                ] as $sampleKey) {
+                    if (($samples[$sampleKey] ?? []) !== []) {
+                        $this->newLine();
+                        $this->warn($sampleKey.': '.json_encode(
+                            $samples[$sampleKey],
+                            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+                        ));
+                    }
+                }
+
+                if (($samples['unsupported_types'] ?? []) !== []) {
+                    $this->warn(
+                        'Unsupported active PrTrans types: '.
+                        json_encode($samples['unsupported_types'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                     );
                 }
             }
