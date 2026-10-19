@@ -89,10 +89,16 @@
                             @if($mediaUrl($menu->image_path))<img class="rl-thumb" src="{{ $mediaUrl($menu->image_path) }}" alt="">@else<span class="rl-thumb"></span>@endif
                             <div><strong>{{ $localized($menu,'name') ?: ($launchIsAr?'منيو بدون اسم':'Unnamed menu') }}</strong><small>{{ $menu->categories->count() }} {{ $launchIsAr?'تصنيف':'categories' }}</small></div>
                         </div>
-                        <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
-                            @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
-                            <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
-                        </form>
+                        <div class="rl-actions">
+                            <button class="rl-secondary" type="button" data-qm-edit-menu="{{ $menu->id }}">{{ $launchIsAr?'تعديل المنيو':'Edit menu' }}</button>
+                            <div class="rl-actions">
+                                <button class="rl-secondary" type="button" data-qm-edit-menu="{{ $menu->id }}">{{ $launchIsAr?'تعديل المنيو':'Edit menu' }}</button>
+                                <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-launch-delete>
+                                    @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                    <button class="rl-danger" type="submit">{{ $launchIsAr?'حذف المنيو':'Delete menu' }}</button>
+                                </form>
+                            </div>
+                        </div>
                     </header>
 
                     <details class="rl-inline-add">
