@@ -1698,3 +1698,10 @@ backend/database/migrations/2026_10_19_000100_create_assistant_intelligence_cent
 backend/lang/ar/assistant_intelligence.php
 backend/lang/en/assistant_intelligence.php
 backend/resources/views/admin/assistant-intelligence.blade.php
+backend/app/Domain/Assistant/Agent/AssistantAgentOrchestrator.php
+backend/app/Domain/Assistant/Data/AssistantProviderRequest.php
+backend/app/Domain/Assistant/Data/AssistantProviderResult.php
+backend/app/Domain/Assistant/Performance/AssistantPerformanceManager.php
+backend/app/Domain/Assistant/Performance/AssistantProviderCapacityLease.php
+backend/app/Domain/Assistant/Performance/AssistantToolCache.php
+backend/app/Domain/Assistant/Performance/RefreshAssistantAnalyticsJob.php

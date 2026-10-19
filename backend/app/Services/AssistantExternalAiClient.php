@@ -8,6 +8,7 @@ use App\Domain\Assistant\Data\AssistantProviderCapabilities;
 use App\Domain\Assistant\Data\AssistantProviderHealth;
 use App\Domain\Assistant\Data\AssistantProviderRequest;
 use App\Domain\Assistant\Data\AssistantProviderResult;
+use App\Domain\Assistant\Performance\AssistantPerformanceManager;
 use App\Domain\Assistant\Security\AssistantAiSecurityGuardrails;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -53,6 +54,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         private readonly AssistantModelRegistry $models,
         private readonly AssistantObservability $observability,
         private readonly AssistantAiSecurityGuardrails $guardrails,
+        private readonly ?AssistantPerformanceManager $performance = null,
     ) {}
 
     /**
@@ -85,7 +87,10 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             temperature: $config['temperature'],
             maxTokens: $config['max_tokens'],
             timeoutSeconds: $config['timeout_seconds'],
+            correlationId: $request->correlationId,
             useCase: 'intent_routing',
+            actorUserId: $request->actorUserId,
+            tenantKey: $request->tenantKey,
         ));
 
         if (! $result->ok || ! is_string($result->text) || trim($result->text) === '') {
@@ -254,6 +259,34 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             return $this->failedResult($config['model'], AssistantProviderResult::FAILURE_UNAVAILABLE);
         }
 
+        $capacity = ($this->performance ?? app(AssistantPerformanceManager::class))->acquireProvider(
+            $request->actorUserId,
+            $request->tenantKey,
+            $request->correlationId,
+        );
+
+        if (! $capacity->acquired) {
+            $this->providerTelemetry(
+                $config,
+                $config['model'],
+                'load_shed',
+                429,
+                0,
+                false,
+                correlationId: $request->correlationId,
+            );
+            $this->observability->record($request->correlationId, 'provider.load_shed', [
+                'phase' => 'provider',
+                'provider' => 'openai_compatible',
+                'model' => $config['model'],
+                'outcome' => 'overloaded',
+                'status_code' => 429,
+                'latency_ms' => 0,
+            ]);
+
+            return $this->failedResult($config['model'], AssistantProviderResult::FAILURE_OVERLOADED);
+        }
+
         $apiKey = $this->settings->apiKey();
         $timeout = min(
             $config['timeout_seconds'],
@@ -353,6 +386,8 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 'total_tokens' => $usage['total_tokens'],
             ]);
 
+            $capacity->release();
+
             return new AssistantProviderResult(
                 ok: true,
                 provider: 'openai_compatible',
@@ -366,6 +401,8 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 fallback: $index > 0,
             );
         }
+
+        $capacity->release();
 
         return $this->failedResult(
             $config['model'],

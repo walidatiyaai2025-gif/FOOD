@@ -10,6 +10,7 @@ use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Models\AssistantConversation;
 use App\Domain\Assistant\Models\AssistantConversationState;
 use App\Domain\Assistant\Models\AssistantMessage;
+use App\Domain\Assistant\Performance\AssistantPerformanceManager;
 use App\Domain\Assistant\Security\AiPrincipalContextResolver;
 use App\Domain\Assistant\Support\AssistantContextToken;
 use App\Domain\Assistant\Support\AssistantMemoryPolicy;
@@ -159,6 +160,12 @@ final class AssistantController extends Controller
         $correlationId = (string) Str::uuid();
         $turnStartedAt = hrtime(true);
         $traceStoreId = null;
+        $performance = app(AssistantPerformanceManager::class);
+        $performance->registerActiveRequest(
+            (int) $user->getKey(),
+            (string) $conversation->public_id,
+            $correlationId,
+        );
 
         $this->observability->record($correlationId, 'turn.started', [
             'actor_user_id' => $user->getKey(),
@@ -313,9 +320,29 @@ final class AssistantController extends Controller
                 'code' => 'ASSISTANT_UNAVAILABLE',
                 'message' => $locale === 'ar' ? 'تعذر تجهيز رد المساعد الآن.' : 'The Assistant could not prepare a response right now.',
             ]], 503);
+        } finally {
+            $performance->clearActiveRequest(
+                (int) $user->getKey(),
+                (string) $conversation->public_id,
+                $correlationId,
+            );
         }
 
         return response()->json(['data' => $payload]);
+    }
+
+    public function cancel(Request $request, string $conversationId): JsonResponse
+    {
+        $user = $this->assistantUser($request);
+        $conversation = $this->conversation($user, $conversationId);
+        $requested = app(AssistantPerformanceManager::class)->cancelActiveRequest(
+            (int) $user->getKey(),
+            (string) $conversation->public_id,
+        );
+
+        return response()->json(['data' => [
+            'cancel_requested' => $requested,
+        ]], $requested ? 202 : 200);
     }
 
     public function clear(Request $request, string $conversationId): JsonResponse
