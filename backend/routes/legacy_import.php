@@ -179,7 +179,7 @@ Artisan::command(
             'Posted source: headers='.$report['source']['posted_headers'].
             ' | details='.$report['source']['posted_details'].
             ' | recognized headers='.$report['source']['recognized_stock_headers'].
-            ' | recognized details='.$report['source']['recognized_stock_details']
+            ' | recognized details='.($report['source']['recognized_stock_details'] ?? 'n/a')
         );
         $this->line(
             'Opening balances='.$report['source']['opening_balance_headers'].
