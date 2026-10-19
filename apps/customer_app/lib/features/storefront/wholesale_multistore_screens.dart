@@ -3065,6 +3065,8 @@ class _WholesaleProductDetailsDesignScreenState
   Timer? _stockRefreshTimer;
   bool stale = false;
   bool revalidating = false;
+  int? _similarCategoryId;
+  Future<List<Map<String, dynamic>>>? _similarProductsFuture;
 
   @override
   void initState() {
@@ -3088,6 +3090,7 @@ class _WholesaleProductDetailsDesignScreenState
   void _cacheFreshProduct(Map<String, dynamic> row) {
     stale = false;
     _lastProduct = Map<String, dynamic>.from(row);
+    _primeSimilarProducts(row);
     _stockRefreshTimer?.cancel();
     final available = row['is_available'] != false &&
         row['availability_state'] != 'OUT_OF_STOCK';
@@ -3153,6 +3156,43 @@ class _WholesaleProductDetailsDesignScreenState
       }
       Error.throwWithStackTrace(error, stack);
     }
+  }
+
+  void _primeSimilarProducts(Map<String, dynamic> row) {
+    final categoryId = intValue(row['category_id']);
+    if (categoryId <= 0 || categoryId == _similarCategoryId) return;
+    _similarCategoryId = categoryId;
+    _similarProductsFuture = _loadSimilarProducts(categoryId);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSimilarProducts(
+    int categoryId,
+  ) async {
+    List<Map<String, dynamic>> rows;
+    final api = widget.api;
+    if (api != null) {
+      final raw = await api.get(
+        '/api/v1/b2b/products?store_id=' +
+            storeId.toString() +
+            '&category_id=' +
+            categoryId.toString(),
+      );
+      rows = dataRows(raw);
+    } else {
+      final storefrontApi = widget.storefrontApi;
+      if (storefrontApi == null) return const <Map<String, dynamic>>[];
+      final storefront = await storefrontApi.wholesaleHome(storeId);
+      rows = mapRows(storefront['products']);
+    }
+
+    return rows
+        .where(
+          (item) =>
+              intValue(item['id']) != productId &&
+              intValue(item['category_id']) == categoryId,
+        )
+        .take(6)
+        .toList(growable: false);
   }
 
   void _retry() {
@@ -3678,52 +3718,48 @@ class _WholesaleProductDetailsDesignScreenState
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    key: const ValueKey('b2b-product-additional-info'),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE4ECE7)),
-                      borderRadius: BorderRadius.circular(18),
+
+                  if (_similarProductsFuture != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      context.tr('b2b.product.similar_products'),
+                      key: const ValueKey('b2b-product-similar-title'),
+                      style: const TextStyle(
+                        color: Color(0xFF10233F),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          context.tr('b2b.product.pack_details'),
-                          style: const TextStyle(
-                            color: Color(0xFF10233F),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.category'),
-                          value: category.isNotEmpty
-                              ? category
-                              : context.tr('b2b.product.not_specified'),
-                        ),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.pack_size'),
-                          value: row['pack_label']?.toString() ??
-                              row['pack_size']?.toString() ??
-                              '1',
-                        ),
-                        _ProductInfoLine(
-                          label: 'SKU',
-                          value: row['sku']?.toString() ?? '—',
-                        ),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.brand'),
-                          value: brand.isNotEmpty
-                              ? brand
-                              : context.tr('b2b.product.not_specified'),
-                          showDivider: false,
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _similarProductsFuture,
+                      builder: (context, similarSnapshot) {
+                        if (similarSnapshot.connectionState !=
+                            ConnectionState.done) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        final similar =
+                            similarSnapshot.data ?? const <Map<String, dynamic>>[];
+                        if (similar.isEmpty) return const SizedBox.shrink();
+                        return _WholesaleProductGrid(
+                          rows: similar,
+                          storeId: storeId,
+                          sourceLocation: widget.location,
+                          session: widget.session,
+                          actionApi: widget.actionApi,
+                          pendingActionStore: widget.pendingActionStore,
+                          palette: FoodexPalette.wholesale,
+                          maxItems: 6,
+                          showCommerceActions: true,
+                        );
+                      },
                     ),
+                  ],
                   ),
                 ],
               );
@@ -3910,38 +3946,17 @@ class _PricingPanel extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            if (row['base_wholesale_price'] != null ||
-                row['retail_reference_price'] != null) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 16,
-                runSpacing: 6,
-                children: [
-                  if (row['base_wholesale_price'] != null)
-                    Text(
-                      context.tr('b2b.product.base_price') +
-                          ': ' +
-                          money(row['base_wholesale_price'],
-                              currency: currency),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  if (row['retail_reference_price'] != null)
-                    Text(
-                      context.tr('b2b.product.retail_reference_price') +
-                          ': ' +
-                          money(row['retail_reference_price'],
-                              currency: currency),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
+            if (row['retail_reference_price'] != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                context.tr('b2b.product.retail_reference_price') +
+                    ': ' +
+                    money(row['retail_reference_price'], currency: currency),
+                style: const TextStyle(
+                  color: Color(0xFF6B7785),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ],
