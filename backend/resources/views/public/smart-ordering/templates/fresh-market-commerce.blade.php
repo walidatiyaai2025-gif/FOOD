@@ -28,7 +28,7 @@
             <h1 id="fm-hero-title">{{ $site['tagline'] !== '' ? $site['tagline'] : ($locale === 'ar' ? 'شريكك للنجاح في أعمالك' : 'Your partner for business success') }}</h1>
             <p>{{ $site['description'] !== '' ? $site['description'] : ($locale === 'ar' ? 'نوفر منتجات غذائية عالية الجودة لمطعمك بكل سهولة وثقة' : 'Quality food products for your business, delivered with ease and confidence') }}</p>
             <div class="fm-benefits" aria-label="{{ $locale === 'ar' ? 'مزايا المتجر' : 'Store benefits' }}">
-                <span><b aria-hidden="true">⬟</b>{{ $locale === 'ar' ? 'أسعار منافسة' : 'Competitive prices' }}</span>
+                <span><b aria-hidden="true">🛡️</b>{{ $locale === 'ar' ? 'أسعار منافسة' : 'Competitive prices' }}</span>
                 <span><b aria-hidden="true">🚚</b>{{ $locale === 'ar' ? 'توريد سريع' : 'Fast supply' }}</span>
                 <span><b aria-hidden="true">🌿</b>{{ $locale === 'ar' ? 'جودة عالية' : 'High quality' }}</span>
             </div>
