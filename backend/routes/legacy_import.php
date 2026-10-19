@@ -136,7 +136,14 @@ Artisan::command(
 
         $this->info('Legacy Foodex '.$phase.' import completed.');
         $this->line('Run ID: '.$result['summary']['run_id']);
-        $this->line('Wholesale store ID: '.$result['summary']['store_id']);
+
+        if (array_key_exists('store_id', $result['summary'])) {
+            $this->line('Wholesale store ID: '.$result['summary']['store_id']);
+        }
+
+        if (array_key_exists('authority', $result['summary'])) {
+            $this->line('Authority: '.$result['summary']['authority']);
+        }
 
         foreach ($result['summary'] as $section => $summary) {
             if (! is_array($summary)) {
@@ -579,3 +586,115 @@ Artisan::command(
         return 0;
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
+
+
+Artisan::command(
+    'foodex:legacy-stock-verify {--json : Output machine-readable JSON}',
+    function (): int {
+        $latestRun = DB::table('legacy_import_runs')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('phase', 'stock')
+            ->orderByDesc('started_at')
+            ->first(['id', 'status', 'started_at', 'finished_at', 'summary', 'error']);
+
+        $inventory = [
+            'total' => (int) DB::table('inventories')->count(),
+            'positive' => (int) DB::table('inventories')->where('quantity', '>', 0)->count(),
+            'zero' => (int) DB::table('inventories')->where('quantity', '=', 0)->count(),
+            'negative' => (int) DB::table('inventories')->where('quantity', '<', 0)->count(),
+            'reserved_nonzero' => (int) DB::table('inventories')->where('reserved_quantity', '<>', 0)->count(),
+        ];
+
+        $baselineMovements = (int) DB::table('stock_movements')
+            ->where('type', 'legacy_opening_balance')
+            ->where('reference_type', 'legacy_foodex_stock_baseline')
+            ->count();
+
+        $allMovements = (int) DB::table('stock_movements')->count();
+
+        $mappings = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('source_table', 'wh_vw_ItemStock2Now')
+            ->where('target_table', 'inventories')
+            ->distinct()
+            ->count('target_id');
+
+        $orphanMappings = (int) DB::table('legacy_import_mappings as m')
+            ->leftJoin('inventories as i', 'i.id', '=', 'm.target_id')
+            ->where('m.source_system', 'foodex_sqlserver')
+            ->where('m.source_table', 'wh_vw_ItemStock2Now')
+            ->where('m.target_table', 'inventories')
+            ->whereNull('i.id')
+            ->count();
+
+        $report = [
+            'latest_run' => $latestRun === null ? null : [
+                'id' => (string) $latestRun->id,
+                'status' => (string) $latestRun->status,
+                'started_at' => $latestRun->started_at,
+                'finished_at' => $latestRun->finished_at,
+                'summary' => $latestRun->summary === null ? null : json_decode((string) $latestRun->summary, true),
+                'error' => $latestRun->error,
+            ],
+            'inventories' => $inventory,
+            'stock_movements' => [
+                'total' => $allMovements,
+                'legacy_baseline' => $baselineMovements,
+            ],
+            'legacy_inventory_mappings' => $mappings,
+            'orphan_mappings' => $orphanMappings,
+            'healthy' => $latestRun !== null
+                && (string) $latestRun->status === 'completed'
+                && $inventory['negative'] === 0
+                && $inventory['reserved_nonzero'] === 0
+                && $inventory['total'] === $baselineMovements
+                && $inventory['total'] === $mappings
+                && $allMovements === $baselineMovements
+                && $orphanMappings === 0,
+        ];
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $report['healthy'] ? 0 : 1;
+        }
+
+        $this->info('Legacy Foodex stock verification');
+
+        if ($report['latest_run'] === null) {
+            $this->error('No stock import run exists.');
+
+            return 1;
+        }
+
+        $this->line(
+            'Latest stock run: '.$report['latest_run']['id'].
+            ' | status='.$report['latest_run']['status']
+        );
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['inventories.total', $inventory['total']],
+                ['inventories.positive', $inventory['positive']],
+                ['inventories.zero', $inventory['zero']],
+                ['inventories.negative', $inventory['negative']],
+                ['inventories.reserved_nonzero', $inventory['reserved_nonzero']],
+                ['stock_movements.total', $allMovements],
+                ['stock_movements.legacy_baseline', $baselineMovements],
+                ['legacy_inventory_mappings', $mappings],
+                ['orphan_mappings', $orphanMappings],
+            ],
+        );
+
+        if ($report['healthy']) {
+            $this->info('Stock baseline verification PASSED.');
+
+            return 0;
+        }
+
+        $this->error('Stock baseline verification FAILED. Do not rerun/apply additional stock until reviewed.');
+
+        return 1;
+    },
+)->purpose('Verify the committed legacy Foodex stock baseline after import.');
