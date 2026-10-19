@@ -35,8 +35,8 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(
-                ['source_system', 'source_table', 'source_key'],
-                'legacy_import_mapping_source_uq',
+                ['source_system', 'source_table', 'source_key', 'target_table'],
+                'legacy_import_mapping_source_target_uq',
             );
             $table->index(
                 ['target_table', 'target_id'],
