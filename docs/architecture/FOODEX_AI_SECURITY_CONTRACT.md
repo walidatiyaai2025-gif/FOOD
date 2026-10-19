@@ -133,7 +133,6 @@ Existing Assistant API, business and operations tests remain regression coverage
 
 Consent persistence and policy are internal Laravel/domain contracts. A future business-facing consent-management HTTP surface must define its own explicit API/UI contract and authorization before exposure.
 
-
 ## 10. AI-20 prompt, tool, exfiltration and privacy hardening
 
 #2229 extends this identity/tenant contract with the cross-cutting AI threat model in `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.

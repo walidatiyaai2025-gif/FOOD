@@ -41,8 +41,6 @@ backend/app/Domain/Assistant/Models/AssistantMessage.php
 backend/app/Domain/Assistant/Operations/AssistantOperationsReadService.php
 backend/app/Domain/Assistant/Operations/AssistantOperationsTool.php
 backend/app/Domain/Assistant/Operations/AssistantOperationsToolSet.php
-backend/app/Domain/Assistant/Security/AssistantAiSecurityGuardrails.php
-backend/app/Domain/Assistant/Security/AssistantToolExecutor.php
 backend/app/Domain/Assistant/Support/AssistantPageContext.php
 backend/app/Domain/Assistant/Tools/AssistantToolRegistry.php
 backend/app/Domain/Installer/InstallerWorkflow.php
@@ -1670,3 +1668,5 @@ preview/driver/index.html
 preview/driver/main.dart.js
 preview/driver/manifest.json
 preview/driver/version.json
+backend/app/Domain/Assistant/Security/AssistantAiSecurityGuardrails.php
+backend/app/Domain/Assistant/Security/AssistantToolExecutor.php

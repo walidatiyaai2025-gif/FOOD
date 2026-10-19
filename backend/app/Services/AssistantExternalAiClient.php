@@ -38,6 +38,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         'brief.daily',
         'analytics.summary',
         'analytics.diagnose',
+        'retailers.360',
         'inventory.snapshot',
         'refunds.summary',
         'retailers.performance',

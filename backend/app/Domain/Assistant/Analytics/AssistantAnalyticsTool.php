@@ -15,6 +15,7 @@ final class AssistantAnalyticsTool implements AssistantToolInterface
         'inventory.snapshot',
         'refunds.summary',
         'retailers.performance',
+        'retailers.360',
         'wholesale.purchases',
         'margin.summary',
         'support.summary',

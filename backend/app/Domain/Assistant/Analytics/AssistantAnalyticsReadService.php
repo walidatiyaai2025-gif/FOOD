@@ -5,6 +5,7 @@ namespace App\Domain\Assistant\Analytics;
 use App\Domain\Analytics\Diagnostics\DeterministicAnalyticsEngine;
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
 use App\Domain\Analytics\ReadModel\AnalyticsReadModelService;
+use App\Domain\Analytics\Retailer\Retailer360IntelligenceService;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Models\User;
@@ -19,6 +20,7 @@ final readonly class AssistantAnalyticsReadService
     public function __construct(
         private AnalyticsReadModelService $readModel,
         private DeterministicAnalyticsEngine $diagnostics,
+        private Retailer360IntelligenceService $retailerIntelligence,
         private OperationalTenantScope $scope,
         private CustomerServiceCaseManager $customerService,
     ) {}
@@ -31,6 +33,7 @@ final readonly class AssistantAnalyticsReadService
             'inventory.snapshot' => $this->inventorySnapshot($request),
             'refunds.summary' => $this->refundsSummary($request),
             'retailers.performance' => $this->retailersPerformance($request),
+            'retailers.360' => $this->retailer360($request),
             'wholesale.purchases' => $this->wholesalePurchases($request),
             'margin.summary' => $this->marginSummary($request),
             'support.summary' => $this->supportSummary($request),
@@ -209,6 +212,41 @@ final readonly class AssistantAnalyticsReadService
             'timezone' => $read['timezone'],
             'sellout_feed' => $read['sellout_feed'],
         ]);
+    }
+
+    private function retailer360(AssistantToolRequest $request): AssistantToolResult
+    {
+        if ($this->requiredChannel($request) !== 'b2b') {
+            throw ValidationException::withMessages([
+                'channel' => ['Retailer 360 is available from the wholesale management channel.'],
+            ]);
+        }
+
+        $storeIds = $this->retailerStoreIds($request);
+        if ($storeIds === []) {
+            throw ValidationException::withMessages([
+                'retailer_store_ids' => ['Retailer 360 requires one or more retailer store ids.'],
+            ]);
+        }
+
+        [, , $from, $to] = $this->window($request);
+        $wholesaleStoreId = $this->positiveInt($request->entities['wholesale_store_id'] ?? null)
+            ?? $request->storeId;
+
+        if ($wholesaleStoreId === null) {
+            throw ValidationException::withMessages([
+                'wholesale_store_id' => ['Retailer 360 requires the requesting wholesale store id.'],
+            ]);
+        }
+
+        return new AssistantToolResult(data: $this->retailerIntelligence->read(
+            $this->actor($request),
+            $storeIds,
+            $wholesaleStoreId,
+            $from,
+            $to,
+            $request->locale,
+        ));
     }
 
     private function wholesalePurchases(AssistantToolRequest $request): AssistantToolResult
