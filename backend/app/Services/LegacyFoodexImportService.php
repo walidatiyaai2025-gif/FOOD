@@ -3792,7 +3792,10 @@ SQL));
         $typeCounts = [];
         $unmappedSuppliers = [];
         $unmappedLocations = [];
+        $missingSourceSupplierHeaders = 0;
+        $missingSourceSupplierNetTotal = 0.0;
         $invalidSupplierHeaderSamples = [];
+        $missingSourceSupplierHeaderSamples = [];
         $invalidLocationHeaderSamples = [];
         $invalidHeaderDates = [];
         $headerCount = 0;
@@ -3808,7 +3811,10 @@ SQL));
             &$typeCounts,
             &$unmappedSuppliers,
             &$unmappedLocations,
+            &$missingSourceSupplierHeaders,
+            &$missingSourceSupplierNetTotal,
             &$invalidSupplierHeaderSamples,
+            &$missingSourceSupplierHeaderSamples,
             &$invalidLocationHeaderSamples,
             &$invalidHeaderDates,
             &$headerCount,
@@ -3846,7 +3852,20 @@ SQL));
                     'balance' => round((float) ($header->Balance ?? 0), 3),
                 ];
 
-                if ($supplierId <= 0 || ! isset($maps['suppliers'][$supplierId])) {
+                if ($supplierId <= 0) {
+                    $missingSourceSupplierHeaders++;
+                    $missingSourceSupplierNetTotal += (float) ($header->NetTotal ?? 0);
+                    if (count($missingSourceSupplierHeaderSamples) < 20) {
+                        $missingSourceSupplierHeaderSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'supplier_id' => $supplierId,
+                            'location_id' => $locationId,
+                            'total' => round((float) ($header->Total ?? 0), 3),
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                        ];
+                    }
+                } elseif (! isset($maps['suppliers'][$supplierId])) {
                     $unmappedSuppliers[$supplierId] = true;
                     if (count($invalidSupplierHeaderSamples) < 20) {
                         $invalidSupplierHeaderSamples[] = [
@@ -3889,6 +3908,7 @@ SQL));
                     'unmapped_locations' => array_keys($unmappedLocations),
                     'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
                     'invalid_supplier_headers' => $invalidSupplierHeaderSamples,
+                    'missing_source_supplier_headers' => $missingSourceSupplierHeaderSamples,
                     'invalid_location_headers' => $invalidLocationHeaderSamples,
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             );
@@ -4058,6 +4078,8 @@ SQL));
             'purchase_return_details' => $returnDetails,
             'source_detail_rows_scanned' => $sourceDetailRowsScanned,
             'unmapped_suppliers' => count($unmappedSuppliers),
+            'missing_source_supplier_headers' => $missingSourceSupplierHeaders,
+            'missing_source_supplier_net_total' => round($missingSourceSupplierNetTotal, 3),
             'unmapped_locations' => count($unmappedLocations),
             'unmapped_items' => count($unmappedItems),
             'invalid_header_dates' => count($invalidHeaderDates),
@@ -4089,6 +4111,8 @@ SQL));
                 'rules' => [
                     'historical_procurement_is_immutable' => true,
                     'does_not_create_synthetic_purchase_requests_or_users' => true,
+                    'source_supplier_zero_is_preserved_with_nullable_target_supplier' => true,
+                    'positive_unmapped_supplier_ids_block_apply' => true,
                     'does_not_mutate_inventory' => true,
                     'does_not_post_to_finance_or_treasury' => true,
                     'purchase_type' => 1,
@@ -4208,7 +4232,9 @@ SQL));
                             'document_kind' => (int) $header->TransType === 1 ? 'purchase' : 'purchase_return',
                             'document_date' => $headerDates[$headerId],
                             'source_supplier_id' => $supplierSourceId,
-                            'supplier_id' => $maps['suppliers'][$supplierSourceId],
+                            'supplier_id' => $supplierSourceId > 0
+                                ? ($maps['suppliers'][$supplierSourceId] ?? null)
+                                : null,
                             'source_location_id' => $sourceLocationId,
                             'warehouse_id' => $warehouseId,
                             'store_id' => $storeId,
