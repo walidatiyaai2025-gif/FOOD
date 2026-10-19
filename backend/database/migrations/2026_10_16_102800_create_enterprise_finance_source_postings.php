@@ -23,8 +23,8 @@ return new class extends Migration
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
             $table->char('currency_code', 3);
             $table->foreignId('journal_id')->unique()->constrained('enterprise_finance_journals')->restrictOnDelete();
-            $table->timestamp('occurred_at');
-            $table->timestamp('posted_at');
+            $table->dateTime('occurred_at');
+            $table->dateTime('posted_at');
             $table->timestamps();
 
             $table->unique(
