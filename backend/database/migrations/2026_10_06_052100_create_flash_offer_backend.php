@@ -17,8 +17,8 @@ return new class extends Migration
             $table->text('body_ar')->nullable();
             $table->text('body_en')->nullable();
             $table->string('status', 24)->default('draft')->index();
-            $table->timestamp('starts_at')->index();
-            $table->timestamp('ends_at')->index();
+            $table->dateTime('starts_at')->index();
+            $table->dateTime('ends_at')->index();
             $table->string('timezone', 64)->default('Asia/Kuwait');
             $table->json('channels');
             $table->json('audience_customer_ids')->nullable();
