@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../features/storefront/storefront_design_system.dart';
 
 import '../api/b2b_api.dart';
 import '../api/b2c_catalog_api.dart';
@@ -461,8 +462,10 @@ class CustomerRoutePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-route-shell'),
-      appBar: AppBar(title: const Text('FOODEX Customer')),
-      body: SafeArea(
+      body: FoodexUnifiedHeaderSurface(
+        title: 'FOODEX Customer',
+        searchHint: '',
+        location: location,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
