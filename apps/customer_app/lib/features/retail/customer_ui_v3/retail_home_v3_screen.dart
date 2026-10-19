@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 
@@ -153,14 +154,26 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
           future: _future,
           builder: (context, snapshot) {
             final data = snapshot.data;
-            return CustomerCurvedHeaderSurface(
-              header: _HomeHeader(
-                storeId: widget.storeId,
-                data: data,
-                navigation: widget.navigation,
-                searchController: _search,
-                onSearch: _submitSearch,
+            return FoodexUnifiedHeaderSurface(
+              title: context.tr('customer.home.title'),
+              palette: FoodexPalette.grocery,
+              searchController: _search,
+              searchHint: context.tr(
+                'customer.products.search_name_sku_barcode',
               ),
+              onSearchSubmitted: _submitSearch,
+              onNotifications: widget.navigation.openNotifications == null
+                  ? null
+                  : () => widget.navigation.openNotifications!(
+                        context,
+                        storeId: widget.storeId,
+                      ),
+              onCart: widget.navigation.openCart == null
+                  ? null
+                  : () => widget.navigation.openCart!(
+                        context,
+                        storeId: widget.storeId,
+                      ),
               child: _body(context, snapshot),
             );
           },
