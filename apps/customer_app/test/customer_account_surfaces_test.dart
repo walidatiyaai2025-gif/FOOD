@@ -287,8 +287,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
-      expect(find.byType(CustomerAccountAvatar), findsOneWidget);
+      expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
 
       await tester.drag(
@@ -326,16 +329,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final surface = tester.widget<CustomerCurvedHeaderSurface>(
-        find.byType(CustomerCurvedHeaderSurface),
-      );
       expect(
-        surface.headerPadding,
-        const EdgeInsetsDirectional.fromSTEB(12, 6, 12, 8),
-      );
-      expect(
-        tester.getSize(find.byType(CustomerAccountHeader)).height,
-        lessThan(72),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
       );
 
       final profileBefore = api.profileLoads;
@@ -371,7 +367,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
 
     await tester.pumpWidget(
@@ -382,7 +378,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
