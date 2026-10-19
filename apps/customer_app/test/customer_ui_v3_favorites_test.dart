@@ -21,13 +21,16 @@ void main() {
                 'old_price': 3.0,
                 'currency': 'KWD',
                 'category_name': 'Drinks',
-                'discount_percentage': 17,
+                'brand_name': 'FOODEX',
+                'is_available': true,
+                'availability_state': 'AVAILABLE',
               },
             },
           ],
         },
       );
       int? openedProduct;
+      final added = <(int, int, double)>[];
 
       await tester.pumpWidget(
         MaterialApp(
@@ -44,6 +47,13 @@ void main() {
                 favoritesApi: api,
                 retailStoreId: 19,
                 onOpenProduct: (id) => openedProduct = id,
+                onAddToCart: ({
+                  required storeId,
+                  required productId,
+                  required quantity,
+                }) async {
+                  added.add((storeId, productId, quantity));
+                },
               ),
             ),
           ),
@@ -57,18 +67,20 @@ void main() {
         tester
             .widget<CustomerProductCard>(find.byType(CustomerProductCard))
             .compact,
-        isTrue,
+        isFalse,
       );
-      expect(find.text('Drinks'), findsOneWidget);
       expect(find.text('2.500 KWD'), findsOneWidget);
-      expect(find.text('3.000 KWD'), findsOneWidget);
-      expect(find.text('-17%'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
 
       final product = find.byKey(const ValueKey('customer-favorite-8'));
       await tester.ensureVisible(product);
       await tester.tap(product);
       await tester.pump();
       expect(openedProduct, 8);
+
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pumpAndSettle();
+      expect(added, <(int, int, double)>[(19, 8, 1)]);
 
       final remove = find.byKey(const ValueKey('customer-favorite-remove-8'));
       final removeButton = tester.widget<CustomerOutlineIconButton>(remove);

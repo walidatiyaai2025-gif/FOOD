@@ -339,6 +339,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
                 productId,
               ),
             ),
+            onAddToCart: addToCart,
           ),
         );
 

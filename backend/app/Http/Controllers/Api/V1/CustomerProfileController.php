@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
+use App\Services\ProductAvailabilityService;
 use App\Services\RetailMerchantIdentityService;
 use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
@@ -822,6 +823,15 @@ class CustomerProfileController extends Controller
             ->where('store_id', $storeId)
             ->where('product_id', $product->getKey())
             ->first(['price']);
+        $brand = $product->brand_id === null
+            ? null
+            : DB::table('brands')
+                ->where('id', $product->brand_id)
+                ->first(['name', 'image_path']);
+        $availability = app(ProductAvailabilityService::class)->forStoreProduct(
+            $storeId,
+            (int) $product->getKey(),
+        );
 
         return [
             'id' => (int) $product->getKey(),
@@ -830,14 +840,29 @@ class CustomerProfileController extends Controller
             'description' => $product->description,
             'category_id' => $product->category_id === null ? null : (int) $product->category_id,
             'brand_id' => $product->brand_id === null ? null : (int) $product->brand_id,
+            'brand_name' => $brand?->name,
+            'brand_image_url' => $this->assetUrl($brand?->image_path),
             'store_id' => $storeId,
             'channel' => $channel,
             'price' => $storeProduct?->price === null ? null : (float) $storeProduct->price,
             'currency' => 'EGP',
-            'image_url' => $imagePath === null
-                ? null
-                : url('/'.ltrim((string) $imagePath, '/')),
+            'image_url' => $this->assetUrl($imagePath),
             'is_active' => (bool) $product->is_active,
+            ...$availability,
         ];
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $value = trim($path);
+        if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }
