@@ -95,12 +95,22 @@ final class SmartOrderingController extends Controller
         SmartOrderingSite $site,
         SmartOrderingSiteService $sites,
         TenantContextResolver $tenants,
+        RestaurantOnboardingService $onboarding,
     ): RedirectResponse {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
         $data = $request->validate([
             'runtime_state' => ['required', 'string', Rule::in((array) config('smart_ordering.runtime_states', []))],
             'master_enabled' => ['nullable', 'boolean'],
         ]);
+
+        $store = Store::query()->findOrFail((int) $site->store_id);
+        $status = $onboarding->status($store, $actor);
+        if (! ($status['launched'] ?? false)
+            && ((string) $data['runtime_state'] !== 'DISABLED' || $request->boolean('master_enabled'))) {
+            throw ValidationException::withMessages([
+                'runtime_state' => [__('restaurant_onboarding.validation.runtime_locked')],
+            ]);
+        }
 
         $sites->updateRuntime($actor, $site, (string) $data['runtime_state'], $request->boolean('master_enabled'), $request);
 
@@ -112,9 +122,25 @@ final class SmartOrderingController extends Controller
         SmartOrderingSite $site,
         SmartOrderingSiteService $sites,
         TenantContextResolver $tenants,
+        RestaurantOnboardingService $onboarding,
     ): RedirectResponse {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
+        $store = Store::query()->findOrFail((int) $site->store_id);
+        $status = $onboarding->status($store, $actor);
+        $channelsStep = collect($status['setup_flow'] ?? [])->firstWhere('key', 'channels');
+        if (! ($status['launched'] ?? false) && ! (bool) ($channelsStep['available'] ?? false)) {
+            throw ValidationException::withMessages([
+                'modules' => [__('restaurant_onboarding.validation.step_locked')],
+            ]);
+        }
+
         $selected = array_values(array_filter((array) $request->input('modules', []), 'is_string'));
+        if (! ($status['launched'] ?? false)) {
+            $selected = array_values(array_intersect(
+                $selected,
+                ['public_menu', 'ordering', 'dine_in', 'pickup', 'delivery', 'whatsapp', 'campaign_qr'],
+            ));
+        }
         $allowed = array_values(array_filter((array) config('smart_ordering.entitlements', []), 'is_string'));
         $values = [];
 
