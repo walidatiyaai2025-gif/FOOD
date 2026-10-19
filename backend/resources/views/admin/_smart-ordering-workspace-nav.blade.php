@@ -70,6 +70,21 @@
         'store_id' => $restaurantStoreId > 0 ? $restaurantStoreId : null,
         'support_access' => $restaurantSupport ? 1 : null,
     ], static fn ($value) => $value !== null);
+    $restaurantSetupStatus = $onboardingStatus ?? null;
+    if (! is_array($restaurantSetupStatus) && $restaurantActor && $restaurantStoreId > 0) {
+        $restaurantSetupStore = \App\Models\Store::query()->find($restaurantStoreId);
+        if ($restaurantSetupStore instanceof \App\Models\Store) {
+            $restaurantSetupStatus = app(\App\Domain\RestaurantSaaS\RestaurantOnboardingService::class)
+                ->status($restaurantSetupStore, $restaurantActor);
+        }
+    }
+    $restaurantSetupSteps = collect($restaurantSetupStatus['setup_flow'] ?? [])->keyBy('key');
+    $restaurantLaunched = (bool) ($restaurantSetupStatus['launched'] ?? false);
+    $restaurantStepAvailable = static fn (string $key): bool =>
+        (bool) (($restaurantSetupSteps->get($key)['available'] ?? false));
+    $restaurantStepState = static fn (string $key): string =>
+        (string) (($restaurantSetupSteps->get($key)['state'] ?? 'locked'));
+
     $restaurantSupplyEnabled = false;
     if ($restaurantSiteId > 0) {
         $restaurantSupplyEnabled = isset($entitlements)
