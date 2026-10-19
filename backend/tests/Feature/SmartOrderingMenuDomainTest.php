@@ -275,12 +275,13 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee(route('admin.smart-ordering.menu.publish', app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site'])), false);
     }
 
-    public function test_guided_identity_step_saves_branding_runtime_and_slug_then_moves_to_review(): void
+    public function test_guided_identity_step_saves_branding_and_slug_without_activating_runtime(): void
     {
         Storage::fake('public');
         $fixture = $this->fixture('IDENTITY', 5.000);
         $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
-        $runtimeState = (string) collect((array) config('smart_ordering.runtime_states', []))->first();
+        $runtimeBefore = (string) $fixture['site']->runtime_state;
+        $masterBefore = (bool) $fixture['site']->master_enabled;
 
         $this->actingAs($fixture['admin'])
             ->post(route('admin.smart-ordering.menu.setup.identity'), [
@@ -291,8 +292,6 @@ class SmartOrderingMenuDomainTest extends TestCase
                 'tagline_ar' => 'إعداد واحد واضح',
                 'phone' => '+96522000000',
                 'slug' => 'guided-kitchen-'.$fixture['store_id'],
-                'runtime_state' => $runtimeState,
-                'master_enabled' => '1',
                 'logo' => UploadedFile::fake()->image('logo.png', 300, 300),
                 'cover' => UploadedFile::fake()->image('cover.jpg', 1200, 700),
             ])
@@ -303,8 +302,8 @@ class SmartOrderingMenuDomainTest extends TestCase
 
         $site = $fixture['site']->fresh();
         $this->assertSame('guided-kitchen-'.$fixture['store_id'], $site->slug);
-        $this->assertTrue((bool) $site->master_enabled);
-        $this->assertSame($runtimeState, $site->runtime_state);
+        $this->assertSame($masterBefore, (bool) $site->master_enabled);
+        $this->assertSame($runtimeBefore, (string) $site->runtime_state);
 
         $payload = (array) $draft->fresh()->payload;
         $identity = (array) data_get($payload, 'content.identity', []);
@@ -316,7 +315,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         Storage::disk('public')->assertExists((string) $identity['cover_url']);
     }
 
-    public function test_guided_final_publish_activates_public_storefront_and_publishes_draft(): void
+    public function test_guided_menu_publish_keeps_runtime_off_until_restaurant_launch(): void
     {
         $fixture = $this->fixture('GUIDEDPUBLISH', 5.000);
         $writer = app(SmartOrderingMenuWriteService::class);
@@ -336,13 +335,8 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]));
 
         $site = $fixture['site']->fresh();
-        $this->assertTrue((bool) $site->master_enabled);
-        $this->assertSame('ENABLED', $site->runtime_state);
-        $this->assertTrue((bool) DB::table('smart_ordering_entitlements')
-            ->where('site_id', $site->id)
-            ->where('scope_key', 'site')
-            ->where('module', 'public_menu')
-            ->value('enabled'));
+        $this->assertFalse((bool) $site->master_enabled);
+        $this->assertSame('DISABLED', $site->runtime_state);
         $this->assertNotNull(app(SmartOrderingMenuRevisionService::class)->published($site));
     }
 
