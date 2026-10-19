@@ -67,6 +67,7 @@ class AdminNavigation
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
+        $restaurantSaasItem = $this->restaurantSaasItem($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
@@ -85,6 +86,9 @@ class AdminNavigation
                         ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'))
                     : null,
             ]),
+            $this->group('restaurant', 'smart_ordering.workspace.sidebar_group', '◆', [
+                $restaurantSaasItem,
+            ]),
             $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile ? [
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
                 $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
@@ -98,7 +102,6 @@ class AdminNavigation
             ] : []),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
-                $this->restaurantSaasItem($user),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
             ]),
@@ -206,7 +209,35 @@ class AdminNavigation
             unset($group);
         }
 
-        return array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
+        $groups = array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
+
+        // A store-scoped restaurant operator should see restaurant work in task order,
+        // not the platform taxonomy. Keep global/ERP users on the canonical platform order.
+        if ($restaurantSaasItem !== null && ! $canAccessPlatformErp) {
+            $restaurantOrder = array_flip([
+                'restaurant',
+                'operations',
+                'catalog',
+                'accounts',
+                'marketing',
+                'advertising',
+                'analytics',
+                'stores',
+                'field_operations',
+                'finance',
+                'applications',
+                'overview',
+                'erp',
+                'administration',
+            ]);
+
+            usort($groups, static fn (array $left, array $right): int =>
+                ($restaurantOrder[$left['key']] ?? PHP_INT_MAX)
+                <=> ($restaurantOrder[$right['key']] ?? PHP_INT_MAX)
+            );
+        }
+
+        return $groups;
     }
 
     /**
@@ -580,7 +611,7 @@ class AdminNavigation
             if (Route::has($destination['route']) && $this->hasPermissionInScope($user, $destination['permission'])) {
                 return [
                     'key' => 'smart_ordering',
-                    'label' => 'smart_ordering.nav_title',
+                    'label' => 'smart_ordering.workspace.title',
                     'route' => $destination['route'],
                     'params' => [],
                     'permission' => $destination['permission'],
