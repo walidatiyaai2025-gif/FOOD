@@ -16,12 +16,7 @@
     $quickMenuShouldOpen = old('_quick_menu') === '1';
     $quickMenuMode = old('_quick_menu_mode', 'create') === 'edit' ? 'edit' : 'create';
     $quickMenuEditingId = (int) old('quick_menu_id', 0);
-    $quickMediaUrl = static function ($path): ?string {
-        $path = trim((string) $path);
-        if ($path === '') return null;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
-    };
+    $quickMediaUrl = static fn ($path): ?string => app(\App\Services\SmartOrderingMediaService::class)->publicUrl($path);
     $quickMenuEditPayloads = [];
     foreach (($menus ?? collect()) as $editMenu) {
         $categoryKeyById = [];
