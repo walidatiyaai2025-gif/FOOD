@@ -21,6 +21,8 @@ dependencies:
   firebase_messaging: ^15.2.10
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.3
+  # Android release R8 regression in shared_preferences_android 2.5.0.
+  shared_preferences_android: ">=2.4.28 <2.5.0"
   flutter_secure_storage: ^11.2.0
   local_auth: ^2.3.0
   share_plus: ^13.3.0
