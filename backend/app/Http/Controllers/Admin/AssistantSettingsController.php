@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Assistant\Intelligence\AssistantIntelligenceAuthorization;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -25,6 +26,7 @@ final class AssistantSettingsController extends Controller
         private readonly AssistantExternalAiClient $externalAi,
         private readonly AssistantObservability $observability,
         private readonly AssistantToolRegistry $tools,
+        private readonly AssistantIntelligenceAuthorization $intelligenceAuthorization,
         private readonly AuditLogger $audit,
         private readonly AdminNavigation $navigation,
     ) {}
@@ -149,6 +151,7 @@ final class AssistantSettingsController extends Controller
             'operatingMode' => ! $assistantEnabled
                 ? 'disabled'
                 : ($providerActive ? 'agentic' : 'deterministic'),
+            'canOpenIntelligence' => $this->intelligenceAuthorization->canUse($actor),
         ]);
     }
 
