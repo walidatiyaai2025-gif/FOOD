@@ -1736,6 +1736,13 @@ async function captureLocale(browser, locale) {
     page,
     locale,
     'B2C_Admin',
+    'assistant-overview',
+    '/admin/settings/assistant/overview',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
     'assistant-intelligence',
     '/admin/assistant/intelligence',
   );
