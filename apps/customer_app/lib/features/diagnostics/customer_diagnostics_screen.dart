@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
@@ -90,10 +91,10 @@ class _CustomerDiagnosticsScreenState
     final lastEvent = events.isEmpty ? null : events.last['timestamp'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('customer.diagnostics.title')),
-      ),
-      body: SafeArea(
+      backgroundColor: CustomerUiColors.mint,
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.diagnostics.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
