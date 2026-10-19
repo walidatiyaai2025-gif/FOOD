@@ -20,8 +20,8 @@ return new class extends Migration
             $table->string('source_uri', 1000)->nullable();
             $table->string('status', 24)->default('approved');
             $table->char('content_hash', 64);
-            $table->timestamp('approved_at');
-            $table->timestamp('indexed_at');
+            $table->dateTime('approved_at');
+            $table->dateTime('indexed_at');
             $table->timestamp('valid_until')->nullable();
             $table->timestamp('revoked_at')->nullable();
             $table->timestamp('deleted_at')->nullable();
