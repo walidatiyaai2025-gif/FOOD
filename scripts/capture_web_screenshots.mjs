@@ -96,6 +96,8 @@ const b2c = [
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
+  ['21_مراجعة_واجهة_المطعم', '/admin/smart-ordering/menu?setup=review&support_access=1'],
+  ['21_نشر_واجهة_المطعم', '/admin/smart-ordering/menu?setup=publish&support_access=1'],
   ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
   ['23_مشتريات_الجملة_للمطعم', '/admin/restaurant/wholesale-purchases?tab=orders&support_access=1&retail_store_code=FOODEX-DEMO-B2C'],
 ];
