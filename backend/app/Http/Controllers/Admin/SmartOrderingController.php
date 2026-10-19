@@ -14,6 +14,7 @@ use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\SmartOrderingWhatsAppLinkService;
 use App\Support\TenantContextResolver;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
@@ -201,7 +202,6 @@ final class SmartOrderingController extends Controller
         SmartOrderingSite $site,
         SmartOrderingRevisionService $revisions,
         TenantContextResolver $tenants,
-        SmartOrderingWhatsAppLinkService $whatsAppLinks,
     ): RedirectResponse {
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
         $revisions->createOrReuseDraft($actor, $site, $request);
@@ -214,6 +214,7 @@ final class SmartOrderingController extends Controller
         SmartOrderingRevision $revision,
         SmartOrderingRevisionService $revisions,
         TenantContextResolver $tenants,
+        SmartOrderingWhatsAppLinkService $whatsAppLinks,
     ): RedirectResponse {
         $site = $revision->site()->firstOrFail();
         $actor = $this->authorizeSite($request, $site, $tenants, 'smart_ordering.manage');
