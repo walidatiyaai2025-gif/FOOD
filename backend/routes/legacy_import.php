@@ -81,32 +81,32 @@ Artisan::command(
     'foodex:legacy-import {phase=masters : Import phase} {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $phase = strtolower(trim((string) $this->argument('phase')));
-        if (! in_array($phase, ['masters', 'extended-masters', 'stock'], true)) {
-            $this->error('Supported phases: masters, extended-masters, stock.');
+        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history'], true)) {
+            $this->error('Supported phases: masters, extended-masters, stock, sales-history.');
 
             return 2;
         }
+
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
 
         try {
             $result = match ($phase) {
                 'masters' => $importer->importMasters((bool) $this->option('apply')),
                 'extended-masters' => $importer->importExtendedMasters((bool) $this->option('apply')),
-                'stock' => $importer->importStock(
-                    (bool) $this->option('apply'),
-                    function (string $stage, string $state, ?float $elapsed): void {
-                        if ((bool) $this->option('json')) {
-                            return;
-                        }
-
-                        if ($state === 'start') {
-                            $this->line('>> '.$stage.' ...');
-
-                            return;
-                        }
-
-                        $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
-                    },
-                ),
+                'stock' => $importer->importStock((bool) $this->option('apply'), $progress),
+                'sales-history' => $importer->importSalesHistory((bool) $this->option('apply'), $progress),
             };
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex import failed: '.$exception->getMessage());
@@ -155,7 +155,7 @@ Artisan::command(
 
         return 0;
     },
-)->purpose('Migrate legacy Foodex masters or canonical current-stock baseline into FOODEX with provenance and safety gates.');
+)->purpose('Migrate legacy Foodex masters, stock baseline, or historical sales into FOODEX with provenance and safety gates.');
 
 
 Artisan::command(
