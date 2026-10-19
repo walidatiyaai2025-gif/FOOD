@@ -25,7 +25,7 @@ return new class extends Migration
             $table->json('preview');
             $table->char('approved_payload_hash', 64)->nullable();
             $table->string('correlation_id', 80)->nullable();
-            $table->timestamp('expires_at');
+            $table->dateTime('expires_at');
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('executed_at')->nullable();
             $table->json('result')->nullable();
