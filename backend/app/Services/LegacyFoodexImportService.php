@@ -5772,6 +5772,172 @@ SQL));
             ])->all();
         });
 
+        $prSemantics = $stage('pr_trans_semantics', function () use ($source): array {
+            $lookup = $source->table('wh_PrTransTypes')
+                ->orderBy('PrTypeId')
+                ->get(['PrTypeId', 'PrTypeName', 'PrTypeNameEn', 'Status'])
+                ->map(static fn ($row): array => [
+                    'type' => (int) $row->PrTypeId,
+                    'name_ar' => trim((string) ($row->PrTypeName ?? '')),
+                    'name_en' => trim((string) ($row->PrTypeNameEn ?? '')),
+                    'status' => (int) ($row->Status ?? 0),
+                ])
+                ->all();
+
+            $paymentShapes = $source->table('wh_PrTrans')
+                ->where('Status', 1)
+                ->select(['PrTransType', 'PaymentType', 'PayType'])
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(TransVal) AS trans_value')
+                ->groupBy('PrTransType', 'PaymentType', 'PayType')
+                ->orderBy('PrTransType')
+                ->orderBy('PaymentType')
+                ->orderBy('PayType')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'type' => (int) $row->PrTransType,
+                    'payment_type' => $row->PaymentType === null ? null : (int) $row->PaymentType,
+                    'pay_type' => $row->PayType === null ? null : (int) $row->PayType,
+                    'rows' => (int) ($row->row_count ?? 0),
+                    'value' => round((float) ($row->trans_value ?? 0), 3),
+                ])
+                ->all();
+
+            $directInvoiceLinks = $source->table('wh_PrTrans as p')
+                ->leftJoin('wh_TransHeader as h', 'h.HeaderId', '=', 'p.InvHeaderID')
+                ->where('p.Status', 1)
+                ->where('p.InvHeaderID', '>', 0)
+                ->select(['p.PrTransType', 'h.TransType'])
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(p.TransVal) AS trans_value')
+                ->groupBy('p.PrTransType', 'h.TransType')
+                ->orderBy('p.PrTransType')
+                ->orderBy('h.TransType')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'pr_type' => (int) $row->PrTransType,
+                    'invoice_trans_type' => $row->TransType === null ? null : (int) $row->TransType,
+                    'rows' => (int) ($row->row_count ?? 0),
+                    'value' => round((float) ($row->trans_value ?? 0), 3),
+                ])
+                ->all();
+
+            $detailLinks = $source->table('wh_PrTransDtls as d')
+                ->join('wh_PrTrans as p', 'p.ID', '=', 'd.PrHeaderId')
+                ->leftJoin('wh_TransHeader as h', 'h.HeaderId', '=', 'd.TransHeaderId')
+                ->where('p.Status', 1)
+                ->select(['p.PrTransType', 'h.TransType'])
+                ->selectRaw('COUNT(*) AS detail_rows')
+                ->selectRaw('SUM(d.TransVal) AS detail_value')
+                ->groupBy('p.PrTransType', 'h.TransType')
+                ->orderBy('p.PrTransType')
+                ->orderBy('h.TransType')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'pr_type' => (int) $row->PrTransType,
+                    'linked_trans_type' => $row->TransType === null ? null : (int) $row->TransType,
+                    'rows' => (int) ($row->detail_rows ?? 0),
+                    'value' => round((float) ($row->detail_value ?? 0), 3),
+                ])
+                ->all();
+
+            $detailIntegrity = $source->table('wh_PrTransDtls as d')
+                ->leftJoin('wh_PrTrans as p', 'p.ID', '=', 'd.PrHeaderId')
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(CASE WHEN p.ID IS NULL THEN 1 ELSE 0 END) AS orphan_parent_rows')
+                ->selectRaw('SUM(CASE WHEN d.TransHeaderId > 0 THEN 1 ELSE 0 END) AS linked_transaction_rows')
+                ->selectRaw('SUM(d.TransVal) AS trans_value')
+                ->first();
+
+            $types = $source->table('wh_PrTrans')
+                ->where('Status', 1)
+                ->distinct()
+                ->orderBy('PrTransType')
+                ->pluck('PrTransType')
+                ->map(static fn ($type): int => (int) $type)
+                ->all();
+
+            $samples = [];
+            foreach ($types as $type) {
+                $samples[$type] = $source->table('wh_PrTrans')
+                    ->where('Status', 1)
+                    ->where('PrTransType', $type)
+                    ->orderBy('ID')
+                    ->limit(6)
+                    ->get([
+                        'ID',
+                        'ReceiptNo',
+                        'TransDate',
+                        'TransVal',
+                        'CustomerId',
+                        'SupplierId',
+                        'AccountID',
+                        'InvHeaderID',
+                        'PaymentType',
+                        'PayType',
+                        'GlPosted',
+                        'CashBoxNo',
+                        'BankId',
+                        'TransNotes',
+                    ])
+                    ->map(static fn ($row): array => [
+                        'id' => (int) $row->ID,
+                        'receipt' => trim((string) ($row->ReceiptNo ?? '')),
+                        'date' => (int) ($row->TransDate ?? 0),
+                        'value' => round((float) ($row->TransVal ?? 0), 3),
+                        'customer_id' => (int) ($row->CustomerId ?? 0),
+                        'supplier_id' => (int) ($row->SupplierId ?? 0),
+                        'account_id' => (int) ($row->AccountID ?? 0),
+                        'invoice_header_id' => (int) ($row->InvHeaderID ?? 0),
+                        'payment_type' => $row->PaymentType === null ? null : (int) $row->PaymentType,
+                        'pay_type' => $row->PayType === null ? null : (int) $row->PayType,
+                        'gl_posted' => (int) ($row->GlPosted ?? 0),
+                        'cashbox_no' => (int) ($row->CashBoxNo ?? 0),
+                        'bank_id' => (int) ($row->BankId ?? 0),
+                        'notes' => trim((string) ($row->TransNotes ?? '')),
+                    ])
+                    ->all();
+            }
+
+            $bankTypes = $source->table('wh_InOutBank')
+                ->where('Status', 1)
+                ->select('TransType')
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(TransVal) AS trans_value')
+                ->selectRaw('SUM(CASE WHEN CustomerId > 0 THEN 1 ELSE 0 END) AS customer_rows')
+                ->selectRaw('SUM(CASE WHEN SupplierId > 0 THEN 1 ELSE 0 END) AS supplier_rows')
+                ->selectRaw('SUM(CASE WHEN AccountID > 0 THEN 1 ELSE 0 END) AS account_rows')
+                ->selectRaw('SUM(CASE WHEN GlPosted = 1 THEN 1 ELSE 0 END) AS gl_posted_rows')
+                ->groupBy('TransType')
+                ->orderBy('TransType')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'type' => (int) $row->TransType,
+                    'rows' => (int) ($row->row_count ?? 0),
+                    'value' => round((float) ($row->trans_value ?? 0), 3),
+                    'customer_rows' => (int) ($row->customer_rows ?? 0),
+                    'supplier_rows' => (int) ($row->supplier_rows ?? 0),
+                    'account_rows' => (int) ($row->account_rows ?? 0),
+                    'gl_posted_rows' => (int) ($row->gl_posted_rows ?? 0),
+                ])
+                ->all();
+
+            return [
+                'type_lookup' => $lookup,
+                'payment_shapes' => $paymentShapes,
+                'direct_invoice_links' => $directInvoiceLinks,
+                'detail_links' => $detailLinks,
+                'detail_integrity' => [
+                    'rows' => (int) ($detailIntegrity->row_count ?? 0),
+                    'orphan_parent_rows' => (int) ($detailIntegrity->orphan_parent_rows ?? 0),
+                    'linked_transaction_rows' => (int) ($detailIntegrity->linked_transaction_rows ?? 0),
+                    'value' => round((float) ($detailIntegrity->trans_value ?? 0), 3),
+                ],
+                'samples' => $samples,
+                'bank_types' => $bankTypes,
+            ];
+        });
+
         $commercialGlLinks = $stage('commercial_gl_links', function () use ($source): array {
             $linked = (int) $source->table('wh_TransHeader')
                 ->where('Status', 1)
@@ -5808,12 +5974,15 @@ SQL));
             'account_integrity' => $accountIntegrity,
             'party_account_links' => $partyAccountLinks,
             'pr_trans_types' => $prTrans,
+            'pr_semantics' => $prSemantics,
             'commercial_gl_links' => $commercialGlLinks,
             'rules' => [
                 'no_source_writes' => true,
                 'no_target_writes' => true,
                 'do_not_treat_wh_transheader_balance_as_outstanding' => true,
-                'finance_authority_candidate' => 'gl_EntryHeader + gl_EntryDetails + gl_Accounts',
+                'finance_authority_candidate' => $tableCounts['gl_entry_headers'] > 0
+                    ? 'gl_EntryHeader + gl_EntryDetails + gl_Accounts'
+                    : 'wh_PrTrans + wh_PrTransDtls + wh_PrTransTypes',
                 'cash_receipt_payment_candidate' => 'wh_PrTrans',
             ],
         ];
