@@ -100,6 +100,15 @@
 
 @include('admin._smart-ordering-workspace-nav')
 
+@if(!($restaurantLaunched ?? false))
+<div class="foodex-alert warning" id="restaurant-setup-operations" role="status">
+    <strong>{{ __('restaurant_onboarding.flow.steps.operations.title') }}</strong>
+    <span>{{ __('restaurant_onboarding.flow.steps.operations.description') }}</span>
+</div>
+<nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.operations_tab') }}">
+    <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['store_id'=>request()->integer('store_id'),'tab'=>'branches']) }}" aria-current="page">{{ __('smart_ordering.branches_tab') }}</a>
+</nav>
+@else
 <nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.operations_tab') }}">
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
@@ -113,6 +122,7 @@
 <a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
 @endif
 </nav>
+@endif
 
 @if($tab==='orders')
 <form method="get" class="foodex-card so-toolbar">
