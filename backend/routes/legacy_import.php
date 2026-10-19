@@ -30,9 +30,14 @@ Artisan::command(
             ($report['stock_snapshot']['last_date'] ?? 'n/a').
             ' | rows='.$report['stock_snapshot']['rows'].
             ' | stores='.$report['stock_snapshot']['stores'].
-            ' | items='.$report['stock_snapshot']['items']
+            ' | items='.$report['stock_snapshot']['items'].
+            ' | cutover_usable='.($report['stock_snapshot']['usable_as_cutover_stock'] ? 'yes' : 'no')
         );
         $this->line('Tracking schema ready: '.($report['target']['tracking_ready'] ? 'yes' : 'no'));
+        $this->line(
+            'Target clean baseline: '.($report['target']['clean_baseline_ready'] ? 'yes' : 'no').
+            ' | business_rows='.$report['target']['business_total']
+        );
 
         $this->table(
             ['Price matrix check', 'Candidates', 'Non-linear'],
