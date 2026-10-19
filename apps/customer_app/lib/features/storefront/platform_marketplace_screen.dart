@@ -399,6 +399,47 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
+  Widget _pageHeader(
+    BuildContext context,
+    CustomerCommerceContext? scope,
+  ) =>
+      _MarketplaceHeader(
+        isAuthenticated: () => _currentSession.isAuthenticated,
+        onRegister: _register,
+        onLogin: () => Navigator.of(context).pushNamed(
+          '/auth/checkout?next=/marketplace',
+        ),
+        onProfile: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_profileLocation(scope));
+        },
+        onScan: _scanBarcode,
+        onLanguageToggle: _toggleLocale,
+        localeCode: Localizations.localeOf(context).languageCode,
+        onStore: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_storeLocation(scope));
+        },
+        onCart: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_cartLocation(scope));
+        },
+        onOrders: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_ordersLocation(scope));
+        },
+        onNotifications: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_notificationsLocation(scope));
+        },
+        searchController: _searchController,
+        onSearchSubmitted: _submitSearch,
+        onSearchClear: () {
+          _searchController.clear();
+          _submitSearch('');
+        },
+      );
+
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: const Color(0xFFF8FAF9),
@@ -407,26 +448,41 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return Column(
+                  children: [
+                    _pageHeader(context, widget.commerceContextProvider?.call()),
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                );
               }
               if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off_rounded, size: 48),
-                        const SizedBox(height: 12),
-                        Text(context.tr('customer.store.error.title')),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: () => setState(() => _future = _load()),
-                          child: Text(context.tr('customer.action.retry')),
+                return Column(
+                  children: [
+                    _pageHeader(context, widget.commerceContextProvider?.call()),
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.cloud_off_rounded, size: 48),
+                              const SizedBox(height: 12),
+                              Text(context.tr('customer.store.error.title')),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: () =>
+                                    setState(() => _future = _load()),
+                                child: Text(context.tr('customer.action.retry')),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 );
               }
 
@@ -531,59 +587,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   return CustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(
-                        child: _MarketplaceHeader(
-                          isAuthenticated: () =>
-                              _currentSession.isAuthenticated,
-                          onRegister: _register,
-                          onLogin: () => Navigator.of(context).pushNamed(
-                            '/auth/checkout?next=/marketplace',
-                          ),
-                          onProfile: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _profileLocation(scope),
-                            );
-                          },
-                          onScan: _scanBarcode,
-                          onLanguageToggle: _toggleLocale,
-                          localeCode:
-                              Localizations.localeOf(context).languageCode,
-                          onStore: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _storeLocation(scope),
-                            );
-                          },
-                          onCart: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _cartLocation(scope),
-                            );
-                          },
-                          onOrders: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _ordersLocation(scope),
-                            );
-                          },
-                          onNotifications: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _notificationsLocation(scope),
-                            );
-                          },
-                          searchController: _searchController,
-                          onSearchSubmitted: _submitSearch,
-                          onSearchClear: () {
-                            _searchController.clear();
-                            _submitSearch('');
-                          },
-                        ),
+                        child: _pageHeader(context, activeCommerceContext),
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(
