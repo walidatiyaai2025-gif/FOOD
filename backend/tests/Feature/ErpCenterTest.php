@@ -266,6 +266,7 @@ final class ErpCenterTest extends TestCase
     public function test_failed_report_kpi_is_unavailable_without_bi_and_scope_aware_when_bi_is_operational(): void
     {
         $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-bi-admin@example.test');
+        $this->app['env'] = 'production';
 
         $unavailable = $this->actingAs($admin)->get(route('admin.erp.index'));
         $unavailableKpi = collect($unavailable->viewData('kpis'))->firstWhere('key', 'failed_reports');
