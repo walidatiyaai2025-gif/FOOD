@@ -5535,6 +5535,290 @@ SQL));
         }
     }
 
+    public function financeDiagnostics(?callable $progress = null): array
+    {
+        $this->assertTrackingTables();
+
+        $stage = static function (string $label, callable $callback) use ($progress): mixed {
+            if ($progress !== null) {
+                $progress($label, 'start', null);
+            }
+
+            $startedAt = microtime(true);
+            $result = $callback();
+            $elapsed = round(microtime(true) - $startedAt, 3);
+
+            if ($progress !== null) {
+                $progress($label, 'done', $elapsed);
+            }
+
+            return $result;
+        };
+
+        $source = DB::connection('foodex_legacy');
+
+        $tableCounts = $stage('finance_table_counts', fn (): array => [
+            'gl_accounts' => (int) $source->table('gl_Accounts')->count(),
+            'gl_entry_headers' => (int) $source->table('gl_EntryHeader')->count(),
+            'gl_entry_details' => (int) $source->table('gl_EntryDetails')->count(),
+            'wh_pr_trans' => (int) $source->table('wh_PrTrans')->count(),
+            'wh_in_out_bank' => (int) $source->table('wh_InOutBank')->count(),
+        ]);
+
+        $glHeader = $stage('gl_header_summary', function () use ($source): array {
+            $row = $source->table('gl_EntryHeader')
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(CASE WHEN Posted = 1 THEN 1 ELSE 0 END) AS posted_count')
+                ->selectRaw('SUM(CASE WHEN Posted <> 1 OR Posted IS NULL THEN 1 ELSE 0 END) AS unposted_count')
+                ->selectRaw('MIN(TransDate) AS first_date')
+                ->selectRaw('MAX(TransDate) AS last_date')
+                ->first();
+
+            return [
+                'rows' => (int) ($row->row_count ?? 0),
+                'posted' => (int) ($row->posted_count ?? 0),
+                'unposted' => (int) ($row->unposted_count ?? 0),
+                'first_date' => $row->first_date === null ? null : (int) $row->first_date,
+                'last_date' => $row->last_date === null ? null : (int) $row->last_date,
+            ];
+        });
+
+        $glFlags = $stage('gl_detail_flag_summary', function () use ($source): array {
+            $rows = $source->table('gl_EntryDetails')
+                ->select(['DrCrFlag'])
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END) AS active_count')
+                ->selectRaw('SUM(CASE WHEN Status = 1 THEN AccountValue ELSE 0 END) AS active_value')
+                ->groupBy('DrCrFlag')
+                ->orderBy('DrCrFlag')
+                ->get();
+
+            return collect($rows)->map(static fn ($row): array => [
+                'flag' => $row->DrCrFlag === null ? null : (int) $row->DrCrFlag,
+                'rows' => (int) ($row->row_count ?? 0),
+                'active_rows' => (int) ($row->active_count ?? 0),
+                'active_value' => round((float) ($row->active_value ?? 0), 3),
+            ])->all();
+        });
+
+        $glBalance = $stage('gl_posted_balance_check', function () use ($source): array {
+            $rows = $source->table('gl_EntryDetails as d')
+                ->join('gl_EntryHeader as h', 'h.HeaderID', '=', 'd.HeaderId')
+                ->where('h.Posted', 1)
+                ->where('d.Status', 1)
+                ->select('d.HeaderId')
+                ->selectRaw('SUM(CASE WHEN d.DrCrFlag = 1 THEN d.AccountValue ELSE 0 END) AS flag_1_total')
+                ->selectRaw('SUM(CASE WHEN d.DrCrFlag = 2 THEN d.AccountValue ELSE 0 END) AS flag_2_total')
+                ->selectRaw('SUM(CASE WHEN d.DrCrFlag NOT IN (1,2) OR d.DrCrFlag IS NULL THEN 1 ELSE 0 END) AS other_flag_rows')
+                ->groupBy('d.HeaderId')
+                ->get();
+
+            $balanced = 0;
+            $unbalanced = 0;
+            $otherFlagRows = 0;
+            $differenceAbsTotal = 0.0;
+            $samples = [];
+
+            foreach ($rows as $row) {
+                $flag1 = round((float) ($row->flag_1_total ?? 0), 3);
+                $flag2 = round((float) ($row->flag_2_total ?? 0), 3);
+                $difference = round($flag1 - $flag2, 3);
+                $other = (int) ($row->other_flag_rows ?? 0);
+                $otherFlagRows += $other;
+                $differenceAbsTotal += abs($difference);
+
+                if (abs($difference) <= 0.001 && $other === 0) {
+                    $balanced++;
+                } else {
+                    $unbalanced++;
+                    if (count($samples) < 20) {
+                        $samples[] = [
+                            'header_id' => (int) $row->HeaderId,
+                            'flag_1_total' => $flag1,
+                            'flag_2_total' => $flag2,
+                            'difference' => $difference,
+                            'other_flag_rows' => $other,
+                        ];
+                    }
+                }
+            }
+
+            return [
+                'posted_headers_with_active_details' => count($rows),
+                'balanced_if_flags_1_2_are_dr_cr' => $balanced,
+                'unbalanced_if_flags_1_2_are_dr_cr' => $unbalanced,
+                'other_flag_rows' => $otherFlagRows,
+                'absolute_difference_total' => round($differenceAbsTotal, 3),
+                'unbalanced_samples' => $samples,
+            ];
+        });
+
+        $accountIntegrity = $stage('gl_account_integrity', function () use ($source): array {
+            $activeDetailAccounts = $source->table('gl_EntryDetails')
+                ->where('Status', 1)
+                ->whereNotNull('AccountID')
+                ->where('AccountID', '>', 0)
+                ->distinct()
+                ->pluck('AccountID')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            $known = $source->table('gl_Accounts')
+                ->whereIn('ID', $activeDetailAccounts === [] ? [-1] : $activeDetailAccounts)
+                ->pluck('ID')
+                ->map(static fn ($id): int => (int) $id)
+                ->flip();
+
+            $missing = [];
+            foreach ($activeDetailAccounts as $accountId) {
+                if (! $known->has($accountId)) {
+                    $missing[] = $accountId;
+                }
+            }
+
+            return [
+                'used_active_accounts' => count($activeDetailAccounts),
+                'missing_account_ids' => count($missing),
+                'missing_account_samples' => array_slice($missing, 0, 30),
+            ];
+        });
+
+        $partyAccountLinks = $stage('party_gl_account_links', function () use ($source): array {
+            $customerGlRows = $source->table('wh_Customers')
+                ->whereNotNull('GlAccId')
+                ->where('GlAccId', '>', 0)
+                ->count();
+            $supplierGlRows = $source->table('wh_Suppliers')
+                ->whereNotNull('GlAccId')
+                ->where('GlAccId', '>', 0)
+                ->count();
+
+            $customerAccountIds = $source->table('wh_Customers')
+                ->whereNotNull('GlAccId')
+                ->where('GlAccId', '>', 0)
+                ->distinct()
+                ->pluck('GlAccId')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            $supplierAccountIds = $source->table('wh_Suppliers')
+                ->whereNotNull('GlAccId')
+                ->where('GlAccId', '>', 0)
+                ->distinct()
+                ->pluck('GlAccId')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            $allPartyAccountIds = array_values(array_unique(array_merge($customerAccountIds, $supplierAccountIds)));
+            $known = $source->table('gl_Accounts')
+                ->whereIn('ID', $allPartyAccountIds === [] ? [-1] : $allPartyAccountIds)
+                ->pluck('ID')
+                ->map(static fn ($id): int => (int) $id)
+                ->flip();
+
+            $missingCustomer = array_values(array_filter(
+                $customerAccountIds,
+                static fn (int $id): bool => ! $known->has($id),
+            ));
+            $missingSupplier = array_values(array_filter(
+                $supplierAccountIds,
+                static fn (int $id): bool => ! $known->has($id),
+            ));
+
+            return [
+                'customers_with_gl_account' => (int) $customerGlRows,
+                'customer_gl_accounts' => count($customerAccountIds),
+                'customer_missing_gl_accounts' => count($missingCustomer),
+                'customer_missing_samples' => array_slice($missingCustomer, 0, 20),
+                'suppliers_with_gl_account' => (int) $supplierGlRows,
+                'supplier_gl_accounts' => count($supplierAccountIds),
+                'supplier_missing_gl_accounts' => count($missingSupplier),
+                'supplier_missing_samples' => array_slice($missingSupplier, 0, 20),
+                'customers_with_credit_limit' => (int) $source->table('wh_Customers')
+                    ->where('CreditLimit', '>', 0)
+                    ->count(),
+                'customers_with_credit_period' => (int) $source->table('wh_Customers')
+                    ->where('CreditPeriod', '>', 0)
+                    ->count(),
+                'suppliers_with_credit_period' => (int) $source->table('wh_Suppliers')
+                    ->where('Creditperiod', '>', 0)
+                    ->count(),
+            ];
+        });
+
+        $prTrans = $stage('pr_trans_summary', function () use ($source): array {
+            $rows = $source->table('wh_PrTrans')
+                ->where('Status', 1)
+                ->select('PrTransType')
+                ->selectRaw('COUNT(*) AS row_count')
+                ->selectRaw('SUM(TransVal) AS trans_value')
+                ->selectRaw('SUM(CASE WHEN CustomerId > 0 THEN 1 ELSE 0 END) AS customer_rows')
+                ->selectRaw('SUM(CASE WHEN SupplierId > 0 THEN 1 ELSE 0 END) AS supplier_rows')
+                ->selectRaw('SUM(CASE WHEN AccountID > 0 THEN 1 ELSE 0 END) AS account_rows')
+                ->selectRaw('SUM(CASE WHEN GlPosted = 1 THEN 1 ELSE 0 END) AS gl_posted_rows')
+                ->selectRaw('SUM(CASE WHEN b_OpeningBal = 1 THEN 1 ELSE 0 END) AS opening_rows')
+                ->groupBy('PrTransType')
+                ->orderBy('PrTransType')
+                ->get();
+
+            return collect($rows)->map(static fn ($row): array => [
+                'type' => (int) $row->PrTransType,
+                'rows' => (int) ($row->row_count ?? 0),
+                'trans_value' => round((float) ($row->trans_value ?? 0), 3),
+                'customer_rows' => (int) ($row->customer_rows ?? 0),
+                'supplier_rows' => (int) ($row->supplier_rows ?? 0),
+                'account_rows' => (int) ($row->account_rows ?? 0),
+                'gl_posted_rows' => (int) ($row->gl_posted_rows ?? 0),
+                'opening_rows' => (int) ($row->opening_rows ?? 0),
+            ])->all();
+        });
+
+        $commercialGlLinks = $stage('commercial_gl_links', function () use ($source): array {
+            $linked = (int) $source->table('wh_TransHeader')
+                ->where('Status', 1)
+                ->where(function ($query): void {
+                    $query
+                        ->where('glEntryHeaderId', '>', 0)
+                        ->orWhere('glEntryHeaderId2', '>', 0);
+                })
+                ->count();
+
+            $linkedPrimary = (int) $source->table('wh_TransHeader')
+                ->where('Status', 1)
+                ->where('glEntryHeaderId', '>', 0)
+                ->count();
+
+            $linkedSecondary = (int) $source->table('wh_TransHeader')
+                ->where('Status', 1)
+                ->where('glEntryHeaderId2', '>', 0)
+                ->count();
+
+            return [
+                'posted_commercial_headers_with_any_gl_link' => $linked,
+                'with_primary_gl_link' => $linkedPrimary,
+                'with_secondary_gl_link' => $linkedSecondary,
+            ];
+        });
+
+        return [
+            'read_only' => true,
+            'tables' => $tableCounts,
+            'gl_header' => $glHeader,
+            'gl_flags' => $glFlags,
+            'gl_balance' => $glBalance,
+            'account_integrity' => $accountIntegrity,
+            'party_account_links' => $partyAccountLinks,
+            'pr_trans_types' => $prTrans,
+            'commercial_gl_links' => $commercialGlLinks,
+            'rules' => [
+                'no_source_writes' => true,
+                'no_target_writes' => true,
+                'do_not_treat_wh_transheader_balance_as_outstanding' => true,
+                'finance_authority_candidate' => 'gl_EntryHeader + gl_EntryDetails + gl_Accounts',
+                'cash_receipt_payment_candidate' => 'wh_PrTrans',
+            ],
+        ];
+    }
+
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
