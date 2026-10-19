@@ -101,5 +101,5 @@ Route::post('/sites/{site}/merchandising/recommendations', [SmartOrderingMerchan
 Route::put('/sites/{site}/merchandising/recommendations/{recommendation}', [SmartOrderingMerchandisingAdminController::class, 'updateRecommendation'])
     ->whereUuid('recommendation')->name('merchandising.recommendations.update');
 
-Route::get('/analytics', [SmartOrderingAnalyticsController::class, 'index'])->name('analytics.index');
-Route::get('/analytics/export', [SmartOrderingAnalyticsController::class, 'export'])->name('analytics.export');
+Route::get('/analytics', [SmartOrderingAnalyticsController::class, 'index'])->middleware('restaurant.setup:launched')->name('analytics.index');
+Route::get('/analytics/export', [SmartOrderingAnalyticsController::class, 'export'])->middleware('restaurant.setup:launched')->name('analytics.export');
