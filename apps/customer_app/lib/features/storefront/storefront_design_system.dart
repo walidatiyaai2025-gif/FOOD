@@ -71,6 +71,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
     this.onNotifications,
     this.onCart,
     this.location,
+    this.leading,
+    this.trailingActions = const <Widget>[],
     this.logoUrl,
     this.address,
     super.key,
@@ -82,6 +84,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
   final String? location;
+  final Widget? leading;
+  final List<Widget> trailingActions;
   final FoodexPalette palette;
   final TextEditingController? searchController;
   final String? searchHint;
@@ -206,6 +210,10 @@ class FoodexWholesaleHeader extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 6),
+            ],
             if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -305,6 +313,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
+            ...trailingActions,
+            if (trailingActions.isNotEmpty) const SizedBox(width: 4),
             _FoodexWholesaleHeaderIcon(
               icon: Icons.notifications_none_rounded,
               onTap: onNotifications ?? () => _defaultNotifications(context),
@@ -332,6 +342,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.leading,
+    this.trailingActions = const <Widget>[],
     this.logoUrl,
     this.address,
     super.key,
@@ -348,6 +360,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
   final VoidCallback? onClearSearch;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final Widget? leading;
+  final List<Widget> trailingActions;
   final String? logoUrl;
   final String? address;
 
@@ -369,6 +383,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
                 onClearSearch: onClearSearch,
                 onNotifications: onNotifications,
                 onCart: onCart,
+                leading: leading,
+                trailingActions: trailingActions,
                 logoUrl: logoUrl,
                 address: address,
               ),
