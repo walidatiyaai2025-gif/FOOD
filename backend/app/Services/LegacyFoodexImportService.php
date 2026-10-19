@@ -2213,6 +2213,14 @@ SQL));
         $returnNonzeroCount = 0;
         $paidSalesCount = 0;
         $paymentBalanceMismatches = 0;
+        $paymentBalanceMismatchSamples = [];
+        $paidEqualsCashVisa = 0;
+        $paidDiffersCashVisa = 0;
+        $paidCashVisaNonzero = 0;
+        $paidZeroCount = 0;
+        $paidOneCount = 0;
+        $paidGreaterThanOneCount = 0;
+        $paidComparisonSamples = [];
 
         $parseDate = static function (mixed $value): ?string {
             $date = (int) $value;
@@ -2243,6 +2251,14 @@ SQL));
             &$returnNonzeroCount,
             &$paidSalesCount,
             &$paymentBalanceMismatches,
+            &$paymentBalanceMismatchSamples,
+            &$paidEqualsCashVisa,
+            &$paidDiffersCashVisa,
+            &$paidCashVisaNonzero,
+            &$paidZeroCount,
+            &$paidOneCount,
+            &$paidGreaterThanOneCount,
+            &$paidComparisonSamples,
         ): void {
             foreach ($headerCursor() as $header) {
                 $headerId = (int) $header->HeaderId;
@@ -2276,14 +2292,64 @@ SQL));
                 $type = (int) $header->TransType;
                 if (in_array($type, $salesTypes, true)) {
                     $paid = round((float) ($header->Paid ?? 0), 3);
+                    $paidCash = round((float) ($header->PaidCash ?? 0), 3);
+                    $paidVisa = round((float) ($header->PaidByVisa ?? 0), 3);
+                    $cashVisa = round($paidCash + $paidVisa, 3);
+
                     if ($paid > 0.0005) {
                         $paidSalesCount++;
+                    }
+
+                    if (abs($paid) <= 0.0005) {
+                        $paidZeroCount++;
+                    } elseif (abs($paid - 1.0) <= 0.0005) {
+                        $paidOneCount++;
+                    } elseif ($paid > 1.0005) {
+                        $paidGreaterThanOneCount++;
+                    }
+
+                    if ($cashVisa > 0.0005) {
+                        $paidCashVisaNonzero++;
+                    }
+
+                    if (abs($paid - $cashVisa) <= 0.050) {
+                        $paidEqualsCashVisa++;
+                    } else {
+                        $paidDiffersCashVisa++;
+                        if (count($paidComparisonSamples) < 20) {
+                            $paidComparisonSamples[] = [
+                                'header_id' => $headerId,
+                                'type' => $type,
+                                'date' => (int) ($header->TransDate ?? 0),
+                                'pay_type' => (int) ($header->PayType ?? 0),
+                                'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                                'paid' => $paid,
+                                'paid_cash' => $paidCash,
+                                'paid_visa' => $paidVisa,
+                                'cash_plus_visa' => $cashVisa,
+                                'balance' => round((float) ($header->Balance ?? 0), 3),
+                            ];
+                        }
                     }
 
                     $net = round((float) ($header->NetTotal ?? 0), 3);
                     $balance = round((float) ($header->Balance ?? 0), 3);
                     if (abs(($net - $paid) - $balance) > 0.050) {
                         $paymentBalanceMismatches++;
+                        if (count($paymentBalanceMismatchSamples) < 20) {
+                            $paymentBalanceMismatchSamples[] = [
+                                'header_id' => $headerId,
+                                'type' => $type,
+                                'date' => (int) ($header->TransDate ?? 0),
+                                'net_total' => $net,
+                                'paid' => $paid,
+                                'balance' => $balance,
+                                'net_minus_paid' => round($net - $paid, 3),
+                                'paid_cash' => $paidCash,
+                                'paid_visa' => $paidVisa,
+                                'pay_type' => (int) ($header->PayType ?? 0),
+                            ];
+                        }
                     }
                 } else {
                     $net = abs(round((float) ($header->NetTotal ?? 0), 3));
@@ -2308,6 +2374,7 @@ SQL));
         $salesZeroQtyLines = 0;
         $salesNegativeQtyLines = 0;
         $invalidSalesItemRows = 0;
+        $zeroQtyLineSamples = [];
         $chunkNumber = 0;
 
         $stage('stream_sales_return_details', function () use (
@@ -2324,6 +2391,7 @@ SQL));
             &$salesZeroQtyLines,
             &$salesNegativeQtyLines,
             &$invalidSalesItemRows,
+            &$zeroQtyLineSamples,
             &$chunkNumber,
         ): void {
             $source->table('wh_TransDetails')
@@ -2351,6 +2419,7 @@ SQL));
                         &$salesZeroQtyLines,
                         &$salesNegativeQtyLines,
                         &$invalidSalesItemRows,
+                        &$zeroQtyLineSamples,
                         &$chunkNumber,
                     ): void {
                         $startedAt = microtime(true);
@@ -2387,6 +2456,14 @@ SQL));
                                     $salesNegativeQtyLines++;
                                 } elseif (abs($qty) <= 0.0005) {
                                     $salesZeroQtyLines++;
+                                    if (count($zeroQtyLineSamples) < 20) {
+                                        $zeroQtyLineSamples[] = [
+                                            'detail_id' => (int) ($row->DetailId ?? 0),
+                                            'header_id' => $headerId,
+                                            'item_id' => $itemId,
+                                            'value' => round((float) ($row->Value ?? 0), 3),
+                                        ];
+                                    }
                                 }
                             } else {
                                 $returnDetails++;
@@ -2416,16 +2493,30 @@ SQL));
         $salesHeadersWithoutLines = 0;
         $returnHeadersWithoutLines = 0;
         $lineTotalMismatches = 0;
+        $salesHeadersWithoutLinesSamples = [];
+        $lineTotalMismatchSamples = [];
 
         foreach ($salesHeaderIds as $headerId) {
             if (($detailCounts[$headerId] ?? 0) === 0) {
                 $salesHeadersWithoutLines++;
+                if (count($salesHeadersWithoutLinesSamples) < 20) {
+                    $salesHeadersWithoutLinesSamples[] = $headerId;
+                }
             }
 
             $lineTotal = round((float) ($detailValueSums[$headerId] ?? 0), 3);
             $headerTotal = (float) ($salesHeaderTotals[$headerId] ?? 0);
             if (abs($lineTotal - $headerTotal) > 0.050) {
                 $lineTotalMismatches++;
+                if (count($lineTotalMismatchSamples) < 20) {
+                    $lineTotalMismatchSamples[] = [
+                        'header_id' => $headerId,
+                        'header_total' => round($headerTotal, 3),
+                        'detail_value_sum' => $lineTotal,
+                        'difference' => round($headerTotal - $lineTotal, 3),
+                        'detail_count' => (int) ($detailCounts[$headerId] ?? 0),
+                    ];
+                }
             }
         }
 
@@ -2485,6 +2576,19 @@ SQL));
                     'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
                     'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
                     'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
+                    'sales_headers_without_lines' => $salesHeadersWithoutLinesSamples,
+                    'line_total_mismatches' => $lineTotalMismatchSamples,
+                    'sales_zero_qty_lines' => $zeroQtyLineSamples,
+                    'payment_balance_mismatches' => $paymentBalanceMismatchSamples,
+                    'paid_vs_cash_visa' => $paidComparisonSamples,
+                ],
+                'diagnostics' => [
+                    'paid_zero_count' => $paidZeroCount,
+                    'paid_one_count' => $paidOneCount,
+                    'paid_greater_than_one_count' => $paidGreaterThanOneCount,
+                    'paid_cash_or_visa_nonzero_count' => $paidCashVisaNonzero,
+                    'paid_equals_cash_plus_visa_count' => $paidEqualsCashVisa,
+                    'paid_differs_cash_plus_visa_count' => $paidDiffersCashVisa,
                 ],
                 'rules' => [
                     'sales_types' => $salesTypes,
