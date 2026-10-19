@@ -71,6 +71,9 @@ final class LegacyFoodexImportService
             ->orderBy('stores.id')
             ->get(['stores.id', 'stores.code', 'stores.name']);
 
+        $targetBusinessCounts = $this->targetBusinessCounts();
+        $targetBusinessTotal = array_sum($targetBusinessCounts);
+
         return [
             'source_connection' => 'foodex_legacy',
             'source_database' => (string) config('database.connections.foodex_legacy.database'),
@@ -89,6 +92,9 @@ final class LegacyFoodexImportService
             'price_matrix_consistency' => $priceMatrixConsistency,
             'target' => [
                 'database_driver' => DB::connection()->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME),
+                'business_counts' => $targetBusinessCounts,
+                'business_total' => $targetBusinessTotal,
+                'clean_baseline_ready' => $targetBusinessTotal === 0,
                 'b2b_stores' => $b2bStores->map(static fn ($row): array => [
                     'id' => (int) $row->id,
                     'code' => (string) $row->code,
@@ -132,6 +138,13 @@ final class LegacyFoodexImportService
         }
 
         $this->assertTrackingTables();
+
+        if (! ($preflight['target']['clean_baseline_ready'] ?? false)) {
+            throw new RuntimeException(
+                'Refusing to merge legacy Foodex data into a non-empty FOODEX business dataset. '.
+                'Run a fresh database rebuild and core seed first.'
+            );
+        }
 
         $runId = (string) Str::uuid();
         DB::table('legacy_import_runs')->insert([
@@ -994,6 +1007,43 @@ final class LegacyFoodexImportService
         }
 
         return $fallback;
+    }
+
+    private function targetBusinessCounts(): array
+    {
+        $tables = [
+            'customers',
+            'b2b_customers',
+            'b2c_customers',
+            'b2b_accounts',
+            'addresses',
+            'warehouses',
+            'categories',
+            'brands',
+            'units',
+            'products',
+            'product_selling_units',
+            'store_products',
+            'b2b_price_tiers',
+            'b2b_price_rules',
+            'inventories',
+            'stock_movements',
+            'orders',
+            'order_items',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'enterprise_suppliers',
+        ];
+
+        $counts = [];
+        foreach ($tables as $table) {
+            if (Schema::hasTable($table)) {
+                $counts[$table] = (int) DB::table($table)->count();
+            }
+        }
+
+        return $counts;
     }
 
     private function assertTrackingTables(): void
