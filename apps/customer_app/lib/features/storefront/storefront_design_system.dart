@@ -70,6 +70,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.notificationKey,
+    this.cartKey,
     this.location,
     this.leading,
     this.trailingActions = const <Widget>[],
@@ -83,6 +85,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
   final String? address;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final Key? notificationKey;
+  final Key? cartKey;
   final String? location;
   final Widget? leading;
   final List<Widget> trailingActions;
@@ -316,11 +320,13 @@ class FoodexWholesaleHeader extends StatelessWidget {
             ...trailingActions,
             if (trailingActions.isNotEmpty) const SizedBox(width: 4),
             _FoodexWholesaleHeaderIcon(
+              key: notificationKey,
               icon: Icons.notifications_none_rounded,
               onTap: onNotifications ?? () => _defaultNotifications(context),
             ),
             const SizedBox(width: 4),
             _FoodexWholesaleHeaderIcon(
+              key: cartKey,
               icon: Icons.shopping_cart_outlined,
               onTap: onCart ?? () => _defaultCart(context),
             ),
@@ -342,6 +348,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.notificationKey,
+    this.cartKey,
     this.leading,
     this.trailingActions = const <Widget>[],
     this.logoUrl,
@@ -360,6 +368,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
   final VoidCallback? onClearSearch;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final Key? notificationKey;
+  final Key? cartKey;
   final Widget? leading;
   final List<Widget> trailingActions;
   final String? logoUrl;
@@ -383,6 +393,8 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
                 onClearSearch: onClearSearch,
                 onNotifications: onNotifications,
                 onCart: onCart,
+                notificationKey: notificationKey,
+                cartKey: cartKey,
                 leading: leading,
                 trailingActions: trailingActions,
                 logoUrl: logoUrl,
