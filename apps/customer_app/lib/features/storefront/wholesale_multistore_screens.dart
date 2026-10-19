@@ -321,10 +321,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
-              final sectionTitle =
+              final configuredSectionTitle =
                   section['title_ar']?.toString().trim().isNotEmpty == true
                       ? section['title_ar'].toString()
                       : _defaultWholesaleSectionTitle(type);
+              final sectionTitle = type == 'brands' ||
+                      configuredSectionTitle.trim() == 'منتجاتنا'
+                  ? context.tr('b2b.home.our_brands')
+                  : configuredSectionTitle;
 
               switch (type) {
                 case 'hero':
@@ -414,7 +418,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         actionApi: widget.actionApi,
                         pendingActionStore: widget.pendingActionStore,
                         palette: palette,
-                        maxItems: 3,
+                        maxItems: type == 'best_sellers' ? 9 : 3,
                         showCommerceActions: true,
                         homeWholeNumberPrice: true,
                       ),
@@ -487,8 +491,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             return Scaffold(
               backgroundColor: palette.background,
               body: SafeArea(
-                child: ListView(
-                  padding: EdgeInsets.zero,
+                child: Column(
                   children: [
                     _WholesaleHeader(
                       title: title,
@@ -504,8 +507,16 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
-                    ...content,
-                    const SizedBox(height: 5.5),
+                    Expanded(
+                      child: ListView(
+                        key: const ValueKey('wholesale-home-scroll-body'),
+                        padding: EdgeInsets.zero,
+                        children: [
+                          ...content,
+                          const SizedBox(height: 5.5),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
