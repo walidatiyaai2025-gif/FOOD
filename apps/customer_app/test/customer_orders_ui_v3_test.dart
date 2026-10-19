@@ -553,9 +553,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       expect(find.byType(AppBar), findsNothing);
-      expect(find.byKey(const ValueKey('customer-order-back')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-order-back')), findsNothing);
       expect(find.text('WH-901'), findsOneWidget);
 
       failRefresh = true;
