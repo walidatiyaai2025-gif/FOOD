@@ -81,8 +81,8 @@ Artisan::command(
     'foodex:legacy-import {phase=masters : Import phase} {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         $phase = strtolower(trim((string) $this->argument('phase')));
-        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history'], true)) {
-            $this->error('Supported phases: masters, extended-masters, stock, sales-history.');
+        if (! in_array($phase, ['masters', 'extended-masters', 'stock', 'sales-history', 'purchase-history'], true)) {
+            $this->error('Supported phases: masters, extended-masters, stock, sales-history, purchase-history.');
 
             return 2;
         }
@@ -107,6 +107,7 @@ Artisan::command(
                 'extended-masters' => $importer->importExtendedMasters((bool) $this->option('apply')),
                 'stock' => $importer->importStock((bool) $this->option('apply'), $progress),
                 'sales-history' => $importer->importSalesHistory((bool) $this->option('apply'), $progress),
+                'purchase-history' => $importer->importPurchaseHistory((bool) $this->option('apply'), $progress),
             };
         } catch (Throwable $exception) {
             $this->error('Legacy Foodex import failed: '.$exception->getMessage());
@@ -218,6 +219,40 @@ Artisan::command(
                 }
             }
 
+            if ($phase === 'purchase-history') {
+                $samples = $result['samples'] ?? [];
+
+                if (($samples['nonzero_headers_without_lines'] ?? []) !== []) {
+                    $this->warn(
+                        'Non-zero procurement headers without lines: '.
+                        implode(', ', $samples['nonzero_headers_without_lines'])
+                    );
+                }
+
+                if (($samples['line_total_mismatches'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Purchase line-total mismatch samples');
+                    $this->table(
+                        ['Header', 'Type', 'Header total', 'Detail sum', 'Difference', 'Detail count'],
+                        collect($samples['line_total_mismatches'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['header_total'],
+                            $row['detail_value_sum'],
+                            $row['difference'],
+                            $row['detail_count'],
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['zero_effect_headers_skipped'] ?? []) !== []) {
+                    $this->line(
+                        'Zero-effect procurement headers to skip: '.
+                        implode(', ', $samples['zero_effect_headers_skipped'])
+                    );
+                }
+            }
+
             $this->warn('Dry-run only. Re-run with --apply after reviewing these counts.');
 
             return 0;
@@ -244,7 +279,7 @@ Artisan::command(
 
         return 0;
     },
-)->purpose('Migrate legacy Foodex masters, stock baseline, or historical sales into FOODEX with provenance and safety gates.');
+)->purpose('Migrate legacy Foodex masters, stock baseline, sales history, or immutable procurement history with provenance and safety gates.');
 
 
 Artisan::command(
