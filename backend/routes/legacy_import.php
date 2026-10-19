@@ -38,6 +38,9 @@ Artisan::command(
             'Target clean baseline: '.($report['target']['clean_baseline_ready'] ? 'yes' : 'no').
             ' | business_rows='.$report['target']['business_total']
         );
+        $this->line(
+            'Legacy masters rerun ready: '.(($report['target']['legacy_masters_rerun_ready'] ?? false) ? 'yes' : 'no')
+        );
 
         $this->table(
             ['Price matrix check', 'Candidates', 'Non-linear'],
