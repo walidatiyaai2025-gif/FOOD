@@ -3,6 +3,8 @@
 namespace App\Domain\Assistant\Analytics;
 
 use App\Domain\Analytics\Diagnostics\DeterministicAnalyticsEngine;
+use App\Domain\Analytics\Forecasting\DemandForecastEngine;
+use App\Domain\Analytics\Forecasting\DemandForecastReplenishmentService;
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
 use App\Domain\Analytics\ReadModel\AnalyticsReadModelService;
 use App\Domain\Analytics\Retailer\Retailer360IntelligenceService;
@@ -21,6 +23,7 @@ final readonly class AssistantAnalyticsReadService
         private AnalyticsReadModelService $readModel,
         private DeterministicAnalyticsEngine $diagnostics,
         private Retailer360IntelligenceService $retailerIntelligence,
+        private DemandForecastReplenishmentService $forecasting,
         private OperationalTenantScope $scope,
         private CustomerServiceCaseManager $customerService,
     ) {}
@@ -35,6 +38,7 @@ final readonly class AssistantAnalyticsReadService
             'retailers.performance' => $this->retailersPerformance($request),
             'retailers.360' => $this->retailer360($request),
             'wholesale.purchases' => $this->wholesalePurchases($request),
+            'forecast.replenishment' => $this->forecastReplenishment($request),
             'margin.summary' => $this->marginSummary($request),
             'support.summary' => $this->supportSummary($request),
             default => throw new \InvalidArgumentException("Unsupported Assistant analytics tool [{$tool}]."),
@@ -271,6 +275,37 @@ final readonly class AssistantAnalyticsReadService
             'freshness' => $read['freshness'],
             'timezone' => $read['timezone'],
         ]);
+    }
+
+    private function forecastReplenishment(AssistantToolRequest $request): AssistantToolResult
+    {
+        $actor = $this->actor($request);
+        $storeIds = $this->retailerStoreIds($request);
+
+        if ($storeIds === []) {
+            throw ValidationException::withMessages([
+                'retailer_store_ids' => ['Demand forecasting requires one or more retailer store ids.'],
+            ]);
+        }
+
+        $allowed = $this->intersectStores($actor, ['reports.view'], 'b2c');
+        if (array_diff($storeIds, $allowed) !== []) {
+            abort(404);
+        }
+
+        $horizonDays = $this->positiveInt($request->entities['horizon_days'] ?? null)
+            ?? DemandForecastEngine::DEFAULT_HORIZON_DAYS;
+
+        if ($horizonDays > DemandForecastEngine::MAX_HORIZON_DAYS) {
+            throw ValidationException::withMessages([
+                'horizon_days' => ['Forecast horizon must be between 1 and 90 days.'],
+            ]);
+        }
+
+        return new AssistantToolResult(data: $this->forecasting->forStores(
+            $storeIds,
+            $horizonDays,
+        ));
     }
 
     private function marginSummary(AssistantToolRequest $request): AssistantToolResult
