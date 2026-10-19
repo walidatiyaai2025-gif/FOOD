@@ -239,10 +239,12 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertOk()
             ->assertSee('data-restaurant-launch', false)
             ->assertSee('data-launch-step="review"', false)
-            ->assertSee('Quick add / delete before publishing')
-            ->assertSee('Guided Burger')
-            ->assertSee('data-qm-open', false)
-            ->assertSee(route('admin.smart-ordering.menu.items.destroy', $item), false);
+            ->assertSee('Real preview on two devices')
+            ->assertSee('<small>390px</small>', false)
+            ->assertSee('<small>768px</small>', false)
+            ->assertDontSee('Quick add / delete before publishing')
+            ->assertDontSee('data-qm-open', false)
+            ->assertDontSee(route('admin.smart-ordering.menu.items.destroy', $item), false);
 
         $this->actingAs($fixture['admin'])
             ->get(route('admin.smart-ordering.menu.index', [
@@ -340,6 +342,12 @@ class SmartOrderingMenuDomainTest extends TestCase
         $this->assertSame($masterBefore, (bool) $site->master_enabled);
         $this->assertSame($runtimeBefore, (string) $site->runtime_state);
         $this->assertNotNull(app(SmartOrderingMenuRevisionService::class)->published($site));
+        $this->assertDatabaseHas('smart_ordering_qr_codes', [
+            'store_id' => $fixture['store_id'],
+            'type' => 'generic',
+            'source' => 'restaurant-launch',
+            'is_enabled' => true,
+        ]);
     }
 
     public function test_menu_builder_bounds_default_editor_and_opens_focused_records_directly(): void
