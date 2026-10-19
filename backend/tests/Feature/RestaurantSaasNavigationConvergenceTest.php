@@ -55,6 +55,8 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
     public function test_shared_restaurant_workspace_exposes_canonical_surfaces_and_permission_gates(): void
     {
         $source = file_get_contents(resource_path('views/admin/_smart-ordering-workspace-nav.blade.php'));
+        $launcher = file_get_contents(resource_path('views/admin/_restaurant-management-launcher.blade.php'));
+        $navigationSource = $source.$launcher;
 
         foreach ([
             'admin.smart-ordering.index',
@@ -67,7 +69,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             'admin.smart-ordering.integrations.index',
             'admin.smart-ordering.growth.index',
         ] as $route) {
-            $this->assertStringContainsString($route, $source);
+            $this->assertStringContainsString($route, $navigationSource);
         }
 
         foreach ([
@@ -178,7 +180,7 @@ class RestaurantSaasNavigationConvergenceTest extends TestCase
             $this->assertStringContainsString('data-so-settings-panel="'.$tab.'"', $view);
         }
         $this->assertStringContainsString('data-so-settings-summary', $view);
-        $this->assertStringContainsString('restaurantManagementCompact = true', $view);
+        $this->assertStringContainsString('restaurantManagementCompact = false', $view);
         $this->assertStringContainsString('so-quick-links', $view);
         $this->assertStringContainsString('sessionStorage.setItem(storageKey, name)', $view);
         $this->assertStringContainsString('foodex:restaurant-settings-tab:', $view);
