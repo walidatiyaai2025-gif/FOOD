@@ -32,13 +32,13 @@ final class DemandForecastEngine
         $errorValues = [];
 
         foreach ($snapshots as $snapshot) {
-            $storeId = (int) ($snapshot['retail_store_id'] ?? 0);
+            $storeId = (int) $snapshot['retail_store_id'];
             if ($storeId <= 0) {
                 throw new InvalidArgumentException('Retail store id must be a positive integer.');
             }
 
-            $inventory = is_array($snapshot['inventory'] ?? null) ? $snapshot['inventory'] : [];
-            $reorder = is_array($snapshot['reorder'] ?? null) ? $snapshot['reorder'] : [];
+            $inventory = $snapshot['inventory'];
+            $reorder = $snapshot['reorder'];
 
             $reorderByProduct = [];
             foreach ((array) ($reorder['recommendations'] ?? []) as $recommendation) {
@@ -223,17 +223,6 @@ final class DemandForecastEngine
         $actual = round((float) ($sales['days_1_7'] ?? 0.0), 3);
         $priorDays = min(7, max(0, $historyDays - 7))
             + min(16, max(0, $historyDays - 14));
-
-        if ($priorDays <= 0) {
-            return [
-                'state' => 'insufficient_history',
-                'actual_recent_units' => $actual,
-                'predicted_recent_units' => null,
-                'error_units' => null,
-                'absolute_percentage_error' => null,
-                'method' => 'prior_windows_predict_recent_7_days',
-            ];
-        }
 
         $priorUnits = (float) ($sales['days_8_14'] ?? 0.0)
             + (float) ($sales['days_15_30'] ?? 0.0);
