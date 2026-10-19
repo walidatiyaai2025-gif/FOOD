@@ -129,6 +129,95 @@ Artisan::command(
                     ->values()
                     ->all(),
             );
+            if ($phase === 'sales-history') {
+                if (($result['diagnostics'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->info('Sales-history diagnostics');
+                    $this->table(
+                        ['Metric', 'Count'],
+                        collect($result['diagnostics'])
+                            ->map(fn ($count, $metric): array => [(string) $metric, (int) $count])
+                            ->values()
+                            ->all(),
+                    );
+                }
+
+                $samples = $result['samples'] ?? [];
+
+                if (($samples['sales_headers_without_lines'] ?? []) !== []) {
+                    $this->warn('Sales headers without lines: '.implode(', ', $samples['sales_headers_without_lines']));
+                }
+
+                if (($samples['line_total_mismatches'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Line-total mismatch samples');
+                    $this->table(
+                        ['Header', 'Header total', 'Detail sum', 'Difference', 'Detail count'],
+                        collect($samples['line_total_mismatches'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['header_total'],
+                            $row['detail_value_sum'],
+                            $row['difference'],
+                            $row['detail_count'],
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['sales_zero_qty_lines'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Zero-quantity sales line samples');
+                    $this->table(
+                        ['Detail', 'Header', 'Item', 'Value'],
+                        collect($samples['sales_zero_qty_lines'])->map(static fn (array $row): array => [
+                            $row['detail_id'],
+                            $row['header_id'],
+                            $row['item_id'],
+                            $row['value'],
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['paid_vs_cash_visa'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Paid vs PaidCash+PaidByVisa samples');
+                    $this->table(
+                        ['Header', 'Type', 'Date', 'PayType', 'Net', 'Paid', 'Cash', 'Visa', 'Cash+Visa', 'Balance'],
+                        collect($samples['paid_vs_cash_visa'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['date'],
+                            $row['pay_type'],
+                            $row['net_total'],
+                            $row['paid'],
+                            $row['paid_cash'],
+                            $row['paid_visa'],
+                            $row['cash_plus_visa'],
+                            $row['balance'],
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['payment_balance_mismatches'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('NetTotal - Paid vs Balance samples');
+                    $this->table(
+                        ['Header', 'Type', 'Date', 'Net', 'Paid', 'Balance', 'Net-Paid', 'Cash', 'Visa', 'PayType'],
+                        collect($samples['payment_balance_mismatches'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['date'],
+                            $row['net_total'],
+                            $row['paid'],
+                            $row['balance'],
+                            $row['net_minus_paid'],
+                            $row['paid_cash'],
+                            $row['paid_visa'],
+                            $row['pay_type'],
+                        ])->all(),
+                    );
+                }
+            }
+
             $this->warn('Dry-run only. Re-run with --apply after reviewing these counts.');
 
             return 0;
