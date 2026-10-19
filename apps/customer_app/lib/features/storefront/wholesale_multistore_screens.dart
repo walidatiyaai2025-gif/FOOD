@@ -2241,7 +2241,7 @@ class _WholesaleCatalogDesignScreenState
     extends State<WholesaleCatalogDesignScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
   int storeId = 0;
-  late Future<Map<String, dynamic>> future = _load();
+  late Future<Map<String, dynamic>> future;
   int? selectedCategoryId;
   int? selectedBrandId;
   String? browseMode;
@@ -2256,6 +2256,8 @@ class _WholesaleCatalogDesignScreenState
   void initState() {
     super.initState();
     final query = Uri.parse(widget.location).queryParameters;
+    final initialQuery = query['q']?.trim() ?? '';
+    if (initialQuery.isNotEmpty) search.text = initialQuery;
     final categoryId = int.tryParse(query['category_id'] ?? '');
     final brandId = int.tryParse(query['brand_id'] ?? '');
     selectedCategoryId =
@@ -2269,6 +2271,7 @@ class _WholesaleCatalogDesignScreenState
         .whereType<int>()
         .where((value) => value > 0)
         .toSet();
+    future = _load(search.text);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -6006,6 +6009,24 @@ class _WholesaleOrdersDesignScreenState
                               searchHint: context.tr(
                                 'customer.products.search_name_sku_barcode',
                               ),
+                              onSearchSubmitted: (value) {
+                                final query = value.trim();
+                                if (query.isEmpty) return;
+                                final scopedStoreId =
+                                    wholesaleStoreId(widget.location);
+                                Navigator.of(context).pushNamed(
+                                  Uri(
+                                    path: CustomerRoutePaths.b2bProducts,
+                                    queryParameters: <String, String>{
+                                      if (scopedStoreId > 0)
+                                        'store_id':
+                                            scopedStoreId.toString(),
+                                      'channel': 'wholesale',
+                                      'q': query,
+                                    },
+                                  ).toString(),
+                                );
+                              },
                               onNotifications: () =>
                                   Navigator.of(context).pushNamed(
                                 CustomerRoutePaths.b2bNotifications,
