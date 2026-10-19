@@ -230,6 +230,38 @@ Artisan::command(
                     );
                 }
 
+                if (($samples['invalid_supplier_headers'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Invalid/unmapped supplier header samples');
+                    $this->table(
+                        ['Header', 'Type', 'Supplier', 'Location', 'Total', 'NetTotal'],
+                        collect($samples['invalid_supplier_headers'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['supplier_id'],
+                            $row['location_id'],
+                            $row['total'],
+                            $row['net_total'],
+                        ])->all(),
+                    );
+                }
+
+                if (($samples['invalid_location_headers'] ?? []) !== []) {
+                    $this->newLine();
+                    $this->warn('Invalid/unmapped location header samples');
+                    $this->table(
+                        ['Header', 'Type', 'Supplier', 'Location', 'Total', 'NetTotal'],
+                        collect($samples['invalid_location_headers'])->map(static fn (array $row): array => [
+                            $row['header_id'],
+                            $row['type'],
+                            $row['supplier_id'],
+                            $row['location_id'],
+                            $row['total'],
+                            $row['net_total'],
+                        ])->all(),
+                    );
+                }
+
                 if (($samples['line_total_mismatches'] ?? []) !== []) {
                     $this->newLine();
                     $this->warn('Purchase line-total mismatch samples');
