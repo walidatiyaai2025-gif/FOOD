@@ -118,7 +118,24 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
       
       body: FoodexUnifiedHeaderSurface(
         title: context.tr('customer.home.title'),
+        searchController: _search,
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        notificationKey: const ValueKey('retail-catalog-notifications'),
+        cartKey: const ValueKey('retail-catalog-cart'),
+        onSearchSubmitted: (value) => navigation.openProducts?.call(
+          context,
+          storeId: widget.storeId,
+          query: value.trim().isEmpty ? null : value.trim(),
+        ),
+        onNotifications: navigation.openNotifications == null
+            ? null
+            : () => navigation.openNotifications!(
+                  context,
+                  storeId: widget.storeId,
+                ),
+        onCart: navigation.openCart == null
+            ? null
+            : () => navigation.openCart!(context, storeId: widget.storeId),
         child: FutureBuilder<_RetailCatalogHomeData>(
         future: _future,
         builder: (context, snapshot) {
@@ -344,6 +361,13 @@ class _RetailCatalogCategoriesScreenState
         body: FoodexUnifiedHeaderSurface(
         title: context.tr('customer.home.title'),
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        cartKey: const ValueKey('retail-categories-cart'),
+        onCart: widget.navigation.openCart == null
+            ? null
+            : () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
         child: FutureBuilder<B2cCatalogPage<B2cCategory>>(
           future: _future,
           builder: (context, snapshot) {
@@ -550,6 +574,13 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
         body: FoodexUnifiedHeaderSurface(
         title: context.tr('customer.home.title'),
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        cartKey: const ValueKey('retail-offers-cart'),
+        onCart: widget.navigation.openCart == null
+            ? null
+            : () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
         child: FutureBuilder<B2cCatalogPage<B2cOffer>>(
           future: _future,
           builder: (context, snapshot) {
@@ -901,6 +932,13 @@ class _RetailCatalogProductsScreenState
         body: FoodexUnifiedHeaderSurface(
         title: context.tr('customer.home.title'),
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        cartKey: const ValueKey('retail-products-cart'),
+        onCart: widget.navigation.openCart == null
+            ? null
+            : () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
         child: Column(
           children: [
             Padding(
@@ -1404,6 +1442,13 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
         body: FoodexUnifiedHeaderSurface(
         title: context.tr('customer.home.title'),
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        cartKey: const ValueKey('retail-product-cart'),
+        onCart: widget.navigation.openCart == null
+            ? null
+            : () => widget.navigation.openCart!(
+                  context,
+                  storeId: widget.storeId,
+                ),
         child: FutureBuilder<_RetailProductDetailData>(
           future: _future,
           builder: (context, snapshot) {
