@@ -81,7 +81,7 @@
 .restaurant-setup-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
 .restaurant-setup-step{min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;min-height:58px;padding:8px;border:1px solid var(--foodex-border);border-radius:11px;background:var(--foodex-surface);color:inherit;text-decoration:none}
 .restaurant-setup-step-number{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:var(--foodex-background);font-size:.72rem;font-weight:900}
-.restaurant-setup-step strong{display:block;font-size:.72rem;line-height:1.25}.restaurant-setup-step small{display:block;margin-top:2px;color:var(--foodex-muted);font-size:.61rem;line-height:1.25}
+.restaurant-setup-step strong{display:block;font-size:.72rem;line-height:1.25}.restaurant-setup-step small{display:block;margin-top:2px;color:var(--foodex-muted);font-size:.61rem;line-height:1.25}.restaurant-setup-step-rule{font-weight:800}.restaurant-setup-step.is-locked .restaurant-setup-step-rule{color:var(--foodex-danger-text)}.restaurant-setup-step.is-current .restaurant-setup-step-rule{color:var(--foodex-green-dark)}
 .restaurant-setup-step.is-current{border-color:var(--foodex-action-green);box-shadow:0 0 0 2px rgba(21,138,58,.08)}.restaurant-setup-step.is-current .restaurant-setup-step-number{background:var(--foodex-action-green);color:#fff}
 .restaurant-setup-step.is-complete{background:var(--foodex-green-soft);border-color:var(--foodex-palette-bedbc5)}.restaurant-setup-step.is-complete .restaurant-setup-step-number{background:var(--foodex-action-green);color:#fff}
 .restaurant-setup-step.is-locked{opacity:.55;cursor:not-allowed}.restaurant-setup-step.is-locked .restaurant-setup-step-number{background:var(--foodex-border)}
@@ -130,6 +130,8 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
         @foreach(($restaurantSetupStatus['setup_flow'] ?? []) as $step)
             @php($stepUrl = $restaurantSetupUrls[$step['key']] ?? null)
             @php($stepState = (string)($step['state'] ?? 'locked'))
+            @php($previousStep = $loop->first ? null : (($restaurantSetupStatus['setup_flow'] ?? [])[$loop->index - 1] ?? null))
+            @php($previousTitle = is_array($previousStep) ? __('restaurant_onboarding.flow.steps.'.$previousStep['key'].'.title') : null)
             @if(($step['available'] ?? false) && $stepUrl)
                 <a class="restaurant-setup-step is-{{ $stepState }}" href="{{ $stepUrl }}" data-restaurant-setup-step="{{ $step['key'] }}" @if($stepState==='current') aria-current="step" @endif>
             @else
@@ -137,8 +139,17 @@ a.restaurant-workspace-link:hover,a.restaurant-workspace-link:focus-visible{back
             @endif
                     <span class="restaurant-setup-step-number">{{ $step['number'] }}</span>
                     <span>
-                        <strong>{{ __('restaurant_onboarding.flow.steps.'.$step['key'].'.title') }}</strong>
+                        <strong>{{ $step['number'] }} · {{ __('restaurant_onboarding.flow.steps.'.$step['key'].'.title') }}</strong>
                         <small>{{ $stepState === 'complete' ? __('restaurant_onboarding.flow.complete') : ($stepState === 'current' ? __('restaurant_onboarding.flow.current') : __('restaurant_onboarding.flow.locked')) }}</small>
+                        <small class="restaurant-setup-step-rule">
+                            @if($loop->first)
+                                {{ __('restaurant_onboarding.flow.start_here') }}
+                            @elseif($stepState === 'locked')
+                                {{ __('restaurant_onboarding.flow.blocked_by', ['step' => $previousTitle]) }}
+                            @else
+                                {{ __('restaurant_onboarding.flow.after', ['step' => $previousTitle]) }}
+                            @endif
+                        </small>
                     </span>
             @if(($step['available'] ?? false) && $stepUrl)
                 </a>
