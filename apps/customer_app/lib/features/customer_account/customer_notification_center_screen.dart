@@ -1,3 +1,4 @@
+import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
@@ -119,11 +120,9 @@ class _CustomerNotificationCenterScreenState
 
     return Scaffold(
       key: const ValueKey('customer-notification-center-screen'),
-      body: CustomerCurvedHeaderSurface(
-        header: CustomerAccountHeader(
-          title: context.tr('customer.notifications.title'),
-          subtitle: context.tr('customer.notifications.subtitle'),
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.notifications.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: future == null
             ? const _NotificationScrollableState(
                 child: CustomerAccountListSkeleton(),
