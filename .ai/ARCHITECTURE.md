@@ -178,8 +178,12 @@ Assistant page/session memory is a bounded continuation aid, never business auth
 
 The existing Management Assistant correlation id is also the AI trace id. Operational telemetry is persisted only as bounded/redacted metadata in `assistant_observability_events`; prompts, messages, tool arguments/results, customer/contact data, credentials and chain-of-thought are prohibited. Provider/model, tool duration, fallback, token usage and turn outcome remain diagnostics only and never become business-data authority. Trace storage is fail-open for core FOODEX and defaults to 14-day retention. Admin placement reuses the existing Assistant Settings surface; `settings.manage` is required for trace inspection/export. Canonical contract: `docs/architecture/FOODEX_AI_OBSERVABILITY.md`.
 
+### AI security guardrail invariant
+
+The Assistant provider and typed-tool boundaries are wrapped by a server-owned security layer. User/provider/RAG text is never authority; prompt-injection and unsafe tool arguments fail closed, provider/tool/write layers have independent kill switches, tool results are minimized/redacted before becoming model evidence, and privacy-sensitive benchmark tools must enforce cohort minimum/differencing protection. These controls are additive to current RBAC, tenant/store/channel scope and retailer sell-out consent, and disabling AI must not disable ordinary FOODEX commerce. Authoritative threat model: `docs/security/FOODEX_AI_SECURITY_THREAT_MODEL.md`.
+
 ### AI evaluation invariant
 
 FOODEX AI quality is versioned and CI-gated through deterministic golden business cases. Numeric parity, tool choice, evidence, authorization/scope, refusal behavior, unavailable-data suppression and approval-governed action safety are blocking at 100% for every supported capability profile. Arabic/English language quality is measured separately so wording may vary while facts, permissions and safety may not. OpenAI-compatible/Ollama model changes and deterministic fallback are evaluated against explicit versioned profiles; provider capability never changes business authority.
 
-Authority: \`docs/testing/FOODEX_AI_EVALUATION_GATES.md\`, #2230.
+Authority: `docs/testing/FOODEX_AI_EVALUATION_GATES.md`, #2230.

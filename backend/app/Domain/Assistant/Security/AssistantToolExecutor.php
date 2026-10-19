@@ -20,6 +20,7 @@ final class AssistantToolExecutor
         private readonly RetailerSellOutAccessPolicy $sellOutPolicy,
         private readonly AuditLogger $audit,
         private readonly AssistantObservability $observability,
+        private readonly ?AssistantAiSecurityGuardrails $guardrails = null,
     ) {}
 
     public function execute(
@@ -34,6 +35,10 @@ final class AssistantToolExecutor
 
         $actor = User::query()->find($request->actorUserId);
         abort_unless($actor instanceof User && (bool) $actor->is_active, 403);
+
+        $guardrails = $this->guardrails ?? app(AssistantAiSecurityGuardrails::class);
+        $guardrails->assertToolAllowed($definition, $actor, $correlationId);
+        $guardrails->assertToolArgumentsSafe($request->entities, $actor, $toolKey, $correlationId);
 
         $principalContext = $request->context;
         if ($request->channel !== null) {
@@ -132,6 +137,7 @@ final class AssistantToolExecutor
             throw $exception;
         }
 
+        $result = $guardrails->sanitizeToolResult($result, $actor, $toolKey, $correlationId);
         $elapsedMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
 
         $this->observability->record($correlationId, 'tool.completed', [
