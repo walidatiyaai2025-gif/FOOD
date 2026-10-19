@@ -1469,46 +1469,185 @@ SQL));
 
         $source = DB::connection('foodex_legacy');
 
-        $sourceRows = $stage('load_canonical_stock_view', fn () => $source
-            ->table('wh_vw_ItemStock2Now')
-            ->get(['ItemID', 'stocK', 'StoreId', 'StoreCode', 'IsCarTrans']));
+        $movementSigns = [
+            1 => 1,
+            2 => -1,
+            3 => -1,
+            4 => 1,
+            5 => -1,
+            7 => 1,
+            8 => -1,
+            11 => 1,
+            12 => -1,
+            13 => 1,
+            14 => -1,
+            15 => -1,
+            16 => 1,
+            19 => -1,
+            20 => 1,
+            22 => 1,
+            23 => -1,
+        ];
 
-        $positions = [];
-        $invalidRows = [];
+        $posCounts = $stage('validate_pos_stock_source', fn () => [
+            'headers' => (int) $source->table('wh_PosHeader')->count(),
+            'details' => (int) $source->table('wh_PosDetails')->count(),
+        ]);
 
-        foreach ($sourceRows as $row) {
-            $itemId = (int) ($row->ItemID ?? 0);
-            $storeId = (int) ($row->StoreId ?? 0);
-            $quantity = round((float) ($row->stocK ?? 0), 3);
+        if ($posCounts['headers'] !== 0 || $posCounts['details'] !== 0) {
+            throw new RuntimeException(
+                'Stock import refused: legacy POS stock rows exist and must be included in the canonical stock reconstruction.'
+            );
+        }
 
-            if ($itemId <= 0 || $storeId <= 0) {
-                if (count($invalidRows) < 20) {
-                    $invalidRows[] = [
-                        'item_id' => $itemId,
-                        'store_id' => $storeId,
-                        'quantity' => $quantity,
-                    ];
-                }
+        $eligibleItems = $stage('load_stock_eligible_items', fn () => $source->table('wh_Items')
+            ->where('Status', 1)
+            ->where('ItemType', '<>', 4)
+            ->pluck('ID')
+            ->map(static fn ($id): int => (int) $id)
+            ->flip());
 
-                continue;
-            }
+        $locationMeta = $stage('load_stock_location_metadata', function () use ($source): array {
+            $meta = [];
 
-            $key = $storeId.':'.$itemId;
-            if (! isset($positions[$key])) {
-                $positions[$key] = [
-                    'store_id' => $storeId,
-                    'item_id' => $itemId,
-                    'quantity' => 0.0,
-                    'store_code' => $row->StoreCode ?? null,
-                    'is_car_trans' => $row->IsCarTrans ?? null,
+            foreach ($source->table('wh_Stores')->get(['ID', 'Code']) as $row) {
+                $meta[(int) $row->ID] = [
+                    'store_code' => $row->Code ?? null,
+                    'is_car_trans' => 0,
                 ];
             }
 
-            $positions[$key]['quantity'] = round(
-                (float) $positions[$key]['quantity'] + $quantity,
-                3,
-            );
+            foreach ($source->table('wh_Cars')->get(['ID', 'Code']) as $row) {
+                $meta[(int) $row->ID] = [
+                    'store_code' => $row->Code ?? null,
+                    'is_car_trans' => 1,
+                ];
+            }
+
+            return $meta;
+        });
+
+        $headerMap = $stage('load_stock_headers', function () use ($source, $movementSigns): array {
+            $map = [];
+
+            foreach ($source->table('wh_TransHeader')
+                ->where('Status', 1)
+                ->whereIn('TransType', array_keys($movementSigns))
+                ->get(['HeaderId', 'TransType', 'StoreId']) as $row) {
+                $map[(int) $row->HeaderId] = [
+                    'type' => (int) $row->TransType,
+                    'store_id' => (int) ($row->StoreId ?? 0),
+                ];
+            }
+
+            return $map;
+        });
+
+        $positions = [];
+        $invalidRows = [];
+        $sourceDetailRows = 0;
+        $acceptedDetailRows = 0;
+        $chunkNumber = 0;
+
+        $stage('stream_canonical_stock_details', function () use (
+            $source,
+            $progress,
+            $movementSigns,
+            $eligibleItems,
+            $locationMeta,
+            $headerMap,
+            &$positions,
+            &$invalidRows,
+            &$sourceDetailRows,
+            &$acceptedDetailRows,
+            &$chunkNumber,
+        ): void {
+            $source->table('wh_TransDetails')
+                ->select(['DetailId', 'HeaderId', 'ItemID', 'TransPkgQty1', 'Status'])
+                ->orderBy('DetailId')
+                ->chunkById(
+                    10000,
+                    function ($rows) use (
+                        $progress,
+                        $movementSigns,
+                        $eligibleItems,
+                        $locationMeta,
+                        $headerMap,
+                        &$positions,
+                        &$invalidRows,
+                        &$sourceDetailRows,
+                        &$acceptedDetailRows,
+                        &$chunkNumber,
+                    ): void {
+                        $chunkStartedAt = microtime(true);
+                        $chunkNumber++;
+
+                        foreach ($rows as $row) {
+                            $sourceDetailRows++;
+
+                            if ((int) ($row->Status ?? 0) !== 1) {
+                                continue;
+                            }
+
+                            $header = $headerMap[(int) $row->HeaderId] ?? null;
+                            if ($header === null) {
+                                continue;
+                            }
+
+                            $itemId = (int) ($row->ItemID ?? 0);
+                            $storeId = (int) ($header['store_id'] ?? 0);
+
+                            if ($itemId <= 0 || $storeId <= 0) {
+                                if (count($invalidRows) < 20) {
+                                    $invalidRows[] = [
+                                        'detail_id' => (int) ($row->DetailId ?? 0),
+                                        'item_id' => $itemId,
+                                        'store_id' => $storeId,
+                                    ];
+                                }
+
+                                continue;
+                            }
+
+                            if (! $eligibleItems->has($itemId)) {
+                                continue;
+                            }
+
+                            $acceptedDetailRows++;
+                            $type = (int) $header['type'];
+                            $signedQuantity = $movementSigns[$type] * (float) ($row->TransPkgQty1 ?? 0);
+                            $key = $storeId.':'.$itemId;
+
+                            if (! isset($positions[$key])) {
+                                $positions[$key] = [
+                                    'store_id' => $storeId,
+                                    'item_id' => $itemId,
+                                    'quantity' => 0.0,
+                                    'store_code' => $locationMeta[$storeId]['store_code'] ?? null,
+                                    'is_car_trans' => $locationMeta[$storeId]['is_car_trans'] ?? null,
+                                ];
+                            }
+
+                            $positions[$key]['quantity'] += $signedQuantity;
+                        }
+
+                        if ($progress !== null) {
+                            $progress(
+                                'stock_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRows,
+                                'done',
+                                round(microtime(true) - $chunkStartedAt, 3),
+                            );
+                        }
+                    },
+                    'DetailId',
+                    'DetailId',
+                );
+        });
+
+        foreach ($positions as &$position) {
+            $position['quantity'] = round((float) $position['quantity'], 3);
         }
+        unset($position);
 
         $warehouseMappings = DB::table('legacy_import_mappings')
             ->where('source_system', self::SOURCE_SYSTEM)
@@ -1569,7 +1708,10 @@ SQL));
             ->count();
 
         $planned = [
-            'source_view_rows' => $sourceRows->count(),
+            'source_detail_rows_scanned' => $sourceDetailRows,
+            'accepted_stock_detail_rows' => $acceptedDetailRows,
+            'pos_headers' => $posCounts['headers'],
+            'pos_details' => $posCounts['details'],
             'aggregated_positions' => count($positions),
             'positive_positions' => count($positive),
             'zero_positions' => $zero,
@@ -1593,7 +1735,7 @@ SQL));
                     'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
                 ],
                 'rules' => [
-                    'authority' => 'dbo.wh_vw_ItemStock2Now',
+                    'authority' => 'dbo.wh_vw_ItemStock2Now canonical semantics streamed from wh_TransHeader/wh_TransDetails',
                     'only_positive_positions_are_materialized' => true,
                     'zero_positions_are_not_materialized' => true,
                     'negative_positions_block_apply' => true,
@@ -1604,13 +1746,13 @@ SQL));
 
         if ($invalidRows !== []) {
             throw new RuntimeException(
-                'Stock apply refused: canonical Foodex stock view returned invalid item/store identifiers.'
+                'Stock apply refused: canonical Foodex stock reconstruction returned invalid item/store identifiers.'
             );
         }
 
         if ($negative !== []) {
             throw new RuntimeException(
-                'Stock apply refused: canonical Foodex stock view contains negative current-stock positions.'
+                'Stock apply refused: canonical Foodex stock reconstruction contains negative current-stock positions.'
             );
         }
 
@@ -1703,10 +1845,11 @@ SQL));
                         'store_id' => $storeId,
                         'user_id' => null,
                         'quantity' => $quantity,
-                        'reason' => 'Legacy Foodex cutover opening balance from dbo.wh_vw_ItemStock2Now',
+                        'reason' => 'Legacy Foodex cutover opening balance using dbo.wh_vw_ItemStock2Now canonical semantics',
                         'notes' => $this->json([
                             'source_system' => self::SOURCE_SYSTEM,
                             'source_view' => 'dbo.wh_vw_ItemStock2Now',
+                            'source_read_strategy' => 'streamed_wh_TransHeader_wh_TransDetails',
                             'legacy_store_id' => $position['store_id'],
                             'legacy_item_id' => $position['item_id'],
                             'store_code' => $position['store_code'],
@@ -1749,7 +1892,8 @@ SQL));
                         $sourceRow,
                         $runId,
                         [
-                            'authority' => 'dbo.wh_vw_ItemStock2Now',
+                            'authority' => 'dbo.wh_vw_ItemStock2Now canonical semantics',
+                            'source_read_strategy' => 'streamed_wh_TransHeader_wh_TransDetails',
                             'quantity' => $quantity,
                         ],
                     );
@@ -1796,7 +1940,7 @@ SQL));
 
                 return [
                     'run_id' => $runId,
-                    'authority' => 'dbo.wh_vw_ItemStock2Now',
+                    'authority' => 'dbo.wh_vw_ItemStock2Now canonical semantics streamed from wh_TransHeader/wh_TransDetails',
                     'planned' => $planned,
                     'inventories' => [
                         'created' => $created,
