@@ -1515,7 +1515,7 @@ SQL));
             $meta = [];
 
             foreach ($source->table('wh_Stores')->get(['ID', 'Code']) as $row) {
-                $key = $this->legacyStockLocationKey('wh_Stores', (int) $row->ID);
+                $key = LegacyStockLocationResolver::key('wh_Stores', (int) $row->ID);
                 $meta[$key] = [
                     'source_table' => 'wh_Stores',
                     'source_id' => (int) $row->ID,
@@ -1525,7 +1525,7 @@ SQL));
             }
 
             foreach ($source->table('wh_Cars')->get(['ID', 'Code']) as $row) {
-                $key = $this->legacyStockLocationKey('wh_Cars', (int) $row->ID);
+                $key = LegacyStockLocationResolver::key('wh_Cars', (int) $row->ID);
                 $meta[$key] = [
                     'source_table' => 'wh_Cars',
                     'source_id' => (int) $row->ID,
@@ -1537,7 +1537,7 @@ SQL));
             return $meta;
         });
 
-        $headerMap = $stage('load_stock_headers', function () use ($source, $movementSigns): array {
+        $headerMap = $stage('load_stock_headers', function () use ($source, $movementSigns, $locationMeta): array {
             $map = [];
 
             foreach ($source->table('wh_TransHeader')
@@ -1546,13 +1546,18 @@ SQL));
                 ->get(['HeaderId', 'TransType', 'StoreId']) as $row) {
                 $type = (int) $row->TransType;
                 $sourceId = (int) ($row->StoreId ?? 0);
-                $sourceTable = $this->legacyStockLocationSourceTable($type);
+                $resolved = LegacyStockLocationResolver::resolve(
+                    $type,
+                    $sourceId,
+                    $locationMeta,
+                );
 
                 $map[(int) $row->HeaderId] = [
                     'type' => $type,
-                    'source_table' => $sourceTable,
+                    'source_table' => $resolved['source_table'],
                     'source_id' => $sourceId,
-                    'location_key' => $this->legacyStockLocationKey($sourceTable, $sourceId),
+                    'location_key' => $resolved['location_key'],
+                    'location_resolution' => $resolved['resolution'],
                 ];
             }
 
@@ -1629,6 +1634,8 @@ SQL));
                                         'source_table' => $sourceTable,
                                         'source_id' => $sourceId,
                                         'location_key' => $locationKey,
+                                        'trans_type' => (int) ($header['type'] ?? 0),
+                                        'location_resolution' => $header['location_resolution'] ?? null,
                                     ];
                                 }
 
@@ -1685,7 +1692,7 @@ SQL));
 
         $warehouseMap = [];
         foreach ($warehouseMappings as $mapping) {
-            $locationKey = $this->legacyStockLocationKey(
+            $locationKey = LegacyStockLocationResolver::key(
                 (string) $mapping->source_table,
                 (int) $mapping->source_key,
             );
@@ -1773,6 +1780,7 @@ SQL));
                     'negative_positions_block_apply' => true,
                     'foreign_target_stock_blocks_apply' => true,
                     'store_and_van_ids_are_namespaced' => true,
+                    'location_resolution_uses_actual_source_membership_with_trans_type_collision_breaker' => true,
                     'car_tables_are_audit_only' => true,
                 ],
             ];
@@ -1780,7 +1788,8 @@ SQL));
 
         if ($invalidRows !== []) {
             throw new RuntimeException(
-                'Stock apply refused: canonical Foodex stock reconstruction returned invalid item/store identifiers.'
+                'Stock apply refused: canonical Foodex stock reconstruction returned invalid item/store identifiers. '.
+                $this->json(['samples' => array_slice($invalidRows, 0, 20)])
             );
         }
 
@@ -7704,18 +7713,6 @@ SQL));
             ->count();
 
         return $salesRepReferences === (int) $sourceCounts['wh_SalesReps'];
-    }
-
-    private function legacyStockLocationSourceTable(int $transType): string
-    {
-        return in_array($transType, [13, 14, 19, 20], true)
-            ? 'wh_Cars'
-            : 'wh_Stores';
-    }
-
-    private function legacyStockLocationKey(string $sourceTable, int $sourceId): string
-    {
-        return $sourceTable.':'.$sourceId;
     }
 
     private function legacySource(): \Illuminate\Database\Connection
