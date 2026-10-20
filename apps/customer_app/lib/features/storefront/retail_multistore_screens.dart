@@ -932,7 +932,7 @@ class _HeroBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 5),
       child: Container(
-        height: 154,
+        height: 123,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: LinearGradient(
