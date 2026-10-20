@@ -11,6 +11,7 @@ import '../../core/engagement/live_ad_service.dart';
 import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_favorite_button.dart';
+import '../../shared/customer_gentle_marquee.dart';
 import 'storefront_design_system.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -1178,10 +1179,8 @@ class _RetailProductGrid extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  CustomerGentleMarquee(
+                    text: product.name,
                     style: const TextStyle(
                       fontSize: 11,
                       height: 1.15,
