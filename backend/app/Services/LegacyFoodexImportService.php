@@ -2455,8 +2455,8 @@ SQL));
             &$chunkNumber,
         ): void {
             $lastDetailId = 0;
-            $chunkSize = max(250, (int) env('LEGACY_DB_DETAIL_CHUNK', 2000));
-            $maxAttempts = max(1, (int) env('LEGACY_DB_RETRY_ATTEMPTS', 5));
+            $chunkSize = max(250, (int) config('database.connections.foodex_legacy.detail_chunk', 2000));
+            $maxAttempts = max(1, (int) config('database.connections.foodex_legacy.retry_attempts', 5));
 
             while (true) {
                 $rows = null;
