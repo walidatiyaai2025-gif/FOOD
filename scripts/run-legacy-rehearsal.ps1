@@ -89,6 +89,18 @@ try {
         php artisan migrate --force
     }
 
+    Run-Step 'Full SQL Server archive dry-run' {
+        php artisan foodex:legacy-archive-all
+    }
+
+    Run-Step 'Full SQL Server archive apply' {
+        php artisan foodex:legacy-archive-all --apply
+    }
+
+    Run-Step 'Full SQL Server coverage verify' {
+        php artisan foodex:legacy-archive-verify
+    }
+
     Run-Step 'Scoped reset preview' {
         php artisan foodex:legacy-rehearsal-reset
     }
@@ -201,15 +213,7 @@ try {
         php artisan foodex:legacy-finance-history-verify
     }
 
-    Run-Step 'Full SQL Server archive dry-run' {
-        php artisan foodex:legacy-archive-all
-    }
-
-    Run-Step 'Full SQL Server archive apply' {
-        php artisan foodex:legacy-archive-all --apply
-    }
-
-    Run-Step 'Full SQL Server coverage verify' {
+    Run-Step 'FINAL full SQL Server coverage verify' {
         php artisan foodex:legacy-archive-verify
     }
 
