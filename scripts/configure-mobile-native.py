@@ -10,6 +10,8 @@ material, APNs credentials, and other private secrets stay external.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import plistlib
 import re
@@ -39,21 +41,110 @@ BRAND_ROOT = REPO_ROOT / 'assets' / 'mobile_brand'
 APP_ICON = BRAND_ROOT / 'app_icon_1024.png'
 APP_ICON_FOREGROUND = BRAND_ROOT / 'app_icon_foreground_1024.png'
 ANDROID_APP_ICON = APP_ICON
+ANDROID_SPLASH_ICON = APP_ICON
 SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
 SPLASH_BACKGROUND = '#003223'
 SPLASH_ACCENT = '#92D853'
 
 
-def _select_brand_assets(app_name: str) -> None:
-    global APP_ICON, APP_ICON_FOREGROUND, ANDROID_APP_ICON, SPLASH_IMAGE
+LAUNCHER_ICON_ROOT = BRAND_ROOT / 'launcher'
+LAUNCHER_ICON_PREFIXES = {
+    'customer': 'customer_app_icon_1024.webp.b64',
+    'driver': 'driver_app_icon_1024.webp.b64',
+    'van': 'van_app_icon_1024.webp.b64',
+}
+
+
+def _webp_dimensions(payload: bytes) -> tuple[int, int]:
+    if len(payload) < 12 or payload[:4] != b'RIFF' or payload[8:12] != b'WEBP':
+        raise RuntimeError('Launcher source is not a valid WebP RIFF container')
+    declared_size = int.from_bytes(payload[4:8], 'little') + 8
+    if declared_size != len(payload):
+        raise RuntimeError(
+            f'Launcher WebP is truncated: RIFF declares {declared_size} bytes, '
+            f'got {len(payload)}'
+        )
+
+    offset = 12
+    while offset + 8 <= len(payload):
+        kind = payload[offset : offset + 4]
+        chunk_size = int.from_bytes(payload[offset + 4 : offset + 8], 'little')
+        data_offset = offset + 8
+        data_end = data_offset + chunk_size
+        if data_end > len(payload):
+            raise RuntimeError('Launcher WebP contains a truncated image chunk')
+
+        if kind == b'VP8 ':
+            frame = payload[data_offset : data_offset + 10]
+            if len(frame) < 10 or frame[3:6] != b'\x9d\x01\x2a':
+                raise RuntimeError('Launcher WebP has an invalid VP8 frame header')
+            width = int.from_bytes(frame[6:8], 'little') & 0x3FFF
+            height = int.from_bytes(frame[8:10], 'little') & 0x3FFF
+            return width, height
+
+        if kind == b'VP8L':
+            frame = payload[data_offset : data_offset + 5]
+            if len(frame) < 5 or frame[0] != 0x2F:
+                raise RuntimeError('Launcher WebP has an invalid VP8L frame header')
+            bits = int.from_bytes(frame[1:5], 'little')
+            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+
+        if kind == b'VP8X':
+            frame = payload[data_offset : data_offset + 10]
+            if len(frame) < 10:
+                raise RuntimeError('Launcher WebP has an invalid VP8X frame header')
+            width = int.from_bytes(frame[4:7], 'little') + 1
+            height = int.from_bytes(frame[7:10], 'little') + 1
+            return width, height
+
+        offset = data_end + (chunk_size & 1)
+
+    raise RuntimeError('Launcher WebP does not contain an image frame')
+
+
+def _decode_chunked_launcher(app_name: str, app_dir: Path) -> Path:
+    prefix = LAUNCHER_ICON_PREFIXES[app_name]
+    chunks = sorted(LAUNCHER_ICON_ROOT.glob(f'{prefix}.*'))
+    if not chunks:
+        raise RuntimeError(f'Missing launcher source chunks for {app_name}')
+
+    encoded = ''.join(chunk.read_text().strip() for chunk in chunks)
+    try:
+        payload = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise RuntimeError(
+            f'Launcher source chunks for {app_name} are not valid base64'
+        ) from exc
+
+    dimensions = _webp_dimensions(payload)
+    if dimensions != (1024, 1024):
+        raise RuntimeError(
+            f'Launcher source for {app_name} must be 1024x1024, got '
+            f'{dimensions[0]}x{dimensions[1]}'
+        )
+
+    destination = (
+        app_dir
+        / '.dart_tool'
+        / 'foodex-native-branding'
+        / f'{app_name}_app_icon_1024.webp'
+    )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(payload)
+    return destination
+
+
+def _select_brand_assets(app_name: str, app_dir: Path) -> None:
+    global APP_ICON, APP_ICON_FOREGROUND, ANDROID_APP_ICON
+    global ANDROID_SPLASH_ICON, SPLASH_IMAGE
+
+    APP_ICON = _decode_chunked_launcher(app_name, app_dir)
+    APP_ICON_FOREGROUND = APP_ICON
     ANDROID_APP_ICON = APP_ICON
+    SPLASH_IMAGE = BRAND_ROOT / 'splash_master.png'
+
     if app_name == 'customer':
-        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
-        APP_ICON_FOREGROUND = APP_ICON
-        # Android acceptance build uses the supplied FOODEx Economical Group
-        # lockup as the launcher identity. Keep the PNG master for iOS, where
-        # the asset catalog requires PNG inputs.
-        ANDROID_APP_ICON = (
+        ANDROID_SPLASH_ICON = (
             REPO_ROOT
             / 'apps'
             / 'customer_app'
@@ -62,15 +153,20 @@ def _select_brand_assets(app_name: str) -> None:
             / 'foodex-economical-group.webp'
         )
         SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
-    elif app_name in ('driver', 'van'):
-        # Driver and Van intentionally share the approved FOODEX operations
-        # identity artwork until a dedicated Van asset pack is approved.
-        APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
-        APP_ICON_FOREGROUND = APP_ICON
-        ANDROID_APP_ICON = (
+    elif app_name == 'driver':
+        ANDROID_SPLASH_ICON = (
             REPO_ROOT
             / 'apps'
-            / ('driver_app' if app_name == 'driver' else 'customer_app')
+            / 'driver_app'
+            / 'assets'
+            / 'branding'
+            / 'foodex-economical-group.webp'
+        )
+    else:
+        ANDROID_SPLASH_ICON = (
+            REPO_ROOT
+            / 'apps'
+            / 'customer_app'
             / 'assets'
             / 'branding'
             / 'foodex-economical-group.webp'
@@ -84,7 +180,13 @@ ANDROID_DESUGAR_JDK_LIBS_VERSION = '2.1.4'
 def _require_brand_assets() -> None:
     missing = [
         path
-        for path in (APP_ICON, APP_ICON_FOREGROUND, ANDROID_APP_ICON, SPLASH_IMAGE)
+        for path in (
+            APP_ICON,
+            APP_ICON_FOREGROUND,
+            ANDROID_APP_ICON,
+            ANDROID_SPLASH_ICON,
+            SPLASH_IMAGE,
+        )
         if not path.is_file()
     ]
     if missing:
@@ -104,6 +206,7 @@ def _write_android_brand_resources(app: Path) -> None:
     # reused across density folders; Android launchers scale it into their icon
     # slot while adaptive-icon capable devices use the transparent foreground.
     icon_suffix = ANDROID_APP_ICON.suffix.lower()
+    splash_suffix = ANDROID_SPLASH_ICON.suffix.lower()
     for density in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'):
         folder = res / f'mipmap-{density}'
         for stale in (
@@ -129,8 +232,8 @@ def _write_android_brand_resources(app: Path) -> None:
         drawable / f'foodex_launcher_foreground{icon_suffix}',
     )
     _copy(
-        ANDROID_APP_ICON,
-        drawable / f'foodex_splash_icon{icon_suffix}',
+        ANDROID_SPLASH_ICON,
+        drawable / f'foodex_splash_icon{splash_suffix}',
     )
 
     values = res / 'values'
@@ -538,7 +641,7 @@ def _render_ios_app_icons(app_icon_set: Path) -> None:
         destination = app_icon_set / filename
         if sips:
             subprocess.run(
-                [sips, '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
+                [sips, '-s', 'format', 'png', '-z', str(pixels), str(pixels), str(APP_ICON), '--out', str(destination)],
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -722,7 +825,7 @@ def main() -> None:
     parser.add_argument('--platform', choices=('all', 'android', 'ios'), default='all')
     args = parser.parse_args()
 
-    _select_brand_assets(args.app)
+    _select_brand_assets(args.app, args.app_dir)
     _require_brand_assets()
     identity = IDENTITIES[args.app]
     if args.platform in ('all', 'android'):
