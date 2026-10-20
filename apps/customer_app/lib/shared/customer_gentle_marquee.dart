@@ -65,7 +65,7 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
         }
 
         final overflow = painter.width - maxWidth;
-        final height = painter.height + 2;
+        final height = painter.height;
 
         return SizedBox(
           height: height,
