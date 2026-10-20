@@ -175,6 +175,20 @@ final class LegacyVanInventoryHistoryMaterializerService
                         );
                     }
                 });
+
+            if (Schema::hasTable('legacy_business_records')) {
+                DB::table('legacy_business_records')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->whereIn('source_table', [self::HEADER_TABLE, self::DETAIL_TABLE])
+                    ->delete();
+            }
+
+            if (Schema::hasTable('legacy_business_table_manifest')) {
+                DB::table('legacy_business_table_manifest')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->whereIn('source_table', [self::HEADER_TABLE, self::DETAIL_TABLE])
+                    ->delete();
+            }
         }, 3);
 
         return [
