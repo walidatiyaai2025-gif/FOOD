@@ -24,7 +24,6 @@ import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
-import '../../shared/customer_gentle_marquee.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
 import 'storefront_design_system.dart';
 
@@ -1789,14 +1788,24 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                 ),
               ),
               SizedBox(height: denseFourColumn ? 5 : 8),
-              CustomerGentleMarquee(
+              SizedBox(
                 key: ValueKey('wholesale-product-name-$id'),
-                text: row['name']?.toString() ?? '',
-                style: TextStyle(
-                  fontSize: denseFourColumn ? 9.5 : 11,
-                  height: 1.15,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF102033),
+                width: double.infinity,
+                height: 14,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    row['name']?.toString() ?? '',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: denseFourColumn ? 8.5 : 9.5,
+                      height: 1.1,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF102033),
+                    ),
+                  ),
                 ),
               ),
               if (widget.showCommerceActions && category.isNotEmpty) ...[
