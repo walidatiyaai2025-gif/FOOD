@@ -63,6 +63,10 @@ try {
         php -l app\Services\LegacyStockLocationResolver.php
     }
 
+    Run-Step 'PHP syntax - invoice source materializer' {
+        php -l app\Services\LegacyInvoiceSourceMaterializerService.php
+    }
+
     Run-Step 'PHP syntax - importer' {
         php -l app\Services\LegacyFoodexImportService.php
     }
@@ -109,6 +113,14 @@ try {
 
     Run-Step 'Sales history verify' {
         php artisan foodex:legacy-sales-history-verify
+    }
+
+    Run-Step 'Invoice extra materialization' {
+        php artisan foodex:legacy-invoice-extras --apply
+    }
+
+    Run-Step 'Invoice extra verification' {
+        php artisan foodex:legacy-invoice-extras-verify
     }
 
     Run-Step 'Purchase history dry-run' {
