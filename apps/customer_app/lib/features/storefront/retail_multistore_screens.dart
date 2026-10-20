@@ -833,12 +833,6 @@ class _RetailHomeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = data.config['store'] is Map
-        ? Map<String, dynamic>.from(data.config['store'] as Map)
-        : <String, dynamic>{};
-    final branding = data.config['branding'] is Map
-        ? Map<String, dynamic>.from(data.config['branding'] as Map)
-        : <String, dynamic>{};
     final configuredSections = mapRows(data.config['sections']);
     final sections = configuredSections.isEmpty
         ? <Map<String, dynamic>>[
