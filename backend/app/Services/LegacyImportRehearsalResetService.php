@@ -28,6 +28,7 @@ final class LegacyImportRehearsalResetService
         'order_dispatch_states',
         'driver_assignments',
         'delivery_proofs',
+        'order_customer_service_assignments',
         'order_status_history',
         'b2b_van_cutover_snapshots',
         'b2b_van_cutover_runs',
@@ -124,11 +125,19 @@ final class LegacyImportRehearsalResetService
                 ->count()
             : 0;
 
+        $driverLocationLinks = Schema::hasTable('driver_current_locations')
+            && Schema::hasColumn('driver_current_locations', 'active_assignment_id')
+            ? (int) DB::table('driver_current_locations')
+                ->whereNotNull('active_assignment_id')
+                ->count()
+            : 0;
+
         $blockedReferences = $this->blockedReferences(array_keys($counts));
 
         return [
             'counts' => $counts,
             'linked_sales_ledger_rows' => $linkedLedgerRows,
+            'driver_location_assignment_links_to_clear' => $driverLocationLinks,
             'total' => array_sum($counts) + $linkedLedgerRows,
             'protected_counts' => $this->protectedCounts(),
             'legacy_mapping_rows' => $trackingRows,
@@ -165,6 +174,19 @@ final class LegacyImportRehearsalResetService
         $beforeProtected = $preview['protected_counts'];
 
         return DB::transaction(function () use ($preview, $beforeProtected): array {
+            if (
+                Schema::hasTable('driver_current_locations')
+                && Schema::hasColumn('driver_current_locations', 'active_assignment_id')
+                && (int) ($preview['driver_location_assignment_links_to_clear'] ?? 0) > 0
+            ) {
+                DB::table('driver_current_locations')
+                    ->whereNotNull('active_assignment_id')
+                    ->update([
+                        'active_assignment_id' => null,
+                        'updated_at' => now(),
+                    ]);
+            }
+
             if (
                 Schema::hasTable('customer_account_ledger_entries')
                 && (int) ($preview['linked_sales_ledger_rows'] ?? 0) > 0
@@ -244,6 +266,16 @@ final class LegacyImportRehearsalResetService
                 }
 
                 $column = (string) $columns[0];
+
+                // Keep live driver location rows; only clear their nullable assignment pointer.
+                if (
+                    $table === 'driver_current_locations'
+                    && $column === 'active_assignment_id'
+                    && $parent === 'driver_assignments'
+                ) {
+                    continue;
+                }
+
                 if (DB::table($table)->whereNotNull($column)->exists()) {
                     $blocked[$table][] = [
                         'column' => $column,
