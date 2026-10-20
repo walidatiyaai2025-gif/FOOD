@@ -161,6 +161,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
               searchHint: context.tr(
                 'customer.products.search_name_sku_barcode',
               ),
+              searchKey: const ValueKey('retail-catalog-search'),
               onSearchSubmitted: _submitSearch,
               notificationKey: const ValueKey('retail-catalog-notifications'),
               cartKey: const ValueKey('retail-catalog-cart'),
