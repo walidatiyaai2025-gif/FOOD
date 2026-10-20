@@ -31,8 +31,6 @@ final class LegacyStockReconciliationService
         23 => -1,
     ];
 
-    private const CAR_LOCATION_TYPES = [13, 14, 19, 20];
-
     public function verify(?callable $progress = null): array
     {
         $stage = static function (string $label, callable $callback) use ($progress): mixed {
@@ -68,7 +66,7 @@ final class LegacyStockReconciliationService
 
             foreach ($source->table('wh_Stores')->get(['ID', 'Code']) as $row) {
                 $id = (int) $row->ID;
-                $key = $this->locationKey('wh_Stores', $id);
+                $key = LegacyStockLocationResolver::key('wh_Stores', $id);
                 $storeIds[$id] = true;
                 $locations[$key] = [
                     'source_table' => 'wh_Stores',
@@ -79,7 +77,7 @@ final class LegacyStockReconciliationService
 
             foreach ($source->table('wh_Cars')->get(['ID', 'Code']) as $row) {
                 $id = (int) $row->ID;
-                $key = $this->locationKey('wh_Cars', $id);
+                $key = LegacyStockLocationResolver::key('wh_Cars', $id);
                 $carIds[$id] = true;
                 $locations[$key] = [
                     'source_table' => 'wh_Cars',
@@ -94,7 +92,7 @@ final class LegacyStockReconciliationService
             ];
         });
 
-        $headers = $stage('reconcile_load_headers', function () use ($source): array {
+        $headers = $stage('reconcile_load_headers', function () use ($source, $sourceLocations): array {
             $map = [];
 
             foreach ($source->table('wh_TransHeader')
@@ -103,13 +101,18 @@ final class LegacyStockReconciliationService
                 ->get(['HeaderId', 'TransType', 'StoreId']) as $row) {
                 $type = (int) $row->TransType;
                 $sourceId = (int) ($row->StoreId ?? 0);
-                $sourceTable = $this->locationSourceTable($type);
+                $resolved = LegacyStockLocationResolver::resolve(
+                    $type,
+                    $sourceId,
+                    $sourceLocations['locations'],
+                );
 
                 $map[(int) $row->HeaderId] = [
                     'type' => $type,
-                    'source_table' => $sourceTable,
+                    'source_table' => $resolved['source_table'],
                     'source_id' => $sourceId,
-                    'location_key' => $this->locationKey($sourceTable, $sourceId),
+                    'location_key' => $resolved['location_key'],
+                    'location_resolution' => $resolved['resolution'],
                 ];
             }
 
@@ -173,6 +176,7 @@ final class LegacyStockReconciliationService
                                 'item_id' => $itemId,
                                 'location_key' => $locationKey,
                                 'trans_type' => (int) $header['type'],
+                                'location_resolution' => $header['location_resolution'] ?? null,
                             ];
                         }
 
@@ -212,7 +216,7 @@ final class LegacyStockReconciliationService
                 ->where('target_table', 'warehouses')
                 ->whereIn('source_table', ['wh_Stores', 'wh_Cars'])
                 ->get(['source_table', 'source_key', 'target_id']) as $row) {
-                $map[$this->locationKey(
+                $map[LegacyStockLocationResolver::key(
                     (string) $row->source_table,
                     (int) $row->source_key,
                 )] = (int) $row->target_id;
@@ -405,7 +409,8 @@ final class LegacyStockReconciliationService
                 'source_tables_for_stock' => ['wh_TransHeader', 'wh_TransDetails'],
                 'car_tables_are_audit_only' => true,
                 'store_and_van_ids_are_namespaced' => true,
-                'car_location_types' => self::CAR_LOCATION_TYPES,
+                'location_resolution_uses_actual_source_membership_with_trans_type_collision_breaker' => true,
+                'car_preferred_location_types' => LegacyStockLocationResolver::CAR_PREFERRED_TYPES,
                 'only_positive_positions_are_materialized' => true,
                 'quantity_tolerance' => 0.0005,
             ],
@@ -436,18 +441,6 @@ final class LegacyStockReconciliationService
         }
 
         throw new RuntimeException('Unexpected SQL Server detail paging failure.');
-    }
-
-    private function locationSourceTable(int $transType): string
-    {
-        return in_array($transType, self::CAR_LOCATION_TYPES, true)
-            ? 'wh_Cars'
-            : 'wh_Stores';
-    }
-
-    private function locationKey(string $sourceTable, int $sourceId): string
-    {
-        return $sourceTable.':'.$sourceId;
     }
 
     private function legacySource(): Connection
