@@ -418,7 +418,7 @@ final class LegacyFinanceAccountMaterializerService
                 'type_authority' => 'AccountParentID ancestry to explicit named root accounts',
                 'normal_balance' => 'explicit source value when recognized; otherwise derived from resolved root account type',
                 'control_account' => 'derived structurally from presence of source children',
-                'allow_posting' => 'source HasTrans when present; structural leaf fallback otherwise',
+                'allow_posting' => 'structural leaf-only posting; source HasTrans retained as provenance only',
                 'functional_account_type' => 'preserved as provenance only; never used as financial statement classification',
                 'unresolved_account_type_policy' => 'fail closed',
             ],
@@ -581,9 +581,7 @@ final class LegacyFinanceAccountMaterializerService
             }
 
             $sourceHasTrans = $hasTransColumn === null ? null : ($sourceRow->{$hasTransColumn} ?? null);
-            $allowPosting = $sourceHasTrans === null
-                ? ! isset($childParents[$sourceId])
-                : (bool) ((int) $sourceHasTrans);
+            $allowPosting = ! isset($childParents[$sourceId]);
 
             $rows[] = [
                 'source_id' => $sourceId,
