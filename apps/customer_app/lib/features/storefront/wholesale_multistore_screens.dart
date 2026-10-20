@@ -2555,13 +2555,22 @@ class _WholesaleCatalogDesignScreenState
           final brandMap = <int, Map<String, dynamic>>{};
           for (final row in categorySources) {
             final id = intValue(row['brand_id']);
-            if (id <= 0 || brandMap.containsKey(id)) continue;
+            if (id <= 0) continue;
             final name = row['brand_name']?.toString().trim();
+            final imageUrl = row['brand_image_url']?.toString().trim();
+            final existing = brandMap[id];
+            final currentName = existing?['name']?.toString().trim();
+            final currentImage = existing?['image_url']?.toString().trim();
             brandMap[id] = {
               'id': id,
               'name': name?.isNotEmpty == true
                   ? name
-                  : context.tr('b2b.catalog.brand') + ' $id',
+                  : (currentName?.isNotEmpty == true
+                      ? currentName
+                      : context.tr('b2b.catalog.brand') + ' $id'),
+              'image_url': imageUrl?.isNotEmpty == true
+                  ? imageUrl
+                  : (currentImage?.isNotEmpty == true ? currentImage : null),
             };
           }
           final brands = brandMap.values.toList(growable: false);
@@ -2615,6 +2624,77 @@ class _WholesaleCatalogDesignScreenState
                           const SizedBox(height: 14),
                           _WholesaleCategoryBrowserGrid(
                             categories: categories,
+                            palette: palette,
+                            storeId: storeId,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (browseMode == 'brands' && selectedBrandId == null) {
+            final needle = search.text.trim().toLowerCase();
+            final visibleBrands = needle.isEmpty
+                ? brands
+                : brands
+                    .where(
+                      (brand) => (brand['name']?.toString().toLowerCase() ?? '')
+                          .contains(needle),
+                    )
+                    .toList(growable: false);
+
+            return Scaffold(
+              key: const ValueKey('wholesale-brand-browser-screen'),
+              backgroundColor: palette.background,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    FoodexWholesaleHeader(
+                      title: title,
+                      logoUrl: branding['logo_url']?.toString(),
+                      address: branding['address']?.toString(),
+                      palette: palette,
+                      searchController: search,
+                      searchKey:
+                          const ValueKey('wholesale-brand-browser-search'),
+                      searchHint: context.tr('b2b.catalog.brands_search_hint'),
+                      onSearchSubmitted: (_) => setState(() {}),
+                      onSearchChanged: (_) => setState(() {}),
+                      onClearSearch: () {
+                        search.clear();
+                        setState(() {});
+                      },
+                      onCart: () => Navigator.of(context)
+                          .pushNamed('/b2b/cart?store=' + storeId.toString()),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+                        children: [
+                          Text(
+                            context.tr('b2b.catalog.brands_title'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('b2b.catalog.brands_subtitle'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _WholesaleBrandBrowserGrid(
+                            brands: visibleBrands,
                             palette: palette,
                             storeId: storeId,
                           ),
@@ -3056,6 +3136,118 @@ class _WholesaleCategoryBrowserGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     category['name']?.toString() ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: CustomerUiColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WholesaleBrandBrowserGrid extends StatelessWidget {
+  const _WholesaleBrandBrowserGrid({
+    required this.brands,
+    required this.palette,
+    required this.storeId,
+  });
+
+  final List<Map<String, dynamic>> brands;
+  final FoodexPalette palette;
+  final int storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (brands.isEmpty) {
+      return FoodexEmptyState(
+        key: const ValueKey('wholesale-brand-browser-empty'),
+        title: context.tr('b2b.catalog.brands_title'),
+        subtitle: context.tr('b2b.catalog.brands_subtitle'),
+      );
+    }
+
+    return GridView.builder(
+      key: const ValueKey('wholesale-brand-browser-grid'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: brands.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: 154,
+      ),
+      itemBuilder: (context, index) {
+        final brand = brands[index];
+        final id = intValue(brand['id']);
+        final imageUrl = brand['image_url']?.toString().trim() ?? '';
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            key: ValueKey('wholesale-brand-browser-$id'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: id <= 0 || storeId <= 0
+                ? null
+                : () => Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                          'brand_id': id.toString(),
+                          'browse': 'brands',
+                        },
+                      ).toString(),
+                    ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.soft),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: imageUrl.isEmpty
+                          ? ColoredBox(
+                              color: palette.soft,
+                              child: Icon(
+                                Icons.sell_outlined,
+                                color: palette.primary,
+                                size: 34,
+                              ),
+                            )
+                          : Image.network(
+                              imageUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => ColoredBox(
+                                color: palette.soft,
+                                child: Icon(
+                                  Icons.sell_outlined,
+                                  color: palette.primary,
+                                  size: 34,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    brand['name']?.toString() ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
