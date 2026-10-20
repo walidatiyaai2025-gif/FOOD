@@ -115,6 +115,9 @@ Artisan::command(
         $this->line(
             'Legacy masters rerun ready: '.(($report['target']['legacy_masters_rerun_ready'] ?? false) ? 'yes' : 'no')
         );
+        $this->line(
+            'Protected upgrade ready: '.(($report['target']['legacy_upgrade_ready'] ?? false) ? 'yes' : 'no')
+        );
 
         $this->table(
             ['Price matrix check', 'Candidates', 'Non-linear'],
