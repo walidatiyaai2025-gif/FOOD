@@ -871,6 +871,7 @@ class _RetailHomeBody extends StatelessWidget {
                 title: section['title_ar']?.toString() ??
                     (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
                 palette: palette,
+                animatedGoldTitle: type == 'categories',
               ),
               _CategoryRail(
                 storeId: storeId,
