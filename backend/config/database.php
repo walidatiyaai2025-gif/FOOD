@@ -44,6 +44,11 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('LEGACY_DB_ENCRYPT', 'no'),
             'trust_server_certificate' => env('LEGACY_DB_TRUST_CERTIFICATE', 'yes'),
+            'options' => extension_loaded('pdo_sqlsrv')
+                ? array_filter([
+                    \PDO::ATTR_TIMEOUT => (int) env('LEGACY_DB_TIMEOUT', 300),
+                ])
+                : [],
         ],
         'pgsql' => [
             'driver' => 'pgsql',
