@@ -200,7 +200,7 @@ final class LegacyFinanceCostCenterMaterializerService
                 }
 
                 DB::table('enterprise_cost_centers')
-                    ->whereKey($targetId)
+                    ->where('id', $targetId)
                     ->update(['parent_id' => $parentId, 'updated_at' => now()]);
             }
 
