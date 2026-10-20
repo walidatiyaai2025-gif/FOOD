@@ -2491,7 +2491,7 @@ class _WholesaleCatalogDesignScreenState
                   ? custom['brand_title_ar'].toString()
                   : (store['name']?.toString().trim().isNotEmpty == true
                       ? store['name'].toString()
-                      : 'فودكس');
+                      : 'فوديكس');
 
           if (payload['store_required'] == true) {
             return Scaffold(
