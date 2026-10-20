@@ -57,6 +57,10 @@ try {
         php -l app\Services\LegacyFoodexImportService.php
     }
 
+    Run-Step 'PHP syntax - full source archive' {
+        php -l app\Services\LegacyFullArchiveService.php
+    }
+
     Run-Step 'PHP syntax - legacy routes' {
         php -l routes\legacy_import.php
     }
@@ -195,6 +199,18 @@ try {
     }
     Run-Step 'FINAL finance verify' {
         php artisan foodex:legacy-finance-history-verify
+    }
+
+    Run-Step 'Full SQL Server archive dry-run' {
+        php artisan foodex:legacy-archive-all
+    }
+
+    Run-Step 'Full SQL Server archive apply' {
+        php artisan foodex:legacy-archive-all --apply
+    }
+
+    Run-Step 'Full SQL Server coverage verify' {
+        php artisan foodex:legacy-archive-verify
     }
 
     Write-Host ""
