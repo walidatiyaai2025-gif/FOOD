@@ -8485,30 +8485,6 @@ SQL));
         );
     }
 
-    private function quarantine(
-        string $sourceTable,
-        string $sourceKey,
-        string $reason,
-        object $source,
-        string $runId,
-    ): void {
-        DB::table('legacy_import_quarantine')->updateOrInsert(
-            [
-                'source_system' => self::SOURCE_SYSTEM,
-                'source_table' => $sourceTable,
-                'source_key' => $sourceKey,
-                'reason' => $reason,
-            ],
-            [
-                'payload' => $this->json((array) $source),
-                'run_id' => $runId,
-                'resolved_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
-    }
-
     private function name(mixed $arabic, mixed $english, string $fallback): string
     {
         $arabic = trim((string) $arabic);
