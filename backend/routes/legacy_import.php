@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\LegacyFoodexImportService;
+use App\Services\LegacyFullArchiveService;
 use App\Services\LegacyImportRehearsalResetService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +135,133 @@ Artisan::command(
         }
     },
 )->purpose('Reset vans and their operational history without touching users, drivers, stores or warehouses.');
+
+Artisan::command(
+    'foodex:legacy-archive-all {--apply : Archive every SQL Server user table and row} {--json : Output machine-readable JSON}',
+    function (LegacyFullArchiveService $archive): int {
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
+
+        try {
+            $result = $archive->archiveAll((bool) $this->option('apply'), $progress);
+        } catch (Throwable $exception) {
+            $this->error('Legacy full-source archive failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        if (! (bool) $this->option('apply')) {
+            $this->info('Legacy full-source archive dry-run');
+            $this->table(
+                ['Metric', 'Count'],
+                [
+                    ['SQL Server user tables', $result['planned']['source_tables']],
+                    ['Estimated source rows', $result['planned']['estimated_source_rows']],
+                ],
+            );
+            $this->warn('Dry-run only. Apply archives every source row, including tables without a canonical FOODEX target.');
+
+            return 0;
+        }
+
+        $this->info('Legacy full-source archive completed.');
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['SQL Server user tables', $result['source_tables']],
+                ['Completed tables', $result['completed_tables']],
+                ['Archived rows', $result['archived_rows']],
+            ],
+        );
+
+        return 0;
+    },
+)->purpose('Losslessly archive every SQL Server user table and row into MySQL for 100% legacy data coverage.');
+
+Artisan::command(
+    'foodex:legacy-archive-verify {--json : Output machine-readable JSON}',
+    function (LegacyFullArchiveService $archive): int {
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
+
+        try {
+            $report = $archive->verify($progress);
+        } catch (Throwable $exception) {
+            $this->error('Legacy full-source archive verification failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $report['healthy'] ? 0 : 1;
+        }
+
+        $this->info('Legacy full-source coverage verification');
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['SQL Server user tables', $report['source_tables']],
+                ['SQL Server rows', $report['source_rows']],
+                ['Archived rows', $report['archived_rows']],
+            ],
+        );
+
+        $failed = collect($report['tables'])->where('healthy', false)->values()->all();
+        if ($failed !== []) {
+            $this->error('Coverage mismatches detected.');
+            $this->table(
+                ['Schema', 'Table', 'Source', 'Archived', 'Status'],
+                collect($failed)->map(static fn (array $row): array => [
+                    $row['schema'],
+                    $row['table'],
+                    $row['source_rows'],
+                    $row['archived_rows'],
+                    $row['manifest_status'] ?? '',
+                ])->all(),
+            );
+        }
+
+        if ($report['healthy']) {
+            $this->info('FULL SQL SERVER COVERAGE PASSED: every current source table and row is archived.');
+
+            return 0;
+        }
+
+        $this->error('FULL SQL SERVER COVERAGE FAILED.');
+
+        return 1;
+    },
+)->purpose('Fail unless every SQL Server user table and row is present in the MySQL legacy archive.');
 
 Artisan::command(
     'foodex:legacy-preflight {--json : Output machine-readable JSON}',
