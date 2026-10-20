@@ -107,6 +107,8 @@ final class LegacyFinanceAssetProfilerService
             'depreciation_id' => $this->lookupCoverage($qualified, $resolved['depreciation_id'] ?? null, $metadata, ['depreci', 'deprec']),
         ];
 
+        $assetSemanticMasters = $this->assetSemanticMasters();
+
         return [
             'source_table' => $qualified,
             'source_table_name' => $source['table'],
@@ -121,6 +123,7 @@ final class LegacyFinanceAssetProfilerService
             'lookup_coverage' => $lookupCoverage,
             'related_tables' => $relatedTables,
             'asset_relation_tables' => $relationTables,
+            'asset_semantic_masters' => $assetSemanticMasters,
             'samples' => $samples,
             'native_requirements' => [
                 'category' => 'requires source-backed grouping/depreciation semantics plus native account mappings',
@@ -131,6 +134,137 @@ final class LegacyFinanceAssetProfilerService
                 'write_policy' => 'profile only until every required native field has an explicit source authority',
             ],
         ];
+    }
+
+    private function assetSemanticMasters(): array
+    {
+        $tables = [
+            'groups' => 'dbo.gl_AssetsGroups',
+            'sub_groups' => 'dbo.gl_AssetsSupGroups',
+            'settings' => 'dbo.gl_Settings',
+            'headers' => 'dbo.gl_AssetsHeader',
+            'details' => 'dbo.gl_AssetsDetails',
+            'trans_types' => 'dbo.gl_AssetsTransTypes',
+        ];
+
+        $result = [];
+        foreach ($tables as $key => $qualified) {
+            try {
+                $result[$key] = $this->legacySource()->table($qualified)
+                    ->orderBy($this->firstExistingColumn($qualified, ['ID', 'HeaderId', 'DetailId', 'Code']) ?? DB::raw('(SELECT 1)'))
+                    ->get()
+                    ->map(static fn ($row): array => (array) $row)
+                    ->all();
+            } catch (\Throwable $exception) {
+                $result[$key] = [
+                    '_error' => $exception->getMessage(),
+                ];
+            }
+        }
+
+        $accountIds = [];
+        foreach ($result['groups'] ?? [] as $row) {
+            if (is_array($row) && isset($row['GlAccId']) && (int) $row['GlAccId'] > 0) {
+                $accountIds[] = (int) $row['GlAccId'];
+            }
+        }
+
+        foreach ($result['sub_groups'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach ([
+                'DepComplexAccId',
+                'ExpenseComplexAccId',
+                'CapitalGainsAccId',
+                'CapitalLossesAccId',
+            ] as $field) {
+                if (isset($row[$field]) && (int) $row[$field] > 0) {
+                    $accountIds[] = (int) $row[$field];
+                }
+            }
+        }
+
+        foreach ($result['settings'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach ([
+                'Fixedassets',
+                'FixedAssetsOther',
+                'FixedAssetsOther1',
+                'FixedAssetsOther2',
+                'FixedAssetsOther3',
+                'TaxExpensesAccId',
+            ] as $field) {
+                if (isset($row[$field]) && (int) $row[$field] > 0) {
+                    $accountIds[] = (int) $row[$field];
+                }
+            }
+        }
+
+        $accountIds = array_values(array_unique($accountIds));
+        sort($accountIds);
+
+        $accounts = $accountIds === []
+            ? collect()
+            : $this->legacySource()->table('dbo.gl_Accounts')
+                ->whereIn('ID', $accountIds)
+                ->orderBy('ID')
+                ->get([
+                    'ID',
+                    'Code',
+                    'Name_AR',
+                    'Name_En',
+                    'AccountParentID',
+                    'AccountType',
+                    'AccountFinalListType',
+                    'HasAccounts',
+                    'HasTrans',
+                    'Status',
+                ]);
+
+        $nativeMappings = $accountIds === []
+            ? collect()
+            : DB::table('legacy_import_mappings')
+                ->where('source_system', 'foodex_sqlserver')
+                ->where('source_table', 'gl_Accounts')
+                ->where('target_table', 'enterprise_finance_accounts')
+                ->whereIn('source_key', array_map('strval', $accountIds))
+                ->get(['source_key', 'target_id'])
+                ->keyBy('source_key');
+
+        $result['referenced_accounts'] = $accounts
+            ->map(function ($row) use ($nativeMappings): array {
+                $mapping = $nativeMappings->get((string) $row->ID);
+
+                return [
+                    'source_id' => (int) $row->ID,
+                    'code' => (string) $row->Code,
+                    'name_ar' => (string) $row->Name_AR,
+                    'name_en' => (string) $row->Name_En,
+                    'parent_id' => (int) $row->AccountParentID,
+                    'account_type' => $row->AccountType,
+                    'final_list_type' => $row->AccountFinalListType,
+                    'has_accounts' => $row->HasAccounts,
+                    'has_trans' => $row->HasTrans,
+                    'status' => $row->Status,
+                    'native_account_id' => $mapping === null ? null : (int) $mapping->target_id,
+                ];
+            })
+            ->all();
+
+        $result['referenced_account_ids'] = $accountIds;
+
+        return $result;
+    }
+
+    private function firstExistingColumn(string $qualified, array $candidates): ?string
+    {
+        [$schema, $table] = explode('.', $qualified, 2);
+        $columns = $this->sourceColumns($schema, $table);
+
+        return $this->matchColumn($columns, $candidates);
     }
 
     private function numericStats(array $rows, ?string $column): array
