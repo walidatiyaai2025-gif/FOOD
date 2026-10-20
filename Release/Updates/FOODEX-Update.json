@@ -5,8 +5,8 @@
   "target_version": "1.0.95",
   "minimum_current_version": "1.0.90",
   "source_base": "66857a1a5079baa78264b83cdb57e2cff112a727",
-  "source_commit": "161e2d2411ba1b340fb55d55cf1bf4390ca85691",
-  "sha256": "555eb9147a36a864d70f3c98433f8e422e78549a5ef1e02e895a6b645069a1f0",
+  "source_commit": "af349101a6a570ac7027f5d79753cb77d59858ed",
+  "sha256": "ab7eba23f4a7e1eb3f0eca1a18b3356d835d6cc14528f6f1e22178741ef7e824",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/2026_09_30_005120_create_driver_current_locations.php",
@@ -46,8 +46,8 @@
   "dashboard_fields": {
     "target_version": "1.0.95",
     "minimum_current_version": "1.0.90",
-    "source_commit": "161e2d2411ba1b340fb55d55cf1bf4390ca85691",
-    "sha256": "555eb9147a36a864d70f3c98433f8e422e78549a5ef1e02e895a6b645069a1f0",
+    "source_commit": "af349101a6a570ac7027f5d79753cb77d59858ed",
+    "sha256": "ab7eba23f4a7e1eb3f0eca1a18b3356d835d6cc14528f6f1e22178741ef7e824",
     "contains_migrations": true,
     "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory. Hotfix Catalog Product Management (#2290) so Active/Inactive can be changed directly from each grid row with lifecycle/audit preservation, and render full product names without truncation."
   }
