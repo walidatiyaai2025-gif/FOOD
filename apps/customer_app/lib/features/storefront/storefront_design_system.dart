@@ -461,11 +461,9 @@ class _FoodexAnimatedHeaderTitleState
       mainAxisSize: MainAxisSize.min,
       textDirection: arabicBrand ? TextDirection.rtl : TextDirection.ltr,
       children: [
-        Flexible(
-          flex: 0,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
               final progress = _controller.value;
               final wave = math.sin(progress * math.pi * 2);
               final travel = progress * 2.5;
@@ -496,8 +494,7 @@ class _FoodexAnimatedHeaderTitleState
                   ),
                 ),
               );
-            },
-          ),
+          },
         ),
         if (rest.isNotEmpty)
           Flexible(
