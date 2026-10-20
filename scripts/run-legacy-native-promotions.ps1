@@ -48,6 +48,8 @@ try {
         }
     }
 
+    Invoke-FoodexStep 'Profile legacy fixed assets (read-only)' { php artisan foodex:legacy-finance-assets-profile }
+
     Invoke-FoodexStep 'Rebuild business-impact extension after native promotions' { php artisan foodex:legacy-business-materialize --apply }
     Invoke-FoodexStep 'Business-impact coverage verify' { php artisan foodex:legacy-business-verify }
     Invoke-FoodexStep 'Canonical coverage report' { php artisan foodex:legacy-canonical-coverage }
