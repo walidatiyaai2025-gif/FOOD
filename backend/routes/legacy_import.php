@@ -78,6 +78,64 @@ Artisan::command(
 )->purpose('Reset only the approved catalog, sales and inventory scope before a legacy Foodex import rehearsal.');
 
 Artisan::command(
+    'foodex:legacy-rehearsal-reset-vans {--apply : Delete only vans and van operational history} {--confirm= : Required exact confirmation when applying} {--json : Output machine-readable JSON}',
+    function (LegacyImportRehearsalResetService $reset): int {
+        try {
+            if (! (bool) $this->option('apply')) {
+                $report = $reset->previewVanScope();
+
+                if ((bool) $this->option('json')) {
+                    $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+                    return $report['ready'] ? 0 : 1;
+                }
+
+                $this->info('Legacy import van scoped reset preview');
+                $this->table(
+                    ['Table', 'Rows'],
+                    collect($report['counts'])
+                        ->map(fn ($count, $table): array => [(string) $table, (int) $count])
+                        ->values()
+                        ->all(),
+                );
+                $this->line('Fleet location rows to remove: '.$report['fleet_location_rows']);
+                $this->line('Driver current-location assignment links to clear: '.$report['driver_location_assignment_links_to_clear']);
+
+                if (! $report['ready']) {
+                    $this->error(
+                        'Blocked by unapproved dependent tables: '.
+                        json_encode($report['blocked_references'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    );
+
+                    return 1;
+                }
+
+                $this->info('Van scoped reset preview PASSED.');
+
+                return 0;
+            }
+
+            $result = $reset->executeVanScope((string) $this->option('confirm'));
+
+            if ((bool) $this->option('json')) {
+                $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+                return 0;
+            }
+
+            $this->info('Van scoped reset completed safely.');
+            $this->info('Users, drivers, warehouses, stores and configuration were preserved.');
+
+            return 0;
+        } catch (Throwable $exception) {
+            $this->error('Legacy van rehearsal reset failed: '.$exception->getMessage());
+
+            return 1;
+        }
+    },
+)->purpose('Reset vans and their operational history without touching users, drivers, stores or warehouses.');
+
+Artisan::command(
     'foodex:legacy-preflight {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
         try {
