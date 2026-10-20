@@ -40,7 +40,11 @@ final class LegacyImportRehearsalResetService
         'flash_reservations',
 
         // Invoice / payment dependents that are safe to rebuild with imported sales history.
+        'remittance_allocations',
+        'custody_ledger_entries',
+        'remittances',
         'collection_allocations',
+        'collection_transactions',
 
         // Sales transaction scope explicitly approved for reset.
         'payments',
@@ -112,11 +116,20 @@ final class LegacyImportRehearsalResetService
             ? (int) DB::table('legacy_import_mappings')->count()
             : 0;
 
+        $linkedLedgerRows = Schema::hasTable('customer_account_ledger_entries')
+            ? (int) DB::table('customer_account_ledger_entries')
+                ->where(function ($query): void {
+                    $query->whereNotNull('order_id')->orWhereNotNull('invoice_id');
+                })
+                ->count()
+            : 0;
+
         $blockedReferences = $this->blockedReferences(array_keys($counts));
 
         return [
             'counts' => $counts,
-            'total' => array_sum($counts),
+            'linked_sales_ledger_rows' => $linkedLedgerRows,
+            'total' => array_sum($counts) + $linkedLedgerRows,
             'protected_counts' => $this->protectedCounts(),
             'legacy_mapping_rows' => $trackingRows,
             'blocked_references' => $blockedReferences,
@@ -152,6 +165,17 @@ final class LegacyImportRehearsalResetService
         $beforeProtected = $preview['protected_counts'];
 
         return DB::transaction(function () use ($preview, $beforeProtected): array {
+            if (
+                Schema::hasTable('customer_account_ledger_entries')
+                && (int) ($preview['linked_sales_ledger_rows'] ?? 0) > 0
+            ) {
+                DB::table('customer_account_ledger_entries')
+                    ->where(function ($query): void {
+                        $query->whereNotNull('order_id')->orWhereNotNull('invoice_id');
+                    })
+                    ->delete();
+            }
+
             foreach ($this->deletionOrder(array_keys($preview['counts'])) as $table) {
                 DB::table($table)->delete();
             }
@@ -199,6 +223,11 @@ final class LegacyImportRehearsalResetService
 
         foreach (Schema::getTableListing(null, false) as $table) {
             if (in_array($table, $targets, true)) {
+                continue;
+            }
+
+            // Sales-linked ledger rows are deleted selectively before orders/invoices.
+            if ($table === 'customer_account_ledger_entries') {
                 continue;
             }
 
