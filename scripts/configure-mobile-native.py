@@ -543,6 +543,21 @@ def patch_android(app_dir: Path, bundle_id: str, label: str) -> None:
         text = path.read_text()
         text = re.sub(r'^package\s+[^\s]+', f'package {bundle_id}', text, count=1, flags=re.M)
         if 'NotificationChannel' not in text:
+            channel_id = (
+                'foodex_customer_high_priority'
+                if bundle_id == IDENTITIES['customer']['bundle_id']
+                else 'foodex_updates'
+            )
+            channel_name = (
+                'FOODEX Customer'
+                if bundle_id == IDENTITIES['customer']['bundle_id']
+                else 'FOODEX Updates'
+            )
+            channel_importance = (
+                'NotificationManager.IMPORTANCE_HIGH'
+                if bundle_id == IDENTITIES['customer']['bundle_id']
+                else 'NotificationManager.IMPORTANCE_DEFAULT'
+            )
             text = text.replace(
                 'import io.flutter.embedding.android.FlutterActivity',
                 'import android.app.NotificationChannel\n'
@@ -558,9 +573,9 @@ def patch_android(app_dir: Path, bundle_id: str, label: str) -> None:
                 '        super.onCreate(savedInstanceState)\n'
                 '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n'
                 '            val channel = NotificationChannel(\n'
-                '                "foodex_updates",\n'
-                '                "FOODEX Updates",\n'
-                '                NotificationManager.IMPORTANCE_DEFAULT\n'
+                f'                "{channel_id}",\n'
+                f'                "{channel_name}",\n'
+                f'                {channel_importance}\n'
                 '            )\n'
                 '            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)\n'
                 '        }\n'
