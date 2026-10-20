@@ -344,7 +344,19 @@ class LookupManagementCenterTest extends TestCase
         $this->actingAs($admin)->get('/admin/lookups?type=brands')
             ->assertOk()
             ->assertSee('brand-thumb', false)
+            ->assertSee('data-grid-image-form', false)
+            ->assertSee('lookup-record-row', false)
             ->assertSee((string) $brand->image_path);
+
+        $oldPath = (string) $brand->image_path;
+        $this->actingAs($admin)->patch(route('admin.lookups.brands.image', ['lookup' => $brand->id]), [
+            'brand_image' => UploadedFile::fake()->image('brand-replaced.png', 640, 640)->size(120),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $replacementPath = (string) DB::table('brands')->where('id', $brand->id)->value('image_path');
+        $this->assertNotSame($oldPath, $replacementPath);
+        Storage::disk('public')->assertMissing(substr($oldPath, strlen('storage/')));
+        Storage::disk('public')->assertExists(substr($replacementPath, strlen('storage/')));
     }
 
     public function test_lookup_create_uses_type_specific_modal_instead_of_inline_generic_form(): void
