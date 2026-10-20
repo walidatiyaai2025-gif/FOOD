@@ -15,6 +15,21 @@ final class LegacyImportRehearsalResetService
     private const SOURCE_SYSTEM = 'foodex_sqlserver';
 
     /**
+     * Provenance for protected master rows survives reruns because the target
+     * rows themselves are intentionally preserved.
+     */
+    private const PRESERVED_MASTER_MAPPING_TARGETS = [
+        'warehouses',
+        'customers',
+        'b2b_customers',
+        'b2b_accounts',
+        'platform_customers',
+        'b2b_price_tiers',
+        'addresses',
+        'enterprise_suppliers',
+    ];
+
+    /**
      * Explicitly approved rehearsal reset scope.
      *
      * Settings, users, roles, permissions, stores, customers and integrations
@@ -132,6 +147,14 @@ final class LegacyImportRehearsalResetService
         $trackingRows = Schema::hasTable('legacy_import_mappings')
             ? (int) DB::table('legacy_import_mappings')
                 ->where('source_system', self::SOURCE_SYSTEM)
+                ->whereNotIn('target_table', self::PRESERVED_MASTER_MAPPING_TARGETS)
+                ->count()
+            : 0;
+
+        $preservedMasterTrackingRows = Schema::hasTable('legacy_import_mappings')
+            ? (int) DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->whereIn('target_table', self::PRESERVED_MASTER_MAPPING_TARGETS)
                 ->count()
             : 0;
 
@@ -192,6 +215,7 @@ final class LegacyImportRehearsalResetService
                 + $trackingRows + $referenceRows + $quarantineRows + $runRows,
             'protected_counts' => $this->protectedCounts(),
             'legacy_mapping_rows' => $trackingRows,
+            'preserved_master_mapping_rows' => $preservedMasterTrackingRows,
             'foreign_legacy_mapping_rows_preserved' => $foreignTrackingRows,
             'legacy_reference_rows' => $referenceRows,
             'legacy_quarantine_rows' => $quarantineRows,
@@ -274,6 +298,7 @@ final class LegacyImportRehearsalResetService
             if (Schema::hasTable('legacy_import_mappings')) {
                 DB::table('legacy_import_mappings')
                     ->where('source_system', self::SOURCE_SYSTEM)
+                    ->whereNotIn('target_table', self::PRESERVED_MASTER_MAPPING_TARGETS)
                     ->delete();
             }
 
@@ -311,6 +336,7 @@ final class LegacyImportRehearsalResetService
                 'removed_by_table' => $preview['counts'],
                 'removed_scoped_customer_ledger_rows' => $preview['scoped_customer_ledger_rows'] ?? 0,
                 'removed_foodex_mapping_rows' => $preview['legacy_mapping_rows'] ?? 0,
+                'preserved_master_mapping_rows' => $preview['preserved_master_mapping_rows'] ?? 0,
                 'removed_foodex_reference_rows' => $preview['legacy_reference_rows'] ?? 0,
                 'removed_foodex_quarantine_rows' => $preview['legacy_quarantine_rows'] ?? 0,
                 'removed_foodex_run_rows' => $preview['legacy_run_rows'] ?? 0,
