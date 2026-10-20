@@ -2,6 +2,7 @@
 
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyFullArchiveService;
+use App\Services\LegacyCanonicalCoverageService;
 use App\Services\LegacyImportRehearsalResetService;
 use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
@@ -1133,6 +1134,60 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-canonical-coverage {--json : Output complete JSON coverage report}',
+    function (LegacyCanonicalCoverageService $coverage): int {
+        try {
+            $report = $coverage->report();
+        } catch (Throwable $exception) {
+            $this->error('Legacy canonical coverage report failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $report,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return $report['healthy_archive'] ? 0 : 1;
+        }
+
+        $summary = $report['summary'];
+        $this->info('Legacy SQL -> FOODEX canonical coverage');
+        $this->table(
+            ['Classification', 'Tables / Rows'],
+            [
+                ['Canonical mapped tables', $summary['canonical_mapped_tables']],
+                ['Canonical input tables', $summary['canonical_input_tables']],
+                ['Reference-preserved tables', $summary['reference_preserved_tables']],
+                ['Invoice-extension tables', $summary['invoice_extension_tables']],
+                ['Empty source tables', $summary['empty_source_tables']],
+                ['Archive-only nonempty tables', $summary['archive_only_tables']],
+                ['Archive-only rows', $summary['archive_only_rows']],
+            ],
+        );
+
+        $archiveOnly = array_slice($report['archive_only_nonempty'], 0, 100);
+        if ($archiveOnly !== []) {
+            $this->warn('Non-empty SQL Server tables still preserved only in the full archive:');
+            $this->table(
+                ['Schema', 'Table', 'Rows'],
+                collect($archiveOnly)->map(static fn (array $row): array => [
+                    $row['schema'],
+                    $row['table'],
+                    $row['source_rows'],
+                ])->all(),
+            );
+        } else {
+            $this->info('No non-empty source table remains archive-only.');
+        }
+
+        return $report['healthy_archive'] ? 0 : 1;
+    },
+)->purpose('Show which SQL Server tables are canonicalized, referenced, extended, empty, or still archive-only.');
 
 Artisan::command(
     'foodex:legacy-invoice-extras {--apply : Materialize invoice satellite records from the verified full archive} {--json : Output JSON}',
