@@ -12,28 +12,28 @@ final class LegacyFinanceAssetMaterializerServiceTest extends TestCase
     {
         $service = new LegacyFinanceAssetMaterializerService;
 
-        $this->assertSame(48, $this->call($service, 'lifeMonths', ['4.000', '25.000']));
-        $this->assertSame(48, $this->call($service, 'lifeMonths', ['48.000', '25.000']));
-        $this->assertNull($this->call($service, 'lifeMonths', ['5.000', '25.000']));
+        $this->assertSame(48, $this->invokePrivate($service, 'lifeMonths', ['4.000', '25.000']));
+        $this->assertSame(48, $this->invokePrivate($service, 'lifeMonths', ['48.000', '25.000']));
+        $this->assertNull($this->invokePrivate($service, 'lifeMonths', ['5.000', '25.000']));
     }
 
     public function test_expired_value_is_accepted_only_as_a_boolean_flag(): void
     {
         $service = new LegacyFinanceAssetMaterializerService;
 
-        $this->assertTrue($this->call($service, 'flag', ['1']));
-        $this->assertFalse($this->call($service, 'flag', ['0']));
-        $this->assertNull($this->call($service, 'flag', ['2']));
-        $this->assertNull($this->call($service, 'flag', ['75.00']));
+        $this->assertTrue($this->invokePrivate($service, 'flag', ['1']));
+        $this->assertFalse($this->invokePrivate($service, 'flag', ['0']));
+        $this->assertNull($this->invokePrivate($service, 'flag', ['2']));
+        $this->assertNull($this->invokePrivate($service, 'flag', ['75.00']));
     }
 
     public function test_source_asset_date_requires_valid_yyyymmdd(): void
     {
         $service = new LegacyFinanceAssetMaterializerService;
 
-        $this->assertSame('2019-08-04', $this->call($service, 'date', ['20190804']));
-        $this->assertNull($this->call($service, 'date', ['20191304']));
-        $this->assertNull($this->call($service, 'date', ['0']));
+        $this->assertSame('2019-08-04', $this->invokePrivate($service, 'date', ['20190804']));
+        $this->assertNull($this->invokePrivate($service, 'date', ['20191304']));
+        $this->assertNull($this->invokePrivate($service, 'date', ['0']));
     }
 
     public function test_service_encodes_fail_closed_native_finance_rules(): void
@@ -47,7 +47,7 @@ final class LegacyFinanceAssetMaterializerServiceTest extends TestCase
         $this->assertStringContainsString("'expired_value_is_flag_not_money' => true", $source);
     }
 
-    private function call(object $object, string $method, array $arguments): mixed
+    private function invokePrivate(object $object, string $method, array $arguments): mixed
     {
         $reflection = new ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
