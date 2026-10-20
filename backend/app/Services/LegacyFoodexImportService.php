@@ -7772,17 +7772,23 @@ SQL));
             }
         }
 
-        // Keep canonical tier mode disabled until unresolved legacy PriceID=0 customers
-        // and package-price consistency diagnostics have been explicitly cleared.
-        DB::table('settings')->updateOrInsert(
-            ['store_id' => $storeId, 'key' => B2bPricingMode::SETTING_KEY],
-            [
+        // Never overwrite an existing operational setting during legacy import.
+        // Only materialize the safe default when the setting does not already exist.
+        $pricingModeSettingExists = DB::table('settings')
+            ->where('store_id', $storeId)
+            ->where('key', B2bPricingMode::SETTING_KEY)
+            ->exists();
+
+        if (! $pricingModeSettingExists) {
+            DB::table('settings')->insert([
+                'store_id' => $storeId,
+                'key' => B2bPricingMode::SETTING_KEY,
                 'value' => $this->json(false),
                 'is_secret' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-        );
+            ]);
+        }
 
         $unresolvedCustomerPriceIds = (int) DB::connection('foodex_legacy')
             ->table('wh_Customers')
