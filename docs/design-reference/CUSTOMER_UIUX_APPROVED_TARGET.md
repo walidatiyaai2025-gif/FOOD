@@ -107,6 +107,20 @@ Wholesale:
 
 The approved mockup may refine visual spacing, hierarchy, card treatment, selected-state treatment and density, but it must not silently change the business meaning of those destinations.
 
+## Wholesale customer merchandising and finance presentation
+
+The current Wholesale/B2B customer presentation additionally keeps these customer-facing rules:
+
+- Wholesale Home keeps search and cart controls fixed while merchandising content scrolls.
+- Best Sellers may expose up to nine product cards from authoritative section/product data.
+- The Categories action opens a category-first browser: category imagery and labels are shown before products, and products appear only after the customer selects a category.
+- Product detail presents the authoritative account price without the internal-facing “base wholesale price” label, avoids a standalone pack/conversion diagnostics box, and may surface same-category alternatives from the canonical B2B products endpoint.
+- Customer order and invoice presentation is intentionally compact: payment state is promoted, tax is not repeated in the customer summary/detail UI, invoice item rows prioritize product image + quantity + line total, and customer-entered checkout notes are the only notes exposed back as customer order notes.
+- Customer-facing outstanding-balance wording uses “Debt / المديونية”; invoice lifecycle labels use customer-readable settlement terminology while backend invoice status values remain authoritative.
+- Favorites use the compact product-card density and a red selected-heart affordance.
+
+These are presentation rules only. They do not alter accounting totals, tax source data, authorization, pricing authority, invoice ownership, or order lifecycle semantics.
+
 ## Order status / tracking rule
 
 The Customer App already has an authoritative order tracking route and lifecycle/status behavior.

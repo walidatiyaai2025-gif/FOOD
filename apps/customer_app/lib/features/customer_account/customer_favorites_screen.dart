@@ -1,3 +1,4 @@
+import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
@@ -6,8 +7,13 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
-import 'customer_account_v3_widgets.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
+
+typedef CustomerFavoriteAddToCart = Future<void> Function({
+  required int storeId,
+  required int productId,
+  required double quantity,
+});
 
 class CustomerFavoritesScreen extends StatefulWidget {
   const CustomerFavoritesScreen({
@@ -15,6 +21,7 @@ class CustomerFavoritesScreen extends StatefulWidget {
     required this.favoritesApi,
     required this.retailStoreId,
     this.onOpenProduct,
+    this.onAddToCart,
     super.key,
   });
 
@@ -22,6 +29,7 @@ class CustomerFavoritesScreen extends StatefulWidget {
   final B2cRetailFavoritesApi favoritesApi;
   final int retailStoreId;
   final ValueChanged<int>? onOpenProduct;
+  final CustomerFavoriteAddToCart? onAddToCart;
 
   @override
   State<CustomerFavoritesScreen> createState() =>
@@ -82,14 +90,29 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
     }
   }
 
+  Future<void> _addToCart(int productId) async {
+    final add = widget.onAddToCart;
+    if (add == null) return;
+    try {
+      await add(
+        storeId: widget.retailStoreId,
+        productId: productId,
+        quantity: 1,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr(customerAccountErrorKey(error)))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('customer-favorites-screen'),
-        body: CustomerCurvedHeaderSurface(
-          header: CustomerAccountHeader(
-            title: context.tr('customer.profile.favorites'),
-            subtitle: context.tr('customer.favorites.subtitle'),
-          ),
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.profile.favorites'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
           child: RefreshIndicator(
             onRefresh: () async {
               _reload();
@@ -148,7 +171,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                       ),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
-                        crossAxisSpacing: CustomerUiSpacing.sm,
+                        crossAxisSpacing: CustomerUiSpacing.xs,
                         mainAxisSpacing: CustomerUiSpacing.sm,
                         mainAxisExtent: cardExtent,
                       ),
@@ -164,14 +187,15 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                             product['title']?.toString() ??
                             '';
                         final price = product['price'] ?? product['sale_price'];
-                        final oldPrice = product['old_price'] ??
-                            product['regular_price'] ??
-                            product['original_price'];
                         final currency = product['currency']?.toString() ??
                             raw['currency']?.toString();
                         final imageUrl = _imageUrl(product);
-                        final categoryLabel = _categoryLabel(product);
-                        final discountLabel = _discountLabel(product);
+                        final brandLabel =
+                            product['brand_name']?.toString().trim();
+                        final brandImageUrl =
+                            product['brand_image_url']?.toString().trim();
+                        final isAvailable = product['is_available'] != false &&
+                            product['availability_state'] != 'OUT_OF_STOCK';
 
                         final card = CustomerProductCard(
                           key: ValueKey(
@@ -180,15 +204,25 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                           ),
                           title: name,
                           priceLabel: _priceLabel(price, currency),
-                          oldPriceLabel: oldPrice == null
-                              ? null
-                              : _priceLabel(oldPrice, currency),
                           imageUrl: imageUrl,
-                          categoryLabel: categoryLabel,
-                          discountLabel: discountLabel,
+                          brandLabel:
+                              brandLabel?.isEmpty == true ? null : brandLabel,
+                          brandImageUrl: brandImageUrl?.isEmpty == true
+                              ? null
+                              : brandImageUrl,
+                          isAvailable: isAvailable,
+                          unavailableLabel:
+                              context.tr('customer.product.out_of_stock'),
                           onTap: id == null || widget.onOpenProduct == null
                               ? null
                               : () => widget.onOpenProduct!(id),
+                          onAdd: id == null ||
+                                  !isAvailable ||
+                                  widget.onAddToCart == null
+                              ? null
+                              : () => _addToCart(id),
+                          addSemanticLabel:
+                              context.tr('customer.action.add_cart'),
                         );
 
                         if (id == null) return card;
@@ -196,17 +230,17 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                           children: [
                             Positioned.fill(child: card),
                             PositionedDirectional(
-                              top: CustomerUiSpacing.lg,
-                              end: CustomerUiSpacing.lg,
+                              top: CustomerUiSpacing.sm + CustomerUiSpacing.xs,
+                              end: CustomerUiSpacing.sm + CustomerUiSpacing.xs,
                               child: CustomerOutlineIconButton(
                                 key: ValueKey(
                                   'customer-favorite-remove-' + id.toString(),
                                 ),
                                 icon: Icons.favorite_rounded,
                                 selected: true,
-                                tooltip: context.tr(
-                                  'customer.addresses.delete',
-                                ),
+                                selectedColor: CustomerUiColors.destructive,
+                                tooltip:
+                                    context.tr('customer.profile.favorites'),
                                 semanticLabel:
                                     context.tr('customer.profile.favorites'),
                                 onPressed: () => _remove(id),
@@ -244,27 +278,6 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
     }
     return null;
   }
-
-  static String? _categoryLabel(Map<String, dynamic> product) {
-    final direct = product['category_name']?.toString().trim();
-    if (direct != null && direct.isNotEmpty) return direct;
-    final category = product['category'];
-    if (category is Map) {
-      final nested = category['name']?.toString().trim();
-      if (nested != null && nested.isNotEmpty) return nested;
-    }
-    return null;
-  }
-
-  static String? _discountLabel(Map<String, dynamic> product) {
-    final direct = product['discount_label']?.toString().trim();
-    if (direct != null && direct.isNotEmpty) return direct;
-    final percentage = product['discount_percentage'];
-    if (percentage is num && percentage > 0) {
-      return '-${percentage.toStringAsFixed(0)}%';
-    }
-    return null;
-  }
 }
 
 class _FavoritesSkeleton extends StatelessWidget {
@@ -290,7 +303,7 @@ class _FavoritesSkeleton extends StatelessWidget {
             ),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
-              crossAxisSpacing: CustomerUiSpacing.sm,
+              crossAxisSpacing: CustomerUiSpacing.xs,
               mainAxisSpacing: CustomerUiSpacing.sm,
               mainAxisExtent: cardExtent,
             ),
@@ -308,20 +321,9 @@ double _favoriteGridCardExtent(
   double maxWidth,
   int columns,
 ) {
-  const horizontalPadding = CustomerUiSpacing.page * 2;
-  final gaps = CustomerUiSpacing.sm * (columns - 1);
-  final usableWidth = (maxWidth - horizontalPadding - gaps)
-      .clamp(0.0, double.infinity)
-      .toDouble();
-  final cellWidth = usableWidth / columns;
-  final imageWidth = (cellWidth - (CustomerUiSpacing.sm * 2))
-      .clamp(0.0, double.infinity)
-      .toDouble();
-  final imageHeight = imageWidth / 1.35;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
-  final scaledTextAllowance = 210 + (textScale > 1 ? (textScale - 1) * 80 : 0);
-  final extent = imageHeight + scaledTextAllowance;
-  return (extent < 330 ? 330.0 : extent) * .85;
+  final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+  return (368.0 + (scaledDelta * 240.0)) * .85;
 }
 
 class _ScrollableState extends StatelessWidget {

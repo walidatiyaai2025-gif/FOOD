@@ -5,6 +5,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
+
 class FoodexPalette {
   const FoodexPalette({
     required this.primary,
@@ -53,6 +56,392 @@ class FoodexPalette {
     text: Color(0xFF102033),
     muted: Color(0xFF6B7785),
   );
+}
+
+class FoodexWholesaleHeader extends StatelessWidget {
+  const FoodexWholesaleHeader({
+    required this.title,
+    required this.palette,
+    this.searchController,
+    this.searchHint,
+    this.onSearchSubmitted,
+    this.searchKey = const ValueKey('wholesale-header-search'),
+    this.onSearchChanged,
+    this.onClearSearch,
+    this.onNotifications,
+    this.onCart,
+    this.notificationKey,
+    this.cartKey,
+    this.location,
+    this.leading,
+    this.trailingActions = const <Widget>[],
+    this.logoUrl,
+    this.address,
+    super.key,
+  });
+
+  final String title;
+  final String? logoUrl;
+  final String? address;
+  final VoidCallback? onNotifications;
+  final VoidCallback? onCart;
+  final Key? notificationKey;
+  final Key? cartKey;
+  final String? location;
+  final Widget? leading;
+  final List<Widget> trailingActions;
+  final FoodexPalette palette;
+  final TextEditingController? searchController;
+  final String? searchHint;
+  final ValueChanged<String>? onSearchSubmitted;
+  final Key searchKey;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onClearSearch;
+
+  String? _currentLocation(BuildContext context) =>
+      location ?? ModalRoute.of(context)?.settings.name;
+
+  CustomerCommerceContext? _scope(BuildContext context) =>
+      CustomerCommerceContext.tryParseLocation(_currentLocation(context));
+
+  void _defaultSearch(BuildContext context, String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    final current = _currentLocation(context);
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bProducts,
+          queryParameters: <String, String>{
+            ...scope!.toQueryParameters(),
+            'q': query,
+          },
+        ).toString(),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailProducts(scope!, query: query),
+      );
+      return;
+    }
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bProducts,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+            'q': query,
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  void _defaultNotifications(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleNotifications(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailNotifications(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bNotifications,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  void _defaultCart(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleCart(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailCart(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bCart,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('foodex-wholesale-shared-header'),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        color: palette.primaryDark,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 6),
+            ],
+            if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  logoUrl!,
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const SizedBox(width: 28, height: 28),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 72),
+              child: Tooltip(
+                message: address == null || address!.trim().isEmpty
+                    ? title
+                    : '$title\n$address',
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.3,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  key: searchKey,
+                  controller: searchController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: onSearchSubmitted ??
+                      (value) => _defaultSearch(context, value),
+                  onChanged: onSearchChanged,
+                  style: const TextStyle(fontSize: 12),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: searchHint,
+                    hintStyle: const TextStyle(fontSize: 11),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 34,
+                      minHeight: 34,
+                    ),
+                    suffixIcon: onClearSearch == null
+                        ? const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            size: 16,
+                          )
+                        : IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 34,
+                              minHeight: 34,
+                            ),
+                            onPressed:
+                                searchController?.text.trim().isEmpty != false
+                                    ? null
+                                    : onClearSearch,
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                          ),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 34,
+                      minHeight: 34,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(
+                        color: palette.accent,
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            ...trailingActions,
+            if (trailingActions.isNotEmpty) const SizedBox(width: 4),
+            _FoodexWholesaleHeaderIcon(
+              key: notificationKey,
+              icon: Icons.notifications_none_rounded,
+              onTap: onNotifications ?? () => _defaultNotifications(context),
+            ),
+            const SizedBox(width: 4),
+            _FoodexWholesaleHeaderIcon(
+              key: cartKey,
+              icon: Icons.shopping_cart_outlined,
+              onTap: onCart ?? () => _defaultCart(context),
+            ),
+          ],
+        ),
+      );
+}
+
+class FoodexUnifiedHeaderSurface extends StatelessWidget {
+  const FoodexUnifiedHeaderSurface({
+    required this.title,
+    required this.child,
+    this.palette = FoodexPalette.wholesale,
+    this.location,
+    this.searchController,
+    this.searchHint,
+    this.onSearchSubmitted,
+    this.searchKey = const ValueKey('wholesale-header-search'),
+    this.onSearchChanged,
+    this.onClearSearch,
+    this.onNotifications,
+    this.onCart,
+    this.notificationKey,
+    this.cartKey,
+    this.leading,
+    this.trailingActions = const <Widget>[],
+    this.logoUrl,
+    this.address,
+    super.key,
+  });
+
+  final String title;
+  final Widget child;
+  final FoodexPalette palette;
+  final String? location;
+  final TextEditingController? searchController;
+  final String? searchHint;
+  final ValueChanged<String>? onSearchSubmitted;
+  final Key searchKey;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onClearSearch;
+  final VoidCallback? onNotifications;
+  final VoidCallback? onCart;
+  final Key? notificationKey;
+  final Key? cartKey;
+  final Widget? leading;
+  final List<Widget> trailingActions;
+  final String? logoUrl;
+  final String? address;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: palette.background,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              FoodexWholesaleHeader(
+                title: title,
+                palette: palette,
+                location: location,
+                searchController: searchController,
+                searchHint: searchHint,
+                onSearchSubmitted: onSearchSubmitted,
+                searchKey: searchKey,
+                onSearchChanged: onSearchChanged,
+                onClearSearch: onClearSearch,
+                onNotifications: onNotifications,
+                onCart: onCart,
+                notificationKey: notificationKey,
+                cartKey: cartKey,
+                leading: leading,
+                trailingActions: trailingActions,
+                logoUrl: logoUrl,
+                address: address,
+              ),
+              Expanded(child: child),
+            ],
+          ),
+        ),
+      );
+}
+
+class _FoodexWholesaleHeaderIcon extends StatelessWidget {
+  const _FoodexWholesaleHeaderIcon({
+    required this.icon,
+    this.onTap,
+    super.key,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white.withOpacity(.14),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 12,
+            ),
+          ),
+        ),
+      );
 }
 
 class FoodexTopBar extends StatelessWidget {

@@ -13,6 +13,13 @@ import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Finder _verticalScrollable() => find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable &&
+          (widget.axisDirection == AxisDirection.down ||
+              widget.axisDirection == AxisDirection.up),
+    );
+
 Future<void> _simulateAppResume(WidgetTester tester) async {
   final state = tester.binding.lifecycleState;
 
@@ -413,7 +420,7 @@ void main() {
       await tester.scrollUntilVisible(
         submit,
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.tap(submit);
       await tester.pumpAndSettle();
@@ -507,7 +514,7 @@ void main() {
       await tester.scrollUntilVisible(
         submit,
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.tap(submit);
       await tester.pump();
@@ -607,7 +614,7 @@ void main() {
       await tester.scrollUntilVisible(
         submit,
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.tap(submit);
       await tester.pumpAndSettle();
@@ -689,7 +696,7 @@ void main() {
       await tester.scrollUntilVisible(
         submit,
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.tap(submit);
       await tester.pumpAndSettle();
@@ -738,7 +745,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Cash on delivery'), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('retail-checkout-coupon')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('retail-checkout-progress')),
       findsOneWidget,
@@ -752,7 +762,7 @@ void main() {
     await tester.scrollUntilVisible(
       submit,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.tap(submit);
     await tester.pumpAndSettle();
@@ -776,7 +786,7 @@ void main() {
     await tester.scrollUntilVisible(
       trackOrder,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.tap(trackOrder);
     await tester.pump();
@@ -787,7 +797,7 @@ void main() {
     await tester.scrollUntilVisible(
       continueShopping,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.tap(continueShopping);
     await tester.pump();
@@ -872,7 +882,7 @@ void main() {
           await tester.scrollUntilVisible(
             submit,
             300,
-            scrollable: find.byType(Scrollable).first,
+            scrollable: _verticalScrollable().first,
           );
           expect(submit, findsOneWidget);
           expect(tester.takeException(), isNull);
@@ -903,7 +913,7 @@ void main() {
     await tester.scrollUntilVisible(
       submit,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.tap(submit);
     await tester.pumpAndSettle();
@@ -930,7 +940,7 @@ void main() {
     await tester.scrollUntilVisible(
       submit,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.ensureVisible(submit);
     await tester.pumpAndSettle();
@@ -966,7 +976,7 @@ void main() {
     await tester.scrollUntilVisible(
       submit,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.tap(submit);
     await tester.pumpAndSettle();

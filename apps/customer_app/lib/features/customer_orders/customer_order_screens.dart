@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 
@@ -221,31 +222,19 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     return Scaffold(
       key: const ValueKey('customer-orders-screen'),
       backgroundColor: CustomerUiColors.mint,
-      body: CustomerCurvedHeaderSurface(
-        header: Row(
-          children: [
-            Expanded(
-              child: Text(
-                context.tr('customer.profile.orders'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: CustomerUiColors.white,
-                    ),
-              ),
-            ),
-            const SizedBox(width: CustomerUiSpacing.sm),
-            CustomerOutlineIconButton(
-              key: const ValueKey('customer-orders-refresh'),
-              icon: Icons.refresh_rounded,
-              tooltip: context.tr('customer.orders.refresh'),
-              semanticLabel: context.tr('customer.orders.refresh'),
-              onPressed: activeTab.loading
-                  ? null
-                  : () => unawaited(_loadChannel(_activeChannel)),
-            ),
-          ],
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.profile.orders'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        trailingActions: [
+          IconButton(
+            key: const ValueKey('customer-orders-refresh'),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            tooltip: context.tr('customer.orders.refresh'),
+            onPressed: activeTab.loading
+                ? null
+                : () => unawaited(_loadChannel(_activeChannel)),
+          ),
+        ],
         child: Column(
           children: [
             Material(
@@ -861,38 +850,17 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
             : 'customer-order-details-${widget.orderId}',
       ),
       backgroundColor: CustomerUiColors.mint,
-      body: CustomerCurvedHeaderSurface(
-        header: Row(
-          children: [
-            CustomerOutlineIconButton(
-              key: const ValueKey('customer-order-back'),
-              icon: Icons.arrow_back_rounded,
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              semanticLabel:
-                  MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: () => unawaited(Navigator.of(context).maybePop()),
-            ),
-            const SizedBox(width: CustomerUiSpacing.sm),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: CustomerUiColors.white,
-                    ),
-              ),
-            ),
-            const SizedBox(width: CustomerUiSpacing.sm),
-            CustomerOutlineIconButton(
-              key: const ValueKey('customer-order-refresh'),
-              icon: Icons.refresh_rounded,
-              tooltip: context.tr('customer.orders.refresh'),
-              semanticLabel: context.tr('customer.orders.refresh'),
-              onPressed: _loading ? null : () => unawaited(_load()),
-            ),
-          ],
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: title,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        trailingActions: [
+          IconButton(
+            key: const ValueKey('customer-order-refresh'),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            tooltip: context.tr('customer.orders.refresh'),
+            onPressed: _loading ? null : () => unawaited(_load()),
+          ),
+        ],
         child: RefreshIndicator(onRefresh: _load, child: _body(context)),
       ),
     );

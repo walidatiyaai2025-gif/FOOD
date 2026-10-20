@@ -1,3 +1,4 @@
+import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
@@ -251,11 +252,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-account-screen'),
-      body: CustomerCurvedHeaderSurface(
-        header: CustomerAccountHeader(
-          title: context.tr('customer.profile.title'),
-          subtitle: context.tr('customer.settings.subtitle'),
-        ),
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.profile.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: RefreshIndicator(
           onRefresh: () async {
             _reloadAll();

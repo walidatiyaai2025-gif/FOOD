@@ -6,11 +6,13 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_auth_persistence.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/auth/customer_session_store.dart';
+import 'package:foodex_customer_app/core/config/customer_app_release.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/auth/unified_customer_auth_screen.dart';
+import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 
 void main() {
   testWidgets('unified auth uses one customer copy and remember-me policy',
@@ -34,7 +36,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Customer App'), findsOneWidget);
+    expect(find.text('Customer App'), findsWidgets);
     expect(find.text('Customer sign in'), findsWidgets);
     expect(find.textContaining('Business customer'), findsNothing);
     final identity = find.byKey(const ValueKey('customer-app-identity'));
@@ -91,7 +93,7 @@ void main() {
 
     final identity = find.byKey(const ValueKey('customer-app-identity'));
     expect(identity, findsOneWidget);
-    expect(find.text('تطبيق العميل'), findsOneWidget);
+    expect(find.text('تطبيق العميل'), findsWidgets);
     expect(tester.getSize(identity).height, greaterThan(0));
     expect(Directionality.of(tester.element(identity)), TextDirection.rtl);
   });
@@ -317,7 +319,7 @@ void main() {
     );
     expect(find.text('نسيت كلمة المرور؟'), findsOneWidget);
     expect(find.text('تواصل معنا'), findsOneWidget);
-    expect(find.text('الإصدار 1.0.54'), findsOneWidget);
+    expect(find.text('الإصدار $customerAppVersion'), findsOneWidget);
 
     final rememberMe = find.byKey(const ValueKey('customer-auth-remember-me'));
     await tester.ensureVisible(rememberMe);
@@ -508,6 +510,53 @@ void main() {
     expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
   });
 
+  testWidgets(
+      'valid login survives guest cart reconciliation failure and resumes authenticated route',
+      (tester) async {
+    var authenticated = false;
+    String? resumedRoute;
+
+    await tester.pumpWidget(
+      _testApp(
+        locale: const Locale('ar'),
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (token, preferences, retailStoreId) async {
+            expect(token, 'platform-token');
+            authenticated = true;
+          },
+          commerceContext: const CustomerCommerceContext(
+            channel: CustomerCommerceChannel.retail,
+            storeId: 7,
+          ),
+          commerceForToken: (_) => const _ThrowingMergeRetailCommerceApi(),
+          resumeAuthenticatedRoute: (route) async {
+            resumedRoute = route;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'buyer@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'secret-pass',
+    );
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(authenticated, isTrue);
+    expect(resumedRoute, CustomerRoutePaths.b2bHome);
+    expect(find.byKey(const ValueKey('unified-auth-error')), findsNothing);
+  });
+
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
     await tester.pumpWidget(
@@ -579,6 +628,49 @@ class _SuccessfulActionApi implements CustomerActionApi {
     required String idempotencyKey,
   }) async =>
       null;
+}
+
+class _ThrowingMergeRetailCommerceApi implements RetailCommerceApi {
+  const _ThrowingMergeRetailCommerceApi();
+
+  @override
+  Future<RetailCartSnapshot> mergeGuestCartAfterAuthentication({
+    required int storeId,
+  }) async =>
+      throw StateError('simulated post-auth cart reconciliation failure');
+
+  @override
+  Future<RetailCartSnapshot> loadCart({required int storeId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<RetailCartSnapshot> updateQuantity({
+    required int storeId,
+    required int itemId,
+    required double quantity,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<RetailCartSnapshot> removeItem({
+    required int storeId,
+    required int itemId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<RetailCreatedOrder> submitCheckout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) =>
+      throw UnimplementedError();
 }
 
 class _FakeBiometric implements CustomerBiometricAuthenticator {

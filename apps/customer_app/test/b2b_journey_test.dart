@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
+import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
@@ -12,6 +13,7 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
+import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -314,7 +316,11 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _pumpCustomerFrames(tester);
 
@@ -625,7 +631,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
-    expect(find.text('الإصدار 1.0.90'), findsOneWidget);
+    expect(find.text('الإصدار 1.0.94'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
@@ -673,6 +679,108 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale shopping resolves principal store on first open without store id',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Resolved Bulk Water',
+            'sku': 'RESOLVED-42',
+            'account_price': 55,
+            'minimum_order_quantity': 1,
+            'is_available': true,
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/products',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-catalog-store-required')),
+        findsNothing,
+      );
+      expect(storefront.selectionCalls, greaterThanOrEqualTo(1));
+      expect(storefront.lastStoreId, 70);
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(find.text('Resolved Bulk Water'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale favorites first open resolves principal store and renders shared cards',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final favorites = _WholesaleFavoritesApi({
+        'data': [
+          {
+            'id': 900,
+            'product': {
+              'id': 42,
+              'name': 'Favorite Bulk Water',
+              'sku': 'FAV-42',
+              'account_price': 55,
+              'price': 55,
+              'currency': 'EGP',
+              'is_available': true,
+            },
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: WholesaleFavoritesDesignScreen(
+            location: '/b2b/favorites',
+            session: b2b,
+            favoritesApi: favorites,
+            storefrontApi: storefront,
+            actionApi: _FakeCustomerActionApi(),
+          ),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(favorites.lastStoreId, 70);
+      expect(storefront.lastStoreId, 70);
+      expect(
+        find.byKey(const ValueKey('wholesale-favorites-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-product-card-42')),
+        findsOneWidget,
+      );
+      expect(find.text('Favorite Bulk Water'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('wholesale-favorites-loading')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale header removes Business shortcut and keeps search inside header',
     (tester) async {
       await tester.pumpWidget(
@@ -715,6 +823,68 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+    'Wholesale category browse route shows image-only categories with fixed search/cart header',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Bulk Water',
+            'sku': 'WATER-42',
+            'account_price': 75,
+            'category_id': 3,
+            'category_name': 'Beverages',
+            'category_image_url': 'https://example.invalid/beverages.jpg',
+          },
+          {
+            'id': 43,
+            'name': 'Bulk Rice',
+            'sku': 'RICE-43',
+            'account_price': 40,
+            'category_id': 4,
+            'category_name': 'Dry food',
+            'category_image_url': 'https://example.invalid/dry-food.jpg',
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute:
+              '/b2b/products?channel=wholesale&store_id=70&browse=categories',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-category-browser-search')),
+        findsOneWidget,
+      );
+      expect(find.text('كل التصنيفات'), findsOneWidget);
+      expect(find.text('Beverages'), findsOneWidget);
+      expect(find.text('Dry food'), findsOneWidget);
+      expect(find.text('Bulk Water'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('wholesale-product-grid')),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets(
     'Wholesale storefront CTA opens canonical Screen 10 with store context',
@@ -1033,7 +1203,7 @@ void main() {
       expect(find.text('Filter'), findsOneWidget);
       expect(find.text('Default order'), findsOneWidget);
       expect(find.text('Wholesale Water'), findsOneWidget);
-      expect(find.text('Beverages'), findsOneWidget);
+      expect(find.text('Beverages'), findsWidgets);
       expect(find.textContaining('72.50 EGP'), findsOneWidget);
       expect(find.textContaining('Case 12'), findsNothing);
       expect(find.textContaining('Step 5'), findsNothing);
@@ -1128,7 +1298,7 @@ void main() {
       );
       expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('b2b-product-detail-header')),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
       expect(
@@ -1147,7 +1317,7 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('b2b-product-additional-info')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.byType(PageView), findsOneWidget);
       expect(find.text('Wholesale Product'), findsOneWidget);
@@ -1179,6 +1349,87 @@ void main() {
         find.byKey(const ValueKey('b2b-product-detail-data')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'B2B product detail hides base wholesale/pack box and shows same-category products',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final api = _PathB2bApi({
+        '/api/v1/b2b/products/42?store_id=7': {
+          'id': 42,
+          'sku': 'MAIN-42',
+          'name': 'Main Product',
+          'store_id': 7,
+          'category_id': 3,
+          'category_name': 'Beverages',
+          'account_price': 7.25,
+          'base_wholesale_price': 8.0,
+          'retail_reference_price': 9.5,
+          'minimum_order_quantity': 1,
+          'ordering_increment': 1,
+          'pack_size': 12,
+          'pack_label': 'Case 12',
+          'available_quantity': 20,
+          'is_available': true,
+          'currency': 'EGP',
+        },
+        '/api/v1/b2b/products?store_id=7&category_id=3': {
+          'data': [
+            {
+              'id': 42,
+              'name': 'Main Product',
+              'category_id': 3,
+              'account_price': 7.25,
+              'currency': 'EGP',
+            },
+            {
+              'id': 43,
+              'name': 'Similar Drink',
+              'category_id': 3,
+              'account_price': 6.5,
+              'minimum_order_quantity': 1,
+              'available_quantity': 10,
+              'is_available': true,
+              'currency': 'EGP',
+            },
+          ],
+        },
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/products/42?store_id=7',
+          b2bApi: api,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('b2b-product-additional-info')),
+        findsNothing,
+      );
+      expect(find.text('سعر الجملة الأساسي'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('b2b-product-similar-title')),
+        findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Similar Drink'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Similar Drink'), findsOneWidget);
     },
   );
 
@@ -1425,7 +1676,12 @@ void main() {
         await tester.scrollUntilVisible(
           submit,
           300,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: find
+              .descendant(
+                of: find.byKey(const ValueKey('b2b-checkout-data')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
         );
         expect(submit, findsOneWidget);
         await tester.tap(submit);
@@ -1455,7 +1711,8 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
     expect(find.text('سلة الجملة'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1503,7 +1760,12 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('تأكيد الطلب'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('b2b-checkout-data')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
       await _pumpCustomerFrames(tester);
@@ -1557,7 +1819,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('تأكيد الطلب'),
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(find.text('تأكيد الطلب'));
     await _pumpCustomerFrames(tester);
@@ -1644,8 +1911,10 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(find.text('Wholesale cart'), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-header')), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       expect(find.text('Bulk Water'), findsOneWidget);
       expect(find.text('W-101'), findsNothing);
       expect(find.text('Case 12'), findsOneWidget);
@@ -2321,6 +2590,7 @@ void main() {
         TextDirection.ltr,
       );
       expect(find.text('تفاصيل الطلب'), findsNothing);
+      expect(find.text('Paid'), findsOneWidget);
 
       final scrollable = find.byKey(const ValueKey('b2b-order-detail'));
 
@@ -2342,16 +2612,31 @@ void main() {
       expect(find.text('VAN-ONE'), findsWidgets);
       expect(find.textContaining('Driver One'), findsNothing);
 
-      await _scrollUntilBuilt(tester, scrollable, find.text('Bulk Water'));
-      expect(find.text('Bulk Water'), findsOneWidget);
-      expect(find.text('SKU-42'), findsOneWidget);
+      await _scrollUntilBuilt(
+        tester,
+        scrollable,
+        find.byKey(const ValueKey('b2b-order-line-1')),
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-order-line-1')),
+        findsOneWidget,
+      );
+      expect(find.text('Bulk Water'), findsNothing);
+      expect(find.text('SKU-42'), findsNothing);
+      expect(find.text('Quantity: 2'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-order-line-1')),
+          matching: find.textContaining('100'),
+        ),
+        findsOneWidget,
+      );
 
       await _scrollUntilBuilt(tester, scrollable, find.text('Price summary'));
       expect(find.text('Price summary'), findsOneWidget);
 
       await _scrollUntilBuilt(tester, scrollable, find.text('Account credit'));
       expect(find.text('Account credit'), findsOneWidget);
-      expect(find.text('Paid'), findsOneWidget);
 
       await _scrollUntilBuilt(
         tester,
@@ -3136,18 +3421,14 @@ void main() {
 
       expect(find.byKey(const ValueKey('b2b-invoices-screen')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('b2b-invoices-header-row')),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('b2b-invoices-header-row')),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('customer-route-label')), findsNothing);
-
-      final titleRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoices-header-title')),
-      );
-      final subtitleRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoices-header-subtitle')),
-      );
-      expect((titleRect.center.dy - subtitleRect.center.dy).abs(), lessThan(3));
 
       final filtersRect = tester.getRect(
         find.byKey(const ValueKey('b2b-invoices-filters')),
@@ -3411,8 +3692,11 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-item-501')),
         findsOneWidget,
       );
-      expect(find.text('Wholesale item'), findsOneWidget);
-      expect(find.textContaining('WHO-501'), findsOneWidget);
+      expect(find.text('Wholesale item'), findsNothing);
+      expect(find.textContaining('WHO-501'), findsNothing);
+      expect(find.textContaining('الكمية'), findsOneWidget);
+      expect(find.text('الضريبة'), findsNothing);
+      expect(find.text('المديونية'), findsWidgets);
       expect(
         find.byKey(const ValueKey('b2b-invoice-payments')),
         findsOneWidget,
@@ -3433,16 +3717,13 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('b2b-invoice-related-order')),
-        findsOneWidget,
+        findsNothing,
       );
-
+      expect(find.text('الطلب المرتبط'), findsNothing);
       final pdfRect = tester.getRect(
         find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
       );
-      final relatedRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoice-related-order')),
-      );
-      expect((pdfRect.center.dy - relatedRect.center.dy).abs(), lessThan(1));
+      expect(pdfRect.width, greaterThan(0));
       expect(
         find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
         findsNothing,
@@ -3574,9 +3855,9 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
 
-    final title = find.byKey(const ValueKey('b2b-more-header-title'));
-    expect(title, findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-more-back')), findsOneWidget);
+    final header = find.byKey(const ValueKey('foodex-wholesale-shared-header'));
+    expect(header, findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-more-back')), findsNothing);
     expect(find.text('حساب الأعمال'), findsNothing);
     expect(find.text('كل أدوات حسابك في مكان واحد'), findsNothing);
     expect(
@@ -3584,9 +3865,9 @@ void main() {
       findsOneWidget,
     );
 
-    final titleRect = tester.getRect(title);
-    expect(titleRect.left, greaterThanOrEqualTo(0));
-    expect(titleRect.right, lessThanOrEqualTo(320));
+    final headerRect = tester.getRect(header);
+    expect(headerRect.left, greaterThanOrEqualTo(0));
+    expect(headerRect.right, lessThanOrEqualTo(320));
     expect(tester.takeException(), isNull);
   });
 
@@ -3981,6 +4262,31 @@ class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       checkoutResult;
+}
+
+class _WholesaleFavoritesApi implements B2cRetailFavoritesApi {
+  _WholesaleFavoritesApi(this.value);
+
+  final Object? value;
+  int? lastStoreId;
+  final List<int> removed = <int>[];
+
+  @override
+  Future<Object?> favoritesForStore(int storeId) async {
+    lastStoreId = storeId;
+    return value;
+  }
+
+  @override
+  Future<void> addFavoriteForStore(int storeId, int productId) async {
+    lastStoreId = storeId;
+  }
+
+  @override
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {
+    lastStoreId = storeId;
+    removed.add(productId);
+  }
 }
 
 class _FakeWholesaleStorefrontApi implements StorefrontApi {

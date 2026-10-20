@@ -158,6 +158,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
     this.selected = false,
     this.semanticLabel,
     this.iconSize = 24,
+    this.selectedColor,
     super.key,
   });
 
@@ -167,6 +168,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
   final bool selected;
   final String? semanticLabel;
   final double iconSize;
+  final Color? selectedColor;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -188,7 +190,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
                 icon,
                 size: iconSize,
                 color: selected
-                    ? CustomerUiColors.deepGreenStrong
+                    ? (selectedColor ?? CustomerUiColors.deepGreenStrong)
                     : CustomerUiColors.inkSoft,
               ),
             ),
@@ -364,6 +366,7 @@ class CustomerProductCard extends StatelessWidget {
     this.favoriteSemanticLabel,
     this.isAvailable = true,
     this.unavailableLabel,
+    this.compact = false,
     super.key,
   });
 
@@ -384,6 +387,7 @@ class CustomerProductCard extends StatelessWidget {
   final String? favoriteSemanticLabel;
   final bool isAvailable;
   final String? unavailableLabel;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -398,7 +402,9 @@ class CustomerProductCard extends StatelessWidget {
               border: Border.all(color: CustomerUiColors.border),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(CustomerUiSpacing.sm),
+              padding: EdgeInsets.all(
+                compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -409,6 +415,7 @@ class CustomerProductCard extends StatelessWidget {
                         child: CustomerProductImage(
                           imageUrl: imageUrl,
                           fallbackAsset: fallbackAsset,
+                          aspectRatio: compact ? 1.45 : 1.75,
                         ),
                       ),
                       if (!isAvailable &&
@@ -500,24 +507,34 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: CustomerUiSpacing.sm),
+                  SizedBox(
+                    height:
+                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
+                  ),
                   if (categoryLabel?.trim().isNotEmpty == true) ...[
                     CustomerBadge(
                       label: categoryLabel!,
                       tone: CustomerBadgeTone.accent,
                     ),
-                    const SizedBox(height: CustomerUiSpacing.xs),
+                    SizedBox(
+                      height: compact
+                          ? CustomerUiSpacing.xxs
+                          : CustomerUiSpacing.xs,
+                    ),
                   ],
                   Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 11,
+                          fontSize: compact ? 10 : 11,
                           height: 1.15,
                         ),
                   ),
-                  const SizedBox(height: CustomerUiSpacing.sm),
+                  SizedBox(
+                    height:
+                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
+                  ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -528,12 +545,12 @@ class CustomerProductCard extends StatelessWidget {
                           children: [
                             Text(
                               priceLabel,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
+                              style: (compact
+                                      ? Theme.of(context).textTheme.titleMedium
+                                      : Theme.of(context).textTheme.titleLarge)
                                   ?.copyWith(
-                                    color: CustomerUiColors.deepGreenStrong,
-                                  ),
+                                color: CustomerUiColors.deepGreenStrong,
+                              ),
                             ),
                             if (oldPriceLabel?.trim().isNotEmpty == true)
                               Text(

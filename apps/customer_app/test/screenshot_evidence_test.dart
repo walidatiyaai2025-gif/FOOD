@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
@@ -13,12 +14,14 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_order_models.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_screens.dart';
 import 'package:foodex_customer_app/features/store_analytics/store_analytics_screen.dart';
+import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
 const _b2b = CustomerSession.authenticated(
   CustomerChannel.b2b,
@@ -133,6 +136,11 @@ void main() {
     const _CaptureCase(
       '01_Mobile/B2B_Customer/10_تصفح_المنتجات__populated__ar.png',
       '/b2b/products?channel=wholesale&store_id=7',
+      session: _b2b,
+    ),
+    const _CaptureCase(
+      '01_Mobile/B2B_Customer/10b_التصنيفات__populated__ar.png',
+      '/b2b/products?channel=wholesale&store_id=7&browse=categories',
       session: _b2b,
     ),
     // C13 Screen 11: exact-head product-detail hierarchy evidence.
@@ -377,24 +385,43 @@ void main() {
       await tester.pumpWidget(
         RepaintBoundary(
           key: boundaryKey,
-          child: FoodexCustomerApp(
+          child: MaterialApp(
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
-            session: _b2b,
-            initialRoute: '/b2b/checkout?store_id=70',
-            storefrontApi: const _EvidenceStorefrontApi(),
-            wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
-            b2bApi: const _EvidenceB2bApi(),
             locale: locale,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            home: AppTranslations(
+              locale: locale,
+              overrides: const {},
+              child: const WholesaleCheckoutDesignScreen(
+                location: '/b2b/checkout?store_id=70',
+                storefrontApi: _EvidenceStorefrontApi(),
+                commerceApi: _EvidenceWholesaleCommerceApi(),
+              ),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
       final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+      final checkoutScrollable = find
+          .descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       await tester.scrollUntilVisible(
         submit,
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: checkoutScrollable,
       );
+      expect(submit, findsOneWidget);
+      await tester.ensureVisible(submit);
+      await tester.pumpAndSettle();
       await tester.tap(submit);
       await tester.pumpAndSettle();
 

@@ -26,6 +26,35 @@ import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
 import 'storefront_design_system.dart';
 
+Future<int> resolveWholesaleStoreId({
+  required String location,
+  required StorefrontApi? storefrontApi,
+  int rememberedStoreId = 0,
+}) async {
+  final scopedStoreId = wholesaleStoreId(location);
+  if (scopedStoreId > 0) return scopedStoreId;
+  if (rememberedStoreId > 0) return rememberedStoreId;
+
+  if (storefrontApi == null) return 0;
+
+  final selection = await storefrontApi.selection();
+  final entitlements = selection['entitlements'] is Map
+      ? Map<String, dynamic>.from(selection['entitlements'] as Map)
+      : const <String, dynamic>{};
+
+  final principalFromEntitlements =
+      intValue(entitlements['principal_wholesale_store_id']);
+  if (principalFromEntitlements > 0) return principalFromEntitlements;
+
+  for (final row in mapRows(selection['wholesale_stores'])) {
+    if (row['is_platform_principal'] != true) continue;
+    final candidate = intValue(row['id'] ?? row['store_id']);
+    if (candidate > 0) return candidate;
+  }
+
+  return 0;
+}
+
 class WholesaleHomeDesignScreen extends StatefulWidget {
   const WholesaleHomeDesignScreen({
     required this.location,
@@ -79,35 +108,13 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   }
 
   Future<int> _resolveWholesaleHomeStoreId() async {
-    final scopedStoreId = wholesaleStoreId(widget.location);
-    if (scopedStoreId > 0) return scopedStoreId;
-    if (_resolvedStoreId > 0) return _resolvedStoreId;
-
-    final storefrontApi = widget.storefrontApi;
-    if (storefrontApi == null) return 0;
-
-    final selection = await storefrontApi.selection();
-    final entitlements = selection['entitlements'] is Map
-        ? Map<String, dynamic>.from(selection['entitlements'] as Map)
-        : const <String, dynamic>{};
-
-    final principalFromEntitlements =
-        intValue(entitlements['principal_wholesale_store_id']);
-    if (principalFromEntitlements > 0) {
-      _resolvedStoreId = principalFromEntitlements;
-      return _resolvedStoreId;
-    }
-
-    for (final row in mapRows(selection['wholesale_stores'])) {
-      if (row['is_platform_principal'] != true) continue;
-      final candidate = intValue(row['id'] ?? row['store_id']);
-      if (candidate > 0) {
-        _resolvedStoreId = candidate;
-        return _resolvedStoreId;
-      }
-    }
-
-    return 0;
+    final resolved = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+      rememberedStoreId: _resolvedStoreId,
+    );
+    if (resolved > 0) _resolvedStoreId = resolved;
+    return resolved;
   }
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
@@ -182,14 +189,27 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
           future: future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: SafeArea(
-                    child: FoodexLoading(key: ValueKey('b2b-loading'))),
+              return Scaffold(
+                body: FoodexUnifiedHeaderSurface(
+                  title: context.tr('b2b.app.title'),
+                  location: widget.location,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
+                  child: const FoodexLoading(
+                    key: ValueKey('b2b-loading'),
+                  ),
+                ),
               );
             }
             if (snapshot.hasError) {
               return Scaffold(
-                body: SafeArea(
+                body: FoodexUnifiedHeaderSurface(
+                  title: context.tr('b2b.app.title'),
+                  location: widget.location,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
                   child: FoodexErrorState(
                     key: const ValueKey('b2b-error'),
                     message: 'تعذر تحميل متجر الجملة.',
@@ -321,10 +341,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
-              final sectionTitle =
+              final configuredSectionTitle =
                   section['title_ar']?.toString().trim().isNotEmpty == true
                       ? section['title_ar'].toString()
                       : _defaultWholesaleSectionTitle(type);
+              final sectionTitle = type == 'brands' ||
+                      configuredSectionTitle.trim() == 'منتجاتنا'
+                  ? context.tr('b2b.home.our_brands')
+                  : configuredSectionTitle;
 
               switch (type) {
                 case 'hero':
@@ -414,7 +438,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         actionApi: widget.actionApi,
                         pendingActionStore: widget.pendingActionStore,
                         palette: palette,
-                        maxItems: 3,
+                        maxItems: type == 'best_sellers' ? 9 : 3,
                         showCommerceActions: true,
                         homeWholeNumberPrice: true,
                       ),
@@ -487,15 +511,15 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             return Scaffold(
               backgroundColor: palette.background,
               body: SafeArea(
-                child: ListView(
-                  padding: EdgeInsets.zero,
+                child: Column(
                   children: [
-                    _WholesaleHeader(
+                    FoodexWholesaleHeader(
                       title: title,
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
                       searchController: search,
+                      searchKey: const ValueKey('wholesale-home-search'),
                       searchHint: context.tr(
                         'customer.products.search_name_sku_barcode',
                       ),
@@ -504,8 +528,16 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
-                    ...content,
-                    const SizedBox(height: 5.5),
+                    Expanded(
+                      child: ListView(
+                        key: const ValueKey('wholesale-home-scroll-body'),
+                        padding: EdgeInsets.zero,
+                        children: [
+                          ...content,
+                          const SizedBox(height: 5.5),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -514,180 +546,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   : null,
             );
           },
-        ),
-      );
-}
-
-class _WholesaleHeader extends StatelessWidget {
-  const _WholesaleHeader({
-    required this.title,
-    required this.onCart,
-    required this.palette,
-    required this.searchController,
-    required this.searchHint,
-    required this.onSearchSubmitted,
-    this.searchKey = const ValueKey('wholesale-home-search'),
-    this.onSearchChanged,
-    this.onClearSearch,
-    this.logoUrl,
-    this.address,
-  });
-
-  final String title;
-  final String? logoUrl;
-  final String? address;
-  final VoidCallback onCart;
-  final FoodexPalette palette;
-  final TextEditingController searchController;
-  final String searchHint;
-  final ValueChanged<String> onSearchSubmitted;
-  final Key searchKey;
-  final ValueChanged<String>? onSearchChanged;
-  final VoidCallback? onClearSearch;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        color: palette.primaryDark,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  logoUrl!,
-                  width: 28,
-                  height: 28,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const SizedBox(width: 28, height: 28),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 72),
-              child: Tooltip(
-                message: address == null || address!.trim().isEmpty
-                    ? title
-                    : '$title\n$address',
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.3,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 36,
-                child: TextField(
-                  key: searchKey,
-                  controller: searchController,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: onSearchSubmitted,
-                  onChanged: onSearchChanged,
-                  style: const TextStyle(fontSize: 12),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.white,
-                    hintText: searchHint,
-                    hintStyle: const TextStyle(fontSize: 11),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
-                    prefixIconConstraints: const BoxConstraints(
-                      minWidth: 34,
-                      minHeight: 34,
-                    ),
-                    suffixIcon: onClearSearch == null
-                        ? const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            size: 16,
-                          )
-                        : IconButton(
-                            key: const ValueKey(
-                              'wholesale-catalog-clear-search',
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 34,
-                              minHeight: 34,
-                            ),
-                            onPressed: searchController.text.trim().isEmpty
-                                ? null
-                                : onClearSearch,
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                          ),
-                    suffixIconConstraints: const BoxConstraints(
-                      minWidth: 34,
-                      minHeight: 34,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: BorderSide(
-                        color: palette.accent,
-                        width: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const _RoundHeaderIcon(
-              icon: Icons.notifications_none_rounded,
-            ),
-            const SizedBox(width: 4),
-            _RoundHeaderIcon(
-              icon: Icons.shopping_cart_outlined,
-              onTap: onCart,
-            ),
-          ],
-        ),
-      );
-}
-
-class _RoundHeaderIcon extends StatelessWidget {
-  const _RoundHeaderIcon({required this.icon, this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
-            ),
-          ),
         ),
       );
 }
@@ -1606,6 +1464,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.noResults = false,
     this.showCommerceActions = false,
     this.homeWholeNumberPrice = false,
+    this.onRemoveFavorite,
   });
 
   final List<Map<String, dynamic>> rows;
@@ -1620,6 +1479,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final bool noResults;
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
+  final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -1663,6 +1523,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         showCommerceActions: showCommerceActions,
         homeWholeNumberPrice: homeWholeNumberPrice,
         gridColumns: columns,
+        onRemoveFavorite: onRemoveFavorite,
       ),
     );
   }
@@ -1681,6 +1542,7 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.showCommerceActions,
     required this.homeWholeNumberPrice,
     required this.gridColumns,
+    this.onRemoveFavorite,
   });
 
   final Map<String, dynamic> row;
@@ -1694,6 +1556,7 @@ class _WholesaleProductCard extends StatefulWidget {
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
   final int gridColumns;
+  final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
   State<_WholesaleProductCard> createState() => _WholesaleProductCardState();
@@ -1701,6 +1564,20 @@ class _WholesaleProductCard extends StatefulWidget {
 
 class _WholesaleProductCardState extends State<_WholesaleProductCard> {
   bool busy = false;
+  bool removingFavorite = false;
+
+  Future<void> _removeFavorite() async {
+    final callback = widget.onRemoveFavorite;
+    final id = intValue(widget.row['id']);
+    if (callback == null || id <= 0 || removingFavorite) return;
+
+    setState(() => removingFavorite = true);
+    try {
+      await callback(id);
+    } finally {
+      if (mounted) setState(() => removingFavorite = false);
+    }
+  }
 
   Future<void> _addToCart() async {
     final id = intValue(widget.row['id']);
@@ -1881,6 +1758,37 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           ),
                         ),
                       ),
+                    if (widget.onRemoveFavorite != null)
+                      PositionedDirectional(
+                        end: 0,
+                        bottom: 0,
+                        child: Material(
+                          color: Colors.white.withOpacity(.96),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            key: ValueKey(
+                              'wholesale-favorite-remove-$id',
+                            ),
+                            customBorder: const CircleBorder(),
+                            onTap: removingFavorite ? null : _removeFavorite,
+                            child: SizedBox.square(
+                              dimension: 30,
+                              child: removingFavorite
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.favorite_rounded,
+                                      size: 17,
+                                      color: CustomerUiColors.destructive,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -2004,6 +1912,288 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
   }
 }
 
+class WholesaleFavoritesDesignScreen extends StatefulWidget {
+  const WholesaleFavoritesDesignScreen({
+    required this.location,
+    required this.session,
+    required this.favoritesApi,
+    required this.storefrontApi,
+    required this.actionApi,
+    this.pendingActionStore,
+    super.key,
+  });
+
+  final String location;
+  final CustomerSession session;
+  final B2cRetailFavoritesApi favoritesApi;
+  final StorefrontApi? storefrontApi;
+  final CustomerActionApi actionApi;
+  final CustomerPendingActionStore? pendingActionStore;
+
+  @override
+  State<WholesaleFavoritesDesignScreen> createState() =>
+      _WholesaleFavoritesDesignScreenState();
+}
+
+class _WholesaleFavoritesDesignScreenState
+    extends State<WholesaleFavoritesDesignScreen> with WidgetsBindingObserver {
+  final search = TextEditingController();
+  int storeId = 0;
+  late Future<Map<String, dynamic>> future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    search.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final resolvedStoreId = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+      rememberedStoreId: storeId,
+    );
+    if (resolvedStoreId <= 0) {
+      return const {
+        'store_required': true,
+        'favorites': <Object>[],
+        'storefront': <String, Object?>{},
+      };
+    }
+    storeId = resolvedStoreId;
+
+    final favorites = await widget.favoritesApi.favoritesForStore(storeId);
+    Map<String, dynamic> storefront = <String, dynamic>{};
+    final storefrontApi = widget.storefrontApi;
+    if (storefrontApi != null) {
+      try {
+        storefront = await storefrontApi.wholesaleHome(storeId);
+      } catch (_) {
+        // Favorites remain usable even if optional storefront branding fails.
+      }
+    }
+
+    return <String, dynamic>{
+      'favorites': favorites,
+      'storefront': storefront,
+    };
+  }
+
+  void _reload() => setState(() => future = _load());
+
+  List<Map<String, dynamic>> _rows(Object? raw) {
+    final needle = search.text.trim().toLowerCase();
+    return dataRows(raw).map((favorite) {
+      final product = favorite['product'] is Map
+          ? Map<String, dynamic>.from(favorite['product'] as Map)
+          : Map<String, dynamic>.from(favorite);
+      if (product['currency'] == null && favorite['currency'] != null) {
+        product['currency'] = favorite['currency'];
+      }
+      return product;
+    }).where((product) {
+      if (needle.isEmpty) return true;
+      final name = product['name']?.toString().toLowerCase() ?? '';
+      final sku = product['sku']?.toString().toLowerCase() ?? '';
+      final barcode = product['barcode']?.toString().toLowerCase() ?? '';
+      return name.contains(needle) ||
+          sku.contains(needle) ||
+          barcode.contains(needle);
+    }).toList(growable: false);
+  }
+
+  Future<void> _removeFavorite(int productId) async {
+    try {
+      await widget.favoritesApi.removeFavoriteForStore(storeId, productId);
+      if (mounted) _reload();
+    } catch (error) {
+      if (mounted) await showOperationalError(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Scaffold(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: const FoodexLoading(
+                  key: ValueKey('wholesale-favorites-loading'),
+                ),
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: FoodexErrorState(
+                  key: const ValueKey('wholesale-favorites-error'),
+                  message: context.tr('customer.error.action_failed'),
+                  onRetry: _reload,
+                ),
+              ),
+            );
+          }
+
+          final payload = snapshot.data ?? const <String, dynamic>{};
+          if (payload['store_required'] == true) {
+            return Scaffold(
+              backgroundColor: FoodexPalette.wholesale.background,
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: FoodexErrorState(
+                  key: const ValueKey('wholesale-favorites-store-error'),
+                  message: context.tr('b2b.catalog.load_error'),
+                  onRetry: _reload,
+                ),
+              ),
+            );
+          }
+
+          final storefront = payload['storefront'] is Map
+              ? Map<String, dynamic>.from(payload['storefront'] as Map)
+              : <String, dynamic>{};
+          final branding = storefront['branding'] is Map
+              ? Map<String, dynamic>.from(storefront['branding'] as Map)
+              : <String, dynamic>{};
+          final custom = branding['custom'] is Map
+              ? Map<String, dynamic>.from(branding['custom'] as Map)
+              : <String, dynamic>{};
+          final store = storefront['store'] is Map
+              ? Map<String, dynamic>.from(storefront['store'] as Map)
+              : <String, dynamic>{};
+          final theme = storefront['theme'] is Map
+              ? Map<String, dynamic>.from(storefront['theme'] as Map)
+              : <String, dynamic>{};
+          final palette = _wholesalePalette(theme);
+          final title =
+              custom['brand_title_ar']?.toString().trim().isNotEmpty == true
+                  ? custom['brand_title_ar'].toString()
+                  : (store['name']?.toString().trim().isNotEmpty == true
+                      ? store['name'].toString()
+                      : 'متجر الجملة');
+          final rows = _rows(payload['favorites']);
+          final scopedLocation = Uri(
+            path: CustomerRoutePaths.b2bFavorites,
+            queryParameters: <String, String>{
+              'channel': 'wholesale',
+              'store_id': storeId.toString(),
+            },
+          ).toString();
+
+          return Scaffold(
+            key: const ValueKey('wholesale-favorites-screen'),
+            backgroundColor: palette.background,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  FoodexWholesaleHeader(
+                    title: title,
+                    logoUrl: branding['logo_url']?.toString(),
+                    address: branding['address']?.toString(),
+                    palette: palette,
+                    searchController: search,
+                    searchKey: const ValueKey('wholesale-favorites-search'),
+                    searchHint: context.tr('b2b.catalog.search_hint'),
+                    onSearchSubmitted: (_) => setState(() {}),
+                    onSearchChanged: (_) => setState(() {}),
+                    onClearSearch: () {
+                      search.clear();
+                      setState(() {});
+                    },
+                    onCart: () => Navigator.of(context).pushNamed(
+                      '/b2b/cart?store_id=' + storeId.toString(),
+                    ),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        _reload();
+                        await future;
+                      },
+                      child: ListView(
+                        key: const ValueKey(
+                          'wholesale-favorites-scroll-body',
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(0, 14, 0, 28),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              context.tr('customer.profile.favorites'),
+                              style: const TextStyle(
+                                color: CustomerUiColors.ink,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (rows.isEmpty)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              child: FoodexEmptyState(
+                                key: const ValueKey(
+                                  'wholesale-favorites-empty',
+                                ),
+                                title: context.tr('customer.favorites.empty'),
+                                subtitle:
+                                    context.tr('customer.favorites.subtitle'),
+                              ),
+                            )
+                          else
+                            _WholesaleProductGrid(
+                              rows: rows,
+                              storeId: storeId,
+                              sourceLocation: scopedLocation,
+                              session: widget.session,
+                              actionApi: widget.actionApi,
+                              pendingActionStore: widget.pendingActionStore,
+                              palette: palette,
+                              showCommerceActions: true,
+                              onRemoveFavorite: _removeFavorite,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+}
+
 Future<void> _beginWholesaleAddHandoff({
   required BuildContext context,
   required CustomerPendingActionStore? pendingActionStore,
@@ -2080,8 +2270,8 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
 class _WholesaleCatalogDesignScreenState
     extends State<WholesaleCatalogDesignScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
-  late final int storeId = wholesaleStoreId(widget.location);
-  late Future<Map<String, dynamic>> future = _load();
+  int storeId = 0;
+  late Future<Map<String, dynamic>> future;
   int? selectedCategoryId;
   int? selectedBrandId;
   String? browseMode;
@@ -2096,6 +2286,8 @@ class _WholesaleCatalogDesignScreenState
   void initState() {
     super.initState();
     final query = Uri.parse(widget.location).queryParameters;
+    final initialQuery = query['q']?.trim() ?? '';
+    if (initialQuery.isNotEmpty) search.text = initialQuery;
     final categoryId = int.tryParse(query['category_id'] ?? '');
     final brandId = int.tryParse(query['brand_id'] ?? '');
     selectedCategoryId =
@@ -2109,6 +2301,7 @@ class _WholesaleCatalogDesignScreenState
         .whereType<int>()
         .where((value) => value > 0)
         .toSet();
+    future = _load(search.text);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -2121,6 +2314,13 @@ class _WholesaleCatalogDesignScreenState
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
     try {
+      final resolvedStoreId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+        rememberedStoreId: storeId,
+      );
+      if (resolvedStoreId > 0) storeId = resolvedStoreId;
+
       if (storeId <= 0) {
         return const {
           'store_required': true,
@@ -2247,15 +2447,27 @@ class _WholesaleCatalogDesignScreenState
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Scaffold(
-              body: SafeArea(
-                child: FoodexLoading(key: ValueKey('b2b-catalog-loading')),
+            return Scaffold(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
+                child: const FoodexLoading(
+                  key: ValueKey('b2b-catalog-loading'),
+                ),
               ),
             );
           }
           if (snapshot.hasError) {
             return Scaffold(
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexErrorState(
                   key: const ValueKey('b2b-catalog-error'),
                   message: context.tr('b2b.catalog.load_error'),
@@ -2293,7 +2505,12 @@ class _WholesaleCatalogDesignScreenState
           if (payload['store_required'] == true) {
             return Scaffold(
               backgroundColor: FoodexPalette.wholesale.background,
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: context.tr('b2b.app.title'),
+                location: widget.location,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
+                ),
                 child: FoodexEmptyState(
                   key: const ValueKey('b2b-catalog-store-required'),
                   title: context.tr('b2b.catalog.store_required_title'),
@@ -2311,17 +2528,27 @@ class _WholesaleCatalogDesignScreenState
           final localeCode = Localizations.localeOf(context).languageCode;
           for (final row in categorySources) {
             final id = intValue(row['category_id']);
-            if (id <= 0 || categoryMap.containsKey(id)) continue;
+            if (id <= 0) continue;
             final localizedName =
                 row['category_name_$localeCode']?.toString().trim();
             final fallbackName = row['category_name']?.toString().trim();
+            final imageUrl = row['category_image_url']?.toString().trim();
+            final existing = categoryMap[id];
+            final currentName = existing?['name']?.toString().trim();
+            final currentImage = existing?['image_url']?.toString().trim();
+            final resolvedName = localizedName?.isNotEmpty == true
+                ? localizedName
+                : (fallbackName?.isNotEmpty == true
+                    ? fallbackName
+                    : (currentName?.isNotEmpty == true
+                        ? currentName
+                        : context.tr('b2b.catalog.category') + ' $id'));
             categoryMap[id] = {
               'id': id,
-              'name': localizedName?.isNotEmpty == true
-                  ? localizedName
-                  : (fallbackName?.isNotEmpty == true
-                      ? fallbackName
-                      : context.tr('b2b.catalog.category') + ' $id'),
+              'name': resolvedName,
+              'image_url': imageUrl?.isNotEmpty == true
+                  ? imageUrl
+                  : (currentImage?.isNotEmpty == true ? currentImage : null),
             };
           }
           final categories = categoryMap.values.toList(growable: false);
@@ -2338,6 +2565,67 @@ class _WholesaleCatalogDesignScreenState
             };
           }
           final brands = brandMap.values.toList(growable: false);
+
+          if (browseMode == 'categories' && selectedCategoryId == null) {
+            return Scaffold(
+              key: const ValueKey('wholesale-category-browser-screen'),
+              backgroundColor: palette.background,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    FoodexWholesaleHeader(
+                      title: title,
+                      logoUrl: branding['logo_url']?.toString(),
+                      address: branding['address']?.toString(),
+                      palette: palette,
+                      searchController: search,
+                      searchKey:
+                          const ValueKey('wholesale-category-browser-search'),
+                      searchHint: context.tr('b2b.catalog.search_hint'),
+                      onSearchSubmitted: (_) => _reload(),
+                      onSearchChanged: (_) => setState(() {}),
+                      onClearSearch: () {
+                        search.clear();
+                        _reload();
+                      },
+                      onCart: () => Navigator.of(context)
+                          .pushNamed('/b2b/cart?store=' + storeId.toString()),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+                        children: [
+                          Text(
+                            context.tr('b2b.catalog.categories_title'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('b2b.catalog.categories_subtitle'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _WholesaleCategoryBrowserGrid(
+                            categories: categories,
+                            palette: palette,
+                            storeId: storeId,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
           final visibleRows = allRows.where((row) {
             if (selectedCategoryId != null &&
@@ -2392,10 +2680,9 @@ class _WholesaleCatalogDesignScreenState
             key: const ValueKey('wholesale-catalog-screen'),
             backgroundColor: palette.background,
             body: SafeArea(
-              child: ListView(
-                padding: EdgeInsets.zero,
+              child: Column(
                 children: [
-                  _WholesaleHeader(
+                  FoodexWholesaleHeader(
                     title: title,
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
@@ -2412,239 +2699,380 @@ class _WholesaleCatalogDesignScreenState
                     onCart: () => Navigator.of(context)
                         .pushNamed('/b2b/cart?store=' + storeId.toString()),
                   ),
-                  if (categories.isNotEmpty)
-                    SizedBox(
-                      key: const ValueKey('wholesale-catalog-categories'),
-                      height: 48,
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsetsDirectional.only(end: 8),
-                            child: ChoiceChip(
-                              key: const ValueKey('wholesale-category-all'),
-                              label: Text(context.tr('b2b.catalog.all')),
-                              selected: selectedCategoryId == null,
-                              onSelected: (_) => setState(() {
-                                selectedCategoryId = null;
-                                visibleLimit = 24;
-                              }),
-                            ),
-                          ),
-                          for (final category in categories)
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(end: 8),
-                              child: ChoiceChip(
-                                key: ValueKey(
-                                  'wholesale-category-filter-${category['id']}',
-                                ),
-                                label: Text(category['name']?.toString() ?? ''),
-                                selected: selectedCategoryId ==
-                                    intValue(category['id']),
-                                onSelected: (_) => setState(() {
-                                  selectedCategoryId = intValue(category['id']);
-                                  visibleLimit = 24;
-                                }),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  if (brands.isNotEmpty &&
-                      (browseMode == 'brands' || selectedBrandId != null))
-                    SizedBox(
-                      key: const ValueKey('wholesale-catalog-brands'),
-                      height: 48,
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsetsDirectional.only(end: 8),
-                            child: ChoiceChip(
-                              key: const ValueKey('wholesale-brand-all'),
-                              label: Text(context.tr('b2b.catalog.all')),
-                              selected: selectedBrandId == null,
-                              onSelected: (_) => setState(() {
-                                selectedBrandId = null;
-                                visibleLimit = 24;
-                              }),
-                            ),
-                          ),
-                          for (final brand in brands)
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(end: 8),
-                              child: ChoiceChip(
-                                key: ValueKey(
-                                  'wholesale-brand-filter-${brand['id']}',
-                                ),
-                                label: Text(brand['name']?.toString() ?? ''),
-                                selected:
-                                    selectedBrandId == intValue(brand['id']),
-                                onSelected: (_) => setState(() {
-                                  selectedBrandId = intValue(brand['id']);
-                                  visibleLimit = 24;
-                                }),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-                    child: Column(
+                  Expanded(
+                    child: ListView(
+                      key: const ValueKey('wholesale-catalog-scroll-body'),
+                      padding: EdgeInsets.zero,
                       children: [
-                        Row(
-                          children: [
-                            OutlinedButton.icon(
-                              key: const ValueKey('wholesale-catalog-filter'),
-                              onPressed: () =>
-                                  _openCategoryFilter(context, categories),
-                              icon: const Icon(Icons.tune_rounded, size: 18),
-                              label: Text(context.tr('b2b.catalog.filter')),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                key: const ValueKey('wholesale-catalog-sort'),
-                                value: sortMode,
-                                isDense: true,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 9,
+                        if (categories.isNotEmpty)
+                          SizedBox(
+                            key: const ValueKey('wholesale-catalog-categories'),
+                            height: 48,
+                            child: ListView(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsetsDirectional.only(end: 8),
+                                  child: ChoiceChip(
+                                    key: const ValueKey(
+                                        'wholesale-category-all'),
+                                    label: Text(context.tr('b2b.catalog.all')),
+                                    selected: selectedCategoryId == null,
+                                    onSelected: (_) => setState(() {
+                                      selectedCategoryId = null;
+                                      visibleLimit = 24;
+                                    }),
                                   ),
                                 ),
-                                items: [
-                                  DropdownMenuItem(
-                                    value: 'default',
-                                    child: Text(
-                                      context.tr('b2b.catalog.sort_default'),
+                                for (final category in categories)
+                                  Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        end: 8),
+                                    child: ChoiceChip(
+                                      key: ValueKey(
+                                        'wholesale-category-filter-${category['id']}',
+                                      ),
+                                      label: Text(
+                                          category['name']?.toString() ?? ''),
+                                      selected: selectedCategoryId ==
+                                          intValue(category['id']),
+                                      onSelected: (_) => setState(() {
+                                        selectedCategoryId =
+                                            intValue(category['id']);
+                                        visibleLimit = 24;
+                                      }),
                                     ),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'price_low',
-                                    child: Text(
-                                      context.tr('b2b.catalog.sort_price_low'),
+                              ],
+                            ),
+                          ),
+                        if (brands.isNotEmpty &&
+                            (browseMode == 'brands' || selectedBrandId != null))
+                          SizedBox(
+                            key: const ValueKey('wholesale-catalog-brands'),
+                            height: 48,
+                            child: ListView(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsetsDirectional.only(end: 8),
+                                  child: ChoiceChip(
+                                    key: const ValueKey('wholesale-brand-all'),
+                                    label: Text(context.tr('b2b.catalog.all')),
+                                    selected: selectedBrandId == null,
+                                    onSelected: (_) => setState(() {
+                                      selectedBrandId = null;
+                                      visibleLimit = 24;
+                                    }),
+                                  ),
+                                ),
+                                for (final brand in brands)
+                                  Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        end: 8),
+                                    child: ChoiceChip(
+                                      key: ValueKey(
+                                        'wholesale-brand-filter-${brand['id']}',
+                                      ),
+                                      label:
+                                          Text(brand['name']?.toString() ?? ''),
+                                      selected: selectedBrandId ==
+                                          intValue(brand['id']),
+                                      onSelected: (_) => setState(() {
+                                        selectedBrandId = intValue(brand['id']);
+                                        visibleLimit = 24;
+                                      }),
                                     ),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'price_high',
-                                    child: Text(
-                                      context.tr('b2b.catalog.sort_price_high'),
+                              ],
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  OutlinedButton.icon(
+                                    key: const ValueKey(
+                                        'wholesale-catalog-filter'),
+                                    onPressed: () => _openCategoryFilter(
+                                        context, categories),
+                                    icon: const Icon(Icons.tune_rounded,
+                                        size: 18),
+                                    label:
+                                        Text(context.tr('b2b.catalog.filter')),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      key: const ValueKey(
+                                          'wholesale-catalog-sort'),
+                                      value: sortMode,
+                                      isDense: true,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 9,
+                                        ),
+                                      ),
+                                      items: [
+                                        DropdownMenuItem(
+                                          value: 'default',
+                                          child: Text(
+                                            context
+                                                .tr('b2b.catalog.sort_default'),
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'price_low',
+                                          child: Text(
+                                            context.tr(
+                                                'b2b.catalog.sort_price_low'),
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'price_high',
+                                          child: Text(
+                                            context.tr(
+                                                'b2b.catalog.sort_price_high'),
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'name',
+                                          child: Text(
+                                            context.tr('b2b.catalog.sort_name'),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          setState(() {
+                                            sortMode = value;
+                                            visibleLimit = 24;
+                                          });
+                                        }
+                                      },
                                     ),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'name',
+                                  IconButton(
+                                    key: const ValueKey(
+                                        'wholesale-catalog-refresh'),
+                                    tooltip: context.tr('b2b.catalog.refresh'),
+                                    onPressed: () => _reload(resetLimit: false),
+                                    icon: const Icon(Icons.refresh_rounded),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Expanded(
                                     child: Text(
-                                      context.tr('b2b.catalog.sort_name'),
+                                      '${visibleRows.length} ' +
+                                          context
+                                              .tr('b2b.catalog.products_count'),
+                                      key: const ValueKey(
+                                          'wholesale-catalog-count'),
+                                      style: TextStyle(
+                                        color: palette.muted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ],
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    setState(() {
-                                      sortMode = value;
-                                      visibleLimit = 24;
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              key: const ValueKey('wholesale-catalog-refresh'),
-                              tooltip: context.tr('b2b.catalog.refresh'),
-                              onPressed: () => _reload(resetLimit: false),
-                              icon: const Icon(Icons.refresh_rounded),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${visibleRows.length} ' +
-                                    context.tr('b2b.catalog.products_count'),
-                                key: const ValueKey('wholesale-catalog-count'),
-                                style: TextStyle(
-                                  color: palette.muted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (stale)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                      child: Material(
-                        key: const ValueKey('b2b-catalog-stale'),
-                        color: palette.soft,
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.cloud_off_outlined,
-                                color: palette.primaryDark,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  context.tr('b2b.catalog.stale'),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
                               ),
                             ],
                           ),
                         ),
-                      ),
+                        if (stale)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                            child: Material(
+                              key: const ValueKey('b2b-catalog-stale'),
+                              color: palette.soft,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.cloud_off_outlined,
+                                      color: palette.primaryDark,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        context.tr('b2b.catalog.stale'),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        _WholesaleProductGrid(
+                          rows: displayedRows,
+                          storeId: storeId,
+                          sourceLocation: widget.location,
+                          session: widget.session,
+                          actionApi: widget.actionApi,
+                          pendingActionStore: widget.pendingActionStore,
+                          palette: palette,
+                          defaultCurrency: defaultCurrency,
+                          noResults: allRows.isNotEmpty &&
+                              visibleRows.isEmpty &&
+                              (search.text.trim().isNotEmpty ||
+                                  selectedCategoryId != null ||
+                                  selectedBrandId != null ||
+                                  productFilterIds.isNotEmpty ||
+                                  (sectionFilter?.isNotEmpty ?? false)),
+                          showCommerceActions: true,
+                        ),
+                        if (hasMore)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                            child: OutlinedButton.icon(
+                              key:
+                                  const ValueKey('wholesale-catalog-load-more'),
+                              onPressed: () =>
+                                  setState(() => visibleLimit += 24),
+                              icon: const Icon(Icons.expand_more_rounded),
+                              label: Text(context.tr('b2b.catalog.load_more')),
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                  _WholesaleProductGrid(
-                    rows: displayedRows,
-                    storeId: storeId,
-                    sourceLocation: widget.location,
-                    session: widget.session,
-                    actionApi: widget.actionApi,
-                    pendingActionStore: widget.pendingActionStore,
-                    palette: palette,
-                    defaultCurrency: defaultCurrency,
-                    noResults: allRows.isNotEmpty &&
-                        visibleRows.isEmpty &&
-                        (search.text.trim().isNotEmpty ||
-                            selectedCategoryId != null ||
-                            selectedBrandId != null ||
-                            productFilterIds.isNotEmpty ||
-                            (sectionFilter?.isNotEmpty ?? false)),
-                    showCommerceActions: true,
                   ),
-                  if (hasMore)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-                      child: OutlinedButton.icon(
-                        key: const ValueKey('wholesale-catalog-load-more'),
-                        onPressed: () => setState(() => visibleLimit += 24),
-                        icon: const Icon(Icons.expand_more_rounded),
-                        label: Text(context.tr('b2b.catalog.load_more')),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           );
         },
       );
+}
+
+class _WholesaleCategoryBrowserGrid extends StatelessWidget {
+  const _WholesaleCategoryBrowserGrid({
+    required this.categories,
+    required this.palette,
+    required this.storeId,
+  });
+
+  final List<Map<String, dynamic>> categories;
+  final FoodexPalette palette;
+  final int storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return FoodexEmptyState(
+        key: const ValueKey('wholesale-category-browser-empty'),
+        title: context.tr('b2b.catalog.categories_title'),
+        subtitle: context.tr('b2b.catalog.categories_subtitle'),
+      );
+    }
+
+    return GridView.builder(
+      key: const ValueKey('wholesale-category-browser-grid'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: 154,
+      ),
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        final id = intValue(category['id']);
+        final imageUrl = category['image_url']?.toString().trim() ?? '';
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            key: ValueKey('wholesale-category-browser-$id'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: id <= 0 || storeId <= 0
+                ? null
+                : () => Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                          'category_id': id.toString(),
+                        },
+                      ).toString(),
+                    ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.soft),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: imageUrl.isEmpty
+                          ? ColoredBox(
+                              color: palette.soft,
+                              child: Icon(
+                                Icons.category_outlined,
+                                color: palette.primary,
+                                size: 34,
+                              ),
+                            )
+                          : Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => ColoredBox(
+                                color: palette.soft,
+                                child: Icon(
+                                  Icons.category_outlined,
+                                  color: palette.primary,
+                                  size: 34,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    category['name']?.toString() ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: CustomerUiColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _WholesaleBottomNav extends StatelessWidget {
@@ -2875,6 +3303,8 @@ class _WholesaleProductDetailsDesignScreenState
   Timer? _stockRefreshTimer;
   bool stale = false;
   bool revalidating = false;
+  int? _similarCategoryId;
+  Future<List<Map<String, dynamic>>>? _similarProductsFuture;
 
   @override
   void initState() {
@@ -2898,6 +3328,7 @@ class _WholesaleProductDetailsDesignScreenState
   void _cacheFreshProduct(Map<String, dynamic> row) {
     stale = false;
     _lastProduct = Map<String, dynamic>.from(row);
+    _primeSimilarProducts(row);
     _stockRefreshTimer?.cancel();
     final available = row['is_available'] != false &&
         row['availability_state'] != 'OUT_OF_STOCK';
@@ -2963,6 +3394,43 @@ class _WholesaleProductDetailsDesignScreenState
       }
       Error.throwWithStackTrace(error, stack);
     }
+  }
+
+  void _primeSimilarProducts(Map<String, dynamic> row) {
+    final categoryId = intValue(row['category_id']);
+    if (categoryId <= 0 || categoryId == _similarCategoryId) return;
+    _similarCategoryId = categoryId;
+    _similarProductsFuture = _loadSimilarProducts(categoryId);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSimilarProducts(
+    int categoryId,
+  ) async {
+    List<Map<String, dynamic>> rows;
+    final api = widget.api;
+    if (api != null) {
+      final raw = await api.get(
+        '/api/v1/b2b/products?store_id=' +
+            storeId.toString() +
+            '&category_id=' +
+            categoryId.toString(),
+      );
+      rows = dataRows(raw);
+    } else {
+      final storefrontApi = widget.storefrontApi;
+      if (storefrontApi == null) return const <Map<String, dynamic>>[];
+      final storefront = await storefrontApi.wholesaleHome(storeId);
+      rows = mapRows(storefront['products']);
+    }
+
+    return rows
+        .where(
+          (item) =>
+              intValue(item['id']) != productId &&
+              intValue(item['category_id']) == categoryId,
+        )
+        .take(6)
+        .toList(growable: false);
   }
 
   void _retry() {
@@ -3142,7 +3610,12 @@ class _WholesaleProductDetailsDesignScreenState
       textDirection: Directionality.of(context),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: SafeArea(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: widget.location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
+          ),
           child: FutureBuilder<Object?>(
             future: future,
             builder: (context, snapshot) {
@@ -3157,8 +3630,6 @@ class _WholesaleProductDetailsDesignScreenState
                   ),
                   padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.product.title')),
-                    const SizedBox(height: 18),
                     FoodexErrorState(
                       message: context.tr(failure.messageKey),
                       onRetry: _retry,
@@ -3235,37 +3706,24 @@ class _WholesaleProductDetailsDesignScreenState
                 key: const ValueKey('b2b-product-detail-data'),
                 padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                 children: [
-                  Container(
-                    key: const ValueKey('b2b-product-detail-header'),
-                    decoration: BoxDecoration(
-                      color: FoodexPalette.wholesale.primaryDark,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: DefaultTextStyle.merge(
-                      style: const TextStyle(color: Colors.white),
-                      child: IconTheme(
-                        data: IconThemeData(color: Colors.white),
-                        child: FoodexTopBar(
-                          title: context.tr('customer.product.title'),
-                          actions: [
-                            IconButton(
-                              key: const ValueKey('b2b-product-refresh'),
-                              tooltip: context.tr('b2b.product.refresh'),
-                              onPressed: revalidating ? null : _retry,
-                              icon: const Icon(Icons.refresh_rounded),
-                            ),
-                            CustomerFavoriteButton(
-                              api: widget.favoritesApi,
-                              storeId: storeId,
-                              productId: productId,
-                              isAuthenticated: widget.session.isAuthenticated,
-                              loginRoute:
-                                  '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
-                            ),
-                          ],
-                        ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('b2b-product-refresh'),
+                        tooltip: context.tr('b2b.product.refresh'),
+                        onPressed: revalidating ? null : _retry,
+                        icon: const Icon(Icons.refresh_rounded),
                       ),
-                    ),
+                      CustomerFavoriteButton(
+                        api: widget.favoritesApi,
+                        storeId: storeId,
+                        productId: productId,
+                        isAuthenticated: widget.session.isAuthenticated,
+                        loginRoute:
+                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
+                      ),
+                    ],
                   ),
                   if (stale) ...[
                     const SizedBox(height: 10),
@@ -3392,7 +3850,7 @@ class _WholesaleProductDetailsDesignScreenState
                       quantityIssue,
                       key: const ValueKey('b2b-product-quantity-error'),
                       style: const TextStyle(
-                        color: Color(0xFFB42318),
+                        color: CustomerUiColors.destructive,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -3488,53 +3946,47 @@ class _WholesaleProductDetailsDesignScreenState
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    key: const ValueKey('b2b-product-additional-info'),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE4ECE7)),
-                      borderRadius: BorderRadius.circular(18),
+                  if (_similarProductsFuture != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      context.tr('b2b.product.similar_products'),
+                      key: const ValueKey('b2b-product-similar-title'),
+                      style: const TextStyle(
+                        color: Color(0xFF10233F),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          context.tr('b2b.product.pack_details'),
-                          style: const TextStyle(
-                            color: Color(0xFF10233F),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.category'),
-                          value: category.isNotEmpty
-                              ? category
-                              : context.tr('b2b.product.not_specified'),
-                        ),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.pack_size'),
-                          value: row['pack_label']?.toString() ??
-                              row['pack_size']?.toString() ??
-                              '1',
-                        ),
-                        _ProductInfoLine(
-                          label: 'SKU',
-                          value: row['sku']?.toString() ?? '—',
-                        ),
-                        _ProductInfoLine(
-                          label: context.tr('b2b.product.brand'),
-                          value: brand.isNotEmpty
-                              ? brand
-                              : context.tr('b2b.product.not_specified'),
-                          showDivider: false,
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _similarProductsFuture,
+                      builder: (context, similarSnapshot) {
+                        if (similarSnapshot.connectionState !=
+                            ConnectionState.done) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        final similar = similarSnapshot.data ??
+                            const <Map<String, dynamic>>[];
+                        if (similar.isEmpty) return const SizedBox.shrink();
+                        return _WholesaleProductGrid(
+                          rows: similar,
+                          storeId: storeId,
+                          sourceLocation: widget.location,
+                          session: widget.session,
+                          actionApi: widget.actionApi,
+                          pendingActionStore: widget.pendingActionStore,
+                          palette: FoodexPalette.wholesale,
+                          maxItems: 6,
+                          showCommerceActions: true,
+                        );
+                      },
                     ),
-                  ),
+                  ],
                 ],
               );
             },
@@ -3645,51 +4097,6 @@ String? _safeWholesaleSupportReference(String? value) {
   return RegExp(r'^[A-Za-z0-9._:/-]+$').hasMatch(reference) ? reference : null;
 }
 
-class _ProductInfoLine extends StatelessWidget {
-  const _ProductInfoLine({
-    required this.label,
-    required this.value,
-    this.showDivider = true,
-  });
-
-  final String label;
-  final String value;
-  final bool showDivider;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF6B7785),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
-                    color: Color(0xFF10233F),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (showDivider) const Divider(height: 20, color: Color(0xFFE8EEEA)),
-        ],
-      );
-}
-
 class _PricingPanel extends StatelessWidget {
   const _PricingPanel({required this.row, required this.currency});
 
@@ -3715,43 +4122,22 @@ class _PricingPanel extends StatelessWidget {
             Text(
               context.tr('b2b.product.account_price'),
               style: const TextStyle(
-                color: Color(0xFF6B7785),
+                color: CustomerUiColors.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            if (row['base_wholesale_price'] != null ||
-                row['retail_reference_price'] != null) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 16,
-                runSpacing: 6,
-                children: [
-                  if (row['base_wholesale_price'] != null)
-                    Text(
-                      context.tr('b2b.product.base_price') +
-                          ': ' +
-                          money(row['base_wholesale_price'],
-                              currency: currency),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  if (row['retail_reference_price'] != null)
-                    Text(
-                      context.tr('b2b.product.retail_reference_price') +
-                          ': ' +
-                          money(row['retail_reference_price'],
-                              currency: currency),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
+            if (row['retail_reference_price'] != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                context.tr('b2b.product.retail_reference_price') +
+                    ': ' +
+                    money(row['retail_reference_price'], currency: currency),
+                style: const TextStyle(
+                  color: Color(0xFF6B7785),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ],
@@ -3996,7 +4382,19 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
+            leading: IconButton(
+              key: const ValueKey('b2b-cart-back'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const BackButtonIcon(),
+              color: Colors.white,
+            ),
             child: FutureBuilder<Object?>(
               future: future,
               builder: (context, snapshot) {
@@ -4029,56 +4427,27 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    SizedBox(
-                      key: const ValueKey('b2b-cart-header'),
-                      height: 44,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            key: const ValueKey('b2b-cart-back'),
-                            tooltip: MaterialLocalizations.of(context)
-                                .backButtonTooltip,
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(
-                              Directionality.of(context) == TextDirection.rtl
-                                  ? Icons.arrow_forward_ios_rounded
-                                  : Icons.arrow_back_ios_new_rounded,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              context.tr('b2b.cart.title'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF10233F),
-                                fontSize: 17,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          if (rows.isNotEmpty && widget.commerceApi != null)
-                            TextButton.icon(
-                              key: const ValueKey('b2b-cart-clear'),
-                              onPressed: () => _clear(rows),
-                              icon: const Icon(
-                                Icons.delete_sweep_outlined,
-                                size: 16,
-                              ),
-                              label: Text(context.tr('b2b.cart.clear')),
-                              style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                              ),
-                            ),
-                        ],
+                    Text(
+                      context.tr('b2b.cart.title'),
+                      key: const ValueKey('b2b-cart-content-title'),
+                      style: const TextStyle(
+                        color: CustomerUiColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    if (rows.isNotEmpty && widget.commerceApi != null)
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton.icon(
+                          key: const ValueKey('b2b-cart-clear'),
+                          onPressed: () => _clear(rows),
+                          icon:
+                              const Icon(Icons.delete_sweep_outlined, size: 16),
+                          label: Text(context.tr('b2b.cart.clear')),
+                        ),
+                      ),
                     const SizedBox(height: 6),
                     if (rows.isEmpty)
                       FoodexEmptyState(
@@ -4525,7 +4894,12 @@ class _WholesaleCheckoutDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
               builder: (context, snapshot) {
@@ -4702,8 +5076,6 @@ class _WholesaleCheckoutDesignScreenState
                   key: const ValueKey('b2b-checkout-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.checkout.title')),
-                    const SizedBox(height: 8),
                     CustomerCheckoutProgress(
                       key: const ValueKey('b2b-checkout-progress'),
                       steps: [
@@ -5654,11 +6026,62 @@ class _WholesaleOrdersDesignScreenState
 
                         return Column(
                           children: [
-                            _WholesaleOrdersHeader(
-                              pageInset: pageInset,
-                              loading: loading,
-                              onBack: _goBack,
-                              onRefresh: () => unawaited(_refresh()),
+                            FoodexWholesaleHeader(
+                              title: context.tr('b2b.app.title'),
+                              palette: FoodexPalette.wholesale,
+                              leading: IconButton(
+                                key: const ValueKey('b2b-orders-back'),
+                                tooltip: MaterialLocalizations.of(context)
+                                    .backButtonTooltip,
+                                onPressed: _goBack,
+                                icon: const BackButtonIcon(),
+                                color: Colors.white,
+                              ),
+                              searchHint: context.tr(
+                                'customer.products.search_name_sku_barcode',
+                              ),
+                              trailingActions: [
+                                IconButton(
+                                  key: const ValueKey('b2b-orders-refresh'),
+                                  tooltip: context.tr('b2b.dashboard.refresh'),
+                                  onPressed: loading
+                                      ? null
+                                      : () => unawaited(_refresh()),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  color: Colors.white,
+                                ),
+                              ],
+                              onSearchSubmitted: (value) {
+                                final query = value.trim();
+                                if (query.isEmpty) return;
+                                final scopedStoreId =
+                                    wholesaleStoreId(widget.location);
+                                Navigator.of(context).pushNamed(
+                                  Uri(
+                                    path: CustomerRoutePaths.b2bProducts,
+                                    queryParameters: <String, String>{
+                                      if (scopedStoreId > 0)
+                                        'store_id': scopedStoreId.toString(),
+                                      'channel': 'wholesale',
+                                      'q': query,
+                                    },
+                                  ).toString(),
+                                );
+                              },
+                              onNotifications: () =>
+                                  Navigator.of(context).pushNamed(
+                                CustomerRoutePaths.b2bNotifications,
+                              ),
+                              onCart: () {
+                                final scopedStoreId =
+                                    wholesaleStoreId(widget.location);
+                                Navigator.of(context).pushNamed(
+                                  scopedStoreId > 0
+                                      ? '/b2b/cart?store_id=' +
+                                          scopedStoreId.toString()
+                                      : CustomerRoutePaths.b2bCart,
+                                );
+                              },
                             ),
                             _OrderTabs(
                               selected: status,
@@ -5764,30 +6187,44 @@ class _WholesaleOrderDetailsDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBF9),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: widget.location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
+            leading: IconButton(
+              key: const ValueKey('b2b-order-back'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () =>
+                  Navigator.of(context).pushReplacementNamed('/b2b/orders'),
+              icon: const BackButtonIcon(),
+              color: Colors.white,
+            ),
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        key: const ValueKey('b2b-order-back'),
-                        onPressed: () => Navigator.of(context)
-                            .pushReplacementNamed('/b2b/orders'),
-                        icon: const Icon(Icons.arrow_back_rounded),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      context.tr('b2b.order.title'),
+                      key: const ValueKey('b2b-order-content-title'),
+                      style: const TextStyle(
+                        color: CustomerUiColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
                       ),
-                      Expanded(
-                        child:
-                            FoodexTopBar(title: context.tr('b2b.order.title')),
-                      ),
-                      IconButton(
-                        key: const ValueKey('b2b-order-refresh'),
-                        tooltip: context.tr('b2b.order.refresh'),
-                        onPressed: _refresh,
-                        icon: const Icon(Icons.refresh_rounded),
-                      ),
-                    ],
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: IconButton(
+                    key: const ValueKey('b2b-order-refresh'),
+                    tooltip: context.tr('b2b.order.refresh'),
+                    onPressed: _refresh,
+                    icon: const Icon(Icons.refresh_rounded),
                   ),
                 ),
                 Expanded(
@@ -5901,18 +6338,22 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.status'),
                                 _orderStatusText(context, status),
                               ),
-                              (
-                                context.tr('b2b.order.created_at'),
-                                _friendlyOrderDate(
-                                    order['created_at']?.toString()),
-                              ),
+                              if (payment != null)
+                                (
+                                  context.tr('b2b.order.payment_status'),
+                                  _paymentStatusText(
+                                    context,
+                                    payment['status']?.toString() ?? '',
+                                  ),
+                                ),
                               (
                                 context.tr('b2b.order.total'),
                                 money(total, currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.payment_method'),
-                                _paymentMethodText(context, paymentMethod),
+                                context.tr('b2b.order.created_at'),
+                                _friendlyOrderDate(
+                                    order['created_at']?.toString()),
                               ),
                             ],
                           ),
@@ -6036,35 +6477,14 @@ class _WholesaleOrderDetailsDesignScreenState
                                     currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.tax'),
-                                money(order['tax_total'], currency: currency),
-                              ),
-                              (
                                 context.tr('b2b.order.delivery_fee'),
                                 money(order['delivery_total'],
                                     currency: currency),
                               ),
                               (
-                                context.tr('b2b.order.grand_total'),
-                                money(total, currency: currency),
-                              ),
-                            ],
-                          ),
-                          _OrderDetailCard(
-                            title: context.tr('b2b.order.payment'),
-                            rows: [
-                              (
                                 context.tr('b2b.order.payment_method'),
                                 _paymentMethodText(context, paymentMethod),
                               ),
-                              if (payment != null)
-                                (
-                                  context.tr('b2b.order.payment_status'),
-                                  _paymentStatusText(
-                                    context,
-                                    payment['status']?.toString() ?? '',
-                                  ),
-                                ),
                               if (accountCredit != null)
                                 (
                                   context.tr('b2b.order.account_credit_impact'),
@@ -6075,6 +6495,10 @@ class _WholesaleOrderDetailsDesignScreenState
                                             currency,
                                   ),
                                 ),
+                              (
+                                context.tr('b2b.order.grand_total'),
+                                money(total, currency: currency),
+                              ),
                             ],
                           ),
                           if (invoice != null &&
@@ -6092,7 +6516,10 @@ class _WholesaleOrderDetailsDesignScreenState
                                 ),
                                 (
                                   context.tr('b2b.invoice.payment_status'),
-                                  invoice['status']?.toString() ?? '-',
+                                  _invoiceStatusText(
+                                    context,
+                                    invoice['status']?.toString() ?? '',
+                                  ),
                                 ),
                               ],
                             ),
@@ -6239,6 +6666,27 @@ String _paymentStatusText(BuildContext context, String status) {
   }
 }
 
+String _invoiceStatusText(BuildContext context, String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'paid':
+    case 'settled':
+      return context.tr('b2b.invoice.status.settled');
+    case 'partially_paid':
+      return context.tr('b2b.invoice.status.partially_settled');
+    case 'overdue':
+      return context.tr('b2b.invoice.status.overdue');
+    case 'cancelled':
+    case 'canceled':
+    case 'void':
+    case 'voided':
+      return context.tr('b2b.invoice.status.cancelled');
+    case 'credited':
+      return context.tr('b2b.invoice.status.credited');
+    default:
+      return context.tr('b2b.invoice.status.due');
+  }
+}
+
 String _failureReasonText(BuildContext context, String reason) {
   switch (reason) {
     case 'customer_no_answer':
@@ -6369,112 +6817,64 @@ class _OrderLineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = item['image_url']?.toString() ?? '';
-    final sku = item['sku']?.toString() ?? '';
-    final pack =
-        _numberValue(item['pack_size'] ?? item['quantity_conversion_factor']) ??
-            1;
+    final quantity = item['quantity']?.toString() ?? '-';
+    final total = money(item['line_total'], currency: currency);
 
     return Container(
       key: ValueKey('b2b-order-line-${item['id'] ?? item['product_id']}'),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE9E3F0)),
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(15),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: imageUrl.isEmpty
-                      ? const ColoredBox(
-                          color: Color(0xFFF1F5F2),
-                          child: Icon(Icons.inventory_2_outlined),
-                        )
-                      : Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: Color(0xFFF1F5F2),
-                            child: Icon(Icons.inventory_2_outlined),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['name']?.toString() ??
-                          item['name_snapshot']?.toString() ??
-                          '-',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    if (sku.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        sku,
-                        style: const TextStyle(
-                          color: Color(0xFF667085),
-                          fontSize: 12,
-                        ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 54,
+              height: 54,
+              child: imageUrl.isEmpty
+                  ? const ColoredBox(
+                      color: CustomerUiColors.mint,
+                      child: Icon(Icons.inventory_2_outlined),
+                    )
+                  : Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: CustomerUiColors.mint,
+                        child: Icon(Icons.inventory_2_outlined),
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${context.tr('b2b.order.quantity')}: $quantity',
+              style: const TextStyle(
+                color: Color(0xFF6B7785),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.quantity'),
-            value: item['quantity']?.toString() ?? '-',
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.pack'),
-            value: compactNumber(pack),
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.unit_price'),
-            value: money(item['unit_price'], currency: currency),
-          ),
-          _OrderInlineRow(
-            label: context.tr('b2b.order.line_total'),
-            value: money(item['line_total'], currency: currency),
+          const SizedBox(width: 8),
+          Text(
+            total,
+            style: const TextStyle(
+              color: CustomerUiColors.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _OrderInlineRow extends StatelessWidget {
-  const _OrderInlineRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Row(
-          children: [
-            Expanded(child: Text(label)),
-            const SizedBox(width: 8),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ],
-        ),
-      );
 }
 
 ({IconData icon, Color foreground, Color background, Color line})
@@ -6741,112 +7141,6 @@ class _OrderDetailCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      );
-}
-
-class _WholesaleOrdersHeader extends StatelessWidget {
-  const _WholesaleOrdersHeader({
-    required this.pageInset,
-    required this.loading,
-    required this.onBack,
-    required this.onRefresh,
-  });
-
-  final double pageInset;
-  final bool loading;
-  final VoidCallback onBack;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(pageInset, 4, pageInset, 0),
-        child: SizedBox(
-          width: double.infinity,
-          height: 58,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                context.tr('customer.profile.orders'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: CustomerUiColors.ink,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      height: 1.1,
-                    ),
-              ),
-              PositionedDirectional(
-                start: 0,
-                child: Semantics(
-                  button: true,
-                  label: MaterialLocalizations.of(context).backButtonTooltip,
-                  child: Tooltip(
-                    message:
-                        MaterialLocalizations.of(context).backButtonTooltip,
-                    child: Material(
-                      color: CustomerUiColors.mintStrong.withOpacity(.45),
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        key: const ValueKey('b2b-orders-back'),
-                        customBorder: const CircleBorder(),
-                        onTap: onBack,
-                        child: const SizedBox.square(
-                          dimension: 42,
-                          child: IconTheme(
-                            data: IconThemeData(
-                              size: 24,
-                              color: CustomerUiColors.ink,
-                            ),
-                            child: BackButtonIcon(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              PositionedDirectional(
-                end: 0,
-                child: Semantics(
-                  button: true,
-                  label: context.tr('customer.orders.refresh'),
-                  child: Tooltip(
-                    message: context.tr('customer.orders.refresh'),
-                    child: Material(
-                      color: CustomerUiColors.mintStrong.withOpacity(.45),
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        key: const ValueKey('b2b-orders-refresh'),
-                        customBorder: const CircleBorder(),
-                        onTap: loading ? null : onRefresh,
-                        child: SizedBox.square(
-                          dimension: 42,
-                          child: loading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: CustomerUiColors.deepGreenStrong,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 24,
-                                  color: CustomerUiColors.ink,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       );
 }

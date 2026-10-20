@@ -7,6 +7,13 @@ import 'package:foodex_customer_app/features/customer_orders/customer_order_mode
 import 'package:foodex_customer_app/features/customer_orders/customer_order_screens.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 
+Finder _verticalScrollable() => find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable &&
+          (widget.axisDirection == AxisDirection.down ||
+              widget.axisDirection == AxisDirection.up),
+    );
+
 void main() {
   testWidgets(
     'order detail refetches authoritative collection state after lifecycle notification',
@@ -73,13 +80,13 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('customer-collection-receipt-44')),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.pump();
 
       expect(find.text('Collection receipts'), findsOneWidget);
       expect(find.text('Collection receipt #44'), findsOneWidget);
-      expect(find.text('Remaining balance'), findsOneWidget);
+      expect(find.text('Debt'), findsOneWidget);
       expect(find.text('7.500 KWD'), findsOneWidget);
       expect(find.text('5.000 KWD'), findsOneWidget);
 
@@ -137,9 +144,8 @@ class _FakeOrdersApi implements CustomerOrdersApi {
     required int orderId,
     CustomerOrderContext? context,
   }) async {
-    final index = detailCalls < details.length
-        ? detailCalls
-        : details.length - 1;
+    final index =
+        detailCalls < details.length ? detailCalls : details.length - 1;
     detailCalls += 1;
     return details[index];
   }

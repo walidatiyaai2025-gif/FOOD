@@ -57,6 +57,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <p>{{ __('assistant_settings.description') }}</p>
 </div>
 <div class="foodex-header-actions">
+<a class="secondary" href="{{ route('admin.assistant-overview.index') }}">{{ __('assistant_overview.title') }}</a>
 <a class="secondary" href="{{ route('admin.assistant-intelligence.index') }}">{{ __('assistant_intelligence.title') }}</a>
 </div>
 </div>

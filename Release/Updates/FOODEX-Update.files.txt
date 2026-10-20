@@ -1191,6 +1191,7 @@ backend/lang/ar/admin_login.php
 backend/lang/ar/admin_overview.php
 backend/lang/ar/app_versions.php
 backend/lang/ar/assistant_settings.php
+backend/lang/ar/assistant_overview.php
 backend/lang/ar/catalog.php
 backend/lang/ar/catalog_completion.php
 backend/lang/ar/chatbot.php
@@ -1249,6 +1250,7 @@ backend/lang/en/admin_login.php
 backend/lang/en/admin_overview.php
 backend/lang/en/app_versions.php
 backend/lang/en/assistant_settings.php
+backend/lang/en/assistant_overview.php
 backend/lang/en/catalog.php
 backend/lang/en/catalog_completion.php
 backend/lang/en/chatbot.php
@@ -1483,6 +1485,7 @@ backend/resources/views/admin/administration-hub.blade.php
 backend/resources/views/admin/app-preview.blade.php
 backend/resources/views/admin/app-versions.blade.php
 backend/resources/views/admin/assistant-settings.blade.php
+backend/resources/views/admin/assistant-overview.blade.php
 backend/resources/views/admin/auth/whatsapp-otp.blade.php
 backend/resources/views/admin/b2b-workspace.blade.php
 backend/resources/views/admin/b2c-workspace.blade.php

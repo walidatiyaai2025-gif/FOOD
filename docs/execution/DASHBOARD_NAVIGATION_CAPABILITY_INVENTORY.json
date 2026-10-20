@@ -451,6 +451,7 @@
       "route": [
         "admin.settings.index",
         "admin.assistant-settings.index",
+        "admin.assistant-overview.index",
         "admin.assistant-intelligence.index",
         "admin.app-versions.index",
         "admin.sms-settings.index",

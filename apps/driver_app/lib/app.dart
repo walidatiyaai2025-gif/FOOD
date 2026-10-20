@@ -132,7 +132,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
 
-  static const _appVersion = '1.0.90';
+  static const _appVersion = '1.0.94';
 
   String get _baseUrl => widget.apiBaseUrl ?? FoodexEnvironment.apiBaseUrl;
 

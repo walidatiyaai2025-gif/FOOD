@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 
@@ -152,15 +153,29 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         body: FutureBuilder<_RetailHomeV3Data>(
           future: _future,
           builder: (context, snapshot) {
-            final data = snapshot.data;
-            return CustomerCurvedHeaderSurface(
-              header: _HomeHeader(
-                storeId: widget.storeId,
-                data: data,
-                navigation: widget.navigation,
-                searchController: _search,
-                onSearch: _submitSearch,
+            return FoodexUnifiedHeaderSurface(
+              title: context.tr('customer.home.title'),
+              palette: FoodexPalette.grocery,
+              searchController: _search,
+              searchHint: context.tr(
+                'customer.products.search_name_sku_barcode',
               ),
+              searchKey: const ValueKey('retail-catalog-search'),
+              onSearchSubmitted: _submitSearch,
+              notificationKey: const ValueKey('retail-catalog-notifications'),
+              cartKey: const ValueKey('retail-catalog-cart'),
+              onNotifications: widget.navigation.openNotifications == null
+                  ? null
+                  : () => widget.navigation.openNotifications!(
+                        context,
+                        storeId: widget.storeId,
+                      ),
+              onCart: widget.navigation.openCart == null
+                  ? null
+                  : () => widget.navigation.openCart!(
+                        context,
+                        storeId: widget.storeId,
+                      ),
               child: _body(context, snapshot),
             );
           },
@@ -396,120 +411,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
           addSemanticLabel: context.tr('customer.action.add_cart'),
         );
       },
-    );
-  }
-}
-
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({
-    required this.storeId,
-    required this.data,
-    required this.navigation,
-    required this.searchController,
-    required this.onSearch,
-  });
-
-  final int storeId;
-  final _RetailHomeV3Data? data;
-  final RetailCatalogNavigation navigation;
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = data?.customerName;
-    final address = data?.defaultAddressLabel;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('customer.home.title'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: CustomerUiColors.white,
-                        ),
-                  ),
-                  const SizedBox(height: CustomerUiSpacing.xxs),
-                  Text(
-                    name?.isNotEmpty == true
-                        ? name!
-                        : context.tr('customer.home.subtitle'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: CustomerUiColors.white.withValues(alpha: 0.82),
-                        ),
-                  ),
-                  const SizedBox(height: CustomerUiSpacing.xs),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: CustomerUiColors.lime,
-                        size: 18,
-                      ),
-                      const SizedBox(width: CustomerUiSpacing.xxs),
-                      Expanded(
-                        child: Text(
-                          address?.isNotEmpty == true
-                              ? address!
-                              : '${context.tr('customer.addresses.address')} #$storeId',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: CustomerUiColors.white,
-                                  ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (navigation.openNotifications != null) ...[
-              const SizedBox(width: CustomerUiSpacing.xs),
-              CustomerOutlineIconButton(
-                key: const ValueKey('retail-catalog-notifications'),
-                icon: Icons.notifications_none_rounded,
-                tooltip: context.tr('customer.nav.notifications'),
-                onPressed: () => navigation.openNotifications!(
-                  context,
-                  storeId: storeId,
-                ),
-              ),
-            ],
-            if (navigation.openCart != null) ...[
-              const SizedBox(width: CustomerUiSpacing.xs),
-              CustomerOutlineIconButton(
-                key: const ValueKey('retail-catalog-cart'),
-                icon: Icons.shopping_cart_outlined,
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => navigation.openCart!(
-                  context,
-                  storeId: storeId,
-                ),
-              ),
-            ],
-          ],
-        ),
-        if (navigation.openProducts != null) ...[
-          const SizedBox(height: CustomerUiSpacing.md),
-          CustomerSearchPill(
-            key: const ValueKey('retail-catalog-search'),
-            controller: searchController,
-            hintText: context.tr('customer.products.search'),
-            onSubmitted: onSearch,
-          ),
-        ],
-      ],
     );
   }
 }

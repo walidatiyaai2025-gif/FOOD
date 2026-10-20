@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../storefront/storefront_design_system.dart';
 
 import '../../../core/api/customer_action_api.dart';
 import '../../../core/auth/customer_session.dart';
@@ -66,7 +67,8 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
   Future<void> _submit() async {
     final email = _email.text.trim();
     if (email.isEmpty || _password.text.isEmpty) {
-      setState(() => _errorKey = 'customer.marketplace.registration_validation');
+      setState(
+          () => _errorKey = 'customer.marketplace.registration_validation');
       return;
     }
 
@@ -75,7 +77,8 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
             _phone.text.trim().isEmpty ||
             _password.text.length < 8 ||
             _password.text != _confirmation.text)) {
-      setState(() => _errorKey = 'customer.marketplace.registration_validation');
+      setState(
+          () => _errorKey = 'customer.marketplace.registration_validation');
       return;
     }
 
@@ -144,13 +147,9 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
     return Scaffold(
       key: const ValueKey('retail-checkout-auth-screen'),
       backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: CustomerUiColors.deepGreen,
-        foregroundColor: CustomerUiColors.white,
-      ),
-      body: SafeArea(
-        top: false,
+      body: FoodexUnifiedHeaderSurface(
+        title: title,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             CustomerUiSpacing.page,
@@ -212,9 +211,8 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
                         ),
                       ],
                       selected: {_register},
-                      onSelectionChanged: _busy
-                          ? null
-                          : (values) => _switchMode(values.first),
+                      onSelectionChanged:
+                          _busy ? null : (values) => _switchMode(values.first),
                     ),
                     const SizedBox(height: CustomerUiSpacing.lg),
                     if (_register) ...[
@@ -259,8 +257,9 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
                       key: const ValueKey('retail-auth-password'),
                       controller: _password,
                       obscureText: true,
-                      textInputAction:
-                          _register ? TextInputAction.next : TextInputAction.done,
+                      textInputAction: _register
+                          ? TextInputAction.next
+                          : TextInputAction.done,
                       decoration: InputDecoration(
                         labelText: context.tr('customer.login.password'),
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
@@ -281,8 +280,7 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
                           labelText: context.tr(
                             'customer.marketplace.password_confirmation',
                           ),
-                          prefixIcon:
-                              const Icon(Icons.verified_user_outlined),
+                          prefixIcon: const Icon(Icons.verified_user_outlined),
                         ),
                         onSubmitted: (_) => _submit(),
                       ),

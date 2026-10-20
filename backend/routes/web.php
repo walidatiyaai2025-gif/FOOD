@@ -862,6 +862,7 @@ Route::prefix('admin')
         Route::post('/assistant/intelligence/findings/{finding}/acknowledge', [AssistantIntelligenceController::class, 'acknowledge'])->whereNumber('finding')->middleware('throttle:30,1')->name('assistant-intelligence.findings.acknowledge');
         Route::post('/assistant/intelligence/findings/{finding}/resolve', [AssistantIntelligenceController::class, 'resolve'])->whereNumber('finding')->middleware('throttle:30,1')->name('assistant-intelligence.findings.resolve');
         Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
+        Route::get('/settings/assistant/overview', [AssistantSettingsController::class, 'overview'])->name('assistant-overview.index');
         Route::get('/settings/assistant/diagnostics.csv', [AssistantSettingsController::class, 'exportDiagnostics'])->middleware('throttle:10,1')->name('assistant-settings.diagnostics.export');
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::put('/settings/assistant/provider', [AssistantSettingsController::class, 'updateProvider'])->name('assistant-settings.provider.update');

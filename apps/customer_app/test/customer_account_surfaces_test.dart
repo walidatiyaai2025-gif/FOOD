@@ -6,7 +6,6 @@ import 'package:foodex_customer_app/core/location/customer_map_pin_selector.dart
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_data.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_screen.dart';
-import 'package:foodex_customer_app/features/customer_account/customer_account_v3_widgets.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_address_book_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_favorites_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_notification_center_screen.dart';
@@ -66,8 +65,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.favoriteLoads, <int?>[19]);
-      expect(find.byKey(const ValueKey('customer-account-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('customer-account-profile-section')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-account-screen')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-account-profile-section')),
+          findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
@@ -287,8 +288,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
-      expect(find.byType(CustomerAccountAvatar), findsOneWidget);
+      expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
 
       await tester.drag(
@@ -326,16 +331,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final surface = tester.widget<CustomerCurvedHeaderSurface>(
-        find.byType(CustomerCurvedHeaderSurface),
-      );
       expect(
-        surface.headerPadding,
-        const EdgeInsetsDirectional.fromSTEB(12, 6, 12, 8),
-      );
-      expect(
-        tester.getSize(find.byType(CustomerAccountHeader)).height,
-        lessThan(72),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
       );
 
       final profileBefore = api.profileLoads;
@@ -371,7 +369,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
 
     await tester.pumpWidget(
@@ -382,11 +381,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
 }
 
 class _LocationFake implements CustomerLocationService {
@@ -444,8 +443,7 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   final List<int?> favoriteLoads = <int?>[];
   final List<(int, int?)> removedFavorites = <(int, int?)>[];
   final List<int> readNotifications = <int>[];
-  final List<Map<String, dynamic>> createdAddresses =
-      <Map<String, dynamic>>[];
+  final List<Map<String, dynamic>> createdAddresses = <Map<String, dynamic>>[];
 
   @override
   Future<Object?> profile() async {
@@ -503,6 +501,5 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   Future<Object?> updateProfile(Map<String, dynamic> values) async => values;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      Future<Object?>.value(null);
+  dynamic noSuchMethod(Invocation invocation) => Future<Object?>.value(null);
 }

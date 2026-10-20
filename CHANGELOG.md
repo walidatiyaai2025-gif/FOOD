@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.94 - 2026-10-19
+- Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94.
+- Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology.
+- Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior.
+- Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source.
+- Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact.
+- Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`.
+
+## 1.0.91 - 2026-10-18
+- Promote the authoritative FOODEX main lineage after 1.0.90 with the Assistant Ollama/Qwen compatibility hotfix from #2204 / PR #2205.
+- Normalize leading Qwen `<think>...</think>` reasoning wrappers and full markdown JSON fences before Assistant routing JSON is parsed, while preserving the existing intent allowlist and entity sanitization.
+- Make the saved External AI provider connection test require the exact `FOODEX_OK` compatibility sentinel instead of accepting any non-empty model reply.
+- Increase bounded Assistant provider completion budgets so short reasoning output cannot consume the whole response before the final routing JSON or probe sentinel.
+- Preserve deterministic fail-safe fallback, read-only Assistant tools, RBAC and authoritative store/channel scope with no new write capability.
+- Publish 1.0.91 as the direct cumulative Dashboard hotfix path for installed 1.0.90 systems; no full redeploy is required.
+- Converge the final 1.0.91 release candidate on authoritative `main` through completed AI-PROGRAM production acceptance (#2208/#2232), so no later main change is dropped from the cumulative package.
+- Keep the published 1.0.90 registry/update artifacts immutable in the release candidate; generate and register the 1.0.91 bundle through the canonical release distribution flow.
+- Synchronize Customer, Driver and Van source identities at 1.0.91+91 per the release contract; the Dashboard update remains cumulative and independently deployable.
+
 ## 1.0.90 - 2026-10-18
 - Promote the complete authoritative main lineage after FOODEX 1.0.89 into the cumulative Dashboard 1.0.90 update.
 - Fix External AI provider API-key persistence on MySQL by storing encrypted ciphertext as a valid JSON string document while preserving encrypted-at-rest handling and safe decryption.

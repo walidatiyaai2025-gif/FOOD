@@ -11,6 +11,7 @@ import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_persistent_footer.dart';
 import 'marketplace_barcode_scanner.dart';
+import 'storefront_design_system.dart';
 
 class PlatformMarketplaceScreen extends StatefulWidget {
   const PlatformMarketplaceScreen({
@@ -398,6 +399,47 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
+  Widget _pageHeader(
+    BuildContext context,
+    CustomerCommerceContext? scope,
+  ) =>
+      _MarketplaceHeader(
+        isAuthenticated: () => _currentSession.isAuthenticated,
+        onRegister: _register,
+        onLogin: () => Navigator.of(context).pushNamed(
+          '/auth/checkout?next=/marketplace',
+        ),
+        onProfile: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_profileLocation(scope));
+        },
+        onScan: _scanBarcode,
+        onLanguageToggle: _toggleLocale,
+        localeCode: Localizations.localeOf(context).languageCode,
+        onStore: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_storeLocation(scope));
+        },
+        onCart: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_cartLocation(scope));
+        },
+        onOrders: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_ordersLocation(scope));
+        },
+        onNotifications: () {
+          if (scope == null) return;
+          Navigator.of(context).pushNamed(_notificationsLocation(scope));
+        },
+        searchController: _searchController,
+        onSearchSubmitted: _submitSearch,
+        onSearchClear: () {
+          _searchController.clear();
+          _submitSearch('');
+        },
+      );
+
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: const Color(0xFFF8FAF9),
@@ -406,26 +448,44 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return Column(
+                  children: [
+                    _pageHeader(
+                        context, widget.commerceContextProvider?.call()),
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                );
               }
               if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off_rounded, size: 48),
-                        const SizedBox(height: 12),
-                        Text(context.tr('customer.store.error.title')),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: () => setState(() => _future = _load()),
-                          child: Text(context.tr('customer.action.retry')),
+                return Column(
+                  children: [
+                    _pageHeader(
+                        context, widget.commerceContextProvider?.call()),
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.cloud_off_rounded, size: 48),
+                              const SizedBox(height: 12),
+                              Text(context.tr('customer.store.error.title')),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: () =>
+                                    setState(() => _future = _load()),
+                                child:
+                                    Text(context.tr('customer.action.retry')),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 );
               }
 
@@ -530,61 +590,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   return CustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(
-                        child: _MarketplaceHeader(
-                          isAuthenticated: () =>
-                              _currentSession.isAuthenticated,
-                          onRegister: _register,
-                          onLogin: () => Navigator.of(context).pushNamed(
-                            '/auth/checkout?next=/marketplace',
-                          ),
-                          onProfile: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _profileLocation(scope),
-                            );
-                          },
-                          onScan: _scanBarcode,
-                          onLanguageToggle: _toggleLocale,
-                          localeCode:
-                              Localizations.localeOf(context).languageCode,
-                          onStore: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _storeLocation(scope),
-                            );
-                          },
-                          onCart: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _cartLocation(scope),
-                            );
-                          },
-                          cartCount: _int(data['cart_count']),
-                          onOrders: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _ordersLocation(scope),
-                            );
-                          },
-                          onNotifications: () {
-                            final scope = activeCommerceContext;
-                            if (scope == null) return;
-                            Navigator.of(context).pushNamed(
-                              _notificationsLocation(scope),
-                            );
-                          },
-                          searchController: _searchController,
-                          searchFocus: _searchFocus,
-                          onSearchSubmitted: _submitSearch,
-                          onSearchClear: () {
-                            _searchController.clear();
-                            _submitSearch('');
-                          },
-                        ),
+                        child: _pageHeader(context, activeCommerceContext),
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(
@@ -800,11 +806,9 @@ class _MarketplaceHeader extends StatelessWidget {
     required this.localeCode,
     required this.onStore,
     required this.onCart,
-    required this.cartCount,
     required this.onOrders,
     required this.onNotifications,
     required this.searchController,
-    required this.searchFocus,
     required this.onSearchSubmitted,
     required this.onSearchClear,
   });
@@ -818,11 +822,9 @@ class _MarketplaceHeader extends StatelessWidget {
   final String localeCode;
   final VoidCallback onStore;
   final VoidCallback onCart;
-  final int cartCount;
   final VoidCallback onOrders;
   final VoidCallback onNotifications;
   final TextEditingController searchController;
-  final FocusNode searchFocus;
   final ValueChanged<String> onSearchSubmitted;
   final VoidCallback onSearchClear;
 
@@ -948,150 +950,37 @@ class _MarketplaceHeader extends StatelessWidget {
           },
         );
 
-    Widget cartAction() => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            roundAction(
-              key: const ValueKey('marketplace-cart'),
-              icon: Icons.shopping_cart_outlined,
-              tooltip: context.tr('customer.nav.cart'),
-              onPressed: onCart,
-            ),
-            if (cartCount > 0)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  constraints:
-                      const BoxConstraints(minWidth: 17, minHeight: 17),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF4747),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    cartCount > 99 ? '99+' : '$cartCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(9, 8, 9, 7),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(
-          key: const ValueKey('marketplace-compact-header'),
-          children: [
-            accountAction(),
-            const SizedBox(width: 2),
-            roundAction(
-              key: const ValueKey('marketplace-notifications'),
-              icon: Icons.notifications_none_rounded,
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: onNotifications,
-            ),
-            const SizedBox(width: 2),
-            roundAction(
-              key: const ValueKey('marketplace-orders'),
-              icon: Icons.shopping_bag_outlined,
-              tooltip: localeCode == 'ar' ? 'الطلبات' : 'Orders',
-              onPressed: onOrders,
-            ),
-            const SizedBox(width: 5),
-            Expanded(
-              child: SizedBox(
-                height: 42,
-                child: TextField(
-                  key: const ValueKey('marketplace-search'),
-                  controller: searchController,
-                  focusNode: searchFocus,
-                  textDirection: localeCode == 'ar'
-                      ? TextDirection.rtl
-                      : TextDirection.ltr,
-                  textAlign:
-                      localeCode == 'ar' ? TextAlign.right : TextAlign.left,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: onSearchSubmitted,
-                  decoration: InputDecoration(
-                    hintText: context.tr('customer.marketplace.search_hint'),
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF9299A4),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      size: 21,
-                      color: Color(0xFF7B8491),
-                    ),
-                    suffixIcon: searchController.text.isNotEmpty
-                        ? IconButton(
-                            onPressed: onSearchClear,
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: Color(0xFF7B8491),
-                            ),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: const BorderSide(color: Color(0xFFE8ECEF)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(999),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF0A7B4B),
-                        width: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 5),
-            Material(
-              color: const Color(0xFFE7F5EE),
-              shape: const CircleBorder(),
-              child: InkWell(
-                key: const ValueKey('marketplace-store'),
-                customBorder: const CircleBorder(),
-                onTap: onStore,
-                child: const SizedBox(
-                  width: 38,
-                  height: 38,
-                  child: Icon(
-                    Icons.storefront_rounded,
-                    color: Color(0xFF087347),
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 2),
-            cartAction(),
-            const SizedBox.shrink(
-              key: ValueKey('marketplace-brand-title'),
-            ),
-          ],
+    return FoodexWholesaleHeader(
+      key: const ValueKey('marketplace-compact-header'),
+      title: 'FOODEX',
+      palette: FoodexPalette.wholesale,
+      searchController: searchController,
+      searchKey: const ValueKey('marketplace-search'),
+      searchHint: context.tr('customer.marketplace.search_hint'),
+      notificationKey: const ValueKey('marketplace-notifications'),
+      cartKey: const ValueKey('marketplace-cart'),
+      onSearchSubmitted: onSearchSubmitted,
+      onClearSearch: onSearchClear,
+      leading: accountAction(),
+      trailingActions: [
+        roundAction(
+          key: const ValueKey('marketplace-orders'),
+          icon: Icons.shopping_bag_outlined,
+          tooltip: localeCode == 'ar' ? 'الطلبات' : 'Orders',
+          onPressed: onOrders,
         ),
-      ),
+        roundAction(
+          key: const ValueKey('marketplace-store'),
+          icon: Icons.storefront_rounded,
+          tooltip: context.tr('customer.nav.home'),
+          onPressed: onStore,
+        ),
+        const SizedBox.shrink(
+          key: ValueKey('marketplace-brand-title'),
+        ),
+      ],
+      onNotifications: onNotifications,
+      onCart: onCart,
     );
   }
 }

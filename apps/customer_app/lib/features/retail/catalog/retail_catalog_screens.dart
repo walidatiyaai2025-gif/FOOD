@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
 
@@ -114,134 +115,117 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
     final navigation = widget.navigation;
     return Scaffold(
       key: const ValueKey('retail-catalog-home'),
-      appBar: AppBar(
-        title: Text(context.tr('customer.home.title')),
-        actions: [
-          if (navigation.openNotifications != null)
-            IconButton(
-              key: const ValueKey('retail-catalog-notifications'),
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: () => navigation.openNotifications!(
-                context,
-                storeId: widget.storeId,
-              ),
-              icon: const Icon(Icons.notifications_none_rounded),
-            ),
-          if (navigation.openCart != null)
-            IconButton(
-              key: const ValueKey('retail-catalog-cart'),
-              tooltip: context.tr('customer.nav.cart'),
-              onPressed: () =>
-                  navigation.openCart!(context, storeId: widget.storeId),
-              icon: const Icon(Icons.shopping_cart_outlined),
-            ),
-        ],
-      ),
-      body: FutureBuilder<_RetailCatalogHomeData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _CatalogErrorState(error: snapshot.error, onRetry: _reload);
-          }
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.home.title'),
+        searchController: _search,
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        searchKey: const ValueKey('retail-catalog-search'),
+        notificationKey: const ValueKey('retail-catalog-notifications'),
+        cartKey: const ValueKey('retail-catalog-cart'),
+        onSearchSubmitted: (value) => navigation.openProducts?.call(
+          context,
+          storeId: widget.storeId,
+          query: value.trim().isEmpty ? null : value.trim(),
+        ),
+        onNotifications: navigation.openNotifications == null
+            ? null
+            : () => navigation.openNotifications!(
+                  context,
+                  storeId: widget.storeId,
+                ),
+        onCart: navigation.openCart == null
+            ? null
+            : () => navigation.openCart!(context, storeId: widget.storeId),
+        child: FutureBuilder<_RetailCatalogHomeData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError || !snapshot.hasData) {
+              return _CatalogErrorState(
+                  error: snapshot.error, onRetry: _reload);
+            }
 
-          final data = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: () async {
-              _reload();
-              await _future;
-            },
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              children: [
-                if (navigation.openProducts != null)
-                  TextField(
-                    key: const ValueKey('retail-catalog-search'),
-                    controller: _search,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: context.tr('customer.products.search'),
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      border: const OutlineInputBorder(),
-                    ),
-                    onSubmitted: (value) => navigation.openProducts!(
-                      context,
-                      storeId: widget.storeId,
-                      query: value.trim().isEmpty ? null : value.trim(),
-                    ),
-                  ),
-                if (navigation.openProducts != null) const SizedBox(height: 20),
-                if (data.banners.isNotEmpty) ...[
-                  _CatalogBanner(banner: data.banners.first),
-                  const SizedBox(height: 22),
-                ],
-                _SectionTitle(context.tr('customer.home.categories')),
-                const SizedBox(height: 10),
-                if (data.categories.isEmpty)
-                  _EmptyMessage(context.tr('customer.empty'))
-                else
-                  SizedBox(
-                    height: 92,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: data.categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final category = data.categories[index];
-                        return _CategoryTile(
-                          category: category,
-                          enabled: navigation.openProducts != null,
-                          onTap: navigation.openProducts == null
-                              ? null
-                              : () => navigation.openProducts!(
-                                    context,
-                                    storeId: widget.storeId,
-                                    categoryId: category.id,
-                                  ),
-                        );
-                      },
-                    ),
-                  ),
-                if (data.offers.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _SectionTitle(context.tr('customer.home.offers')),
+            final data = snapshot.data!;
+            return RefreshIndicator(
+              onRefresh: () async {
+                _reload();
+                await _future;
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  if (data.banners.isNotEmpty) ...[
+                    _CatalogBanner(banner: data.banners.first),
+                    const SizedBox(height: 22),
+                  ],
+                  _SectionTitle(context.tr('customer.home.categories')),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: data.offers
-                        .map(
-                          (offer) => Chip(
-                            key: ValueKey('retail-offer-${offer.id}'),
-                            label: Text(offer.name),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                _SectionTitle(context.tr('customer.home.all_products')),
-                const SizedBox(height: 10),
-                if (data.products.isEmpty)
-                  _EmptyMessage(context.tr('customer.products.empty'))
-                else
-                  ...data.products.map(
-                    (product) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _ProductTile(
-                        storeId: widget.storeId,
-                        product: product,
-                        navigation: navigation,
-                        onAddToCart: widget.onAddToCart,
+                  if (data.categories.isEmpty)
+                    _EmptyMessage(context.tr('customer.empty'))
+                  else
+                    SizedBox(
+                      height: 92,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: data.categories.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final category = data.categories[index];
+                          return _CategoryTile(
+                            category: category,
+                            enabled: navigation.openProducts != null,
+                            onTap: navigation.openProducts == null
+                                ? null
+                                : () => navigation.openProducts!(
+                                      context,
+                                      storeId: widget.storeId,
+                                      categoryId: category.id,
+                                    ),
+                          );
+                        },
                       ),
                     ),
-                  ),
-              ],
-            ),
-          );
-        },
+                  if (data.offers.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _SectionTitle(context.tr('customer.home.offers')),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: data.offers
+                          .map(
+                            (offer) => Chip(
+                              key: ValueKey('retail-offer-${offer.id}'),
+                              label: Text(offer.name),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  _SectionTitle(context.tr('customer.home.all_products')),
+                  const SizedBox(height: 10),
+                  if (data.products.isEmpty)
+                    _EmptyMessage(context.tr('customer.products.empty'))
+                  else
+                    ...data.products.map(
+                      (product) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _ProductTile(
+                          storeId: widget.storeId,
+                          product: product,
+                          navigation: navigation,
+                          onAddToCart: widget.onAddToCart,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -357,110 +341,109 @@ class _RetailCatalogCategoriesScreenState
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-categories'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.home.categories')),
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-categories-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<B2cCatalogPage<B2cCategory>>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return GridView.builder(
-                key: const ValueKey('retail-categories-loading'),
-                padding: const EdgeInsets.all(CustomerUiSpacing.page),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: CustomerUiSpacing.sm,
-                  mainAxisSpacing: CustomerUiSpacing.md,
-                  mainAxisExtent: 112,
-                ),
-                itemCount: 9,
-                itemBuilder: (_, __) =>
-                    const Center(child: CustomerCategorySkeleton()),
-              );
-            }
-
-            if (snapshot.hasError || !snapshot.hasData) {
-              return _CatalogErrorState(
-                  error: snapshot.error, onRetry: _reload);
-            }
-
-            final firstPage = snapshot.data!;
-            final categories = <B2cCategory>[
-              ...firstPage.items,
-              ..._additional
-            ];
-            if (categories.isEmpty) {
-              return CustomerStateView(
-                kind: CustomerStateKind.empty,
-                title: context.tr('customer.empty'),
-                icon: Icons.category_outlined,
-              );
-            }
-
-            final currentPage = _lastLoadedPage ?? firstPage;
-            return Column(
-              children: [
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final columns = constraints.maxWidth >= 720 ? 5 : 3;
-                      return GridView.builder(
-                        key: const ValueKey('retail-categories-grid'),
-                        padding: const EdgeInsets.fromLTRB(
-                          CustomerUiSpacing.page,
-                          CustomerUiSpacing.lg,
-                          CustomerUiSpacing.page,
-                          CustomerUiSpacing.md,
-                        ),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          crossAxisSpacing: CustomerUiSpacing.sm,
-                          mainAxisSpacing: CustomerUiSpacing.md,
-                          mainAxisExtent: 128,
-                        ),
-                        itemCount: categories.length,
-                        itemBuilder: (context, index) {
-                          final category = categories[index];
-                          return Center(
-                            child: CustomerCategoryTile(
-                              key: ValueKey(
-                                  'retail-category-grid-${category.id}'),
-                              label: category.name,
-                              imageUrl: category.imageUrl,
-                              onTap: widget.navigation.openProducts == null
-                                  ? null
-                                  : () => widget.navigation.openProducts!(
-                                        context,
-                                        storeId: widget.storeId,
-                                        categoryId: category.id,
-                                      ),
-                            ),
-                          );
-                        },
-                      );
-                    },
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.home.title'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          cartKey: const ValueKey('retail-categories-cart'),
+          onCart: widget.navigation.openCart == null
+              ? null
+              : () => widget.navigation.openCart!(
+                    context,
+                    storeId: widget.storeId,
                   ),
-                ),
-                _CatalogPaginationFooter(
-                  keyPrefix: 'retail-categories',
-                  hasMore: currentPage.hasNextPage,
-                  loading: _loadingMore,
-                  error: _loadMoreError,
-                  onLoadMore: () => _loadMore(firstPage),
-                ),
-              ],
-            );
-          },
+          child: FutureBuilder<B2cCatalogPage<B2cCategory>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return GridView.builder(
+                  key: const ValueKey('retail-categories-loading'),
+                  padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: CustomerUiSpacing.sm,
+                    mainAxisSpacing: CustomerUiSpacing.md,
+                    mainAxisExtent: 112,
+                  ),
+                  itemCount: 9,
+                  itemBuilder: (_, __) =>
+                      const Center(child: CustomerCategorySkeleton()),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData) {
+                return _CatalogErrorState(
+                    error: snapshot.error, onRetry: _reload);
+              }
+
+              final firstPage = snapshot.data!;
+              final categories = <B2cCategory>[
+                ...firstPage.items,
+                ..._additional
+              ];
+              if (categories.isEmpty) {
+                return CustomerStateView(
+                  kind: CustomerStateKind.empty,
+                  title: context.tr('customer.empty'),
+                  icon: Icons.category_outlined,
+                );
+              }
+
+              final currentPage = _lastLoadedPage ?? firstPage;
+              return Column(
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 720 ? 5 : 3;
+                        return GridView.builder(
+                          key: const ValueKey('retail-categories-grid'),
+                          padding: const EdgeInsets.fromLTRB(
+                            CustomerUiSpacing.page,
+                            CustomerUiSpacing.lg,
+                            CustomerUiSpacing.page,
+                            CustomerUiSpacing.md,
+                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            crossAxisSpacing: CustomerUiSpacing.sm,
+                            mainAxisSpacing: CustomerUiSpacing.md,
+                            mainAxisExtent: 128,
+                          ),
+                          itemCount: categories.length,
+                          itemBuilder: (context, index) {
+                            final category = categories[index];
+                            return Center(
+                              child: CustomerCategoryTile(
+                                key: ValueKey(
+                                    'retail-category-grid-${category.id}'),
+                                label: category.name,
+                                imageUrl: category.imageUrl,
+                                onTap: widget.navigation.openProducts == null
+                                    ? null
+                                    : () => widget.navigation.openProducts!(
+                                          context,
+                                          storeId: widget.storeId,
+                                          categoryId: category.id,
+                                        ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  _CatalogPaginationFooter(
+                    keyPrefix: 'retail-categories',
+                    hasMore: currentPage.hasNextPage,
+                    loading: _loadingMore,
+                    error: _loadMoreError,
+                    onLoadMore: () => _loadMore(firstPage),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       );
 }
@@ -571,147 +554,148 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-offers'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.home.offers')),
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-offers-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<B2cCatalogPage<B2cOffer>>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return ListView.separated(
-                key: const ValueKey('retail-offers-loading'),
-                padding: const EdgeInsets.all(CustomerUiSpacing.page),
-                itemCount: 4,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                itemBuilder: (_, __) => const CustomerSkeletonBox(
-                  height: 96,
-                  radius: CustomerUiRadii.xl,
-                ),
-              );
-            }
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.home.title'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          cartKey: const ValueKey('retail-offers-cart'),
+          onCart: widget.navigation.openCart == null
+              ? null
+              : () => widget.navigation.openCart!(
+                    context,
+                    storeId: widget.storeId,
+                  ),
+          child: FutureBuilder<B2cCatalogPage<B2cOffer>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return ListView.separated(
+                  key: const ValueKey('retail-offers-loading'),
+                  padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                  itemCount: 4,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                  itemBuilder: (_, __) => const CustomerSkeletonBox(
+                    height: 96,
+                    radius: CustomerUiRadii.xl,
+                  ),
+                );
+              }
 
-            if (snapshot.hasError || !snapshot.hasData) {
-              return _CatalogErrorState(
-                  error: snapshot.error, onRetry: _reload);
-            }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return _CatalogErrorState(
+                    error: snapshot.error, onRetry: _reload);
+              }
 
-            final firstPage = snapshot.data!;
-            final offers = <B2cOffer>[...firstPage.items, ..._additional];
-            if (offers.isEmpty) {
-              return CustomerStateView(
-                kind: CustomerStateKind.empty,
-                title: context.tr('customer.empty'),
-                icon: Icons.local_offer_outlined,
-              );
-            }
+              final firstPage = snapshot.data!;
+              final offers = <B2cOffer>[...firstPage.items, ..._additional];
+              if (offers.isEmpty) {
+                return CustomerStateView(
+                  kind: CustomerStateKind.empty,
+                  title: context.tr('customer.empty'),
+                  icon: Icons.local_offer_outlined,
+                );
+              }
 
-            final currentPage = _lastLoadedPage ?? firstPage;
-            return Column(
-              children: [
-                Expanded(
-                  child: ListView.separated(
-                    key: const ValueKey('retail-offers-list'),
-                    padding: const EdgeInsets.fromLTRB(
-                      CustomerUiSpacing.page,
-                      CustomerUiSpacing.lg,
-                      CustomerUiSpacing.page,
-                      CustomerUiSpacing.md,
-                    ),
-                    itemCount: offers.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: CustomerUiSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final offer = offers[index];
-                      final value = offer.value;
-                      return Material(
-                        color: CustomerUiColors.white,
-                        borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(CustomerUiRadii.xl),
-                            border: Border.all(color: CustomerUiColors.border),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(CustomerUiSpacing.md),
-                            child: Row(
-                              children: [
-                                DecoratedBox(
-                                  decoration: const BoxDecoration(
-                                    color: CustomerUiColors.limeSoft,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const SizedBox.square(
-                                    dimension: 52,
-                                    child: Icon(
-                                      Icons.local_offer_outlined,
-                                      color: CustomerUiColors.deepGreenStrong,
+              final currentPage = _lastLoadedPage ?? firstPage;
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      key: const ValueKey('retail-offers-list'),
+                      padding: const EdgeInsets.fromLTRB(
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.lg,
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.md,
+                      ),
+                      itemCount: offers.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: CustomerUiSpacing.sm),
+                      itemBuilder: (context, index) {
+                        final offer = offers[index];
+                        final value = offer.value;
+                        return Material(
+                          color: CustomerUiColors.white,
+                          borderRadius:
+                              BorderRadius.circular(CustomerUiRadii.xl),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(CustomerUiRadii.xl),
+                              border:
+                                  Border.all(color: CustomerUiColors.border),
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.all(CustomerUiSpacing.md),
+                              child: Row(
+                                children: [
+                                  DecoratedBox(
+                                    decoration: const BoxDecoration(
+                                      color: CustomerUiColors.limeSoft,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const SizedBox.square(
+                                      dimension: 52,
+                                      child: Icon(
+                                        Icons.local_offer_outlined,
+                                        color: CustomerUiColors.deepGreenStrong,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: CustomerUiSpacing.md),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        offer.name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                      if (offer.type.trim().isNotEmpty) ...[
-                                        const SizedBox(
-                                          height: CustomerUiSpacing.xs,
-                                        ),
+                                  const SizedBox(width: CustomerUiSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          _offerTypeLabel(offer.type),
+                                          offer.name,
                                           style: Theme.of(context)
                                               .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: CustomerUiColors.muted,
-                                              ),
+                                              .titleMedium,
                                         ),
+                                        if (offer.type.trim().isNotEmpty) ...[
+                                          const SizedBox(
+                                            height: CustomerUiSpacing.xs,
+                                          ),
+                                          Text(
+                                            _offerTypeLabel(offer.type),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  color: CustomerUiColors.muted,
+                                                ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                if (value != null)
-                                  CustomerBadge(
-                                    label: _formatOfferValue(offer),
-                                    tone: CustomerBadgeTone.discount,
-                                  ),
-                              ],
+                                  if (value != null)
+                                    CustomerBadge(
+                                      label: _formatOfferValue(offer),
+                                      tone: CustomerBadgeTone.discount,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-                _CatalogPaginationFooter(
-                  keyPrefix: 'retail-offers',
-                  hasMore: currentPage.hasNextPage,
-                  loading: _loadingMore,
-                  error: _loadMoreError,
-                  onLoadMore: () => _loadMore(firstPage),
-                ),
-              ],
-            );
-          },
+                  _CatalogPaginationFooter(
+                    keyPrefix: 'retail-offers',
+                    hasMore: currentPage.hasNextPage,
+                    loading: _loadingMore,
+                    error: _loadMoreError,
+                    onLoadMore: () => _loadMore(firstPage),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       );
 
@@ -930,131 +914,125 @@ class _RetailCatalogProductsScreenState
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-products'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.products.title')),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-products-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                CustomerUiSpacing.page,
-                CustomerUiSpacing.md,
-                CustomerUiSpacing.page,
-                CustomerUiSpacing.xs,
-              ),
-              child: CustomerSearchPill(
-                key: const ValueKey('retail-products-search'),
-                controller: _search,
-                hintText:
-                    context.tr('customer.products.search_name_sku_barcode'),
-                semanticLabel: context.tr('customer.products.search'),
-                onChanged: _onSearchChanged,
-                onSubmitted: _submit,
-              ),
-            ),
-            _BrowseControls(
-              categoriesFuture: _categoriesFuture,
-              selectedCategoryId: _categoryId,
-              sortOption: _sortOption,
-              onCategorySelected: _selectCategory,
-              onSortSelected: _selectSort,
-            ),
-            if (_typing)
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.home.title'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          cartKey: const ValueKey('retail-products-cart'),
+          onCart: widget.navigation.openCart == null
+              ? null
+              : () => widget.navigation.openCart!(
+                    context,
+                    storeId: widget.storeId,
+                  ),
+          child: Column(
+            children: [
               Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(
+                padding: const EdgeInsets.fromLTRB(
                   CustomerUiSpacing.page,
-                  CustomerUiSpacing.xs,
+                  CustomerUiSpacing.md,
                   CustomerUiSpacing.page,
                   CustomerUiSpacing.xs,
                 ),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: CustomerBadge(
-                    key: const ValueKey('retail-products-typing'),
-                    label: context.tr('customer.products.searching'),
-                    tone: CustomerBadgeTone.accent,
+                child: CustomerSearchPill(
+                  key: const ValueKey('retail-products-search'),
+                  controller: _search,
+                  hintText:
+                      context.tr('customer.products.search_name_sku_barcode'),
+                  semanticLabel: context.tr('customer.products.search'),
+                  onChanged: _onSearchChanged,
+                  onSubmitted: _submit,
+                ),
+              ),
+              _BrowseControls(
+                categoriesFuture: _categoriesFuture,
+                selectedCategoryId: _categoryId,
+                sortOption: _sortOption,
+                onCategorySelected: _selectCategory,
+                onSortSelected: _selectSort,
+              ),
+              if (_typing)
+                Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.xs,
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.xs,
+                  ),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: CustomerBadge(
+                      key: const ValueKey('retail-products-typing'),
+                      label: context.tr('customer.products.searching'),
+                      tone: CustomerBadgeTone.accent,
+                    ),
                   ),
                 ),
-              ),
-            Expanded(
-              child: FutureBuilder<B2cCatalogPage<B2cProduct>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const _BrowseProductsSkeleton();
-                  }
-                  if (snapshot.hasError || !snapshot.hasData) {
-                    return _CatalogErrorState(
-                      error: snapshot.error,
-                      onRetry: _reload,
-                    );
-                  }
+              Expanded(
+                child: FutureBuilder<B2cCatalogPage<B2cProduct>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const _BrowseProductsSkeleton();
+                    }
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      return _CatalogErrorState(
+                        error: snapshot.error,
+                        onRetry: _reload,
+                      );
+                    }
 
-                  final firstPage = snapshot.data!;
-                  final products = <B2cProduct>[
-                    ...firstPage.items,
-                    ..._additional
-                  ];
-                  if (products.isEmpty) {
-                    return KeyedSubtree(
-                      key: const ValueKey('retail-products-no-results'),
-                      child: CustomerStateView(
-                        kind: CustomerStateKind.empty,
-                        title: context.tr('customer.products.empty'),
-                        icon: Icons.search_off_rounded,
-                      ),
-                    );
-                  }
+                    final firstPage = snapshot.data!;
+                    final products = <B2cProduct>[
+                      ...firstPage.items,
+                      ..._additional
+                    ];
+                    if (products.isEmpty) {
+                      return KeyedSubtree(
+                        key: const ValueKey('retail-products-no-results'),
+                        child: CustomerStateView(
+                          kind: CustomerStateKind.empty,
+                          title: context.tr('customer.products.empty'),
+                          icon: Icons.search_off_rounded,
+                        ),
+                      );
+                    }
 
-                  final currentPage = _lastLoadedPage ?? firstPage;
-                  return Column(
-                    children: [
-                      if (_query != null)
-                        _SearchSuggestions(
-                          products: products.take(4).toList(growable: false),
-                          onSelected: (product) {
-                            _search.text = product.name;
-                            _search.selection = TextSelection.collapsed(
-                              offset: _search.text.length,
-                            );
-                            _submit(product.name);
-                          },
+                    final currentPage = _lastLoadedPage ?? firstPage;
+                    return Column(
+                      children: [
+                        if (_query != null)
+                          _SearchSuggestions(
+                            products: products.take(4).toList(growable: false),
+                            onSelected: (product) {
+                              _search.text = product.name;
+                              _search.selection = TextSelection.collapsed(
+                                offset: _search.text.length,
+                              );
+                              _submit(product.name);
+                            },
+                          ),
+                        Expanded(
+                          child: _BrowseProductGrid(
+                            products: products,
+                            storeId: widget.storeId,
+                            navigation: widget.navigation,
+                            onAddToCart: widget.onAddToCart,
+                          ),
                         ),
-                      Expanded(
-                        child: _BrowseProductGrid(
-                          products: products,
-                          storeId: widget.storeId,
-                          navigation: widget.navigation,
-                          onAddToCart: widget.onAddToCart,
+                        _CatalogPaginationFooter(
+                          keyPrefix: 'retail-products',
+                          hasMore: currentPage.hasNextPage,
+                          loading: _loadingMore,
+                          error: _loadMoreError,
+                          onLoadMore: () => _loadMore(firstPage),
                         ),
-                      ),
-                      _CatalogPaginationFooter(
-                        keyPrefix: 'retail-products',
-                        hasMore: currentPage.hasNextPage,
-                        loading: _loadingMore,
-                        error: _loadMoreError,
-                        onLoadMore: () => _loadMore(firstPage),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
 
@@ -1445,322 +1423,321 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-product'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.product.title')),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            if (widget.navigation.openCart != null)
-              IconButton(
-                key: const ValueKey('retail-product-cart'),
-                tooltip: context.tr('customer.nav.cart'),
-                onPressed: () => widget.navigation.openCart!(context,
-                    storeId: widget.storeId),
-                icon: const Icon(Icons.shopping_bag_outlined),
-              ),
-          ],
-        ),
-        body: FutureBuilder<_RetailProductDetailData>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const _ProductDetailSkeleton();
-            }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return _CatalogErrorState(
-                  error: snapshot.error, onRetry: _reload);
-            }
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.home.title'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          cartKey: const ValueKey('retail-product-cart'),
+          onCart: widget.navigation.openCart == null
+              ? null
+              : () => widget.navigation.openCart!(
+                    context,
+                    storeId: widget.storeId,
+                  ),
+          child: FutureBuilder<_RetailProductDetailData>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const _ProductDetailSkeleton();
+              }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return _CatalogErrorState(
+                    error: snapshot.error, onRetry: _reload);
+              }
 
-            final data = snapshot.data!;
-            final product = data.product;
-            final gallery = product.images
-                .where((value) => value.trim().isNotEmpty)
-                .toList(growable: true);
-            if (gallery.isEmpty &&
-                product.imageUrl?.trim().isNotEmpty == true) {
-              gallery.add(product.imageUrl!);
-            }
-            final selectedIndex =
-                gallery.isEmpty || _selectedImageIndex >= gallery.length
-                    ? 0
-                    : _selectedImageIndex;
-            final selectedImage =
-                gallery.isEmpty ? null : gallery[selectedIndex];
+              final data = snapshot.data!;
+              final product = data.product;
+              final gallery = product.images
+                  .where((value) => value.trim().isNotEmpty)
+                  .toList(growable: true);
+              if (gallery.isEmpty &&
+                  product.imageUrl?.trim().isNotEmpty == true) {
+                gallery.add(product.imageUrl!);
+              }
+              final selectedIndex =
+                  gallery.isEmpty || _selectedImageIndex >= gallery.length
+                      ? 0
+                      : _selectedImageIndex;
+              final selectedImage =
+                  gallery.isEmpty ? null : gallery[selectedIndex];
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                _reload();
-                await _future;
-              },
-              child: ListView(
-                key: const ValueKey('retail-product-scroll'),
-                padding: const EdgeInsets.fromLTRB(
-                  CustomerUiSpacing.page,
-                  CustomerUiSpacing.md,
-                  CustomerUiSpacing.page,
-                  CustomerUiSpacing.xxl,
-                ),
-                children: [
-                  Semantics(
-                    label: context.tr('customer.product.gallery'),
-                    child: Opacity(
-                      opacity: product.isAvailable ? 1 : 0.42,
-                      child: CustomerProductImage(
-                        key: const ValueKey('retail-product-gallery-main'),
-                        imageUrl: selectedImage,
-                        aspectRatio: 1.15,
+              return RefreshIndicator(
+                onRefresh: () async {
+                  _reload();
+                  await _future;
+                },
+                child: ListView(
+                  key: const ValueKey('retail-product-scroll'),
+                  padding: const EdgeInsets.fromLTRB(
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.md,
+                    CustomerUiSpacing.page,
+                    CustomerUiSpacing.xxl,
+                  ),
+                  children: [
+                    Semantics(
+                      label: context.tr('customer.product.gallery'),
+                      child: Opacity(
+                        opacity: product.isAvailable ? 1 : 0.42,
+                        child: CustomerProductImage(
+                          key: const ValueKey('retail-product-gallery-main'),
+                          imageUrl: selectedImage,
+                          aspectRatio: 1.15,
+                        ),
                       ),
                     ),
-                  ),
-                  if (gallery.length > 1) ...[
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                    SizedBox(
-                      key: const ValueKey('retail-product-gallery-thumbnails'),
-                      height: 68,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: gallery.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: CustomerUiSpacing.xs),
-                        itemBuilder: (context, index) => InkWell(
-                          key: ValueKey('retail-product-image-$index'),
-                          onTap: () =>
-                              setState(() => _selectedImageIndex = index),
-                          borderRadius:
-                              BorderRadius.circular(CustomerUiRadii.md),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                CustomerUiRadii.md,
+                    if (gallery.length > 1) ...[
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      SizedBox(
+                        key:
+                            const ValueKey('retail-product-gallery-thumbnails'),
+                        height: 68,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: gallery.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: CustomerUiSpacing.xs),
+                          itemBuilder: (context, index) => InkWell(
+                            key: ValueKey('retail-product-image-$index'),
+                            onTap: () =>
+                                setState(() => _selectedImageIndex = index),
+                            borderRadius:
+                                BorderRadius.circular(CustomerUiRadii.md),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                  CustomerUiRadii.md,
+                                ),
+                                border: Border.all(
+                                  color: index == selectedIndex
+                                      ? CustomerUiColors.deepGreen
+                                      : CustomerUiColors.border,
+                                  width: index == selectedIndex ? 2 : 1,
+                                ),
                               ),
-                              border: Border.all(
-                                color: index == selectedIndex
-                                    ? CustomerUiColors.deepGreen
-                                    : CustomerUiColors.border,
-                                width: index == selectedIndex ? 2 : 1,
-                              ),
-                            ),
-                            child: SizedBox.square(
-                              dimension: 68,
-                              child: CustomerProductImage(
-                                imageUrl: gallery[index],
-                                aspectRatio: 1,
+                              child: SizedBox.square(
+                                dimension: 68,
+                                child: CustomerProductImage(
+                                  imageUrl: gallery[index],
+                                  aspectRatio: 1,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: CustomerUiSpacing.md),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: CustomerUiColors.white,
-                      borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
-                      border: Border.all(color: CustomerUiColors.border),
-                      boxShadow: CustomerUiElevation.cardShadow,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(CustomerUiSpacing.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name,
-                            key: const ValueKey('retail-product-name'),
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          if (product.brandName?.trim().isNotEmpty == true) ...[
-                            const SizedBox(height: CustomerUiSpacing.xxs),
+                    ],
+                    const SizedBox(height: CustomerUiSpacing.md),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: CustomerUiColors.white,
+                        borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+                        border: Border.all(color: CustomerUiColors.border),
+                        boxShadow: CustomerUiElevation.cardShadow,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(CustomerUiSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              product.brandName!,
+                              product.name,
+                              key: const ValueKey('retail-product-name'),
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            if (product.brandName?.trim().isNotEmpty ==
+                                true) ...[
+                              const SizedBox(height: CustomerUiSpacing.xxs),
+                              Text(
+                                product.brandName!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(color: CustomerUiColors.muted),
+                              ),
+                            ],
+                            const SizedBox(height: CustomerUiSpacing.xs),
+                            Text(
+                              product.sku,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: CustomerUiColors.muted),
+                            ),
+                            if (product.price != null) ...[
+                              const SizedBox(height: CustomerUiSpacing.md),
+                              Text(
+                                foodexMoneyText(
+                                    product.price!, product.currency),
+                                key: const ValueKey('retail-product-price'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      color: CustomerUiColors.deepGreenStrong,
+                                    ),
+                              ),
+                            ],
+                            const SizedBox(height: CustomerUiSpacing.sm),
+                            Text(
+                              product.isAvailable
+                                  ? context.tr('customer.product.available')
+                                  : context.tr('customer.product.out_of_stock'),
+                              key: ValueKey(
+                                product.isAvailable
+                                    ? 'retail-product-available'
+                                    : 'retail-product-out-of-stock',
+                              ),
                               style: Theme.of(context)
                                   .textTheme
                                   .labelLarge
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                          ],
-                          const SizedBox(height: CustomerUiSpacing.xs),
-                          Text(
-                            product.sku,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: CustomerUiColors.muted),
-                          ),
-                          if (product.price != null) ...[
-                            const SizedBox(height: CustomerUiSpacing.md),
-                            Text(
-                              foodexMoneyText(product.price!, product.currency),
-                              key: const ValueKey('retail-product-price'),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
                                   ?.copyWith(
-                                    color: CustomerUiColors.deepGreenStrong,
+                                    color: product.isAvailable
+                                        ? CustomerUiColors.deepGreenStrong
+                                        : CustomerUiColors.muted,
+                                    fontWeight: FontWeight.w800,
                                   ),
                             ),
-                          ],
-                          const SizedBox(height: CustomerUiSpacing.sm),
-                          Text(
-                            product.isAvailable
-                                ? context.tr('customer.product.available')
-                                : context.tr('customer.product.out_of_stock'),
-                            key: ValueKey(
-                              product.isAvailable
-                                  ? 'retail-product-available'
-                                  : 'retail-product-out-of-stock',
-                            ),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelLarge
-                                ?.copyWith(
-                                  color: product.isAvailable
-                                      ? CustomerUiColors.deepGreenStrong
-                                      : CustomerUiColors.muted,
-                                  fontWeight: FontWeight.w800,
+                            if (product.availableQuantity != null)
+                              Text(
+                                foodexQuantity(product.availableQuantity!),
+                                key: const ValueKey(
+                                  'retail-product-available-quantity',
                                 ),
-                          ),
-                          if (product.availableQuantity != null)
-                            Text(
-                              foodexQuantity(product.availableQuantity!),
-                              key: const ValueKey(
-                                'retail-product-available-quantity',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: CustomerUiColors.muted),
                               ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: CustomerUiColors.muted),
-                            ),
-                          if (product.description?.trim().isNotEmpty ==
-                              true) ...[
-                            const SizedBox(height: CustomerUiSpacing.lg),
-                            Text(
-                              product.description!,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                          if (product.sellingUnits.isNotEmpty) ...[
-                            const SizedBox(height: CustomerUiSpacing.xl),
-                            Text(
-                              context.tr('customer.product.selling_units'),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: CustomerUiSpacing.sm),
-                            Wrap(
-                              key: const ValueKey(
-                                  'retail-product-selling-units'),
-                              spacing: CustomerUiSpacing.xs,
-                              runSpacing: CustomerUiSpacing.xs,
-                              children: [
-                                for (final unit in product.sellingUnits)
-                                  _SellingUnitCard(
-                                    unit: unit,
-                                    currency: product.currency,
-                                  ),
-                              ],
-                            ),
-                          ],
-                          if (widget.onAddToCart != null) ...[
-                            const SizedBox(height: CustomerUiSpacing.xl),
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: CustomerUiColors.mint,
-                                borderRadius: BorderRadius.circular(
-                                  CustomerUiRadii.lg,
-                                ),
+                            if (product.description?.trim().isNotEmpty ==
+                                true) ...[
+                              const SizedBox(height: CustomerUiSpacing.lg),
+                              Text(
+                                product.description!,
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: CustomerUiSpacing.xs,
-                                  vertical: CustomerUiSpacing.xxs,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      key: const ValueKey(
-                                          'retail-product-minus'),
-                                      onPressed: !product.isAvailable ||
-                                              _quantity <= 1
-                                          ? null
-                                          : () =>
-                                              setState(() => _quantity -= 1),
-                                      icon: const Icon(Icons.remove_rounded),
+                            ],
+                            if (product.sellingUnits.isNotEmpty) ...[
+                              const SizedBox(height: CustomerUiSpacing.xl),
+                              Text(
+                                context.tr('customer.product.selling_units'),
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: CustomerUiSpacing.sm),
+                              Wrap(
+                                key: const ValueKey(
+                                    'retail-product-selling-units'),
+                                spacing: CustomerUiSpacing.xs,
+                                runSpacing: CustomerUiSpacing.xs,
+                                children: [
+                                  for (final unit in product.sellingUnits)
+                                    _SellingUnitCard(
+                                      unit: unit,
+                                      currency: product.currency,
                                     ),
-                                    ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        minWidth: 40,
-                                      ),
-                                      child: Text(
-                                        _quantity.toStringAsFixed(0),
+                                ],
+                              ),
+                            ],
+                            if (widget.onAddToCart != null) ...[
+                              const SizedBox(height: CustomerUiSpacing.xl),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: CustomerUiColors.mint,
+                                  borderRadius: BorderRadius.circular(
+                                    CustomerUiRadii.lg,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: CustomerUiSpacing.xs,
+                                    vertical: CustomerUiSpacing.xxs,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
                                         key: const ValueKey(
-                                          'retail-product-quantity',
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
+                                            'retail-product-minus'),
+                                        onPressed: !product.isAvailable ||
+                                                _quantity <= 1
+                                            ? null
+                                            : () =>
+                                                setState(() => _quantity -= 1),
+                                        icon: const Icon(Icons.remove_rounded),
                                       ),
-                                    ),
-                                    IconButton(
-                                      key:
-                                          const ValueKey('retail-product-plus'),
-                                      onPressed: product.isAvailable
-                                          ? () => setState(() => _quantity += 1)
-                                          : null,
-                                      icon: const Icon(Icons.add_rounded),
-                                    ),
-                                  ],
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minWidth: 40,
+                                        ),
+                                        child: Text(
+                                          _quantity.toStringAsFixed(0),
+                                          key: const ValueKey(
+                                            'retail-product-quantity',
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        key: const ValueKey(
+                                            'retail-product-plus'),
+                                        onPressed: product.isAvailable
+                                            ? () =>
+                                                setState(() => _quantity += 1)
+                                            : null,
+                                        icon: const Icon(Icons.add_rounded),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: CustomerUiSpacing.md),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                key: const ValueKey('retail-product-add-cart'),
-                                onPressed: _submitting || !product.isAvailable
-                                    ? null
-                                    : () => _add(product),
-                                icon: _submitting
-                                    ? const SizedBox.square(
-                                        dimension: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.add_shopping_cart_rounded),
-                                label: Text(
-                                    context.tr('customer.action.add_cart')),
+                              const SizedBox(height: CustomerUiSpacing.md),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  key:
+                                      const ValueKey('retail-product-add-cart'),
+                                  onPressed: _submitting || !product.isAvailable
+                                      ? null
+                                      : () => _add(product),
+                                  icon: _submitting
+                                      ? const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.add_shopping_cart_rounded),
+                                  label: Text(
+                                      context.tr('customer.action.add_cart')),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  if (data.related.isNotEmpty) ...[
-                    const SizedBox(height: CustomerUiSpacing.xl),
-                    Text(
-                      context.tr('customer.product.related'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                    _RelatedProductsGrid(
-                      products: data.related,
-                      storeId: widget.storeId,
-                      navigation: widget.navigation,
-                      onAddToCart: widget.onAddToCart,
-                    ),
+                    if (data.related.isNotEmpty) ...[
+                      const SizedBox(height: CustomerUiSpacing.xl),
+                      Text(
+                        context.tr('customer.product.related'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                      _RelatedProductsGrid(
+                        products: data.related,
+                        storeId: widget.storeId,
+                        navigation: widget.navigation,
+                        onAddToCart: widget.onAddToCart,
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       );
 }

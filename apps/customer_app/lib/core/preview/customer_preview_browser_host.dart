@@ -1,3 +1,4 @@
+import '../../features/storefront/storefront_design_system.dart';
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
@@ -87,10 +88,10 @@ class _CustomerPreviewBrowserHostState
     });
   }
 
-  void _onMessage(_PreviewMessageEvent event) async {
+  Future<void> _onMessage(_PreviewMessageEvent event) async {
     final source = event.source;
-    final fromParent = source != null &&
-        source.strictEquals(_previewWindow.parent).toDart;
+    final fromParent =
+        source != null && source.strictEquals(_previewWindow.parent).toDart;
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,
@@ -378,17 +379,21 @@ class _CustomerPreviewBrowserHostState
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: Center(
-          child: Semantics(
-            liveRegion: true,
-            child: Text(
-              _error == null
-                  ? 'FOODEX Customer preview ready'
-                  : 'FOODEX Customer preview unavailable',
-              key: ValueKey(
+        body: FoodexUnifiedHeaderSurface(
+          title: 'FOODEX',
+          searchHint: '',
+          child: Center(
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
                 _error == null
-                    ? 'customer-preview-awaiting-bootstrap'
-                    : 'customer-preview-error',
+                    ? 'FOODEX Customer preview ready'
+                    : 'FOODEX Customer preview unavailable',
+                key: ValueKey(
+                  _error == null
+                      ? 'customer-preview-awaiting-bootstrap'
+                      : 'customer-preview-error',
+                ),
               ),
             ),
           ),
