@@ -42,6 +42,7 @@ final class LegacyFinanceAssetMaterializerServiceTest extends TestCase
 
         $this->assertIsString($source);
         $this->assertStringContainsString("'fixedassets_setting_101_is_not_trusted_authority' => true", $source);
+        $this->assertStringContainsString("'asset_age_candidate_is_non_authoritative' => true", $source);
         $this->assertStringContainsString("'acquisition_journals_must_not_be_fabricated' => true", $source);
         $this->assertStringContainsString("'expired_value_is_flag_not_money' => true", $source);
     }
