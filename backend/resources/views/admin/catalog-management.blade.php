@@ -27,6 +27,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .notice{padding:10px 12px;border-radius:10px;margin-bottom:12px}.ok{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.err{background:#fff1f0;color:var(--foodex-danger-text)}
 
 .image-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--foodex-border);background:var(--foodex-background)}.image-grid{display:flex;flex-wrap:wrap;gap:8px;min-width:180px}.image-item{display:grid;gap:4px;justify-items:start}.image-item.primary .image-thumb{outline:2px solid var(--foodex-green)}.image-upload{min-width:220px}.foodex-upload-preview{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;min-height:0}.foodex-upload-preview img{width:64px;height:64px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}.foodex-upload-preview:empty{display:none}
+.catalog-grid-image{display:grid;gap:6px;justify-items:start;min-width:70px}.catalog-grid-image-form{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.catalog-grid-image-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none}.catalog-grid-image-trigger{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:5px 8px;border:1px solid var(--foodex-border);border-radius:8px;background:#fff;color:var(--foodex-ink);font-size:.72rem;font-weight:800;cursor:pointer;white-space:nowrap}.catalog-grid-image-trigger:hover{background:var(--foodex-background)}.catalog-grid-image-form.is-uploading .catalog-grid-image-trigger{opacity:.6;pointer-events:none}.catalog-grid-image-note{font-size:.68rem;color:var(--foodex-muted)}
 .catalog-products-shell{display:grid;gap:12px}
 .catalog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .catalog-toolbar-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -79,9 +80,9 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .catalog-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 .catalog-empty{padding:38px 16px;text-align:center;color:var(--foodex-muted)}
 @media(max-width:1200px){.catalog-col-brand,.catalog-col-category{display:none}.catalog-products-table{min-width:720px}}
-@media(max-width:820px){.catalog-col-sku{display:none}.catalog-products-table{min-width:600px}.catalog-products-table th,.catalog-products-table td{padding:8px}.catalog-product-sub{display:none}}
-@media(max-width:520px){.catalog-filterbar{grid-template-columns:1fr}.catalog-filter-actions .btn{flex:1;text-align:center}}
-@media(max-width:1023px){.grid{grid-template-columns:1fr}.catalog-layout,.catalog-layout[dir]{grid-template-columns:1fr}.catalog-layout aside,.catalog-layout main,html[dir=ltr] .catalog-layout aside,html[dir=ltr] .catalog-layout main{grid-column:1}.catalog-layout aside{grid-row:1;min-height:auto}.catalog-layout main{grid-row:2}}
+@media(max-width:1023px){.grid{grid-template-columns:1fr}.catalog-layout,.catalog-layout[dir]{grid-template-columns:1fr}.catalog-layout aside,.catalog-layout main,html[dir=ltr] .catalog-layout aside,html[dir=ltr] .catalog-layout main{grid-column:1}.catalog-layout aside{grid-row:1;min-height:auto}.catalog-layout main{grid-row:2}.catalog-layout main{padding:var(--foodex-space-4)}.header{align-items:flex-start;flex-direction:column}.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.tabs a{white-space:nowrap}.catalog-toolbar,.catalog-toolbar-group{width:100%}.catalog-toolbar-group .btn{flex:1;text-align:center}.catalog-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.catalog-col-sku,.catalog-col-brand,.catalog-col-category{display:none!important}.catalog-filterbar{grid-template-columns:1fr}.catalog-filter-actions{display:grid;grid-template-columns:1fr 1fr}.catalog-filter-actions .btn{text-align:center}.catalog-table-card.table-wrap,.catalog-categories-wrap.table-wrap{overflow:visible;background:transparent;border:0;box-shadow:none}.catalog-products-table,.catalog-categories-table{display:block;min-width:0!important;width:100%}.catalog-products-table thead,.catalog-categories-table thead{display:none}.catalog-products-table tbody,.catalog-categories-table tbody{display:grid;gap:12px}.catalog-products-table tr.catalog-product-row,.catalog-categories-table tr.catalog-category-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}.catalog-products-table td,.catalog-categories-table td{display:grid;gap:5px;padding:7px 8px!important;border:0!important;min-width:0}.catalog-products-table td[data-label]::before,.catalog-categories-table td[data-label]::before{content:attr(data-label);font-size:.68rem;font-weight:800;color:var(--foodex-muted);text-transform:none}.catalog-products-table td.catalog-mobile-full,.catalog-categories-table td.catalog-mobile-full{grid-column:1/-1}.catalog-product-cell{align-items:flex-start}.catalog-product-thumb,.catalog-product-thumb-placeholder{width:58px;height:58px;min-width:58px}.catalog-product-sub{display:none}.catalog-mobile-actions .catalog-actions{display:block}.catalog-mobile-actions .catalog-actions summary{width:100%;height:38px;border-radius:10px;font-size:0}.catalog-mobile-actions .catalog-actions summary::after{content:'•••';font-size:18px}.catalog-action-menu{position:static;width:auto;margin-top:6px;box-shadow:none}.catalog-categories-table .inline-form{display:grid;grid-template-columns:1fr;align-items:stretch}.catalog-categories-table .inline-form input,.catalog-categories-table .inline-form select{min-width:0;max-width:none;width:100%;box-sizing:border-box}.catalog-categories-table .btn{width:100%;text-align:center}.catalog-grid-image{grid-template-columns:auto 1fr;align-items:center;justify-items:start}.catalog-grid-image-form{min-width:0}.catalog-grid-image-trigger{white-space:normal;text-align:center}}
+@media(max-width:420px){.catalog-products-table tr.catalog-product-row,.catalog-categories-table tr.catalog-category-row{grid-template-columns:1fr}.catalog-products-table td.catalog-mobile-full,.catalog-categories-table td.catalog-mobile-full{grid-column:1}.catalog-filter-actions{grid-template-columns:1fr}.row{grid-template-columns:1fr}.catalog-dialog-body{padding:14px}.catalog-dialog-actions{display:grid;grid-template-columns:1fr}.catalog-dialog-actions .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -146,36 +147,43 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 @php($assignment=$assignments->get($p->catalog_store_id.':'.$p->id))
 @php($currency=$currencies->get((int)$p->catalog_store_id))
 @php($images=$productImages->get($p->id,collect()))
-<tr>
-<td>
+<tr class="catalog-product-row">
+<td class="catalog-mobile-full">
 <div class="catalog-product-cell">
+<div class="catalog-grid-image">
 @if($p->primary_image_path)
 <img class="catalog-product-thumb" src="{{ url('/'.ltrim($p->primary_image_path,'/')) }}" alt="{{ $p->name }}">
 @else
 <div class="catalog-product-thumb-placeholder">{{ app()->getLocale()==='ar'?'بدون صورة':'No image' }}</div>
 @endif
+<form method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.grid-image',$p->id) }}" class="catalog-grid-image-form" data-grid-image-form>
+@csrf @method('PATCH')
+@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<label class="catalog-grid-image-trigger">{{ app()->getLocale()==='ar'?'تغيير الصورة':'Change image' }}<input class="catalog-grid-image-input" data-grid-image-input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label>
+</form>
+</div>
 <div class="catalog-product-copy">
 <div class="catalog-product-name" title="{{ $p->name }}">{{ $p->name }}</div>
 @if($p->description)<div class="catalog-product-sub" title="{{ $p->description }}">{{ $p->description }}</div>@endif
 </div>
 </div>
 </td>
-<td class="catalog-col-category">{{ $p->category ?: '—' }}</td>
-<td>
+<td class="catalog-col-category" data-label="{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}">{{ $p->category ?: '—' }}</td>
+<td data-label="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
 @if($assignment && $assignment->price !== null)
 <span class="catalog-money">{{ \App\Support\DisplayNumber::money((float)$assignment->price, $currency) }}@if($currency)<span class="catalog-currency">{{ $currency }}</span>@endif</span>
 @else<span class="muted">—</span>@endif
 </td>
-<td>
+<td data-label="{{ app()->getLocale()==='ar'?'المخزون':'Stock' }}">
 @if($p->is_available)
 <span class="catalog-stock" data-availability-state="AVAILABLE"><span class="catalog-stock-dot"></span>{{ \App\Support\DisplayNumber::quantity((float)$p->available_quantity) }}</span>
 @else
 <span class="catalog-stock out" data-availability-state="OUT_OF_STOCK"><span class="catalog-stock-dot"></span>{{ app()->getLocale()==='ar'?'نفد':'Out' }}</span>
 @endif
 </td>
-<td class="catalog-col-sku">{{ $p->sku }}</td>
-<td class="catalog-col-brand">{{ $p->brand ?: '—' }}</td>
-<td>
+<td class="catalog-col-sku" data-label="{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}">{{ $p->sku }}</td>
+<td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}">{{ $p->brand ?: '—' }}</td>
+<td data-label="{{ app()->getLocale()==='ar'?'الحالة':'Status' }}">
 <form method="post" action="{{ route('admin.catalog.products.status',$p->id) }}" class="catalog-status-form">
 @csrf @method('PATCH')
 <input type="hidden" name="is_active" value="{{ $p->is_active?0:1 }}">
@@ -184,7 +192,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </button>
 </form>
 </td>
-<td>
+<td class="catalog-mobile-full catalog-mobile-actions" data-label="{{ app()->getLocale()==='ar'?'الإجراءات':'Actions' }}">
 <details class="catalog-actions">
 <summary aria-label="{{ app()->getLocale()==='ar'?'إجراءات المنتج':'Product actions' }}">⋮</summary>
 <div class="catalog-action-menu">
@@ -372,7 +380,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="catalog-filter-actions"><button class="btn primary">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button><a class="btn" data-catalog-filter-reset href="{{ route('admin.catalog.index',array_merge(['tab'=>'categories'],$scopeParams)) }}">{{ app()->getLocale()==='ar'?'مسح الفلاتر':'Clear filters' }}</a></div>
 <div class="catalog-filter-state" role="status" aria-live="polite"><strong>{{ $categoryRows->total() }}</strong> {{ app()->getLocale()==='ar'?'نتيجة':'results' }} @if($hasCategoryFilters)<span class="catalog-filter-chip">{{ app()->getLocale()==='ar'?'تم تطبيق فلاتر':'Filtered' }}</span>@endif</div>
 </form>
-<div class="card table-wrap"><table class="table" data-pagination-required><thead><tr><th>{{ app()->getLocale()==='ar'?'الصورة':'Image' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}</th><th>{{ app()->getLocale()==='ar'?'الأب':'Parent' }}</th><th>{{ app()->getLocale()==='ar'?'إجراءات':'Actions' }}</th></tr></thead><tbody>@forelse($categoryRows as $c)<tr><td>@if($c->image_path)<img class="image-thumb" src="{{ url('/'.ltrim($c->image_path,'/')) }}" alt="{{ $c->name }}">@else<span class="muted">—</span>@endif</td><td>{{ $c->name }}</td><td>{{ $c->slug }}</td><td>{{ $c->parent_name ?: '—' }}</td><td><a class="btn" href="{{ route('admin.catalog.index',array_merge(['tab'=>'categories','category_detail'=>$c->id],$scopeParams)) }}">{{ __('catalog_completion.category_360.title') }}</a><form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.update',$c->id) }}">@csrf @method('PATCH')<input name="name" value="{{ $c->name }}" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}"><input name="slug" value="{{ $c->slug }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: beverages':'e.g. beverages' }}"><input class="image-upload js-catalog-image-preview" type="file" name="category_image" accept="image/jpeg,image/png,image/webp"><select name="parent_id"><option value="">—</option>@foreach($categories->where('id','!=',$c->id) as $parent)<option value="{{ $parent->id }}" @selected($c->parent_id==$parent->id)>{{ $parent->name }}</option>@endforeach</select><label class="check"><input type="checkbox" name="remove_image" value="1">{{ app()->getLocale()==='ar'?'حذف الصورة':'Remove image' }}</label><label class="check"><input type="checkbox" name="is_active" value="1" @checked($c->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form><form method="post" action="{{ route('admin.catalog.categories.destroy',$c->id) }}" style="margin-top:6px">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>@empty<tr><td colspan="5"><div class="catalog-empty">{{ $hasCategoryFilters ? (app()->getLocale()==='ar'?'لا توجد تصنيفات تطابق الفلاتر الحالية.':'No categories match the current filters.') : (app()->getLocale()==='ar'?'لا توجد تصنيفات.':'No categories.') }}</div></td></tr>@endforelse</tbody></table>{{ $categoryRows->links() }}</div></section></div>
+<div class="card table-wrap catalog-categories-wrap"><table class="table catalog-categories-table" data-pagination-required><thead><tr><th>{{ app()->getLocale()==='ar'?'الصورة':'Image' }}</th><th>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}</th><th>{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}</th><th>{{ app()->getLocale()==='ar'?'الأب':'Parent' }}</th><th>{{ app()->getLocale()==='ar'?'إجراءات':'Actions' }}</th></tr></thead><tbody>@forelse($categoryRows as $c)<tr class="catalog-category-row"><td class="catalog-mobile-full" data-label="{{ app()->getLocale()==='ar'?'الصورة':'Image' }}"><div class="catalog-grid-image">@if($c->image_path)<img class="image-thumb" src="{{ url('/'.ltrim($c->image_path,'/')) }}" alt="{{ $c->name }}">@else<span class="muted">—</span>@endif<form method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.grid-image',$c->id) }}" class="catalog-grid-image-form" data-grid-image-form>@csrf @method('PATCH')@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<label class="catalog-grid-image-trigger">{{ app()->getLocale()==='ar'?'تغيير الصورة':'Change image' }}<input class="catalog-grid-image-input" data-grid-image-input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label></form></div></td><td data-label="{{ app()->getLocale()==='ar'?'الاسم':'Name' }}">{{ $c->name }}</td><td data-label="{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}">{{ $c->slug }}</td><td data-label="{{ app()->getLocale()==='ar'?'الأب':'Parent' }}">{{ $c->parent_name ?: '—' }}</td><td class="catalog-mobile-full catalog-mobile-actions" data-label="{{ app()->getLocale()==='ar'?'الإجراءات':'Actions' }}"><a class="btn" href="{{ route('admin.catalog.index',array_merge(['tab'=>'categories','category_detail'=>$c->id],$scopeParams)) }}">{{ __('catalog_completion.category_360.title') }}</a><form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.categories.update',$c->id) }}">@csrf @method('PATCH')<input name="name" value="{{ $c->name }}" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}" placeholder="{{ app()->getLocale()==='ar'?'اسم التصنيف':'Category name' }}"><input name="slug" value="{{ $c->slug }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: beverages':'e.g. beverages' }}"><input class="image-upload js-catalog-image-preview" type="file" name="category_image" accept="image/jpeg,image/png,image/webp"><select name="parent_id"><option value="">—</option>@foreach($categories->where('id','!=',$c->id) as $parent)<option value="{{ $parent->id }}" @selected($c->parent_id==$parent->id)>{{ $parent->name }}</option>@endforeach</select><label class="check"><input type="checkbox" name="remove_image" value="1">{{ app()->getLocale()==='ar'?'حذف الصورة':'Remove image' }}</label><label class="check"><input type="checkbox" name="is_active" value="1" @checked($c->is_active)>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</label><button class="btn">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button></form><form method="post" action="{{ route('admin.catalog.categories.destroy',$c->id) }}" style="margin-top:6px">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>@empty<tr><td colspan="5"><div class="catalog-empty">{{ $hasCategoryFilters ? (app()->getLocale()==='ar'?'لا توجد تصنيفات تطابق الفلاتر الحالية.':'No categories match the current filters.') : (app()->getLocale()==='ar'?'لا توجد تصنيفات.':'No categories.') }}</div></td></tr>@endforelse</tbody></table>{{ $categoryRows->links() }}</div></section></div>
 
 @elseif($tab==='brands')
 <div class="grid"><section class="card"><h2>{{ app()->getLocale()==='ar'?'إضافة علامة تجارية':'Add brand' }}</h2><form class="form" method="post" action="{{ route('admin.catalog.brands.store') }}">@csrf<label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'أدخل الاسم':'Enter name' }}" required></label><label>{{ app()->getLocale()==='ar'?'المعرّف النصي':'Slug' }}<input name="slug" placeholder="{{ app()->getLocale()==='ar'?'مثال: beverages':'e.g. beverages' }}"></label><button class="btn primary">{{ app()->getLocale()==='ar'?'إضافة':'Add' }}</button></form></section><section class="card"><table class="table"><tbody>@foreach($brands as $b)<tr><td>{{ $b->name }}</td><td>{{ $b->slug }}</td><td><form method="post" action="{{ route('admin.catalog.brands.destroy',$b->id) }}">@csrf @method('DELETE')<button class="btn danger">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form></td></tr>@endforeach</tbody></table></section></div>
@@ -444,6 +452,16 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
         const store = form.querySelector('[data-catalog-store-context]');
         syncCatalogScope(form);
         store?.addEventListener('change', () => syncCatalogScope(form));
+    });
+
+    document.querySelectorAll('[data-grid-image-input]').forEach((input) => {
+        input.addEventListener('change', () => {
+            const form = input.closest('[data-grid-image-form]');
+            if (!form || !input.files || input.files.length === 0) return;
+            form.classList.add('is-uploading');
+            if (typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form.submit();
+        });
     });
 
     document.querySelectorAll('[data-dialog-open]').forEach((button) => {
