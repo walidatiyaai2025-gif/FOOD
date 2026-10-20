@@ -122,8 +122,7 @@ class B2bJourneyScreen extends StatelessWidget {
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
-            notificationKey:
-                const ValueKey('b2b-dashboard-notifications'),
+            notificationKey: const ValueKey('b2b-dashboard-notifications'),
             child: Padding(
               // The existing app-level version/logout footer overlays routes.
               // Wholesale's persistent dock already reserves that space.
