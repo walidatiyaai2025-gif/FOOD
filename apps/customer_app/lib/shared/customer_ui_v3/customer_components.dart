@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../customer_gentle_marquee.dart';
 
 import '../../core/theme/customer_ui_v3_tokens.dart';
 
@@ -545,12 +544,22 @@ class CustomerProductCard extends StatelessWidget {
                           : CustomerUiSpacing.xs,
                     ),
                   ],
-                  CustomerGentleMarquee(
-                    text: title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: compact ? 10 : 11,
-                          height: 1.15,
-                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 14,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontSize: compact ? 9 : 9.5,
+                              height: 1.1,
+                            ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: CustomerUiSpacing.xs),
                   Row(
