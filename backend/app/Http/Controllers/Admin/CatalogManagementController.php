@@ -129,7 +129,18 @@ final class CatalogManagementController extends Controller
             : 'asc';
 
         $priceSortExpression = '(SELECT catalog_sort_assignment.price FROM store_products AS catalog_sort_assignment WHERE catalog_sort_assignment.product_id = products.id AND catalog_sort_assignment.store_id = catalogs.store_id LIMIT 1)';
-        $stockSortExpression = 'COALESCE((SELECT SUM(catalog_sort_inventory.quantity - catalog_sort_inventory.reserved_quantity) FROM inventories AS catalog_sort_inventory INNER JOIN warehouses AS catalog_sort_warehouse ON catalog_sort_warehouse.id = catalog_sort_inventory.warehouse_id WHERE catalog_sort_inventory.product_id = products.id AND catalog_sort_warehouse.store_id = catalogs.store_id AND catalog_sort_warehouse.is_active = 1), 0)';
+        $hasWholesaleForSort = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->whereIn('stores.id', $storeIds)
+            ->where('store_types.code', 'B2B')
+            ->exists();
+        $principalWarehouseIdForSort = $hasWholesaleForSort
+            ? app(WholesalePrincipal::class)->warehouseId()
+            : null;
+        $stockWarehouseScope = $principalWarehouseIdForSort === null
+            ? ''
+            : ' AND (catalogs.channel != \'b2b\' OR catalog_sort_warehouse.id = '.(int) $principalWarehouseIdForSort.')';
+        $stockSortExpression = 'COALESCE((SELECT SUM(CASE WHEN catalog_sort_inventory.quantity > catalog_sort_inventory.reserved_quantity THEN catalog_sort_inventory.quantity - catalog_sort_inventory.reserved_quantity ELSE 0 END) FROM inventories AS catalog_sort_inventory INNER JOIN warehouses AS catalog_sort_warehouse ON catalog_sort_warehouse.id = catalog_sort_inventory.warehouse_id WHERE catalog_sort_inventory.product_id = products.id AND catalog_sort_warehouse.store_id = catalogs.store_id AND catalog_sort_warehouse.is_active = 1'.$stockWarehouseScope.'), 0)';
 
         $productColumns = [
             'products.id',
