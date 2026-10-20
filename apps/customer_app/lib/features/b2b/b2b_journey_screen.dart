@@ -18,7 +18,6 @@ import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
-import '../customer_account/customer_account_v3_widgets.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
