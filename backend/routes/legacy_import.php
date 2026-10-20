@@ -9,6 +9,7 @@ use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
 use App\Services\LegacyVanInventoryHistoryMaterializerService;
 use App\Services\LegacySupplierBrandMaterializerService;
+use App\Services\LegacyFinanceAccountMaterializerService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1137,6 +1138,120 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-finance-accounts {--apply : Materialize the legacy GL chart of accounts into native enterprise finance accounts} {--json : Output JSON}',
+    function (LegacyFinanceAccountMaterializerService $materializer): int {
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy finance account materialization failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return ($result['healthy'] ?? ($result['profile']['ready'] ?? false)) ? 0 : 1;
+        }
+
+        $profile = $result['profile'];
+        $this->info((bool) $this->option('apply')
+            ? 'Legacy native chart-of-accounts materialization completed.'
+            : 'Legacy finance chart-of-accounts dry-run');
+
+        $this->table(
+            ['Metric', 'Value'],
+            [
+                ['Source table', $profile['source_table']],
+                ['Source rows', $profile['source_rows']],
+                ['ID column', $profile['resolved_columns']['id'] ?? '—'],
+                ['Code column', $profile['resolved_columns']['code'] ?? '—'],
+                ['Name column', $profile['resolved_columns']['name'] ?? '—'],
+                ['Parent column', $profile['resolved_columns']['parent'] ?? '—'],
+                ['Type column', $profile['resolved_columns']['type'] ?? '—'],
+                ['Normal-balance column', $profile['resolved_columns']['normal_balance'] ?? '—'],
+                ['Status column', $profile['resolved_columns']['status'] ?? '—'],
+                ['Type lookup table', $profile['type_lookup']['table'] ?? '—'],
+                ['Unclassified type rows', $profile['classification']['unclassified_type_rows']],
+                ['Missing code rows', $profile['classification']['missing_code_rows']],
+                ['Missing name rows', $profile['classification']['missing_name_rows']],
+                ['Duplicate source IDs', $profile['classification']['duplicate_source_ids']],
+                ['Profile ready', $profile['ready'] ? 'YES' : 'NO'],
+            ],
+        );
+
+        if (! (bool) $this->option('apply')) {
+            if ($profile['type_values'] !== []) {
+                $this->line('');
+                $this->info('Source account type values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['type_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            return $profile['ready'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Verification', 'Count'],
+            [
+                ['Account mappings', $result['target']['account_mappings']],
+                ['Orphan mappings', $result['target']['orphan_mappings']],
+                ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
+                ['Unmapped parent accounts', $result['target']['unmapped_parent_accounts']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY NATIVE FINANCE ACCOUNT COVERAGE FAILED.');
+            return 1;
+        }
+
+        $this->info('LEGACY NATIVE FINANCE ACCOUNT COVERAGE PASSED.');
+        return 0;
+    },
+)->purpose('Promote the legacy GL account master into FOODEX native enterprise finance accounts using fail-closed accounting semantics.');
+
+Artisan::command(
+    'foodex:legacy-finance-accounts-verify {--json : Output JSON}',
+    function (LegacyFinanceAccountMaterializerService $materializer): int {
+        try {
+            $result = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy finance account verification failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return $result['healthy'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Source accounts', $result['profile']['source_rows']],
+                ['Unclassified type rows', $result['profile']['classification']['unclassified_type_rows']],
+                ['Account mappings', $result['target']['account_mappings']],
+                ['Orphan mappings', $result['target']['orphan_mappings']],
+                ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
+                ['Unmapped parent accounts', $result['target']['unmapped_parent_accounts']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY NATIVE FINANCE ACCOUNT COVERAGE FAILED.');
+            return 1;
+        }
+
+        $this->info('LEGACY NATIVE FINANCE ACCOUNT COVERAGE PASSED.');
+        return 0;
+    },
+)->purpose('Verify one-to-one native chart-of-accounts coverage and parent integrity for the legacy GL master.');
 
 Artisan::command(
     'foodex:legacy-supplier-brands {--apply : Derive brands from suppliers using all explicit supplier-product source relations} {--json : Output JSON}',
