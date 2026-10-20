@@ -740,6 +740,58 @@ final class CatalogManagementController extends Controller
         return back()->with('status', $this->msg('تم تعديل المنتج وصوره.', 'Product and images updated.'));
     }
 
+    public function toggleProductStatus(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
+
+        $data = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $beforeProduct = DB::table('products')->where('id', $product)->first();
+        $active = (bool) $data['is_active'];
+        $nextLifecycle = $active ? 'active' : 'paused';
+
+        DB::transaction(function () use ($product, $active, $nextLifecycle, $beforeProduct, $request): void {
+            DB::table('products')->where('id', $product)->update([
+                'is_active' => $active,
+                'lifecycle_state' => $nextLifecycle,
+                'lifecycle_effective_at' => ($beforeProduct->lifecycle_state ?? null) === $nextLifecycle
+                    ? ($beforeProduct->lifecycle_effective_at ?? now())
+                    : now(),
+                'end_of_life_at' => null,
+                'updated_at' => now(),
+            ]);
+
+            if (($beforeProduct->lifecycle_state ?? null) !== $nextLifecycle) {
+                DB::table('product_lifecycle_transitions')->insert([
+                    'product_id' => $product,
+                    'user_id' => $this->actor($request)->id,
+                    'from_state' => $beforeProduct->lifecycle_state,
+                    'to_state' => $nextLifecycle,
+                    'effective_at' => now(),
+                    'reason' => __('catalog_completion.lifecycle.legacy_active_toggle_reason'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        app(AuditLogger::class)->record(
+            'catalog.product.status_changed',
+            $this->actor($request),
+            Product::query()->find($product),
+            $beforeProduct === null ? null : (array) $beforeProduct,
+            (array) DB::table('products')->where('id', $product)->first(),
+            $request,
+        );
+
+        return back()->with('status', $active
+            ? $this->msg('تم تفعيل المنتج.', 'Product activated.')
+            : $this->msg('تم تعطيل المنتج.', 'Product deactivated.'));
+    }
+
     public function updateProductImage(Request $request, int $product, int $image): RedirectResponse
     {
         $owner = $this->productOwner($product);

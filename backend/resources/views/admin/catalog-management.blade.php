@@ -48,12 +48,13 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .catalog-product-thumb{width:44px;height:44px;min-width:44px;border-radius:9px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}
 .catalog-product-thumb-placeholder{width:44px;height:44px;min-width:44px;border-radius:9px;border:1px dashed var(--foodex-border);display:grid;place-items:center;color:var(--foodex-muted);font-size:.72rem;background:#fff}
 .catalog-product-copy{min-width:0}
-.catalog-product-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catalog-product-name{font-weight:800;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;overflow-wrap:anywhere}
 .catalog-product-sub{color:var(--foodex-muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .catalog-stock{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .catalog-stock-dot{width:7px;height:7px;border-radius:50%;background:var(--foodex-green)}
 .catalog-stock.out .catalog-stock-dot{background:var(--foodex-red)}
 .catalog-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:.76rem;font-weight:800;white-space:nowrap}
+.catalog-status-form{margin:0;display:inline-flex}.catalog-status-toggle{border:0;font:inherit;cursor:pointer}.catalog-status-toggle:hover{box-shadow:0 0 0 2px rgba(22,101,52,.12)}
 .catalog-status.off{background:#f3f4f6;color:#6b7280}
 .catalog-status-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 .catalog-money{font-weight:800;white-space:nowrap}
@@ -174,7 +175,15 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 </td>
 <td class="catalog-col-sku">{{ $p->sku }}</td>
 <td class="catalog-col-brand">{{ $p->brand ?: '—' }}</td>
-<td><span class="catalog-status {{ $p->is_active?'':'off' }}"><span class="catalog-status-dot"></span>{{ $p->is_active?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span></td>
+<td>
+<form method="post" action="{{ route('admin.catalog.products.status',$p->id) }}" class="catalog-status-form">
+@csrf @method('PATCH')
+<input type="hidden" name="is_active" value="{{ $p->is_active?0:1 }}">
+<button type="submit" class="catalog-status catalog-status-toggle {{ $p->is_active?'':'off' }}" title="{{ $p->is_active?(app()->getLocale()==='ar'?'اضغط لتعطيل المنتج':'Click to deactivate product'):(app()->getLocale()==='ar'?'اضغط لتفعيل المنتج':'Click to activate product') }}">
+<span class="catalog-status-dot"></span>{{ $p->is_active?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}
+</button>
+</form>
+</td>
 <td>
 <details class="catalog-actions">
 <summary aria-label="{{ app()->getLocale()==='ar'?'إجراءات المنتج':'Product actions' }}">⋮</summary>
