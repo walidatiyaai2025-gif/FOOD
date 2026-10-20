@@ -8637,7 +8637,9 @@ SQL));
     {
         if (
             ! Schema::hasTable('legacy_import_mappings')
-            || (int) DB::table('legacy_import_mappings')->count() !== 0
+            || (int) DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->count() !== 0
         ) {
             return false;
         }
