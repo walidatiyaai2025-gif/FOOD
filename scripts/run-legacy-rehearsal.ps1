@@ -49,6 +49,18 @@ function Run-Step {
 try {
     Set-Location $Backend
 
+    Run-Step 'PHP syntax - scoped reset service' {
+        php -l app\Services\LegacyImportRehearsalResetService.php
+    }
+
+    Run-Step 'PHP syntax - legacy importer' {
+        php -l app\Services\LegacyFoodexImportService.php
+    }
+
+    Run-Step 'PHP syntax - legacy routes' {
+        php -l routes\legacy_import.php
+    }
+
     # Direct read-only legacy SQL Server source.
     Set-EnvValue 'LEGACY_DB_HOST' '172.30.88.33'
     Set-EnvValue 'LEGACY_DB_PORT' '1433'
