@@ -5,6 +5,7 @@ import '../storefront/storefront_design_system.dart';
 
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class CustomerDiagnosticsScreen extends StatefulWidget {
   const CustomerDiagnosticsScreen({
