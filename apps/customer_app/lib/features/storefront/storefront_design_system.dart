@@ -812,34 +812,52 @@ class FoodexProductImage extends StatelessWidget {
   final FoodexPalette palette;
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: palette.soft,
-          borderRadius: BorderRadius.circular(18),
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 1.055, end: 1),
+        duration: const Duration(milliseconds: 720),
+        curve: Curves.easeOutCubic,
+        builder: (context, scale, child) => Transform.scale(
+          scale: scale,
+          child: child,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: url == null || url!.isEmpty
-            ? Center(
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: palette.primary,
-                  size: 52,
-                ),
-              )
-            : Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : const Center(child: FoodexWaveLoading()),
-                errorBuilder: (_, __, ___) => Center(
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: palette.soft,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x3D72E89A),
+                blurRadius: 13,
+                spreadRadius: 1,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: url == null || url!.isEmpty
+              ? Center(
                   child: Icon(
                     Icons.inventory_2_outlined,
                     color: palette.primary,
                     size: 52,
                   ),
+                )
+              : Image.network(
+                  url!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : const Center(child: FoodexWaveLoading()),
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Icon(
+                      Icons.inventory_2_outlined,
+                      color: palette.primary,
+                      size: 52,
+                    ),
+                  ),
                 ),
-              ),
+        ),
       );
 }
 
