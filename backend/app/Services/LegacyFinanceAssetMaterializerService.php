@@ -202,6 +202,7 @@ final class LegacyFinanceAssetMaterializerService
                 'dep_complex_value_is_accumulated_depreciation' => true,
                 'expired_value_is_flag_not_money' => true,
                 'fixedassets_setting_101_is_not_trusted_authority' => true,
+                'asset_age_candidate_is_non_authoritative' => true,
                 'acquisition_journals_must_not_be_fabricated' => true,
                 'native_write_requires_explicit_account_authority' => true,
             ],
@@ -285,7 +286,7 @@ final class LegacyFinanceAssetMaterializerService
         if (($row['name_ar'] ?? null) === null && ($row['name_en'] ?? null) === null) $b[] = 'missing_asset_name';
         if (($row['acquisition_date'] ?? null) === null) $b[] = 'invalid_acquisition_date';
         if (($row['gross_value'] ?? null) === null || (float) $row['gross_value'] <= 0) $b[] = 'invalid_gross_value';
-        if (($row['native_useful_life_months_candidate'] ?? null) === null) $b[] = 'unresolved_useful_life_unit';
+        $b[] = 'asset_age_requires_explicit_unit_confirmation';
         if (($row['sub_group_id'] ?? null) === null) $b[] = 'missing_sub_group';
         return $b;
     }
