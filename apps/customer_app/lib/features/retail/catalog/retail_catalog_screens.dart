@@ -2,6 +2,7 @@ import 'dart:async';
 import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
@@ -140,7 +141,7 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: FoodexWaveLoading());
             }
             if (snapshot.hasError || !snapshot.hasData) {
               return _CatalogErrorState(
@@ -1066,7 +1067,7 @@ class _CatalogPaginationFooter extends StatelessWidget {
         label: context.tr('customer.catalog.loading_more'),
         child: const SizedBox.square(
           dimension: 28,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: FoodexWaveLoading(),
         ),
       );
     } else if (error != null) {
@@ -1704,9 +1705,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
                                   icon: _submitting
                                       ? const SizedBox.square(
                                           dimension: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
+                                          child: FoodexWaveLoading(),
                                         )
                                       : const Icon(
                                           Icons.add_shopping_cart_rounded),
