@@ -76,6 +76,8 @@ final class LegacyFinanceAccountMaterializerService
 
         return [
             'source_table' => $qualified,
+            'source_table_name' => $sourceTable['table'],
+            'source_schema' => $sourceTable['schema'],
             'source_rows' => $sourceRows,
             'columns' => $columns,
             'resolved_columns' => [
@@ -123,7 +125,7 @@ final class LegacyFinanceAccountMaterializerService
             throw new RuntimeException(
                 'Finance account apply refused: source chart-of-accounts semantics are not fully resolved. '.
                 json_encode([
-                    'source_table' => $profile['source_table'],
+                    'source_table' => $profile['source_table_name'],
                     'resolved_columns' => $profile['resolved_columns'],
                     'type_lookup' => $profile['type_lookup'],
                     'type_values' => $profile['type_values'],
@@ -167,7 +169,7 @@ final class LegacyFinanceAccountMaterializerService
 
                 $mappedId = DB::table('legacy_import_mappings')
                     ->where('source_system', self::SOURCE_SYSTEM)
-                    ->where('source_table', $profile['source_table'])
+                    ->where('source_table', $profile['source_table_name'])
                     ->where('source_key', $sourceKey)
                     ->where('target_table', 'enterprise_finance_accounts')
                     ->value('target_id');
@@ -214,7 +216,7 @@ final class LegacyFinanceAccountMaterializerService
                 DB::table('legacy_import_mappings')->updateOrInsert(
                     [
                         'source_system' => self::SOURCE_SYSTEM,
-                        'source_table' => $profile['source_table'],
+                        'source_table' => $profile['source_table_name'],
                         'source_key' => $sourceKey,
                         'target_table' => 'enterprise_finance_accounts',
                     ],
@@ -260,7 +262,7 @@ final class LegacyFinanceAccountMaterializerService
 
             $staleMappings = DB::table('legacy_import_mappings')
                 ->where('source_system', self::SOURCE_SYSTEM)
-                ->where('source_table', $profile['source_table'])
+                ->where('source_table', $profile['source_table_name'])
                 ->where('target_table', 'enterprise_finance_accounts')
                 ->when(
                     $activeSourceKeys !== [],
@@ -278,14 +280,14 @@ final class LegacyFinanceAccountMaterializerService
             if (Schema::hasTable('legacy_business_records')) {
                 DB::table('legacy_business_records')
                     ->where('source_system', self::SOURCE_SYSTEM)
-                    ->where('source_table', $profile['source_table'])
+                    ->where('source_table', $profile['source_table_name'])
                     ->delete();
             }
 
             if (Schema::hasTable('legacy_business_table_manifest')) {
                 DB::table('legacy_business_table_manifest')
                     ->where('source_system', self::SOURCE_SYSTEM)
-                    ->where('source_table', $profile['source_table'])
+                    ->where('source_table', $profile['source_table_name'])
                     ->delete();
             }
         }, 3);
@@ -314,7 +316,7 @@ final class LegacyFinanceAccountMaterializerService
             ->fromSub(
                 DB::table('legacy_import_mappings')
                     ->where('source_system', self::SOURCE_SYSTEM)
-                    ->where('source_table', $profile['source_table'])
+                    ->where('source_table', $profile['source_table_name'])
                     ->where('target_table', 'enterprise_finance_accounts')
                     ->select('target_id')
                     ->groupBy('target_id')
@@ -739,7 +741,7 @@ final class LegacyFinanceAccountMaterializerService
 
         return (int) DB::table('legacy_import_mappings')
             ->where('source_system', self::SOURCE_SYSTEM)
-            ->where('source_table', $profile['source_table'])
+            ->where('source_table', $profile['source_table_name'])
             ->where('target_table', 'enterprise_finance_accounts')
             ->count();
     }
