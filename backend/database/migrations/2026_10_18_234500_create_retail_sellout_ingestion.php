@@ -83,7 +83,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $table->string('external_sku', 128);
             $table->string('event_type', 16);
-            $table->timestamp('occurred_at');
+            $table->dateTime('occurred_at');
             $table->date('business_date');
             $table->decimal('quantity', 18, 3);
             $table->decimal('gross_amount', 18, 3)->default(0);

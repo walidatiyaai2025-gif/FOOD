@@ -22,8 +22,8 @@ return new class extends Migration
             $table->decimal('accuracy', 10, 2)->nullable();
             $table->decimal('speed', 10, 2)->nullable();
             $table->decimal('heading', 7, 2)->nullable();
-            $table->timestamp('captured_at');
-            $table->timestamp('received_at');
+            $table->dateTime('captured_at');
+            $table->dateTime('received_at');
             $table->string('source_app', 32);
             $table->string('app_version', 64)->nullable();
             $table->boolean('is_mocked')->nullable();

@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->string('action', 64);
             $table->decimal('max_amount', 18, 3);
             $table->char('currency_code', 3)->nullable();
-            $table->timestamp('effective_from');
+            $table->dateTime('effective_from');
             $table->timestamp('effective_until')->nullable();
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -56,8 +56,8 @@ return new class extends Migration {
             $table->foreignId('delegate_user_id')->constrained('users')->restrictOnDelete();
             $table->string('delegation_key', 128);
             $table->char('request_hash', 64);
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->timestamp('revoked_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('store_id');
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('order_item_id');
-            $table->timestamp('order_created_at');
+            $table->dateTime('order_created_at');
             $table->string('order_status', 64);
             $table->string('channel', 16);
             $table->unsignedBigInteger('customer_id');
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('cost_state', 24);
             $table->unsignedBigInteger('cost_policy_id')->nullable();
             $table->timestamp('cost_policy_updated_at')->nullable();
-            $table->timestamp('source_occurred_at');
+            $table->dateTime('source_occurred_at');
             $table->timestamps();
 
             $table->unique(

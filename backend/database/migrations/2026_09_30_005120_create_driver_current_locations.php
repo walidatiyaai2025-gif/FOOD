@@ -17,8 +17,8 @@ return new class extends Migration {
             $table->decimal('accuracy', 9, 2)->nullable();
             $table->decimal('speed', 9, 2)->nullable();
             $table->decimal('heading', 7, 2)->nullable();
-            $table->timestamp('captured_at');
-            $table->timestamp('received_at');
+            $table->dateTime('captured_at');
+            $table->dateTime('received_at');
             $table->string('app_version', 64)->nullable();
             $table->boolean('is_mocked')->nullable();
             $table->foreignId('active_assignment_id')->nullable()->constrained('driver_assignments')->nullOnDelete();

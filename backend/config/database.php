@@ -4,6 +4,10 @@ use Illuminate\Support\Str;
 
 return [
     'default' => env('DB_CONNECTION', 'mysql'),
+
+    // Emergency opt-in only. Persistent FOODEX databases prohibit destructive
+    // Artisan database commands by default; disposable testing/SQLite is exempt.
+    'allow_destructive_commands' => env('FOODEX_ALLOW_DESTRUCTIVE_DB_COMMANDS', false),
     'connections' => [
         'sqlite' => [
             'driver' => 'sqlite',
@@ -27,6 +31,22 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+        ],
+        'foodex_legacy' => [
+            'driver' => 'sqlsrv',
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_DB_PORT', '1433'),
+            'database' => env('LEGACY_DB_DATABASE', 'Foodex'),
+            'username' => env('LEGACY_DB_USERNAME'),
+            'password' => env('LEGACY_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => env('LEGACY_DB_ENCRYPT', 'no'),
+            'trust_server_certificate' => env('LEGACY_DB_TRUST_CERTIFICATE', 'yes'),
+            'query_timeout' => (int) env('LEGACY_DB_QUERY_TIMEOUT', 300),
+            'detail_chunk' => (int) env('LEGACY_DB_DETAIL_CHUNK', 2000),
+            'retry_attempts' => (int) env('LEGACY_DB_RETRY_ATTEMPTS', 5),
         ],
         'pgsql' => [
             'driver' => 'pgsql',

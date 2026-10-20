@@ -31,7 +31,7 @@ return new class extends Migration
             $table->decimal('wholesale_purchase_units', 18, 3)->default(0);
             $table->string('currency', 3)->nullable();
             $table->timestamp('source_max_updated_at')->nullable();
-            $table->timestamp('materialized_at');
+            $table->dateTime('materialized_at');
             $table->string('quality_state', 24)->default('complete');
             $table->string('incomplete_reason')->nullable();
             $table->timestamps();
@@ -50,7 +50,7 @@ return new class extends Migration
             $table->decimal('available_units', 18, 3)->default(0);
             $table->unsignedInteger('sku_count')->default(0);
             $table->timestamp('source_max_updated_at')->nullable();
-            $table->timestamp('materialized_at');
+            $table->dateTime('materialized_at');
             $table->string('quality_state', 24)->default('complete');
             $table->string('incomplete_reason')->nullable();
             $table->timestamps();
@@ -66,7 +66,7 @@ return new class extends Migration
             $table->string('channel', 8)->default('all');
             $table->date('materialized_through_date')->nullable();
             $table->timestamp('source_max_updated_at')->nullable();
-            $table->timestamp('materialized_at');
+            $table->dateTime('materialized_at');
             $table->unsignedInteger('rows_written')->default(0);
             $table->string('quality_state', 24)->default('complete');
             $table->string('incomplete_reason')->nullable();

@@ -25,8 +25,8 @@ return new class extends Migration
             $table->uuid('public_id')->unique();
             $table->foreignId('branch_id')->constrained('smart_ordering_branches')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->string('status', 24)->default('DRAFT');
             $table->text('notes')->nullable();
             $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
