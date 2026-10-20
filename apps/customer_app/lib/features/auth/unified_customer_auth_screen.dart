@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_auth_persistence.dart';
@@ -125,7 +126,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     setState(() {
       _register = register;
       _errorKey = null;
-      _errorDetail = null;
       _fieldErrorKeys = const <String, String>{};
     });
   }
@@ -168,7 +168,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         ? 'customer.marketplace.registration_failed'
         : 'customer.error.action_failed';
   }
-
   String _safeAuthDiagnostic(String stage, Object error) {
     var message = error.toString().replaceAll(RegExp(r'[\r\n]+'), ' ').trim();
     final email = _email.text.trim();
@@ -184,6 +183,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     }
     return 'AUTH-DIAG [$stage] ${error.runtimeType}: $message';
   }
+
 
   Map<String, String> _safeFieldErrors(CustomerActionException error) {
     const supported = <String>{
@@ -368,6 +368,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
           rememberedRetailStoreId,
         );
       }
+      stage = 'session_commit_and_route';
 
       await _finishAuthentication(
         token,
@@ -515,6 +516,21 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                 ),
           ),
           if (_errorKey != null) ...[
+                                  if (_errorDetail != null) ...[
+                                    const SizedBox(height: 6),
+                                    SelectableText(
+                                      _errorDetail!,
+                                      key: const ValueKey(
+                                        'unified-auth-error-detail',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: CustomerUiColors.destructive,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
             const SizedBox(height: CustomerUiSpacing.sm),
             Text(
               context.tr(_errorKey!),
@@ -598,7 +614,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       setState(() {
         _fieldErrorKeys = validation;
         _errorKey = null;
-        _errorDetail = null;
       });
       return;
     }
@@ -606,7 +621,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     setState(() {
       _busy = true;
       _errorKey = null;
-      _errorDetail = null;
       _fieldErrorKeys = const <String, String>{};
     });
 
@@ -632,12 +646,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             ? await api.credentialLogin(email: email, password: password)
             : await api.login(username: email);
       }
-
       stage = 'login_response_parse';
+
       final retailStoreId =
           result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
 
-      stage = 'session_commit_and_route';
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
@@ -705,6 +718,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                     .bodyMedium
                     ?.copyWith(color: CustomerUiColors.muted),
               ),
+                      if (_errorDetail != null) ...[
+                        const SizedBox(height: 6),
+                        SelectableText(
+                          _errorDetail!,
+                          key: const ValueKey('unified-auth-error-detail'),
+                          style: const TextStyle(
+                            color: CustomerUiColors.destructive,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
               const SizedBox(height: CustomerUiSpacing.lg),
               FilledButton(
                 onPressed: () => Navigator.of(sheetContext).pop(),
@@ -766,7 +791,30 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
         backgroundColor: CustomerUiColors.white,
-        body: SafeArea(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.app.identity'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          onSearchSubmitted: (_) {},
+          trailingActions: [
+            IconButton(
+              key: const ValueKey('customer-login-diagnostics'),
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context)
+                      .pushNamed(CustomerRoutePaths.diagnostics),
+              tooltip: context.tr('customer.diagnostics.open'),
+              icon: const Icon(Icons.bug_report_outlined, color: Colors.white),
+            ),
+            if (widget.onLocaleChanged != null)
+              TextButton(
+                key: const ValueKey('customer-auth-language-header'),
+                onPressed: _busy ? null : _toggleLocale,
+                child: Text(
+                  isArabic ? 'EN' : 'ع',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+          ],
           child: Stack(
             children: [
               SingleChildScrollView(
@@ -1046,21 +1094,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       ),
                                     ),
                                   ],
-                                  if (_errorDetail != null) ...[
-                                    const SizedBox(height: 6),
-                                    SelectableText(
-                                      _errorDetail!,
-                                      key: const ValueKey(
-                                        'unified-auth-error-detail',
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: CustomerUiColors.destructive,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
                                   const SizedBox(height: CustomerUiSpacing.sm),
                                   SizedBox(
                                     height: 58,
@@ -1258,11 +1291,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(title),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          actions: [
+        body: FoodexUnifiedHeaderSurface(
+          title: title,
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          onSearchSubmitted: (_) {},
+          trailingActions: [
             IconButton(
               key: const ValueKey('customer-login-diagnostics'),
               onPressed: _busy
@@ -1270,7 +1303,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   : () => Navigator.of(context)
                       .pushNamed(CustomerRoutePaths.diagnostics),
               tooltip: context.tr('customer.diagnostics.open'),
-              icon: const Icon(Icons.bug_report_outlined),
+              icon: const Icon(Icons.bug_report_outlined, color: Colors.white),
             ),
             IconButton(
               key: const ValueKey('customer-auth-guest'),
@@ -1279,21 +1312,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   : () => Navigator.of(context)
                       .pushReplacementNamed(CustomerRoutePaths.marketplace),
               tooltip: context.tr('customer.action.guest'),
-              icon: const Icon(Icons.storefront_outlined),
+              icon: const Icon(Icons.storefront_outlined, color: Colors.white),
             ),
             if (widget.onLocaleChanged != null)
               TextButton(
                 key: const ValueKey('customer-auth-language-toggle'),
                 onPressed: _busy ? null : _toggleLocale,
                 child: Text(
-                  locale.languageCode == 'ar' ? 'English' : 'العربية',
-                  style: const TextStyle(color: CustomerUiColors.white),
+                  locale.languageCode == 'ar' ? 'EN' : 'ع',
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
           ],
-        ),
-        body: SafeArea(
-          top: false,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               CustomerUiSpacing.page,
@@ -1495,18 +1525,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           key: const ValueKey('unified-auth-error'),
                           style: const TextStyle(
                             color: CustomerUiColors.destructive,
-                          ),
-                        ),
-                      ],
-                      if (_errorDetail != null) ...[
-                        const SizedBox(height: 6),
-                        SelectableText(
-                          _errorDetail!,
-                          key: const ValueKey('unified-auth-error-detail'),
-                          style: const TextStyle(
-                            color: CustomerUiColors.destructive,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
