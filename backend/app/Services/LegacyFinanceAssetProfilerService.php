@@ -150,8 +150,13 @@ final class LegacyFinanceAssetProfilerService
         $result = [];
         foreach ($tables as $key => $qualified) {
             try {
-                $result[$key] = $this->legacySource()->table($qualified)
-                    ->orderBy($this->firstExistingColumn($qualified, ['ID', 'HeaderId', 'DetailId', 'Code']) ?? DB::raw('(SELECT 1)'))
+                $query = $this->legacySource()->table($qualified);
+                $orderColumn = $this->firstExistingColumn($qualified, ['ID', 'HeaderId', 'DetailId', 'Code']);
+                if ($orderColumn !== null) {
+                    $query->orderBy($orderColumn);
+                }
+
+                $result[$key] = $query
                     ->get()
                     ->map(static fn ($row): array => (array) $row)
                     ->all();
