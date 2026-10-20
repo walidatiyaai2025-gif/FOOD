@@ -54,7 +54,7 @@ try {
     Set-EnvValue 'LEGACY_DB_DATABASE' 'Foodex'
     Set-EnvValue 'LEGACY_DB_ENCRYPT' 'no'
     Set-EnvValue 'LEGACY_DB_TRUST_CERTIFICATE' 'yes'
-    Set-EnvValue 'LEGACY_DB_TIMEOUT' '300'
+    Set-EnvValue 'LEGACY_DB_QUERY_TIMEOUT' '300'
     Set-EnvValue 'LEGACY_DB_DETAIL_CHUNK' '2000'
     Set-EnvValue 'LEGACY_DB_RETRY_ATTEMPTS' '5'
     Set-EnvValue 'FOODEX_ALLOW_DESTRUCTIVE_DB_COMMANDS' 'false'
@@ -65,6 +65,10 @@ try {
 
     Run-Step 'Clear Laravel caches' {
         php artisan optimize:clear
+    }
+
+    Run-Step 'Direct SQL Server connection probe' {
+        php artisan foodex:legacy-preflight --json | Out-Null
     }
 
     # Reset only vans and their operational history, as explicitly approved.
