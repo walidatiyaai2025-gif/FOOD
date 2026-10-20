@@ -1015,16 +1015,16 @@ class _CategoryRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 94,
+        height: 71,
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          separatorBuilder: (_, __) => const SizedBox(width: 9),
           itemBuilder: (context, index) {
             final category = categories[index];
             return SizedBox(
-              width: 68,
+              width: 51,
               child: InkWell(
                 key: ValueKey('b2c-home-category-${category.id}'),
                 onTap: () => Navigator.of(context).pushNamed(
@@ -1033,15 +1033,15 @@ class _CategoryRail extends StatelessWidget {
                       '&category=' +
                       category.id.toString(),
                 ),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
                 child: Column(
                   children: [
                     Container(
                       key: ValueKey(
                         'b2c-home-category-image-${category.id}',
                       ),
-                      width: 62,
-                      height: 62,
+                      width: 47,
+                      height: 47,
                       decoration: BoxDecoration(
                         color: palette.soft,
                         shape: BoxShape.circle,
@@ -1061,14 +1061,14 @@ class _CategoryRail extends StatelessWidget {
                               ),
                             ),
                     ),
-                    const SizedBox(height: 7),
+                    const SizedBox(height: 5),
                     Text(
                       category.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 9,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
