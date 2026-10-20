@@ -44,6 +44,8 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('LEGACY_DB_ENCRYPT', 'no'),
             'trust_server_certificate' => env('LEGACY_DB_TRUST_CERTIFICATE', 'yes'),
+            'detail_chunk' => (int) env('LEGACY_DB_DETAIL_CHUNK', 2000),
+            'retry_attempts' => (int) env('LEGACY_DB_RETRY_ATTEMPTS', 5),
             'options' => extension_loaded('pdo_sqlsrv')
                 ? array_filter([
                     \PDO::ATTR_TIMEOUT => (int) env('LEGACY_DB_TIMEOUT', 300),
