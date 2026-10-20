@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "phases": [
     {
       "id": "van_inventory_history",
@@ -53,6 +53,24 @@
       ],
       "verify": [
         "foodex:legacy-finance-accounts-verify"
+      ]
+    },
+    {
+      "id": "finance_cost_centers",
+      "name": "Native Finance cost centers",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyFinanceCostCenterMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-finance-cost-centers"
+      ],
+      "apply": [
+        "foodex:legacy-finance-cost-centers",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-finance-cost-centers-verify"
       ]
     }
   ]
