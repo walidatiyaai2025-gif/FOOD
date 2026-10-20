@@ -7,6 +7,7 @@ use App\Services\LegacyBusinessImpactMaterializerService;
 use App\Services\LegacyImportRehearsalResetService;
 use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
+use App\Services\LegacyVanInventoryHistoryMaterializerService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1135,6 +1136,108 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-van-history {--apply : Materialize legacy Van operational history into native FOODEX tables} {--json : Output JSON}',
+    function (LegacyVanInventoryHistoryMaterializerService $materializer): int {
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy Van history materialization failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $result,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return ($result['healthy'] ?? true) ? 0 : 1;
+        }
+
+        $this->info((bool) $this->option('apply')
+            ? 'Legacy Van operational history materialization completed.'
+            : 'Legacy Van operational history dry-run');
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Source headers', $result['source']['headers']],
+                ['Source details', $result['source']['details']],
+                ['Target headers', $result['target']['headers']],
+                ['Target details', $result['target']['details']],
+                ...((bool) $this->option('apply') ? [
+                    ['Header mappings', $result['target']['header_mappings']],
+                    ['Detail mappings', $result['target']['detail_mappings']],
+                    ['Documents linked to vans', $result['target']['documents_linked_to_van']],
+                    ['Unlinked details with HeaderId', $result['target']['unlinked_details_with_header_id']],
+                    ['Unmapped product lines', $result['target']['unmapped_product_lines']],
+                ] : []),
+            ],
+        );
+
+        if ((bool) $this->option('apply')) {
+            if (! $result['healthy']) {
+                $this->error('LEGACY VAN HISTORY COVERAGE FAILED.');
+
+                return 1;
+            }
+
+            $this->info('LEGACY VAN HISTORY COVERAGE PASSED.');
+        }
+
+        return 0;
+    },
+)->purpose('Materialize wh_CarTransHeader/wh_CarTransDetails as native Van operational history without mutating stock balances.');
+
+Artisan::command(
+    'foodex:legacy-van-history-verify {--json : Output JSON}',
+    function (LegacyVanInventoryHistoryMaterializerService $materializer): int {
+        try {
+            $result = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy Van history verification failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $result,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return $result['healthy'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Source headers', $result['source']['headers']],
+                ['Native headers', $result['target']['headers']],
+                ['Header mappings', $result['target']['header_mappings']],
+                ['Source details', $result['source']['details']],
+                ['Native details', $result['target']['details']],
+                ['Detail mappings', $result['target']['detail_mappings']],
+                ['Documents linked to vans', $result['target']['documents_linked_to_van']],
+                ['Unlinked details with HeaderId', $result['target']['unlinked_details_with_header_id']],
+                ['Unmapped product lines', $result['target']['unmapped_product_lines']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY VAN HISTORY COVERAGE FAILED.');
+
+            return 1;
+        }
+
+        $this->info('LEGACY VAN HISTORY COVERAGE PASSED: historical Van transactions are native and stock authority remains unchanged.');
+
+        return 0;
+    },
+)->purpose('Verify full source-to-native coverage for legacy Van transaction history.');
 
 Artisan::command(
     'foodex:legacy-business-materialize {--apply : Materialize every uncovered business-impact source table} {--json : Output JSON}',
