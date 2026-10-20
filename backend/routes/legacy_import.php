@@ -1310,6 +1310,8 @@ Artisan::command(
                 ['Canonical input tables', $summary['canonical_input_tables']],
                 ['Reference-preserved tables', $summary['reference_preserved_tables']],
                 ['Invoice-extension tables', $summary['invoice_extension_tables']],
+                ['Business-extension tables', $summary['business_extension_tables']],
+                ['Technical staging tables', $summary['technical_staging_tables']],
                 ['Empty source tables', $summary['empty_source_tables']],
                 ['Archive-only nonempty tables', $summary['archive_only_tables']],
                 ['Archive-only rows', $summary['archive_only_rows']],
