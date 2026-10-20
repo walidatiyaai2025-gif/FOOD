@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/auth/customer_session.dart';
@@ -453,7 +454,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     _pageHeader(
                         context, widget.commerceContextProvider?.call()),
                     const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(child: FoodexWaveLoading()),
                     ),
                   ],
                 );
