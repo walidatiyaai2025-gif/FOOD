@@ -76,6 +76,7 @@ final class LegacyFoodexImportService
         $targetBusinessCounts = $this->targetBusinessCounts();
         $targetBusinessTotal = array_sum($targetBusinessCounts);
         $legacyMastersRerunReady = $this->legacyMastersRerunReady($sourceCounts);
+        $legacyUpgradeReady = $this->legacyUpgradeReady();
 
         return [
             'source_connection' => 'foodex_legacy',
@@ -102,6 +103,7 @@ final class LegacyFoodexImportService
                 'business_total' => $targetBusinessTotal,
                 'clean_baseline_ready' => $targetBusinessTotal === 0,
                 'legacy_masters_rerun_ready' => $legacyMastersRerunReady,
+                'legacy_upgrade_ready' => $legacyUpgradeReady,
                 'b2b_stores' => $b2bStores->map(static fn ($row): array => [
                     'id' => (int) $row->id,
                     'code' => (string) $row->code,
@@ -149,10 +151,12 @@ final class LegacyFoodexImportService
         if (
             ! ($preflight['target']['clean_baseline_ready'] ?? false)
             && ! ($preflight['target']['legacy_masters_rerun_ready'] ?? false)
+            && ! ($preflight['target']['legacy_upgrade_ready'] ?? false)
         ) {
             throw new RuntimeException(
-                'Refusing to merge legacy Foodex data into an unowned FOODEX business dataset. '.
-                'Use a fresh database baseline, or rerun only against a fully provenance-owned legacy masters dataset.'
+                'Refusing legacy Foodex masters import: the approved catalog/sales/stock reset scope is not clean, '.
+                'or existing legacy provenance is inconsistent. Preserve configuration/business identity data and run '.
+                'foodex:legacy-rehearsal-reset before retrying.'
             );
         }
 
@@ -7213,6 +7217,7 @@ SQL));
 
         if (
             ! $this->legacyMastersRerunReady($preflight['source_counts'])
+            && ! $this->legacyMastersUpgradeBaselineReady($preflight['source_counts'])
             && ! $this->legacyExtendedMastersRerunReady($preflight['source_counts'])
         ) {
             throw new RuntimeException(
@@ -8523,6 +8528,117 @@ SQL));
         }
 
         return $fallback;
+    }
+
+    private function legacyUpgradeReady(): bool
+    {
+        if (
+            ! Schema::hasTable('legacy_import_mappings')
+            || (int) DB::table('legacy_import_mappings')->count() !== 0
+        ) {
+            return false;
+        }
+
+        foreach ([
+            'products',
+            'categories',
+            'brands',
+            'product_selling_units',
+            'product_selling_unit_tier_prices',
+            'store_products',
+            'b2b_price_rules',
+            'inventories',
+            'stock_movements',
+            'orders',
+            'order_items',
+            'order_status_history',
+            'invoices',
+            'invoice_items',
+            'payments',
+        ] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->exists()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function legacyMastersUpgradeBaselineReady(array $sourceCounts): bool
+    {
+        if (
+            ! Schema::hasTable('legacy_import_runs')
+            || ! Schema::hasTable('legacy_import_mappings')
+            || ! DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('phase', 'masters')
+                ->where('status', 'completed')
+                ->exists()
+        ) {
+            return false;
+        }
+
+        $ownedTargets = [
+            'warehouses' => [
+                'sources' => ['wh_Stores', 'wh_Cars'],
+                'expected' => (int) $sourceCounts['wh_Stores'] + (int) $sourceCounts['wh_Cars'],
+            ],
+            'categories' => [
+                'sources' => ['wh_ItemGroups', 'wh_ItemSubGroups'],
+                'expected' => (int) $sourceCounts['wh_ItemGroups'] + (int) $sourceCounts['wh_ItemSubGroups'],
+            ],
+            'products' => [
+                'sources' => ['wh_Items'],
+                'expected' => (int) $sourceCounts['wh_Items'],
+            ],
+            'customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_accounts' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'platform_customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+        ];
+
+        foreach ($ownedTargets as $targetTable => $ownership) {
+            if (! Schema::hasTable($targetTable)) {
+                return false;
+            }
+
+            $mappedIds = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('target_table', $targetTable)
+                ->whereIn('source_table', $ownership['sources'])
+                ->pluck('target_id')
+                ->unique()
+                ->values();
+
+            if ($mappedIds->count() !== $ownership['expected']) {
+                return false;
+            }
+
+            if ((int) DB::table($targetTable)->whereIn('id', $mappedIds)->count() !== $mappedIds->count()) {
+                return false;
+            }
+        }
+
+        $mappedTierCount = (int) DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_PriceTypes')
+            ->where('target_table', 'b2b_price_tiers')
+            ->distinct()
+            ->count('target_id');
+
+        return $mappedTierCount === (int) $sourceCounts['wh_PriceTypes'];
     }
 
     private function legacyMastersRerunReady(array $sourceCounts): bool
