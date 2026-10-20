@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class CustomerGentleMarquee extends StatefulWidget {
@@ -21,7 +23,29 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: widget.duration,
-  )..repeat(reverse: true);
+    value: 0,
+  );
+
+  Timer? _startTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartFromBeginning();
+  }
+
+  void _restartFromBeginning() {
+    _startTimer?.cancel();
+    _controller
+      ..stop()
+      ..value = 0;
+
+    // Keep the beginning of the product name fully visible before it moves.
+    _startTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (!mounted) return;
+      _controller.repeat(reverse: true);
+    });
+  }
 
   @override
   void didUpdateWidget(covariant CustomerGentleMarquee oldWidget) {
@@ -32,17 +56,13 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
     }
 
     if (oldWidget.text != widget.text) {
-      // Always restart from the visible beginning of the new product name.
-      _controller.value = 0;
-    }
-
-    if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
+      _restartFromBeginning();
     }
   }
 
   @override
   void dispose() {
+    _startTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -62,7 +82,6 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
   }
 
   double _motionProgress(double value) {
-    // Hold briefly on the first characters, glide, then hold at the end.
     const hold = .14;
     if (value <= hold) return 0;
     if (value >= 1 - hold) return 1;
@@ -111,11 +130,12 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
               builder: (context, _) {
                 final rawOffset =
                     overflow * _motionProgress(_controller.value);
-                // Snap movement to physical pixels so the glyphs stay sharp
-                // instead of becoming blurry while translated fractionally.
                 final offset = (rawOffset * devicePixelRatio).round() /
                     devicePixelRatio;
 
+                // Position the full line at its logical START edge first:
+                // Arabic starts at the right edge, English at the left edge.
+                // The movement only begins after the initial 1.8s hold.
                 return Stack(
                   clipBehavior: Clip.hardEdge,
                   children: [
