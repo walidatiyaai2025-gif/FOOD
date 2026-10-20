@@ -117,7 +117,7 @@ void main() {
   });
 
   testWidgets(
-    'NEW Retail home hides unwired controls instead of silent buttons',
+    'NEW Retail home keeps shared search and hides unwired action keys',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -130,7 +130,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('retail-catalog-search')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('retail-catalog-cart')), findsNothing);
       expect(
         find.byKey(const ValueKey('retail-catalog-notifications')),
