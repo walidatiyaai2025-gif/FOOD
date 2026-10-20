@@ -66,7 +66,7 @@ final class LegacyVanInventoryHistoryMaterializerService
                             'HeaderId', 'HeaderID', 'ID', 'Id',
                         ]);
                         $legacyCarId = $this->integer($payload, [
-                            'CarId', 'CarID', 'Car_Id', 'StoreId', 'StoreID',
+                            'CarId', 'CarID', 'Car_Id', 'CarNo', 'CarNumber', 'StoreId', 'StoreID',
                         ]);
                         $transactionType = $this->integer($payload, [
                             'TransType', 'TransactionType', 'TransTypeId', 'TransTypeID',
@@ -79,14 +79,28 @@ final class LegacyVanInventoryHistoryMaterializerService
                         ]);
                         $status = $this->string($payload, ['Status', 'TransStatus', 'State']);
 
+                        $vanId = $legacyCarId === null ? null : ($vanMap[$legacyCarId] ?? null);
+                        $warehouseId = $legacyCarId === null ? null : ($warehouseMap[$legacyCarId] ?? null);
+                        $documentLinkStatus = $legacyCarId === null
+                            ? 'missing_source_car_identifier'
+                            : ($vanId !== null ? 'linked_van' : 'source_car_unmapped');
+                        $documentLinkNote = match ($documentLinkStatus) {
+                            'linked_van' => null,
+                            'missing_source_car_identifier' => 'Source header does not expose a positive legacy car identifier.',
+                            default => 'Source header references legacy car '.$legacyCarId.' but no wh_Cars -> vans mapping exists.',
+                        };
+
                         $targetId = (int) DB::table('van_inventory_history_documents')->insertGetId([
                             'source_system' => self::SOURCE_SYSTEM,
                             'source_table' => self::HEADER_TABLE,
                             'source_row_ordinal' => (int) $row->source_row_ordinal,
                             'source_key' => $row->source_key,
                             'legacy_header_id' => $legacyHeaderId,
-                            'van_id' => $legacyCarId === null ? null : ($vanMap[$legacyCarId] ?? null),
-                            'warehouse_id' => $legacyCarId === null ? null : ($warehouseMap[$legacyCarId] ?? null),
+                            'legacy_car_id' => $legacyCarId,
+                            'van_id' => $vanId,
+                            'warehouse_id' => $warehouseId,
+                            'link_status' => $documentLinkStatus,
+                            'link_note' => $documentLinkNote,
                             'legacy_transaction_type' => $transactionType,
                             'document_number' => $documentNumber === null ? null : mb_substr($documentNumber, 0, 160),
                             'occurred_at' => $occurredAt,
@@ -129,6 +143,8 @@ final class LegacyVanInventoryHistoryMaterializerService
                         ]);
                         $legacyHeaderId = $this->integer($payload, [
                             'HeaderId', 'HeaderID', 'TransHeaderId', 'TransHeaderID',
+                            'CarTransHeaderId', 'CarTransHeaderID', 'CarTransHId', 'CarTransHID',
+                            'TransHId', 'TransHID',
                         ]);
                         $legacyItemId = $this->integer($payload, [
                             'ItemID', 'ItemId', 'ProductID', 'ProductId',
@@ -143,15 +159,28 @@ final class LegacyVanInventoryHistoryMaterializerService
                             'Total', 'LineTotal', 'NetTotal', 'Amount',
                         ]);
 
+                        $documentId = $legacyHeaderId === null ? null : ($headerIds[$legacyHeaderId] ?? null);
+                        $lineLinkStatus = $legacyHeaderId === null
+                            ? 'missing_source_header_identifier'
+                            : ($documentId !== null ? 'linked_header' : 'source_orphan_header');
+                        $lineLinkNote = match ($lineLinkStatus) {
+                            'linked_header' => null,
+                            'missing_source_header_identifier' => 'Source detail does not expose a positive legacy header identifier.',
+                            default => 'Source detail references legacy header '.$legacyHeaderId.' which is absent from wh_CarTransHeader archive.',
+                        };
+
                         $targetId = (int) DB::table('van_inventory_history_lines')->insertGetId([
                             'source_system' => self::SOURCE_SYSTEM,
                             'source_table' => self::DETAIL_TABLE,
                             'source_row_ordinal' => (int) $row->source_row_ordinal,
                             'source_key' => $row->source_key,
-                            'document_id' => $legacyHeaderId === null ? null : ($headerIds[$legacyHeaderId] ?? null),
+                            'document_id' => $documentId,
                             'legacy_detail_id' => $legacyDetailId,
                             'legacy_header_id' => $legacyHeaderId,
+                            'legacy_item_id' => $legacyItemId,
                             'product_id' => $legacyItemId === null ? null : ($productMap[$legacyItemId] ?? null),
+                            'link_status' => $lineLinkStatus,
+                            'link_note' => $lineLinkNote,
                             'quantity' => $quantity,
                             'unit_price' => $unitPrice,
                             'line_total' => $lineTotal,
@@ -216,13 +245,44 @@ final class LegacyVanInventoryHistoryMaterializerService
             ->where('target_table', 'van_inventory_history_lines')
             ->count();
 
-        $unlinkedDetails = (int) DB::table('van_inventory_history_lines')
-            ->whereNotNull('legacy_header_id')
-            ->whereNull('document_id')
+        $linkedDetails = (int) DB::table('van_inventory_history_lines')
+            ->whereNotNull('document_id')
+            ->count();
+
+        $detailsWithResolvableHeader = (int) DB::table('van_inventory_history_lines as line')
+            ->whereNotNull('line.legacy_header_id')
+            ->whereExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('van_inventory_history_documents as document')
+                    ->whereColumn('document.legacy_header_id', 'line.legacy_header_id');
+            })
+            ->count();
+
+        $sourceOrphanDetails = (int) DB::table('van_inventory_history_lines as line')
+            ->whereNotNull('line.legacy_header_id')
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('van_inventory_history_documents as document')
+                    ->whereColumn('document.legacy_header_id', 'line.legacy_header_id');
+            })
+            ->count();
+
+        $detailsWithoutHeaderIdentifier = (int) DB::table('van_inventory_history_lines')
+            ->whereNull('legacy_header_id')
+            ->count();
+
+        $unexpectedUnlinkedDetails = (int) DB::table('van_inventory_history_lines as line')
+            ->whereNull('line.document_id')
+            ->whereNotNull('line.legacy_header_id')
+            ->whereExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('van_inventory_history_documents as document')
+                    ->whereColumn('document.legacy_header_id', 'line.legacy_header_id');
+            })
             ->count();
 
         $unmappedProducts = (int) DB::table('van_inventory_history_lines')
-            ->whereRaw("JSON_EXTRACT(source_payload, '$.ItemID') IS NOT NULL")
+            ->whereNotNull('legacy_item_id')
             ->whereNull('product_id')
             ->count();
 
@@ -230,11 +290,35 @@ final class LegacyVanInventoryHistoryMaterializerService
             ->whereNotNull('van_id')
             ->count();
 
+        $documentsWithCarIdentifier = (int) DB::table('van_inventory_history_documents')
+            ->whereNotNull('legacy_car_id')
+            ->count();
+
+        $sourceCarUnmappedDocuments = (int) DB::table('van_inventory_history_documents')
+            ->whereNotNull('legacy_car_id')
+            ->whereNull('van_id')
+            ->count();
+
+        $documentsWithoutCarIdentifier = (int) DB::table('van_inventory_history_documents')
+            ->whereNull('legacy_car_id')
+            ->count();
+
+        $unclassifiedDocuments = (int) DB::table('van_inventory_history_documents')
+            ->where('link_status', 'unclassified')
+            ->count();
+
+        $unclassifiedLines = (int) DB::table('van_inventory_history_lines')
+            ->where('link_status', 'unclassified')
+            ->count();
+
         $healthy = $sourceHeaders === $targetHeaders
             && $sourceDetails === $targetDetails
             && $headerMappings === $sourceHeaders
             && $detailMappings === $sourceDetails
-            && $unlinkedDetails === 0;
+            && $linkedDetails === $detailsWithResolvableHeader
+            && $unexpectedUnlinkedDetails === 0
+            && $unclassifiedDocuments === 0
+            && $unclassifiedLines === 0;
 
         return [
             'healthy' => $healthy,
@@ -247,13 +331,23 @@ final class LegacyVanInventoryHistoryMaterializerService
                 'details' => $targetDetails,
                 'header_mappings' => $headerMappings,
                 'detail_mappings' => $detailMappings,
+                'documents_with_car_identifier' => $documentsWithCarIdentifier,
                 'documents_linked_to_van' => $documentsWithVan,
-                'unlinked_details_with_header_id' => $unlinkedDetails,
+                'source_car_unmapped_documents' => $sourceCarUnmappedDocuments,
+                'documents_without_car_identifier' => $documentsWithoutCarIdentifier,
+                'details_with_resolvable_header' => $detailsWithResolvableHeader,
+                'linked_detail_rows' => $linkedDetails,
+                'source_orphan_details' => $sourceOrphanDetails,
+                'details_without_header_identifier' => $detailsWithoutHeaderIdentifier,
+                'unexpected_unlinked_details' => $unexpectedUnlinkedDetails,
                 'unmapped_product_lines' => $unmappedProducts,
+                'unclassified_documents' => $unclassifiedDocuments,
+                'unclassified_lines' => $unclassifiedLines,
             ],
             'authority' => [
                 'stock_balance_source' => 'wh_TransHeader + wh_TransDetails',
                 'car_transaction_role' => 'historical operational audit only',
+                'source_orphans_policy' => 'preserve and classify; never fabricate missing headers',
                 'mutates_inventory_balance' => false,
             ],
         ];
