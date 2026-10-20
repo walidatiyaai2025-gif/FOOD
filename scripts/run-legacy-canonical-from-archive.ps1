@@ -67,6 +67,10 @@ try {
         php -l app\Services\LegacyFullArchiveService.php
     }
 
+    Run-Step 'PHP syntax - stock location resolver' {
+        php -l app\Services\LegacyStockLocationResolver.php
+    }
+
     Run-Step 'PHP syntax - stock reconciliation' {
         php -l app\Services\LegacyStockReconciliationService.php
     }
