@@ -1672,7 +1672,10 @@ void main() {
         await tester.scrollUntilVisible(
           submit,
           300,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: find.descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          ),
         );
         expect(submit, findsOneWidget);
         await tester.tap(submit);
@@ -1751,7 +1754,10 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('تأكيد الطلب'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find.descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          ),
       );
       await tester.tap(find.text('تأكيد الطلب'));
       await _pumpCustomerFrames(tester);
@@ -1805,7 +1811,10 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('تأكيد الطلب'),
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find.descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          ),
     );
     await tester.tap(find.text('تأكيد الطلب'));
     await _pumpCustomerFrames(tester);
