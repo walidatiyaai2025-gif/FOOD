@@ -12,6 +12,8 @@ final class LegacyImportRehearsalResetService
 
     public const VAN_CONFIRMATION = 'RESET LEGACY VAN SCOPE';
 
+    private const SOURCE_SYSTEM = 'foodex_sqlserver';
+
     /**
      * Explicitly approved rehearsal reset scope.
      *
@@ -50,6 +52,14 @@ final class LegacyImportRehearsalResetService
         'remittances',
         'collection_allocations',
         'collection_transactions',
+
+        // Immutable outputs owned by the legacy Foodex importer.
+        'legacy_finance_transactions',
+        'legacy_bank_transactions',
+        'legacy_operational_document_lines',
+        'legacy_operational_documents',
+        'legacy_procurement_document_lines',
+        'legacy_procurement_documents',
 
         // Sales transaction scope explicitly approved for reset.
         'payments',
@@ -120,13 +130,42 @@ final class LegacyImportRehearsalResetService
         }
 
         $trackingRows = Schema::hasTable('legacy_import_mappings')
-            ? (int) DB::table('legacy_import_mappings')->count()
+            ? (int) DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->count()
             : 0;
 
-        $linkedLedgerRows = Schema::hasTable('customer_account_ledger_entries')
+        $foreignTrackingRows = Schema::hasTable('legacy_import_mappings')
+            ? (int) DB::table('legacy_import_mappings')
+                ->where('source_system', '<>', self::SOURCE_SYSTEM)
+                ->count()
+            : 0;
+
+        $referenceRows = Schema::hasTable('legacy_import_reference_records')
+            ? (int) DB::table('legacy_import_reference_records')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->count()
+            : 0;
+
+        $quarantineRows = Schema::hasTable('legacy_import_quarantine')
+            ? (int) DB::table('legacy_import_quarantine')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->count()
+            : 0;
+
+        $runRows = Schema::hasTable('legacy_import_runs')
+            ? (int) DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->count()
+            : 0;
+
+        $scopedLedgerRows = Schema::hasTable('customer_account_ledger_entries')
             ? (int) DB::table('customer_account_ledger_entries')
                 ->where(function ($query): void {
-                    $query->whereNotNull('order_id')->orWhereNotNull('invoice_id');
+                    $query
+                        ->whereIn('source', ['legacy_foodex_import', 'legacy_foodex_finance'])
+                        ->orWhereNotNull('order_id')
+                        ->orWhereNotNull('invoice_id');
                 })
                 ->count()
             : 0;
@@ -146,14 +185,19 @@ final class LegacyImportRehearsalResetService
 
         return [
             'counts' => $counts,
-            'linked_sales_ledger_rows' => $linkedLedgerRows,
+            'scoped_customer_ledger_rows' => $scopedLedgerRows,
             'driver_location_assignment_links_to_clear' => $driverLocationLinks,
             'van_fleet_location_rows' => $vanFleetLocationRows,
-            'total' => array_sum($counts) + $linkedLedgerRows + $vanFleetLocationRows,
+            'total' => array_sum($counts) + $scopedLedgerRows + $vanFleetLocationRows
+                + $trackingRows + $referenceRows + $quarantineRows + $runRows,
             'protected_counts' => $this->protectedCounts(),
             'legacy_mapping_rows' => $trackingRows,
+            'foreign_legacy_mapping_rows_preserved' => $foreignTrackingRows,
+            'legacy_reference_rows' => $referenceRows,
+            'legacy_quarantine_rows' => $quarantineRows,
+            'legacy_run_rows' => $runRows,
             'blocked_references' => $blockedReferences,
-            'ready' => $trackingRows === 0 && $blockedReferences === [],
+            'ready' => $blockedReferences === [],
         ];
     }
 
@@ -209,17 +253,46 @@ final class LegacyImportRehearsalResetService
 
             if (
                 Schema::hasTable('customer_account_ledger_entries')
-                && (int) ($preview['linked_sales_ledger_rows'] ?? 0) > 0
+                && (int) ($preview['scoped_customer_ledger_rows'] ?? 0) > 0
             ) {
                 DB::table('customer_account_ledger_entries')
                     ->where(function ($query): void {
-                        $query->whereNotNull('order_id')->orWhereNotNull('invoice_id');
+                        $query
+                            ->whereIn('source', ['legacy_foodex_import', 'legacy_foodex_finance'])
+                            ->orWhereNotNull('order_id')
+                            ->orWhereNotNull('invoice_id');
                     })
                     ->delete();
             }
 
             foreach ($this->deletionOrder(array_keys($preview['counts'])) as $table) {
                 DB::table($table)->delete();
+            }
+
+            // Remove only Foodex-import provenance so a fresh canonical import can rebuild it.
+            // Full source archive tables are intentionally untouched.
+            if (Schema::hasTable('legacy_import_mappings')) {
+                DB::table('legacy_import_mappings')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->delete();
+            }
+
+            if (Schema::hasTable('legacy_import_reference_records')) {
+                DB::table('legacy_import_reference_records')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->delete();
+            }
+
+            if (Schema::hasTable('legacy_import_quarantine')) {
+                DB::table('legacy_import_quarantine')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->delete();
+            }
+
+            if (Schema::hasTable('legacy_import_runs')) {
+                DB::table('legacy_import_runs')
+                    ->where('source_system', self::SOURCE_SYSTEM)
+                    ->delete();
             }
 
             $afterProtected = $this->protectedCounts();
@@ -236,6 +309,12 @@ final class LegacyImportRehearsalResetService
             return [
                 'removed' => $preview['total'],
                 'removed_by_table' => $preview['counts'],
+                'removed_scoped_customer_ledger_rows' => $preview['scoped_customer_ledger_rows'] ?? 0,
+                'removed_foodex_mapping_rows' => $preview['legacy_mapping_rows'] ?? 0,
+                'removed_foodex_reference_rows' => $preview['legacy_reference_rows'] ?? 0,
+                'removed_foodex_quarantine_rows' => $preview['legacy_quarantine_rows'] ?? 0,
+                'removed_foodex_run_rows' => $preview['legacy_run_rows'] ?? 0,
+                'preserved_foreign_mapping_rows' => $preview['foreign_legacy_mapping_rows_preserved'] ?? 0,
                 'protected_counts_before' => $beforeProtected,
                 'protected_counts_after' => $afterProtected,
             ];
