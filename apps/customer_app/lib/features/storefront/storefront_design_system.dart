@@ -582,6 +582,7 @@ class FoodexSectionHeader extends StatelessWidget {
     this.onAction,
     this.textScale = 1,
     this.spacingScale = 1,
+    this.animatedGoldTitle = false,
     super.key,
   });
 
@@ -591,6 +592,7 @@ class FoodexSectionHeader extends StatelessWidget {
   final VoidCallback? onAction;
   final double textScale;
   final double spacingScale;
+  final bool animatedGoldTitle;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -603,14 +605,19 @@ class FoodexSectionHeader extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: palette.text,
-                  fontSize: 18 * textScale,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: animatedGoldTitle
+                  ? _FoodexAnimatedGoldSectionTitle(
+                      title: title,
+                      textScale: textScale,
+                    )
+                  : Text(
+                      title,
+                      style: TextStyle(
+                        color: palette.text,
+                        fontSize: 18 * textScale,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
             if (onAction == null)
               Text(
@@ -636,6 +643,82 @@ class FoodexSectionHeader extends StatelessWidget {
               ),
           ],
         ),
+      );
+}
+
+class _FoodexAnimatedGoldSectionTitle extends StatefulWidget {
+  const _FoodexAnimatedGoldSectionTitle({
+    required this.title,
+    required this.textScale,
+  });
+
+  final String title;
+  final double textScale;
+
+  @override
+  State<_FoodexAnimatedGoldSectionTitle> createState() =>
+      _FoodexAnimatedGoldSectionTitleState();
+}
+
+class _FoodexAnimatedGoldSectionTitleState
+    extends State<_FoodexAnimatedGoldSectionTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1750),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _controller.value;
+          final wave = math.sin(progress * math.pi * 2);
+          final travel = progress * 2.6;
+
+          return Transform.translate(
+            offset: Offset(0, wave * 1.15),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment(-1.9 + travel, -.7 + wave * .12),
+                end: Alignment(.1 + travel, .8 - wave * .12),
+                colors: const <Color>[
+                  Color(0xFF8A5A00),
+                  Color(0xFFD99A12),
+                  Color(0xFFFFE08A),
+                  Color(0xFFFFC238),
+                  Color(0xFFB87500),
+                ],
+                stops: const <double>[0, .22, .48, .72, 1],
+              ).createShader(bounds),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18 * widget.textScale,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: .15,
+                  shadows: const <Shadow>[
+                    Shadow(
+                      color: Color(0x338A5A00),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       );
 }
 
