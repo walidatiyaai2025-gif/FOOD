@@ -307,15 +307,39 @@ class CustomerProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AspectRatio(
         aspectRatio: aspectRatio,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-          child: imageUrl?.trim().isNotEmpty == true
-              ? Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                )
-              : _fallback(),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 1.055, end: 1),
+          duration: const Duration(milliseconds: 720),
+          curve: Curves.easeOutCubic,
+          builder: (context, scale, child) => Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: CustomerUiColors.white,
+              borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x3D72E89A),
+                  blurRadius: 13,
+                  spreadRadius: 1,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+              child: imageUrl?.trim().isNotEmpty == true
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _fallback(),
+                    )
+                  : _fallback(),
+            ),
+          ),
         ),
       );
 
