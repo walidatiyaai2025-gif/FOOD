@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "phases": [
     {
       "id": "van_inventory_history",
@@ -35,6 +35,24 @@
       ],
       "verify": [
         "foodex:legacy-supplier-brands-verify"
+      ]
+    },
+    {
+      "id": "finance_chart_of_accounts",
+      "name": "Native Finance chart of accounts",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyFinanceAccountMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-finance-accounts"
+      ],
+      "apply": [
+        "foodex:legacy-finance-accounts",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-finance-accounts-verify"
       ]
     }
   ]
