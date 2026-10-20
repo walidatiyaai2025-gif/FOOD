@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../core/api/b2c_account_api.dart';
 
@@ -121,7 +122,7 @@ class _CustomerFavoriteButtonState extends State<CustomerFavoriteButton> {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: FoodexWaveLoading(),
               )
             : Icon(
                 _favorite
