@@ -3,6 +3,7 @@
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyFullArchiveService;
 use App\Services\LegacyImportRehearsalResetService;
+use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -1132,6 +1133,106 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-invoice-extras {--apply : Materialize invoice satellite records from the verified full archive} {--json : Output JSON}',
+    function (LegacyInvoiceSourceMaterializerService $materializer): int {
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy invoice extra materialization failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return ($result['healthy'] ?? true) ? 0 : 1;
+        }
+
+        if (! (bool) $this->option('apply')) {
+            $this->info('Legacy invoice extras dry-run');
+            $this->table(
+                ['Metric', 'Count'],
+                [
+                    ['Source rows', $result['source_rows']],
+                    ['Existing materialized rows', $result['existing_materialized_rows']],
+                ],
+            );
+            foreach ($result['source_counts'] as $table => $count) {
+                $this->line($table.': '.$count);
+            }
+
+            return 0;
+        }
+
+        $this->info('Legacy invoice extra materialization completed.');
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Source rows', $result['source_rows']],
+                ['Materialized rows', $result['materialized_rows']],
+                ['Linked to canonical invoices', $result['linked_to_invoice_rows']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY INVOICE EXTRA COVERAGE FAILED.');
+
+            return 1;
+        }
+
+        $this->info('LEGACY INVOICE EXTRA COVERAGE PASSED.');
+
+        return 0;
+    },
+)->purpose('Materialize archived Foodex invoice satellite records and link them to canonical invoices.');
+
+Artisan::command(
+    'foodex:legacy-invoice-extras-verify {--json : Output JSON}',
+    function (LegacyInvoiceSourceMaterializerService $materializer): int {
+        try {
+            $result = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy invoice extra verification failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return $result['healthy'] ? 0 : 1;
+        }
+
+        $rows = [];
+        foreach ($result['source_counts'] as $table => $sourceCount) {
+            $rows[] = [
+                $table,
+                $sourceCount,
+                $result['materialized_counts'][$table] ?? 0,
+                $result['linked_to_invoice_counts'][$table] ?? 0,
+                $result['rows_without_header_identifier'][$table] ?? 0,
+            ];
+        }
+
+        $this->table(
+            ['Source table', 'Archived', 'Materialized', 'Invoice-linked', 'No header key'],
+            $rows,
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY INVOICE EXTRA COVERAGE FAILED.');
+
+            return 1;
+        }
+
+        $this->info('LEGACY INVOICE EXTRA COVERAGE PASSED.');
+
+        return 0;
+    },
+)->purpose('Verify archived invoice satellite rows are fully materialized.');
 
 Artisan::command(
     'foodex:legacy-stock-reconcile {--json : Output machine-readable JSON}',
