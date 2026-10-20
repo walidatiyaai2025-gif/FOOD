@@ -14,9 +14,12 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Backend = Join-Path $RepoRoot 'backend'
 $EnvFile = Join-Path $Backend '.env'
 $Common = Join-Path $PSScriptRoot 'legacy\LegacyPipeline.Common.ps1'
+$NativeRegistryFile = Join-Path $PSScriptRoot 'legacy\native-phases.json'
 
 if (-not (Test-Path $Common)) { throw "Missing reusable pipeline helpers: $Common" }
+if (-not (Test-Path $NativeRegistryFile)) { throw "Missing native phase registry: $NativeRegistryFile" }
 . $Common
+$NativeRegistry = Get-Content -Raw $NativeRegistryFile | ConvertFrom-Json
 
 if (-not (Test-Path $EnvFile)) { throw "Missing $EnvFile" }
 if (-not (Test-Path $MySql)) { throw "Missing mysql.exe: $MySql" }
@@ -63,10 +66,16 @@ try {
     Invoke-FoodexStep 'PHP syntax - stock reconciliation' { php -l app\Services\LegacyStockReconciliationService.php }
     Invoke-FoodexStep 'PHP syntax - invoice extensions' { php -l app\Services\LegacyInvoiceSourceMaterializerService.php }
     Invoke-FoodexStep 'PHP syntax - business impact materializer' { php -l app\Services\LegacyBusinessImpactMaterializerService.php }
-    Invoke-FoodexStep 'PHP syntax - Van native history' { php -l app\Services\LegacyVanInventoryHistoryMaterializerService.php }
     Invoke-FoodexStep 'PHP syntax - canonical coverage' { php -l app\Services\LegacyCanonicalCoverageService.php }
     Invoke-FoodexStep 'PHP syntax - reset service' { php -l app\Services\LegacyImportRehearsalResetService.php }
     Invoke-FoodexStep 'PHP syntax - legacy routes' { php -l routes\legacy_import.php }
+    foreach ($phase in $NativeRegistry.phases | Where-Object { $_.enabled }) {
+        foreach ($lintFile in $phase.lint_files) {
+            Invoke-FoodexStep ("Native phase lint: " + $phase.name + " :: " + $lintFile) {
+                php -l $lintFile
+            }
+        }
+    }
 
     Invoke-FoodexStep 'Clear Laravel caches before one-shot' { php artisan optimize:clear }
     Invoke-FoodexStep 'Apply additive migrations' { php artisan migrate --force }
@@ -121,10 +130,23 @@ try {
     Invoke-FoodexStep 'Invoice extra apply' { php artisan foodex:legacy-invoice-extras --apply }
     Invoke-FoodexStep 'Invoice extra verify' { php artisan foodex:legacy-invoice-extras-verify }
 
-    # Native-domain phase registry starts here. Add every new native converter here once.
-    Invoke-FoodexStep 'Native Van history dry-run' { php artisan foodex:legacy-van-history }
-    Invoke-FoodexStep 'Native Van history apply' { php artisan foodex:legacy-van-history --apply }
-    Invoke-FoodexStep 'Native Van history verify' { php artisan foodex:legacy-van-history-verify }
+    # Native-domain phases are registry-driven. Future domains are added only to native-phases.json.
+    foreach ($phase in $NativeRegistry.phases | Where-Object { $_.enabled }) {
+        Invoke-FoodexStep ("Native phase dry-run: " + $phase.name) {
+            $args = @($phase.dry_run)
+            php artisan @args
+        }
+
+        Invoke-FoodexStep ("Native phase apply: " + $phase.name) {
+            $args = @($phase.apply)
+            php artisan @args
+        }
+
+        Invoke-FoodexStep ("Native phase verify: " + $phase.name) {
+            $args = @($phase.verify)
+            php artisan @args
+        }
+    }
 
     Invoke-FoodexStep 'Business-impact extension dry-run' { php artisan foodex:legacy-business-materialize }
     Invoke-FoodexStep 'Business-impact extension apply' { php artisan foodex:legacy-business-materialize --apply }
@@ -137,7 +159,12 @@ try {
     Invoke-FoodexStep 'FINAL purchase verify' { php artisan foodex:legacy-purchase-history-verify }
     Invoke-FoodexStep 'FINAL operational verify' { php artisan foodex:legacy-operational-history-verify }
     Invoke-FoodexStep 'FINAL finance verify' { php artisan foodex:legacy-finance-history-verify }
-    Invoke-FoodexStep 'FINAL Native Van history verify' { php artisan foodex:legacy-van-history-verify }
+    foreach ($phase in $NativeRegistry.phases | Where-Object { $_.enabled }) {
+        Invoke-FoodexStep ("FINAL native phase verify: " + $phase.name) {
+            $args = @($phase.verify)
+            php artisan @args
+        }
+    }
     Invoke-FoodexStep 'FINAL business-impact verify' { php artisan foodex:legacy-business-verify }
     Invoke-FoodexStep 'FINAL full SQL archive verify' { php artisan foodex:legacy-archive-verify }
     Invoke-FoodexStep 'Clear Laravel caches after one-shot' { php artisan optimize:clear }
@@ -154,6 +181,8 @@ try {
         safety_backup = $SafetyBackup
         log_file = $LogFile
         reusable_entrypoint = 'scripts/run-legacy-one-shot.ps1'
+        native_registry_version = $NativeRegistry.version
+        native_phases = @($NativeRegistry.phases | Where-Object { $_.enabled } | ForEach-Object { $_.id })
     }
     $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $ManifestFile -Encoding UTF8
 
