@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/b2b_api.dart';
 
@@ -53,7 +54,7 @@ class _B2bBusinessAccountProfileState
               padding: EdgeInsets.symmetric(vertical: 28),
               child: Center(
                 key: ValueKey('b2b-loading'),
-                child: CircularProgressIndicator(),
+                child: FoodexWaveLoading(),
               ),
             );
           }
