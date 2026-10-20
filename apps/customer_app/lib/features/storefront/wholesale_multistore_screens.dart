@@ -4431,7 +4431,7 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                       context.tr('b2b.cart.title'),
                       key: const ValueKey('b2b-cart-content-title'),
                       style: const TextStyle(
-                        color: Color(0xFF10233F),
+                        color: CustomerUiColors.ink,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
@@ -6200,7 +6200,7 @@ class _WholesaleOrderDetailsDesignScreenState
                       context.tr('b2b.order.title'),
                       key: const ValueKey('b2b-order-content-title'),
                       style: const TextStyle(
-                        color: Color(0xFF10233F),
+                        color: CustomerUiColors.ink,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
