@@ -376,6 +376,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       palette: palette,
                       textScale: .8,
                       spacingScale: .25,
+                      animatedGoldTitle: type == 'categories',
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'categories',
@@ -1031,7 +1032,7 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
 
     return SizedBox(
       key: const ValueKey('wholesale-home-category-rail'),
-      height: 104,
+      height: 94,
       child: ListView.separated(
         controller: _controller,
         padding: const EdgeInsets.symmetric(horizontal: 14),
