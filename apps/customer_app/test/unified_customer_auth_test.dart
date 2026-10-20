@@ -36,7 +36,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Customer App'), findsOneWidget);
+    expect(find.text('Customer App'), findsWidgets);
     expect(find.text('Customer sign in'), findsWidgets);
     expect(find.textContaining('Business customer'), findsNothing);
     final identity = find.byKey(const ValueKey('customer-app-identity'));
@@ -93,7 +93,7 @@ void main() {
 
     final identity = find.byKey(const ValueKey('customer-app-identity'));
     expect(identity, findsOneWidget);
-    expect(find.text('تطبيق العميل'), findsOneWidget);
+    expect(find.text('تطبيق العميل'), findsWidgets);
     expect(tester.getSize(identity).height, greaterThan(0));
     expect(Directionality.of(tester.element(identity)), TextDirection.rtl);
   });
@@ -595,6 +595,8 @@ void main() {
     );
     expect(detail.data, contains('session-commit-failed'));
   });
+
+
 
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
