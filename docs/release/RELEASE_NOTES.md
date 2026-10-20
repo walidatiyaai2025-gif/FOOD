@@ -1,19 +1,21 @@
-# FOODEX 1.0.94 — Latest Main Full Rebuild Release Notes
+# FOODEX 1.0.95 — Customer Mobile Access Release Notes
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.94`.
-- Customer source identity: `1.0.94+94`.
-- Driver source identity: `1.0.94+94`.
-- Van source identity: `1.0.94+94`.
-- Requested source boundary: authoritative `main` through commit `23adef9f67ae798a46e79733990b35d4357ba0e9`.
+- Dashboard / repository release: `1.0.95`.
+- Customer source identity: `1.0.95+95`.
+- Driver source identity: `1.0.95+95`.
+- Van source identity: `1.0.95+95`.
+- Release source: the exact validated `main` commit produced by the canonical FOODEX Release Factory.
 
 ## Included changes
 
-- All functionality already published in FOODEX 1.0.91.
-- Customer mobile merchandising and finance presentation polish merged in #2261.
-- ERP local/testing workspace activation repair merged in #2264, with production behavior remaining deny-by-default.
-- All source changes are rebuilt through the canonical FOODEX Release Factory; canonical 1.0.94 APKs are not carried forward from an older version.
+- Customer 360 now lets SUPER_ADMIN operators edit the customer's name, email and phone from the Customer Identity tab.
+- The saved Customer 360 email is synchronized with the authentication User and the linked legacy/B2B/B2C customer records so the Customer App uses one canonical sign-in email.
+- Customer 360 now includes a dedicated Customer App access panel for setting or resetting the customer's password.
+- A password reset activates the customer login, clears import/deactivation state, revokes existing Sanctum tokens and records an audit event.
+- Password provisioning is blocked until the customer has a real valid email; synthetic `@contacts.foodex.local` identities cannot be enabled accidentally.
+- Regression coverage verifies imported/inactive customer provisioning, successful Customer App API login, token revocation, audit logging and SUPER_ADMIN-only mutation access.
 
 ## Build scope
 

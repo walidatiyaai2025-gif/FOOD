@@ -33,6 +33,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -319,6 +320,8 @@ final class Customer360Controller extends Controller
             'serviceCases' => $serviceCaseRows,
             'serviceTimeline' => $serviceTimeline,
             'canManageServiceCases' => $canManageServiceCases,
+            'canManageIdentity' => $actor->hasRole('SUPER_ADMIN'),
+            'loginUser' => $customer->user,
         ]);
     }
 
@@ -422,6 +425,176 @@ final class Customer360Controller extends Controller
             'results' => $results,
             'selected' => $selected,
         ]);
+    }
+
+    public function updateIdentity(
+        Request $request,
+        int $platformCustomer,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        $name = trim((string) $validated['name']);
+        $email = Str::lower(trim((string) $validated['email']));
+        $phone = trim((string) ($validated['phone'] ?? ''));
+        $phone = $phone === '' ? null : $phone;
+
+        $duplicateUser = User::query()
+            ->whereKeyNot((int) $customer->user_id)
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->exists();
+        $duplicateCustomer = PlatformCustomer::query()
+            ->whereKeyNot((int) $customer->getKey())
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->exists();
+        if ($duplicateUser || $duplicateCustomer) {
+            throw ValidationException::withMessages([
+                'email' => [__('customer_360.identity.email_in_use')],
+            ]);
+        }
+
+        $before = [
+            'name' => (string) $customer->name,
+            'email' => (string) $customer->email,
+            'phone' => $customer->phone,
+        ];
+
+        $updated = DB::transaction(function () use ($customer, $name, $email, $phone): PlatformCustomer {
+            $locked = PlatformCustomer::query()
+                ->whereKey($customer->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $user = User::query()
+                ->whereKey($locked->user_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $user->forceFill([
+                'name' => $name,
+                'email' => $email,
+                'is_platform_customer' => true,
+            ])->save();
+
+            $locked->forceFill([
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+            ])->save();
+
+            DB::table('customers')
+                ->where('id', $locked->legacy_customer_id)
+                ->update([
+                    'name' => $name,
+                    'email' => $email,
+                    'phone' => $phone,
+                    'updated_at' => now(),
+                ]);
+
+            foreach (['b2b_customers', 'b2c_customers'] as $table) {
+                DB::table($table)
+                    ->where('user_id', $user->getKey())
+                    ->update([
+                        'name' => $name,
+                        'email' => $email,
+                        'phone' => $phone,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return $locked->refresh();
+        }, 3);
+
+        $audit->record(
+            'customer360.identity_updated',
+            $actor,
+            $updated,
+            $before,
+            [
+                'name' => (string) $updated->name,
+                'email' => (string) $updated->email,
+                'phone' => $updated->phone,
+            ],
+            $request,
+        );
+
+        return redirect()
+            ->to(route('admin.customer-360.show', ['platformCustomer' => $updated->getKey()]).'#identity')
+            ->with('status', __('customer_360.identity.updated'));
+    }
+
+    public function resetMobilePassword(
+        Request $request,
+        int $platformCustomer,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
+        ]);
+
+        $user = $customer->user;
+        abort_unless($user instanceof User, 409);
+
+        $loginEmail = Str::lower(trim((string) $customer->email));
+        $userEmail = Str::lower(trim((string) $user->email));
+        $syntheticLogin = Str::endsWith($loginEmail, '@contacts.foodex.local');
+        if ($loginEmail === ''
+            || filter_var($loginEmail, FILTER_VALIDATE_EMAIL) === false
+            || $syntheticLogin
+            || $userEmail !== $loginEmail) {
+            throw ValidationException::withMessages([
+                'password' => [__('customer_360.identity.login_email_required')],
+            ]);
+        }
+
+        $wasActive = (bool) $user->is_active;
+        DB::transaction(function () use ($customer, $user, $validated): void {
+            $lockedUser = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $lockedCustomer = PlatformCustomer::query()->whereKey($customer->getKey())->lockForUpdate()->firstOrFail();
+
+            $lockedUser->forceFill([
+                'password' => Hash::make((string) $validated['password']),
+                'is_active' => true,
+                'is_platform_customer' => true,
+                'deactivated_at' => null,
+                'deactivation_reason' => null,
+            ])->save();
+            $lockedCustomer->forceFill(['is_active' => true])->save();
+            $lockedUser->tokens()->delete();
+        }, 3);
+
+        $audit->record(
+            'customer360.mobile_password_reset',
+            $actor,
+            $user,
+            [
+                'user_id' => (int) $user->getKey(),
+                'was_active' => $wasActive,
+            ],
+            [
+                'user_id' => (int) $user->getKey(),
+                'is_active' => true,
+                'tokens_revoked' => true,
+            ],
+            $request,
+        );
+
+        return redirect()
+            ->to(route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]).'#identity')
+            ->with('status', __('customer_360.identity.password_reset'));
     }
 
     public function updateCreditLimit(

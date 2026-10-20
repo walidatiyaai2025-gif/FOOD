@@ -129,6 +129,117 @@ class DashboardCustomer360Test extends TestCase
             ->value('registration_source'));
     }
 
+    public function test_super_admin_can_provision_imported_customer_mobile_login(): void
+    {
+        $storeId = $this->store('B2C', 'MOBILE-CREDENTIALS', 'Mobile Credentials Store');
+        $user = app(PlatformCustomerService::class)->register([
+            'name' => 'Imported Mobile Customer',
+            'email' => 'imported-mobile-seed@example.test',
+            'phone' => '01145011964',
+            'password' => 'SeedPassword123!',
+            'locale' => 'ar',
+            'store_id' => $storeId,
+        ], 'import');
+        $platform = PlatformCustomer::query()->where('user_id', $user->id)->firstOrFail();
+
+        $user->forceFill([
+            'email' => 'legacy-login-'.$user->id.'@contacts.foodex.local',
+            'is_active' => false,
+            'deactivated_at' => now(),
+            'deactivation_reason' => 'Imported customer; mobile login not provisioned.',
+        ])->save();
+        $platform->forceFill(['email' => ''])->save();
+        DB::table('customers')
+            ->where('id', $platform->legacy_customer_id)
+            ->update(['email' => null, 'updated_at' => now()]);
+
+        $super = $this->globalAdmin('SUPER_ADMIN');
+
+        $this->actingAs($super)
+            ->patch(route('admin.customer-360.mobile-password.reset', ['platformCustomer' => $platform->id]), [
+                'password' => 'BeforeEmail123!',
+                'password_confirmation' => 'BeforeEmail123!',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $retailAdmin = $this->retailAdmin($storeId);
+        $this->actingAs($retailAdmin)
+            ->patch(route('admin.customer-360.identity.update', ['platformCustomer' => $platform->id]), [
+                'name' => 'Blocked Update',
+                'email' => 'blocked-update@example.test',
+                'phone' => '01145011964',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($super)
+            ->patch(route('admin.customer-360.identity.update', ['platformCustomer' => $platform->id]), [
+                'name' => 'Al Khaled',
+                'email' => 'alkhaled.mobile@example.test',
+                'phone' => '01145011964',
+            ])
+            ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#identity')
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('platform_customers', [
+            'id' => $platform->id,
+            'name' => 'Al Khaled',
+            'email' => 'alkhaled.mobile@example.test',
+            'phone' => '01145011964',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Al Khaled',
+            'email' => 'alkhaled.mobile@example.test',
+            'is_active' => 0,
+            'is_platform_customer' => 1,
+        ]);
+        $this->assertDatabaseHas('customers', [
+            'id' => $platform->legacy_customer_id,
+            'name' => 'Al Khaled',
+            'email' => 'alkhaled.mobile@example.test',
+            'phone' => '01145011964',
+        ]);
+
+        $user->refresh()->createToken('pre-reset-mobile-session');
+        $this->assertGreaterThan(0, $user->tokens()->count());
+
+        $this->actingAs($super)
+            ->patch(route('admin.customer-360.mobile-password.reset', ['platformCustomer' => $platform->id]), [
+                'password' => 'MobileLogin95!',
+                'password_confirmation' => 'MobileLogin95!',
+            ])
+            ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#identity')
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status');
+
+        $user->refresh();
+        $platform->refresh();
+        $this->assertTrue($user->is_active);
+        $this->assertTrue($platform->is_active);
+        $this->assertNull($user->deactivated_at);
+        $this->assertNull($user->deactivation_reason);
+        $this->assertSame(0, $user->tokens()->count());
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'alkhaled.mobile@example.test',
+            'password' => 'MobileLogin95!',
+            'app' => 'customer',
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'alkhaled.mobile@example.test')
+            ->assertJsonPath('user.platform_customer', true);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'customer360.identity_updated',
+            'auditable_id' => $platform->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'customer360.mobile_password_reset',
+            'auditable_id' => $user->id,
+        ]);
+    }
+
     public function test_retail_scope_hides_foreign_customer_store_and_invoice(): void
     {
         $storeA = $this->store('B2C', 'RETAIL-A', 'Retail A');

@@ -595,6 +595,8 @@ Route::prefix('admin')
         Route::get('/erp/customer-service/cases/{case}/notes/{note}/attachment', [CustomerServiceWorkspaceController::class, 'attachment'])->whereNumber('case')->whereNumber('note')->name('erp.customer-service.cases.notes.attachment');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
+        Route::patch('/customer-360/{platformCustomer}/identity', [Customer360Controller::class, 'updateIdentity'])->whereNumber('platformCustomer')->middleware('throttle:30,1')->name('customer-360.identity.update');
+        Route::patch('/customer-360/{platformCustomer}/mobile-password', [Customer360Controller::class, 'resetMobilePassword'])->whereNumber('platformCustomer')->middleware('throttle:10,1')->name('customer-360.mobile-password.reset');
         Route::get('/customer-360/{platformCustomer}/finance-invoices', [Customer360Controller::class, 'financeInvoices'])->whereNumber('platformCustomer')->name('customer-360.finance-invoices');
         Route::post('/customer-360/{platformCustomer}/finance-entries', [Customer360Controller::class, 'storeFinanceEntry'])->whereNumber('platformCustomer')->name('customer-360.finance-entries.store');
         Route::post('/customer-360/{platformCustomer}/invoices/{invoice}/settle', [Customer360Controller::class, 'settleInvoice'])->whereNumber('platformCustomer')->whereNumber('invoice')->name('customer-360.invoices.settle');
