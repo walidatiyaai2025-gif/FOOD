@@ -22,10 +22,10 @@ final class LegacyFinanceAccountMaterializerService
     private const ID_ALIASES = ['ID', 'Id', 'AccountID', 'AccountId', 'AccID', 'AccId'];
     private const CODE_ALIASES = ['Code', 'AccountCode', 'AccCode', 'AccountNo', 'AccountNumber', 'No'];
     private const NAME_ALIASES = ['Name', 'AccountName', 'Name_En', 'Name_Ar', 'Caption', 'Description'];
-    private const PARENT_ALIASES = ['ParentID', 'ParentId', 'ParentAccountID', 'ParentAccountId', 'ParentAccID', 'ParentAccId', 'MainAccountID', 'MainAccountId'];
-    private const TYPE_ALIASES = ['AccountType', 'AccountTypeName', 'Type', 'TypeName', 'AccountNature', 'Nature', 'NatureName', 'AccountClass', 'Classification'];
+    private const PARENT_ALIASES = ['ParentID', 'ParentId', 'AccountParentID', 'AccountParentId', 'ParentAccountID', 'ParentAccountId', 'ParentAccID', 'ParentAccId', 'MainAccountID', 'MainAccountId'];
+    private const TYPE_ALIASES = ['AccountFinalListType', 'FinalListType', 'FinancialStatementType', 'AccountNature', 'Nature', 'NatureName', 'AccountClass', 'Classification', 'AccountType', 'AccountTypeName', 'Type', 'TypeName'];
     private const NORMAL_BALANCE_ALIASES = ['NormalBalance', 'BalanceNature', 'BalanceType', 'DebitCredit', 'DrCr', 'DC', 'DebitOrCredit'];
-    private const STATUS_ALIASES = ['Status', 'AccountStatus', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
+    private const STATUS_ALIASES = ['AccountStatus', 'Status', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
 
     public function profile(): array
     {
@@ -46,6 +46,26 @@ final class LegacyFinanceAccountMaterializerService
         $typeLookup = $this->typeLookup();
         $typeValues = $this->distinctValues($qualified, $typeColumn, 50);
         $normalBalanceValues = $this->distinctValues($qualified, $normalBalanceColumn, 50);
+        $functionalTypeColumn = $this->matchColumn($columns, ['AccountType', 'AccountTypeName']);
+        $finalListColumn = $this->matchColumn($columns, ['AccountFinalListType', 'FinalListType']);
+        $hasAccountsColumn = $this->matchColumn($columns, ['HasAccounts']);
+        $hasTransColumn = $this->matchColumn($columns, ['HasTrans']);
+        $functionalTypeValues = $this->distinctValues($qualified, $functionalTypeColumn, 50);
+        $finalListValues = $this->distinctValues($qualified, $finalListColumn, 50);
+        $hasAccountsValues = $this->distinctValues($qualified, $hasAccountsColumn, 20);
+        $hasTransValues = $this->distinctValues($qualified, $hasTransColumn, 20);
+        $rootAccounts = $this->rootAccountProfile(
+            $qualified,
+            $idColumn,
+            $codeColumn,
+            $nameColumn,
+            $parentColumn,
+            $functionalTypeColumn,
+            $finalListColumn,
+            $hasAccountsColumn,
+            $hasTransColumn,
+            $statusColumn,
+        );
 
         $requiredResolved = $idColumn !== null
             && $codeColumn !== null
@@ -99,6 +119,15 @@ final class LegacyFinanceAccountMaterializerService
                 ->all(),
             'type_values' => $typeValues,
             'normal_balance_values' => $normalBalanceValues,
+            'functional_type_column' => $functionalTypeColumn,
+            'functional_type_values' => $functionalTypeValues,
+            'final_list_column' => $finalListColumn,
+            'final_list_values' => $finalListValues,
+            'has_accounts_column' => $hasAccountsColumn,
+            'has_accounts_values' => $hasAccountsValues,
+            'has_trans_column' => $hasTransColumn,
+            'has_trans_values' => $hasTransValues,
+            'root_accounts' => $rootAccounts,
             'classification' => [
                 'unclassified_type_rows' => $classification['unclassified_type_rows'],
                 'unclassified_type_samples' => $classification['unclassified_type_samples'],
@@ -139,6 +168,13 @@ final class LegacyFinanceAccountMaterializerService
                     'source_columns' => $profile['columns'],
                     'type_values' => $profile['type_values'],
                     'normal_balance_values' => $profile['normal_balance_values'],
+                    'functional_type_column' => $profile['functional_type_column'],
+                    'functional_type_values' => $profile['functional_type_values'],
+                    'final_list_column' => $profile['final_list_column'],
+                    'final_list_values' => $profile['final_list_values'],
+                    'has_accounts_values' => $profile['has_accounts_values'],
+                    'has_trans_values' => $profile['has_trans_values'],
+                    'root_accounts' => $profile['root_accounts'],
                     'classification' => $profile['classification'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             );
@@ -632,6 +668,69 @@ final class LegacyFinanceAccountMaterializerService
         $key = (string) $value;
 
         return isset($lookup[$key]) ? (string) $lookup[$key] : null;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function rootAccountProfile(
+        string $qualified,
+        ?string $idColumn,
+        ?string $codeColumn,
+        ?string $nameColumn,
+        ?string $parentColumn,
+        ?string $functionalTypeColumn,
+        ?string $finalListColumn,
+        ?string $hasAccountsColumn,
+        ?string $hasTransColumn,
+        ?string $statusColumn,
+    ): array {
+        if ($idColumn === null || $codeColumn === null || $nameColumn === null || $parentColumn === null) {
+            return [];
+        }
+
+        $select = array_values(array_unique(array_filter([
+            $idColumn,
+            $codeColumn,
+            $nameColumn,
+            $parentColumn,
+            $functionalTypeColumn,
+            $finalListColumn,
+            $hasAccountsColumn,
+            $hasTransColumn,
+            $statusColumn,
+        ])));
+
+        return $this->legacySource()->table($qualified)
+            ->select($select)
+            ->where(function ($query) use ($parentColumn): void {
+                $query->whereNull($parentColumn)->orWhere($parentColumn, '<=', 0);
+            })
+            ->orderBy($codeColumn)
+            ->limit(100)
+            ->get()
+            ->map(function ($row) use (
+                $idColumn,
+                $codeColumn,
+                $nameColumn,
+                $parentColumn,
+                $functionalTypeColumn,
+                $finalListColumn,
+                $hasAccountsColumn,
+                $hasTransColumn,
+                $statusColumn,
+            ): array {
+                return [
+                    'id' => (int) ($row->{$idColumn} ?? 0),
+                    'code' => trim((string) ($row->{$codeColumn} ?? '')),
+                    'name' => trim((string) ($row->{$nameColumn} ?? '')),
+                    'parent_id' => $row->{$parentColumn} ?? null,
+                    'account_type' => $functionalTypeColumn === null ? null : ($row->{$functionalTypeColumn} ?? null),
+                    'final_list_type' => $finalListColumn === null ? null : ($row->{$finalListColumn} ?? null),
+                    'has_accounts' => $hasAccountsColumn === null ? null : ($row->{$hasAccountsColumn} ?? null),
+                    'has_trans' => $hasTransColumn === null ? null : ($row->{$hasTransColumn} ?? null),
+                    'status' => $statusColumn === null ? null : ($row->{$statusColumn} ?? null),
+                ];
+            })
+            ->all();
     }
 
     /** @return list<array{value:mixed,count:int}> */
