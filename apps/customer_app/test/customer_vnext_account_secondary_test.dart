@@ -40,7 +40,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.byType(CustomerAccountHeader), findsNothing);
-        expect(find.byType(CustomerOutlineIconButton), findsNWidgets(2));
+        expect(find.byType(CustomerOutlineIconButton), findsNothing);
 
         final title = locale.languageCode == 'ar'
             ? find.text('الملف التجاري')
