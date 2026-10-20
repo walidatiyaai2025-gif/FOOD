@@ -20,6 +20,7 @@ if (-not (Test-Path $Common)) { throw "Missing reusable pipeline helpers: $Commo
 if (-not (Test-Path $NativeRegistryFile)) { throw "Missing native phase registry: $NativeRegistryFile" }
 . $Common
 $NativeRegistry = Get-Content -Raw $NativeRegistryFile | ConvertFrom-Json
+$NativeRegistryHash = (Get-FileHash -Algorithm SHA256 $NativeRegistryFile).Hash.ToLowerInvariant()
 
 if (-not (Test-Path $EnvFile)) { throw "Missing $EnvFile" }
 if (-not (Test-Path $MySql)) { throw "Missing mysql.exe: $MySql" }
@@ -180,8 +181,10 @@ try {
         target = [ordered]@{ database = $TargetDatabase }
         safety_backup = $SafetyBackup
         log_file = $LogFile
+        acceptance_contract_version = 1
         reusable_entrypoint = 'scripts/run-legacy-one-shot.ps1'
         native_registry_version = $NativeRegistry.version
+        native_registry_sha256 = $NativeRegistryHash
         native_phases = @($NativeRegistry.phases | Where-Object { $_.enabled } | ForEach-Object { $_.id })
     }
     $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $ManifestFile -Encoding UTF8
