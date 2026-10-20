@@ -731,15 +731,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               tooltip: context.tr('customer.diagnostics.open'),
               icon: const Icon(Icons.bug_report_outlined, color: Colors.white),
             ),
-            IconButton(
-              key: const ValueKey('customer-auth-guest'),
-              onPressed: _busy
-                  ? null
-                  : () => Navigator.of(context)
-                      .pushReplacementNamed(CustomerRoutePaths.marketplace),
-              tooltip: context.tr('customer.action.guest'),
-              icon: const Icon(Icons.storefront_outlined, color: Colors.white),
-            ),
             if (widget.onLocaleChanged != null)
               TextButton(
                 key: const ValueKey('customer-auth-language-header'),
