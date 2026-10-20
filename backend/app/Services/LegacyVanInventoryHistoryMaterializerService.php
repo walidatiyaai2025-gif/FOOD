@@ -245,6 +245,21 @@ final class LegacyVanInventoryHistoryMaterializerService
             ->where('target_table', 'van_inventory_history_lines')
             ->count();
 
+        $headersWithoutLegacyId = (int) DB::table('van_inventory_history_documents')
+            ->whereNull('legacy_header_id')
+            ->count();
+
+        $duplicateLegacyHeaderIds = (int) DB::query()
+            ->fromSub(
+                DB::table('van_inventory_history_documents')
+                    ->whereNotNull('legacy_header_id')
+                    ->select('legacy_header_id')
+                    ->groupBy('legacy_header_id')
+                    ->havingRaw('COUNT(*) > 1'),
+                'duplicate_headers',
+            )
+            ->count();
+
         $linkedDetails = (int) DB::table('van_inventory_history_lines')
             ->whereNotNull('document_id')
             ->count();
@@ -315,6 +330,8 @@ final class LegacyVanInventoryHistoryMaterializerService
             && $sourceDetails === $targetDetails
             && $headerMappings === $sourceHeaders
             && $detailMappings === $sourceDetails
+            && $headersWithoutLegacyId === 0
+            && $duplicateLegacyHeaderIds === 0
             && $linkedDetails === $detailsWithResolvableHeader
             && $unexpectedUnlinkedDetails === 0
             && $unclassifiedDocuments === 0
@@ -331,6 +348,8 @@ final class LegacyVanInventoryHistoryMaterializerService
                 'details' => $targetDetails,
                 'header_mappings' => $headerMappings,
                 'detail_mappings' => $detailMappings,
+                'headers_without_legacy_id' => $headersWithoutLegacyId,
+                'duplicate_legacy_header_ids' => $duplicateLegacyHeaderIds,
                 'documents_with_car_identifier' => $documentsWithCarIdentifier,
                 'documents_linked_to_van' => $documentsWithVan,
                 'source_car_unmapped_documents' => $sourceCarUnmappedDocuments,
