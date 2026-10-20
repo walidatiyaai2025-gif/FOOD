@@ -7,7 +7,6 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
-import 'customer_account_v3_widgets.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef CustomerFavoriteAddToCart = Future<void> Function({
