@@ -270,12 +270,14 @@ final class LegacySupplierBrandMaterializerService
 
         $sourceSupplierRows = $this->sourceSupplierRowCount();
 
+        $accountedProducts = $productsWithPrimary + $productsWithoutSupplierRelation;
+
         $healthy = count($supplierMappings) === $sourceSupplierRows
             && $brandMappings === count($supplierMappings)
             && $derivedBrands === count($supplierMappings)
             && $sourceRows === count($relations)
             && $productsWithPrimary === $productsWithRelation
-            && $productsWithoutSupplierRelation === 0
+            && $accountedProducts === count($productMappings)
             && $duplicatePrimaryProducts === 0
             && $primaryBrandMismatch === 0
             && $relationsMissingBrand === 0
@@ -301,6 +303,7 @@ final class LegacySupplierBrandMaterializerService
                 'supplier_brand_source_rows' => $sourceRows,
                 'products_with_primary_brand' => $productsWithPrimary,
                 'products_without_supplier_relation' => $productsWithoutSupplierRelation,
+                'accounted_products' => $accountedProducts,
                 'duplicate_primary_products' => $duplicatePrimaryProducts,
                 'primary_brand_mismatches' => $primaryBrandMismatch,
                 'relations_missing_brand' => $relationsMissingBrand,
@@ -316,6 +319,7 @@ final class LegacySupplierBrandMaterializerService
                 'primary_selection' => self::SELECTION_RULE,
                 'preserve_secondary_suppliers' => true,
                 'fabricate_brand_when_supplier_unknown' => false,
+                'source_gap_policy' => 'products without any explicit supplier relation remain unbranded but must be explicitly accounted for',
             ],
         ];
     }
@@ -545,7 +549,7 @@ final class LegacySupplierBrandMaterializerService
                 $sourceSupplierId,
                 (int) $supplierMappings[$sourceSupplierId],
                 'wh_Items.'.$supplierColumn,
-                300,
+                250,
             );
         }
 
