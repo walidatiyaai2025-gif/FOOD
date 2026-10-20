@@ -89,7 +89,7 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
                   alignment: AlignmentDirectional.centerStart,
                   child: Transform.translate(
                     offset: Offset(
-                      direction == TextDirection.rtl ? dx : -dx,
+                      direction == TextDirection.rtl ? -dx : dx,
                       0,
                     ),
                     child: child,
