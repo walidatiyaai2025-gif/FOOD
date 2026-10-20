@@ -361,6 +361,116 @@ final class LegacyFinanceAccountMaterializerService
         $sourceRows = (int) $profile['source_rows'];
         $mappingCount = $this->mappingCount();
 
+        $columns = $profile['resolved_columns'];
+        $classification = $this->classifyRows(
+            $profile['source_table'],
+            (string) $columns['id'],
+            (string) $columns['code'],
+            (string) $columns['name'],
+            $columns['name_ar'],
+            $columns['parent'],
+            $columns['type'],
+            $columns['normal_balance'],
+            $columns['status'],
+            $columns['has_trans'],
+            false,
+        );
+
+        $expectedRows = collect($classification['rows'])->keyBy(
+            static fn (array $row): int => (int) $row['source_id']
+        );
+
+        $mappings = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', $profile['source_table_name'])
+            ->where('target_table', 'enterprise_finance_accounts')
+            ->get(['source_key', 'target_id']);
+
+        $targetBySource = [];
+        foreach ($mappings as $mapping) {
+            $targetBySource[(int) $mapping->source_key] = (int) $mapping->target_id;
+        }
+
+        $targetIds = array_values($targetBySource);
+        $accountsById = $targetIds === []
+            ? collect()
+            : DB::table('enterprise_finance_accounts')
+                ->whereIn('id', $targetIds)
+                ->get([
+                    'id',
+                    'parent_id',
+                    'type',
+                    'normal_balance',
+                    'is_control',
+                    'allow_posting',
+                ])
+                ->keyBy('id');
+
+        $semanticMismatches = 0;
+        $parentMismatches = 0;
+        $controlMismatches = 0;
+        $postingMismatches = 0;
+        $semanticSamples = [];
+
+        foreach ($expectedRows as $sourceId => $expected) {
+            $targetId = $targetBySource[(int) $sourceId] ?? null;
+            $account = $targetId === null ? null : $accountsById->get($targetId);
+
+            if ($account === null) {
+                continue;
+            }
+
+            $expectedParentTargetId = $expected['source_parent_id'] === null
+                ? null
+                : ($targetBySource[(int) $expected['source_parent_id']] ?? null);
+
+            $semanticBad = (string) $account->type !== (string) $expected['type']
+                || (string) $account->normal_balance !== (string) $expected['normal_balance'];
+
+            if ($semanticBad) {
+                $semanticMismatches++;
+            }
+
+            if (
+                ($account->parent_id === null ? null : (int) $account->parent_id)
+                !== ($expectedParentTargetId === null ? null : (int) $expectedParentTargetId)
+            ) {
+                $parentMismatches++;
+            }
+
+            if ((bool) $account->is_control !== (bool) $expected['is_control']) {
+                $controlMismatches++;
+            }
+
+            if ((bool) $account->allow_posting !== (bool) $expected['allow_posting']) {
+                $postingMismatches++;
+            }
+
+            if (
+                ($semanticBad
+                    || (($account->parent_id === null ? null : (int) $account->parent_id)
+                        !== ($expectedParentTargetId === null ? null : (int) $expectedParentTargetId))
+                    || (bool) $account->is_control !== (bool) $expected['is_control']
+                    || (bool) $account->allow_posting !== (bool) $expected['allow_posting'])
+                && count($semanticSamples) < 25
+            ) {
+                $semanticSamples[] = [
+                    'source_id' => (int) $sourceId,
+                    'target_id' => (int) $targetId,
+                    'expected_type' => $expected['type'],
+                    'actual_type' => (string) $account->type,
+                    'expected_normal_balance' => $expected['normal_balance'],
+                    'actual_normal_balance' => (string) $account->normal_balance,
+                    'expected_parent_id' => $expectedParentTargetId,
+                    'actual_parent_id' => $account->parent_id === null ? null : (int) $account->parent_id,
+                    'expected_is_control' => (bool) $expected['is_control'],
+                    'actual_is_control' => (bool) $account->is_control,
+                    'expected_allow_posting' => (bool) $expected['allow_posting'],
+                    'actual_allow_posting' => (bool) $account->allow_posting,
+                ];
+            }
+        }
+
         $orphanMappings = (int) DB::table('legacy_import_mappings as mapping')
             ->leftJoin('enterprise_finance_accounts as account', 'account.id', '=', 'mapping.target_id')
             ->where('mapping.source_system', self::SOURCE_SYSTEM)
@@ -382,27 +492,28 @@ final class LegacyFinanceAccountMaterializerService
             )
             ->count();
 
-        $unmappedParents = (int) DB::table('legacy_import_mappings as child_map')
-            ->join('enterprise_finance_accounts as child', 'child.id', '=', 'child_map.target_id')
-            ->where('child_map.source_system', self::SOURCE_SYSTEM)
-            ->where('child_map.source_table', $profile['source_table_name'])
-            ->where('child_map.target_table', 'enterprise_finance_accounts')
-            ->whereNotNull('child.parent_id')
-            ->whereNotExists(function ($query) use ($profile): void {
-                $query->selectRaw('1')
-                    ->from('legacy_import_mappings as parent_map')
-                    ->whereColumn('parent_map.target_id', 'child.parent_id')
-                    ->where('parent_map.source_system', self::SOURCE_SYSTEM)
-                    ->where('parent_map.source_table', $profile['source_table_name'])
-                    ->where('parent_map.target_table', 'enterprise_finance_accounts');
-            })
-            ->count();
+        $expectedTypeCounts = $expectedRows
+            ->groupBy(static fn (array $row): string => (string) $row['type'])
+            ->map(static fn ($rows): int => $rows->count())
+            ->all();
+
+        $actualTypeCounts = $accountsById
+            ->groupBy(static fn ($row): string => (string) $row->type)
+            ->map(static fn ($rows): int => $rows->count())
+            ->all();
+
+        ksort($expectedTypeCounts);
+        ksort($actualTypeCounts);
 
         $healthy = $profile['ready']
             && $mappingCount === $sourceRows
             && $orphanMappings === 0
             && $duplicateTargetIds === 0
-            && $unmappedParents === 0;
+            && $semanticMismatches === 0
+            && $parentMismatches === 0
+            && $controlMismatches === 0
+            && $postingMismatches === 0
+            && $expectedTypeCounts === $actualTypeCounts;
 
         return [
             'healthy' => $healthy,
@@ -411,7 +522,13 @@ final class LegacyFinanceAccountMaterializerService
                 'account_mappings' => $mappingCount,
                 'orphan_mappings' => $orphanMappings,
                 'duplicate_target_ids' => $duplicateTargetIds,
-                'unmapped_parent_accounts' => $unmappedParents,
+                'semantic_mismatches' => $semanticMismatches,
+                'parent_mismatches' => $parentMismatches,
+                'control_flag_mismatches' => $controlMismatches,
+                'posting_flag_mismatches' => $postingMismatches,
+                'expected_type_counts' => $expectedTypeCounts,
+                'actual_type_counts' => $actualTypeCounts,
+                'mismatch_samples' => $semanticSamples,
             ],
             'rule' => [
                 'type_values' => ['asset', 'liability', 'equity', 'revenue', 'expense'],
