@@ -39,7 +39,7 @@ void main() {
           find.byKey(const ValueKey('foodex-wholesale-shared-header')),
           findsOneWidget,
         );
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
+        expect(find.byType(CustomerAccountHeader), findsNothing);
         expect(find.byType(CustomerOutlineIconButton), findsNWidgets(2));
 
         final title = locale.languageCode == 'ar'
@@ -124,7 +124,7 @@ void main() {
 
         expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
             findsOneWidget);
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
+        expect(find.byType(CustomerAccountHeader), findsNothing);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
 
@@ -142,7 +142,7 @@ void main() {
 
         expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
             findsOneWidget);
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
+        expect(find.byType(CustomerAccountHeader), findsNothing);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
       },
