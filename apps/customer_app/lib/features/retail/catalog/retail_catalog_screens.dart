@@ -119,6 +119,7 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
         title: context.tr('customer.home.title'),
         searchController: _search,
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
+        searchKey: const ValueKey('retail-catalog-search'),
         notificationKey: const ValueKey('retail-catalog-notifications'),
         cartKey: const ValueKey('retail-catalog-cart'),
         onSearchSubmitted: (value) => navigation.openProducts?.call(
@@ -155,24 +156,6 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
-                  if (navigation.openProducts != null)
-                    TextField(
-                      key: const ValueKey('retail-catalog-search'),
-                      controller: _search,
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: context.tr('customer.products.search'),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        border: const OutlineInputBorder(),
-                      ),
-                      onSubmitted: (value) => navigation.openProducts!(
-                        context,
-                        storeId: widget.storeId,
-                        query: value.trim().isEmpty ? null : value.trim(),
-                      ),
-                    ),
-                  if (navigation.openProducts != null)
-                    const SizedBox(height: 20),
                   if (data.banners.isNotEmpty) ...[
                     _CatalogBanner(banner: data.banners.first),
                     const SizedBox(height: 22),
