@@ -56,7 +56,8 @@ class _StoreSelectionDesignScreenState
               : mapRows(rawAddresses);
           if (addresses.isNotEmpty) {
             final selected = addresses.cast<Map<String, dynamic>>().firstWhere(
-                  (address) => address['is_default'] == true ||
+                  (address) =>
+                      address['is_default'] == true ||
                       address['is_default'] == 1,
                   orElse: () => addresses.first,
                 );
@@ -142,8 +143,7 @@ class _StoreSelectionDesignScreenState
                     ),
                     trailing:
                         const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
-                    onTap: () =>
-                        Navigator.of(sheetContext).pop(storeId),
+                    onTap: () => Navigator.of(sheetContext).pop(storeId),
                   ),
                 ),
               ],
@@ -159,7 +159,9 @@ class _StoreSelectionDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: const Color(0xFFFAFBFA),
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: 'FOODEX',
+            searchHint: 'ابحث عن المنتجات',
             child: FutureBuilder<Map<String, dynamic>>(
               future: future,
               builder: (context, snapshot) {
@@ -178,15 +180,18 @@ class _StoreSelectionDesignScreenState
                 final data = snapshot.data ?? const <String, dynamic>{};
                 final retail = mapRows(data['retail_stores']);
                 final wholesale = mapRows(data['wholesale_stores']);
-                final visibleRetail =
-                    filter == 'wholesale' ? const <Map<String, dynamic>>[] : retail;
-                final visibleWholesale =
-                    filter == 'retail' ? const <Map<String, dynamic>>[] : wholesale;
+                final visibleRetail = filter == 'wholesale'
+                    ? const <Map<String, dynamic>>[]
+                    : retail;
+                final visibleWholesale = filter == 'retail'
+                    ? const <Map<String, dynamic>>[]
+                    : wholesale;
 
                 return LayoutBuilder(
                   builder: (context, constraints) {
-                    final side =
-                        (constraints.maxWidth * .09).clamp(14.0, 38.0).toDouble();
+                    final side = (constraints.maxWidth * .09)
+                        .clamp(14.0, 38.0)
+                        .toDouble();
                     return ListView(
                       padding: EdgeInsets.fromLTRB(side, 20, side, 30),
                       children: [
@@ -237,12 +242,12 @@ class _StoreSelectionDesignScreenState
                               store: store,
                               onTap: () async {
                                 final storeId = intValue(store['id']);
-                                final contexts = (store['retail_context_ids']
-                                            as List? ??
-                                        const <Object>[])
-                                    .map(intValue)
-                                    .where((id) => id > 0)
-                                    .toList(growable: false);
+                                final contexts =
+                                    (store['retail_context_ids'] as List? ??
+                                            const <Object>[])
+                                        .map(intValue)
+                                        .where((id) => id > 0)
+                                        .toList(growable: false);
                                 final retailContext =
                                     await _chooseRetailContext(
                                   context,
@@ -373,8 +378,7 @@ class _RetailStoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pharmacy = store['theme_code'] == 'retail_pharmacy';
-    final palette =
-        pharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
+    final palette = pharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
     final id = intValue(store['id']);
 
     return Material(
@@ -653,16 +657,26 @@ class _RetailStorefrontDesignScreenState
           if (snapshot.connectionState != ConnectionState.done) {
             return Directionality(
               textDirection: Directionality.of(context),
-              child: Scaffold(body: FoodexLoading()),
+              child: Scaffold(
+                body: FoodexUnifiedHeaderSurface(
+                  title: 'FOODEX',
+                  searchHint: 'ابحث عن المنتجات',
+                  child: FoodexLoading(),
+                ),
+              ),
             );
           }
           if (snapshot.hasError || !snapshot.hasData) {
             return Directionality(
               textDirection: Directionality.of(context),
               child: Scaffold(
-                body: FoodexErrorState(
-                  message: 'تعذر تحميل المتجر.',
-                  onRetry: () => setState(() => future = _load()),
+                body: FoodexUnifiedHeaderSurface(
+                  title: 'FOODEX',
+                  searchHint: 'ابحث عن المنتجات',
+                  child: FoodexErrorState(
+                    message: 'تعذر تحميل المتجر.',
+                    onRetry: () => setState(() => future = _load()),
+                  ),
                 ),
               ),
             );
@@ -696,9 +710,8 @@ class _RetailStorefrontDesignScreenState
               ? Map<String, dynamic>.from(data.config['theme'] as Map)
               : <String, dynamic>{};
           final isPharmacy = theme['code'] == 'retail_pharmacy';
-          final base = isPharmacy
-              ? FoodexPalette.pharmacy
-              : FoodexPalette.grocery;
+          final base =
+              isPharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
           final palette = FoodexPalette(
             primary: parseHexColor(theme['primary'], base.primary),
             primaryDark: parseHexColor(
@@ -719,7 +732,24 @@ class _RetailStorefrontDesignScreenState
             textDirection: Directionality.of(context),
             child: Scaffold(
               backgroundColor: palette.background,
-              body: SafeArea(
+              body: FoodexUnifiedHeaderSurface(
+                title: data.config['store'] is Map &&
+                        (data.config['store'] as Map)['name'] != null
+                    ? (data.config['store'] as Map)['name'].toString()
+                    : 'FOODEX',
+                palette: palette,
+                location: widget.location,
+                searchController: search,
+                searchHint: 'ابحث عن المنتجات',
+                onSearchSubmitted: (value) {
+                  var route = '/products?store=' + storeId.toString();
+                  if (value.trim().isNotEmpty) {
+                    route += '&q=' + Uri.encodeQueryComponent(value.trim());
+                  }
+                  Navigator.of(context).pushNamed(route);
+                },
+                onCart: () => Navigator.of(context)
+                    .pushNamed('/cart?store=' + storeId.toString()),
                 child: _RetailHomeBody(
                   storeId: storeId,
                   data: data,
@@ -803,12 +833,6 @@ class _RetailHomeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = data.config['store'] is Map
-        ? Map<String, dynamic>.from(data.config['store'] as Map)
-        : <String, dynamic>{};
-    final branding = data.config['branding'] is Map
-        ? Map<String, dynamic>.from(data.config['branding'] as Map)
-        : <String, dynamic>{};
     final configuredSections = mapRows(data.config['sections']);
     final sections = configuredSections.isEmpty
         ? <Map<String, dynamic>>[
@@ -816,8 +840,7 @@ class _RetailHomeBody extends StatelessWidget {
             {'type': 'categories', 'title_ar': 'التصنيفات'},
             {
               'type': 'products',
-              'title_ar':
-                  isPharmacy ? 'منتجات مميزة' : 'منتجات وصلت حديثًا',
+              'title_ar': isPharmacy ? 'منتجات مميزة' : 'منتجات وصلت حديثًا',
             },
             if (data.offers.isNotEmpty)
               {'type': 'offers', 'title_ar': 'العروض'},
@@ -827,94 +850,6 @@ class _RetailHomeBody extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-          decoration: BoxDecoration(
-            color: palette.primaryDark,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      isPharmacy
-                          ? Icons.local_pharmacy_rounded
-                          : Icons.storefront_rounded,
-                      color: palette.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          store['name']?.toString() ?? 'FOODEX',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          branding['address']?.toString() ??
-                              'اختر عنوان التوصيل',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _HeaderButton(
-                    icon: Icons.notifications_none_rounded,
-                    palette: palette,
-                  ),
-                  const SizedBox(width: 8),
-                  _HeaderButton(
-                    icon: Icons.shopping_cart_outlined,
-                    palette: palette,
-                    onTap: () => Navigator.of(context)
-                        .pushNamed('/cart?store=$storeId'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                key: const ValueKey('b2c-home-search'),
-                controller: search,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (value) {
-                  var route = '/products?store=' + storeId.toString();
-                  if (value.trim().isNotEmpty) {
-                    route += '&q=' + Uri.encodeQueryComponent(value.trim());
-                  }
-                  Navigator.of(context).pushNamed(route);
-                },
-                decoration: InputDecoration(
-                  hintText: 'ابحث عن المنتجات',
-                  prefixIcon:
-                      Icon(Icons.search_rounded, color: palette.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
         ...sections.expand<Widget>((section) {
           final type = section['type']?.toString();
           if (type == 'hero') {
@@ -933,7 +868,8 @@ class _RetailHomeBody extends StatelessWidget {
           if (type == 'categories' || type == 'departments') {
             return [
               FoodexSectionHeader(
-                title: section['title_ar']?.toString() ?? (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
+                title: section['title_ar']?.toString() ??
+                    (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
                 palette: palette,
               ),
               _CategoryRail(
@@ -970,33 +906,6 @@ class _RetailHomeBody extends StatelessWidget {
       ],
     );
   }
-}
-
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.icon,
-    required this.palette,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final FoodexPalette palette;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, color: Colors.white),
-          ),
-        ),
-      );
 }
 
 class _HeroBanner extends StatelessWidget {
@@ -1282,7 +1191,8 @@ class _RetailProductGrid extends StatelessWidget {
                   if (!product.isAvailable) ...[
                     Text(
                       context.tr('customer.product.out_of_stock'),
-                      key: ValueKey('b2c-home-product-out-of-stock-${product.id}'),
+                      key: ValueKey(
+                          'b2c-home-product-out-of-stock-${product.id}'),
                       style: const TextStyle(
                         color: Color(0xFF6B7785),
                         fontSize: 10,
@@ -1326,7 +1236,8 @@ class _RetailProductGrid extends StatelessWidget {
                                     );
                                   } catch (error) {
                                     if (context.mounted) {
-                                      await showOperationalError(context, error);
+                                      await showOperationalError(
+                                          context, error);
                                     }
                                   }
                                 }
@@ -1378,7 +1289,11 @@ class _RetailProductDetailsDesignScreenState
         textDirection: Directionality.of(context),
         child: Scaffold(
           backgroundColor: Colors.white,
-          body: SafeArea(
+          body: FoodexUnifiedHeaderSurface(
+            title: 'FOODEX',
+            location: widget.location,
+            palette: FoodexPalette.grocery,
+            searchHint: 'ابحث عن المنتجات',
             child: FutureBuilder<B2cProduct>(
               future: widget.catalogApi.product(
                 productId,
@@ -1403,18 +1318,16 @@ class _RetailProductDetailsDesignScreenState
                   key: const ValueKey('b2c-product-detail-data'),
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                   children: [
-                    FoodexTopBar(
-                      title: 'تفاصيل المنتج',
-                      actions: [
-                        CustomerFavoriteButton(
-                          api: widget.favoritesApi,
-                          storeId: storeId,
-                          productId: productId,
-                          isAuthenticated: widget.session.isAuthenticated,
-                          loginRoute:
-                              '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
-                        ),
-                      ],
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: CustomerFavoriteButton(
+                        api: widget.favoritesApi,
+                        storeId: storeId,
+                        productId: productId,
+                        isAuthenticated: widget.session.isAuthenticated,
+                        loginRoute:
+                            '/auth/checkout?next=${Uri.encodeComponent(widget.location)}',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Opacity(

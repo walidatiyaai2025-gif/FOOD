@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../features/storefront/storefront_design_system.dart';
 
 import '../api/b2b_api.dart';
 import '../api/b2c_catalog_api.dart';
@@ -293,7 +294,8 @@ class CustomerAppRouter {
             nextRoute: CustomerRoutePaths.marketplace,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async =>
+                    onPlatformRegistered(token),
             sessionStore: sessionStore,
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
@@ -343,7 +345,8 @@ class CustomerAppRouter {
             nextRoute: nextLocation,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async =>
+                    onPlatformRegistered(token),
             commerceContext: commerceContext,
             registrationStoreId:
                 commerceContext != null && commerceContext.isRetail
@@ -461,8 +464,10 @@ class CustomerRoutePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-route-shell'),
-      appBar: AppBar(title: const Text('FOODEX Customer')),
-      body: SafeArea(
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.app.title'),
+        searchHint: '',
+        location: location,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -18,7 +18,6 @@ import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
-import '../customer_account/customer_account_v3_widgets.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
@@ -117,51 +116,21 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            headerPadding: const EdgeInsetsDirectional.fromSTEB(12, 1, 12, 1),
-            header: SizedBox(
-              height: 44,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        context.tr('b2b.app.title'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: CustomerUiColors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: CustomerUiSpacing.xs),
-                  CustomerOutlineIconButton(
-                    key: const ValueKey('b2b-dashboard-notifications'),
-                    icon: Icons.notifications_none_rounded,
-                    tooltip: context.tr('customer.nav.notifications'),
-                    semanticLabel: context.tr('customer.nav.notifications'),
-                    onPressed: () => Navigator.of(context).pushNamed(
-                      _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
-                    ),
-                  ),
-                ],
-              ),
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
             ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                // The existing app-level version/logout footer overlays routes.
-                // Wholesale's persistent dock already reserves that space.
-                padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
-                child: _B2bDashboardRemoteState(
-                  api: api!,
-                  endpoint: _endpoint()!,
-                  storefrontApi: storefrontApi,
-                ),
+            notificationKey: const ValueKey('b2b-dashboard-notifications'),
+            child: Padding(
+              // The existing app-level version/logout footer overlays routes.
+              // Wholesale's persistent dock already reserves that space.
+              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+              child: _B2bDashboardRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+                storefrontApi: storefrontApi,
               ),
             ),
           ),
@@ -175,34 +144,12 @@ class B2bJourneyScreen extends StatelessWidget {
       return Scaffold(
         key: const ValueKey('b2b-top-products-screen'),
         backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          toolbarHeight: 56,
-          elevation: 0,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          leading: IconButton(
-            key: const ValueKey('b2b-top-products-back'),
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const BackButtonIcon(),
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
           ),
-          title: Text(
-            context.tr('b2b.top_products.title'),
-            key: const ValueKey('b2b-top-products-header-title'),
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: CustomerUiColors.white,
-              fontSize: 12.6,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        body: SafeArea(
-          top: false,
           child: SingleChildScrollView(
             key: const ValueKey('b2b-top-products-scroll'),
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
@@ -222,67 +169,47 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           key: const ValueKey('b2b-invoices-screen'),
-          backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            header: KeyedSubtree(
-              key: const ValueKey('b2b-invoices-app-bar'),
-              child: Row(
-                key: const ValueKey('b2b-invoices-header-row'),
-                children: [
-                  CustomerOutlineIconButton(
-                    key: const ValueKey('b2b-invoices-back'),
-                    icon: Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_forward_rounded
-                        : Icons.arrow_back_rounded,
-                    tooltip:
-                        MaterialLocalizations.of(context).backButtonTooltip,
-                    onPressed: () => Navigator.of(context).maybePop(),
+          backgroundColor: FoodexPalette.wholesale.background,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                FoodexWholesaleHeader(
+                  title: context.tr('b2b.app.title'),
+                  palette: FoodexPalette.wholesale,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Flexible(
-                    child: Text(
-                      content.$1,
-                      key: const ValueKey('b2b-invoices-header-title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: CustomerUiColors.white,
-                                fontWeight: FontWeight.w900,
-                                height: 1,
-                              ),
-                    ),
+                  onSearchSubmitted: (value) {
+                    final query = value.trim();
+                    if (query.isEmpty) return;
+                    Navigator.of(context).pushNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          if (commerceContext?.storeId != null)
+                            'store_id': commerceContext!.storeId.toString(),
+                          'channel': 'wholesale',
+                          'q': query,
+                        },
+                      ).toString(),
+                    );
+                  },
+                  onNotifications: () => Navigator.of(context).pushNamed(
+                    _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Container(
-                    width: CustomerUiStroke.hairline,
-                    height: 30,
-                    color: CustomerUiColors.white,
+                  onCart: () =>
+                      Navigator.of(context).pushNamed(_b2bCartRoute()),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey('b2b-invoices-scroll'),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child:
+                        _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
                   ),
-                  const SizedBox(width: CustomerUiSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      content.$2,
-                      key: const ValueKey('b2b-invoices-header-subtitle'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: CustomerUiColors.white,
-                            fontWeight: FontWeight.w500,
-                            height: 1,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                key: const ValueKey('b2b-invoices-scroll'),
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -308,29 +235,25 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            header: definition.pattern == CustomerRoutePaths.b2bInvoiceDetails
-                ? const SizedBox(height: 1)
-                : CustomerAccountHeader(
-                    title: content.$1,
-                    subtitle: content.$2,
-                  ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                padding: definition.pattern ==
-                            CustomerRoutePaths.b2bAccountStatement ||
-                        definition.pattern ==
-                            CustomerRoutePaths.b2bPurchaseReports
-                    ? const EdgeInsets.fromLTRB(
-                        CustomerUiSpacing.page,
-                        0,
-                        CustomerUiSpacing.page,
-                        CustomerUiSpacing.page,
-                      )
-                    : const EdgeInsets.all(CustomerUiSpacing.page),
-                child: remote,
-              ),
+          body: FoodexUnifiedHeaderSurface(
+            title: context.tr('b2b.app.title'),
+            location: location,
+            searchHint: context.tr(
+              'customer.products.search_name_sku_barcode',
+            ),
+            child: SingleChildScrollView(
+              padding: definition.pattern ==
+                          CustomerRoutePaths.b2bAccountStatement ||
+                      definition.pattern ==
+                          CustomerRoutePaths.b2bPurchaseReports
+                  ? const EdgeInsets.fromLTRB(
+                      CustomerUiSpacing.page,
+                      0,
+                      CustomerUiSpacing.page,
+                      CustomerUiSpacing.page,
+                    )
+                  : const EdgeInsets.all(CustomerUiSpacing.page),
+              child: remote,
             ),
           ),
         ),
@@ -342,7 +265,6 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         _B2bMorePage(
           api: api!,
-          accountApi: accountApi,
           profileEndpoint: _endpoint()!,
           financeEndpoint: _accountSummaryEndpoint(),
           dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
@@ -372,8 +294,13 @@ class B2bJourneyScreen extends StatelessWidget {
 
     return withFooter(
       Scaffold(
-        appBar: AppBar(title: Text(context.tr('b2b.app.title'))),
-        body: SafeArea(
+        backgroundColor: CustomerUiColors.mint,
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('b2b.app.title'),
+          location: location,
+          searchHint: context.tr(
+            'customer.products.search_name_sku_barcode',
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -4304,14 +4231,12 @@ class _B2bMorePage extends StatefulWidget {
     required this.notificationsRoute,
     required this.addressesRoute,
     required this.cartRoute,
-    this.accountApi,
     this.storeId,
     this.onLocaleChanged,
     this.onLogout,
   });
 
   final B2bApi api;
-  final B2cAccountApi? accountApi;
   final String profileEndpoint;
   final String financeEndpoint;
   final String dashboardRoute;
@@ -4341,20 +4266,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   static const muted = CustomerUiColors.muted;
 
   late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
-  Future<Object?>? cart;
-  Future<Object?>? notifications;
-  String? _badgeLocale;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final locale =
-        Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ar';
-    if (_badgeLocale != locale) {
-      _badgeLocale = locale;
-      _loadBadges(locale);
-    }
-  }
 
   @override
   void didUpdateWidget(covariant _B2bMorePage oldWidget) {
@@ -4363,61 +4274,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         oldWidget.financeEndpoint != widget.financeEndpoint) {
       finance = widget.api.get(widget.financeEndpoint);
     }
-    if (oldWidget.accountApi != widget.accountApi ||
-        oldWidget.storeId != widget.storeId) {
-      _loadBadges(_badgeLocale ?? 'ar');
-    }
-  }
-
-  void _loadBadges(String locale) {
-    final a = widget.accountApi;
-    if (a == null) {
-      cart = null;
-      notifications = null;
-      return;
-    }
-    cart = a.cart(storeId: widget.storeId);
-    notifications = a.notifications(locale: locale == 'en' ? 'en' : 'ar');
-  }
-
-  int? _cartCount(Object? raw) {
-    if (raw is! Map) return null;
-    final m = Map<Object?, Object?>.from(raw);
-    final direct = int.tryParse(
-      (m['items_count'] ?? m['item_count'] ?? m['count'])?.toString() ?? '',
-    );
-    if (direct != null) return direct;
-    if (m['data'] is Map) return _cartCount(m['data']);
-    return m['items'] is List ? (m['items'] as List).length : null;
-  }
-
-  int? _unreadCount(Object? raw) {
-    if (raw is! Map) return null;
-    final m = Map<Object?, Object?>.from(raw);
-    final direct = int.tryParse(
-      (m['unread_count'] ?? m['unreadCount'] ?? m['unread_total'])
-              ?.toString() ??
-          '',
-    );
-    if (direct != null) return direct;
-    if (m['data'] is Map) return _unreadCount(m['data']);
-    final rows = m['data'] is List
-        ? m['data'] as List
-        : m['notifications'] is List
-            ? m['notifications'] as List
-            : null;
-    if (rows == null) return null;
-    var count = 0;
-    for (final rawRow in rows) {
-      if (rawRow is! Map) continue;
-      final row = Map<Object?, Object?>.from(rawRow);
-      if (row['is_read'] == false ||
-          row['read'] == false ||
-          row['read_at'] == null) {
-        count++;
-      }
-    }
-    return count;
   }
 
   void _open(String route) => Navigator.of(context).pushNamed(route);
@@ -4434,14 +4290,29 @@ class _B2bMorePageState extends State<_B2bMorePage> {
             expand: false,
             initialChildSize: .82,
             maxChildSize: .94,
-            builder: (_, controller) => SingleChildScrollView(
-              controller: controller,
-              padding: const EdgeInsets.all(16),
-              child: B2bBusinessAccountProfile(
-                api: widget.api,
-                endpoint: widget.profileEndpoint,
-                addressesRoute: widget.addressesRoute,
-              ),
+            builder: (_, controller) => Column(
+              children: [
+                FoodexWholesaleHeader(
+                  title: context.tr('b2b.app.title'),
+                  palette: FoodexPalette.wholesale,
+                  searchHint: context.tr(
+                    'customer.products.search_name_sku_barcode',
+                  ),
+                  onNotifications: () => _open(widget.notificationsRoute),
+                  onCart: () => _open(widget.cartRoute),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    padding: const EdgeInsets.all(16),
+                    child: B2bBusinessAccountProfile(
+                      api: widget.api,
+                      endpoint: widget.profileEndpoint,
+                      addressesRoute: widget.addressesRoute,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -4451,51 +4322,73 @@ class _B2bMorePageState extends State<_B2bMorePage> {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      showDragHandle: false,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.onLocaleChanged != null)
-                ListTile(
-                  leading: const Icon(Icons.language_rounded),
-                  title: Text(context.tr('b2b.profile.language')),
-                  trailing: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'ar', label: Text('ع')),
-                      ButtonSegment(value: 'en', label: Text('EN')),
-                    ],
-                    selected: {ar ? 'ar' : 'en'},
-                    onSelectionChanged: (value) {
-                      widget.onLocaleChanged!(Locale(value.first));
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FoodexWholesaleHeader(
+              title: context.tr('b2b.app.title'),
+              palette: FoodexPalette.wholesale,
+              searchHint: context.tr(
+                'customer.products.search_name_sku_barcode',
+              ),
+              onNotifications: () => _open(widget.notificationsRoute),
+              onCart: () => _open(widget.cartRoute),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.onLocaleChanged != null)
+                    ListTile(
+                      leading: const Icon(Icons.language_rounded),
+                      title: Text(context.tr('b2b.profile.language')),
+                      trailing: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(
+                            value: 'ar',
+                            label: Text(
+                                'ع'), // localization-gate: allow language selector
+                          ),
+                          ButtonSegment(
+                            value: 'en',
+                            label: Text(
+                                'EN'), // localization-gate: allow language selector
+                          ),
+                        ],
+                        selected: {ar ? 'ar' : 'en'},
+                        onSelectionChanged: (value) {
+                          widget.onLocaleChanged!(Locale(value.first));
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                    ),
+                  ListTile(
+                    leading: const Icon(Icons.support_agent_outlined),
+                    title: Text(context.tr('b2b.profile.support')),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
                       Navigator.pop(sheetContext);
+                      _open(CustomerRoutePaths.diagnostics);
                     },
                   ),
-                ),
-              ListTile(
-                leading: const Icon(Icons.support_agent_outlined),
-                title: Text(context.tr('b2b.profile.support')),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _open(CustomerRoutePaths.diagnostics);
-                },
+                  if (widget.onLogout != null)
+                    ListTile(
+                      key: const ValueKey('b2b-more-security-action'),
+                      leading: const Icon(Icons.security_outlined),
+                      title: Text(context.tr('b2b.profile.security')),
+                      trailing: const Icon(Icons.logout_rounded),
+                      onTap: () async {
+                        Navigator.pop(sheetContext);
+                        await widget.onLogout!();
+                      },
+                    ),
+                ],
               ),
-              if (widget.onLogout != null)
-                ListTile(
-                  key: const ValueKey('b2b-more-security-action'),
-                  leading: const Icon(Icons.security_outlined),
-                  title: Text(context.tr('b2b.profile.security')),
-                  trailing: const Icon(Icons.logout_rounded),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    await widget.onLogout!();
-                  },
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -4560,209 +4453,145 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       child: Scaffold(
         key: const ValueKey('b2b-more-redesign'),
         backgroundColor: bg,
-        body: CustomerCurvedHeaderSurface(
-          header: CustomerAccountHeader(
-            key: const ValueKey('b2b-more-header-title'),
-            title: context.tr('customer.nav.more'),
-            subtitle: '',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FutureBuilder<Object?>(
-                  future: cart,
-                  builder: (_, snap) => _HeaderCircle(
-                    icon: Icons.shopping_cart_outlined,
-                    onTap: () => _open(widget.cartRoute),
-                    badge: snap.hasData ? _cartCount(snap.data) : null,
-                  ),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              FoodexWholesaleHeader(
+                title: context.tr('b2b.app.title'),
+                palette: FoodexPalette.wholesale,
+                searchHint: context.tr(
+                  'customer.products.search_name_sku_barcode',
                 ),
-                const SizedBox(width: CustomerUiSpacing.xs),
-                FutureBuilder<Object?>(
-                  future: notifications,
-                  builder: (_, snap) {
-                    final count = snap.hasData ? _unreadCount(snap.data) : null;
-                    return _HeaderCircle(
-                      icon: Icons.notifications_none_rounded,
-                      onTap: () => _open(widget.notificationsRoute),
-                      dot: count != null && count > 0,
-                    );
-                  },
-                ),
-                const SizedBox(width: CustomerUiSpacing.xs),
-                IconButton(
-                  key: const ValueKey('b2b-more-back'),
-                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: Icon(
-                    ar ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
-                    color: CustomerUiColors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
-            child: Column(
-              key: const ValueKey('b2b-account-hub'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _FinanceCard(
-                  future: finance,
-                  ar: ar,
-                  dashboardRoute: widget.dashboardRoute,
-                  statementRoute: widget.statementRoute,
-                  open: _open,
-                  retry: () => setState(
-                    () => finance = widget.api.get(widget.financeEndpoint),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (_, constraints) {
-                    const gap = 6.0;
-                    const columns = 5;
-                    final width =
-                        (constraints.maxWidth - gap * (columns - 1)) / columns;
-                    final textScale = MediaQuery.textScalerOf(context).scale(1);
-                    final scaledDelta =
-                        (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                    final cardHeight = 66.0 + (scaledDelta * 32.0);
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        for (final item in items)
-                          SizedBox(
-                            width: width,
-                            height: cardHeight,
-                            child: _MoreCard(item: item),
+                onSearchSubmitted: (value) {
+                  final query = value.trim();
+                  if (query.isEmpty) return;
+                  _open(
+                    Uri(
+                      path: CustomerRoutePaths.b2bProducts,
+                      queryParameters: <String, String>{
+                        if (widget.storeId != null && widget.storeId! > 0)
+                          'store_id': widget.storeId.toString(),
+                        'channel': 'wholesale',
+                        'q': query,
+                      },
+                    ).toString(),
+                  );
+                },
+                onNotifications: () => _open(widget.notificationsRoute),
+                onCart: () => _open(widget.cartRoute),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                  child: Column(
+                    key: const ValueKey('b2b-account-hub'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _FinanceCard(
+                        future: finance,
+                        ar: ar,
+                        dashboardRoute: widget.dashboardRoute,
+                        statementRoute: widget.statementRoute,
+                        open: _open,
+                        retry: () => setState(
+                          () =>
+                              finance = widget.api.get(widget.financeEndpoint),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (_, constraints) {
+                          const gap = 6.0;
+                          const columns = 5;
+                          final width =
+                              (constraints.maxWidth - gap * (columns - 1)) /
+                                  columns;
+                          final textScale =
+                              MediaQuery.textScalerOf(context).scale(1);
+                          final scaledDelta =
+                              (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                          final cardHeight = 66.0 + (scaledDelta * 32.0);
+                          return Wrap(
+                            spacing: gap,
+                            runSpacing: gap,
+                            children: [
+                              for (final item in items)
+                                SizedBox(
+                                  width: width,
+                                  height: cardHeight,
+                                  child: _MoreCard(item: item),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      if (widget.onLocaleChanged != null)
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(
+                              value: 'ar',
+                              label: Text(
+                                'العربية', // localization-gate: allow — language self-name selector
+                              ),
+                            ),
+                            ButtonSegment(
+                              value: 'en',
+                              label: Text(
+                                'English', // localization-gate: allow — language self-name selector
+                              ),
+                            ),
+                          ],
+                          selected: {ar ? 'ar' : 'en'},
+                          onSelectionChanged: (value) {
+                            widget.onLocaleChanged!(Locale(value.first));
+                          },
+                        ),
+                      if (widget.onLogout != null) ...[
+                        const SizedBox(height: 10),
+                        Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            key: const ValueKey(
+                              'b2b-profile-security-action',
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.security_outlined),
+                            title: Text(context.tr('b2b.profile.security')),
+                            trailing: const Icon(Icons.chevron_left_rounded),
+                            onTap: _showSettings,
                           ),
+                        ),
+                        OutlinedButton.icon(
+                          key: const ValueKey('b2b-profile-logout'),
+                          onPressed: widget.onLogout,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: Text(context.tr('customer.logout')),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${context.tr('customer.version')} $customerAppVersion',
+                          key: const ValueKey('b2b-more-app-version'),
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: _B2bMorePageState.muted,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
                       ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (widget.onLocaleChanged != null)
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'ar',
-                        label: Text(
-                          'العربية', // localization-gate: allow — language self-name selector
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: 'en',
-                        label: Text(
-                          'English', // localization-gate: allow — language self-name selector
-                        ),
-                      ),
                     ],
-                    selected: {ar ? 'ar' : 'en'},
-                    onSelectionChanged: (value) {
-                      widget.onLocaleChanged!(Locale(value.first));
-                    },
                   ),
-                if (widget.onLogout != null) ...[
-                  const SizedBox(height: 10),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      key: const ValueKey('b2b-profile-security-action'),
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.security_outlined),
-                      title: Text(context.tr('b2b.profile.security')),
-                      trailing: const Icon(Icons.chevron_left_rounded),
-                      onTap: _showSettings,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-profile-logout'),
-                    onPressed: widget.onLogout,
-                    icon: const Icon(Icons.logout_rounded),
-                    label: Text(context.tr('customer.logout')),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${context.tr('customer.version')} $customerAppVersion',
-                    key: const ValueKey('b2b-more-app-version'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: _B2bMorePageState.muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-}
-
-class _HeaderCircle extends StatelessWidget {
-  const _HeaderCircle({
-    required this.icon,
-    required this.onTap,
-    this.badge,
-    this.dot = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final int? badge;
-  final bool dot;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CustomerOutlineIconButton(icon: icon, onPressed: onTap),
-          if (badge != null && badge! > 0)
-            PositionedDirectional(
-              start: -3,
-              top: -4,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: const BoxDecoration(
-                  color: CustomerUiColors.destructive,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  badge! > 99 ? '99+' : badge.toString(),
-                  style: const TextStyle(
-                    color: CustomerUiColors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-          if (dot)
-            PositionedDirectional(
-              start: 1,
-              top: 1,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: CustomerUiColors.destructive,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: CustomerUiColors.white,
-                    width: CustomerUiStroke.emphasis,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
 }
 
 class _FinanceCard extends StatelessWidget {

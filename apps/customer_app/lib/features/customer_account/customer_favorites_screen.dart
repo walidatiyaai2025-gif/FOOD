@@ -1,3 +1,4 @@
+import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
-import 'customer_account_v3_widgets.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef CustomerFavoriteAddToCart = Future<void> Function({
@@ -110,11 +110,9 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('customer-favorites-screen'),
-        body: CustomerCurvedHeaderSurface(
-          header: CustomerAccountHeader(
-            title: context.tr('customer.profile.favorites'),
-            subtitle: context.tr('customer.favorites.subtitle'),
-          ),
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.profile.favorites'),
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
           child: RefreshIndicator(
             onRefresh: () async {
               _reload();

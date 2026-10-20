@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/api/b2c_account_api.dart';
 import '../../core/api/b2c_catalog_api.dart';
@@ -6,6 +7,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/location/customer_location_service.dart';
 import '../../core/location/customer_map_pin_selector.dart';
+import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
@@ -458,12 +460,17 @@ class _RetailContextMissing extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-context-missing'),
-        body: Center(
-          child: FilledButton(
-            key: const ValueKey('retail-context-return-marketplace'),
-            onPressed: () => Navigator.of(context)
-                .pushReplacementNamed(CustomerRoutePaths.marketplace),
-            child: const Text('Back to marketplace'),
+        body: FoodexUnifiedHeaderSurface(
+          title: 'FOODEX',
+          searchHint: context.tr('customer.products.search_name_sku_barcode'),
+          child: Center(
+            child: FilledButton(
+              key: const ValueKey('retail-context-return-marketplace'),
+              onPressed: () => Navigator.of(context)
+                  .pushReplacementNamed(CustomerRoutePaths.marketplace),
+              child: Text(
+                  context.tr('customer.store.own_purchase_blocked.action')),
+            ),
           ),
         ),
       );

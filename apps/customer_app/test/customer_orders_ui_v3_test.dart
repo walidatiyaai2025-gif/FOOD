@@ -420,7 +420,16 @@ void main() {
       );
 
       offline = true;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
 
@@ -553,9 +562,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       expect(find.byType(AppBar), findsNothing);
-      expect(find.byKey(const ValueKey('customer-order-back')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-order-back')), findsNothing);
       expect(find.text('WH-901'), findsOneWidget);
 
       failRefresh = true;

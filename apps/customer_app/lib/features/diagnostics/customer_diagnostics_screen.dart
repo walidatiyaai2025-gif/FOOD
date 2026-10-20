@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class CustomerDiagnosticsScreen extends StatefulWidget {
   const CustomerDiagnosticsScreen({
@@ -18,8 +20,7 @@ class CustomerDiagnosticsScreen extends StatefulWidget {
       _CustomerDiagnosticsScreenState();
 }
 
-class _CustomerDiagnosticsScreenState
-    extends State<CustomerDiagnosticsScreen> {
+class _CustomerDiagnosticsScreenState extends State<CustomerDiagnosticsScreen> {
   final TextEditingController _note = TextEditingController();
   bool _busy = false;
 
@@ -84,16 +85,15 @@ class _CustomerDiagnosticsScreenState
     final app = Map<String, dynamic>.from(payload['app'] as Map);
     final environment =
         Map<String, dynamic>.from(payload['environment'] as Map);
-    final navigation =
-        Map<String, dynamic>.from(payload['navigation'] as Map);
+    final navigation = Map<String, dynamic>.from(payload['navigation'] as Map);
     final events = _diagnostics.events;
     final lastEvent = events.isEmpty ? null : events.last['timestamp'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('customer.diagnostics.title')),
-      ),
-      body: SafeArea(
+      backgroundColor: CustomerUiColors.mint,
+      body: FoodexUnifiedHeaderSurface(
+        title: context.tr('customer.diagnostics.title'),
+        searchHint: context.tr('customer.products.search_name_sku_barcode'),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [

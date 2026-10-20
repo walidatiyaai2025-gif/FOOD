@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
+import '../storefront/storefront_design_system.dart';
 
 import '../../core/api/store_analytics_api.dart' as analytics_api;
 import '../../core/localization/app_translations.dart';
@@ -369,59 +370,18 @@ class StoreAnalyticsScreen extends StatelessWidget {
     return Scaffold(
       key: const ValueKey('store-analytics-screen'),
       backgroundColor: CustomerUiColors.mint,
-      body: CustomerCurvedHeaderSurface(
-        headerPadding: const EdgeInsetsDirectional.fromSTEB(
-          CustomerUiSpacing.sm,
-          CustomerUiSpacing.xxs,
-          CustomerUiSpacing.sm,
-          CustomerUiSpacing.xxs,
-        ),
-        header: SizedBox(
-          height: 46,
-          child: Row(
-            children: [
-              CustomerOutlineIconButton(
-                key: const ValueKey('store-analytics-back'),
-                icon: Directionality.of(context) == TextDirection.rtl
-                    ? Icons.arrow_forward_rounded
-                    : Icons.arrow_back_rounded,
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                semanticLabel:
-                    MaterialLocalizations.of(context).backButtonTooltip,
-                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-              ),
-              const SizedBox(width: CustomerUiSpacing.xs),
-              Expanded(
-                child: Semantics(
-                  header: true,
-                  child: Text(
-                    copy.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: CustomerUiColors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: CustomerUiSpacing.xs),
-              CustomerOutlineIconButton(
-                key: const ValueKey('store-analytics-refresh'),
-                icon: Icons.refresh_rounded,
-                tooltip: copy.refresh,
-                semanticLabel: copy.refresh,
-                onPressed: onRefresh == null
-                    ? null
-                    : () {
-                        onRefresh!();
-                      },
-              ),
-            ],
+      body: FoodexUnifiedHeaderSurface(
+        title: copy.title,
+        searchHint: '',
+        trailingActions: [
+          IconButton(
+            key: const ValueKey('store-analytics-refresh'),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            tooltip: copy.refresh,
+            onPressed: onRefresh == null ? null : () => onRefresh!(),
           ),
-        ),
-        child: SafeArea(top: false, child: _body(context)),
+        ],
+        child: _body(context),
       ),
     );
   }
@@ -1183,7 +1143,6 @@ String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
 
   return '${copy.trendSummary}. $points';
 }
-
 
 class StoreAnalyticsRouteScreen extends StatefulWidget {
   const StoreAnalyticsRouteScreen({

@@ -36,11 +36,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.byType(CustomerCurvedHeaderSurface),
+          find.byKey(const ValueKey('foodex-wholesale-shared-header')),
           findsOneWidget,
         );
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
-        expect(find.byType(CustomerOutlineIconButton), findsNWidgets(2));
+        expect(find.byType(CustomerAccountHeader), findsNothing);
+        expect(find.byType(CustomerOutlineIconButton), findsNothing);
 
         final title = locale.languageCode == 'ar'
             ? find.text('الملف التجاري')
@@ -88,7 +88,7 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(
-            find.byType(CustomerCurvedHeaderSurface),
+            find.byKey(const ValueKey('foodex-wholesale-shared-header')),
             findsOneWidget,
             reason: route,
           );
@@ -122,8 +122,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
+        expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+            findsOneWidget);
+        expect(find.byType(CustomerAccountHeader), findsNothing);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
 
@@ -139,8 +140,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
-        expect(find.byType(CustomerAccountHeader), findsOneWidget);
+        expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+            findsOneWidget);
+        expect(find.byType(CustomerAccountHeader), findsNothing);
         expect(find.byType(AppBar), findsNothing);
         expect(tester.takeException(), isNull);
       },

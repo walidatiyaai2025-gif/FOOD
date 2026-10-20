@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
+import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
@@ -12,6 +13,7 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
+import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -314,7 +316,11 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _pumpCustomerFrames(tester);
 
@@ -669,6 +675,108 @@ void main() {
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
       expect(scaffold.backgroundColor, const Color(0xFFF8FBF9));
+    },
+  );
+
+  testWidgets(
+    'Wholesale shopping resolves principal store on first open without store id',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Resolved Bulk Water',
+            'sku': 'RESOLVED-42',
+            'account_price': 55,
+            'minimum_order_quantity': 1,
+            'is_available': true,
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/products',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-catalog-store-required')),
+        findsNothing,
+      );
+      expect(storefront.selectionCalls, greaterThanOrEqualTo(1));
+      expect(storefront.lastStoreId, 70);
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(find.text('Resolved Bulk Water'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale favorites first open resolves principal store and renders shared cards',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final favorites = _WholesaleFavoritesApi({
+        'data': [
+          {
+            'id': 900,
+            'product': {
+              'id': 42,
+              'name': 'Favorite Bulk Water',
+              'sku': 'FAV-42',
+              'account_price': 55,
+              'price': 55,
+              'currency': 'EGP',
+              'is_available': true,
+            },
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          home: WholesaleFavoritesDesignScreen(
+            location: '/b2b/favorites',
+            session: b2b,
+            favoritesApi: favorites,
+            storefrontApi: storefront,
+            actionApi: _FakeCustomerActionApi(),
+          ),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(favorites.lastStoreId, 70);
+      expect(storefront.lastStoreId, 70);
+      expect(
+        find.byKey(const ValueKey('wholesale-favorites-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-product-card-42')),
+        findsOneWidget,
+      );
+      expect(find.text('Favorite Bulk Water'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('wholesale-favorites-loading')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -1190,7 +1298,7 @@ void main() {
       );
       expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('b2b-product-detail-header')),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
       expect(
@@ -1568,7 +1676,12 @@ void main() {
         await tester.scrollUntilVisible(
           submit,
           300,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: find
+              .descendant(
+                of: find.byKey(const ValueKey('b2b-checkout-data')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
         );
         expect(submit, findsOneWidget);
         await tester.tap(submit);
@@ -1598,7 +1711,8 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
     expect(find.text('سلة الجملة'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1646,7 +1760,12 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('تأكيد الطلب'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('b2b-checkout-data')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
       await _pumpCustomerFrames(tester);
@@ -1700,7 +1819,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('تأكيد الطلب'),
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.tap(find.text('تأكيد الطلب'));
     await _pumpCustomerFrames(tester);
@@ -1787,8 +1911,10 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(find.text('Wholesale cart'), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-header')), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget,
+      );
       expect(find.text('Bulk Water'), findsOneWidget);
       expect(find.text('W-101'), findsNothing);
       expect(find.text('Case 12'), findsOneWidget);
@@ -3295,18 +3421,14 @@ void main() {
 
       expect(find.byKey(const ValueKey('b2b-invoices-screen')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('b2b-invoices-header-row')),
+        find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('b2b-invoices-header-row')),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('customer-route-label')), findsNothing);
-
-      final titleRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoices-header-title')),
-      );
-      final subtitleRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoices-header-subtitle')),
-      );
-      expect((titleRect.center.dy - subtitleRect.center.dy).abs(), lessThan(3));
 
       final filtersRect = tester.getRect(
         find.byKey(const ValueKey('b2b-invoices-filters')),
@@ -3733,9 +3855,9 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
 
-    final title = find.byKey(const ValueKey('b2b-more-header-title'));
-    expect(title, findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-more-back')), findsOneWidget);
+    final header = find.byKey(const ValueKey('foodex-wholesale-shared-header'));
+    expect(header, findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-more-back')), findsNothing);
     expect(find.text('حساب الأعمال'), findsNothing);
     expect(find.text('كل أدوات حسابك في مكان واحد'), findsNothing);
     expect(
@@ -3743,9 +3865,9 @@ void main() {
       findsOneWidget,
     );
 
-    final titleRect = tester.getRect(title);
-    expect(titleRect.left, greaterThanOrEqualTo(0));
-    expect(titleRect.right, lessThanOrEqualTo(320));
+    final headerRect = tester.getRect(header);
+    expect(headerRect.left, greaterThanOrEqualTo(0));
+    expect(headerRect.right, lessThanOrEqualTo(320));
     expect(tester.takeException(), isNull);
   });
 
@@ -4140,6 +4262,31 @@ class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       checkoutResult;
+}
+
+class _WholesaleFavoritesApi implements B2cRetailFavoritesApi {
+  _WholesaleFavoritesApi(this.value);
+
+  final Object? value;
+  int? lastStoreId;
+  final List<int> removed = <int>[];
+
+  @override
+  Future<Object?> favoritesForStore(int storeId) async {
+    lastStoreId = storeId;
+    return value;
+  }
+
+  @override
+  Future<void> addFavoriteForStore(int storeId, int productId) async {
+    lastStoreId = storeId;
+  }
+
+  @override
+  Future<void> removeFavoriteForStore(int storeId, int productId) async {
+    lastStoreId = storeId;
+    removed.add(productId);
+  }
 }
 
 class _FakeWholesaleStorefrontApi implements StorefrontApi {
