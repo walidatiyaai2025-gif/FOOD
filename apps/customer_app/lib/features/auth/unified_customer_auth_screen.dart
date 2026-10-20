@@ -571,6 +571,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     final email = _email.text.trim();
     final password = _password.text;
     final validation = <String, String>{};
+    var stage = 'validation';
 
     if (email.isEmpty) {
       validation['email'] = 'customer.validation.email';
@@ -598,6 +599,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       setState(() {
         _fieldErrorKeys = validation;
         _errorKey = null;
+        _errorDetail = null;
       });
       return;
     }
@@ -605,10 +607,12 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     setState(() {
       _busy = true;
       _errorKey = null;
+      _errorDetail = null;
       _fieldErrorKeys = const <String, String>{};
     });
 
     try {
+      stage = 'login_request';
       final CustomerLoginResult result;
       final api = widget.actionApi;
       if (_register) {
@@ -630,9 +634,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             : await api.login(username: email);
       }
 
+      stage = 'login_response_parse';
       final retailStoreId =
           result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
 
+      stage = 'session_commit_and_route';
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
@@ -640,16 +646,28 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         postAuthenticationRoute: CustomerRoutePaths.b2bHome,
       );
     } on CustomerActionException catch (error) {
+      CustomerDiagnostics.instance.record('auth_submit_api_failure', {
+        'stage': stage,
+        'code': error.code,
+      });
       if (!mounted) return;
       setState(() {
         _fieldErrorKeys = _safeFieldErrors(error);
         _errorKey = _safeActionErrorKey(error, register: _register);
+        _errorDetail = 'AUTH-API [$stage] ${error.code}';
       });
-    } catch (_) {
+    } catch (error, stack) {
+      CustomerDiagnostics.instance.record('auth_submit_runtime_failure', {
+        'stage': stage,
+        'error_type': error.runtimeType.toString(),
+        'error': _safeAuthDiagnostic(stage, error),
+        'stack': stack.toString(),
+      });
       if (!mounted) return;
       setState(() {
         _fieldErrorKeys = const <String, String>{};
-        _errorKey = 'customer.error.offline';
+        _errorKey = 'customer.error.action_failed';
+        _errorDetail = _safeAuthDiagnostic(stage, error);
       });
     } finally {
       if (mounted) setState(() => _busy = false);
