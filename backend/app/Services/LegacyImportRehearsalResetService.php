@@ -83,6 +83,10 @@ final class LegacyImportRehearsalResetService
         'legacy_business_records',
         'legacy_business_table_manifest',
 
+        // Native legacy Van operational history rebuilt from full archive.
+        'van_inventory_history_lines',
+        'van_inventory_history_documents',
+
         // Sales transaction scope explicitly approved for reset.
         'payments',
         'invoice_items',
