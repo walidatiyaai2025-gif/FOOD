@@ -1377,6 +1377,42 @@ Artisan::command(
 )->purpose('Verify one-to-one native chart-of-accounts coverage and parent integrity for the legacy GL master.');
 
 Artisan::command(
+    'foodex:legacy-finance-assets-semantics {--json : Output JSON}',
+    function (LegacyFinanceAssetProfilerService $profiler): int {
+        try {
+            $profile = $profiler->profile();
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset semantic profiling failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        $result = [
+            'source_table' => $profile['source_table'],
+            'source_rows' => $profile['source_rows'],
+            'numeric_stats' => $profile['numeric_stats'],
+            'date_stats' => $profile['date_stats'],
+            'asset_semantic_masters' => $profile['asset_semantic_masters'],
+        ];
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $result,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+            ));
+            return 0;
+        }
+
+        $this->info('Legacy fixed-asset semantic master profile');
+        $this->line((string) json_encode(
+            $result,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+        ));
+
+        return 0;
+    },
+)->purpose('Output only the source-backed fixed-asset semantic master rows and referenced GL account mappings.');
+
+Artisan::command(
     'foodex:legacy-finance-assets-profile {--json : Output JSON}',
     function (LegacyFinanceAssetProfilerService $profiler): int {
         try {
