@@ -1287,8 +1287,26 @@ Artisan::command(
                 ['Account mappings', $result['target']['account_mappings']],
                 ['Orphan mappings', $result['target']['orphan_mappings']],
                 ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
-                ['Unmapped parent accounts', $result['target']['unmapped_parent_accounts']],
+                ['Semantic mismatches', $result['target']['semantic_mismatches']],
+                ['Parent mismatches', $result['target']['parent_mismatches']],
+                ['Control-flag mismatches', $result['target']['control_flag_mismatches']],
+                ['Posting-flag mismatches', $result['target']['posting_flag_mismatches']],
             ],
+        );
+
+        $this->line('');
+        $this->info('Native account type distribution');
+        $types = collect(array_unique(array_merge(
+            array_keys($result['target']['expected_type_counts']),
+            array_keys($result['target']['actual_type_counts']),
+        )))->sort()->values();
+        $this->table(
+            ['Type', 'Expected', 'Actual'],
+            $types->map(static fn (string $type): array => [
+                $type,
+                $result['target']['expected_type_counts'][$type] ?? 0,
+                $result['target']['actual_type_counts'][$type] ?? 0,
+            ])->all(),
         );
 
         if (! $result['healthy']) {
@@ -1324,8 +1342,26 @@ Artisan::command(
                 ['Account mappings', $result['target']['account_mappings']],
                 ['Orphan mappings', $result['target']['orphan_mappings']],
                 ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
-                ['Unmapped parent accounts', $result['target']['unmapped_parent_accounts']],
+                ['Semantic mismatches', $result['target']['semantic_mismatches']],
+                ['Parent mismatches', $result['target']['parent_mismatches']],
+                ['Control-flag mismatches', $result['target']['control_flag_mismatches']],
+                ['Posting-flag mismatches', $result['target']['posting_flag_mismatches']],
             ],
+        );
+
+        $this->line('');
+        $this->info('Native account type distribution');
+        $types = collect(array_unique(array_merge(
+            array_keys($result['target']['expected_type_counts']),
+            array_keys($result['target']['actual_type_counts']),
+        )))->sort()->values();
+        $this->table(
+            ['Type', 'Expected', 'Actual'],
+            $types->map(static fn (string $type): array => [
+                $type,
+                $result['target']['expected_type_counts'][$type] ?? 0,
+                $result['target']['actual_type_counts'][$type] ?? 0,
+            ])->all(),
         );
 
         if (! $result['healthy']) {
