@@ -2122,7 +2122,6 @@ Artisan::command(
     },
 )->purpose('Inspect legacy Foodex GL and receipt/payment authority before finance cutover; read-only only.');
 
-
 Artisan::command(
     'foodex:legacy-finance-assets {--apply : Materialize legacy gl_Assets into the protected asset register} {--json : Output machine-readable JSON}',
     function (LegacyFinanceAssetMaterializerService $assets): int {
