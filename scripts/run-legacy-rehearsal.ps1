@@ -61,6 +61,10 @@ try {
         php -l app\Services\LegacyFullArchiveService.php
     }
 
+    Run-Step 'PHP syntax - stock reconciliation' {
+        php -l app\Services\LegacyStockReconciliationService.php
+    }
+
     Run-Step 'PHP syntax - legacy routes' {
         php -l routes\legacy_import.php
     }
@@ -147,6 +151,10 @@ try {
         php artisan foodex:legacy-stock-verify
     }
 
+    Run-Step 'Stock source-to-target reconcile' {
+        php artisan foodex:legacy-stock-reconcile
+    }
+
     Run-Step 'Sales history dry-run' {
         php artisan foodex:legacy-import sales-history
     }
@@ -199,6 +207,10 @@ try {
 
     Run-Step 'FINAL stock verify' {
         php artisan foodex:legacy-stock-verify
+    }
+
+    Run-Step 'FINAL stock source-to-target reconcile' {
+        php artisan foodex:legacy-stock-reconcile
     }
     Run-Step 'FINAL sales verify' {
         php artisan foodex:legacy-sales-history-verify
