@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -1351,7 +1352,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
 
@@ -1669,7 +1670,7 @@ class _B2bProductDetailRemoteStateState
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
 
@@ -1946,7 +1947,7 @@ class _B2bCatalogImage extends StatelessWidget {
             fit: BoxFit.cover,
             loadingBuilder: (context, child, progress) => progress == null
                 ? child
-                : const Center(child: CircularProgressIndicator()),
+                : const Center(child: FoodexWaveLoading()),
             errorBuilder: (_, __, ___) => const Center(
               child: Icon(
                 Icons.shopping_basket_outlined,
@@ -2665,7 +2666,7 @@ class _TopProductsRemoteStateState extends State<_TopProductsRemoteState> {
                   key: ValueKey('b2b-loading'),
                   child: Padding(
                     padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
+                    child: FoodexWaveLoading(),
                   ),
                 );
               }
@@ -2899,7 +2900,7 @@ class _PurchaseReportRemoteStateState
               _lastData == null) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
 
@@ -3722,7 +3723,7 @@ class _RemoteStateState extends State<_RemoteState> {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
 
@@ -4634,7 +4635,7 @@ class _FinanceCard extends StatelessWidget {
             if (snap.connectionState != ConnectionState.done) {
               return const SizedBox(
                 height: 136,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: FoodexWaveLoading()),
               );
             }
             if (snap.hasError) {
@@ -4984,7 +4985,7 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(),
+                      child: FoodexWaveLoading(),
                     ),
                   );
                 }
@@ -5398,7 +5399,7 @@ class _B2bAccountStatementRemoteStateState
     if (_loading && _data == null) {
       return const Center(
         key: ValueKey('b2b-loading'),
-        child: CircularProgressIndicator(),
+        child: FoodexWaveLoading(),
       );
     }
     if (_error != null && _data == null) {
@@ -6478,7 +6479,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     icon: _sharingPdf
                         ? const SizedBox.square(
                             dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: FoodexWaveLoading(),
                           )
                         : const Icon(Icons.picture_as_pdf_rounded),
                     label: Text(
@@ -6722,7 +6723,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
               _lastGood == null) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
 
@@ -7514,7 +7515,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
               _lastGood == null) {
             return const Center(
               key: ValueKey('b2b-loading'),
-              child: CircularProgressIndicator(),
+              child: FoodexWaveLoading(),
             );
           }
           if (snapshot.hasError) {
