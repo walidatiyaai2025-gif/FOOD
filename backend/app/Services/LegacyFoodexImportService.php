@@ -1515,14 +1515,20 @@ SQL));
             $meta = [];
 
             foreach ($source->table('wh_Stores')->get(['ID', 'Code']) as $row) {
-                $meta[(int) $row->ID] = [
+                $key = $this->legacyStockLocationKey('wh_Stores', (int) $row->ID);
+                $meta[$key] = [
+                    'source_table' => 'wh_Stores',
+                    'source_id' => (int) $row->ID,
                     'store_code' => $row->Code ?? null,
                     'is_car_trans' => 0,
                 ];
             }
 
             foreach ($source->table('wh_Cars')->get(['ID', 'Code']) as $row) {
-                $meta[(int) $row->ID] = [
+                $key = $this->legacyStockLocationKey('wh_Cars', (int) $row->ID);
+                $meta[$key] = [
+                    'source_table' => 'wh_Cars',
+                    'source_id' => (int) $row->ID,
                     'store_code' => $row->Code ?? null,
                     'is_car_trans' => 1,
                 ];
@@ -1538,9 +1544,15 @@ SQL));
                 ->where('Status', 1)
                 ->whereIn('TransType', array_keys($movementSigns))
                 ->get(['HeaderId', 'TransType', 'StoreId']) as $row) {
+                $type = (int) $row->TransType;
+                $sourceId = (int) ($row->StoreId ?? 0);
+                $sourceTable = $this->legacyStockLocationSourceTable($type);
+
                 $map[(int) $row->HeaderId] = [
-                    'type' => (int) $row->TransType,
-                    'store_id' => (int) ($row->StoreId ?? 0),
+                    'type' => $type,
+                    'source_table' => $sourceTable,
+                    'source_id' => $sourceId,
+                    'location_key' => $this->legacyStockLocationKey($sourceTable, $sourceId),
                 ];
             }
 
@@ -1599,14 +1611,24 @@ SQL));
                             }
 
                             $itemId = (int) ($row->ItemID ?? 0);
-                            $storeId = (int) ($header['store_id'] ?? 0);
+                            $sourceId = (int) ($header['source_id'] ?? 0);
+                            $sourceTable = (string) ($header['source_table'] ?? '');
+                            $locationKey = (string) ($header['location_key'] ?? '');
 
-                            if ($itemId <= 0 || $storeId <= 0) {
+                            if (
+                                $itemId <= 0
+                                || $sourceId <= 0
+                                || $sourceTable === ''
+                                || $locationKey === ''
+                                || ! isset($locationMeta[$locationKey])
+                            ) {
                                 if (count($invalidRows) < 20) {
                                     $invalidRows[] = [
                                         'detail_id' => (int) ($row->DetailId ?? 0),
                                         'item_id' => $itemId,
-                                        'store_id' => $storeId,
+                                        'source_table' => $sourceTable,
+                                        'source_id' => $sourceId,
+                                        'location_key' => $locationKey,
                                     ];
                                 }
 
@@ -1620,15 +1642,17 @@ SQL));
                             $acceptedDetailRows++;
                             $type = (int) $header['type'];
                             $signedQuantity = $movementSigns[$type] * (float) ($row->TransPkgQty1 ?? 0);
-                            $key = $storeId.':'.$itemId;
+                            $key = $locationKey.':'.$itemId;
 
                             if (! isset($positions[$key])) {
                                 $positions[$key] = [
-                                    'store_id' => $storeId,
+                                    'source_table' => $sourceTable,
+                                    'source_id' => $sourceId,
+                                    'location_key' => $locationKey,
                                     'item_id' => $itemId,
                                     'quantity' => 0.0,
-                                    'store_code' => $locationMeta[$storeId]['store_code'] ?? null,
-                                    'is_car_trans' => $locationMeta[$storeId]['is_car_trans'] ?? null,
+                                    'store_code' => $locationMeta[$locationKey]['store_code'] ?? null,
+                                    'is_car_trans' => $locationMeta[$locationKey]['is_car_trans'] ?? null,
                                 ];
                             }
 
@@ -1661,7 +1685,11 @@ SQL));
 
         $warehouseMap = [];
         foreach ($warehouseMappings as $mapping) {
-            $warehouseMap[(int) $mapping->source_key] = (int) $mapping->target_id;
+            $locationKey = $this->legacyStockLocationKey(
+                (string) $mapping->source_table,
+                (int) $mapping->source_key,
+            );
+            $warehouseMap[$locationKey] = (int) $mapping->target_id;
         }
 
         $productMap = DB::table('legacy_import_mappings')
@@ -1681,8 +1709,8 @@ SQL));
         foreach ($positions as $key => $position) {
             $quantity = (float) $position['quantity'];
 
-            if (! isset($warehouseMap[$position['store_id']])) {
-                $unmappedLocations[$position['store_id']] = true;
+            if (! isset($warehouseMap[$position['location_key']])) {
+                $unmappedLocations[$position['location_key']] = true;
             }
             if (! isset($productMap[$position['item_id']])) {
                 $unmappedItems[$position['item_id']] = true;
@@ -1744,6 +1772,8 @@ SQL));
                     'zero_positions_are_not_materialized' => true,
                     'negative_positions_block_apply' => true,
                     'foreign_target_stock_blocks_apply' => true,
+                    'store_and_van_ids_are_namespaced' => true,
+                    'car_tables_are_audit_only' => true,
                 ],
             ];
         }
@@ -1804,7 +1834,7 @@ SQL));
                 $sourceKeys = [];
 
                 foreach ($positive as $sourceKey => $position) {
-                    $warehouseId = $warehouseMap[$position['store_id']];
+                    $warehouseId = $warehouseMap[$position['location_key']];
                     $productId = $productMap[$position['item_id']];
                     $quantity = round((float) $position['quantity'], 3);
                     $sourceKeys[] = $sourceKey;
@@ -1854,7 +1884,9 @@ SQL));
                             'source_system' => self::SOURCE_SYSTEM,
                             'source_view' => 'dbo.wh_vw_ItemStock2Now',
                             'source_read_strategy' => 'streamed_wh_TransHeader_wh_TransDetails',
-                            'legacy_store_id' => $position['store_id'],
+                            'legacy_location_table' => $position['source_table'],
+                            'legacy_location_id' => $position['source_id'],
+                            'legacy_location_key' => $position['location_key'],
                             'legacy_item_id' => $position['item_id'],
                             'store_code' => $position['store_code'],
                             'is_car_trans' => $position['is_car_trans'],
@@ -1881,7 +1913,9 @@ SQL));
                     }
 
                     $sourceRow = (object) [
-                        'StoreId' => $position['store_id'],
+                        'SourceTable' => $position['source_table'],
+                        'StoreId' => $position['source_id'],
+                        'LocationKey' => $position['location_key'],
                         'ItemID' => $position['item_id'],
                         'CurrentStock' => $quantity,
                         'StoreCode' => $position['store_code'],
@@ -7667,6 +7701,18 @@ SQL));
             ->count();
 
         return $salesRepReferences === (int) $sourceCounts['wh_SalesReps'];
+    }
+
+    private function legacyStockLocationSourceTable(int $transType): string
+    {
+        return in_array($transType, [13, 14, 19, 20], true)
+            ? 'wh_Cars'
+            : 'wh_Stores';
+    }
+
+    private function legacyStockLocationKey(string $sourceTable, int $sourceId): string
+    {
+        return $sourceTable.':'.$sourceId;
     }
 
     private function legacySource(): \Illuminate\Database\Connection
