@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.95 - 2026-10-20
+- Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized.
+- Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events.
+- Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally.
+- Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden.
+- Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory.
+
 ## 1.0.94 - 2026-10-19
 - Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94.
 - Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology.
