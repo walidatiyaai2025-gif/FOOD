@@ -71,6 +71,10 @@ try {
         php -l app\Services\LegacyBusinessImpactMaterializerService.php
     }
 
+    Run-Step 'PHP syntax - Van native history' {
+        php -l app\Services\LegacyVanInventoryHistoryMaterializerService.php
+    }
+
     Run-Step 'PHP syntax - importer' {
         php -l app\Services\LegacyFoodexImportService.php
     }
@@ -125,6 +129,18 @@ try {
 
     Run-Step 'Invoice extra verification' {
         php artisan foodex:legacy-invoice-extras-verify
+    }
+
+    Run-Step 'Native Van history dry-run' {
+        php artisan foodex:legacy-van-history
+    }
+
+    Run-Step 'Native Van history apply' {
+        php artisan foodex:legacy-van-history --apply
+    }
+
+    Run-Step 'Native Van history verify' {
+        php artisan foodex:legacy-van-history-verify
     }
 
     Run-Step 'Business-impact materialization dry-run' {
