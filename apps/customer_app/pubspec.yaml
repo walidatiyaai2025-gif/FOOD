@@ -1,7 +1,7 @@
 name: foodex_customer_app
 description: FOODEX Customer bootstrap foundation.
 publish_to: "none"
-version: 1.0.94+94
+version: 1.0.95+95
 environment:
   sdk: ">=3.5.0 <4.0.0"
 
@@ -21,7 +21,9 @@ dependencies:
   firebase_messaging: ^15.2.10
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.3
-  # Android release R8 regression in shared_preferences_android 2.5.0.
+  # shared_preferences_android 2.5.0 crashes Android release builds under R8
+  # with SharedPreferencesApiRegistrar NoSuchMethodError. Keep the last
+  # known-good native implementation until the upstream consumer rules land.
   shared_preferences_android: ">=2.4.28 <2.5.0"
   flutter_secure_storage: ^11.2.0
   local_auth: ^2.3.0
