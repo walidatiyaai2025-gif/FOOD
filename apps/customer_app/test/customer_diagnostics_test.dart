@@ -8,6 +8,13 @@ import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Finder _verticalScrollable() => find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable &&
+          (widget.axisDirection == AxisDirection.down ||
+              widget.axisDirection == AxisDirection.up),
+    );
+
 void main() {
   test('diagnostics redacts secrets and private customer data recursively', () {
     final diagnostics = CustomerDiagnostics(maxEvents: 10)
@@ -151,10 +158,10 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('customer-diagnostics-clear')),
       220,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable().first,
     );
     await tester.drag(
-      find.byType(Scrollable).first,
+      _verticalScrollable().first,
       const Offset(0, -500),
     );
     await tester.pumpAndSettle();
