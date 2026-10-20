@@ -72,6 +72,13 @@ final class LegacyCanonicalCoverageService
                 ->all()
             : [];
 
+        $businessManifest = Schema::hasTable('legacy_business_table_manifest')
+            ? DB::table('legacy_business_table_manifest')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->get(['source_table', 'classification', 'status', 'materialized_row_count'])
+                ->keyBy('source_table')
+            : collect();
+
         $knownInputs = array_fill_keys(self::CANONICAL_INPUT_TABLES, true);
 
         $rows = [];
@@ -81,6 +88,8 @@ final class LegacyCanonicalCoverageService
             'canonical_input_tables' => 0,
             'reference_preserved_tables' => 0,
             'invoice_extension_tables' => 0,
+            'business_extension_tables' => 0,
+            'technical_staging_tables' => 0,
             'archive_only_tables' => 0,
             'archive_only_rows' => 0,
         ];
@@ -110,6 +119,25 @@ final class LegacyCanonicalCoverageService
             } elseif (isset($knownInputs[$table])) {
                 $classification = 'canonical_input';
                 $summary['canonical_input_tables']++;
+            } elseif ($businessManifest->has($table)) {
+                $manifest = $businessManifest->get($table);
+                $manifestClassification = (string) $manifest->classification;
+
+                if (
+                    $manifestClassification === 'business_extension'
+                    && (string) $manifest->status === 'completed'
+                    && (int) $manifest->materialized_row_count === $sourceRows
+                ) {
+                    $classification = 'business_extension';
+                    $summary['business_extension_tables']++;
+                } elseif ($manifestClassification === 'technical_staging') {
+                    $classification = 'technical_staging';
+                    $summary['technical_staging_tables']++;
+                } else {
+                    $classification = 'archive_only';
+                    $summary['archive_only_tables']++;
+                    $summary['archive_only_rows'] += $sourceRows;
+                }
             } else {
                 $classification = 'archive_only';
                 $summary['archive_only_tables']++;
