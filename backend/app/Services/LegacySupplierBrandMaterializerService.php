@@ -426,6 +426,7 @@ final class LegacySupplierBrandMaterializerService
             'legacy_procurement_documents',
             'legacy_procurement_document_lines',
             'legacy_import_mappings',
+            'legacy_source_archive_tables',
             'product_supplier_brand_sources',
         ] as $table) {
             if (! Schema::hasTable($table)) {
