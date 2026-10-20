@@ -6040,6 +6040,17 @@ class _WholesaleOrdersDesignScreenState
                               searchHint: context.tr(
                                 'customer.products.search_name_sku_barcode',
                               ),
+                              trailingActions: [
+                                IconButton(
+                                  key: const ValueKey('b2b-orders-refresh'),
+                                  tooltip: context.tr('b2b.dashboard.refresh'),
+                                  onPressed: loading
+                                      ? null
+                                      : () => unawaited(_refresh()),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  color: Colors.white,
+                                ),
+                              ],
                               onSearchSubmitted: (value) {
                                 final query = value.trim();
                                 if (query.isEmpty) return;
