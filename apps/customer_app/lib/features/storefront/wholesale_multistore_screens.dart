@@ -1416,15 +1416,10 @@ class _WholesaleBestSellerTickerHeaderState
       child: Row(
         key: const ValueKey('wholesale-best-seller-ticker-header'),
         children: [
-          Text(
-            widget.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: widget.palette.text,
-              fontSize: 14.4,
-              fontWeight: FontWeight.w800,
-            ),
+          FoodexAnimatedOxbloodTitle(
+            title: widget.title,
+            fontSize: 14.4,
+            fontWeight: FontWeight.w800,
           ),
           if (product != null) ...[
             const SizedBox(width: 8),
