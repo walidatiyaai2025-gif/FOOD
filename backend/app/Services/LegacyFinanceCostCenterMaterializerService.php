@@ -153,8 +153,8 @@ final class LegacyFinanceCostCenterMaterializerService
                     'updated_at' => now(),
                 ];
 
-                if ($targetId !== null && DB::table('enterprise_cost_centers')->whereKey($targetId)->exists()) {
-                    DB::table('enterprise_cost_centers')->whereKey($targetId)->update($payload);
+                if ($targetId !== null && DB::table('enterprise_cost_centers')->where('id', $targetId)->exists()) {
+                    DB::table('enterprise_cost_centers')->where('id', $targetId)->update($payload);
                 } else {
                     $payload['created_at'] = now();
                     $targetId = (int) DB::table('enterprise_cost_centers')->insertGetId($payload);
@@ -213,9 +213,9 @@ final class LegacyFinanceCostCenterMaterializerService
 
             foreach ($stale as $mapping) {
                 DB::table('enterprise_cost_centers')
-                    ->whereKey((int) $mapping->target_id)
+                    ->where('id', (int) $mapping->target_id)
                     ->update(['status' => 'inactive', 'updated_at' => now()]);
-                DB::table('legacy_import_mappings')->whereKey($mapping->id)->delete();
+                DB::table('legacy_import_mappings')->where('id', $mapping->id)->delete();
             }
 
             if (Schema::hasTable('legacy_business_records')) {
