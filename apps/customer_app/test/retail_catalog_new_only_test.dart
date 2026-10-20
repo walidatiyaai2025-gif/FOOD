@@ -117,7 +117,7 @@ void main() {
   });
 
   testWidgets(
-    'NEW Retail home keeps shared search and hides unwired action keys',
+    'NEW Retail home keeps unified header controls without fake product actions',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -134,10 +134,13 @@ void main() {
         find.byKey(const ValueKey('retail-catalog-search')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('retail-catalog-cart')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('retail-catalog-cart')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('retail-catalog-notifications')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(find.byKey(const ValueKey('retail-product-add-42')), findsNothing);
     },
