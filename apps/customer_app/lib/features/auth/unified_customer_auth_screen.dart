@@ -5,6 +5,7 @@ import '../../core/api/customer_action_api.dart';
 import '../../core/auth/customer_auth_persistence.dart';
 import '../../core/auth/customer_session_store.dart';
 import '../../core/config/customer_app_release.dart';
+import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
@@ -88,6 +89,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   bool _savedBiometricDismissed = false;
   bool _busy = false;
   String? _errorKey;
+  String? _errorDetail;
   Map<String, String> _fieldErrorKeys = const <String, String>{};
 
   @override
@@ -124,6 +126,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     setState(() {
       _register = register;
       _errorKey = null;
+      _errorDetail = null;
       _fieldErrorKeys = const <String, String>{};
     });
   }
@@ -165,6 +168,22 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     return register
         ? 'customer.marketplace.registration_failed'
         : 'customer.error.action_failed';
+  }
+
+  String _safeAuthDiagnostic(String stage, Object error) {
+    var message = error.toString().replaceAll(RegExp(r'[\r\n]+'), ' ').trim();
+    final email = _email.text.trim();
+    final password = _password.text;
+    if (email.isNotEmpty) {
+      message = message.replaceAll(email, '<email>');
+    }
+    if (password.isNotEmpty) {
+      message = message.replaceAll(password, '<password>');
+    }
+    if (message.length > 280) {
+      message = '${message.substring(0, 280)}…';
+    }
+    return 'AUTH-DIAG [$stage] ${error.runtimeType}: $message';
   }
 
   Map<String, String> _safeFieldErrors(CustomerActionException error) {
@@ -504,6 +523,19 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: CustomerUiColors.destructive,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (_errorDetail != null) ...[
+            const SizedBox(height: 6),
+            SelectableText(
+              _errorDetail!,
+              key: const ValueKey('unified-auth-error-detail'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: CustomerUiColors.destructive,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1020,6 +1052,21 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       ),
                                     ),
                                   ],
+                                  if (_errorDetail != null) ...[
+                                    const SizedBox(height: 6),
+                                    SelectableText(
+                                      _errorDetail!,
+                                      key: const ValueKey(
+                                        'unified-auth-error-detail',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: CustomerUiColors.destructive,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: CustomerUiSpacing.sm),
                                   SizedBox(
                                     height: 58,
@@ -1451,6 +1498,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           key: const ValueKey('unified-auth-error'),
                           style: const TextStyle(
                             color: CustomerUiColors.destructive,
+                          ),
+                        ),
+                      ],
+                      if (_errorDetail != null) ...[
+                        const SizedBox(height: 6),
+                        SelectableText(
+                          _errorDetail!,
+                          key: const ValueKey('unified-auth-error-detail'),
+                          style: const TextStyle(
+                            color: CustomerUiColors.destructive,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
