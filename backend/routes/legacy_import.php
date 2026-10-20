@@ -1,8 +1,81 @@
 <?php
 
 use App\Services\LegacyFoodexImportService;
+use App\Services\LegacyImportRehearsalResetService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+
+
+
+Artisan::command(
+    'foodex:legacy-rehearsal-reset {--apply : Delete only the approved catalog/sales/stock scope} {--confirm= : Required exact confirmation when applying} {--json : Output machine-readable JSON}',
+    function (LegacyImportRehearsalResetService $reset): int {
+        try {
+            if (! (bool) $this->option('apply')) {
+                $report = $reset->preview();
+
+                if ((bool) $this->option('json')) {
+                    $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+                    return $report['ready'] ? 0 : 1;
+                }
+
+                $this->info('Legacy import rehearsal scoped reset preview');
+                $this->table(
+                    ['Table', 'Rows'],
+                    collect($report['counts'])
+                        ->map(fn ($count, $table): array => [(string) $table, (int) $count])
+                        ->values()
+                        ->all(),
+                );
+
+                $this->line('Rows inside approved reset scope: '.$report['total']);
+                $this->line('Legacy mapping rows: '.$report['legacy_mapping_rows']);
+                $this->line('Protected tables are count-guarded and are never reset.');
+
+                if ($report['blocked_references'] !== []) {
+                    $this->error(
+                        'Blocked by unapproved dependent tables: '.
+                        json_encode($report['blocked_references'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    );
+
+                    return 1;
+                }
+
+                if ($report['legacy_mapping_rows'] !== 0) {
+                    $this->error('Existing legacy provenance mappings found. Restore the pre-import target before using this rehearsal reset.');
+
+                    return 1;
+                }
+
+                $this->info('Scoped reset preview PASSED.');
+                $this->warn(
+                    'Apply only with --apply --confirm="'.LegacyImportRehearsalResetService::CONFIRMATION.'"'
+                );
+
+                return 0;
+            }
+
+            $result = $reset->execute((string) $this->option('confirm'));
+
+            if ((bool) $this->option('json')) {
+                $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+                return 0;
+            }
+
+            $this->info('Legacy import rehearsal scoped reset completed.');
+            $this->line('Removed rows: '.$result['removed']);
+            $this->info('Protected settings/users/roles/customers/stores/configuration counts remained unchanged.');
+
+            return 0;
+        } catch (Throwable $exception) {
+            $this->error('Legacy rehearsal reset failed: '.$exception->getMessage());
+
+            return 1;
+        }
+    },
+)->purpose('Reset only the approved catalog, sales and inventory scope before a legacy Foodex import rehearsal.');
 
 Artisan::command(
     'foodex:legacy-preflight {--json : Output machine-readable JSON}',
