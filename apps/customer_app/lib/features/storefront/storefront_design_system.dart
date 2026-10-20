@@ -3,6 +3,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/routing/customer_commerce_context.dart';
@@ -573,7 +574,7 @@ class FoodexProductImage extends StatelessWidget {
                 fit: BoxFit.cover,
                 loadingBuilder: (_, child, progress) => progress == null
                     ? child
-                    : const Center(child: CircularProgressIndicator()),
+                    : const Center(child: FoodexWaveLoading()),
                 errorBuilder: (_, __, ___) => Center(
                   child: Icon(
                     Icons.inventory_2_outlined,
@@ -690,7 +691,7 @@ class FoodexLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Center(child: CircularProgressIndicator());
+      const Center(child: FoodexWaveLoading());
 }
 
 class FoodexErrorState extends StatelessWidget {
