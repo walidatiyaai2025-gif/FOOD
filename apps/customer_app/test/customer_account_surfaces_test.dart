@@ -6,7 +6,6 @@ import 'package:foodex_customer_app/core/location/customer_map_pin_selector.dart
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_data.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_screen.dart';
-import 'package:foodex_customer_app/features/customer_account/customer_account_v3_widgets.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_address_book_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_favorites_screen.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_notification_center_screen.dart';
