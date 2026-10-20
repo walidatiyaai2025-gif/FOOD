@@ -92,8 +92,8 @@ final class LegacyFoodexImportService
             'stock_snapshot' => [
                 'first_date' => $stockSnapshot?->first_date === null ? null : (int) $stockSnapshot->first_date,
                 'last_date' => $stockSnapshot?->last_date === null ? null : (int) $stockSnapshot->last_date,
-                'stores' => (int) ($stockSnapshot?->stores ?? 0),
-                'items' => (int) ($stockSnapshot?->items ?? 0),
+                'stores' => (int) ($stockSnapshot->stores ?? 0),
+                'items' => (int) ($stockSnapshot->items ?? 0),
                 'rows' => $sourceCounts['wh_ItemStockOnHand'],
                 'usable_as_cutover_stock' => $stockSnapshot?->last_date !== null
                     && $dateRange?->first_date !== null
@@ -949,7 +949,7 @@ final class LegacyFoodexImportService
                 'positive_positions' => $positivePositions,
                 'zero_positions' => $zeroPositions,
                 'negative_positions' => $negativePositions,
-                'negative_store_summary' => array_values($negativeStores),
+                'negative_store_summary' => $negativeStores,
                 'negative_samples' => $negativeSamples,
             ];
         } else {
@@ -1242,9 +1242,12 @@ SQL));
                 ((string) ($row->referenced_entity_name ?? '')),
                 '.',
             );
+            /** @var list<string> $references */
+            $references = $item['references'];
 
-            if ($reference !== '' && ! in_array($reference, $item['references'], true)) {
-                $item['references'][] = $reference;
+            if ($reference !== '' && ! in_array($reference, $references, true)) {
+                $references[] = $reference;
+                $item['references'] = $references;
             }
 
             if ($item['reason'] === 'name_match') {
@@ -1426,7 +1429,7 @@ SQL));
             ];
 
             preg_match_all('/\\b(?:TransType\\s*(?:=|IN\\s*\\()\\s*)?([0-9]{1,2})\\b/i', $definition, $typeMatches);
-            $transactionTypes = collect($typeMatches[1] ?? [])
+            $transactionTypes = collect($typeMatches[1])
                 ->map(static fn ($value): int => (int) $value)
                 ->unique()
                 ->sort()
@@ -1963,7 +1966,7 @@ SQL));
                 ];
             }, 3);
 
-            if (($summary['inventories']['target_negative'] ?? 0) !== 0) {
+            if ($summary['inventories']['target_negative'] !== 0) {
                 throw new RuntimeException('Stock apply validation failed: target contains negative inventory.');
             }
 
@@ -2260,6 +2263,7 @@ SQL));
         $unmappedCustomers = [];
         $unmappedB2bCustomers = [];
         $unmappedLocations = [];
+        $invalidLocationHeaderSamples = [];
         $invalidHeaderDates = [];
         $headerDateTimes = [];
         $returnAmounts = [];
@@ -2298,6 +2302,7 @@ SQL));
             &$unmappedCustomers,
             &$unmappedB2bCustomers,
             &$unmappedLocations,
+            &$invalidLocationHeaderSamples,
             &$invalidHeaderDates,
             &$headerDateTimes,
             &$returnAmounts,
@@ -2315,6 +2320,7 @@ SQL));
         ): void {
             foreach ($headerCursor() as $header) {
                 $headerId = (int) $header->HeaderId;
+                $type = (int) $header->TransType;
                 $customerId = (int) ($header->CustomerId ?? 0);
                 $locationId = (int) ($header->StoreId ?? 0);
 
@@ -2337,7 +2343,7 @@ SQL));
                         $invalidLocationHeaderSamples[] = [
                             'header_id' => $headerId,
                             'type' => $type,
-                            'supplier_id' => $supplierId,
+                            'customer_id' => $customerId,
                             'location_id' => $locationId,
                             'total' => round((float) ($header->Total ?? 0), 3),
                             'net_total' => round((float) ($header->NetTotal ?? 0), 3),
@@ -2352,7 +2358,6 @@ SQL));
                     $headerDateTimes[$headerId] = $dateTime;
                 }
 
-                $type = (int) $header->TransType;
                 if (in_array($type, $salesTypes, true)) {
                     $paid = round((float) ($header->Paid ?? 0), 3);
                     $paidCash = round((float) ($header->PaidCash ?? 0), 3);
@@ -2624,7 +2629,7 @@ SQL));
                         'header_total' => round($headerTotal, 3),
                         'detail_value_sum' => $lineTotal,
                         'difference' => round($headerTotal - $lineTotal, 3),
-                        'detail_count' => (int) ($detailCounts[$headerId] ?? 0),
+                        'detail_count' => (int) $detailCounts[$headerId],
                     ];
                 }
             }
@@ -2695,6 +2700,7 @@ SQL));
                 'samples' => [
                     'unmapped_customers' => array_slice(array_keys($unmappedCustomers), 0, 30),
                     'unmapped_locations' => array_slice(array_keys($unmappedLocations), 0, 30),
+                    'invalid_location_headers' => $invalidLocationHeaderSamples,
                     'unmapped_items' => array_slice(array_keys($unmappedItems), 0, 30),
                     'invalid_header_dates' => array_slice($invalidHeaderDates, 0, 20, true),
                     'sales_headers_without_lines' => $salesHeadersWithoutLinesSamples,
@@ -2765,6 +2771,7 @@ SQL));
             $unmappedCustomers,
             $unmappedB2bCustomers,
             $unmappedLocations,
+            $invalidLocationHeaderSamples,
             $unmappedItems,
             $invalidHeaderDates,
             $salesHeadersWithoutLinesSamples,
@@ -2879,6 +2886,7 @@ SQL));
         $paymentsCreated = 0;
         $returnLedgerCreated = 0;
         $historyCreated = 0;
+        /** @var list<array<string, mixed>> $mappingRows */
         $mappingRows = [];
         $sourceOrderIds = [];
         $sourceInvoiceIds = [];
@@ -3322,7 +3330,9 @@ SQL));
                 ): void {
                     $detailChunkNumber++;
                     $chunkStartedAt = microtime(true);
+                    /** @var list<array<string, mixed>> $orderItemRows */
                     $orderItemRows = [];
+                    /** @var list<array<string, mixed>> $invoiceItemRows */
                     $invoiceItemRows = [];
 
                     $flushItems = function () use (
@@ -3936,6 +3946,16 @@ SQL));
                     || $maps['warehouse_meta'][$warehouseId]['store_id'] === null
                 ) {
                     $unmappedLocations[$locationId] = true;
+                    if (count($invalidLocationHeaderSamples) < 20) {
+                        $invalidLocationHeaderSamples[] = [
+                            'header_id' => $headerId,
+                            'type' => $type,
+                            'supplier_id' => $supplierId,
+                            'location_id' => $locationId,
+                            'total' => round((float) ($header->Total ?? 0), 3),
+                            'net_total' => round((float) ($header->NetTotal ?? 0), 3),
+                        ];
+                    }
                 }
 
                 $date = $parseDate($header->TransDate ?? null);
@@ -4225,6 +4245,7 @@ SQL));
                 $documentIds = [];
                 $headerBatch = [];
                 $headerBatchNumber = 0;
+                /** @var list<array<string, mixed>> $mappingRows */
                 $mappingRows = [];
 
                 $flushMappings = function () use (&$mappingRows): void {
@@ -4511,7 +4532,7 @@ SQL));
                                     'created_at' => now(),
                                     'updated_at' => now(),
                                 ];
-                                $mappingSource[(int) $line->DetailId] = (array) $line;
+                                $mappingPayloads[(int) $line->DetailId] = (array) $line;
                             }
 
                             if ($insertRows !== []) {
@@ -4533,7 +4554,7 @@ SQL));
                                         );
                                     }
 
-                                    $sourceArray = $mappingSource[$sourceDetailId];
+                                    $sourceArray = $mappingPayloads[$sourceDetailId];
                                     $mappingRows[] = [
                                         'source_system' => self::SOURCE_SYSTEM,
                                         'source_table' => 'wh_TransDetails',
@@ -5157,6 +5178,7 @@ SQL));
                 $documentsCreated = 0;
                 $linesCreated = 0;
                 $documentIds = [];
+                /** @var list<array<string, mixed>> $mappingRows */
                 $mappingRows = [];
                 $headerBatch = [];
                 $headerBatchNumber = 0;
@@ -5536,8 +5558,8 @@ SQL));
                 if (
                     $targetDocuments !== $documentsCreated
                     || $targetLines !== $linesCreated
-                    || $documentsCreated !== (int) ($planned['materialized_documents'] ?? -1)
-                    || $linesCreated !== (int) ($planned['operational_details'] ?? -1)
+                    || $documentsCreated !== (int) $planned['materialized_documents']
+                    || $linesCreated !== (int) $planned['operational_details']
                 ) {
                     throw new RuntimeException(
                         'Operational history target validation failed: target counts do not match planned/materialized counts.'
@@ -6249,8 +6271,6 @@ SQL));
             &$invoiceReceiptAggregates,
             &$missingDirectPayments,
             &$missingDirectPaymentCount,
-            &$directPaymentAmountMismatches,
-            &$directPaymentAmountMismatchCount,
             &$missingReturnLinks,
             &$missingReturnLinkCount,
             &$customerIdentityMismatches,
@@ -6657,6 +6677,7 @@ SQL));
                 $duplicatePaymentMappings = 0;
                 $ledgerCredits = 0.0;
                 $ledgerDebits = 0.0;
+                /** @var list<array<string, mixed>> $mappingRows */
                 $mappingRows = [];
 
                 $flushMappings = function () use (&$mappingRows): void {
@@ -8416,99 +8437,6 @@ SQL));
         }
 
         return compact('created', 'updated', 'platformCreated', 'platformUpdated');
-    }
-
-    private function applyStock(string $runId): array
-    {
-        $created = 0;
-        $updated = 0;
-        $quarantined = 0;
-
-        $rows = $this->legacySource()->table('wh_ItemStockOnHand')
-            ->orderBy('StoreID')
-            ->orderBy('ItemID')
-            ->get();
-
-        foreach ($rows as $row) {
-            $sourceKey = implode(':', [
-                (int) $row->ItemID,
-                (int) $row->StoreID,
-                (int) $row->BranchID,
-                (int) $row->StockDate,
-            ]);
-
-            $productId = $this->mappedTargetId('wh_Items', (string) $row->ItemID, 'products');
-            $warehouseId = $this->mappedTargetId('wh_Stores', (string) $row->StoreID, 'warehouses')
-                ?? $this->mappedTargetId('wh_Cars', (string) $row->StoreID, 'warehouses');
-
-            if ($productId === null || $warehouseId === null) {
-                $this->quarantine(
-                    'wh_ItemStockOnHand',
-                    $sourceKey,
-                    $productId === null ? 'unmapped_product' : 'unmapped_inventory_location',
-                    $row,
-                    $runId,
-                );
-                $quarantined++;
-
-                continue;
-            }
-
-            $inventory = DB::table('inventories')
-                ->where('warehouse_id', $warehouseId)
-                ->where('product_id', $productId)
-                ->first(['id']);
-
-            $quantity = round((float) $row->CurrentStock, 3);
-            if ($inventory === null) {
-                $inventoryId = (int) DB::table('inventories')->insertGetId([
-                    'warehouse_id' => $warehouseId,
-                    'product_id' => $productId,
-                    'quantity' => $quantity,
-                    'reserved_quantity' => 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $created++;
-            } else {
-                $inventoryId = (int) $inventory->id;
-                DB::table('inventories')->where('id', $inventoryId)->update([
-                    'quantity' => $quantity,
-                    'updated_at' => now(),
-                ]);
-                $updated++;
-            }
-
-            $movementId = $this->mappedTargetId('wh_ItemStockOnHand', $sourceKey, 'stock_movements');
-            $movementPayload = [
-                'inventory_id' => $inventoryId,
-                'user_id' => null,
-                'type' => 'legacy_opening_balance',
-                'quantity' => $quantity,
-                'reference_type' => 'foodex_stock_snapshot',
-                'reference_id' => null,
-                'reason' => 'Legacy Foodex stock snapshot date '.(int) $row->StockDate,
-                'updated_at' => now(),
-            ];
-
-            if ($movementId !== null && DB::table('stock_movements')->where('id', $movementId)->exists()) {
-                DB::table('stock_movements')->where('id', $movementId)->update($movementPayload);
-            } else {
-                $movementPayload['created_at'] = now();
-                $movementId = (int) DB::table('stock_movements')->insertGetId($movementPayload);
-            }
-
-            $this->syncMapping(
-                'wh_ItemStockOnHand',
-                $sourceKey,
-                'stock_movements',
-                $movementId,
-                $row,
-                $runId,
-            );
-        }
-
-        return compact('created', 'updated', 'quarantined');
     }
 
     private function mappedTargetId(string $sourceTable, string $sourceKey, string $targetTable): ?int
