@@ -8,6 +8,7 @@ use App\Services\LegacyImportRehearsalResetService;
 use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
 use App\Services\LegacyVanInventoryHistoryMaterializerService;
+use App\Services\LegacySupplierBrandMaterializerService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1136,6 +1137,97 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-supplier-brands {--apply : Derive brands from suppliers and procurement history} {--json : Output JSON}',
+    function (LegacySupplierBrandMaterializerService $materializer): int {
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Supplier-derived brand materialization failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return ($result['healthy'] ?? true) ? 0 : 1;
+        }
+
+        $this->info((bool) $this->option('apply') ? 'Supplier-derived brand materialization completed.' : 'Supplier-derived brand dry-run');
+        $source = $result['source'];
+        $target = $result['target'];
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Legacy supplier rows', $source['legacy_supplier_rows'] ?? $source['supplier_mappings'] ?? 0],
+                ['Legacy supplier mappings', $source['legacy_supplier_mappings'] ?? $source['supplier_mappings'] ?? 0],
+                ['Legacy products', $source['legacy_products'] ?? $source['product_mappings'] ?? 0],
+                ['Supplier-product relations', $source['supplier_product_relations'] ?? 0],
+                ['Products with supplier history', $source['products_with_supplier_history'] ?? 0],
+                ['Derived brands', $target['derived_brands'] ?? 0],
+                ['Products with primary brand', $target['products_with_primary_brand'] ?? 0],
+                ['Products without supplier history', $target['products_without_supplier_history'] ?? 0],
+                ['Duplicate primary products', $target['duplicate_primary_products'] ?? 0],
+                ['Primary brand mismatches', $target['primary_brand_mismatches'] ?? 0],
+            ],
+        );
+
+        if ((bool) $this->option('apply')) {
+            if (! $result['healthy']) {
+                $this->error('SUPPLIER-DERIVED BRAND COVERAGE FAILED.');
+                return 1;
+            }
+            $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED.');
+        }
+
+        return 0;
+    },
+)->purpose('Build B2B brands from legacy suppliers and assign every imported product to its deterministic primary supplier brand.');
+
+Artisan::command(
+    'foodex:legacy-supplier-brands-verify {--json : Output JSON}',
+    function (LegacySupplierBrandMaterializerService $materializer): int {
+        try {
+            $result = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Supplier-derived brand verification failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return $result['healthy'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Legacy supplier rows', $result['source']['legacy_supplier_rows']],
+                ['Legacy supplier mappings', $result['source']['legacy_supplier_mappings']],
+                ['Legacy products', $result['source']['legacy_products']],
+                ['Supplier-product relations', $result['source']['supplier_product_relations']],
+                ['Products with supplier history', $result['source']['products_with_supplier_history']],
+                ['Supplier brand mappings', $result['target']['supplier_brand_mappings']],
+                ['Derived brands', $result['target']['derived_brands']],
+                ['Products with primary brand', $result['target']['products_with_primary_brand']],
+                ['Products without supplier history', $result['target']['products_without_supplier_history']],
+                ['Duplicate primary products', $result['target']['duplicate_primary_products']],
+                ['Primary brand mismatches', $result['target']['primary_brand_mismatches']],
+                ['Relations missing brand', $result['target']['relations_missing_brand']],
+                ['Relations missing supplier', $result['target']['relations_missing_supplier']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('SUPPLIER-DERIVED BRAND COVERAGE FAILED.');
+            return 1;
+        }
+
+        $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED: all imported products are segmented by supplier-derived brands.');
+        return 0;
+    },
+)->purpose('Verify complete supplier-derived brand coverage and deterministic primary supplier assignment.');
 
 Artisan::command(
     'foodex:legacy-van-history {--apply : Materialize legacy Van operational history into native FOODEX tables} {--json : Output JSON}',
