@@ -67,6 +67,10 @@ try {
         php -l app\Services\LegacyInvoiceSourceMaterializerService.php
     }
 
+    Run-Step 'PHP syntax - business impact materializer' {
+        php -l app\Services\LegacyBusinessImpactMaterializerService.php
+    }
+
     Run-Step 'PHP syntax - importer' {
         php -l app\Services\LegacyFoodexImportService.php
     }
@@ -121,6 +125,18 @@ try {
 
     Run-Step 'Invoice extra verification' {
         php artisan foodex:legacy-invoice-extras-verify
+    }
+
+    Run-Step 'Business-impact materialization dry-run' {
+        php artisan foodex:legacy-business-materialize
+    }
+
+    Run-Step 'Business-impact materialization apply' {
+        php artisan foodex:legacy-business-materialize --apply
+    }
+
+    Run-Step 'Business-impact coverage verify' {
+        php artisan foodex:legacy-business-verify
     }
 
     Run-Step 'Purchase history dry-run' {
