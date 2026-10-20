@@ -384,7 +384,7 @@ void main() {
           key: boundaryKey,
           child: FoodexCustomerApp(
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
-            session: _b2b,
+            session: _b2cWholesale,
             initialRoute: '/b2b/checkout?store_id=70',
             storefrontApi: const _EvidenceStorefrontApi(),
             wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
