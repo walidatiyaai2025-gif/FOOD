@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "phases": [
     {
       "id": "van_inventory_history",
@@ -17,6 +17,24 @@
       ],
       "verify": [
         "foodex:legacy-van-history-verify"
+      ]
+    },
+    {
+      "id": "supplier_derived_brands",
+      "name": "Supplier-derived catalog brands",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacySupplierBrandMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-supplier-brands"
+      ],
+      "apply": [
+        "foodex:legacy-supplier-brands",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-supplier-brands-verify"
       ]
     }
   ]
