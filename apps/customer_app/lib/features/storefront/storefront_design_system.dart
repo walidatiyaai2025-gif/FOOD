@@ -439,7 +439,7 @@ class _FoodexAnimatedHeaderTitleState
   @override
   Widget build(BuildContext context) {
     final title = widget.title.trim();
-    final arabicBrand = title.startsWith('فودكس');
+    final arabicBrand = title.startsWith('فوديكس');
     final englishMatch =
         RegExp(r'^foodex', caseSensitive: false).firstMatch(title);
 
@@ -453,7 +453,7 @@ class _FoodexAnimatedHeaderTitleState
     }
 
     final brand = arabicBrand
-        ? 'فودكس'
+        ? 'فوديكس'
         : title.substring(0, englishMatch!.end);
     final rest = title.substring(brand.length);
 
