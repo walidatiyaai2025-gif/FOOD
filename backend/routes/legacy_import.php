@@ -1199,9 +1199,76 @@ Artisan::command(
                 );
             }
 
+            if ($profile['final_list_values'] !== []) {
+                $this->line('');
+                $this->info('AccountFinalListType values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['final_list_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            if ($profile['functional_type_values'] !== []) {
+                $this->line('');
+                $this->info('Functional AccountType values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['functional_type_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            if ($profile['has_accounts_values'] !== []) {
+                $this->line('');
+                $this->info('HasAccounts values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['has_accounts_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            if ($profile['has_trans_values'] !== []) {
+                $this->line('');
+                $this->info('HasTrans values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['has_trans_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            if ($profile['root_accounts'] !== []) {
+                $this->line('');
+                $this->info('Root chart-of-accounts nodes');
+                $this->table(
+                    ['ID', 'Code', 'Name AR', 'Name EN', 'AccountType', 'FinalListType', 'HasAccounts', 'HasTrans', 'Status'],
+                    collect($profile['root_accounts'])->map(static fn (array $row): array => [
+                        $row['id'],
+                        $row['code'],
+                        $row['name_ar'] ?? '—',
+                        $row['name'] ?? '—',
+                        $row['account_type'] ?? '—',
+                        $row['final_list_type'] ?? '—',
+                        $row['has_accounts'] ?? '—',
+                        $row['has_trans'] ?? '—',
+                        $row['status'] ?? '—',
+                    ])->all(),
+                );
+            }
+
             if ($profile['type_values'] !== []) {
                 $this->line('');
-                $this->info('Source account type values');
+                $this->info('Resolved classification candidate values');
                 $this->table(
                     ['Value', 'Rows'],
                     collect($profile['type_values'])->map(static fn (array $row): array => [
