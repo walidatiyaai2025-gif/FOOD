@@ -1181,6 +1181,24 @@ Artisan::command(
         );
 
         if (! (bool) $this->option('apply')) {
+            $this->line('');
+            $this->info('Source gl_Accounts columns');
+            foreach (array_chunk($profile['columns'], 6) as $chunk) {
+                $this->line('  '.implode(' | ', $chunk));
+            }
+
+            if ($profile['type_lookup_values'] !== []) {
+                $this->line('');
+                $this->info('gl_AccountTypes lookup values');
+                $this->table(
+                    ['ID', 'Label'],
+                    collect($profile['type_lookup_values'])->map(static fn (array $row): array => [
+                        $row['id'],
+                        $row['label'],
+                    ])->all(),
+                );
+            }
+
             if ($profile['type_values'] !== []) {
                 $this->line('');
                 $this->info('Source account type values');
@@ -1280,7 +1298,7 @@ Artisan::command(
                 ['Legacy products', $source['legacy_products'] ?? $source['product_mappings'] ?? 0],
                 ['Supplier-product relations', $source['supplier_product_relations'] ?? 0],
                 ['Products with supplier relation', $source['products_with_supplier_relation'] ?? 0],
-                ['Products without supplier relation', $source['products_without_supplier_relation'] ?? 0],
+                ['Products without supplier relation', $source['products_without_supplier_relation'] ?? ($target['products_without_supplier_relation'] ?? 0)],
                 ['Direct wh_Items supplier column', $source['direct_item_supplier_column'] ?? '—'],
                 ['Direct wh_Items relations', $source['direct_item_relations'] ?? 0],
                 ['Supplier-item bridge tables', count($source['bridge_tables'] ?? [])],
