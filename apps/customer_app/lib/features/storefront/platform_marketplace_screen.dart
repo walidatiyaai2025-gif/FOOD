@@ -1740,15 +1740,39 @@ class _WholesaleProductCard extends StatelessWidget {
                     Positioned.fill(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(10, 10, 10, 3),
-                        child: image != null && image.isNotEmpty
-                            ? Image.network(
-                                image,
-                                key: ValueKey('$keyPrefix-image-$id'),
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    _MarketplaceProductFallback(name: name),
-                              )
-                            : _MarketplaceProductFallback(name: name),
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 1.055, end: 1),
+                          duration: const Duration(milliseconds: 720),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, scale, child) => Transform.scale(
+                            scale: scale,
+                            child: child,
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: const <BoxShadow>[
+                                BoxShadow(
+                                  color: Color(0x3D72E89A),
+                                  blurRadius: 13,
+                                  spreadRadius: 1,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: image != null && image.isNotEmpty
+                                ? Image.network(
+                                    image,
+                                    key: ValueKey('$keyPrefix-image-$id'),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) =>
+                                        _MarketplaceProductFallback(name: name),
+                                  )
+                                : _MarketplaceProductFallback(name: name),
+                          ),
+                        ),
                       ),
                     ),
                     if (brand.isNotEmpty)
