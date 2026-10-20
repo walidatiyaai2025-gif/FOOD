@@ -887,6 +887,82 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale brands View All opens a dedicated brand grid and brand products',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 51,
+            'name': 'Brand One Water',
+            'sku': 'BRAND-ONE-51',
+            'account_price': 75,
+            'brand_id': 11,
+            'brand_name': 'Brand One',
+            'brand_image_url': 'https://example.invalid/brand-one.png',
+          },
+          {
+            'id': 52,
+            'name': 'Brand Two Rice',
+            'sku': 'BRAND-TWO-52',
+            'account_price': 40,
+            'brand_id': 12,
+            'brand_name': 'Brand Two',
+            'brand_image_url': 'https://example.invalid/brand-two.png',
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute:
+              '/b2b/products?channel=wholesale&store_id=70&browse=brands',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-brand-browser-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-brand-browser-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-brand-browser-search')),
+        findsOneWidget,
+      );
+      expect(find.text('كل العلامات التجارية'), findsOneWidget);
+      expect(find.text('Brand One'), findsOneWidget);
+      expect(find.text('Brand Two'), findsOneWidget);
+      expect(find.text('Brand One Water'), findsNothing);
+      expect(find.text('Brand Two Rice'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('wholesale-brand-browser-11')),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(
+        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        findsOneWidget,
+      );
+      expect(find.text('Brand One Water'), findsWidgets);
+      expect(find.text('Brand Two Rice'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('wholesale-brand-filter-11')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale storefront CTA opens canonical Screen 10 with store context',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
