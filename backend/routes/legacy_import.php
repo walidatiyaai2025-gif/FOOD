@@ -10,6 +10,7 @@ use App\Services\LegacyStockReconciliationService;
 use App\Services\LegacyVanInventoryHistoryMaterializerService;
 use App\Services\LegacySupplierBrandMaterializerService;
 use App\Services\LegacyFinanceAccountMaterializerService;
+use App\Services\LegacyFinanceCostCenterMaterializerService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1373,6 +1374,121 @@ Artisan::command(
         return 0;
     },
 )->purpose('Verify one-to-one native chart-of-accounts coverage and parent integrity for the legacy GL master.');
+
+Artisan::command(
+    'foodex:legacy-finance-cost-centers {--apply : Materialize legacy cost centers into native enterprise cost centers} {--json : Output JSON}',
+    function (LegacyFinanceCostCenterMaterializerService $materializer): int {
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy finance cost-center materialization failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return ($result['healthy'] ?? ($result['profile']['ready'] ?? false)) ? 0 : 1;
+        }
+
+        $profile = $result['profile'];
+        $this->info((bool) $this->option('apply')
+            ? 'Legacy native cost-center materialization completed.'
+            : 'Legacy finance cost-center dry-run');
+
+        $this->table(
+            ['Metric', 'Value'],
+            [
+                ['Source table', $profile['source_table']],
+                ['Source rows', $profile['source_rows']],
+                ['ID column', $profile['resolved_columns']['id'] ?? '—'],
+                ['Code column', $profile['resolved_columns']['code'] ?? '—'],
+                ['Name column', $profile['resolved_columns']['name'] ?? '—'],
+                ['Arabic-name column', $profile['resolved_columns']['name_ar'] ?? '—'],
+                ['Parent column', $profile['resolved_columns']['parent'] ?? '—'],
+                ['Status column', $profile['resolved_columns']['status'] ?? '—'],
+                ['Missing ID rows', $profile['classification']['missing_id_rows']],
+                ['Duplicate IDs', $profile['classification']['duplicate_ids']],
+                ['Missing code rows', $profile['classification']['missing_code_rows']],
+                ['Missing name rows', $profile['classification']['missing_name_rows']],
+                ['Missing parent rows', $profile['classification']['missing_parent_rows']],
+                ['Parent-cycle rows', $profile['classification']['parent_cycle_rows']],
+                ['Profile ready', $profile['ready'] ? 'YES' : 'NO'],
+            ],
+        );
+
+        if (! (bool) $this->option('apply')) {
+            if ($profile['status_values'] !== []) {
+                $this->line('');
+                $this->info('Source cost-center status values');
+                $this->table(
+                    ['Value', 'Rows'],
+                    collect($profile['status_values'])->map(static fn (array $row): array => [
+                        is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                        $row['count'],
+                    ])->all(),
+                );
+            }
+
+            return $profile['ready'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Verification', 'Count'],
+            [
+                ['Cost-center mappings', $result['target']['cost_center_mappings']],
+                ['Orphan mappings', $result['target']['orphan_mappings']],
+                ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
+                ['Semantic mismatches', $result['target']['semantic_mismatches']],
+                ['Parent mismatches', $result['target']['parent_mismatches']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY NATIVE COST-CENTER COVERAGE FAILED.');
+            return 1;
+        }
+
+        $this->info('LEGACY NATIVE COST-CENTER COVERAGE PASSED.');
+        return 0;
+    },
+)->purpose('Promote the legacy GL cost-center master into FOODEX native enterprise cost centers.');
+
+Artisan::command(
+    'foodex:legacy-finance-cost-centers-verify {--json : Output JSON}',
+    function (LegacyFinanceCostCenterMaterializerService $materializer): int {
+        try {
+            $result = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy finance cost-center verification failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return $result['healthy'] ? 0 : 1;
+        }
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Source cost centers', $result['profile']['source_rows']],
+                ['Cost-center mappings', $result['target']['cost_center_mappings']],
+                ['Orphan mappings', $result['target']['orphan_mappings']],
+                ['Duplicate target IDs', $result['target']['duplicate_target_ids']],
+                ['Semantic mismatches', $result['target']['semantic_mismatches']],
+                ['Parent mismatches', $result['target']['parent_mismatches']],
+            ],
+        );
+
+        if (! $result['healthy']) {
+            $this->error('LEGACY NATIVE COST-CENTER COVERAGE FAILED.');
+            return 1;
+        }
+
+        $this->info('LEGACY NATIVE COST-CENTER COVERAGE PASSED.');
+        return 0;
+    },
+)->purpose('Verify one-to-one native cost-center coverage and parent integrity.');
 
 Artisan::command(
     'foodex:legacy-supplier-brands {--apply : Derive brands from suppliers using all explicit supplier-product source relations} {--json : Output JSON}',
