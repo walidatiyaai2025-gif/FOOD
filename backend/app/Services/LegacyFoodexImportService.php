@@ -8655,6 +8655,7 @@ SQL));
             'addresses',
             'enterprise_suppliers',
             'enterprise_finance_accounts',
+            'enterprise_cost_centers',
         ];
 
         if (
