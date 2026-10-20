@@ -2017,14 +2017,20 @@ SQL));
                 'invoices',
                 'invoice_items',
                 'payments',
-                'customer_account_ledger_entries',
             ] as $table) {
                 $earlyTargetCounts[$table] = (int) DB::table($table)->count();
             }
 
+            // Preserve unrelated/manual customer ledger history. Only legacy sales-return
+            // ledger rows owned by this importer must be clean before sales materialization.
+            $earlyTargetCounts['legacy_return_ledger_entries'] = (int) DB::table('customer_account_ledger_entries')
+                ->where('source', 'legacy_foodex_import')
+                ->where('entry_type', 'return')
+                ->count();
+
             if (array_sum($earlyTargetCounts) !== 0) {
                 throw new RuntimeException(
-                    'Sales history apply refused before source scan: target commerce/ledger tables are not empty. '.
+                    'Sales history apply refused before source scan: target sales-owned commerce/ledger rows are not clean. '.
                     json_encode($earlyTargetCounts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                 );
             }
@@ -2610,10 +2616,16 @@ SQL));
             'invoices',
             'invoice_items',
             'payments',
-            'customer_account_ledger_entries',
         ] as $table) {
             $targetCounts[$table] = (int) DB::table($table)->count();
         }
+
+        $targetCounts['legacy_return_ledger_entries'] = (int) DB::table('customer_account_ledger_entries')
+            ->where('source', 'legacy_foodex_import')
+            ->where('entry_type', 'return')
+            ->count();
+
+        $existingCustomerLedgerEntries = (int) DB::table('customer_account_ledger_entries')->count();
 
         $planned = [
             'sales_headers_source' => count($salesHeaderIds),
@@ -2640,7 +2652,8 @@ SQL));
             'existing_orders' => $targetCounts['orders'],
             'existing_invoices' => $targetCounts['invoices'],
             'existing_payments' => $targetCounts['payments'],
-            'existing_customer_ledger_entries' => $targetCounts['customer_account_ledger_entries'],
+            'existing_customer_ledger_entries' => $existingCustomerLedgerEntries,
+            'existing_legacy_return_ledger_entries' => $targetCounts['legacy_return_ledger_entries'],
         ];
 
         if (! $apply) {
@@ -2682,6 +2695,8 @@ SQL));
                     'payment_status_uses_paid_vs_net_total' => true,
                     'returns_materialize_as_customer_ledger_credits' => true,
                     'target_commerce_must_be_clean' => true,
+                    'unrelated_customer_ledger_history_is_preserved' => true,
+                    'legacy_sales_return_ledger_must_be_clean' => true,
                 ],
             ];
         }
@@ -2706,8 +2721,8 @@ SQL));
 
         if (array_sum($targetCounts) !== 0) {
             throw new RuntimeException(
-                'Sales history apply refused: target commerce/ledger tables are not empty. '.
-                'Clean cutover forbids merging legacy history into existing target commerce data.'
+                'Sales history apply refused: target sales-owned commerce/ledger rows are not clean. '.
+                'Unrelated customer ledger history is preserved and does not block the legacy sales import.'
             );
         }
 
