@@ -31,21 +31,20 @@ Artisan::command(
                         ->all(),
                 );
 
-                $this->line('Rows inside approved reset scope: '.$report['total']);
-                $this->line('Legacy mapping rows: '.$report['legacy_mapping_rows']);
+                $this->line('Rows inside approved reset/provenance scope: '.$report['total']);
+                $this->line('Foodex legacy mapping rows to rebuild: '.$report['legacy_mapping_rows']);
+                $this->line('Foodex reference rows to rebuild: '.$report['legacy_reference_rows']);
+                $this->line('Foodex quarantine rows to rebuild: '.$report['legacy_quarantine_rows']);
+                $this->line('Foodex prior run rows to clear: '.$report['legacy_run_rows']);
+                $this->line('Foreign-source legacy mappings preserved: '.$report['foreign_legacy_mapping_rows_preserved']);
                 $this->line('Protected tables are count-guarded and are never reset.');
+                $this->line('Full SQL Server archive tables are preserved and are not part of this reset.');
 
                 if ($report['blocked_references'] !== []) {
                     $this->error(
                         'Blocked by unapproved dependent tables: '.
                         json_encode($report['blocked_references'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                     );
-
-                    return 1;
-                }
-
-                if ($report['legacy_mapping_rows'] !== 0) {
-                    $this->error('Existing legacy provenance mappings found. Restore the pre-import target before using this rehearsal reset.');
 
                     return 1;
                 }
@@ -77,7 +76,7 @@ Artisan::command(
             return 1;
         }
     },
-)->purpose('Reset only the approved catalog, sales and inventory scope before a legacy Foodex import rehearsal.');
+)->purpose('Reset approved Foodex-import outputs and Foodex provenance while preserving configuration and the full SQL archive.');
 
 Artisan::command(
     'foodex:legacy-rehearsal-reset-vans {--apply : Delete only vans and van operational history} {--confirm= : Required exact confirmation when applying} {--json : Output machine-readable JSON}',
