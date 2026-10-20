@@ -18,6 +18,8 @@ Status: synchronized Customer 360 mobile-access release.
 - Resetting the password activates the customer login, clears deactivation state, revokes previous Sanctum sessions and writes an audit event.
 - Password provisioning requires a real valid login email and rejects synthetic `@contacts.foodex.local` identities.
 - Automated regression coverage verifies the complete imported-customer-to-mobile-login flow and blocks non-super-admin identity mutation.
+- Catalog Product Management now exposes a one-click Active/Inactive toggle directly in the products grid with the same authorization, lifecycle transition and audit controls as product editing.
+- Product names in the Catalog grid render in full instead of being truncated with ellipsis.
 
 ## Distribution
 
