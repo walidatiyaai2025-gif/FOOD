@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../customer_gentle_marquee.dart';
+
 import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class CustomerCurvedHeaderSurface extends StatelessWidget {
@@ -546,10 +548,8 @@ class CustomerProductCard extends StatelessWidget {
                           : CustomerUiSpacing.xs,
                     ),
                   ],
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  CustomerGentleMarquee(
+                    text: title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontSize: compact ? 10 : 11,
                           height: 1.15,
