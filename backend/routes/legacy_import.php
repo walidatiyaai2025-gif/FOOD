@@ -5,8 +5,6 @@ use App\Services\LegacyImportRehearsalResetService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
-
-
 Artisan::command(
     'foodex:legacy-rehearsal-reset {--apply : Delete only the approved catalog/sales/stock scope} {--confirm= : Required exact confirmation when applying} {--json : Output machine-readable JSON}',
     function (LegacyImportRehearsalResetService $reset): int {
@@ -573,7 +571,6 @@ Artisan::command(
     },
 )->purpose('Migrate legacy Foodex masters, stock baseline, sales/procurement history, or immutable operational history with provenance and safety gates.');
 
-
 Artisan::command(
     'foodex:legacy-customer360-backfill {--apply : Persist changes; omitted means dry-run} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
@@ -616,7 +613,6 @@ Artisan::command(
         return 0;
     },
 )->purpose('Materialize provenance-owned legacy Foodex customers into Customer 360 without creating login users.');
-
 
 Artisan::command(
     'foodex:legacy-stock-diagnostics {--deep : Run the slower quantity/rebuild preview} {--json : Output machine-readable JSON}',
@@ -810,7 +806,6 @@ Artisan::command(
     },
 )->purpose('Diagnose legacy Foodex transaction semantics before rebuilding 2026 inventory.');
 
-
 Artisan::command(
     'foodex:legacy-stock-source-diagnostics {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
@@ -903,7 +898,6 @@ Artisan::command(
         return 0;
     },
 )->purpose('Discover the legacy Foodex authoritative current-stock calculation/source.');
-
 
 Artisan::command(
     'foodex:legacy-stock-routine-diagnostics {--json : Output machine-readable JSON}',
@@ -1002,7 +996,6 @@ Artisan::command(
         return 0;
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
-
 
 Artisan::command(
     'foodex:legacy-stock-verify {--json : Output machine-readable JSON}',
@@ -1115,7 +1108,6 @@ Artisan::command(
     },
 )->purpose('Verify the committed legacy Foodex stock baseline after import.');
 
-
 Artisan::command(
     'foodex:legacy-sales-header-diagnostics {headerId* : Legacy wh_TransHeader IDs} {--json : Output machine-readable JSON}',
     function (LegacyFoodexImportService $importer): int {
@@ -1156,6 +1148,7 @@ Artisan::command(
 
             if ($row['header'] === null) {
                 $this->error('Header not found.');
+
                 continue;
             }
 
@@ -1210,7 +1203,6 @@ Artisan::command(
         return 0;
     },
 )->purpose('Inspect specific legacy Foodex sales/return headers and their detail rows.');
-
 
 Artisan::command(
     'foodex:legacy-sales-history-verify {--json : Output machine-readable JSON}',
@@ -1406,7 +1398,6 @@ Artisan::command(
     },
 )->purpose('Verify imported Foodex sales history, provenance mappings, and unchanged stock baseline.');
 
-
 Artisan::command(
     'foodex:legacy-purchase-history-verify {--json : Output machine-readable JSON}',
     function (): int {
@@ -1550,7 +1541,6 @@ Artisan::command(
     },
 )->purpose('Verify immutable Foodex purchase/return history and prove inventory remained unchanged.');
 
-
 Artisan::command(
     'foodex:legacy-operational-history-verify {--json : Output machine-readable JSON}',
     function (): int {
@@ -1693,7 +1683,6 @@ Artisan::command(
         return 1;
     },
 )->purpose('Verify immutable Foodex operational history and prove no historical stock replay occurred.');
-
 
 Artisan::command(
     'foodex:legacy-finance-history-verify {--json : Output machine-readable JSON}',
@@ -1906,7 +1895,6 @@ Artisan::command(
         return 1;
     },
 )->purpose('Verify Foodex finance history, customer balances, payment deduplication, and stock preservation.');
-
 
 Artisan::command(
     'foodex:legacy-finance-diagnostics {--json : Output machine-readable JSON}',
