@@ -176,15 +176,16 @@ final class LegacyFinanceAccountMaterializerService
                 $targetId = $mappedId === null ? null : (int) $mappedId;
 
                 $desiredCode = mb_substr((string) $row['source_code'], 0, 64);
-                if ($targetId === null || ! DB::table('enterprise_finance_accounts')->where('id', $targetId)->exists()) {
-                    $conflict = DB::table('enterprise_finance_accounts')
-                        ->where('legal_entity_id', $legalEntityId)
-                        ->where('code', $desiredCode)
-                        ->value('id');
+                $conflictQuery = DB::table('enterprise_finance_accounts')
+                    ->where('legal_entity_id', $legalEntityId)
+                    ->where('code', $desiredCode);
 
-                    if ($conflict !== null) {
-                        $desiredCode = mb_substr('FDX-GL-'.$row['source_id'].'-'.$row['source_code'], 0, 64);
-                    }
+                if ($targetId !== null) {
+                    $conflictQuery->where('id', '<>', $targetId);
+                }
+
+                if ($conflictQuery->exists()) {
+                    $desiredCode = mb_substr('FDX-GL-'.$row['source_id'].'-'.$row['source_code'], 0, 64);
                 }
 
                 $payload = [
