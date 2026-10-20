@@ -2439,7 +2439,6 @@ SQL));
         $chunkNumber = 0;
 
         $stage('stream_sales_return_details', function () use (
-            $source,
             $progress,
             $headerTypes,
             $salesTypes,
@@ -2455,93 +2454,121 @@ SQL));
             &$zeroQtyLineSamples,
             &$chunkNumber,
         ): void {
-            $source->table('wh_TransDetails')
-                ->select([
-                    'DetailId',
-                    'HeaderId',
-                    'ItemID',
-                    'Qty',
-                    'Value',
-                    'Status',
-                ])
-                ->orderBy('DetailId')
-                ->chunkById(
-                    10000,
-                    function ($rows) use (
-                        $progress,
-                        $headerTypes,
-                        $salesTypes,
-                        &$detailCounts,
-                        &$detailValueSums,
-                        &$usedSalesItems,
-                        &$sourceDetailRowsScanned,
-                        &$salesDetails,
-                        &$returnDetails,
-                        &$salesZeroQtyLines,
-                        &$salesNegativeQtyLines,
-                        &$invalidSalesItemRows,
-                        &$zeroQtyLineSamples,
-                        &$chunkNumber,
-                    ): void {
-                        $startedAt = microtime(true);
-                        $chunkNumber++;
+            $lastDetailId = 0;
+            $chunkSize = max(250, (int) env('LEGACY_DB_DETAIL_CHUNK', 2000));
+            $maxAttempts = max(1, (int) env('LEGACY_DB_RETRY_ATTEMPTS', 5));
 
-                        foreach ($rows as $row) {
-                            $sourceDetailRowsScanned++;
+            while (true) {
+                $rows = null;
 
-                            if ((int) ($row->Status ?? 0) !== 1) {
-                                continue;
-                            }
+                for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                    try {
+                        $detailSource = DB::connection('foodex_legacy');
+                        $rows = $detailSource->table('wh_TransDetails')
+                            ->select([
+                                'DetailId',
+                                'HeaderId',
+                                'ItemID',
+                                'Qty',
+                                'Value',
+                                'Status',
+                            ])
+                            ->where('DetailId', '>', $lastDetailId)
+                            ->orderBy('DetailId')
+                            ->limit($chunkSize)
+                            ->get();
 
-                            $headerId = (int) ($row->HeaderId ?? 0);
-                            $type = $headerTypes[$headerId] ?? null;
-                            if ($type === null) {
-                                continue;
-                            }
+                        break;
+                    } catch (Throwable $exception) {
+                        $message = $exception->getMessage();
+                        $transient = str_contains($message, 'SQLSTATE[08001]')
+                            || str_contains($message, 'SQLSTATE[08S01]')
+                            || str_contains($message, 'SQLSTATE[HYT00]')
+                            || str_contains(strtolower($message), 'wait operation timed out')
+                            || str_contains(strtolower($message), 'communication link failure');
 
-                            $detailCounts[$headerId] = ($detailCounts[$headerId] ?? 0) + 1;
-                            $detailValueSums[$headerId] = ($detailValueSums[$headerId] ?? 0.0)
-                                + (float) ($row->Value ?? 0);
-
-                            if (in_array($type, $salesTypes, true)) {
-                                $salesDetails++;
-                                $itemId = (int) ($row->ItemID ?? 0);
-                                if ($itemId <= 0) {
-                                    $invalidSalesItemRows++;
-                                } else {
-                                    $usedSalesItems[$itemId] = true;
-                                }
-
-                                $qty = (float) ($row->Qty ?? 0);
-                                if ($qty < -0.0005) {
-                                    $salesNegativeQtyLines++;
-                                } elseif (abs($qty) <= 0.0005) {
-                                    $salesZeroQtyLines++;
-                                    if (count($zeroQtyLineSamples) < 20) {
-                                        $zeroQtyLineSamples[] = [
-                                            'detail_id' => (int) ($row->DetailId ?? 0),
-                                            'header_id' => $headerId,
-                                            'item_id' => $itemId,
-                                            'value' => round((float) ($row->Value ?? 0), 3),
-                                        ];
-                                    }
-                                }
-                            } else {
-                                $returnDetails++;
-                            }
+                        if (! $transient || $attempt >= $maxAttempts) {
+                            throw $exception;
                         }
 
                         if ($progress !== null) {
                             $progress(
-                                'sales_history_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRowsScanned,
-                                'done',
-                                round(microtime(true) - $startedAt, 3),
+                                'sales_history_details_retry_after_'.$lastDetailId.'_attempt_'.$attempt,
+                                'start',
+                                null,
                             );
                         }
-                    },
-                    'DetailId',
-                    'DetailId',
-                );
+
+                        DB::purge('foodex_legacy');
+                        usleep(min(5 * $attempt, 20) * 1000000);
+                    }
+                }
+
+                if ($rows === null || $rows->isEmpty()) {
+                    break;
+                }
+
+                $startedAt = microtime(true);
+                $chunkNumber++;
+
+                foreach ($rows as $row) {
+                    $sourceDetailRowsScanned++;
+
+                    if ((int) ($row->Status ?? 0) !== 1) {
+                        $lastDetailId = max($lastDetailId, (int) ($row->DetailId ?? 0));
+                        continue;
+                    }
+
+                    $headerId = (int) ($row->HeaderId ?? 0);
+                    $type = $headerTypes[$headerId] ?? null;
+
+                    if ($type !== null) {
+                        $detailCounts[$headerId] = ($detailCounts[$headerId] ?? 0) + 1;
+                        $detailValueSums[$headerId] = ($detailValueSums[$headerId] ?? 0.0)
+                            + (float) ($row->Value ?? 0);
+
+                        if (in_array($type, $salesTypes, true)) {
+                            $salesDetails++;
+                            $itemId = (int) ($row->ItemID ?? 0);
+                            if ($itemId <= 0) {
+                                $invalidSalesItemRows++;
+                            } else {
+                                $usedSalesItems[$itemId] = true;
+                            }
+
+                            $qty = (float) ($row->Qty ?? 0);
+                            if ($qty < -0.0005) {
+                                $salesNegativeQtyLines++;
+                            } elseif (abs($qty) <= 0.0005) {
+                                $salesZeroQtyLines++;
+                                if (count($zeroQtyLineSamples) < 20) {
+                                    $zeroQtyLineSamples[] = [
+                                        'detail_id' => (int) ($row->DetailId ?? 0),
+                                        'header_id' => $headerId,
+                                        'item_id' => $itemId,
+                                        'value' => round((float) ($row->Value ?? 0), 3),
+                                    ];
+                                }
+                            }
+                        } else {
+                            $returnDetails++;
+                        }
+                    }
+
+                    $lastDetailId = max($lastDetailId, (int) ($row->DetailId ?? 0));
+                }
+
+                if ($progress !== null) {
+                    $progress(
+                        'sales_history_details_chunk_'.$chunkNumber.'_rows_'.$sourceDetailRowsScanned,
+                        'done',
+                        round(microtime(true) - $startedAt, 3),
+                    );
+                }
+
+                unset($rows);
+                gc_collect_cycles();
+            }
         });
 
         $unmappedItems = [];
