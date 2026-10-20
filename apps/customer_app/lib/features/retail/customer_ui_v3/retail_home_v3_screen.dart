@@ -424,7 +424,7 @@ class _HomeHeroBanner extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
         child: SizedBox(
-          height: 154,
+          height: 123,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -685,7 +685,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(CustomerUiSpacing.page),
       children: [
         const CustomerSkeletonBox(
-          height: 154,
+          height: 123,
           radius: CustomerUiRadii.xl,
         ),
         const SizedBox(height: CustomerUiSpacing.xl),
