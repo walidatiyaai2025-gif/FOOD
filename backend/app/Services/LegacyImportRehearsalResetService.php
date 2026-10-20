@@ -76,6 +76,9 @@ final class LegacyImportRehearsalResetService
         'legacy_procurement_document_lines',
         'legacy_procurement_documents',
 
+        // Invoice extension rows owned by the legacy importer.
+        'legacy_invoice_source_records',
+
         // Sales transaction scope explicitly approved for reset.
         'payments',
         'invoice_items',
