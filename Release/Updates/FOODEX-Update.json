@@ -5,10 +5,18 @@
   "target_version": "1.0.95",
   "minimum_current_version": "1.0.90",
   "source_base": "66857a1a5079baa78264b83cdb57e2cff112a727",
-  "source_commit": "1242c811e0144afae84cebb4d09895f7c1836deb",
-  "sha256": "6c34dcfc44b09ea42f3a5c4950177b99fe45e5d00c8abbd3aefd55fea5eebd7f",
+  "source_commit": "161e2d2411ba1b340fb55d55cf1bf4390ca85691",
+  "sha256": "555eb9147a36a864d70f3c98433f8e422e78549a5ef1e02e895a6b645069a1f0",
   "contains_migrations": true,
   "migrations": [
+    "backend/database/migrations/2026_09_30_005120_create_driver_current_locations.php",
+    "backend/database/migrations/2026_10_05_192500_create_fleet_current_locations_table.php",
+    "backend/database/migrations/2026_10_06_052100_create_flash_offer_backend.php",
+    "backend/database/migrations/2026_10_15_231700_create_enterprise_security_controls.php",
+    "backend/database/migrations/2026_10_16_093000_create_enterprise_finance_approval_controls.php",
+    "backend/database/migrations/2026_10_16_102800_create_enterprise_finance_source_postings.php",
+    "backend/database/migrations/2026_10_16_110500_create_enterprise_bi_profitability_facts.php",
+    "backend/database/migrations/2026_10_17_034500_add_restaurant_workforce_operations.php",
     "backend/database/migrations/2026_10_18_172000_create_assistant_retailer_data_grants.php",
     "backend/database/migrations/2026_10_18_221500_create_ai_analytics_read_models.php",
     "backend/database/migrations/2026_10_18_234500_add_governed_memory_to_assistant_state.php",
@@ -16,22 +24,31 @@
     "backend/database/migrations/2026_10_19_000100_create_assistant_intelligence_center.php",
     "backend/database/migrations/2026_10_19_000100_create_assistant_knowledge_index.php",
     "backend/database/migrations/2026_10_19_000100_create_assistant_observability_events.php",
-    "backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php"
+    "backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php",
+    "backend/database/migrations/2026_10_19_124000_create_legacy_import_tracking.php",
+    "backend/database/migrations/2026_10_19_131500_create_product_selling_unit_tier_prices.php",
+    "backend/database/migrations/2026_10_19_140000_create_legacy_import_reference_records.php",
+    "backend/database/migrations/2026_10_19_151000_allow_historical_platform_customers.php",
+    "backend/database/migrations/2026_10_19_151500_create_legacy_procurement_history.php",
+    "backend/database/migrations/2026_10_19_154500_create_legacy_operational_history.php",
+    "backend/database/migrations/2026_10_19_161500_add_management_report_indexes.php",
+    "backend/database/migrations/2026_10_19_163000_create_legacy_finance_history.php",
+    "backend/database/migrations/2026_10_19_164500_expand_legacy_finance_balance_effect.php"
   ],
   "delta": {
-    "file_count": 603,
-    "source_file_count": 497,
+    "file_count": 633,
+    "source_file_count": 527,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory.",
+  "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory. Hotfix Catalog Product Management (#2290) so Active/Inactive can be changed directly from each grid row with lifecycle/audit preservation, and render full product names without truncation.",
   "dashboard_fields": {
     "target_version": "1.0.95",
     "minimum_current_version": "1.0.90",
-    "source_commit": "1242c811e0144afae84cebb4d09895f7c1836deb",
-    "sha256": "6c34dcfc44b09ea42f3a5c4950177b99fe45e5d00c8abbd3aefd55fea5eebd7f",
+    "source_commit": "161e2d2411ba1b340fb55d55cf1bf4390ca85691",
+    "sha256": "555eb9147a36a864d70f3c98433f8e422e78549a5ef1e02e895a6b645069a1f0",
     "contains_migrations": true,
-    "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory."
+    "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory. Hotfix Catalog Product Management (#2290) so Active/Inactive can be changed directly from each grid row with lifecycle/audit preservation, and render full product names without truncation."
   }
 }
