@@ -35,6 +35,7 @@ final class LegacyFinanceAccountMaterializerService
         $idColumn = $this->matchColumn($columns, self::ID_ALIASES);
         $codeColumn = $this->matchColumn($columns, self::CODE_ALIASES);
         $nameColumn = $this->matchColumn($columns, self::NAME_ALIASES);
+        $nameArColumn = $this->matchColumn($columns, ['Name_AR', 'Name_Ar', 'ArabicName', 'NameArabic']);
         $parentColumn = $this->matchColumn($columns, self::PARENT_ALIASES);
         $typeColumn = $this->matchColumn($columns, self::TYPE_ALIASES);
         $normalBalanceColumn = $this->matchColumn($columns, self::NORMAL_BALANCE_ALIASES);
@@ -59,6 +60,7 @@ final class LegacyFinanceAccountMaterializerService
             $idColumn,
             $codeColumn,
             $nameColumn,
+            $nameArColumn,
             $parentColumn,
             $functionalTypeColumn,
             $finalListColumn,
@@ -104,6 +106,7 @@ final class LegacyFinanceAccountMaterializerService
                 'id' => $idColumn,
                 'code' => $codeColumn,
                 'name' => $nameColumn,
+                'name_ar' => $nameArColumn,
                 'parent' => $parentColumn,
                 'type' => $typeColumn,
                 'normal_balance' => $normalBalanceColumn,
@@ -676,6 +679,7 @@ final class LegacyFinanceAccountMaterializerService
         ?string $idColumn,
         ?string $codeColumn,
         ?string $nameColumn,
+        ?string $nameArColumn,
         ?string $parentColumn,
         ?string $functionalTypeColumn,
         ?string $finalListColumn,
@@ -691,6 +695,7 @@ final class LegacyFinanceAccountMaterializerService
             $idColumn,
             $codeColumn,
             $nameColumn,
+            $nameArColumn,
             $parentColumn,
             $functionalTypeColumn,
             $finalListColumn,
@@ -711,6 +716,7 @@ final class LegacyFinanceAccountMaterializerService
                 $idColumn,
                 $codeColumn,
                 $nameColumn,
+                $nameArColumn,
                 $parentColumn,
                 $functionalTypeColumn,
                 $finalListColumn,
@@ -722,6 +728,7 @@ final class LegacyFinanceAccountMaterializerService
                     'id' => (int) ($row->{$idColumn} ?? 0),
                     'code' => trim((string) ($row->{$codeColumn} ?? '')),
                     'name' => trim((string) ($row->{$nameColumn} ?? '')),
+                    'name_ar' => $nameArColumn === null ? null : trim((string) ($row->{$nameArColumn} ?? '')),
                     'parent_id' => $row->{$parentColumn} ?? null,
                     'account_type' => $functionalTypeColumn === null ? null : ($row->{$functionalTypeColumn} ?? null),
                     'final_list_type' => $finalListColumn === null ? null : ($row->{$finalListColumn} ?? null),
