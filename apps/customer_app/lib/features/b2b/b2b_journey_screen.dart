@@ -4347,8 +4347,14 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       title: Text(context.tr('b2b.profile.language')),
                       trailing: SegmentedButton<String>(
                         segments: const [
-                          ButtonSegment(value: 'ar', label: Text('ع')),
-                          ButtonSegment(value: 'en', label: Text('EN')),
+                          ButtonSegment(
+                            value: 'ar',
+                            label: Text('ع'), // localization-gate: allow language selector
+                          ),
+                          ButtonSegment(
+                            value: 'en',
+                            label: Text('EN'), // localization-gate: allow language selector
+                          ),
                         ],
                         selected: {ar ? 'ar' : 'en'},
                         onSelectionChanged: (value) {
