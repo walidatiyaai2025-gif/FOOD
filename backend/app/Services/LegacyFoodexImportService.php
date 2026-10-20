@@ -8597,6 +8597,8 @@ SQL));
             'invoices',
             'invoice_items',
             'payments',
+            'van_assignments',
+            'vans',
         ] as $table) {
             if (Schema::hasTable($table) && DB::table($table)->exists()) {
                 return false;
