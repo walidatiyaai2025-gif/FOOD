@@ -90,6 +90,13 @@ final class LegacyFinanceAccountMaterializerService
                 'status' => $statusColumn,
             ],
             'type_lookup' => $typeLookup['meta'],
+            'type_lookup_values' => collect($typeLookup['values'])
+                ->map(static fn (string $label, string $id): array => [
+                    'id' => $id,
+                    'label' => $label,
+                ])
+                ->values()
+                ->all(),
             'type_values' => $typeValues,
             'normal_balance_values' => $normalBalanceValues,
             'classification' => [
@@ -128,6 +135,8 @@ final class LegacyFinanceAccountMaterializerService
                     'source_table' => $profile['source_table_name'],
                     'resolved_columns' => $profile['resolved_columns'],
                     'type_lookup' => $profile['type_lookup'],
+                    'type_lookup_values' => $profile['type_lookup_values'],
+                    'source_columns' => $profile['columns'],
                     'type_values' => $profile['type_values'],
                     'normal_balance_values' => $profile['normal_balance_values'],
                     'classification' => $profile['classification'],
