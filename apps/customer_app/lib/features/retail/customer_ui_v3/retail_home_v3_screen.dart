@@ -643,13 +643,10 @@ class _RetailBestSellerTickerHeaderState
       key: const ValueKey('retail-best-seller-ticker-header'),
       children: [
         Flexible(
-          child: Text(
-            widget.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: CustomerUiColors.deepGreenStrong,
-                ),
+          child: FoodexAnimatedOxbloodTitle(
+            title: widget.title,
+            fontSize:
+                Theme.of(context).textTheme.titleLarge?.fontSize ?? 22,
           ),
         ),
         if (product != null) ...[
