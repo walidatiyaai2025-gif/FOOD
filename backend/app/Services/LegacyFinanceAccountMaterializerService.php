@@ -307,7 +307,7 @@ final class LegacyFinanceAccountMaterializerService
         $orphanMappings = (int) DB::table('legacy_import_mappings as mapping')
             ->leftJoin('enterprise_finance_accounts as account', 'account.id', '=', 'mapping.target_id')
             ->where('mapping.source_system', self::SOURCE_SYSTEM)
-            ->where('mapping.source_table', $profile['source_table'])
+            ->where('mapping.source_table', $profile['source_table_name'])
             ->where('mapping.target_table', 'enterprise_finance_accounts')
             ->whereNull('account.id')
             ->count();
@@ -328,7 +328,7 @@ final class LegacyFinanceAccountMaterializerService
         $unmappedParents = (int) DB::table('legacy_import_mappings as child_map')
             ->join('enterprise_finance_accounts as child', 'child.id', '=', 'child_map.target_id')
             ->where('child_map.source_system', self::SOURCE_SYSTEM)
-            ->where('child_map.source_table', $profile['source_table'])
+            ->where('child_map.source_table', $profile['source_table_name'])
             ->where('child_map.target_table', 'enterprise_finance_accounts')
             ->whereNotNull('child.parent_id')
             ->whereNotExists(function ($query) use ($profile): void {
@@ -336,7 +336,7 @@ final class LegacyFinanceAccountMaterializerService
                     ->from('legacy_import_mappings as parent_map')
                     ->whereColumn('parent_map.target_id', 'child.parent_id')
                     ->where('parent_map.source_system', self::SOURCE_SYSTEM)
-                    ->where('parent_map.source_table', $profile['source_table'])
+                    ->where('parent_map.source_table', $profile['source_table_name'])
                     ->where('parent_map.target_table', 'enterprise_finance_accounts');
             })
             ->count();
