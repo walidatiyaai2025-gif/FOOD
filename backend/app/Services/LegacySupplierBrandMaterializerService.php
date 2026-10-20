@@ -567,15 +567,22 @@ final class LegacySupplierBrandMaterializerService
             $normalizedName = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $tableName));
 
             if (
-                ! str_contains($normalizedName, 'supplier')
-                && ! str_contains($normalizedName, 'vendor')
+                ! str_contains($normalizedName, 'item')
+                && ! str_contains($normalizedName, 'product')
             ) {
                 continue;
             }
 
+            if (in_array(strtolower($tableName), ['wh_items'], true)) {
+                continue;
+            }
+
             if (
-                ! str_contains($normalizedName, 'item')
-                && ! str_contains($normalizedName, 'product')
+                str_contains($normalizedName, 'trans')
+                || str_contains($normalizedName, 'invoice')
+                || str_contains($normalizedName, 'order')
+                || str_contains($normalizedName, 'temp')
+                || str_contains($normalizedName, 'tmp')
             ) {
                 continue;
             }
