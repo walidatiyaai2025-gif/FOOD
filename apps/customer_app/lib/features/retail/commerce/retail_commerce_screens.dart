@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../storefront/storefront_design_system.dart';
 
 import '../../../core/api/b2c_account_api.dart';
+import '../../../core/localization/app_translations.dart';
 import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../checkout/customer_checkout_vnext_components.dart';
