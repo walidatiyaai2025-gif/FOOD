@@ -27,6 +27,7 @@ final class LegacyImportRehearsalResetService
         'b2b_price_tiers',
         'addresses',
         'enterprise_suppliers',
+        'enterprise_finance_accounts',
     ];
 
     /**
