@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/auth/customer_auth_persistence.dart';
@@ -212,23 +213,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
   @override
   Widget build(BuildContext context) {
     if (!_runtimeReady) {
-      return const Directionality(
-        textDirection: TextDirection.rtl,
-        child: ColoredBox(
-          color: CustomerUiColors.deepGreenStrong,
-          child: Center(
-            child: SizedBox(
-              width: 190,
-              child: Image(
-                image: AssetImage(
-                  'assets/branding/foodex-economical-group.webp',
-                ),
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
-      );
+      return const _FoodexWaveLoading();
     }
 
     return FoodexCustomerApp(
@@ -241,5 +226,165 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
       pushService: _pushService,
       showPersistentFooter: _showPersistentFooter,
     );
+  }
+}
+
+
+class _FoodexWaveLoading extends StatefulWidget {
+  const _FoodexWaveLoading();
+
+  @override
+  State<_FoodexWaveLoading> createState() => _FoodexWaveLoadingState();
+}
+
+class _FoodexWaveLoadingState extends State<_FoodexWaveLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              Color(0xFFF8FCF9),
+              Color(0xFFEAF7EF),
+            ],
+          ),
+        ),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final progress = _controller.value;
+              final bob =
+                  math.sin(progress * math.pi * 2) * 2.5;
+
+              return SizedBox(
+                width: 300,
+                height: 170,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    Positioned(
+                      left: 26,
+                      right: 26,
+                      bottom: 30,
+                      height: 72,
+                      child: CustomPaint(
+                        painter: _FoodexWavePainter(progress),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: Offset(0, bob - 18),
+                      child: ShaderMask(
+                        blendMode: BlendMode.srcIn,
+                        shaderCallback: (bounds) {
+                          final travel = progress * 2.8;
+                          return LinearGradient(
+                            begin: Alignment(-1.7 + travel, -0.5),
+                            end: Alignment(0.3 + travel, 0.7),
+                            colors: const <Color>[
+                              Color(0xFF083F2D),
+                              Color(0xFF0B6B46),
+                              Color(0xFF16A765),
+                              Color(0xFF87D85D),
+                              Color(0xFF0C7A4C),
+                            ],
+                            stops: const <double>[
+                              0.00,
+                              0.24,
+                              0.48,
+                              0.72,
+                              1.00,
+                            ],
+                          ).createShader(bounds);
+                        },
+                        child: const Text(
+                          'FOODEX',
+                          key: ValueKey('foodex-wave-loading-wordmark'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 48,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 5.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodexWavePainter extends CustomPainter {
+  const _FoodexWavePainter(this.progress);
+
+  final double progress;
+
+  static const _colors = <Color>[
+    Color(0xFF0C6F49),
+    Color(0xFF1AA86A),
+    Color(0xFF73CD5B),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var index = 0; index < _colors.length; index++) {
+      final path = Path();
+      final phase =
+          (progress * math.pi * 2) + (index * math.pi / 2.4);
+      final amplitude = 7.0 - (index * 1.6);
+      final baseline = (size.height * 0.44) + (index * 8.0);
+
+      for (double x = 0; x <= size.width; x += 2) {
+        final normalized = x / size.width;
+        final y = baseline +
+            math.sin((normalized * math.pi * 2.4) + phase) *
+                amplitude;
+
+        if (x == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4 - (index * 0.35)
+        ..strokeCap = StrokeCap.round
+        ..color = _colors[index].withValues(
+          alpha: 0.34 - (index * 0.07),
+        );
+
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FoodexWavePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
