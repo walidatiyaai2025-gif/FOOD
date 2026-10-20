@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import '../storefront/storefront_design_system.dart';
 
 import '../../core/api/customer_action_api.dart';
@@ -478,10 +479,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                             child: _checkingBiometric
                                 ? const SizedBox.square(
                                     dimension: 28,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: CustomerUiColors.white,
-                                    ),
+                                    child: FoodexWaveLoading(),
                                   )
                                 : const Icon(
                                     Icons.fingerprint_rounded,
@@ -1021,9 +1019,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                               ? const SizedBox.square(
                                                   dimension: 18,
                                                   child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                  ),
+                                                      FoodexWaveLoading(),
                                                 )
                                               : Image.asset(
                                                   'assets/branding/login_reference/fingerprint_icon.png',
@@ -1106,10 +1102,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       child: _busy
                                           ? const SizedBox.square(
                                               dimension: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: CustomerUiColors.white,
-                                              ),
+                                              child: FoodexWaveLoading(),
                                             )
                                           : Text(
                                               context.tr(
@@ -1538,9 +1531,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                         icon: _busy
                             ? const SizedBox.square(
                                 dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                                child: FoodexWaveLoading(),
                               )
                             : Icon(
                                 _register
