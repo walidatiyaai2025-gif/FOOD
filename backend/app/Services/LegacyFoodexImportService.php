@@ -7491,7 +7491,10 @@ SQL));
 
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
-            $targetId = $this->mappedTargetId('wh_Suppliers', $sourceId, 'enterprise_suppliers');
+            $canonicalCode = 'FDX-SUP-'.(int) $row->ID;
+            $targetId = $this->mappedTargetId('wh_Suppliers', $sourceId, 'enterprise_suppliers')
+                ?? DB::table('enterprise_suppliers')->where('code', $canonicalCode)->value('id');
+            $targetId = $targetId === null ? null : (int) $targetId;
             $legacyCode = $this->legacyText($row->Code ?? null);
             $nameAr = $this->legacyText($row->Name_Ar ?? null);
             $nameEn = $this->legacyText($row->Name_En ?? null);
@@ -7503,7 +7506,7 @@ SQL));
                 'company_id' => $companyId,
                 'store_id' => $storeId,
                 'scope_type' => 'store',
-                'code' => 'FDX-SUP-'.(int) $row->ID,
+                'code' => $canonicalCode,
                 'name_en' => mb_substr($displayName, 0, 190),
                 'name_ar' => $nameAr === null ? null : mb_substr($nameAr, 0, 190),
                 'status' => (int) ($row->Status ?? 1) === 0 ? 'inactive' : 'active',
@@ -7948,9 +7951,12 @@ SQL));
 
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
-            $targetId = $this->mappedTargetId('wh_PriceTypes', $sourceId, 'b2b_price_tiers');
+            $code = 'FDX-P'.(int) $row->ID;
+            $targetId = $this->mappedTargetId('wh_PriceTypes', $sourceId, 'b2b_price_tiers')
+                ?? DB::table('b2b_price_tiers')->where('code', $code)->value('id');
+            $targetId = $targetId === null ? null : (int) $targetId;
             $payload = [
-                'code' => 'FDX-P'.(int) $row->ID,
+                'code' => $code,
                 'name' => $this->name($row->Name_AR ?? null, $row->Name_En ?? null, 'Legacy price '.(int) $row->ID),
                 'priority' => (int) $row->ID,
                 'updated_at' => now(),
@@ -7991,10 +7997,13 @@ SQL));
 
             foreach ($rows as $row) {
                 $sourceId = (string) $row->ID;
-                $targetId = $this->mappedTargetId($definition['table'], $sourceId, 'warehouses');
+                $code = $definition['prefix'].(int) $row->ID;
+                $targetId = $this->mappedTargetId($definition['table'], $sourceId, 'warehouses')
+                    ?? DB::table('warehouses')->where('code', $code)->value('id');
+                $targetId = $targetId === null ? null : (int) $targetId;
                 $payload = [
                     'store_id' => $storeId,
-                    'code' => $definition['prefix'].(int) $row->ID,
+                    'code' => $code,
                     'name' => $this->name($row->Name_Ar ?? null, $row->Name_En ?? null, $definition['label'].' '.(int) $row->ID),
                     'is_active' => (int) ($row->Status ?? 1) !== 0,
                     'updated_at' => now(),
@@ -8635,11 +8644,26 @@ SQL));
 
     private function legacyUpgradeReady(): bool
     {
+        if (! Schema::hasTable('legacy_import_mappings')) {
+            return false;
+        }
+
+        $allowedPreservedTargets = [
+            'warehouses',
+            'customers',
+            'b2b_customers',
+            'b2b_accounts',
+            'platform_customers',
+            'b2b_price_tiers',
+            'addresses',
+            'enterprise_suppliers',
+        ];
+
         if (
-            ! Schema::hasTable('legacy_import_mappings')
-            || (int) DB::table('legacy_import_mappings')
+            DB::table('legacy_import_mappings')
                 ->where('source_system', self::SOURCE_SYSTEM)
-                ->count() !== 0
+                ->whereNotIn('target_table', $allowedPreservedTargets)
+                ->exists()
         ) {
             return false;
         }
