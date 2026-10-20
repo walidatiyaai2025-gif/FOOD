@@ -12,7 +12,9 @@ use Throwable;
 final class LegacyFinanceAssetMaterializerService
 {
     private const SOURCE_SYSTEM = 'foodex_sqlserver';
+
     private const SOURCE_TABLE = 'gl_Assets';
+
     private const TARGET_TABLE = 'legacy_fixed_asset_records';
 
     public function preview(): array
@@ -181,6 +183,7 @@ final class LegacyFinanceAssetMaterializerService
             $blockers = $this->nativeBlockers($row, $accountMaps, $offsetMaps, $categoryMaps);
             if ($blockers === []) {
                 $ready++;
+
                 continue;
             }
             foreach ($blockers as $blocker) {
@@ -249,6 +252,7 @@ final class LegacyFinanceAssetMaterializerService
             $row['native_blockers'] = $this->json($this->intrinsicBlockers($row));
             $rows[] = $row;
         }
+
         return $rows;
     }
 
@@ -276,18 +280,30 @@ final class LegacyFinanceAssetMaterializerService
         if ($subId === '' || ! isset($categories[$subId])) {
             $blockers[] = 'missing_native_asset_category_mapping';
         }
+
         return array_values(array_unique($blockers));
     }
 
     private function intrinsicBlockers(array $row): array
     {
         $b = [];
-        if (($row['asset_code'] ?? null) === null) $b[] = 'missing_asset_code';
-        if (($row['name_ar'] ?? null) === null && ($row['name_en'] ?? null) === null) $b[] = 'missing_asset_name';
-        if (($row['acquisition_date'] ?? null) === null) $b[] = 'invalid_acquisition_date';
-        if (($row['gross_value'] ?? null) === null || (float) $row['gross_value'] <= 0) $b[] = 'invalid_gross_value';
+        if (($row['asset_code'] ?? null) === null) {
+            $b[] = 'missing_asset_code';
+        }
+        if (($row['name_ar'] ?? null) === null && ($row['name_en'] ?? null) === null) {
+            $b[] = 'missing_asset_name';
+        }
+        if (($row['acquisition_date'] ?? null) === null) {
+            $b[] = 'invalid_acquisition_date';
+        }
+        if (($row['gross_value'] ?? null) === null || (float) $row['gross_value'] <= 0) {
+            $b[] = 'invalid_gross_value';
+        }
         $b[] = 'asset_age_requires_explicit_unit_confirmation';
-        if (($row['sub_group_id'] ?? null) === null) $b[] = 'missing_sub_group';
+        if (($row['sub_group_id'] ?? null) === null) {
+            $b[] = 'missing_sub_group';
+        }
+
         return $b;
     }
 
@@ -300,49 +316,105 @@ final class LegacyFinanceAssetMaterializerService
 
     private function lifeMonths(?string $age, ?string $rate): ?int
     {
-        if ($age === null || $rate === null || (float) $age <= 0 || (float) $rate <= 0) return null;
+        if ($age === null || $rate === null || (float) $age <= 0 || (float) $rate <= 0) {
+            return null;
+        }
         $years = 100 / (float) $rate;
-        if (abs((float) $age - $years) <= 0.05) return (int) round((float) $age * 12);
-        if (abs((float) $age - ($years * 12)) <= 0.5) return (int) round((float) $age);
+        if (abs((float) $age - $years) <= 0.05) {
+            return (int) round((float) $age * 12);
+        }
+        if (abs((float) $age - ($years * 12)) <= 0.5) {
+            return (int) round((float) $age);
+        }
+
         return null;
     }
 
     private function date(mixed $v): ?string
     {
         $v = trim((string) ($v ?? ''));
-        if (preg_match('/^\d{8}$/', $v) !== 1) return null;
+        if (preg_match('/^\d{8}$/', $v) !== 1) {
+            return null;
+        }
         [$y, $m, $d] = [(int) substr($v, 0, 4), (int) substr($v, 4, 2), (int) substr($v, 6, 2)];
+
         return checkdate($m, $d, $y) ? sprintf('%04d-%02d-%02d', $y, $m, $d) : null;
     }
 
-    private function int(mixed $v): ?int { return $v === null || trim((string) $v) === '' || ! is_numeric($v) ? null : (int) $v; }
-    private function positiveInt(mixed $v): ?int { $v = $this->int($v); return $v !== null && $v > 0 ? $v : null; }
-    private function decimal(mixed $v): ?string { return $v === null || trim((string) $v) === '' || ! is_numeric($v) ? null : number_format((float) $v, 3, '.', ''); }
-    private function str(mixed $v): ?string { if ($v === null) return null; $v = trim((string) $v); return $v === '' ? null : $v; }
-    private function flag(mixed $v): ?bool { if (! is_numeric($v) || ! in_array((int) $v, [0, 1], true)) return null; return (int) $v === 1; }
+    private function int(mixed $v): ?int
+    {
+        return $v === null || trim((string) $v) === '' || ! is_numeric($v) ? null : (int) $v;
+    }
+
+    private function positiveInt(mixed $v): ?int
+    {
+        $v = $this->int($v);
+
+        return $v !== null && $v > 0 ? $v : null;
+    }
+
+    private function decimal(mixed $v): ?string
+    {
+        return $v === null || trim((string) $v) === '' || ! is_numeric($v) ? null : number_format((float) $v, 3, '.', '');
+    }
+
+    private function str(mixed $v): ?string
+    {
+        if ($v === null) {
+            return null;
+        }
+
+        $v = trim((string) $v);
+
+        return $v === '' ? null : $v;
+    }
+
+    private function flag(mixed $v): ?bool
+    {
+        if (! is_numeric($v) || ! in_array((int) $v, [0, 1], true)) {
+            return null;
+        }
+
+        return (int) $v === 1;
+    }
 
     private function canonical(mixed $v): mixed
     {
-        if (! is_array($v)) return $v;
-        if (array_is_list($v)) return array_map(fn ($x): mixed => $this->canonical($x), $v);
+        if (! is_array($v)) {
+            return $v;
+        }
+        if (array_is_list($v)) {
+            return array_map(fn ($x): mixed => $this->canonical($x), $v);
+        }
         ksort($v);
-        foreach ($v as $k => $x) $v[$k] = $this->canonical($x);
+        foreach ($v as $k => $x) {
+            $v[$k] = $this->canonical($x);
+        }
+
         return $v;
     }
 
     private function json(mixed $v): string
     {
         $json = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        if (! is_string($json)) throw new RuntimeException('Unable to encode legacy fixed-asset JSON.');
+        if (! is_string($json)) {
+            throw new RuntimeException('Unable to encode legacy fixed-asset JSON.');
+        }
+
         return $json;
     }
 
     private function assertReady(): void
     {
         foreach ([self::TARGET_TABLE, 'legacy_import_runs', 'legacy_import_mappings'] as $table) {
-            if (! Schema::hasTable($table)) throw new RuntimeException("Missing {$table}. Run php artisan migrate first.");
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException("Missing {$table}. Run php artisan migrate first.");
+            }
         }
     }
 
-    private function legacySource(): ConnectionInterface { return DB::connection('foodex_legacy'); }
+    private function legacySource(): ConnectionInterface
+    {
+        return DB::connection('foodex_legacy');
+    }
 }
