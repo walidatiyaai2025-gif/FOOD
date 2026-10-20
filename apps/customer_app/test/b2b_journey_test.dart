@@ -316,7 +316,11 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _pumpCustomerFrames(tester);
 
@@ -1672,10 +1676,12 @@ void main() {
         await tester.scrollUntilVisible(
           submit,
           300,
-          scrollable: find.descendant(
-            of: find.byKey(const ValueKey('b2b-checkout-data')),
-            matching: find.byType(Scrollable),
-          ),
+          scrollable: find
+              .descendant(
+                of: find.byKey(const ValueKey('b2b-checkout-data')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
         );
         expect(submit, findsOneWidget);
         await tester.tap(submit);
@@ -1754,10 +1760,12 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('تأكيد الطلب'),
         300,
-        scrollable: find.descendant(
-            of: find.byKey(const ValueKey('b2b-checkout-data')),
-            matching: find.byType(Scrollable),
-          ),
+        scrollable: find
+              .descendant(
+                of: find.byKey(const ValueKey('b2b-checkout-data')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
       await _pumpCustomerFrames(tester);
@@ -1811,10 +1819,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('تأكيد الطلب'),
       300,
-      scrollable: find.descendant(
-            of: find.byKey(const ValueKey('b2b-checkout-data')),
-            matching: find.byType(Scrollable),
-          ),
+      scrollable: find
+              .descendant(
+                of: find.byKey(const ValueKey('b2b-checkout-data')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
     );
     await tester.tap(find.text('تأكيد الطلب'));
     await _pumpCustomerFrames(tester);
