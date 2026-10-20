@@ -37,6 +37,8 @@ final class LegacySupplierBrandMaterializerService
         'ItemID',
         'ProductId',
         'ProductID',
+        'Item',
+        'Product',
     ];
 
     private const SUPPLIER_ID_COLUMNS = [
@@ -44,6 +46,12 @@ final class LegacySupplierBrandMaterializerService
         'SupplierID',
         'VendorId',
         'VendorID',
+        'Supplier',
+        'Vendor',
+        'MainSupplierId',
+        'MainSupplierID',
+        'DefaultSupplierId',
+        'DefaultSupplierID',
     ];
 
     public function materialize(bool $apply): array
