@@ -152,6 +152,96 @@ class CatalogImageManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_replace_product_and_category_images_directly_from_catalog_grid(): void
+    {
+        $storeId = $this->store('B2C', 'GRID-IMAGE');
+        $admin = $this->globalAdmin('SUPER_ADMIN', 'grid-image@example.test');
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2c');
+        $unitId = (int) DB::table('units')->where('is_active', true)->value('id');
+
+        $categoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'name' => 'Grid Category',
+            'slug' => 'grid-category',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        app(CatalogImageService::class)->replaceCategoryImage(
+            $categoryId,
+            UploadedFile::fake()->image('old-category.jpg', 512, 512),
+        );
+        $oldCategoryPath = (string) DB::table('categories')->where('id', $categoryId)->value('image_path');
+
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unitId,
+            'category_id' => $categoryId,
+            'sku' => 'GRID-IMAGE-1',
+            'name' => 'Grid Image Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 2,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        app(CatalogImageService::class)->addProductImages($productId, [
+            UploadedFile::fake()->image('old-primary.jpg', 512, 512),
+            UploadedFile::fake()->image('gallery.jpg', 512, 512),
+        ]);
+        $oldPrimary = DB::table('product_images')
+            ->where('product_id', $productId)
+            ->where('is_primary', true)
+            ->first();
+        $this->assertNotNull($oldPrimary);
+
+        $this->actingAs($admin)->patch(route('admin.catalog.products.grid-image', $productId), [
+            'support_access' => 1,
+            'image' => UploadedFile::fake()->image('new-primary.png', 600, 600),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $newPrimary = DB::table('product_images')
+            ->where('product_id', $productId)
+            ->where('is_primary', true)
+            ->first();
+        $this->assertNotNull($newPrimary);
+        $this->assertSame((int) $oldPrimary->id, (int) $newPrimary->id);
+        $this->assertNotSame((string) $oldPrimary->path, (string) $newPrimary->path);
+        $this->assertSame(2, DB::table('product_images')->where('product_id', $productId)->count());
+        Storage::disk('public')->assertMissing(substr((string) $oldPrimary->path, strlen('storage/')));
+        Storage::disk('public')->assertExists(substr((string) $newPrimary->path, strlen('storage/')));
+
+        $this->actingAs($admin)->patch(route('admin.catalog.categories.grid-image', $categoryId), [
+            'support_access' => 1,
+            'image' => UploadedFile::fake()->image('new-category.png', 600, 600),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $category = DB::table('categories')->where('id', $categoryId)->first();
+        $this->assertNotNull($category);
+        $this->assertSame('Grid Category', $category->name);
+        $this->assertNotSame($oldCategoryPath, (string) $category->image_path);
+        Storage::disk('public')->assertMissing(substr($oldCategoryPath, strlen('storage/')));
+        Storage::disk('public')->assertExists(substr((string) $category->image_path, strlen('storage/')));
+
+        $this->actingAs($admin)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee('data-grid-image-form', false)
+            ->assertSee('catalog-product-row', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/catalog?tab=categories&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee('admin/catalog/categories/'.$categoryId.'/grid-image', false)
+            ->assertSee('catalog-categories-table', false);
+    }
+
     public function test_store_admin_cannot_mutate_foreign_store_product_images(): void
     {
         $storeA = $this->store('B2C', 'IMG-A');

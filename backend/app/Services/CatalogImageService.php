@@ -41,6 +41,57 @@ final class CatalogImageService
         }
     }
 
+    public function replacePrimaryProductImage(int $productId, UploadedFile $file): string
+    {
+        $current = DB::table('product_images')
+            ->where('product_id', $productId)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first(['id', 'path', 'sort_order']);
+
+        $storedPath = $this->storePublicImage($file, "catalog/products/{$productId}");
+
+        try {
+            DB::transaction(function () use ($productId, $current, $storedPath): void {
+                DB::table('product_images')
+                    ->where('product_id', $productId)
+                    ->update(['is_primary' => false, 'updated_at' => now()]);
+
+                if ($current !== null) {
+                    DB::table('product_images')
+                        ->where('id', $current->id)
+                        ->where('product_id', $productId)
+                        ->update([
+                            'path' => $storedPath,
+                            'is_primary' => true,
+                            'updated_at' => now(),
+                        ]);
+
+                    return;
+                }
+
+                DB::table('product_images')->insert([
+                    'product_id' => $productId,
+                    'path' => $storedPath,
+                    'sort_order' => 0,
+                    'is_primary' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            });
+        } catch (Throwable $exception) {
+            $this->deletePublicPath($storedPath);
+            throw $exception;
+        }
+
+        if ($current !== null) {
+            $this->deletePublicPath($current->path);
+        }
+
+        return $storedPath;
+    }
+
     public function setPrimary(int $productId, int $imageId): void
     {
         abort_unless(

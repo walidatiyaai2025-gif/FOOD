@@ -233,6 +233,59 @@ final class LookupManagementController extends Controller
         return $this->redirect($type, $this->msg('تم تحديث القيمة المرجعية.', 'Lookup value updated.'), $payload['store_id']);
     }
 
+    public function replaceBrandImage(Request $request, int $lookup): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $model = $this->find('brands', $lookup);
+        $this->requireExplicitSupportAccess($actor, (string) $model->scope, $request);
+        $this->authorizeScopedPermission(
+            $actor,
+            'lookups.manage',
+            (string) $model->scope,
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
+
+        $this->scope->authorizeMutation(
+            $actor,
+            (string) $model->scope,
+            $model->store_id === null ? null : (int) $model->store_id,
+            $request->boolean('support_access'),
+            $request,
+        );
+
+        $data = $request->validate([
+            'brand_image' => [
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+                'dimensions:min_width=256,min_height=256,max_width=2048,max_height=2048',
+            ],
+            'support_access' => ['nullable', 'boolean'],
+        ]);
+
+        $before = $model->toArray();
+        /** @var UploadedFile $image */
+        $image = $data['brand_image'];
+        $this->images->replaceBrandImage((int) $model->getKey(), $image);
+        $model->refresh();
+
+        $this->audit->record(
+            'lookup.brand.image_replaced',
+            $actor,
+            $model,
+            $before,
+            $model->toArray(),
+            $request,
+        );
+
+        return $this->redirect(
+            'brands',
+            $this->msg('تم تحديث صورة العلامة مباشرة من الجدول.', 'Brand image updated from the grid.'),
+            $model->store_id === null ? null : (int) $model->store_id,
+        );
+    }
+
     public function toggle(Request $request, string $type, int $lookup): RedirectResponse
     {
         $this->assertType($type);

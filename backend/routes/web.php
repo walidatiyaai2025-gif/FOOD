@@ -713,6 +713,7 @@ Route::prefix('admin')
         Route::get('/lookups', [LookupManagementController::class, 'index'])->name('lookups.index');
         Route::post('/lookups/{type}', [LookupManagementController::class, 'store'])->whereIn('type', ['brands', 'units'])->name('lookups.store');
         Route::patch('/lookups/{type}/{lookup}', [LookupManagementController::class, 'update'])->whereIn('type', ['brands', 'units'])->name('lookups.update');
+        Route::patch('/lookups/brands/{lookup}/image', [LookupManagementController::class, 'replaceBrandImage'])->whereNumber('lookup')->name('lookups.brands.image');
         Route::patch('/lookups/{type}/{lookup}/status', [LookupManagementController::class, 'toggle'])->whereIn('type', ['brands', 'units'])->name('lookups.toggle');
         Route::delete('/lookups/{type}/{lookup}', [LookupManagementController::class, 'destroy'])->whereIn('type', ['brands', 'units'])->name('lookups.destroy');
         Route::get('/business', [BusinessManagementController::class, 'index'])->name('business.index');
@@ -734,6 +735,7 @@ Route::prefix('admin')
         Route::delete('/business/drivers/{driver}', [BusinessManagementController::class, 'destroyDriver'])->name('business.drivers.destroy');
         Route::post('/catalog/products', [CatalogManagementController::class, 'storeProduct'])->name('catalog.products.store');
         Route::patch('/catalog/products/{product}', [CatalogManagementController::class, 'updateProduct'])->name('catalog.products.update');
+        Route::patch('/catalog/products/{product}/grid-image', [CatalogManagementController::class, 'replaceProductGridImage'])->whereNumber('product')->name('catalog.products.grid-image');
         Route::patch('/catalog/products/{product}/status', [CatalogManagementController::class, 'toggleProductStatus'])->name('catalog.products.status');
         Route::patch('/catalog/products/{product}/images/{image}', [CatalogManagementController::class, 'updateProductImage'])->name('catalog.products.images.update');
         Route::delete('/catalog/products/{product}/images/{image}', [CatalogManagementController::class, 'destroyProductImage'])->name('catalog.products.images.destroy');
@@ -744,6 +746,7 @@ Route::prefix('admin')
         Route::post('/catalog/attributes', [CatalogManagementController::class, 'storeAttribute'])->name('catalog.attributes.store');
         Route::patch('/catalog/attributes/{attribute}', [CatalogManagementController::class, 'updateAttribute'])->whereNumber('attribute')->name('catalog.attributes.update');
         Route::post('/catalog/categories', [CatalogManagementController::class, 'storeCategory'])->name('catalog.categories.store');
+        Route::patch('/catalog/categories/{category}/grid-image', [CatalogManagementController::class, 'replaceCategoryGridImage'])->whereNumber('category')->name('catalog.categories.grid-image');
         Route::patch('/catalog/categories/{category}', [CatalogManagementController::class, 'updateCategory'])->name('catalog.categories.update');
         Route::delete('/catalog/categories/{category}', [CatalogManagementController::class, 'destroyCategory'])->name('catalog.categories.destroy');
         Route::post('/catalog/brands', [CatalogManagementController::class, 'storeBrand'])->name('catalog.brands.store');

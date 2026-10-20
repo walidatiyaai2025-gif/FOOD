@@ -20,6 +20,8 @@ Status: synchronized Customer 360 mobile-access release.
 - Automated regression coverage verifies the complete imported-customer-to-mobile-login flow and blocks non-super-admin identity mutation.
 - Catalog Product Management now exposes a one-click Active/Inactive toggle directly in the products grid with the same authorization, lifecycle transition and audit controls as product editing.
 - Product names in the Catalog grid render in full instead of being truncated with ellipsis.
+- Product, category and brand images can now be replaced directly from their management grid rows without opening the full edit workflow.
+- Catalog and Brands/Units grids now switch to touch-friendly responsive cards on mobile widths instead of forcing wide horizontal tables.
 
 ## Distribution
 

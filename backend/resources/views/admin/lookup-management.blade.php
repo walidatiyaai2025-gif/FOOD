@@ -22,10 +22,12 @@ input,select{border:1px solid var(--foodex-border);border-radius:9px;padding:9px
 .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1040px}.table th,.table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:top}.table th{background:var(--foodex-background)}
 .badge{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:11px;background:#eef2f6}.badge.on{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.off{background:#f2f4f7;color:#667085}
 .actions{display:flex;gap:6px;flex-wrap:wrap}.brand-thumb{width:56px;height:56px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;padding:4px;box-sizing:border-box}.image-help{font-size:11px;color:var(--foodex-muted);max-width:240px}.brand-upload-preview{margin-top:6px}.brand-upload-preview:empty{display:none}.brand-upload-preview img{width:72px;height:72px;object-fit:contain;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;padding:4px;box-sizing:border-box}.support{font-size:11px;color:var(--foodex-muted);display:flex!important;align-items:center;grid-auto-flow:column}.support input{min-width:auto}
+.lookup-grid-image{display:grid;gap:7px;justify-items:start}.lookup-grid-image-form{margin:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.lookup-grid-image-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none}.lookup-grid-image-trigger{display:inline-flex;align-items:center;justify-content:center;padding:6px 9px;border:1px solid var(--foodex-border);border-radius:8px;background:#fff;font-size:11px;font-weight:800;cursor:pointer}.lookup-grid-image-form.is-uploading .lookup-grid-image-trigger{opacity:.6;pointer-events:none}
 .lookup-add-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;font-weight:800;box-shadow:0 8px 20px rgba(16,120,64,.14)}
 .lookup-modal[hidden]{display:none}.lookup-modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px}.lookup-modal-backdrop{position:absolute;inset:0;background:rgba(16,24,40,.52);backdrop-filter:blur(3px)}.lookup-modal-dialog{position:relative;z-index:1;width:min(820px,100%);max-height:min(86vh,820px);display:flex;flex-direction:column;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:20px;box-shadow:0 24px 70px rgba(16,24,40,.24);overflow:hidden}.lookup-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(180deg,var(--foodex-green-soft),#fff)}.lookup-modal-header h2{margin:0 0 5px;font-size:22px}.lookup-modal-header p{margin:0;color:var(--foodex-muted);font-size:13px}.lookup-modal-close{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;font-size:24px;line-height:1;cursor:pointer}.lookup-modal-body{padding:22px;overflow:auto}.lookup-modal .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.lookup-modal .form-grid label{font-size:13px}.lookup-modal .form-grid input,.lookup-modal .form-grid select{width:100%;min-width:0;box-sizing:border-box}.lookup-modal .support{grid-column:1/-1;justify-content:flex-start}.lookup-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--foodex-border);background:#fbfcfd}.lookup-modal-actions .btn{min-width:110px}.lookup-modal-open{overflow:hidden}
-@media(max-width:1023px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}}
-@media(max-width:720px){.lookup-layout main{padding:var(--foodex-space-4)}.lookup-tab-row{align-items:stretch}.tabs{width:100%;overflow:auto}.lookup-add-btn{width:100%;justify-content:center}.lookup-modal{padding:10px}.lookup-modal-dialog{max-height:92vh;border-radius:16px}.lookup-modal-header,.lookup-modal-body,.lookup-modal-actions{padding:16px}.lookup-modal .form-grid{grid-template-columns:1fr}.lookup-modal .support{grid-column:auto}}
+@media(max-width:1023px){.lookup-layout{grid-template-columns:1fr}.lookup-layout aside,.lookup-layout main,html[dir=ltr] .lookup-layout aside,html[dir=ltr] .lookup-layout main{grid-column:1}.lookup-layout aside{grid-row:1}.lookup-layout main{grid-row:2}.header{flex-direction:column}.toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}.toolbar label,.toolbar input,.toolbar select{min-width:0;width:100%;box-sizing:border-box}}
+@media(max-width:720px){.lookup-layout main{padding:var(--foodex-space-4)}.lookup-tab-row{align-items:stretch}.tabs{width:100%;overflow:auto;flex-wrap:nowrap}.tab{white-space:nowrap}.lookup-add-btn{width:100%;justify-content:center}.toolbar{grid-template-columns:1fr}.toolbar .btn{width:100%}.lookup-modal{padding:10px}.lookup-modal-dialog{max-height:92vh;border-radius:16px}.lookup-modal-header,.lookup-modal-body,.lookup-modal-actions{padding:16px}.lookup-modal .form-grid{grid-template-columns:1fr}.lookup-modal .support{grid-column:auto}.table-wrap{overflow:visible;background:transparent;border:0;box-shadow:none;padding:0}.table{display:block;min-width:0;width:100%}.table thead{display:none}.table tbody{display:grid;gap:12px}.table tr.lookup-record-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}.table td{display:grid;gap:5px;padding:7px 8px;border:0;min-width:0}.table td[data-label]::before{content:attr(data-label);font-size:10px;font-weight:800;color:var(--foodex-muted)}.table td.lookup-mobile-full{grid-column:1/-1}.table .inline-form{display:grid;grid-template-columns:1fr;align-items:stretch}.table .inline-form label{min-width:0}.table .inline-form input,.table .inline-form select{width:100%;min-width:0;box-sizing:border-box}.table .actions{display:grid;grid-template-columns:1fr 1fr}.table .actions form,.table .actions .btn{width:100%}.lookup-grid-image{grid-template-columns:auto 1fr;align-items:center}.brand-thumb{width:64px;height:64px}.support{white-space:normal}}
+@media(max-width:420px){.table tr.lookup-record-row{grid-template-columns:1fr}.table td.lookup-mobile-full{grid-column:1}.table .actions{grid-template-columns:1fr}.lookup-modal-actions{display:grid;grid-template-columns:1fr}.lookup-modal-actions .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -117,14 +119,15 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 <thead><tr>@if($type==='brands')<th>{{ $ar?'الصورة':'Image' }}</th>@endif<th>{{ $ar?'المفتاح':'Key' }}</th><th>{{ $ar?'العربية':'Arabic' }}</th><th>{{ $ar?'الإنجليزية':'English' }}</th><th>{{ $ar?'النطاق':'Scope' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجراءات':'Actions' }}</th></tr></thead>
 <tbody>
 @forelse($records as $record)
-<tr>
-@if($type==='brands')<td>@if($record->image_path)<img class="brand-thumb" src="{{ url('/'.ltrim($record->image_path,'/')) }}" alt="{{ $record->name_ar ?: $record->name_en }}">@else<span class="muted">—</span>@endif</td>@endif
-<td>{{ $type==='brands'?$record->slug:$record->code }}</td>
-<td>{{ $record->name_ar }}</td><td>{{ $record->name_en }}</td>
-<td><span class="badge">{{ $scopeLabels[$record->scope]??$record->scope }}</span></td>
-<td>{{ $record->store_name?:'—' }}</td>
-<td><span class="badge {{ $record->is_active?'on':'off' }}">{{ $record->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></td>
-<td>
+@php($recordDisplayName = app()->getLocale()==='ar' ? ($record->name_ar ?: $record->name_en) : ($record->name_en ?: $record->name_ar))
+<tr class="lookup-record-row">
+@if($type==='brands')<td class="lookup-mobile-full" data-label="{{ __('catalog_grid.image') }}"><div class="lookup-grid-image">@if($record->image_path)<img class="brand-thumb" src="{{ url('/'.ltrim($record->image_path,'/')) }}" alt="{{ $recordDisplayName }}">@else<span class="muted">—</span>@endif @if($record->can_manage)<form method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.brands.image',['lookup'=>$record->id]) }}" class="lookup-grid-image-form" data-grid-image-form>@csrf @method('PATCH')@if($isSuperAdmin && $record->scope==='store')<label class="support"><input type="checkbox" name="support_access" value="1"> {{ __('catalog_grid.support_access') }}</label>@endif<label class="lookup-grid-image-trigger">{{ __('catalog_grid.change_image') }}<input class="lookup-grid-image-input" data-grid-image-input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required></label></form>@endif</div></td>@endif
+<td data-label="{{ __('catalog_grid.key') }}">{{ $type==='brands'?$record->slug:$record->code }}</td>
+<td data-label="{{ __('catalog_grid.arabic') }}">{{ $record->name_ar }}</td><td data-label="{{ __('catalog_grid.english') }}">{{ $record->name_en }}</td> {{-- localization-gate: allow bilingual lookup management intentionally exposes both source-language fields --}}
+<td data-label="{{ __('catalog_grid.scope') }}"><span class="badge">{{ $scopeLabels[$record->scope]??$record->scope }}</span></td>
+<td data-label="{{ __('catalog_grid.store') }}">{{ $record->store_name?:'—' }}</td>
+<td data-label="{{ __('catalog_grid.status') }}"><span class="badge {{ $record->is_active?'on':'off' }}">{{ $record->is_active ? __('catalog_grid.active') : __('catalog_grid.inactive') }}</span></td>
+<td class="lookup-mobile-full" data-label="{{ __('catalog_grid.actions') }}">
 @if($record->can_manage)
 <form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.update',['type'=>$type,'lookup'=>$record->id]) }}">@csrf @method('PATCH')
 <label>{{ $ar?'العربية':'AR' }}<input name="name_ar" value="{{ $record->name_ar }}" required></label><label>{{ $ar?'الإنجليزية':'EN' }}<input name="name_en" value="{{ $record->name_en }}" required></label>
@@ -157,6 +160,16 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 </main></div>
 <script>
 (() => {
+    document.querySelectorAll('[data-grid-image-input]').forEach((input) => {
+        input.addEventListener('change', () => {
+            const form = input.closest('[data-grid-image-form]');
+            if (!form || !input.files || input.files.length === 0) return;
+            form.classList.add('is-uploading');
+            if (typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form.submit();
+        });
+    });
+
     document.querySelectorAll('.js-brand-image-preview').forEach((input) => {
         const preview = document.createElement('div');
         preview.className = 'brand-upload-preview';
