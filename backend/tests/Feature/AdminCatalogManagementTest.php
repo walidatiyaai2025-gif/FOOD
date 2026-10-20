@@ -92,6 +92,24 @@ class AdminCatalogManagementTest extends TestCase
         $this->assertDatabaseHas('products', ['id' => $productId, 'catalog_id' => $catalogId]);
         $this->assertDatabaseHas('categories', ['id' => $categoryId, 'catalog_id' => $catalogId]);
 
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId.'/status', [
+            'is_active' => 0,
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'is_active' => 0,
+            'lifecycle_state' => 'paused',
+        ]);
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId.'/status', [
+            'is_active' => 1,
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'is_active' => 1,
+            'lifecycle_state' => 'active',
+        ]);
+
         $warehouseId = (int) DB::table('warehouses')->insertGetId([
             'store_id' => $storeId,
             'code' => 'CATALOG-OOS-WH',
@@ -125,9 +143,10 @@ class AdminCatalogManagementTest extends TestCase
             ->assertOk()
             ->assertSee('data-availability-state="AVAILABLE"', false);
 
+        $fullProductName = 'مياه معدنية طبيعية عبوة عائلية كبيرة للاستخدام اليومي';
         $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
             'sku' => 'IGNORED-CLIENT-SKU',
-            'name' => 'مياه معدنية',
+            'name' => $fullProductName,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
             'is_active' => 1,
@@ -136,8 +155,14 @@ class AdminCatalogManagementTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $productId,
             'sku' => $generatedSku,
-            'name' => 'مياه معدنية',
+            'name' => $fullProductName,
         ]);
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee($fullProductName)
+            ->assertSee('catalog-status-toggle', false);
 
         $this->actingAs($user)
             ->get('/admin/b2c/products?store_id='.$storeId.'&support_access=1')
