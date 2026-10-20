@@ -4341,42 +4341,42 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-              if (widget.onLocaleChanged != null)
-                ListTile(
-                  leading: const Icon(Icons.language_rounded),
-                  title: Text(context.tr('b2b.profile.language')),
-                  trailing: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'ar', label: Text('ع')),
-                      ButtonSegment(value: 'en', label: Text('EN')),
-                    ],
-                    selected: {ar ? 'ar' : 'en'},
-                    onSelectionChanged: (value) {
-                      widget.onLocaleChanged!(Locale(value.first));
+                  if (widget.onLocaleChanged != null)
+                    ListTile(
+                      leading: const Icon(Icons.language_rounded),
+                      title: Text(context.tr('b2b.profile.language')),
+                      trailing: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'ar', label: Text('ع')),
+                          ButtonSegment(value: 'en', label: Text('EN')),
+                        ],
+                        selected: {ar ? 'ar' : 'en'},
+                        onSelectionChanged: (value) {
+                          widget.onLocaleChanged!(Locale(value.first));
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                    ),
+                  ListTile(
+                    leading: const Icon(Icons.support_agent_outlined),
+                    title: Text(context.tr('b2b.profile.support')),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
                       Navigator.pop(sheetContext);
+                      _open(CustomerRoutePaths.diagnostics);
                     },
                   ),
-                ),
-              ListTile(
-                leading: const Icon(Icons.support_agent_outlined),
-                title: Text(context.tr('b2b.profile.support')),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _open(CustomerRoutePaths.diagnostics);
-                },
-              ),
-              if (widget.onLogout != null)
-                ListTile(
-                  key: const ValueKey('b2b-more-security-action'),
-                  leading: const Icon(Icons.security_outlined),
-                  title: Text(context.tr('b2b.profile.security')),
-                  trailing: const Icon(Icons.logout_rounded),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    await widget.onLogout!();
-                  },
-                ),
+                  if (widget.onLogout != null)
+                    ListTile(
+                      key: const ValueKey('b2b-more-security-action'),
+                      leading: const Icon(Icons.security_outlined),
+                      title: Text(context.tr('b2b.profile.security')),
+                      trailing: const Icon(Icons.logout_rounded),
+                      onTap: () async {
+                        Navigator.pop(sheetContext);
+                        await widget.onLogout!();
+                      },
+                    ),
                 ],
               ),
             ),

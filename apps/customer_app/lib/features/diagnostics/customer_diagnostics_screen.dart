@@ -20,8 +20,7 @@ class CustomerDiagnosticsScreen extends StatefulWidget {
       _CustomerDiagnosticsScreenState();
 }
 
-class _CustomerDiagnosticsScreenState
-    extends State<CustomerDiagnosticsScreen> {
+class _CustomerDiagnosticsScreenState extends State<CustomerDiagnosticsScreen> {
   final TextEditingController _note = TextEditingController();
   bool _busy = false;
 
@@ -86,8 +85,7 @@ class _CustomerDiagnosticsScreenState
     final app = Map<String, dynamic>.from(payload['app'] as Map);
     final environment =
         Map<String, dynamic>.from(payload['environment'] as Map);
-    final navigation =
-        Map<String, dynamic>.from(payload['navigation'] as Map);
+    final navigation = Map<String, dynamic>.from(payload['navigation'] as Map);
     final events = _diagnostics.events;
     final lastEvent = events.isEmpty ? null : events.last['timestamp'];
 

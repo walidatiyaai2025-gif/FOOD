@@ -162,8 +162,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
                 'customer.products.search_name_sku_barcode',
               ),
               onSearchSubmitted: _submitSearch,
-              notificationKey:
-                  const ValueKey('retail-catalog-notifications'),
+              notificationKey: const ValueKey('retail-catalog-notifications'),
               cartKey: const ValueKey('retail-catalog-cart'),
               onNotifications: widget.navigation.openNotifications == null
                   ? null

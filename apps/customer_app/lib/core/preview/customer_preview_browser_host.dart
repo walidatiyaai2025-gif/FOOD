@@ -90,8 +90,8 @@ class _CustomerPreviewBrowserHostState
 
   void _onMessage(_PreviewMessageEvent event) async {
     final source = event.source;
-    final fromParent = source != null &&
-        source.strictEquals(_previewWindow.parent).toDart;
+    final fromParent =
+        source != null && source.strictEquals(_previewWindow.parent).toDart;
     if (!CustomerPreviewHostContract.allowsMessage(
       origin: event.origin,
       expectedOrigin: _allowedOrigin,

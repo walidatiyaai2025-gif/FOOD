@@ -468,7 +468,8 @@ class _RetailContextMissing extends StatelessWidget {
               key: const ValueKey('retail-context-return-marketplace'),
               onPressed: () => Navigator.of(context)
                   .pushReplacementNamed(CustomerRoutePaths.marketplace),
-              child: Text(context.tr('customer.store.own_purchase_blocked.action')),
+              child: Text(
+                  context.tr('customer.store.own_purchase_blocked.action')),
             ),
           ),
         ),

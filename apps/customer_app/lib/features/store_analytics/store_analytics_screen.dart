@@ -1144,7 +1144,6 @@ String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
   return '${copy.trendSummary}. $points';
 }
 
-
 class StoreAnalyticsRouteScreen extends StatefulWidget {
   const StoreAnalyticsRouteScreen({
     required this.api,

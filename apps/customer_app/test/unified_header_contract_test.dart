@@ -47,7 +47,8 @@ void main() {
     expect(
       violations,
       isEmpty,
-      reason: 'Every customer page/state must render the single shared header.\n'
+      reason:
+          'Every customer page/state must render the single shared header.\n'
           '${violations.join('\n')}',
     );
   });

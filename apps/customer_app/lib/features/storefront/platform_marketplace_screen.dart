@@ -450,7 +450,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return Column(
                   children: [
-                    _pageHeader(context, widget.commerceContextProvider?.call()),
+                    _pageHeader(
+                        context, widget.commerceContextProvider?.call()),
                     const Expanded(
                       child: Center(child: CircularProgressIndicator()),
                     ),
@@ -460,7 +461,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               if (snapshot.hasError) {
                 return Column(
                   children: [
-                    _pageHeader(context, widget.commerceContextProvider?.call()),
+                    _pageHeader(
+                        context, widget.commerceContextProvider?.call()),
                     Expanded(
                       child: Center(
                         child: Padding(
@@ -475,7 +477,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                               FilledButton(
                                 onPressed: () =>
                                     setState(() => _future = _load()),
-                                child: Text(context.tr('customer.action.retry')),
+                                child:
+                                    Text(context.tr('customer.action.retry')),
                               ),
                             ],
                           ),
@@ -946,7 +949,6 @@ class _MarketplaceHeader extends StatelessWidget {
             ];
           },
         );
-
 
     return FoodexWholesaleHeader(
       key: const ValueKey('marketplace-compact-header'),

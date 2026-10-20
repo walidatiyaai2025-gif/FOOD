@@ -56,7 +56,8 @@ class _StoreSelectionDesignScreenState
               : mapRows(rawAddresses);
           if (addresses.isNotEmpty) {
             final selected = addresses.cast<Map<String, dynamic>>().firstWhere(
-                  (address) => address['is_default'] == true ||
+                  (address) =>
+                      address['is_default'] == true ||
                       address['is_default'] == 1,
                   orElse: () => addresses.first,
                 );
@@ -142,8 +143,7 @@ class _StoreSelectionDesignScreenState
                     ),
                     trailing:
                         const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
-                    onTap: () =>
-                        Navigator.of(sheetContext).pop(storeId),
+                    onTap: () => Navigator.of(sheetContext).pop(storeId),
                   ),
                 ),
               ],
@@ -180,15 +180,18 @@ class _StoreSelectionDesignScreenState
                 final data = snapshot.data ?? const <String, dynamic>{};
                 final retail = mapRows(data['retail_stores']);
                 final wholesale = mapRows(data['wholesale_stores']);
-                final visibleRetail =
-                    filter == 'wholesale' ? const <Map<String, dynamic>>[] : retail;
-                final visibleWholesale =
-                    filter == 'retail' ? const <Map<String, dynamic>>[] : wholesale;
+                final visibleRetail = filter == 'wholesale'
+                    ? const <Map<String, dynamic>>[]
+                    : retail;
+                final visibleWholesale = filter == 'retail'
+                    ? const <Map<String, dynamic>>[]
+                    : wholesale;
 
                 return LayoutBuilder(
                   builder: (context, constraints) {
-                    final side =
-                        (constraints.maxWidth * .09).clamp(14.0, 38.0).toDouble();
+                    final side = (constraints.maxWidth * .09)
+                        .clamp(14.0, 38.0)
+                        .toDouble();
                     return ListView(
                       padding: EdgeInsets.fromLTRB(side, 20, side, 30),
                       children: [
@@ -239,12 +242,12 @@ class _StoreSelectionDesignScreenState
                               store: store,
                               onTap: () async {
                                 final storeId = intValue(store['id']);
-                                final contexts = (store['retail_context_ids']
-                                            as List? ??
-                                        const <Object>[])
-                                    .map(intValue)
-                                    .where((id) => id > 0)
-                                    .toList(growable: false);
+                                final contexts =
+                                    (store['retail_context_ids'] as List? ??
+                                            const <Object>[])
+                                        .map(intValue)
+                                        .where((id) => id > 0)
+                                        .toList(growable: false);
                                 final retailContext =
                                     await _chooseRetailContext(
                                   context,
@@ -375,8 +378,7 @@ class _RetailStoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pharmacy = store['theme_code'] == 'retail_pharmacy';
-    final palette =
-        pharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
+    final palette = pharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
     final id = intValue(store['id']);
 
     return Material(
@@ -708,9 +710,8 @@ class _RetailStorefrontDesignScreenState
               ? Map<String, dynamic>.from(data.config['theme'] as Map)
               : <String, dynamic>{};
           final isPharmacy = theme['code'] == 'retail_pharmacy';
-          final base = isPharmacy
-              ? FoodexPalette.pharmacy
-              : FoodexPalette.grocery;
+          final base =
+              isPharmacy ? FoodexPalette.pharmacy : FoodexPalette.grocery;
           final palette = FoodexPalette(
             primary: parseHexColor(theme['primary'], base.primary),
             primaryDark: parseHexColor(
@@ -845,8 +846,7 @@ class _RetailHomeBody extends StatelessWidget {
             {'type': 'categories', 'title_ar': 'التصنيفات'},
             {
               'type': 'products',
-              'title_ar':
-                  isPharmacy ? 'منتجات مميزة' : 'منتجات وصلت حديثًا',
+              'title_ar': isPharmacy ? 'منتجات مميزة' : 'منتجات وصلت حديثًا',
             },
             if (data.offers.isNotEmpty)
               {'type': 'offers', 'title_ar': 'العروض'},
@@ -874,7 +874,8 @@ class _RetailHomeBody extends StatelessWidget {
           if (type == 'categories' || type == 'departments') {
             return [
               FoodexSectionHeader(
-                title: section['title_ar']?.toString() ?? (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
+                title: section['title_ar']?.toString() ??
+                    (type == 'departments' ? 'الأقسام' : 'التصنيفات'),
                 palette: palette,
               ),
               _CategoryRail(
@@ -1196,7 +1197,8 @@ class _RetailProductGrid extends StatelessWidget {
                   if (!product.isAvailable) ...[
                     Text(
                       context.tr('customer.product.out_of_stock'),
-                      key: ValueKey('b2c-home-product-out-of-stock-${product.id}'),
+                      key: ValueKey(
+                          'b2c-home-product-out-of-stock-${product.id}'),
                       style: const TextStyle(
                         color: Color(0xFF6B7785),
                         fontSize: 10,
@@ -1240,7 +1242,8 @@ class _RetailProductGrid extends StatelessWidget {
                                     );
                                   } catch (error) {
                                     if (context.mounted) {
-                                      await showOperationalError(context, error);
+                                      await showOperationalError(
+                                          context, error);
                                     }
                                   }
                                 }

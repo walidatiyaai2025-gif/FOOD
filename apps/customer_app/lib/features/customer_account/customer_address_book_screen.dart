@@ -34,8 +34,8 @@ class CustomerAddressBookScreen extends StatefulWidget {
       _CustomerAddressBookScreenState();
 }
 
-class _CustomerAddressBookScreenState
-    extends State<CustomerAddressBookScreen> with WidgetsBindingObserver {
+class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen>
+    with WidgetsBindingObserver {
   late Future<Object?> _future;
 
   @override
@@ -44,7 +44,6 @@ class _CustomerAddressBookScreenState
     WidgetsBinding.instance.addObserver(this);
     _future = widget.api.addresses();
   }
-
 
   @override
   void dispose() {
@@ -140,14 +139,16 @@ class _CustomerAddressBookScreenState
 
   Future<void> _edit([Map<String, dynamic>? existing]) async {
     final controllers = <String, TextEditingController>{
-      'label': TextEditingController(text: existing?['label']?.toString() ?? ''),
+      'label':
+          TextEditingController(text: existing?['label']?.toString() ?? ''),
       'recipient_name': TextEditingController(
         text: existing?['recipient_name']?.toString() ?? '',
       ),
       'delivery_phone': TextEditingController(
         text: existing?['delivery_phone']?.toString() ?? '',
       ),
-      'line1': TextEditingController(text: existing?['line1']?.toString() ?? ''),
+      'line1':
+          TextEditingController(text: existing?['line1']?.toString() ?? ''),
       'area': TextEditingController(text: existing?['area']?.toString() ?? ''),
       'governorate': TextEditingController(
         text: existing?['governorate']?.toString() ?? '',
@@ -155,7 +156,8 @@ class _CustomerAddressBookScreenState
       'building': TextEditingController(
         text: existing?['building']?.toString() ?? '',
       ),
-      'floor': TextEditingController(text: existing?['floor']?.toString() ?? ''),
+      'floor':
+          TextEditingController(text: existing?['floor']?.toString() ?? ''),
       'apartment': TextEditingController(
         text: existing?['apartment']?.toString() ?? '',
       ),
@@ -166,7 +168,8 @@ class _CustomerAddressBookScreenState
         text: existing?['country']?.toString() ?? customerDefaultAddressCountry,
       ),
       'country_code': TextEditingController(
-        text: existing?['country_code']?.toString() ?? customerDefaultAddressCountryCode,
+        text: existing?['country_code']?.toString() ??
+            customerDefaultAddressCountryCode,
       ),
       'landmark': TextEditingController(
         text: existing?['landmark']?.toString() ?? '',
@@ -200,8 +203,7 @@ class _CustomerAddressBookScreenState
               );
               if (resolved == null) {
                 setDialogState(() {
-                  dialogError =
-                      'customer.addresses.reverse_geocode_failed';
+                  dialogError = 'customer.addresses.reverse_geocode_failed';
                 });
                 return;
               }
@@ -407,8 +409,7 @@ class _CustomerAddressBookScreenState
                         Expanded(
                           child: _field(
                             controller: controllers['governorate']!,
-                            label:
-                                context.tr('customer.addresses.governorate'),
+                            label: context.tr('customer.addresses.governorate'),
                             key: const ValueKey(
                               'customer-address-governorate',
                             ),
@@ -462,8 +463,10 @@ class _CustomerAddressBookScreenState
                         Expanded(
                           child: _field(
                             controller: controllers['country_code']!,
-                            label: context.tr('customer.addresses.country_code'),
-                            key: const ValueKey('customer-address-country-code'),
+                            label:
+                                context.tr('customer.addresses.country_code'),
+                            key:
+                                const ValueKey('customer-address-country-code'),
                           ),
                         ),
                       ],
@@ -481,7 +484,6 @@ class _CustomerAddressBookScreenState
                       label: context.tr('customer.addresses.notes'),
                       maxLines: 2,
                     ),
-
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: makeDefault,
@@ -637,8 +639,7 @@ class _CustomerAddressBookScreenState
                         ),
                         child: CustomerAccountSurfaceCard(
                           key: ValueKey(
-                            'customer-address-' +
-                                (id?.toString() ?? 'unknown'),
+                            'customer-address-' + (id?.toString() ?? 'unknown'),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,

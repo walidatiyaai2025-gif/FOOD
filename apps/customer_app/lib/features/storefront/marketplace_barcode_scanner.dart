@@ -4,7 +4,8 @@ import 'storefront_design_system.dart';
 
 import '../../core/localization/app_translations.dart';
 
-typedef MarketplaceBarcodeScanner = Future<String?> Function(BuildContext context);
+typedef MarketplaceBarcodeScanner = Future<String?> Function(
+    BuildContext context);
 
 Future<String?> showMarketplaceBarcodeScanner(BuildContext context) {
   return Navigator.of(context).push<String>(

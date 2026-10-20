@@ -66,8 +66,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.favoriteLoads, <int?>[19]);
-      expect(find.byKey(const ValueKey('customer-account-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('customer-account-profile-section')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-account-screen')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-account-profile-section')),
+          findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
@@ -287,7 +289,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
+      expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+          findsOneWidget);
       expect(
         find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
@@ -367,7 +370,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
 
     await tester.pumpWidget(
@@ -378,11 +382,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.byType(CustomerStateView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
 }
 
 class _LocationFake implements CustomerLocationService {
@@ -440,8 +444,7 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   final List<int?> favoriteLoads = <int?>[];
   final List<(int, int?)> removedFavorites = <(int, int?)>[];
   final List<int> readNotifications = <int>[];
-  final List<Map<String, dynamic>> createdAddresses =
-      <Map<String, dynamic>>[];
+  final List<Map<String, dynamic>> createdAddresses = <Map<String, dynamic>>[];
 
   @override
   Future<Object?> profile() async {
@@ -499,6 +502,5 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   Future<Object?> updateProfile(Map<String, dynamic> values) async => values;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      Future<Object?>.value(null);
+  dynamic noSuchMethod(Invocation invocation) => Future<Object?>.value(null);
 }

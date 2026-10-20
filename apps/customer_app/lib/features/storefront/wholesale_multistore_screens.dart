@@ -3629,7 +3629,6 @@ class _WholesaleProductDetailsDesignScreenState
                   ),
                   padding: const EdgeInsets.fromLTRB(15, 10, 15, 22),
                   children: [
-
                     FoodexErrorState(
                       message: context.tr(failure.messageKey),
                       onRetry: _retry,
@@ -4426,7 +4425,8 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                         child: TextButton.icon(
                           key: const ValueKey('b2b-cart-clear'),
                           onPressed: () => _clear(rows),
-                          icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+                          icon:
+                              const Icon(Icons.delete_sweep_outlined, size: 16),
                           label: Text(context.tr('b2b.cart.clear')),
                         ),
                       ),
@@ -5058,7 +5058,6 @@ class _WholesaleCheckoutDesignScreenState
                   key: const ValueKey('b2b-checkout-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-
                     CustomerCheckoutProgress(
                       key: const ValueKey('b2b-checkout-progress'),
                       steps: [
@@ -5636,7 +5635,6 @@ class _WholesaleOrdersDesignScreenState
     }
   }
 
-
   int _orderStoreId(Map<String, dynamic> order) {
     final nestedStore = order['store'];
     final fromRow = intValue(
@@ -6007,8 +6005,7 @@ class _WholesaleOrdersDesignScreenState
                                     path: CustomerRoutePaths.b2bProducts,
                                     queryParameters: <String, String>{
                                       if (scopedStoreId > 0)
-                                        'store_id':
-                                            scopedStoreId.toString(),
+                                        'store_id': scopedStoreId.toString(),
                                       'channel': 'wholesale',
                                       'q': query,
                                     },

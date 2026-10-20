@@ -1702,7 +1702,8 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
     expect(find.text('سلة الجملة'), findsOneWidget);
-    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -3835,8 +3836,7 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
 
-    final header =
-        find.byKey(const ValueKey('foodex-wholesale-shared-header'));
+    final header = find.byKey(const ValueKey('foodex-wholesale-shared-header'));
     expect(header, findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-more-back')), findsNothing);
     expect(find.text('حساب الأعمال'), findsNothing);

@@ -127,7 +127,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
       );
       return;
     }
-    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
       final uri = Uri.parse(current);
       final storeId =
           uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
@@ -159,7 +160,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
       return;
     }
     final current = _currentLocation(context);
-    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
       final uri = Uri.parse(current);
       final storeId =
           uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
@@ -190,7 +192,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
       return;
     }
     final current = _currentLocation(context);
-    if (current != null && Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
       final uri = Uri.parse(current);
       final storeId =
           uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
@@ -258,7 +261,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
                   key: searchKey,
                   controller: searchController,
                   textInputAction: TextInputAction.search,
-                  onSubmitted: onSearchSubmitted ?? (value) => _defaultSearch(context, value),
+                  onSubmitted: onSearchSubmitted ??
+                      (value) => _defaultSearch(context, value),
                   onChanged: onSearchChanged,
                   style: const TextStyle(fontSize: 12),
                   decoration: InputDecoration(
@@ -283,10 +287,10 @@ class FoodexWholesaleHeader extends StatelessWidget {
                               minWidth: 34,
                               minHeight: 34,
                             ),
-                            onPressed: searchController?.text.trim().isEmpty !=
-                                    false
-                                ? null
-                                : onClearSearch,
+                            onPressed:
+                                searchController?.text.trim().isEmpty != false
+                                    ? null
+                                    : onClearSearch,
                             icon: const Icon(Icons.close_rounded, size: 16),
                           ),
                     suffixIconConstraints: const BoxConstraints(
