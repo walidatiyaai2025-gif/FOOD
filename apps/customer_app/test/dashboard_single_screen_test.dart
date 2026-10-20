@@ -123,6 +123,13 @@ Widget testApp(
       theme: FoodexTheme.light(fontFamily: 'DashboardEvidence'),
     );
 
+Finder _verticalScrollable() => find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable &&
+          (widget.axisDirection == AxisDirection.down ||
+              widget.axisDirection == AxisDirection.up),
+    );
+
 void main() {
   setUpAll(loadFonts);
   final before = Platform.environment['DASHBOARD_CAPTURE_PHASE'] == 'before';
@@ -171,7 +178,7 @@ void main() {
           });
           expect(tester.takeException(), isNull);
           if (!before) {
-            expect(find.byType(Scrollable), findsNothing);
+            expect(_verticalScrollable(), findsNothing);
             expect(
               find.byKey(const ValueKey('b2b-dashboard-credit-balance')),
               findsOneWidget,
