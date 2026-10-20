@@ -632,7 +632,7 @@ class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
 
     return SizedBox(
       key: const ValueKey('wholesale-home-banner-carousel'),
-      height: 178.5,
+      height: 143,
       child: Stack(
         children: [
           PageView.builder(
@@ -788,7 +788,7 @@ class _WholesaleHeroState extends State<_WholesaleHero>
       padding: const EdgeInsets.fromLTRB(0, 0, 0, .85),
       child: Container(
         width: double.infinity,
-        height: 168.3,
+        height: 135,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: LinearGradient(
