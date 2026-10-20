@@ -108,6 +108,7 @@ backend/app/Http/Controllers/Admin/SmartOrderingMenuAdminController.php
 backend/app/Http/Controllers/Admin/SmartOrderingThemePreviewController.php
 backend/app/Http/Controllers/Admin/WhatsAppInboxController.php
 backend/app/Http/Controllers/Api/V1/B2bFinanceController.php
+backend/app/Http/Controllers/Api/V1/CustomerProfileController.php
 backend/app/Http/Controllers/Api/V1/RetailSellOutIngestionController.php
 backend/app/Http/Middleware/RunSchedulerHeartbeat.php
 backend/app/Providers/AppServiceProvider.php
@@ -363,14 +364,18 @@ backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/RestaurantWholesaleScreenshotEvidenceSeeder.php
 backend/database/seeders/ScreenshotEvidenceSeeder.php
 backend/lang/ar/assistant_intelligence.php
+backend/lang/ar/assistant_overview.php
 backend/lang/ar/assistant_settings.php
 backend/lang/ar/assistant_ui.php
+backend/lang/ar/customer_360.php
 backend/lang/ar/customer_service_workspace.php
 backend/lang/ar/restaurant_wholesale.php
 backend/lang/ar/smart_ordering.php
 backend/lang/en/assistant_intelligence.php
+backend/lang/en/assistant_overview.php
 backend/lang/en/assistant_settings.php
 backend/lang/en/assistant_ui.php
+backend/lang/en/customer_360.php
 backend/lang/en/customer_service_workspace.php
 backend/lang/en/restaurant_wholesale.php
 backend/lang/en/smart_ordering.php
@@ -494,7 +499,9 @@ backend/resources/views/admin/_smart-ordering-launch-wizard.blade.php
 backend/resources/views/admin/_smart-ordering-quick-menu-wizard.blade.php
 backend/resources/views/admin/_smart-ordering-workspace-nav.blade.php
 backend/resources/views/admin/assistant-intelligence.blade.php
+backend/resources/views/admin/assistant-overview.blade.php
 backend/resources/views/admin/assistant-settings.blade.php
+backend/resources/views/admin/customer-360-show.blade.php
 backend/resources/views/admin/customer-service-workspace.blade.php
 backend/resources/views/admin/order-operations.blade.php
 backend/resources/views/admin/restaurant-wholesale-purchases.blade.php

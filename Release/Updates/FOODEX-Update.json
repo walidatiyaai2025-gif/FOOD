@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.94",
+  "target_version": "1.0.95",
   "minimum_current_version": "1.0.90",
   "source_base": "66857a1a5079baa78264b83cdb57e2cff112a727",
-  "source_commit": "373104742f77377afb40603123f9bfa45006db87",
-  "sha256": "990cf18557e7f53dde605d7742be41fda3ceacce680714ba1e28156ad41096e6",
+  "source_commit": "1242c811e0144afae84cebb4d09895f7c1836deb",
+  "sha256": "6c34dcfc44b09ea42f3a5c4950177b99fe45e5d00c8abbd3aefd55fea5eebd7f",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/2026_10_18_172000_create_assistant_retailer_data_grants.php",
@@ -19,19 +19,19 @@
     "backend/database/migrations/2026_10_19_000300_create_assistant_action_approvals.php"
   ],
   "delta": {
-    "file_count": 596,
-    "source_file_count": 490,
+    "file_count": 603,
+    "source_file_count": 497,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94. Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology. Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior. Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source. Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact. Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`.",
+  "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory.",
   "dashboard_fields": {
-    "target_version": "1.0.94",
+    "target_version": "1.0.95",
     "minimum_current_version": "1.0.90",
-    "source_commit": "373104742f77377afb40603123f9bfa45006db87",
-    "sha256": "990cf18557e7f53dde605d7742be41fda3ceacce680714ba1e28156ad41096e6",
+    "source_commit": "1242c811e0144afae84cebb4d09895f7c1836deb",
+    "sha256": "6c34dcfc44b09ea42f3a5c4950177b99fe45e5d00c8abbd3aefd55fea5eebd7f",
     "contains_migrations": true,
-    "release_notes": "Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94. Include the Customer mobile merchandising and finance presentation polish from #2261, including refreshed shopping/category/product presentation and customer-facing finance terminology. Include the ERP local/testing workspace activation fix from #2264 while preserving production deny-by-default behavior. Rebuild the Dashboard update, Laravel Setup, and Customer, Driver and Van Android artifacts from the same synchronized release source. Synchronize Customer, Driver and Van release identities at `1.0.94+94`; no prior APK is reused as the canonical 1.0.94 artifact. Keep the release package cumulative from the canonical updater boundary and preserve the production API endpoint `https://foodex.50sols.com`."
+    "release_notes": "Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized. Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events. Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally. Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden. Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory."
   }
 }
