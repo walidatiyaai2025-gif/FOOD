@@ -11,7 +11,6 @@ import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_persistent_footer.dart';
-import '../../shared/customer_gentle_marquee.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'storefront_design_system.dart';
 
@@ -1811,14 +1810,24 @@ class _WholesaleProductCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomerGentleMarquee(
+                    SizedBox(
                       key: ValueKey('$keyPrefix-name-$id'),
-                      text: name,
-                      style: const TextStyle(
-                        color: Color(0xFF17212F),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        height: 1.15,
+                      width: double.infinity,
+                      height: 14,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: Color(0xFF17212F),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 9.5,
+                            height: 1.1,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
