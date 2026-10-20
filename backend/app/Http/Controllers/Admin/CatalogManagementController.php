@@ -792,6 +792,38 @@ final class CatalogManagementController extends Controller
             : $this->msg('تم تعطيل المنتج.', 'Product deactivated.'));
     }
 
+    public function replaceProductGridImage(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
+
+        $data = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $before = DB::table('product_images')
+            ->where('product_id', $product)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first();
+
+        /** @var UploadedFile $image */
+        $image = $data['image'];
+        $path = $this->images->replacePrimaryProductImage($product, $image);
+
+        app(AuditLogger::class)->record(
+            'catalog.product.primary_image_replaced',
+            $this->actor($request),
+            Product::query()->find($product),
+            $before === null ? null : (array) $before,
+            ['product_id' => $product, 'path' => $path],
+            $request,
+        );
+
+        return back()->with('status', $this->msg('تم تحديث صورة المنتج مباشرة من الجدول.', 'Product image updated from the grid.'));
+    }
+
     public function updateProductImage(Request $request, int $product, int $image): RedirectResponse
     {
         $owner = $this->productOwner($product);
@@ -940,6 +972,32 @@ final class CatalogManagementController extends Controller
         );
 
         return back()->with('status', $this->msg('تمت إضافة التصنيف وصورته.', 'Category and image added.'));
+    }
+
+    public function replaceCategoryGridImage(Request $request, int $category): RedirectResponse
+    {
+        $owner = $this->categoryOwner($category);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
+
+        $data = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $before = DB::table('categories')->where('id', $category)->first();
+        /** @var UploadedFile $image */
+        $image = $data['image'];
+        $path = $this->images->replaceCategoryImage($category, $image);
+
+        app(AuditLogger::class)->record(
+            'catalog.category.image_replaced',
+            $this->actor($request),
+            Category::query()->find($category),
+            $before === null ? null : (array) $before,
+            ['category_id' => $category, 'image_path' => $path],
+            $request,
+        );
+
+        return back()->with('status', $this->msg('تم تحديث صورة التصنيف مباشرة من الجدول.', 'Category image updated from the grid.'));
     }
 
     public function updateCategory(Request $request, int $category): RedirectResponse
