@@ -11,6 +11,13 @@ return new class extends Migration {
             return;
         }
 
+        // SQLite does not enforce VARCHAR length and the baseline create migration
+        // already creates balance_effect at 64 characters. Skipping the legacy
+        // widening SQL keeps fresh/test SQLite databases portable.
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(
             "ALTER TABLE legacy_finance_transactions ".
             "MODIFY balance_effect VARCHAR(64) NOT NULL DEFAULT 'none'"
@@ -20,6 +27,10 @@ return new class extends Migration {
     public function down(): void
     {
         if (! Schema::hasTable('legacy_finance_transactions')) {
+            return;
+        }
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
             return;
         }
 
