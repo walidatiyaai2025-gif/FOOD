@@ -242,16 +242,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
                 message: address == null || address!.trim().isEmpty
                     ? title
                     : '$title\n$address',
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.3,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                child: _FoodexAnimatedHeaderTitle(title: title),
               ),
             ),
             const SizedBox(width: 8),
@@ -413,6 +404,113 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _FoodexAnimatedHeaderTitle extends StatefulWidget {
+  const _FoodexAnimatedHeaderTitle({required this.title});
+
+  final String title;
+
+  @override
+  State<_FoodexAnimatedHeaderTitle> createState() =>
+      _FoodexAnimatedHeaderTitleState();
+}
+
+class _FoodexAnimatedHeaderTitleState
+    extends State<_FoodexAnimatedHeaderTitle>
+    with SingleTickerProviderStateMixin {
+  static const _style = TextStyle(
+    color: Colors.white,
+    fontSize: 13.3,
+    fontWeight: FontWeight.w800,
+  );
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1650),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.title.trim();
+    final arabicBrand = title.startsWith('فودكس');
+    final englishMatch =
+        RegExp(r'^foodex', caseSensitive: false).firstMatch(title);
+
+    if (!arabicBrand && englishMatch == null) {
+      return Text(
+        widget.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: _style,
+      );
+    }
+
+    final brand = arabicBrand
+        ? 'فودكس'
+        : title.substring(0, englishMatch!.end);
+    final rest = title.substring(brand.length);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      textDirection: arabicBrand ? TextDirection.rtl : TextDirection.ltr,
+      children: [
+        Flexible(
+          flex: 0,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final progress = _controller.value;
+              final wave = math.sin(progress * math.pi * 2);
+              final travel = progress * 2.5;
+
+              return Transform.translate(
+                offset: Offset(0, wave * .8),
+                child: ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (bounds) => LinearGradient(
+                    begin: Alignment(-1.8 + travel, -.8 + wave * .15),
+                    end: Alignment(.2 + travel, .8 - wave * .15),
+                    colors: const <Color>[
+                      Color(0xFFD8FFD0),
+                      Color(0xFFB5F23E),
+                      Color(0xFF63D36E),
+                      Color(0xFFFFFFFF),
+                      Color(0xFF8DEB75),
+                    ],
+                    stops: const <double>[0, .22, .48, .7, 1],
+                  ).createShader(bounds),
+                  child: Text(
+                    brand,
+                    maxLines: 1,
+                    style: _style.copyWith(
+                      color: Colors.white,
+                      letterSpacing: arabicBrand ? 0 : .25,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (rest.isNotEmpty)
+          Flexible(
+            child: Text(
+              rest,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _style,
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _FoodexWholesaleHeaderIcon extends StatelessWidget {
