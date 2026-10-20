@@ -54,6 +54,9 @@ try {
     Set-EnvValue 'LEGACY_DB_DATABASE' 'Foodex'
     Set-EnvValue 'LEGACY_DB_ENCRYPT' 'no'
     Set-EnvValue 'LEGACY_DB_TRUST_CERTIFICATE' 'yes'
+    Set-EnvValue 'LEGACY_DB_TIMEOUT' '300'
+    Set-EnvValue 'LEGACY_DB_DETAIL_CHUNK' '2000'
+    Set-EnvValue 'LEGACY_DB_RETRY_ATTEMPTS' '5'
     Set-EnvValue 'FOODEX_ALLOW_DESTRUCTIVE_DB_COMMANDS' 'false'
 
     Run-Step 'PHP syntax - legacy importer' {
@@ -62,6 +65,21 @@ try {
 
     Run-Step 'Clear Laravel caches' {
         php artisan optimize:clear
+    }
+
+    # Reset only vans and their operational history, as explicitly approved.
+    # Catalog, customers, warehouses and stock baseline are not reset here.
+    Run-Step 'Van scope preview' {
+        php artisan foodex:legacy-rehearsal-reset-vans
+    }
+
+    Run-Step 'Van scope apply' {
+        php artisan foodex:legacy-rehearsal-reset-vans --apply --confirm="RESET LEGACY VAN SCOPE"
+    }
+
+    # Recreate canonical vans from SQL Server wh_Cars. Other extended masters are idempotently refreshed.
+    Run-Step 'Extended masters refresh after van reset' {
+        php artisan foodex:legacy-import extended-masters --apply
     }
 
     # Prove the already-completed stock phase is intact. Do not reset/reapply it.
