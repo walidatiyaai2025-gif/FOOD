@@ -32,7 +32,8 @@ Artisan::command(
                 );
 
                 $this->line('Rows inside approved reset/provenance scope: '.$report['total']);
-                $this->line('Foodex legacy mapping rows to rebuild: '.$report['legacy_mapping_rows']);
+                $this->line('Foodex transactional/catalog mapping rows to rebuild: '.$report['legacy_mapping_rows']);
+                $this->line('Protected master mapping rows preserved: '.$report['preserved_master_mapping_rows']);
                 $this->line('Foodex reference rows to rebuild: '.$report['legacy_reference_rows']);
                 $this->line('Foodex quarantine rows to rebuild: '.$report['legacy_quarantine_rows']);
                 $this->line('Foodex prior run rows to clear: '.$report['legacy_run_rows']);
