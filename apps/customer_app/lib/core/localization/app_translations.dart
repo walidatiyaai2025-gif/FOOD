@@ -19,7 +19,7 @@ class AppTranslations extends InheritedWidget {
   final Map<String, String> overrides;
 
   static const Map<String, String> _ar = {
-    'customer.app.title': 'فودكس',
+    'customer.app.title': 'فوديكس',
     'customer.nav.home': 'الرئيسية',
     'customer.nav.products': 'المنتجات',
     'customer.nav.catalog': 'الكتالوج',
@@ -333,7 +333,7 @@ class AppTranslations extends InheritedWidget {
     'customer.action.cancel': 'إلغاء',
     'customer.action.save': 'حفظ',
     'customer.empty': 'لا توجد بيانات',
-    'b2b.app.title': 'فودكس للأعمال',
+    'b2b.app.title': 'فوديكس للأعمال',
     'b2b.login.title': 'دخول عميل الأعمال',
     'b2b.login.subtitle': 'الحسابات تُنشأ وتُعتمد من لوحة الإدارة فقط',
     'b2b.dashboard.title': 'لوحة الأعمال',
