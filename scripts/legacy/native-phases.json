@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "phases": [
+    {
+      "id": "van_inventory_history",
+      "name": "Native Van inventory history",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyVanInventoryHistoryMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-van-history"
+      ],
+      "apply": [
+        "foodex:legacy-van-history",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-van-history-verify"
+      ]
+    }
+  ]
+}
