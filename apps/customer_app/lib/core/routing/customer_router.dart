@@ -463,7 +463,7 @@ class CustomerRoutePlaceholder extends StatelessWidget {
     return Scaffold(
       key: const ValueKey('customer-route-shell'),
       body: FoodexUnifiedHeaderSurface(
-        title: 'FOODEX Customer',
+        title: context.tr('customer.app.title'),
         searchHint: '',
         location: location,
         child: Center(
