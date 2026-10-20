@@ -6,6 +6,7 @@
 - Require a real valid customer email before mobile-password provisioning so imported/synthetic contacts cannot be enabled accidentally.
 - Add regression coverage proving an imported inactive customer can be provisioned from the Dashboard and then authenticate through the production Customer App login API, while non-super-admin identity edits remain forbidden.
 - Promote the synchronized FOODEX release identity to Customer, Driver and Van `1.0.95+95` and rebuild the Dashboard update through the canonical Release Factory.
+- Hotfix Catalog Product Management so Active/Inactive can be changed directly from each grid row with lifecycle/audit preservation, and render full product names without truncation.
 
 ## 1.0.94 - 2026-10-19
 - Promote the latest authoritative `main` lineage through `23adef9f67ae798a46e79733990b35d4357ba0e9` as FOODEX 1.0.94.
