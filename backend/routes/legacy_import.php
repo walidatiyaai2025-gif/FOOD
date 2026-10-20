@@ -3,6 +3,7 @@
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyFullArchiveService;
 use App\Services\LegacyCanonicalCoverageService;
+use App\Services\LegacyBusinessImpactMaterializerService;
 use App\Services\LegacyImportRehearsalResetService;
 use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
@@ -1134,6 +1135,151 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-business-materialize {--apply : Materialize every uncovered business-impact source table} {--json : Output JSON}',
+    function (LegacyBusinessImpactMaterializerService $materializer): int {
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
+
+        try {
+            $result = $materializer->materialize((bool) $this->option('apply'), $progress);
+        } catch (Throwable $exception) {
+            $this->error('Legacy business-impact materialization failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $result,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return ($result['healthy'] ?? true) ? 0 : 1;
+        }
+
+        $summary = $result['summary'];
+        $this->info((bool) $this->option('apply')
+            ? 'Legacy business-impact materialization completed.'
+            : 'Legacy business-impact materialization dry-run');
+
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['SQL Server source tables', $summary['source_tables']],
+                ['SQL Server source rows', $summary['source_rows']],
+                ['Already represented tables', $summary['already_represented_tables']],
+                ['Already represented rows', $summary['already_represented_rows']],
+                ['Business extension tables', $summary['business_extension_tables']],
+                ['Business extension rows', $summary['business_extension_rows']],
+                ['Technical staging tables', $summary['technical_staging_tables']],
+                ['Technical staging rows', $summary['technical_staging_rows']],
+                ['Business-impact tables', $summary['business_impact_tables']],
+                ['Business-impact rows', $summary['business_impact_rows']],
+            ],
+        );
+
+        if ((bool) $this->option('apply')) {
+            if (! $result['healthy']) {
+                $this->error('BUSINESS-IMPACT MATERIALIZATION FAILED.');
+
+                return 1;
+            }
+
+            $this->info('BUSINESS-IMPACT MATERIALIZATION PASSED.');
+        }
+
+        return 0;
+    },
+)->purpose('Materialize every uncovered non-empty business-impact SQL Server table into a queryable FOODEX business extension layer.');
+
+Artisan::command(
+    'foodex:legacy-business-verify {--json : Output JSON}',
+    function (LegacyBusinessImpactMaterializerService $materializer): int {
+        try {
+            $report = $materializer->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy business-impact verification failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $report,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return $report['healthy'] ? 0 : 1;
+        }
+
+        $this->info('Legacy SQL business-impact coverage verification');
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Business-impact tables', $report['summary']['business_impact_tables']],
+                ['Business-impact rows', $report['summary']['business_impact_rows']],
+                ['Business extension tables', $report['summary']['business_extension_tables']],
+                ['Business extension rows', $report['summary']['business_extension_rows']],
+                ['Technical staging tables excluded', $report['summary']['technical_staging_tables']],
+                ['Technical staging rows archived', $report['summary']['technical_staging_rows']],
+                ['Business coverage failures', count($report['business_failures'])],
+                ['Materialization failures', count($report['materialization_failures'])],
+            ],
+        );
+
+        if ($report['domain_rows'] !== []) {
+            $this->line('');
+            $this->info('Materialized business-extension rows by domain');
+            $this->table(
+                ['Domain', 'Rows'],
+                collect($report['domain_rows'])
+                    ->map(static fn (int $count, string $domain): array => [$domain, $count])
+                    ->values()
+                    ->all(),
+            );
+        }
+
+        if ($report['business_failures'] !== []) {
+            $this->error('Business-impact SQL tables remain uncovered:');
+            $this->table(
+                ['Schema', 'Table', 'Rows', 'Materialized', 'Domain'],
+                collect($report['business_failures'])
+                    ->take(100)
+                    ->map(static fn (array $row): array => [
+                        $row['schema'],
+                        $row['table'],
+                        $row['source_rows'],
+                        $row['materialized_rows'],
+                        $row['domain'],
+                    ])
+                    ->all(),
+            );
+        }
+
+        if (! $report['healthy']) {
+            $this->error('BUSINESS-IMPACT COVERAGE FAILED.');
+
+            return 1;
+        }
+
+        $this->info('BUSINESS-IMPACT COVERAGE PASSED: no business-impact SQL table or row is left archive-only.');
+
+        return 0;
+    },
+)->purpose('Fail unless every business-impact SQL Server table is either canonicalized or fully materialized into the FOODEX business extension layer.');
 
 Artisan::command(
     'foodex:legacy-canonical-coverage {--json : Output complete JSON coverage report}',
