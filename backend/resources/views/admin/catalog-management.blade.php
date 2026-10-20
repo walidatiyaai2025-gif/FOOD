@@ -14,12 +14,19 @@ html[dir=ltr] .catalog-layout aside{grid-column:1;direction:ltr;border-left:0;bo
 html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}
 .header h1{margin:0}.muted{color:var(--foodex-muted)}
+.catalog-page-header{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start}
+.catalog-page-copy{direction:rtl;min-width:270px;text-align:right}
+html[dir=ltr] .catalog-page-header{grid-template-columns:auto minmax(0,1fr)}
+html[dir=ltr] .catalog-page-copy{direction:ltr;text-align:left;grid-column:1;grid-row:1}
+html[dir=ltr] .catalog-header-filters{grid-column:2;grid-row:1}
 .tabs,.actions{display:flex;flex-wrap:wrap;gap:8px}.tabs{margin-bottom:16px}
 .tabs a,.btn{border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:9px 13px;text-decoration:none;font:inherit;cursor:pointer}
 .tabs a.active,.btn.primary{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
-.catalog-tabs-row{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;margin-bottom:16px}
-.catalog-tabs-row .tabs{direction:rtl;margin-bottom:0;min-width:0}
-html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
+.catalog-tabs-row{direction:ltr;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;margin-bottom:16px}
+.catalog-tabs-row .tabs{direction:rtl;margin-bottom:0;min-width:0;justify-content:flex-end}
+html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr;justify-content:flex-start}
+.catalog-tabs-meta{display:flex;justify-content:flex-start;min-width:0}
+.catalog-tabs-action{display:flex;justify-content:flex-end;min-width:0}
 .catalog-tabs-add{white-space:nowrap}
 .btn.danger{color:var(--foodex-danger-text)}
 .grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px}
@@ -39,9 +46,15 @@ html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
 .catalog-toolbar-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .catalog-count{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid var(--foodex-border);background:var(--foodex-surface);border-radius:10px;font-weight:700}
 .catalog-filterbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface)}
+.catalog-header-filters{direction:rtl;width:100%;padding:10px;grid-template-columns:minmax(170px,1.35fr) repeat(5,minmax(105px,1fr)) auto;gap:8px;box-shadow:var(--foodex-shadow-sm)}
+html[dir=ltr] .catalog-header-filters{direction:ltr}
 .catalog-filterbar label{display:grid;gap:5px;font-size:.78rem;font-weight:800;color:var(--foodex-muted)}
+.catalog-header-filters label{gap:3px;font-size:.7rem}
 .catalog-filterbar input,.catalog-filterbar select{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 10px;background:#fff;color:var(--foodex-ink);font:inherit}
+.catalog-header-filters input,.catalog-header-filters select{padding:7px 8px;min-height:34px;font-size:.8rem}
 .catalog-filter-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.catalog-header-filters .catalog-filter-actions{align-self:end;flex-wrap:nowrap}
+.catalog-header-filters .catalog-filter-actions .btn{padding:7px 10px;white-space:nowrap;font-size:.78rem}
 .catalog-filter-state{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:var(--foodex-muted)}
 .catalog-filter-chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:800}
 .catalog-category-results{display:grid;gap:10px;min-width:0}
@@ -86,8 +99,8 @@ html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
 .catalog-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 .catalog-empty{padding:38px 16px;text-align:center;color:var(--foodex-muted)}
 @media(max-width:1200px){.catalog-col-brand,.catalog-col-category{display:none}.catalog-products-table{min-width:720px}}
-@media(max-width:1023px){.grid{grid-template-columns:1fr}.catalog-layout,.catalog-layout[dir]{grid-template-columns:1fr}.catalog-layout aside,.catalog-layout main,html[dir=ltr] .catalog-layout aside,html[dir=ltr] .catalog-layout main{grid-column:1}.catalog-layout aside{grid-row:1;min-height:auto}.catalog-layout main{grid-row:2}.catalog-layout main{padding:var(--foodex-space-4)}.header{align-items:flex-start;flex-direction:column}.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.tabs a{white-space:nowrap}.catalog-toolbar,.catalog-toolbar-group{width:100%}.catalog-toolbar-group .btn{flex:1;text-align:center}.catalog-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:720px){.catalog-col-sku,.catalog-col-brand,.catalog-col-category{display:none!important}.catalog-filterbar{grid-template-columns:1fr}.catalog-filter-actions{display:grid;grid-template-columns:1fr 1fr}.catalog-filter-actions .btn{text-align:center}.catalog-table-card.table-wrap,.catalog-categories-wrap.table-wrap{overflow:visible;background:transparent;border:0;box-shadow:none}.catalog-products-table,.catalog-categories-table{display:block;min-width:0!important;width:100%}.catalog-products-table thead,.catalog-categories-table thead{display:none}.catalog-products-table tbody,.catalog-categories-table tbody{display:grid;gap:12px}.catalog-products-table tr.catalog-product-row,.catalog-categories-table tr.catalog-category-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}.catalog-products-table td,.catalog-categories-table td{display:grid;gap:5px;padding:7px 8px!important;border:0!important;min-width:0}.catalog-products-table td[data-label]::before,.catalog-categories-table td[data-label]::before{content:attr(data-label);font-size:.68rem;font-weight:800;color:var(--foodex-muted);text-transform:none}.catalog-products-table td.catalog-mobile-full,.catalog-categories-table td.catalog-mobile-full{grid-column:1/-1}.catalog-product-cell{align-items:flex-start}.catalog-product-thumb,.catalog-product-thumb-placeholder{width:58px;height:58px;min-width:58px}.catalog-product-sub{display:none}.catalog-mobile-actions .catalog-actions{display:block}.catalog-mobile-actions .catalog-actions summary{width:100%;height:38px;border-radius:10px;font-size:0}.catalog-mobile-actions .catalog-actions summary::after{content:'•••';font-size:18px}.catalog-action-menu{position:static;width:auto;margin-top:6px;box-shadow:none}.catalog-categories-table .inline-form{display:grid;grid-template-columns:1fr;align-items:stretch}.catalog-categories-table .inline-form input,.catalog-categories-table .inline-form select{min-width:0;max-width:none;width:100%;box-sizing:border-box}.catalog-categories-table .btn{width:100%;text-align:center}.catalog-grid-image{align-items:center}.catalog-grid-image-form{min-width:0}.catalog-inline-price-input{width:100%;max-width:120px}}
+@media(max-width:1200px){.catalog-page-header{grid-template-columns:1fr}.catalog-page-copy{grid-column:1;grid-row:1;min-width:0}.catalog-header-filters,html[dir=ltr] .catalog-header-filters{grid-column:1;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr))}.catalog-header-filters .catalog-filter-actions{grid-column:1/-1;justify-content:flex-start}}@media(max-width:1023px){.grid{grid-template-columns:1fr}.catalog-layout,.catalog-layout[dir]{grid-template-columns:1fr}.catalog-layout aside,.catalog-layout main,html[dir=ltr] .catalog-layout aside,html[dir=ltr] .catalog-layout main{grid-column:1}.catalog-layout aside{grid-row:1;min-height:auto}.catalog-layout main{grid-row:2}.catalog-layout main{padding:var(--foodex-space-4)}.header{align-items:flex-start}.tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.tabs a{white-space:nowrap}.catalog-tabs-row{grid-template-columns:auto minmax(0,1fr) auto}.catalog-filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-header-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-header-filters .catalog-filter-actions{grid-column:1/-1}}
+@media(max-width:720px){.catalog-col-sku,.catalog-col-brand,.catalog-col-category{display:none!important}.catalog-tabs-row{grid-template-columns:1fr;align-items:stretch}.catalog-tabs-meta{order:3}.catalog-tabs-row .tabs{order:2;justify-content:flex-start}.catalog-tabs-action{order:1}.catalog-tabs-add{width:100%}.catalog-count{width:max-content}.catalog-filterbar{grid-template-columns:1fr}.catalog-header-filters{grid-template-columns:1fr}.catalog-header-filters .catalog-filter-actions{grid-column:1}.catalog-filter-actions{display:grid;grid-template-columns:1fr 1fr}.catalog-filter-actions .btn{text-align:center}.catalog-table-card.table-wrap,.catalog-categories-wrap.table-wrap{overflow:visible;background:transparent;border:0;box-shadow:none}.catalog-products-table,.catalog-categories-table{display:block;min-width:0!important;width:100%}.catalog-products-table thead,.catalog-categories-table thead{display:none}.catalog-products-table tbody,.catalog-categories-table tbody{display:grid;gap:12px}.catalog-products-table tr.catalog-product-row,.catalog-categories-table tr.catalog-category-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}.catalog-products-table td,.catalog-categories-table td{display:grid;gap:5px;padding:7px 8px!important;border:0!important;min-width:0}.catalog-products-table td[data-label]::before,.catalog-categories-table td[data-label]::before{content:attr(data-label);font-size:.68rem;font-weight:800;color:var(--foodex-muted);text-transform:none}.catalog-products-table td.catalog-mobile-full,.catalog-categories-table td.catalog-mobile-full{grid-column:1/-1}.catalog-product-cell{align-items:flex-start}.catalog-product-thumb,.catalog-product-thumb-placeholder{width:58px;height:58px;min-width:58px}.catalog-product-sub{display:none}.catalog-mobile-actions .catalog-actions{display:block}.catalog-mobile-actions .catalog-actions summary{width:100%;height:38px;border-radius:10px;font-size:0}.catalog-mobile-actions .catalog-actions summary::after{content:'•••';font-size:18px}.catalog-action-menu{position:static;width:auto;margin-top:6px;box-shadow:none}.catalog-categories-table .inline-form{display:grid;grid-template-columns:1fr;align-items:stretch}.catalog-categories-table .inline-form input,.catalog-categories-table .inline-form select{min-width:0;max-width:none;width:100%;box-sizing:border-box}.catalog-categories-table .btn{width:100%;text-align:center}.catalog-grid-image{align-items:center}.catalog-grid-image-form{min-width:0}.catalog-inline-price-input{width:100%;max-width:120px}}
 @media(max-width:420px){.catalog-products-table tr.catalog-product-row,.catalog-categories-table tr.catalog-category-row{grid-template-columns:1fr}.catalog-products-table td.catalog-mobile-full,.catalog-categories-table td.catalog-mobile-full{grid-column:1}.catalog-filter-actions{grid-template-columns:1fr}.row{grid-template-columns:1fr}.catalog-dialog-body{padding:14px}.catalog-dialog-actions{display:grid;grid-template-columns:1fr}.catalog-dialog-actions .btn{width:100%}}
 </style>
 </head>
@@ -96,38 +109,10 @@ html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
 <aside class="sidebar">@include('admin._sidebar',['navContext'=>$navContext])</aside>
 <main>
 @include('admin._global-header')
-<div class="header foodex-page-toolbar"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div></div>
-@if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-<div class="catalog-tabs-row">
-<nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">
-@foreach(['overview','products','categories','attributes','import'] as $catalogTab)
-<a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ __('catalog_completion.tabs.'.$catalogTab) }}</a>
-@endforeach
-@if($canManageStores)
-<a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
-@endif
-<a href="{{ route('admin.lookups.index', $scopeParams) }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
-@if($inventoryUrl)<a href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a>@endif
-</nav>
-@if($tab==='products')
-<button type="button" class="btn primary catalog-tabs-add" data-dialog-open="catalog-add-product">＋ {{ app()->getLocale()==='ar'?'إضافة منتج':'Add Product' }}</button>
-@endif
-</div>
-
-@if($tab==='products')
-<div class="catalog-products-shell">
-<div class="catalog-toolbar">
-@if($inventoryUrl)
-<div class="catalog-toolbar-group"><a class="btn" href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a></div>
-@endif
-<div class="catalog-toolbar-group">
-<span class="catalog-count">{{ $products->total() }} {{ app()->getLocale()==='ar'?'منتج':'products' }}</span>
-</div>
-</div>
-
 @php($hasProductFilters=$productFilters['q']!=='' || $productFilters['category_id']>0 || $productFilters['brand_id']>0 || $productFilters['status']!=='' || $productFilters['availability']!=='' || $productFilters['health']!=='')
-<form method="get" class="catalog-filterbar" data-catalog-product-filters>
+<div class="header foodex-page-toolbar catalog-page-header">
+@if($tab==='products')
+<form method="get" class="catalog-filterbar catalog-header-filters" data-catalog-product-filters>
 <input type="hidden" name="tab" value="products">
 <input type="hidden" name="product_sort" value="{{ $productFilters['sort'] }}">
 <input type="hidden" name="product_dir" value="{{ $productFilters['dir'] }}">
@@ -138,10 +123,34 @@ html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
 <label>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}<select name="product_status"><option value="">{{ app()->getLocale()==='ar'?'كل الحالات':'All statuses' }}</option><option value="active" @selected($productFilters['status']==='active')>{{ app()->getLocale()==='ar'?'نشط':'Active' }}</option><option value="inactive" @selected($productFilters['status']==='inactive')>{{ app()->getLocale()==='ar'?'غير نشط':'Inactive' }}</option></select></label>
 <label>{{ app()->getLocale()==='ar'?'التوفر':'Availability' }}<select name="product_availability"><option value="">{{ app()->getLocale()==='ar'?'كل حالات التوفر':'All availability' }}</option><option value="available" @selected($productFilters['availability']==='available')>{{ app()->getLocale()==='ar'?'متاح':'Available' }}</option><option value="out_of_stock" @selected($productFilters['availability']==='out_of_stock')>{{ app()->getLocale()==='ar'?'نفد المخزون':'Out of stock' }}</option></select></label>
 <label>{{ app()->getLocale()==='ar'?'صحة المنتج':'Product health' }}<select name="product_health"><option value="">{{ app()->getLocale()==='ar'?'كل الحالات':'All health states' }}</option><option value="low_stock" @selected($productFilters['health']==='low_stock')>{{ __('catalog_completion.kpis.low_stock') }}</option><option value="unpriced" @selected($productFilters['health']==='unpriced')>{{ __('catalog_completion.kpis.unpriced') }}</option><option value="unavailable" @selected($productFilters['health']==='unavailable')>{{ __('catalog_completion.kpis.unavailable') }}</option><option value="missing_category" @selected($productFilters['health']==='missing_category')>{{ app()->getLocale()==='ar'?'بدون تصنيف':'Missing category' }}</option><option value="missing_brand" @selected($productFilters['health']==='missing_brand')>{{ app()->getLocale()==='ar'?'بدون علامة':'Missing brand' }}</option><option value="margin_exception" @selected($productFilters['health']==='margin_exception')>{{ __('catalog_completion.kpis.margin_exceptions') }}</option><option value="data_quality" @selected($productFilters['health']==='data_quality')>{{ __('catalog_completion.exceptions.data_quality') }}</option></select></label>
-<div class="catalog-filter-actions"><button class="btn primary">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button><a class="btn" data-catalog-filter-reset href="{{ route('admin.catalog.index',array_merge(['tab'=>'products'],$scopeParams)) }}">{{ app()->getLocale()==='ar'?'مسح الفلاتر':'Clear filters' }}</a></div>
-<div class="catalog-filter-state" role="status" aria-live="polite"><strong>{{ $products->total() }}</strong> {{ app()->getLocale()==='ar'?'نتيجة':'results' }} @if($hasProductFilters)<span class="catalog-filter-chip">{{ app()->getLocale()==='ar'?'تم تطبيق فلاتر':'Filtered' }}</span>@endif</div>
+<div class="catalog-filter-actions"><button class="btn primary">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button><a class="btn" data-catalog-filter-reset href="{{ route('admin.catalog.index',array_merge(['tab'=>'products'],$scopeParams)) }}">{{ app()->getLocale()==='ar'?'مسح':'Clear' }}</a>@if($hasProductFilters)<span class="catalog-filter-chip">{{ app()->getLocale()==='ar'?'مفلتر':'Filtered' }}</span>@endif</div>
 </form>
+@endif
+<div class="catalog-page-copy"><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div>
+</div>
+@if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="catalog-tabs-row">
+<div class="catalog-tabs-meta">@if($tab==='products')<span class="catalog-count">{{ $products->total() }} {{ app()->getLocale()==='ar'?'منتج':'products' }}</span>@endif</div>
+<nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">
+@foreach(['overview','products','categories','attributes','import'] as $catalogTab)
+<a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ __('catalog_completion.tabs.'.$catalogTab) }}</a>
+@endforeach
+@if($canManageStores)
+<a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
+@endif
+<a href="{{ route('admin.lookups.index', $scopeParams) }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
+@if($inventoryUrl)<a href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a>@endif
+</nav>
+<div class="catalog-tabs-action">
+@if($tab==='products')
+<button type="button" class="btn primary catalog-tabs-add" data-dialog-open="catalog-add-product">＋ {{ app()->getLocale()==='ar'?'إضافة منتج':'Add Product' }}</button>
+@endif
+</div>
+</div>
 
+@if($tab==='products')
+<div class="catalog-products-shell">
 <section class="card catalog-table-card table-wrap">
 <table class="catalog-products-table" data-pagination-required>
 <thead><tr>
