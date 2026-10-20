@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -1776,9 +1777,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                               child: removingFavorite
                                   ? const Padding(
                                       padding: EdgeInsets.all(8),
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                      ),
+                                      child: FoodexWaveLoading(),
                                     )
                                   : const Icon(
                                       Icons.favorite_rounded,
@@ -1887,10 +1886,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                             child: busy
                                 ? const SizedBox.square(
                                     dimension: 8,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 1.5,
-                                      color: Colors.white,
-                                    ),
+                                    child: FoodexWaveLoading(),
                                   )
                                 : const Icon(
                                     Icons.add_rounded,
@@ -4158,7 +4154,7 @@ class _WholesaleProductDetailsDesignScreenState
                           return const Padding(
                             padding: EdgeInsets.symmetric(vertical: 18),
                             child: Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: FoodexWaveLoading(),
                             ),
                           );
                         }
@@ -7661,9 +7657,7 @@ class _OrderCard extends StatelessWidget {
                         child: reordering
                             ? SizedBox.square(
                                 dimension: compact ? 14 : 16,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                                child: const FoodexWaveLoading(),
                               )
                             : Text(
                                 context.tr('customer.orders.reorder'),
