@@ -348,6 +348,7 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
     this.searchController,
     this.searchHint,
     this.onSearchSubmitted,
+    this.searchKey = const ValueKey('wholesale-header-search'),
     this.onSearchChanged,
     this.onClearSearch,
     this.onNotifications,
@@ -368,6 +369,7 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
   final TextEditingController? searchController;
   final String? searchHint;
   final ValueChanged<String>? onSearchSubmitted;
+  final Key searchKey;
   final ValueChanged<String>? onSearchChanged;
   final VoidCallback? onClearSearch;
   final VoidCallback? onNotifications;
@@ -393,6 +395,7 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
                 searchController: searchController,
                 searchHint: searchHint,
                 onSearchSubmitted: onSearchSubmitted,
+                searchKey: searchKey,
                 onSearchChanged: onSearchChanged,
                 onClearSearch: onClearSearch,
                 onNotifications: onNotifications,
