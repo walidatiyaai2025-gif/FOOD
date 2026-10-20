@@ -87,6 +87,9 @@ final class LegacyImportRehearsalResetService
         'van_inventory_history_lines',
         'van_inventory_history_documents',
 
+        // Supplier-derived catalog brand provenance rebuilt from procurement history.
+        'product_supplier_brand_sources',
+
         // Sales transaction scope explicitly approved for reset.
         'payments',
         'invoice_items',
