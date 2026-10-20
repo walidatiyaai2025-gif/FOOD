@@ -29,6 +29,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-kpi small{color:var(--foodex-muted);font-weight:700}.c360-kpi strong{font-size:1.22rem;word-break:break-word}.c360-kpi.primary{background:linear-gradient(135deg,#f5fff8,#fff)}
 .c360-credit-editor{display:flex;align-items:end;gap:8px;margin-top:4px}.c360-credit-editor label{display:grid;gap:5px;min-width:0;flex:1}.c360-credit-editor input{width:100%;box-sizing:border-box;border:1px solid var(--foodex-border);border-radius:9px;padding:9px 10px;background:#fff;font:inherit}.c360-credit-editor button{white-space:nowrap}
 .c360-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.c360-info>div{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}.c360-info small{display:block;color:var(--foodex-muted);margin-bottom:5px}.c360-info strong{word-break:break-word}
+.c360-identity-admin{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr);gap:14px;margin-top:16px}.c360-identity-admin>div{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:#fbfcfd}.c360-identity-admin h3{margin:0 0 5px}.c360-identity-admin p{margin:0 0 14px}.c360-login-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}
 .c360-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--foodex-border);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#fff}.c360-badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:transparent}.c360-badge.b2b{background:#fff7ed;color:#9a3412}.c360-badge.b2c{background:#eefbf4;color:#166534}
 .c360-list{display:flex;gap:8px;flex-wrap:wrap}.c360-store{padding:10px 13px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;font-weight:800}
 .c360-address-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.c360-address-card{padding:15px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.c360-address-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.c360-address-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.c360-address-form .wide{grid-column:1/-1}.c360-address-form input,.c360-address-form textarea,.c360-address-form select{width:100%;box-sizing:border-box}.c360-authoritative-field{display:grid;gap:5px;align-content:start;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-background)}.c360-authoritative-field small{color:var(--foodex-muted)}.c360-authoritative-field strong{font-size:1rem}
@@ -57,7 +58,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-map-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.c360-map-coords{font-family:var(--foodex-font-en);color:var(--foodex-muted);font-size:.82rem;direction:ltr}
 @media(max-width:1100px){.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-finance-details{grid-template-columns:repeat(2,1fr)}.c360-finance-details>div:nth-child(3n){border-inline-end:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(2n){border-inline-end:0}}
 @media(max-width:1100px){.c360-report-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:720px){.c360-report-grid{grid-template-columns:1fr}.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
+@media(max-width:720px){.c360-identity-admin{grid-template-columns:1fr}.c360-report-grid{grid-template-columns:1fr}.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
 </style>
 </head>
 <body>
@@ -194,13 +195,45 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.identity') }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active'] ? __('customer_360.active') : __('customer_360.inactive') }}</span></div>
 <div class="c360-info">
 <div><small>{{ __('customer_360.identity.name') }}</small><strong>{{ $customer->name }}</strong></div>
-<div><small>{{ __('customer_360.identity.email') }}</small><strong>{{ $customer->email }}</strong></div>
+<div><small>{{ __('customer_360.identity.email') }}</small><strong>{{ $customer->email ?: '-' }}</strong></div>
 <div><small>{{ __('customer_360.identity.phone') }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
 <div><small>{{ __('customer_360.identity.registered_at') }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
 <div><small>{{ __('customer_360.identity.origin_channel') }}</small><strong>{{ $summary['origin_channel_label'] }}</strong></div>
 <div><small>{{ __('customer_360.identity.registration_source') }}</small><strong>{{ $summary['registration_source_label'] }}</strong></div>
 <div><small>{{ __('customer_360.identity.registration_origin') }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
 </div>
+
+@if($canManageIdentity)
+<div class="c360-identity-admin">
+<div>
+<h3>{{ __('customer_360.identity.edit_title') }}</h3>
+<p>{{ __('customer_360.identity.edit_help') }}</p>
+<form method="post" action="{{ route('admin.customer-360.identity.update',['platformCustomer'=>$customer->id]) }}" class="c360-address-form">
+@csrf @method('PATCH')
+<label><small>{{ __('customer_360.identity.name') }}</small><input name="name" maxlength="255" value="{{ old('name',$customer->name) }}" required autocomplete="name"></label>
+<label><small>{{ __('customer_360.identity.email') }}</small><input name="email" type="email" maxlength="255" value="{{ old('email',$customer->email) }}" required autocomplete="email" inputmode="email"></label>
+<label class="wide"><small>{{ __('customer_360.identity.phone') }}</small><input name="phone" maxlength="40" value="{{ old('phone',$customer->phone) }}" autocomplete="tel" inputmode="tel"></label>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.identity.save_changes') }}</button></div>
+</form>
+</div>
+
+<div>
+<h3>{{ __('customer_360.identity.mobile_access_title') }}</h3>
+<p>{{ __('customer_360.identity.mobile_access_help') }}</p>
+<div class="c360-login-state">
+<span>{{ __('customer_360.identity.login_status') }}</span>
+<span class="c360-badge {{ ($loginUser && $loginUser->is_active && $customer->is_active)?'active':'' }}">{{ ($loginUser && $loginUser->is_active && $customer->is_active) ? __('customer_360.identity.login_enabled') : __('customer_360.identity.login_disabled') }}</span>
+</div>
+<form method="post" action="{{ route('admin.customer-360.mobile-password.reset',['platformCustomer'=>$customer->id]) }}" class="c360-address-form">
+@csrf @method('PATCH')
+<label class="wide"><small>{{ __('customer_360.identity.password') }}</small><input name="password" type="password" minlength="8" maxlength="255" required autocomplete="new-password"></label>
+<label class="wide"><small>{{ __('customer_360.identity.password_confirmation') }}</small><input name="password_confirmation" type="password" minlength="8" maxlength="255" required autocomplete="new-password"></label>
+<div class="wide muted">{{ __('customer_360.identity.password_help') }}</div>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.identity.reset_password') }}</button></div>
+</form>
+</div>
+</div>
+@endif
 </div>
 </section>
 
