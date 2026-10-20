@@ -171,6 +171,22 @@ try {
         php artisan foodex:legacy-finance-history-verify
     }
 
+    Run-Step 'Finance assets materialization dry-run' {
+        php artisan foodex:legacy-finance-assets
+    }
+
+    Run-Step 'Finance assets materialization apply' {
+        php artisan foodex:legacy-finance-assets --apply
+    }
+
+    Run-Step 'Finance assets materialization verify' {
+        php artisan foodex:legacy-finance-assets-verify
+    }
+
+    Run-Step 'Finance assets native promotion preflight' {
+        php artisan foodex:legacy-finance-assets-native-preflight
+    }
+
     Run-Step 'Customer 360 dry-run' {
         php artisan foodex:legacy-customer360-backfill
     }
@@ -195,6 +211,10 @@ try {
     }
     Run-Step 'FINAL finance verify' {
         php artisan foodex:legacy-finance-history-verify
+    }
+
+    Run-Step 'FINAL finance assets verify' {
+        php artisan foodex:legacy-finance-assets-verify
     }
 
     Write-Host ""

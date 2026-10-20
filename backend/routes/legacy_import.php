@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\LegacyFinanceAssetMaterializerService;
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyImportRehearsalResetService;
 use Illuminate\Support\Facades\Artisan;
@@ -2120,3 +2121,111 @@ Artisan::command(
         return 0;
     },
 )->purpose('Inspect legacy Foodex GL and receipt/payment authority before finance cutover; read-only only.');
+
+Artisan::command(
+    'foodex:legacy-finance-assets {--apply : Materialize legacy gl_Assets into the protected asset register} {--json : Output machine-readable JSON}',
+    function (LegacyFinanceAssetMaterializerService $assets): int {
+        try {
+            $result = $assets->materialize((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset materialization failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        if (! (bool) $this->option('apply')) {
+            $this->info('Legacy fixed-asset materialization dry-run');
+            $this->line('Source rows: '.$result['source_rows'].' | Existing materialized rows: '.$result['materialized_rows']);
+            $this->line(
+                'Insert='.$result['planned']['insert'].
+                ' | Update='.$result['planned']['update'].
+                ' | Unchanged='.$result['planned']['unchanged']
+            );
+            $preflight = $result['native_preflight'];
+            $this->line('Native ready='.$preflight['ready_rows'].' | blocked='.$preflight['blocked_rows']);
+            if (! $preflight['ready_for_native_promotion']) {
+                $this->warn('Native promotion remains fail-closed. Materialization is safe; native finance posting is not authorized yet.');
+                $this->line('Blockers: '.json_encode($preflight['blocker_counts'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            }
+
+            return 0;
+        }
+
+        $this->info('Legacy fixed-asset materialization completed.');
+        $this->line('Run ID: '.$result['run_id']);
+        $this->line(
+            'Source='.$result['verification']['source_rows'].
+            ' | Materialized='.$result['verification']['materialized_rows'].
+            ' | Mappings='.$result['verification']['mapping_rows']
+        );
+        if (! $result['native_preflight']['ready_for_native_promotion']) {
+            $this->warn('Assets are preserved, but native enterprise fixed-asset promotion is intentionally blocked until authoritative finance mappings exist.');
+        }
+
+        return 0;
+    },
+)->purpose('Materialize every legacy Foodex fixed asset idempotently without fabricating finance accounts or journals.');
+
+Artisan::command(
+    'foodex:legacy-finance-assets-verify {--json : Output machine-readable JSON}',
+    function (LegacyFinanceAssetMaterializerService $assets): int {
+        try {
+            $report = $assets->verify();
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset verification failed to run: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        } else {
+            $this->line(
+                'Source='.$report['source_rows'].
+                ' | Materialized='.$report['materialized_rows'].
+                ' | Mappings='.$report['mapping_rows'].
+                ' | Mapping mismatches='.$report['mapping_mismatches']
+            );
+            $report['healthy']
+                ? $this->info('Legacy fixed-asset verification PASSED.')
+                : $this->error('Legacy fixed-asset verification FAILED.');
+        }
+
+        return $report['healthy'] ? 0 : 1;
+    },
+)->purpose('Prove row/hash/provenance parity between dbo.gl_Assets and the FOODEX legacy fixed-asset register.');
+
+Artisan::command(
+    'foodex:legacy-finance-assets-native-preflight {--json : Output machine-readable JSON}',
+    function (LegacyFinanceAssetMaterializerService $assets): int {
+        try {
+            $report = $assets->nativePromotionPreflight();
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset native preflight failed to run: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->line('Rows='.$report['rows'].' | Ready='.$report['ready_rows'].' | Blocked='.$report['blocked_rows']);
+        if ($report['ready_for_native_promotion']) {
+            $this->info('Native fixed-asset promotion prerequisites are satisfied.');
+        } else {
+            $this->warn('Native promotion is BLOCKED safely. No enterprise asset journal will be fabricated.');
+            $this->line('Blockers: '.json_encode($report['blocker_counts'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        }
+
+        return 0;
+    },
+)->purpose('Fail-closed preflight for promoting legacy assets into native Enterprise Finance fixed assets.');
