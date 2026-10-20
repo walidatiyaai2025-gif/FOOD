@@ -119,14 +119,15 @@ $createDescription=$type==='brands'?($ar?'أدخل بيانات العلامة �
 <thead><tr>@if($type==='brands')<th>{{ $ar?'الصورة':'Image' }}</th>@endif<th>{{ $ar?'المفتاح':'Key' }}</th><th>{{ $ar?'العربية':'Arabic' }}</th><th>{{ $ar?'الإنجليزية':'English' }}</th><th>{{ $ar?'النطاق':'Scope' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجراءات':'Actions' }}</th></tr></thead>
 <tbody>
 @forelse($records as $record)
+@php($recordDisplayName = app()->getLocale()==='ar' ? ($record->name_ar ?: $record->name_en) : ($record->name_en ?: $record->name_ar))
 <tr class="lookup-record-row">
-@if($type==='brands')<td class="lookup-mobile-full" data-label="{{ $ar?'الصورة':'Image' }}"><div class="lookup-grid-image">@if($record->image_path)<img class="brand-thumb" src="{{ url('/'.ltrim($record->image_path,'/')) }}" alt="{{ $record->name_ar ?: $record->name_en }}">@else<span class="muted">—</span>@endif @if($record->can_manage)<form method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.brands.image',['lookup'=>$record->id]) }}" class="lookup-grid-image-form" data-grid-image-form>@csrf @method('PATCH')@if($isSuperAdmin && $record->scope==='store')<label class="support"><input type="checkbox" name="support_access" value="1"> {{ $ar?'دعم صريح':'Support access' }}</label>@endif<label class="lookup-grid-image-trigger">{{ $ar?'تغيير الصورة':'Change image' }}<input class="lookup-grid-image-input" data-grid-image-input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required></label></form>@endif</div></td>@endif
-<td data-label="{{ $ar?'المفتاح':'Key' }}">{{ $type==='brands'?$record->slug:$record->code }}</td>
-<td data-label="{{ $ar?'العربية':'Arabic' }}">{{ $record->name_ar }}</td><td data-label="{{ $ar?'الإنجليزية':'English' }}">{{ $record->name_en }}</td>
-<td data-label="{{ $ar?'النطاق':'Scope' }}"><span class="badge">{{ $scopeLabels[$record->scope]??$record->scope }}</span></td>
-<td data-label="{{ $ar?'المتجر':'Store' }}">{{ $record->store_name?:'—' }}</td>
-<td data-label="{{ $ar?'الحالة':'Status' }}"><span class="badge {{ $record->is_active?'on':'off' }}">{{ $record->is_active?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></td>
-<td class="lookup-mobile-full" data-label="{{ $ar?'الإجراءات':'Actions' }}">
+@if($type==='brands')<td class="lookup-mobile-full" data-label="{{ __('catalog_grid.image') }}"><div class="lookup-grid-image">@if($record->image_path)<img class="brand-thumb" src="{{ url('/'.ltrim($record->image_path,'/')) }}" alt="{{ $recordDisplayName }}">@else<span class="muted">—</span>@endif @if($record->can_manage)<form method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.brands.image',['lookup'=>$record->id]) }}" class="lookup-grid-image-form" data-grid-image-form>@csrf @method('PATCH')@if($isSuperAdmin && $record->scope==='store')<label class="support"><input type="checkbox" name="support_access" value="1"> {{ __('catalog_grid.support_access') }}</label>@endif<label class="lookup-grid-image-trigger">{{ __('catalog_grid.change_image') }}<input class="lookup-grid-image-input" data-grid-image-input type="file" name="brand_image" accept="image/jpeg,image/png,image/webp" required></label></form>@endif</div></td>@endif
+<td data-label="{{ __('catalog_grid.key') }}">{{ $type==='brands'?$record->slug:$record->code }}</td>
+<td data-label="{{ __('catalog_grid.arabic') }}">{{ $record->name_ar }}</td><td data-label="{{ __('catalog_grid.english') }}">{{ $record->name_en }}</td> {{-- localization-gate: allow bilingual lookup management intentionally exposes both source-language fields --}}
+<td data-label="{{ __('catalog_grid.scope') }}"><span class="badge">{{ $scopeLabels[$record->scope]??$record->scope }}</span></td>
+<td data-label="{{ __('catalog_grid.store') }}">{{ $record->store_name?:'—' }}</td>
+<td data-label="{{ __('catalog_grid.status') }}"><span class="badge {{ $record->is_active?'on':'off' }}">{{ $record->is_active ? __('catalog_grid.active') : __('catalog_grid.inactive') }}</span></td>
+<td class="lookup-mobile-full" data-label="{{ __('catalog_grid.actions') }}">
 @if($record->can_manage)
 <form class="inline-form" method="post" enctype="multipart/form-data" action="{{ route('admin.lookups.update',['type'=>$type,'lookup'=>$record->id]) }}">@csrf @method('PATCH')
 <label>{{ $ar?'العربية':'AR' }}<input name="name_ar" value="{{ $record->name_ar }}" required></label><label>{{ $ar?'الإنجليزية':'EN' }}<input name="name_en" value="{{ $record->name_en }}" required></label>
