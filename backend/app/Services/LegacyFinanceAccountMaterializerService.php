@@ -25,7 +25,7 @@ final class LegacyFinanceAccountMaterializerService
     private const PARENT_ALIASES = ['ParentID', 'ParentId', 'AccountParentID', 'AccountParentId', 'ParentAccountID', 'ParentAccountId', 'ParentAccID', 'ParentAccId', 'MainAccountID', 'MainAccountId'];
     private const TYPE_ALIASES = ['AccountFinalListType', 'FinalListType', 'FinancialStatementType', 'AccountNature', 'Nature', 'NatureName', 'AccountClass', 'Classification', 'AccountType', 'AccountTypeName', 'Type', 'TypeName'];
     private const NORMAL_BALANCE_ALIASES = ['NormalBalance', 'BalanceNature', 'BalanceType', 'DebitCredit', 'DrCr', 'DC', 'DebitOrCredit'];
-    private const STATUS_ALIASES = ['AccountStatus', 'Status', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
+    private const STATUS_ALIASES = ['Status', 'AccountStatus', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
 
     public function profile(): array
     {
@@ -72,7 +72,7 @@ final class LegacyFinanceAccountMaterializerService
         $requiredResolved = $idColumn !== null
             && $codeColumn !== null
             && $nameColumn !== null
-            && $typeColumn !== null;
+            && $parentColumn !== null;
 
         $classification = $requiredResolved
             ? $this->classifyRows(
@@ -80,11 +80,12 @@ final class LegacyFinanceAccountMaterializerService
                 $idColumn,
                 $codeColumn,
                 $nameColumn,
+                $nameArColumn,
                 $parentColumn,
                 $typeColumn,
                 $normalBalanceColumn,
                 $statusColumn,
-                $typeLookup,
+                $hasTransColumn,
                 false,
             )
             : [
@@ -111,6 +112,7 @@ final class LegacyFinanceAccountMaterializerService
                 'type' => $typeColumn,
                 'normal_balance' => $normalBalanceColumn,
                 'status' => $statusColumn,
+                'has_trans' => $hasTransColumn,
             ],
             'type_lookup' => $typeLookup['meta'],
             'type_lookup_values' => collect($typeLookup['values'])
@@ -192,11 +194,12 @@ final class LegacyFinanceAccountMaterializerService
             (string) $columns['id'],
             (string) $columns['code'],
             (string) $columns['name'],
+            $columns['name_ar'],
             $columns['parent'],
-            (string) $columns['type'],
+            $columns['type'],
             $columns['normal_balance'],
             $columns['status'],
-            $typeLookup,
+            $columns['has_trans'],
             true,
         );
         $rows = $classification['rows'];
@@ -246,7 +249,7 @@ final class LegacyFinanceAccountMaterializerService
                     'type' => (string) $row['type'],
                     'normal_balance' => (string) $row['normal_balance'],
                     'is_control' => (bool) $row['is_control'],
-                    'allow_posting' => ! (bool) $row['is_control'],
+                    'allow_posting' => (bool) $row['allow_posting'],
                     'status' => (string) $row['status'],
                     'created_by' => null,
                     'updated_by' => null,
@@ -277,8 +280,13 @@ final class LegacyFinanceAccountMaterializerService
                             'source_code' => $row['source_code'],
                             'source_parent_id' => $row['source_parent_id'],
                             'source_type_raw' => $row['source_type_raw'],
+                            'source_root_id' => $row['source_root_id'],
+                            'source_root_name' => $row['source_root_name'],
+                            'source_root_name_ar' => $row['source_root_name_ar'],
                             'resolved_type' => $row['type'],
                             'resolved_normal_balance' => $row['normal_balance'],
+                            'source_has_trans' => $row['source_has_trans'],
+                            'allow_posting' => $row['allow_posting'],
                         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'last_run_id' => null,
                         'created_at' => now(),
@@ -407,8 +415,11 @@ final class LegacyFinanceAccountMaterializerService
             ],
             'rule' => [
                 'type_values' => ['asset', 'liability', 'equity', 'revenue', 'expense'],
-                'normal_balance' => 'explicit source value when recognized; otherwise derived only from resolved account type',
+                'type_authority' => 'AccountParentID ancestry to explicit named root accounts',
+                'normal_balance' => 'explicit source value when recognized; otherwise derived from resolved root account type',
                 'control_account' => 'derived structurally from presence of source children',
+                'allow_posting' => 'source HasTrans when present; structural leaf fallback otherwise',
+                'functional_account_type' => 'preserved as provenance only; never used as financial statement classification',
                 'unresolved_account_type_policy' => 'fail closed',
             ],
         ];
@@ -420,21 +431,24 @@ final class LegacyFinanceAccountMaterializerService
         string $idColumn,
         string $codeColumn,
         string $nameColumn,
+        ?string $nameArColumn,
         ?string $parentColumn,
-        string $typeColumn,
+        ?string $typeColumn,
         ?string $normalBalanceColumn,
         ?string $statusColumn,
-        array $typeLookup,
+        ?string $hasTransColumn,
         bool $includeRaw,
     ): array {
         $select = array_values(array_unique(array_filter([
             $idColumn,
             $codeColumn,
             $nameColumn,
+            $nameArColumn,
             $parentColumn,
             $typeColumn,
             $normalBalanceColumn,
             $statusColumn,
+            $hasTransColumn,
         ])));
 
         $sourceRows = $this->legacySource()->table($qualified)
@@ -443,10 +457,12 @@ final class LegacyFinanceAccountMaterializerService
             ->get();
 
         $sourceIds = [];
+        $sourceById = [];
         foreach ($sourceRows as $row) {
             $sourceId = (int) ($row->{$idColumn} ?? 0);
             if ($sourceId > 0) {
                 $sourceIds[$sourceId] = ($sourceIds[$sourceId] ?? 0) + 1;
+                $sourceById[$sourceId] = $row;
             }
         }
 
@@ -460,6 +476,64 @@ final class LegacyFinanceAccountMaterializerService
             }
         }
 
+        $classificationCache = [];
+        $resolveClassification = function (int $sourceId, array $stack = []) use (
+            &$resolveClassification,
+            &$classificationCache,
+            $sourceById,
+            $parentColumn,
+            $nameColumn,
+            $nameArColumn,
+            $codeColumn,
+        ): ?array {
+            if (isset($classificationCache[$sourceId])) {
+                return $classificationCache[$sourceId];
+            }
+
+            if (in_array($sourceId, $stack, true)) {
+                return null;
+            }
+
+            $row = $sourceById[$sourceId] ?? null;
+            if ($row === null) {
+                return null;
+            }
+
+            $parentId = $parentColumn === null ? 0 : (int) ($row->{$parentColumn} ?? 0);
+            $nameEn = trim((string) ($row->{$nameColumn} ?? ''));
+            $nameAr = $nameArColumn === null ? '' : trim((string) ($row->{$nameArColumn} ?? ''));
+            $code = trim((string) ($row->{$codeColumn} ?? ''));
+
+            if ($parentId <= 0) {
+                $type = $this->normalizeAccountType($nameEn)
+                    ?? $this->normalizeAccountType($nameAr);
+
+                if ($type === null) {
+                    return null;
+                }
+
+                return $classificationCache[$sourceId] = [
+                    'type' => $type,
+                    'root_id' => $sourceId,
+                    'root_code' => $code,
+                    'root_name' => $nameEn,
+                    'root_name_ar' => $nameAr,
+                ];
+            }
+
+            if (! isset($sourceById[$parentId])) {
+                return null;
+            }
+
+            $stack[] = $sourceId;
+            $resolved = $resolveClassification($parentId, $stack);
+            if ($resolved === null) {
+                return null;
+            }
+
+            return $classificationCache[$sourceId] = $resolved;
+        };
+
         $rows = [];
         $unclassified = 0;
         $unclassifiedSamples = [];
@@ -470,9 +544,10 @@ final class LegacyFinanceAccountMaterializerService
             $sourceId = (int) ($sourceRow->{$idColumn} ?? 0);
             $sourceCode = trim((string) ($sourceRow->{$codeColumn} ?? ''));
             $name = trim((string) ($sourceRow->{$nameColumn} ?? ''));
+            $nameAr = $nameArColumn === null ? null : trim((string) ($sourceRow->{$nameArColumn} ?? ''));
             $sourceParentId = $parentColumn === null ? null : (int) ($sourceRow->{$parentColumn} ?? 0);
             $sourceParentId = $sourceParentId !== null && $sourceParentId > 0 ? $sourceParentId : null;
-            $rawType = $sourceRow->{$typeColumn} ?? null;
+            $rawType = $typeColumn === null ? null : ($sourceRow->{$typeColumn} ?? null);
 
             if ($sourceCode === '') {
                 $missingCode++;
@@ -481,8 +556,8 @@ final class LegacyFinanceAccountMaterializerService
                 $missingName++;
             }
 
-            $typeLabel = $this->lookupTypeLabel($rawType, $typeLookup['values']);
-            $type = $this->normalizeAccountType($typeLabel ?? $rawType);
+            $resolved = $sourceId > 0 ? $resolveClassification($sourceId) : null;
+            $type = $resolved['type'] ?? null;
 
             if ($type === null) {
                 $unclassified++;
@@ -490,8 +565,11 @@ final class LegacyFinanceAccountMaterializerService
                     $unclassifiedSamples[] = [
                         'source_id' => $sourceId,
                         'code' => $sourceCode,
+                        'name' => $name,
+                        'name_ar' => $nameAr,
+                        'parent_id' => $sourceParentId,
                         'raw_type' => $rawType,
-                        'lookup_label' => $typeLabel,
+                        'reason' => 'No resolvable classified root ancestor.',
                     ];
                 }
             }
@@ -502,15 +580,27 @@ final class LegacyFinanceAccountMaterializerService
                 $normalBalance = in_array($type, ['asset', 'expense'], true) ? 'debit' : 'credit';
             }
 
+            $sourceHasTrans = $hasTransColumn === null ? null : ($sourceRow->{$hasTransColumn} ?? null);
+            $allowPosting = $sourceHasTrans === null
+                ? ! isset($childParents[$sourceId])
+                : (bool) ((int) $sourceHasTrans);
+
             $rows[] = [
                 'source_id' => $sourceId,
                 'source_code' => $sourceCode,
                 'name' => $name,
+                'name_ar' => $nameAr,
                 'source_parent_id' => $sourceParentId,
                 'source_type_raw' => $rawType,
+                'source_root_id' => $resolved['root_id'] ?? null,
+                'source_root_code' => $resolved['root_code'] ?? null,
+                'source_root_name' => $resolved['root_name'] ?? null,
+                'source_root_name_ar' => $resolved['root_name_ar'] ?? null,
                 'type' => $type,
                 'normal_balance' => $normalBalance,
                 'is_control' => isset($childParents[$sourceId]),
+                'source_has_trans' => $sourceHasTrans,
+                'allow_posting' => $allowPosting,
                 'status' => $this->normalizeStatus(
                     $statusColumn,
                     $statusColumn === null ? null : ($sourceRow->{$statusColumn} ?? null),
