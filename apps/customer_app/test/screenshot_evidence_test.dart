@@ -408,10 +408,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
-      final checkoutScrollable = find.descendant(
-        of: find.byKey(const ValueKey('b2b-checkout-data')),
-        matching: find.byType(Scrollable),
-      );
+      final checkoutScrollable = find
+          .descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       await tester.scrollUntilVisible(
         submit,
         300,
