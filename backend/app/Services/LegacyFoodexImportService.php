@@ -14,7 +14,7 @@ final class LegacyFoodexImportService
 
     public function preflight(): array
     {
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $sourceCounts = [];
         foreach ([
@@ -227,7 +227,7 @@ final class LegacyFoodexImportService
             throw new RuntimeException('Missing platform_customers. Run php artisan migrate first.');
         }
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $sourceCount = (int) $source->table('wh_Customers')->count();
         $customerMappings = DB::table('legacy_import_mappings')
             ->where('source_system', self::SOURCE_SYSTEM)
@@ -400,7 +400,7 @@ final class LegacyFoodexImportService
 
     public function stockDiagnostics(bool $deep = false, ?callable $progress = null): array
     {
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $timings = [];
 
         $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
@@ -1098,7 +1098,7 @@ final class LegacyFoodexImportService
 
     public function stockSourceDiagnostics(?callable $progress = null): array
     {
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $timings = [];
 
         $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
@@ -1283,7 +1283,7 @@ SQL));
 
     public function stockRoutineDiagnostics(?callable $progress = null): array
     {
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $timings = [];
 
         $stage = static function (string $label, callable $callback) use (&$timings, $progress): mixed {
@@ -1471,7 +1471,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $movementSigns = [
             1 => 1,
@@ -2063,7 +2063,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $salesTypes = [3, 19];
         $returnTypes = [4, 20];
 
@@ -2463,7 +2463,7 @@ SQL));
 
                 for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                     try {
-                        $detailSource = DB::connection('foodex_legacy');
+                        $detailSource = $this->legacySource();
                         $rows = $detailSource->table('wh_TransDetails')
                             ->select([
                                 'DetailId',
@@ -3644,7 +3644,7 @@ SQL));
 
     public function salesHistoryHeaderDiagnostics(array $headerIds, ?callable $progress = null): array
     {
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $ids = collect($headerIds)
             ->map(static fn ($id): int => (int) $id)
@@ -3774,7 +3774,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
         $purchaseTypes = [1, 2];
 
         $maps = $stage('load_purchase_history_mappings', function (): array {
@@ -4689,7 +4689,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $typeRules = [
             5 => ['kind' => 'damaged', 'sign' => -1, 'pair_family' => null, 'pair_role' => null],
@@ -5601,7 +5601,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $tableCounts = $stage('finance_table_counts', fn (): array => [
             'gl_accounts' => (int) $source->table('gl_Accounts')->count(),
@@ -6062,7 +6062,7 @@ SQL));
             return $result;
         };
 
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $maps = $stage('load_finance_history_mappings', function (): array {
             $map = static function (string $sourceTable, string $targetTable): array {
@@ -7227,7 +7227,7 @@ SQL));
     public function importExtendedMasters(bool $apply): array
     {
         $preflight = $this->preflight();
-        $source = DB::connection('foodex_legacy');
+        $source = $this->legacySource();
 
         $addressCandidates = (int) $source->table('wh_Customers')
             ->whereRaw(
@@ -7324,17 +7324,17 @@ SQL));
         $updated = 0;
         $skipped = 0;
 
-        $cities = DB::connection('foodex_legacy')->table('fw_Cities')
+        $cities = $this->legacySource()->table('fw_Cities')
             ->get(['ID', 'Name_Ar', 'Name_En'])
             ->keyBy('ID');
-        $regions = DB::connection('foodex_legacy')->table('fw_Regions')
+        $regions = $this->legacySource()->table('fw_Regions')
             ->get(['ID', 'Name_Ar', 'Name_En'])
             ->keyBy('ID');
-        $districts = DB::connection('foodex_legacy')->table('fw_Districts')
+        $districts = $this->legacySource()->table('fw_Districts')
             ->get(['ID', 'Name_Ar', 'Name_En'])
             ->keyBy('ID');
 
-        $rows = DB::connection('foodex_legacy')->table('wh_Customers')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_Customers')->orderBy('ID')->get();
         foreach ($rows as $row) {
             $customerId = $this->mappedTargetId('wh_Customers', (string) $row->ID, 'customers');
             if ($customerId === null) {
@@ -7453,7 +7453,7 @@ SQL));
 
         $created = 0;
         $updated = 0;
-        $rows = DB::connection('foodex_legacy')->table('wh_Suppliers')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_Suppliers')->orderBy('ID')->get();
 
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
@@ -7518,7 +7518,7 @@ SQL));
     {
         $created = 0;
         $updated = 0;
-        $rows = DB::connection('foodex_legacy')->table('wh_Cars')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_Cars')->orderBy('ID')->get();
 
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
@@ -7587,7 +7587,7 @@ SQL));
     {
         $created = 0;
         $updated = 0;
-        $rows = DB::connection('foodex_legacy')->table('wh_SalesReps')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_SalesReps')->orderBy('ID')->get();
 
         foreach ($rows as $row) {
             $sourceKey = (string) $row->ID;
@@ -7597,7 +7597,7 @@ SQL));
                 ->where('source_key', $sourceKey)
                 ->exists();
 
-            $linkedCars = DB::connection('foodex_legacy')->table('wh_Cars')
+            $linkedCars = $this->legacySource()->table('wh_Cars')
                 ->where('SalesRepID', (int) $row->ID)
                 ->orderBy('ID')
                 ->pluck('ID')
@@ -7669,6 +7669,21 @@ SQL));
         return $salesRepReferences === (int) $sourceCounts['wh_SalesReps'];
     }
 
+    private function legacySource(): \Illuminate\Database\Connection
+    {
+        $connection = DB::connection('foodex_legacy');
+        $pdo = $connection->getPdo();
+
+        if (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')) {
+            $pdo->setAttribute(
+                \PDO::SQLSRV_ATTR_QUERY_TIMEOUT,
+                max(0, (int) config('database.connections.foodex_legacy.query_timeout', 300)),
+            );
+        }
+
+        return $connection;
+    }
+
     private function legacyText(mixed $value, bool $dropPlaceholderOne = false): ?string
     {
         $text = trim((string) $value);
@@ -7731,12 +7746,12 @@ SQL));
 
     private function importB2bPrices(int $storeId, string $runId): array
     {
-        $tiers = DB::connection('foodex_legacy')
+        $tiers = $this->legacySource()
             ->table('wh_PriceTypes')
             ->orderBy('ID')
             ->get();
 
-        $items = DB::connection('foodex_legacy')
+        $items = $this->legacySource()
             ->table('wh_Items')
             ->orderBy('ID')
             ->get();
@@ -7837,7 +7852,7 @@ SQL));
             ]);
         }
 
-        $unresolvedCustomerPriceIds = (int) DB::connection('foodex_legacy')
+        $unresolvedCustomerPriceIds = (int) $this->legacySource()
             ->table('wh_Customers')
             ->where(function ($query): void {
                 $query->whereNull('PriceID')->orWhere('PriceID', '<=', 0);
@@ -7881,7 +7896,7 @@ SQL));
 
     private function importPriceTiers(string $runId): array
     {
-        $rows = DB::connection('foodex_legacy')->table('wh_PriceTypes')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_PriceTypes')->orderBy('ID')->get();
         $created = 0;
         $updated = 0;
 
@@ -7926,7 +7941,7 @@ SQL));
             ['table' => 'wh_Stores', 'prefix' => 'FDX-STORE-', 'label' => 'Legacy Store'],
             ['table' => 'wh_Cars', 'prefix' => 'FDX-VAN-', 'label' => 'Legacy Van'],
         ] as $definition) {
-            $rows = DB::connection('foodex_legacy')->table($definition['table'])->orderBy('ID')->get();
+            $rows = $this->legacySource()->table($definition['table'])->orderBy('ID')->get();
 
             foreach ($rows as $row) {
                 $sourceId = (string) $row->ID;
@@ -7967,7 +7982,7 @@ SQL));
         $created = 0;
         $updated = 0;
 
-        $groups = DB::connection('foodex_legacy')->table('wh_ItemGroups')->orderBy('ID')->get();
+        $groups = $this->legacySource()->table('wh_ItemGroups')->orderBy('ID')->get();
         foreach ($groups as $row) {
             [$wasCreated] = $this->upsertCategory(
                 'wh_ItemGroups',
@@ -7983,7 +7998,7 @@ SQL));
             $wasCreated ? $created++ : $updated++;
         }
 
-        $subgroups = DB::connection('foodex_legacy')->table('wh_ItemSubGroups')->orderBy('ID')->get();
+        $subgroups = $this->legacySource()->table('wh_ItemSubGroups')->orderBy('ID')->get();
         foreach ($subgroups as $row) {
             $parentId = $row->ParentID === null
                 ? null
@@ -8060,7 +8075,7 @@ SQL));
     private function importProducts(int $storeId, int $catalogId, int $unitId, string $runId): array
     {
         $barcodes = [];
-        foreach (DB::connection('foodex_legacy')->table('wh_ItemBarCodes')->orderBy('ID')->get() as $barcode) {
+        foreach ($this->legacySource()->table('wh_ItemBarCodes')->orderBy('ID')->get() as $barcode) {
             $key = (int) $barcode->ItemId.':'.(int) $barcode->Package;
             $value = trim((string) $barcode->ItemBarCode);
             if ($value !== '' && ! isset($barcodes[$key])) {
@@ -8072,7 +8087,7 @@ SQL));
         $updated = 0;
         $sellingUnits = 0;
 
-        $rows = DB::connection('foodex_legacy')->table('wh_Items')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_Items')->orderBy('ID')->get();
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
             $targetId = $this->mappedTargetId('wh_Items', $sourceId, 'products');
@@ -8245,7 +8260,7 @@ SQL));
         $updated = 0;
         $platformCreated = 0;
         $platformUpdated = 0;
-        $rows = DB::connection('foodex_legacy')->table('wh_Customers')->orderBy('ID')->get();
+        $rows = $this->legacySource()->table('wh_Customers')->orderBy('ID')->get();
 
         foreach ($rows as $row) {
             $sourceId = (string) $row->ID;
@@ -8401,7 +8416,7 @@ SQL));
         $updated = 0;
         $quarantined = 0;
 
-        $rows = DB::connection('foodex_legacy')->table('wh_ItemStockOnHand')
+        $rows = $this->legacySource()->table('wh_ItemStockOnHand')
             ->orderBy('StoreID')
             ->orderBy('ItemID')
             ->get();
