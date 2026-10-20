@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/foodex_environment.dart';
+import '../../../core/localization/app_translations.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../customer_account/customer_account_v3_widgets.dart';
 import '../commerce/retail_commerce_api.dart';
