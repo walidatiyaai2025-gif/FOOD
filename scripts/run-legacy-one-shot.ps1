@@ -133,18 +133,18 @@ try {
     # Native-domain phases are registry-driven. Future domains are added only to native-phases.json.
     foreach ($phase in $NativeRegistry.phases | Where-Object { $_.enabled }) {
         Invoke-FoodexStep ("Native phase dry-run: " + $phase.name) {
-            $args = @($phase.dry_run)
-            php artisan @args
+            $artisanArgs = @($phase.dry_run)
+            php artisan @artisanArgs
         }
 
         Invoke-FoodexStep ("Native phase apply: " + $phase.name) {
-            $args = @($phase.apply)
-            php artisan @args
+            $artisanArgs = @($phase.apply)
+            php artisan @artisanArgs
         }
 
         Invoke-FoodexStep ("Native phase verify: " + $phase.name) {
-            $args = @($phase.verify)
-            php artisan @args
+            $artisanArgs = @($phase.verify)
+            php artisan @artisanArgs
         }
     }
 
@@ -161,8 +161,8 @@ try {
     Invoke-FoodexStep 'FINAL finance verify' { php artisan foodex:legacy-finance-history-verify }
     foreach ($phase in $NativeRegistry.phases | Where-Object { $_.enabled }) {
         Invoke-FoodexStep ("FINAL native phase verify: " + $phase.name) {
-            $args = @($phase.verify)
-            php artisan @args
+            $artisanArgs = @($phase.verify)
+            php artisan @artisanArgs
         }
     }
     Invoke-FoodexStep 'FINAL business-impact verify' { php artisan foodex:legacy-business-verify }
