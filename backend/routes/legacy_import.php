@@ -3,6 +3,7 @@
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyFullArchiveService;
 use App\Services\LegacyImportRehearsalResetService;
+use App\Services\LegacyStockReconciliationService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1131,6 +1132,79 @@ Artisan::command(
     },
 )->purpose('Inspect the canonical legacy Foodex stock routines and views used to calculate current stock.');
 
+
+Artisan::command(
+    'foodex:legacy-stock-reconcile {--json : Output machine-readable JSON}',
+    function (LegacyStockReconciliationService $reconciliation): int {
+        $progress = function (string $stage, string $state, ?float $elapsed): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            if ($state === 'start') {
+                $this->line('>> '.$stage.' ...');
+
+                return;
+            }
+
+            $this->line('   '.$stage.' DONE in '.number_format((float) $elapsed, 3).'s');
+        };
+
+        try {
+            $report = $reconciliation->verify($progress);
+        } catch (Throwable $exception) {
+            $this->error('Legacy Foodex stock reconciliation failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $report,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ));
+
+            return $report['healthy'] ? 0 : 1;
+        }
+
+        $this->info('Legacy Foodex source-to-target stock reconciliation');
+
+        $this->table(
+            ['Metric', 'Value'],
+            [
+                ['source detail rows scanned', $report['source']['detail_rows_scanned']],
+                ['source accepted stock rows', $report['source']['accepted_stock_rows']],
+                ['source positive positions', $report['source']['positive_positions']],
+                ['source zero positions', $report['source']['zero_positions']],
+                ['source negative positions', $report['source']['negative_positions']],
+                ['Store/Car numeric-ID collisions safely namespaced', $report['source']['numeric_store_car_id_collisions']],
+                ['target inventories', $report['target']['inventories']],
+                ['target baseline movements', $report['target']['baseline_movements']],
+                ['target inventory mappings', $report['target']['inventory_mappings']],
+                ['store positive positions', $report['breakdown']['stores']['positive_positions']],
+                ['store total quantity', $report['breakdown']['stores']['quantity']],
+                ['van positive positions', $report['breakdown']['vans']['positive_positions']],
+                ['van total quantity', $report['breakdown']['vans']['quantity']],
+            ],
+        );
+
+        foreach ($report['mismatches'] as $name => $rows) {
+            if ($rows !== []) {
+                $this->error($name.': '.count($rows).' sample(s) detected.');
+            }
+        }
+
+        if ($report['healthy']) {
+            $this->info('STOCK SOURCE -> TARGET RECONCILIATION PASSED.');
+
+            return 0;
+        }
+
+        $this->error('STOCK SOURCE -> TARGET RECONCILIATION FAILED.');
+
+        return 1;
+    },
+)->purpose('Recalculate Foodex stock from SQL Server and prove every Store/Van item balance matches MySQL inventories.');
 
 Artisan::command(
     'foodex:legacy-stock-verify {--json : Output machine-readable JSON}',
