@@ -64,8 +64,8 @@ elif app_groovy.exists():
             "plugins {\n    id 'com.google.gms.google-services'",
             1,
         )
-    text = re.sub(r'namespace\s+['"][^'"]+['"]', f"namespace '{package_id}'", text)
-    text = re.sub(r'applicationId\s+['"][^'"]+['"]', f"applicationId '{package_id}'", text)
+    text = re.sub(r"namespace\\s+['\"][^'\"]+['\"]", f"namespace '{package_id}'", text)
+    text = re.sub(r"applicationId\\s+['\"][^'\"]+['\"]", f"applicationId '{package_id}'", text)
     app_groovy.write_text(text)
 else:
     raise SystemExit("ERROR: Android app Gradle file was not generated.")
