@@ -1173,6 +1173,7 @@ Artisan::command(
                 ['Procurement-history relations', $source['procurement_relations'] ?? 0],
                 ['Derived brands', $target['derived_brands'] ?? 0],
                 ['Products with primary brand', $target['products_with_primary_brand'] ?? 0],
+                ['Accounted products', $target['accounted_products'] ?? (($source['products_with_supplier_relation'] ?? 0) + ($source['products_without_supplier_relation'] ?? 0))],
                 ['Duplicate primary products', $target['duplicate_primary_products'] ?? 0],
                 ['Primary brand mismatches', $target['primary_brand_mismatches'] ?? 0],
             ],
@@ -1222,6 +1223,7 @@ Artisan::command(
                 ['Derived brands', $result['target']['derived_brands']],
                 ['Products with primary brand', $result['target']['products_with_primary_brand']],
                 ['Products without supplier relation', $result['target']['products_without_supplier_relation']],
+                ['Accounted products', $result['target']['accounted_products']],
                 ['Duplicate primary products', $result['target']['duplicate_primary_products']],
                 ['Primary brand mismatches', $result['target']['primary_brand_mismatches']],
                 ['Relations missing brand', $result['target']['relations_missing_brand']],
@@ -1234,7 +1236,7 @@ Artisan::command(
             return 1;
         }
 
-        $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED: all imported products are segmented by supplier-derived brands.');
+        $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED: every imported product is either supplier-branded or explicitly classified as having no supplier relation in the source.');
         return 0;
     },
 )->purpose('Verify complete supplier-derived brand coverage and deterministic primary supplier assignment.');
