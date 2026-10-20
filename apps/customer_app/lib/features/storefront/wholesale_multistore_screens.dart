@@ -1782,7 +1782,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                                   : const Icon(
                                       Icons.favorite_rounded,
                                       size: 17,
-                                      color: Color(0xFFB42318),
+                                      color: CustomerUiColors.destructive,
                                     ),
                             ),
                           ),
@@ -3850,7 +3850,7 @@ class _WholesaleProductDetailsDesignScreenState
                       quantityIssue,
                       key: const ValueKey('b2b-product-quantity-error'),
                       style: const TextStyle(
-                        color: Color(0xFFB42318),
+                        color: CustomerUiColors.destructive,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
