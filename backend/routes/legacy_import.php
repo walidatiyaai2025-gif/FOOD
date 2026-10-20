@@ -1139,7 +1139,7 @@ Artisan::command(
 
 
 Artisan::command(
-    'foodex:legacy-supplier-brands {--apply : Derive brands from suppliers and procurement history} {--json : Output JSON}',
+    'foodex:legacy-supplier-brands {--apply : Derive brands from suppliers using all explicit supplier-product source relations} {--json : Output JSON}',
     function (LegacySupplierBrandMaterializerService $materializer): int {
         try {
             $result = $materializer->materialize((bool) $this->option('apply'));
@@ -1173,7 +1173,6 @@ Artisan::command(
                 ['Procurement-history relations', $source['procurement_relations'] ?? 0],
                 ['Derived brands', $target['derived_brands'] ?? 0],
                 ['Products with primary brand', $target['products_with_primary_brand'] ?? 0],
-                ['Products without supplier relation', $source['products_without_supplier_relation'] ?? ($target['products_without_supplier_relation'] ?? 0)],
                 ['Duplicate primary products', $target['duplicate_primary_products'] ?? 0],
                 ['Primary brand mismatches', $target['primary_brand_mismatches'] ?? 0],
             ],
@@ -1189,7 +1188,7 @@ Artisan::command(
 
         return 0;
     },
-)->purpose('Build B2B brands from legacy suppliers and assign every imported product to its deterministic primary supplier brand.');
+)->purpose('Build B2B brands from legacy suppliers and assign products using source-authoritative supplier relations.');
 
 Artisan::command(
     'foodex:legacy-supplier-brands-verify {--json : Output JSON}',
