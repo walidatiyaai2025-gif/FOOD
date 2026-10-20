@@ -1100,10 +1100,10 @@ class B2bWorkspaceController extends Controller
 
     private function inventoryModuleData(array $storeIds): array
     {
-        $principalWarehouseId = $this->principal->warehouseId();
         $rows = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-            ->where('warehouses.id', $principalWarehouseId)
+            ->whereIn('warehouses.store_id', $storeIds)
+            ->where('warehouses.is_active', true)
             ->join('products', 'products.id', '=', 'inventories.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->whereIn('warehouses.store_id', $storeIds)
@@ -1135,7 +1135,6 @@ class B2bWorkspaceController extends Controller
             'columns' => ['warehouse', 'sku', 'product', 'quantity', 'reserved', 'available', 'actions'],
             'rows' => $rows,
             'warehouses' => DB::table('warehouses')
-                ->where('id', $principalWarehouseId)
                 ->whereIn('store_id', $storeIds)
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -1162,7 +1161,15 @@ class B2bWorkspaceController extends Controller
 
     private function productModuleData(array $storeIds, User $user): array
     {
-        $warehouseId = $this->principal->warehouseId();
+        $inventoryTotals = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->whereIn('warehouses.store_id', $storeIds)
+            ->where('warehouses.is_active', true)
+            ->selectRaw('inventories.product_id, SUM(inventories.quantity) as quantity, SUM(inventories.reserved_quantity) as reserved_quantity')
+            ->groupBy('inventories.product_id')
+            ->get()
+            ->keyBy('product_id');
+
         $rows = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->leftJoin('store_products', function ($join): void {
@@ -1187,11 +1194,8 @@ class B2bWorkspaceController extends Controller
                 'products.is_active',
                 'store_products.price',
             ])
-            ->map(function ($row) use ($warehouseId): array {
-                $inventory = DB::table('inventories')
-                    ->where('warehouse_id', $warehouseId)
-                    ->where('product_id', $row->product_id)
-                    ->first(['quantity', 'reserved_quantity']);
+            ->map(function ($row) use ($inventoryTotals): array {
+                $inventory = $inventoryTotals->get($row->product_id);
                 $quantity = (float) ($inventory->quantity ?? 0);
                 $reserved = (float) ($inventory->reserved_quantity ?? 0);
 
