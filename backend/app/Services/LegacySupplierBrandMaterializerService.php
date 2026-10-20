@@ -268,7 +268,11 @@ final class LegacySupplierBrandMaterializerService
             ->join('products', 'products.id', '=', 'source.product_id')
             ->where('source.source_system', self::SOURCE_SYSTEM)
             ->where('source.is_primary', true)
-            ->whereColumn('products.brand_id', '<>', 'source.brand_id')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('products.brand_id')
+                    ->orWhereColumn('products.brand_id', '<>', 'source.brand_id');
+            })
             ->count();
 
         $relationsMissingBrand = (int) DB::table('product_supplier_brand_sources as source')
@@ -280,8 +284,11 @@ final class LegacySupplierBrandMaterializerService
         $relationsMissingSupplier = (int) DB::table('product_supplier_brand_sources as source')
             ->leftJoin('enterprise_suppliers', 'enterprise_suppliers.id', '=', 'source.supplier_id')
             ->where('source.source_system', self::SOURCE_SYSTEM)
-            ->whereNotNull('source.supplier_id')
-            ->whereNull('enterprise_suppliers.id')
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('source.supplier_id')
+                    ->orWhereNull('enterprise_suppliers.id');
+            })
             ->count();
 
         $importedProductIds = array_values($productMappings);
@@ -297,10 +304,17 @@ final class LegacySupplierBrandMaterializerService
                 })
                 ->count();
 
-        $healthy = $brandMappings === count($supplierMappings)
+        $sourceSupplierRows = (int) DB::table('legacy_source_archive_tables')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Suppliers')
+            ->value('source_row_count');
+
+        $healthy = count($supplierMappings) === $sourceSupplierRows
+            && $brandMappings === count($supplierMappings)
             && $derivedBrands === count($supplierMappings)
             && $sourceRows === count($relations)
             && $productsWithPrimary === $productsWithHistory
+            && $productsWithoutSupplierHistory === 0
             && $duplicatePrimaryProducts === 0
             && $primaryBrandMismatch === 0
             && $relationsMissingBrand === 0
@@ -309,7 +323,8 @@ final class LegacySupplierBrandMaterializerService
         return [
             'healthy' => $healthy,
             'source' => [
-                'legacy_suppliers' => count($supplierMappings),
+                'legacy_supplier_rows' => $sourceSupplierRows,
+                'legacy_supplier_mappings' => count($supplierMappings),
                 'legacy_products' => count($productMappings),
                 'supplier_product_relations' => count($relations),
                 'products_with_supplier_history' => $productsWithHistory,
