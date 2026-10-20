@@ -408,6 +408,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+      final checkoutScrollable = find.descendant(
+        of: find.byKey(const ValueKey('b2b-checkout-data')),
+        matching: find.byType(Scrollable),
+      );
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: checkoutScrollable,
+      );
       expect(submit, findsOneWidget);
       await tester.ensureVisible(submit);
       await tester.pumpAndSettle();
