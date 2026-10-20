@@ -8,7 +8,7 @@ use App\Models\B2bCustomer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
-use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
@@ -370,12 +370,17 @@ class B2bFinanceController extends Controller
                 ->where('invoice_id', $invoice->getKey())
                 ->orderBy('id')
                 ->get();
-            $productImages = Product::query()
+            $productImages = ProductImage::query()
                 ->whereIn(
-                    'id',
+                    'product_id',
                     $invoiceItems->pluck('product_id')->filter()->unique()->values()->all(),
                 )
-                ->pluck('primary_image_path', 'id');
+                ->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['product_id', 'path'])
+                ->unique('product_id')
+                ->pluck('path', 'product_id');
 
             $payload['items'] = $invoiceItems
                 ->map(function (InvoiceItem $item) use ($invoice, $productImages): array {
