@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enterprise\Organization\OrganizationHierarchyService;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -938,8 +941,7 @@ final class LegacyFoodexImportService
 
             usort(
                 $negativeStores,
-                static fn (array $a, array $b): int =>
-                    $b['negative_positions'] <=> $a['negative_positions'],
+                static fn (array $a, array $b): int => $b['negative_positions'] <=> $a['negative_positions'],
             );
 
             $rebuildPreview = [
@@ -1030,7 +1032,7 @@ final class LegacyFoodexImportService
     }
 
     private function legacyPairDiagnosticsFromRows(
-        \Illuminate\Support\Collection $rows,
+        Collection $rows,
         string $linkField,
         int $typeA,
         int $typeB,
@@ -2516,6 +2518,7 @@ SQL));
 
                     if ((int) ($row->Status ?? 0) !== 1) {
                         $lastDetailId = max($lastDetailId, (int) ($row->DetailId ?? 0));
+
                         continue;
                     }
 
@@ -6358,6 +6361,7 @@ SQL));
 
                     $duplicatePaymentRows++;
                     $duplicatePaymentValue = round($duplicatePaymentValue + $amount, 3);
+
                     continue;
                 }
 
@@ -6366,6 +6370,7 @@ SQL));
                         $ledgerCreditRows++;
                         $ledgerCreditValue = round($ledgerCreditValue + $amount, 3);
                     }
+
                     continue;
                 }
 
@@ -7234,7 +7239,7 @@ SQL));
                 "NULLIF(LTRIM(RTRIM(COALESCE(Address, ''))), '') IS NOT NULL ".
                 "OR NULLIF(LTRIM(RTRIM(COALESCE(Address2, ''))), '') IS NOT NULL ".
                 "OR NULLIF(LTRIM(RTRIM(COALESCE(StreetName, ''))), '') IS NOT NULL ".
-                "OR COALESCE(Latitude, 0) <> 0 OR COALESCE(Longitude, 0) <> 0"
+                'OR COALESCE(Latitude, 0) <> 0 OR COALESCE(Longitude, 0) <> 0'
             )
             ->count();
 
@@ -7339,6 +7344,7 @@ SQL));
             $customerId = $this->mappedTargetId('wh_Customers', (string) $row->ID, 'customers');
             if ($customerId === null) {
                 $skipped++;
+
                 continue;
             }
 
@@ -7352,6 +7358,7 @@ SQL));
 
             if ($line1 === null && $line2 === null && $street === null && ! $hasCoordinates) {
                 $skipped++;
+
                 continue;
             }
 
@@ -7440,11 +7447,11 @@ SQL));
     private function importSuppliers(int $storeId, string $runId): array
     {
         $organizationId = (int) DB::table('enterprise_organizations')
-            ->where('code', \App\Enterprise\Organization\OrganizationHierarchyService::DEFAULT_ORGANIZATION)
+            ->where('code', OrganizationHierarchyService::DEFAULT_ORGANIZATION)
             ->value('id');
         $companyId = (int) DB::table('enterprise_companies')
             ->where('organization_id', $organizationId)
-            ->where('code', \App\Enterprise\Organization\OrganizationHierarchyService::DEFAULT_COMPANY)
+            ->where('code', OrganizationHierarchyService::DEFAULT_COMPANY)
             ->value('id');
 
         if ($organizationId <= 0 || $companyId <= 0) {
@@ -7669,7 +7676,7 @@ SQL));
         return $salesRepReferences === (int) $sourceCounts['wh_SalesReps'];
     }
 
-    private function legacySource(): \Illuminate\Database\Connection
+    private function legacySource(): Connection
     {
         $connection = DB::connection('foodex_legacy');
         $pdo = $connection->getPdo();
@@ -7778,6 +7785,7 @@ SQL));
 
                 if ($productId === null || $unitPrice === null || $unitPrice <= 0) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -8442,6 +8450,7 @@ SQL));
                     $runId,
                 );
                 $quarantined++;
+
                 continue;
             }
 
