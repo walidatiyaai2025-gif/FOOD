@@ -978,7 +978,7 @@ class _WholesaleCategoryGrid extends StatefulWidget {
 }
 
 class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
-  static const double _itemStep = 86;
+  static const double _itemStep = 65;
   static const Duration _slideEvery = Duration(seconds: 3);
   static const Duration _slideDuration = Duration(milliseconds: 500);
 
@@ -1032,14 +1032,14 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
 
     return SizedBox(
       key: const ValueKey('wholesale-home-category-rail'),
-      height: 94,
+      height: 71,
       child: ListView.separated(
         controller: _controller,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, index) {
           final category = categories[index];
           final id = intValue(category['id']);
@@ -1047,7 +1047,7 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
           final imageUrl = category['image_url']?.toString().trim();
           return InkWell(
             key: ValueKey('wholesale-category-$id'),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             onTap: widget.storeId > 0
                 ? () => Navigator.of(context).pushNamed(
                       Uri(
@@ -1061,12 +1061,12 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
                     )
                 : null,
             child: SizedBox(
-              width: 76,
+              width: 57,
               child: Column(
                 children: [
                   Container(
-                    width: 66,
-                    height: 66,
+                    width: 50,
+                    height: 50,
                     clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -1075,8 +1075,8 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
@@ -1087,23 +1087,23 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
                             errorBuilder: (_, __, ___) => Icon(
                               Icons.category_outlined,
                               color: widget.palette.primary,
-                              size: 28,
+                              size: 21,
                             ),
                           )
                         : Icon(
                             Icons.category_outlined,
                             color: widget.palette.primary,
-                            size: 28,
+                            size: 21,
                           ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   Text(
                     name != null && name.isNotEmpty ? name : 'تصنيف $id',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 8.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
