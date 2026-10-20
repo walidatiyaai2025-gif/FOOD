@@ -533,10 +533,7 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  SizedBox(
-                    height:
-                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
-                  ),
+                  const SizedBox(height: CustomerUiSpacing.xs),
                   if (categoryLabel?.trim().isNotEmpty == true) ...[
                     CustomerBadge(
                       label: categoryLabel!,
@@ -555,10 +552,7 @@ class CustomerProductCard extends StatelessWidget {
                           height: 1.15,
                         ),
                   ),
-                  SizedBox(
-                    height:
-                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
-                  ),
+                  const SizedBox(height: CustomerUiSpacing.xs),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
