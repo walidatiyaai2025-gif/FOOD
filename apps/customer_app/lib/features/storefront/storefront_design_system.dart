@@ -722,6 +722,85 @@ class _FoodexAnimatedGoldSectionTitleState
       );
 }
 
+class FoodexAnimatedOxbloodTitle extends StatefulWidget {
+  const FoodexAnimatedOxbloodTitle({
+    required this.title,
+    this.fontSize = 18,
+    this.fontWeight = FontWeight.w900,
+    super.key,
+  });
+
+  final String title;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  @override
+  State<FoodexAnimatedOxbloodTitle> createState() =>
+      _FoodexAnimatedOxbloodTitleState();
+}
+
+class _FoodexAnimatedOxbloodTitleState
+    extends State<FoodexAnimatedOxbloodTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1650),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _controller.value;
+          final wave = math.sin(progress * math.pi * 2);
+          final travel = progress * 2.7;
+
+          return Transform.translate(
+            offset: Offset(0, wave * 1.05),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment(-1.9 + travel, -.75 + wave * .12),
+                end: Alignment(.1 + travel, .8 - wave * .12),
+                colors: const <Color>[
+                  Color(0xFF3D0710),
+                  Color(0xFF65101A),
+                  Color(0xFF8B1E2D),
+                  Color(0xFFC04A58),
+                  Color(0xFF6F0F1D),
+                ],
+                stops: const <double>[0, .22, .48, .72, 1],
+              ).createShader(bounds),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: widget.fontSize,
+                  fontWeight: widget.fontWeight,
+                  letterSpacing: .12,
+                  shadows: const <Shadow>[
+                    Shadow(
+                      color: Color(0x443D0710),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+}
+
 class FoodexProductImage extends StatelessWidget {
   const FoodexProductImage({
     required this.url,
