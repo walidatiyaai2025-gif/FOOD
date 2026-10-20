@@ -7,6 +7,13 @@ import 'package:foodex_customer_app/features/customer_orders/customer_order_mode
 import 'package:foodex_customer_app/features/customer_orders/customer_order_screens.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 
+Finder _verticalScrollable() => find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable &&
+          (widget.axisDirection == AxisDirection.down ||
+              widget.axisDirection == AxisDirection.up),
+    );
+
 void main() {
   testWidgets(
     'order detail refetches authoritative collection state after lifecycle notification',
@@ -73,7 +80,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('customer-collection-receipt-44')),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _verticalScrollable().first,
       );
       await tester.pump();
 
