@@ -10,6 +10,8 @@ final class LegacyImportRehearsalResetService
 {
     public const CONFIRMATION = 'RESET LEGACY IMPORT SCOPE';
 
+    public const VAN_CONFIRMATION = 'RESET LEGACY VAN SCOPE';
+
     /**
      * Explicitly approved rehearsal reset scope.
      *
@@ -28,6 +30,8 @@ final class LegacyImportRehearsalResetService
         'order_dispatch_states',
         'driver_assignments',
         'delivery_proofs',
+        'van_visits',
+        'van_assignments',
         'order_customer_service_assignments',
         'order_status_history',
         'b2b_van_cutover_snapshots',
@@ -74,6 +78,9 @@ final class LegacyImportRehearsalResetService
         'store_products',
         'product_images',
 
+        // Fleet registry explicitly approved for reset.
+        'vans',
+
         // Catalog roots explicitly approved for reset.
         'products',
         'categories',
@@ -98,7 +105,6 @@ final class LegacyImportRehearsalResetService
         'b2b_accounts',
         'addresses',
         'warehouses',
-        'vans',
         'enterprise_suppliers',
         'enterprise_organizations',
         'enterprise_companies',
@@ -132,13 +138,18 @@ final class LegacyImportRehearsalResetService
                 ->count()
             : 0;
 
+        $vanFleetLocationRows = Schema::hasTable('fleet_current_locations')
+            ? (int) DB::table('fleet_current_locations')->where('actor_type', 'van')->count()
+            : 0;
+
         $blockedReferences = $this->blockedReferences(array_keys($counts));
 
         return [
             'counts' => $counts,
             'linked_sales_ledger_rows' => $linkedLedgerRows,
             'driver_location_assignment_links_to_clear' => $driverLocationLinks,
-            'total' => array_sum($counts) + $linkedLedgerRows,
+            'van_fleet_location_rows' => $vanFleetLocationRows,
+            'total' => array_sum($counts) + $linkedLedgerRows + $vanFleetLocationRows,
             'protected_counts' => $this->protectedCounts(),
             'legacy_mapping_rows' => $trackingRows,
             'blocked_references' => $blockedReferences,
@@ -174,6 +185,15 @@ final class LegacyImportRehearsalResetService
         $beforeProtected = $preview['protected_counts'];
 
         return DB::transaction(function () use ($preview, $beforeProtected): array {
+            if (
+                Schema::hasTable('fleet_current_locations')
+                && (int) ($preview['van_fleet_location_rows'] ?? 0) > 0
+            ) {
+                DB::table('fleet_current_locations')
+                    ->where('actor_type', 'van')
+                    ->delete();
+            }
+
             if (
                 Schema::hasTable('driver_current_locations')
                 && Schema::hasColumn('driver_current_locations', 'active_assignment_id')
@@ -216,6 +236,132 @@ final class LegacyImportRehearsalResetService
             return [
                 'removed' => $preview['total'],
                 'removed_by_table' => $preview['counts'],
+                'protected_counts_before' => $beforeProtected,
+                'protected_counts_after' => $afterProtected,
+            ];
+        }, 3);
+    }
+
+    public function previewVanScope(): array
+    {
+        $tables = [
+            'order_van_execution_events',
+            'order_van_execution_states',
+            'order_van_assignments',
+            'driver_assignments',
+            'delivery_proofs',
+            'van_visits',
+            'van_assignments',
+            'vans',
+        ];
+
+        $counts = [];
+        foreach ($tables as $table) {
+            if (Schema::hasTable($table)) {
+                $counts[$table] = (int) DB::table($table)->count();
+            }
+        }
+
+        $driverLocationLinks = Schema::hasTable('driver_current_locations')
+            && Schema::hasColumn('driver_current_locations', 'active_assignment_id')
+            ? (int) DB::table('driver_current_locations')->whereNotNull('active_assignment_id')->count()
+            : 0;
+
+        $vanIds = Schema::hasTable('vans') ? DB::table('vans')->pluck('id') : collect();
+        $assignmentIds = Schema::hasTable('van_assignments') ? DB::table('van_assignments')->pluck('id') : collect();
+
+        $fleetRows = 0;
+        if (Schema::hasTable('fleet_current_locations')) {
+            $fleetQuery = DB::table('fleet_current_locations')->where('actor_type', 'van');
+
+            if ($vanIds->isNotEmpty()) {
+                $fleetQuery->orWhereIn('vehicle_id', $vanIds->all());
+            }
+
+            if ($assignmentIds->isNotEmpty()) {
+                $fleetQuery->orWhereIn('assignment_id', $assignmentIds->all());
+            }
+
+            $fleetRows = (int) $fleetQuery->count();
+        }
+
+        $blocked = $this->blockedReferences(array_keys($counts));
+
+        return [
+            'counts' => $counts,
+            'driver_location_assignment_links_to_clear' => $driverLocationLinks,
+            'fleet_location_rows' => $fleetRows,
+            'blocked_references' => $blocked,
+            'protected_counts' => $this->protectedCounts(),
+            'ready' => $blocked === [],
+        ];
+    }
+
+    public function executeVanScope(string $confirmation): array
+    {
+        if (! hash_equals(self::VAN_CONFIRMATION, $confirmation)) {
+            throw new RuntimeException('Confirmation mismatch. Expected: '.self::VAN_CONFIRMATION);
+        }
+
+        if (app()->environment('production')) {
+            throw new RuntimeException('Legacy van rehearsal reset is disabled in production.');
+        }
+
+        $preview = $this->previewVanScope();
+        if (! $preview['ready']) {
+            throw new RuntimeException(
+                'Van scoped reset blocked: '.
+                json_encode($preview['blocked_references'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+
+        $beforeProtected = $preview['protected_counts'];
+
+        return DB::transaction(function () use ($preview, $beforeProtected): array {
+            $vanIds = Schema::hasTable('vans') ? DB::table('vans')->pluck('id') : collect();
+            $assignmentIds = Schema::hasTable('van_assignments') ? DB::table('van_assignments')->pluck('id') : collect();
+
+            if (
+                Schema::hasTable('driver_current_locations')
+                && Schema::hasColumn('driver_current_locations', 'active_assignment_id')
+            ) {
+                DB::table('driver_current_locations')
+                    ->whereNotNull('active_assignment_id')
+                    ->update([
+                        'active_assignment_id' => null,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            if (Schema::hasTable('fleet_current_locations')) {
+                DB::table('fleet_current_locations')
+                    ->where(function ($query) use ($vanIds, $assignmentIds): void {
+                        $query->where('actor_type', 'van');
+
+                        if ($vanIds->isNotEmpty()) {
+                            $query->orWhereIn('vehicle_id', $vanIds->all());
+                        }
+
+                        if ($assignmentIds->isNotEmpty()) {
+                            $query->orWhereIn('assignment_id', $assignmentIds->all());
+                        }
+                    })
+                    ->delete();
+            }
+
+            foreach ($this->deletionOrder(array_keys($preview['counts'])) as $table) {
+                DB::table($table)->delete();
+            }
+
+            $afterProtected = $this->protectedCounts();
+            if ($afterProtected !== $beforeProtected) {
+                throw new RuntimeException('Protected data changed during van reset. Transaction rolled back.');
+            }
+
+            return [
+                'removed_by_table' => $preview['counts'],
+                'fleet_location_rows_removed' => $preview['fleet_location_rows'],
+                'driver_location_assignment_links_cleared' => $preview['driver_location_assignment_links_to_clear'],
                 'protected_counts_before' => $beforeProtected,
                 'protected_counts_after' => $afterProtected,
             ];
