@@ -1015,7 +1015,7 @@ class _CategoryRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 104,
+        height: 94,
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           scrollDirection: Axis.horizontal,
