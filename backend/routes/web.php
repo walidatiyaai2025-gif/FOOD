@@ -736,6 +736,7 @@ Route::prefix('admin')
         Route::post('/catalog/products', [CatalogManagementController::class, 'storeProduct'])->name('catalog.products.store');
         Route::patch('/catalog/products/{product}', [CatalogManagementController::class, 'updateProduct'])->name('catalog.products.update');
         Route::patch('/catalog/products/{product}/grid-image', [CatalogManagementController::class, 'replaceProductGridImage'])->whereNumber('product')->name('catalog.products.grid-image');
+        Route::patch('/catalog/products/{product}/price', [CatalogManagementController::class, 'updateProductPrice'])->whereNumber('product')->name('catalog.products.price');
         Route::patch('/catalog/products/{product}/status', [CatalogManagementController::class, 'toggleProductStatus'])->name('catalog.products.status');
         Route::patch('/catalog/products/{product}/images/{image}', [CatalogManagementController::class, 'updateProductImage'])->name('catalog.products.images.update');
         Route::delete('/catalog/products/{product}/images/{image}', [CatalogManagementController::class, 'destroyProductImage'])->name('catalog.products.images.destroy');
