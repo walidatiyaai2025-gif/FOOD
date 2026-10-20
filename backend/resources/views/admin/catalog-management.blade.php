@@ -17,6 +17,10 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 .tabs,.actions{display:flex;flex-wrap:wrap;gap:8px}.tabs{margin-bottom:16px}
 .tabs a,.btn{border:1px solid var(--foodex-border);background:var(--foodex-surface);color:var(--foodex-ink);border-radius:10px;padding:9px 13px;text-decoration:none;font:inherit;cursor:pointer}
 .tabs a.active,.btn.primary{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green)}
+.catalog-tabs-row{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;margin-bottom:16px}
+.catalog-tabs-row .tabs{direction:rtl;margin-bottom:0;min-width:0}
+html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr}
+.catalog-tabs-add{white-space:nowrap}
 .btn.danger{color:var(--foodex-danger-text)}
 .grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px}
 .card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:16px;box-shadow:var(--foodex-shadow-sm)}
@@ -93,6 +97,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="header foodex-page-toolbar"><div><h1>{{ app()->getLocale()==='ar'?($canManageStores?'إدارة الكتالوج والمتاجر':'إدارة الكتالوج'):($canManageStores?'Catalog & Store Management':'Catalog Management') }}</h1><div class="muted">{{ app()->getLocale()==='ar'?($canManageStores?'إدارة المنتجات والتصنيفات والمتاجر من نطاق المنصة.':'إدارة منتجات وتصنيفات المتجر المصرح فقط.') : ($canManageStores?'Manage catalog and store configuration from the platform control plane.':'Manage products and categories only for the authorized store.') }}</div></div></div>
 @if(session('status'))<div class="notice ok">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice err">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="catalog-tabs-row">
 <nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">
 @foreach(['overview','products','categories','attributes','import'] as $catalogTab)
 <a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ __('catalog_completion.tabs.'.$catalogTab) }}</a>
@@ -103,14 +108,17 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <a href="{{ route('admin.lookups.index', $scopeParams) }}">{{ app()->getLocale()==='ar'?'العلامات والوحدات':'Brands & Units' }}</a>
 @if($inventoryUrl)<a href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a>@endif
 </nav>
+@if($tab==='products')
+<button type="button" class="btn primary catalog-tabs-add" data-dialog-open="catalog-add-product">＋ {{ app()->getLocale()==='ar'?'إضافة منتج':'Add Product' }}</button>
+@endif
+</div>
 
 @if($tab==='products')
 <div class="catalog-products-shell">
 <div class="catalog-toolbar">
-<div class="catalog-toolbar-group">
-<button type="button" class="btn primary" data-dialog-open="catalog-add-product">＋ {{ app()->getLocale()==='ar'?'إضافة منتج':'Add Product' }}</button>
-@if($inventoryUrl)<a class="btn" href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a>@endif
-</div>
+@if($inventoryUrl)
+<div class="catalog-toolbar-group"><a class="btn" href="{{ $inventoryUrl }}">{{ app()->getLocale()==='ar'?'إدارة المخزون':'Inventory Management' }}</a></div>
+@endif
 <div class="catalog-toolbar-group">
 <span class="catalog-count">{{ $products->total() }} {{ app()->getLocale()==='ar'?'منتج':'products' }}</span>
 </div>
