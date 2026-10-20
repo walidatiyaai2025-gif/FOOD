@@ -11,6 +11,7 @@ use App\Services\LegacyVanInventoryHistoryMaterializerService;
 use App\Services\LegacySupplierBrandMaterializerService;
 use App\Services\LegacyFinanceAccountMaterializerService;
 use App\Services\LegacyFinanceCostCenterMaterializerService;
+use App\Services\LegacyFinanceAssetProfilerService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -1376,6 +1377,97 @@ Artisan::command(
 )->purpose('Verify one-to-one native chart-of-accounts coverage and parent integrity for the legacy GL master.');
 
 Artisan::command(
+    'foodex:legacy-finance-assets-profile {--json : Output JSON}',
+    function (LegacyFinanceAssetProfilerService $profiler): int {
+        try {
+            $profile = $profiler->profile();
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset profiling failed: '.$exception->getMessage());
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return 0;
+        }
+
+        $this->info('Legacy fixed-asset source profile');
+        $this->table(
+            ['Metric', 'Value'],
+            [
+                ['Source table', $profile['source_table']],
+                ['Source rows', $profile['source_rows']],
+                ['Resolved ID', $profile['resolved_fields']['id'] ?? '—'],
+                ['Resolved code', $profile['resolved_fields']['code'] ?? '—'],
+                ['Resolved name', $profile['resolved_fields']['name'] ?? '—'],
+                ['Resolved category', $profile['resolved_fields']['category_id'] ?? '—'],
+                ['Resolved depreciation ID', $profile['resolved_fields']['depreciation_id'] ?? '—'],
+                ['Resolved acquisition date', $profile['resolved_fields']['acquisition_date'] ?? '—'],
+                ['Resolved capitalization date', $profile['resolved_fields']['capitalization_date'] ?? '—'],
+                ['Resolved acquisition amount', $profile['resolved_fields']['acquisition_amount'] ?? '—'],
+                ['Resolved salvage value', $profile['resolved_fields']['salvage_value'] ?? '—'],
+                ['Resolved useful-life months', $profile['resolved_fields']['useful_life_months'] ?? '—'],
+                ['Resolved useful-life years', $profile['resolved_fields']['useful_life_years'] ?? '—'],
+                ['Resolved depreciation rate', $profile['resolved_fields']['depreciation_rate'] ?? '—'],
+                ['Resolved asset account', $profile['resolved_fields']['asset_account_id'] ?? '—'],
+                ['Resolved accumulated dep. account', $profile['resolved_fields']['accumulated_depreciation_account_id'] ?? '—'],
+                ['Resolved dep. expense account', $profile['resolved_fields']['depreciation_expense_account_id'] ?? '—'],
+                ['Resolved offset account', $profile['resolved_fields']['offset_account_id'] ?? '—'],
+                ['Resolved cost center', $profile['resolved_fields']['cost_center_id'] ?? '—'],
+                ['Resolved status', $profile['resolved_fields']['status'] ?? '—'],
+            ],
+        );
+
+        $this->line('');
+        $this->info('Source gl_Assets columns');
+        foreach (array_chunk($profile['columns'], 6) as $chunk) {
+            $this->line('  '.implode(' | ', $chunk));
+        }
+
+        $this->line('');
+        $this->info('Resolved-field completeness');
+        $this->table(
+            ['Field', 'Column', 'Non-null rows'],
+            collect($profile['completeness'])->map(static fn (array $row, string $field): array => [
+                $field,
+                $row['column'] ?? '—',
+                $row['non_null_rows'],
+            ])->values()->all(),
+        );
+
+        foreach ($profile['distributions'] as $field => $rows) {
+            if ($rows === []) {
+                continue;
+            }
+            $this->line('');
+            $this->info($field.' distribution');
+            $this->table(
+                ['Value', 'Rows'],
+                collect($rows)->map(static fn (array $row): array => [
+                    is_scalar($row['value']) ? (string) $row['value'] : json_encode($row['value']),
+                    $row['count'],
+                ])->all(),
+            );
+        }
+
+        if ($profile['samples'] !== []) {
+            $this->line('');
+            $this->info('First fixed-asset source samples');
+            foreach ($profile['samples'] as $index => $row) {
+                $this->line(sprintf(
+                    '#%d %s',
+                    $index + 1,
+                    json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ));
+            }
+        }
+
+        $this->warn('PROFILE ONLY: no fixed-asset target rows were written.');
+        return 0;
+    },
+)->purpose('Profile legacy fixed-asset source semantics before enabling native asset materialization.');
+
+Artisan::command(
     'foodex:legacy-finance-cost-centers {--apply : Materialize legacy cost centers into native enterprise cost centers} {--json : Output JSON}',
     function (LegacyFinanceCostCenterMaterializerService $materializer): int {
         try {
@@ -1417,6 +1509,12 @@ Artisan::command(
         );
 
         if (! (bool) $this->option('apply')) {
+            $this->line('');
+            $this->info('Source cost-center columns');
+            foreach (array_chunk($profile['columns'], 6) as $chunk) {
+                $this->line('  '.implode(' | ', $chunk));
+            }
+
             if ($profile['status_values'] !== []) {
                 $this->line('');
                 $this->info('Source cost-center status values');
