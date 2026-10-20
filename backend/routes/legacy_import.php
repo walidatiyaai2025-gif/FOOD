@@ -1171,6 +1171,8 @@ Artisan::command(
                 ...((bool) $this->option('apply') ? [
                     ['Header mappings', $result['target']['header_mappings']],
                     ['Detail mappings', $result['target']['detail_mappings']],
+                    ['Headers without legacy ID', $result['target']['headers_without_legacy_id']],
+                    ['Duplicate legacy header IDs', $result['target']['duplicate_legacy_header_ids']],
                     ['Documents with car identifier', $result['target']['documents_with_car_identifier']],
                     ['Documents linked to vans', $result['target']['documents_linked_to_van']],
                     ['Source-car unmapped documents', $result['target']['source_car_unmapped_documents']],
@@ -1225,6 +1227,8 @@ Artisan::command(
                 ['Source headers', $result['source']['headers']],
                 ['Native headers', $result['target']['headers']],
                 ['Header mappings', $result['target']['header_mappings']],
+                ['Headers without legacy ID', $result['target']['headers_without_legacy_id']],
+                ['Duplicate legacy header IDs', $result['target']['duplicate_legacy_header_ids']],
                 ['Source details', $result['source']['details']],
                 ['Native details', $result['target']['details']],
                 ['Detail mappings', $result['target']['detail_mappings']],
