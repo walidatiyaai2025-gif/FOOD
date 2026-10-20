@@ -28,6 +28,12 @@ fi
 flutter create --platforms=android .
 
 cp "$TMP/google-services.json" "$ANDROID/app/google-services.json"
+
+# Apply the repository's canonical Android identity/Firebase/desugaring setup.
+python3 "$ROOT/scripts/configure-mobile-native.py" \
+  --app customer \
+  --app-dir "$APP" \
+  --platform android
 if [[ -f "$TMP/release-manifest.xml" ]]; then
   mkdir -p "$ANDROID/app/src/release"
   cp "$TMP/release-manifest.xml" "$ANDROID/app/src/release/AndroidManifest.xml"
@@ -125,7 +131,7 @@ PY
 flutter pub get
 
 cd android
-./gradlew :app:processReleaseGoogleServices
+./gradlew :app:processReleaseGoogleServices :app:checkReleaseAarMetadata
 
 echo
 echo "ANDROID/FIREBASE PREFLIGHT PASSED"
