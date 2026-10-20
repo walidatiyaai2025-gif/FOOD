@@ -1677,11 +1677,11 @@ void main() {
           submit,
           300,
           scrollable: find
-              .descendant(
-                of: find.byKey(const ValueKey('b2b-checkout-data')),
-                matching: find.byType(Scrollable),
-              )
-              .first,
+            .descendant(
+              of: find.byKey(const ValueKey('b2b-checkout-data')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
         );
         expect(submit, findsOneWidget);
         await tester.tap(submit);
@@ -1761,11 +1761,11 @@ void main() {
         find.text('تأكيد الطلب'),
         300,
         scrollable: find
-              .descendant(
-                of: find.byKey(const ValueKey('b2b-checkout-data')),
-                matching: find.byType(Scrollable),
-              )
-              .first,
+          .descendant(
+            of: find.byKey(const ValueKey('b2b-checkout-data')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
       await _pumpCustomerFrames(tester);
