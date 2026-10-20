@@ -133,8 +133,8 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
                 final offset = (rawOffset * devicePixelRatio).round() /
                     devicePixelRatio;
 
-                // Position the full line at its logical START edge first:
-                // Arabic starts at the right edge, English at the left edge.
+                // Start from the opposite visible edge:
+                // Arabic starts from the left side, English from the right side.
                 // The movement only begins after the initial 1.8s hold.
                 return Stack(
                   clipBehavior: Clip.hardEdge,
@@ -142,8 +142,8 @@ class _CustomerGentleMarqueeState extends State<CustomerGentleMarquee>
                     Positioned(
                       top: 0,
                       bottom: 0,
-                      left: direction == TextDirection.ltr ? -offset : null,
-                      right: direction == TextDirection.rtl ? -offset : null,
+                      left: direction == TextDirection.rtl ? -offset : null,
+                      right: direction == TextDirection.ltr ? -offset : null,
                       child: RepaintBoundary(
                         child: SizedBox(
                           width: textWidth,
