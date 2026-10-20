@@ -153,7 +153,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         body: FutureBuilder<_RetailHomeV3Data>(
           future: _future,
           builder: (context, snapshot) {
-            final data = snapshot.data;
             return FoodexUnifiedHeaderSurface(
               title: context.tr('customer.home.title'),
               palette: FoodexPalette.grocery,
