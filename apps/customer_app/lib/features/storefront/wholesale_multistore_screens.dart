@@ -519,6 +519,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       address: branding['address']?.toString(),
                       palette: palette,
                       searchController: search,
+                      searchKey: const ValueKey('wholesale-home-search'),
                       searchHint: context.tr(
                         'customer.products.search_name_sku_barcode',
                       ),
@@ -4387,6 +4388,13 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
+            leading: IconButton(
+              key: const ValueKey('b2b-cart-back'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const BackButtonIcon(),
+              color: Colors.white,
+            ),
             child: FutureBuilder<Object?>(
               future: future,
               builder: (context, snapshot) {
@@ -4419,6 +4427,16 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
+                    Text(
+                      context.tr('b2b.cart.title'),
+                      key: const ValueKey('b2b-cart-content-title'),
+                      style: const TextStyle(
+                        color: Color(0xFF10233F),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     if (rows.isNotEmpty && widget.commerceApi != null)
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
@@ -5635,6 +5653,25 @@ class _WholesaleOrdersDesignScreenState
     }
   }
 
+  void _goBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    final commerceContext = CustomerCommerceContext.tryParseLocation(
+      widget.location,
+    );
+    final dashboardRoute = commerceContext?.isWholesale == true
+        ? Uri(
+            path: CustomerRoutePaths.b2bDashboard,
+            queryParameters: commerceContext!.toQueryParameters(),
+          ).toString()
+        : CustomerRoutePaths.b2bDashboard;
+    navigator.pushReplacementNamed(dashboardRoute);
+  }
+
   int _orderStoreId(Map<String, dynamic> order) {
     final nestedStore = order['store'];
     final fromRow = intValue(
@@ -5992,6 +6029,14 @@ class _WholesaleOrdersDesignScreenState
                             FoodexWholesaleHeader(
                               title: context.tr('b2b.app.title'),
                               palette: FoodexPalette.wholesale,
+                              leading: IconButton(
+                                key: const ValueKey('b2b-orders-back'),
+                                tooltip: MaterialLocalizations.of(context)
+                                    .backButtonTooltip,
+                                onPressed: _goBack,
+                                icon: const BackButtonIcon(),
+                                color: Colors.white,
+                              ),
                               searchHint: context.tr(
                                 'customer.products.search_name_sku_barcode',
                               ),
@@ -6137,8 +6182,31 @@ class _WholesaleOrderDetailsDesignScreenState
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
+            leading: IconButton(
+              key: const ValueKey('b2b-order-back'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () =>
+                  Navigator.of(context).pushReplacementNamed('/b2b/orders'),
+              icon: const BackButtonIcon(),
+              color: Colors.white,
+            ),
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      context.tr('b2b.order.title'),
+                      key: const ValueKey('b2b-order-content-title'),
+                      style: const TextStyle(
+                        color: Color(0xFF10233F),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
                 Align(
                   alignment: AlignmentDirectional.centerEnd,
                   child: IconButton(
