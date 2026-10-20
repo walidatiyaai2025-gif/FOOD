@@ -36,6 +36,10 @@ try {
         php -l app\Services\LegacyCanonicalCoverageService.php
     }
 
+    Run-Step 'PHP syntax - Van native history' {
+        php -l app\Services\LegacyVanInventoryHistoryMaterializerService.php
+    }
+
     Run-Step 'PHP syntax - legacy routes' {
         php -l routes\legacy_import.php
     }
@@ -50,6 +54,18 @@ try {
 
     Run-Step 'Verify full SQL archive before business materialization' {
         php artisan foodex:legacy-archive-verify
+    }
+
+    Run-Step 'Native Van history dry-run' {
+        php artisan foodex:legacy-van-history
+    }
+
+    Run-Step 'Native Van history apply' {
+        php artisan foodex:legacy-van-history --apply
+    }
+
+    Run-Step 'Native Van history verify' {
+        php artisan foodex:legacy-van-history-verify
     }
 
     Run-Step 'Business-impact materialization dry-run' {
