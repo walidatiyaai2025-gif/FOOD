@@ -24,8 +24,7 @@ final class LegacyDatabaseOneShotService
         bool $resetApprovedScope = false,
         ?string $resetConfirmation = null,
         ?callable $progress = null,
-    ): array
-    {
+    ): array {
         $this->progress($progress, 'preflight', 'start');
         $preflight = $this->importer->preflight();
         $this->progress($progress, 'preflight', 'done');
