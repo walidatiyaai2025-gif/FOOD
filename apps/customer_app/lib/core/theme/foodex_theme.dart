@@ -426,5 +426,4 @@ abstract final class FoodexTheme {
       ),
     );
   }
-
 }
