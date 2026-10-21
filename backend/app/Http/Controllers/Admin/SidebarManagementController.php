@@ -27,7 +27,7 @@ final class SidebarManagementController extends Controller
             ->orderBy('code')
             ->get();
 
-        $selectedId = (int) $request->query('role_id', (int) ($roles->first()?->id ?? 0));
+        $selectedId = (int) $request->query('role_id', (int) ($roles->first()->id ?? 0));
         $selectedRole = $roles->firstWhere('id', $selectedId) ?? $roles->first();
 
         abort_if($selectedRole === null, 404);
@@ -180,7 +180,7 @@ final class SidebarManagementController extends Controller
 
     private function useActorLocale(Request $request): void
     {
-        $locale = (string) ($request->user()?->locale ?? 'ar');
+        $locale = (string) ($request->user()->locale ?? 'ar');
         App::setLocale(in_array($locale, ['ar', 'en'], true) ? $locale : 'ar');
     }
 }
