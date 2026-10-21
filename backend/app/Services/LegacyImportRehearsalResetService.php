@@ -51,6 +51,20 @@ final class LegacyImportRehearsalResetService
         'collection_allocations',
         'collection_transactions',
 
+        // Imported legacy structured history that is safe to rebuild from SQL Server.
+        'legacy_finance_transactions',
+        'legacy_bank_transactions',
+        'legacy_operational_document_lines',
+        'legacy_operational_documents',
+        'legacy_procurement_document_lines',
+        'legacy_procurement_documents',
+        'legacy_fixed_asset_records',
+
+        // Additional imported catalog/fleet history dependents discovered after rehearsal imports.
+        'product_supplier_brand_sources',
+        'van_inventory_history_lines',
+        'van_inventory_history_documents',
+
         // Sales transaction scope explicitly approved for reset.
         'payments',
         'invoice_items',
@@ -119,8 +133,11 @@ final class LegacyImportRehearsalResetService
             }
         }
 
+        $mappingTargetTables = $this->mappingTargetTables(array_keys($counts));
         $trackingRows = Schema::hasTable('legacy_import_mappings')
-            ? (int) DB::table('legacy_import_mappings')->count()
+            ? (int) DB::table('legacy_import_mappings')
+                ->whereIn('target_table', $mappingTargetTables)
+                ->count()
             : 0;
 
         $linkedLedgerRows = Schema::hasTable('customer_account_ledger_entries')
@@ -151,9 +168,10 @@ final class LegacyImportRehearsalResetService
             'van_fleet_location_rows' => $vanFleetLocationRows,
             'total' => array_sum($counts) + $linkedLedgerRows + $vanFleetLocationRows,
             'protected_counts' => $this->protectedCounts(),
-            'legacy_mapping_rows' => $trackingRows,
+            'legacy_mapping_rows_to_remove' => $trackingRows,
+            'legacy_mapping_target_tables' => $mappingTargetTables,
             'blocked_references' => $blockedReferences,
-            'ready' => $trackingRows === 0 && $blockedReferences === [],
+            'ready' => $blockedReferences === [],
         ];
     }
 
@@ -176,7 +194,7 @@ final class LegacyImportRehearsalResetService
             throw new RuntimeException(
                 'Scoped reset blocked: '.
                 json_encode([
-                    'legacy_mapping_rows' => $preview['legacy_mapping_rows'],
+                    'legacy_mapping_rows_to_remove' => $preview['legacy_mapping_rows_to_remove'],
                     'blocked_references' => $preview['blocked_references'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             );
@@ -207,6 +225,8 @@ final class LegacyImportRehearsalResetService
                     ]);
             }
 
+            $mappedLedgerRowsRemoved = $this->deleteMappedTargetRows('customer_account_ledger_entries');
+
             if (
                 Schema::hasTable('customer_account_ledger_entries')
                 && (int) ($preview['linked_sales_ledger_rows'] ?? 0) > 0
@@ -215,6 +235,13 @@ final class LegacyImportRehearsalResetService
                     ->where(function ($query): void {
                         $query->whereNotNull('order_id')->orWhereNotNull('invoice_id');
                     })
+                    ->delete();
+            }
+
+            $mappingRowsRemoved = 0;
+            if (Schema::hasTable('legacy_import_mappings')) {
+                $mappingRowsRemoved = (int) DB::table('legacy_import_mappings')
+                    ->whereIn('target_table', $preview['legacy_mapping_target_tables'])
                     ->delete();
             }
 
@@ -236,6 +263,8 @@ final class LegacyImportRehearsalResetService
             return [
                 'removed' => $preview['total'],
                 'removed_by_table' => $preview['counts'],
+                'legacy_mapping_rows_removed' => $mappingRowsRemoved,
+                'mapped_customer_ledger_rows_removed' => $mappedLedgerRowsRemoved,
                 'protected_counts_before' => $beforeProtected,
                 'protected_counts_after' => $afterProtected,
             ];
@@ -366,6 +395,41 @@ final class LegacyImportRehearsalResetService
                 'protected_counts_after' => $afterProtected,
             ];
         }, 3);
+    }
+
+    private function mappingTargetTables(array $resetTables): array
+    {
+        return array_values(array_unique([
+            ...$resetTables,
+            'customer_account_ledger_entries',
+        ]));
+    }
+
+    private function deleteMappedTargetRows(string $targetTable): int
+    {
+        if (! Schema::hasTable($targetTable) || ! Schema::hasTable('legacy_import_mappings')) {
+            return 0;
+        }
+
+        $targetIds = DB::table('legacy_import_mappings')
+            ->where('source_system', 'foodex_sqlserver')
+            ->where('target_table', $targetTable)
+            ->pluck('target_id')
+            ->filter(static fn ($id): bool => is_numeric($id))
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($targetIds->isEmpty()) {
+            return 0;
+        }
+
+        $removed = 0;
+        foreach ($targetIds->chunk(1000) as $ids) {
+            $removed += (int) DB::table($targetTable)->whereIn('id', $ids->all())->delete();
+        }
+
+        return $removed;
     }
 
     private function protectedCounts(): array
