@@ -134,7 +134,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     overlay.insert(entry);
 
     await completed.future.timeout(
-      const Duration(seconds: 5),
+      const Duration(seconds: 7),
       onTimeout: () {
         finish();
       },
@@ -656,7 +656,7 @@ class _WholesaleFirstHomeVehicleIntroState
     super.initState();
     controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3400),
+      duration: const Duration(milliseconds: 4800),
     )
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) _finish();
@@ -694,31 +694,33 @@ class _WholesaleFirstHomeVehicleIntroState
               final rtl = Directionality.of(context) == TextDirection.rtl;
               final t = controller.value;
               final drive = Curves.easeInOutCubic.transform(
-                ((t - .04) / .86).clamp(0.0, 1.0).toDouble(),
+                ((t - .10) / .80).clamp(0.0, 1.0).toDouble(),
+              );
+              final zoomOut = Curves.easeOutCubic.transform(
+                ((t - .02) / .86).clamp(0.0, 1.0).toDouble(),
               );
               final fadeIn = Curves.easeOut.transform(
-                (t / .14).clamp(0.0, 1.0).toDouble(),
+                (t / .16).clamp(0.0, 1.0).toDouble(),
               );
               final fadeOut = Curves.easeIn.transform(
-                ((t - .82) / .18).clamp(0.0, 1.0).toDouble(),
+                ((t - .84) / .16).clamp(0.0, 1.0).toDouble(),
               );
               final opacity =
                   (fadeIn * (1 - fadeOut)).clamp(0.0, 1.0).toDouble();
 
-              final startX = rtl ? size.width + 190.0 : -190.0;
-              final endX = rtl ? -190.0 : size.width + 190.0;
-              final x = ui.lerpDouble(startX, endX, drive) ?? startX;
-              final perspective = .82 +
-                  math
-                          .sin(drive * math.pi)
-                          .clamp(0.0, 1.0)
-                          .toDouble() *
-                      .2;
-              final y = size.height * .46 -
-                  math.sin(drive * math.pi) * 24 +
-                  math.sin(t * math.pi * 8) * 2.2;
-              final tilt = math.sin(t * math.pi * 5) * .014;
-              final wheelTurn = drive * math.pi * 15;
+              // Start large from the middle of Home, then move away while
+              // continuously zooming out for a stronger pseudo-3D exit.
+              final centerX = (size.width - 190.0) / 2;
+              final exitX = rtl ? -210.0 : size.width + 210.0;
+              final x = ui.lerpDouble(centerX, exitX, drive) ?? centerX;
+              final scale =
+                  ui.lerpDouble(1.48, .62, zoomOut) ?? 1.48;
+              final startY = size.height * .43 - 54;
+              final y = startY -
+                  (drive * 34) +
+                  math.sin(t * math.pi * 7) * 1.6;
+              final tilt = math.sin(t * math.pi * 4) * .010;
+              final wheelTurn = drive * math.pi * 18;
 
               return Opacity(
                 opacity: opacity,
@@ -744,7 +746,7 @@ class _WholesaleFirstHomeVehicleIntroState
                       child: Transform.rotate(
                         angle: tilt,
                         child: Transform.scale(
-                          scale: perspective,
+                          scale: scale,
                           child: CustomPaint(
                             key: const ValueKey(
                               'wholesale-first-home-vehicle-intro',
