@@ -4776,7 +4776,7 @@ class _WholesaleProductDetailsDesignScreenState
                               ? ''
                               : ' · ' + row['pack_label'].toString()),
                       style: const TextStyle(
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -4893,7 +4893,7 @@ class _WholesaleProductDetailsDesignScreenState
                       key: const ValueKey('b2b-product-stock-auto-refresh'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -4925,7 +4925,7 @@ class _WholesaleProductDetailsDesignScreenState
                               ? description
                               : context.tr('b2b.product.no_description'),
                           style: const TextStyle(
-                            color: Color(0xFF6B7785),
+                            color: CustomerUiColors.wholesaleSecondaryText,
                             fontSize: 13,
                             height: 1.55,
                           ),
@@ -5209,7 +5209,7 @@ class _PricingPanel extends StatelessWidget {
                     ': ' +
                     money(row['retail_reference_price'], currency: currency),
                 style: const TextStyle(
-                  color: Color(0xFF6B7785),
+                  color: CustomerUiColors.wholesaleSecondaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -5707,7 +5707,7 @@ class _CartLine extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 10,
-                      color: Color(0xFF6B7785),
+                      color: CustomerUiColors.wholesaleSecondaryText,
                     ),
                   ),
                 const SizedBox(height: 7),
@@ -5804,7 +5804,7 @@ class _CartTotalPanel extends StatelessWidget {
         Text(
           context.tr('b2b.cart.revalidation'),
           style: const TextStyle(
-            color: Color(0xFF6B7785),
+            color: CustomerUiColors.wholesaleSecondaryText,
             fontSize: 10,
             height: 1.35,
           ),
@@ -6627,7 +6627,7 @@ class _CheckoutReviewCard extends StatelessWidget {
                       row.$1,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                       ),
                     ),
                   ),
@@ -6721,7 +6721,7 @@ class _CheckoutSummary extends StatelessWidget {
                       '× ' + (item['quantity']?.toString() ?? '1'),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -6772,7 +6772,7 @@ class _CheckoutSummary extends StatelessWidget {
             style: const TextStyle(
               fontSize: 10,
               height: 1.4,
-              color: Color(0xFF6B7785),
+              color: CustomerUiColors.wholesaleSecondaryText,
             ),
           ),
         ],
@@ -6851,7 +6851,7 @@ class _SelectCard extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: selected ? CustomerUiColors.wholesalePositiveValue : const Color(0xFFE4E0E7),
+                  color: selected ? CustomerUiColors.wholesalePositiveValue : CustomerUiColors.wholesaleSelectionIdle,
                   width: selected ? 1.6 : 1,
                 ),
               ),
@@ -6861,7 +6861,7 @@ class _SelectCard extends StatelessWidget {
                     selected
                         ? Icons.radio_button_checked
                         : Icons.radio_button_off,
-                    color: selected ? CustomerUiColors.wholesalePositiveValue : Color(0xFF6B7785),
+                    color: selected ? CustomerUiColors.wholesalePositiveValue : CustomerUiColors.wholesaleSecondaryText,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -6876,7 +6876,7 @@ class _SelectCard extends StatelessWidget {
                         Text(
                           subtitle,
                           style: const TextStyle(
-                            color: Color(0xFF6B7785),
+                            color: CustomerUiColors.wholesaleSecondaryText,
                             fontSize: 11,
                           ),
                         ),
@@ -8164,7 +8164,7 @@ class _OrderLineCard extends StatelessWidget {
             child: Text(
               '${context.tr('b2b.order.quantity')}: $quantity',
               style: const TextStyle(
-                color: Color(0xFF6B7785),
+                color: CustomerUiColors.wholesaleSecondaryText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -8369,7 +8369,7 @@ class _B2bOrderTimelineEntry extends StatelessWidget {
                       _friendlyOrderDate(occurredAt),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                       ),
                     ),
                   ],
@@ -8379,7 +8379,7 @@ class _B2bOrderTimelineEntry extends StatelessWidget {
                       vanCode,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF6B7785),
+                        color: CustomerUiColors.wholesaleSecondaryText,
                       ),
                     ),
                   ],
@@ -8392,7 +8392,7 @@ class _B2bOrderTimelineEntry extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: stage == 'failed' || stage == 'cancelled'
                             ? visual.foreground
-                            : const Color(0xFF6B7785),
+                            : CustomerUiColors.wholesaleSecondaryText,
                       ),
                     ),
                   ],
@@ -8435,7 +8435,7 @@ class _OrderDetailCard extends StatelessWidget {
                       child: Text(
                         row.$1,
                         style: const TextStyle(
-                          color: Color(0xFF6B7785),
+                          color: CustomerUiColors.wholesaleSecondaryText,
                           fontSize: 11,
                         ),
                       ),
