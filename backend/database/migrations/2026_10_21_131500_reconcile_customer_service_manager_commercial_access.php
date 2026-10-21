@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /** @var list<string> */
-    private const MANAGER_GRANTS = [
+    private const COMMERCIAL_GRANTS = [
         'catalog.view',
         'catalog.create',
         'catalog.edit',
@@ -30,6 +30,12 @@ return new class extends Migration
     ];
 
     /** @var list<string> */
+    private const COMMERCIAL_ROLES = [
+        'CUSTOMER_SERVICE_MANAGER',
+        'CUSTOMER_SERVICE_SUPERVISOR',
+    ];
+
+    /** @var list<string> */
     private const CUSTOMER_SERVICE_ROLES = [
         'CUSTOMER_SERVICE_MANAGER',
         'CUSTOMER_SERVICE_SUPERVISOR',
@@ -46,20 +52,22 @@ return new class extends Migration
             return;
         }
 
-        $managerId = DB::table('roles')
-            ->where('code', 'CUSTOMER_SERVICE_MANAGER')
-            ->value('id');
+        $commercialRoleIds = DB::table('roles')
+            ->whereIn('code', self::COMMERCIAL_ROLES)
+            ->pluck('id');
 
-        if ($managerId !== null) {
+        if ($commercialRoleIds->isNotEmpty()) {
             $permissionIds = DB::table('permissions')
-                ->whereIn('code', self::MANAGER_GRANTS)
+                ->whereIn('code', self::COMMERCIAL_GRANTS)
                 ->pluck('id');
 
-            foreach ($permissionIds as $permissionId) {
-                DB::table('permission_role')->updateOrInsert([
-                    'permission_id' => (int) $permissionId,
-                    'role_id' => (int) $managerId,
-                ]);
+            foreach ($commercialRoleIds as $roleId) {
+                foreach ($permissionIds as $permissionId) {
+                    DB::table('permission_role')->updateOrInsert([
+                        'permission_id' => (int) $permissionId,
+                        'role_id' => (int) $roleId,
+                    ]);
+                }
             }
         }
 
@@ -91,17 +99,17 @@ return new class extends Migration
             return;
         }
 
-        $managerId = DB::table('roles')
-            ->where('code', 'CUSTOMER_SERVICE_MANAGER')
-            ->value('id');
+        $commercialRoleIds = DB::table('roles')
+            ->whereIn('code', self::COMMERCIAL_ROLES)
+            ->pluck('id');
 
-        if ($managerId !== null) {
+        if ($commercialRoleIds->isNotEmpty()) {
             $permissionIds = DB::table('permissions')
-                ->whereIn('code', self::MANAGER_GRANTS)
+                ->whereIn('code', self::COMMERCIAL_GRANTS)
                 ->pluck('id');
 
             DB::table('permission_role')
-                ->where('role_id', (int) $managerId)
+                ->whereIn('role_id', $commercialRoleIds)
                 ->whereIn('permission_id', $permissionIds)
                 ->delete();
         }
