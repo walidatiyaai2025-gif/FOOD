@@ -26,13 +26,22 @@ abstract interface class B2cAccountApi {
   Future<void> markNotificationRead(int notificationId);
 }
 
+abstract interface class CustomerContactApi {
+  Future<Object?> submitContactUs({
+    required int storeId,
+    required String phone,
+    required String message,
+  });
+}
+
 abstract interface class B2cRetailFavoritesApi {
   Future<Object?> favoritesForStore(int storeId);
   Future<void> addFavoriteForStore(int storeId, int productId);
   Future<void> removeFavoriteForStore(int storeId, int productId);
 }
 
-class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
+class HttpB2cAccountApi
+    implements B2cAccountApi, B2cRetailFavoritesApi, CustomerContactApi {
   HttpB2cAccountApi({
     required this.baseUrl,
     this.token,
@@ -256,6 +265,27 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
       'password': password,
       'confirmation': true,
     });
+  }
+
+  @override
+  Future<Object?> submitContactUs({
+    required int storeId,
+    required String phone,
+    required String message,
+  }) async {
+    _requireToken();
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl/api/v1/customer-service/contact'),
+        headers: _headersForStore(storeId),
+        body: jsonEncode({
+          'store_id': storeId,
+          'phone': phone.trim(),
+          'message': message.trim(),
+        }),
+      ),
+    );
+    return _decode(response);
   }
 
   @override
