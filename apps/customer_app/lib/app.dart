@@ -184,7 +184,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-
   @override
   void initState() {
     super.initState();
@@ -846,7 +845,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
           CustomerDiagnosticsNavigatorObserver(_diagnostics),
         ],
         debugShowCheckedModeBanner: false,
-        title: 'FOODEX Customer', // localization-gate: allow - technical app identity
+        title:
+            'FOODEX Customer', // localization-gate: allow - technical app identity
         theme: widget.theme ?? FoodexTheme.light(),
         darkTheme: widget.theme ?? FoodexTheme.dark(),
         themeMode: widget.theme == null ? themeMode : ThemeMode.light,
