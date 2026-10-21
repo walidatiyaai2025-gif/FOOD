@@ -284,21 +284,24 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                 builder: (context, themeMode, _) => CustomerAccountSurfaceCard(
                   key: const ValueKey('customer-account-dark-mode'),
                   padding: EdgeInsets.zero,
-                  child: SwitchListTile(
-                    secondary: Icon(
-                      themeMode == ThemeMode.dark
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile(
+                      secondary: Icon(
+                        themeMode == ThemeMode.dark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                      ),
+                      title: Text(context.tr('customer.appearance.dark_mode')),
+                      subtitle: Text(
+                        context.tr('customer.appearance.dark_mode_subtitle'),
+                      ),
+                      value: themeMode == ThemeMode.dark,
+                      onChanged: (enabled) async {
+                        await CustomerDisplayPreferences.instance
+                            .setDarkMode(enabled);
+                      },
                     ),
-                    title: Text(context.tr('customer.appearance.dark_mode')),
-                    subtitle: Text(
-                      context.tr('customer.appearance.dark_mode_subtitle'),
-                    ),
-                    value: themeMode == ThemeMode.dark,
-                    onChanged: (enabled) async {
-                      await CustomerDisplayPreferences.instance
-                          .setDarkMode(enabled);
-                    },
                   ),
                 ),
               ),
