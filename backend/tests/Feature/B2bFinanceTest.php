@@ -6,6 +6,7 @@ use App\Models\B2bAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Services\CustomerDomainResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -109,6 +110,7 @@ class B2bFinanceTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$user, $customer] = $this->buyer('finance-images@example.test', 'active');
+        $b2bCustomer = app(CustomerDomainResolver::class)->b2b($user);
 
         $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $unitId = (int) DB::table('units')->insertGetId([
@@ -200,6 +202,7 @@ class B2bFinanceTest extends TestCase
 
         $invoice = Invoice::query()->create([
             'customer_id' => $customer->id,
+            'b2b_customer_id' => $b2bCustomer->id,
             'store_id' => $storeId,
             'invoice_number' => 'INV-IMG-2303',
             'status' => 'issued',
