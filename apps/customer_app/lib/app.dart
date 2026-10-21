@@ -184,7 +184,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-
   @override
   void initState() {
     super.initState();
