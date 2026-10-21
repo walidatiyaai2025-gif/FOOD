@@ -9,7 +9,6 @@ import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
@@ -101,18 +100,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   late Future<Map<String, dynamic>> future = _load();
   bool _liveAdScheduled = false;
 
-  static const _vehicleIntroSeenKey =
-      'foodex.wholesale.home.vehicle_intro_seen.v1';
-
-  Future<void> _showFirstHomeVehicleIntroIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_vehicleIntroSeenKey) == true || !mounted) return;
+  Future<void> _showHomeVehicleIntro() async {
+    if (!mounted) return;
 
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
-
-    await prefs.setBool(_vehicleIntroSeenKey, true);
-    if (!mounted) return;
 
     final completed = Completer<void>();
     var removed = false;
@@ -300,7 +292,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               _liveAdScheduled = true;
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
-                await _showFirstHomeVehicleIntroIfNeeded();
+                await _showHomeVehicleIntro();
                 if (!mounted) return;
                 await campaignPopups
                     .showForContext(
