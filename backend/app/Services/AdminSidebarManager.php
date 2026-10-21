@@ -75,15 +75,19 @@ final class AdminSidebarManager
             ]);
         }
 
+        $protectedItems = array_fill_keys($registry['protected_items'], true);
         foreach (DB::table('admin_sidebar_items')->get() as $row) {
             if (! isset($items[$row->item_key])) {
                 continue;
             }
+            $protected = isset($protectedItems[$row->item_key]);
             $items[$row->item_key] = array_merge($items[$row->item_key], [
-                'group_key' => isset($groups[$row->group_key]) ? $row->group_key : $items[$row->item_key]['group_key'],
-                'parent_key' => $row->parent_key,
+                'group_key' => $protected
+                    ? (string) ($items[$row->item_key]['meta']['group'] ?? 'administration')
+                    : (isset($groups[$row->group_key]) ? $row->group_key : $items[$row->item_key]['group_key']),
+                'parent_key' => $protected ? null : $row->parent_key,
                 'sort_order' => (int) $row->sort_order,
-                'is_enabled' => (bool) $row->is_enabled,
+                'is_enabled' => $protected ? true : (bool) $row->is_enabled,
                 'label_ar' => $row->label_ar,
                 'label_en' => $row->label_en,
                 'configured' => true,
@@ -219,10 +223,14 @@ final class AdminSidebarManager
                 DB::table('admin_sidebar_items')->updateOrInsert(
                     ['item_key' => $key],
                     [
-                        'group_key' => isset($registry['groups'][$input['group_key'] ?? ''])
-                            ? (string) $input['group_key']
-                            : (string) ($definition['group'] ?? 'administration'),
-                        'parent_key' => $this->nullableText($input['parent_key'] ?? null),
+                        'group_key' => isset($protected[$key])
+                            ? (string) ($definition['group'] ?? 'administration')
+                            : (isset($registry['groups'][$input['group_key'] ?? ''])
+                                ? (string) $input['group_key']
+                                : (string) ($definition['group'] ?? 'administration')),
+                        'parent_key' => isset($protected[$key])
+                            ? null
+                            : $this->nullableText($input['parent_key'] ?? null),
                         'label_ar' => $this->nullableText($input['label_ar'] ?? null),
                         'label_en' => $this->nullableText($input['label_en'] ?? null),
                         'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
