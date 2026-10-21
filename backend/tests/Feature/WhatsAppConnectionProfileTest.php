@@ -311,9 +311,12 @@ final class WhatsAppConnectionProfileTest extends TestCase
             'event' => 'whatsapp.connection_test_message_sent',
             'user_id' => $actor->id,
         ]);
+        $auditAfter = AuditLog::query()
+            ->where('event', 'whatsapp.connection_test_message_sent')
+            ->value('after');
         $this->assertStringNotContainsString(
             '+201012345678',
-            (string) AuditLog::query()->where('event', 'whatsapp.connection_test_message_sent')->value('after'),
+            json_encode($auditAfter, JSON_THROW_ON_ERROR),
         );
     }
 
