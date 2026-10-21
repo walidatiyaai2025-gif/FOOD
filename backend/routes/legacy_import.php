@@ -1149,6 +1149,9 @@ Artisan::command(
         $expectedPositivePositions = array_key_exists('positive_positions', $planned)
             ? (int) $planned['positive_positions']
             : null;
+        $expectedPositiveProducts = array_key_exists('positive_products', $planned)
+            ? (int) $planned['positive_products']
+            : $expectedPositivePositions;
 
         $report = [
             'latest_run' => $latestRun === null ? null : [
@@ -1161,6 +1164,7 @@ Artisan::command(
             ],
             'expected' => [
                 'positive_positions' => $expectedPositivePositions,
+                'positive_products' => $expectedPositiveProducts,
             ],
             'inventories' => $inventory,
             'stock_movements' => [
@@ -1171,13 +1175,14 @@ Artisan::command(
             'orphan_mappings' => $orphanMappings,
             'healthy' => $latestRun !== null
                 && (string) $latestRun->status === 'completed'
-                && $expectedPositivePositions !== null
+                && $expectedPositiveProducts !== null
+                && $expectedPositiveProducts > 0
                 && $inventory['negative'] === 0
                 && $inventory['reserved_nonzero'] === 0
-                && $inventory['total'] === $expectedPositivePositions
-                && $inventory['positive'] === $expectedPositivePositions
-                && $baselineMovements === $expectedPositivePositions
-                && $mappings === $expectedPositivePositions
+                && $inventory['total'] === $expectedPositiveProducts
+                && $inventory['positive'] === $expectedPositiveProducts
+                && $baselineMovements === $expectedPositiveProducts
+                && $mappings === $expectedPositiveProducts
                 && $allMovements === $baselineMovements
                 && $orphanMappings === 0,
         ];
@@ -1205,6 +1210,7 @@ Artisan::command(
             ['Metric', 'Count'],
             [
                 ['expected.positive_positions', $expectedPositivePositions ?? 'n/a'],
+                ['expected.positive_products', $expectedPositiveProducts ?? 'n/a'],
                 ['inventories.total', $inventory['total']],
                 ['inventories.positive', $inventory['positive']],
                 ['inventories.zero', $inventory['zero']],
