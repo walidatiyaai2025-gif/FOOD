@@ -88,6 +88,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   bool _biometricAvailable = false;
   bool _checkingBiometric = false;
   bool _savedBiometricDismissed = false;
+  bool _passwordVisible = false;
   bool _busy = false;
   String? _errorKey;
   String? _errorDetail;
@@ -766,7 +767,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         key: const ValueKey('unified-customer-auth-screen'),
         backgroundColor: CustomerUiColors.white,
         body: FoodexUnifiedHeaderSurface(
-          title: context.tr('customer.app.identity'),
+          title: context.tr('customer.app.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
           onSearchSubmitted: (_) {},
           trailingActions: [
@@ -835,19 +836,6 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  context.tr('customer.app.identity'),
-                                  key: const ValueKey('customer-app-identity'),
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        color: CustomerUiColors.deepGreen,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
                                   context.tr('customer.auth.title'),
                                   key: const ValueKey(
                                     'c13-business-login-title',
@@ -856,9 +844,17 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                      ?.copyWith(
+                                        fontSize: (Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.fontSize ??
+                                                16) *
+                                            .70,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 3),
                                 Text(
                                   context.tr('customer.auth.subtitle'),
                                   key: const ValueKey(
@@ -868,7 +864,15 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(color: CustomerUiColors.muted),
+                                      ?.copyWith(
+                                        fontSize: (Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.fontSize ??
+                                                12) *
+                                            .70,
+                                        color: CustomerUiColors.muted,
+                                      ),
                                 ),
                                 const SizedBox(height: 14),
                                 if (showRememberedBiometricCard)
@@ -920,7 +924,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       'unified-auth-password',
                                     ),
                                     controller: _password,
-                                    obscureText: true,
+                                    obscureText: !_passwordVisible,
                                     textInputAction: TextInputAction.done,
                                     decoration: InputDecoration(
                                       hintText: context.tr(
@@ -936,6 +940,27 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                           'assets/branding/login_reference/lock_icon.png',
                                           width: 24,
                                           height: 24,
+                                        ),
+                                      ),
+                                      suffixIcon: IconButton(
+                                        key: const ValueKey(
+                                          'unified-auth-password-visibility',
+                                        ),
+                                        tooltip: context.tr(
+                                          _passwordVisible
+                                              ? 'customer.login.hide_password'
+                                              : 'customer.login.show_password',
+                                        ),
+                                        onPressed: _busy
+                                            ? null
+                                            : () => setState(
+                                                  () => _passwordVisible =
+                                                      !_passwordVisible,
+                                                ),
+                                        icon: Icon(
+                                          _passwordVisible
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
                                         ),
                                       ),
                                       filled: true,
