@@ -898,6 +898,7 @@ class _RetailHomeBody extends StatelessWidget {
             _RetailProductGrid(
               storeId: storeId,
               products: data.products,
+              categories: data.categories,
               palette: palette,
               actionApi: actionApi,
             ),
@@ -1121,14 +1122,25 @@ class _RetailProductGrid extends StatelessWidget {
   const _RetailProductGrid({
     required this.storeId,
     required this.products,
+    required this.categories,
     required this.palette,
     required this.actionApi,
   });
 
   final int storeId;
   final List<B2cProduct> products;
+  final List<B2cCategory> categories;
   final FoodexPalette palette;
   final CustomerActionApi actionApi;
+
+  String? _categoryName(B2cProduct product) {
+    final categoryId = product.categoryId;
+    if (categoryId == null) return null;
+    for (final category in categories) {
+      if (category.id == categoryId) return category.name;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1138,14 +1150,19 @@ class _RetailProductGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: products.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: count,
         crossAxisSpacing: 9,
-        mainAxisSpacing: 10,
-        childAspectRatio: .56 / .85,
+        mainAxisSpacing: 1,
+        mainAxisExtent: 160,
       ),
       itemBuilder: (context, index) {
         final product = products[index];
+        final category = _categoryName(product);
+        final price = product.price == null
+            ? '—'
+            : product.price!.toStringAsFixed(0) + ' ' + product.currency;
+
         return Material(
           key: ValueKey('b2c-home-product-${product.id}'),
           color: Colors.white,
@@ -1159,7 +1176,7 @@ class _RetailProductGrid extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(18),
             child: Container(
-              padding: const EdgeInsets.all(9),
+              padding: const EdgeInsets.fromLTRB(7, 7, 7, 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: const Color(0xFFE7EBE8)),
@@ -1168,16 +1185,58 @@ class _RetailProductGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    height: 72,
-                    child: Opacity(
-                      opacity: product.isAvailable ? 1 : 0.42,
-                      child: FoodexProductImage(
-                        url: product.imageUrl,
-                        palette: palette,
-                      ),
+                    height: 88,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Opacity(
+                          opacity: product.isAvailable ? 1 : 0.42,
+                          child: FoodexProductImage(
+                            url: product.imageUrl,
+                            palette: palette,
+                          ),
+                        ),
+                        if (product.isAvailable)
+                          Positioned(
+                            left: 3,
+                            bottom: 3,
+                            child: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: FilledButton(
+                                key: ValueKey(
+                                  'b2c-home-product-add-${product.id}',
+                                ),
+                                style: FilledButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  backgroundColor: palette.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: const CircleBorder(),
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    await actionApi.addCartItem(
+                                      storeId: storeId,
+                                      productId: product.id,
+                                      quantity: 1,
+                                    );
+                                  } catch (error) {
+                                    if (context.mounted) {
+                                      await showOperationalError(
+                                        context,
+                                        error,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: const Icon(Icons.add_rounded, size: 20),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 3),
                   SizedBox(
                     width: double.infinity,
                     height: 14,
@@ -1196,62 +1255,26 @@ class _RetailProductGrid extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  if (!product.isAvailable) ...[
-                    Text(
-                      context.tr('customer.product.out_of_stock'),
-                      key: ValueKey(
-                          'b2c-home-product-out-of-stock-${product.id}'),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
+                  const SizedBox(height: 3),
                   Row(
+                    textDirection: TextDirection.ltr,
                     children: [
-                      Expanded(
-                        child: Text(
-                          product.price == null
-                              ? '—'
-                              : product.price!.toStringAsFixed(0) +
-                                  ' ' +
-                                  product.currency,
-                          style: TextStyle(
-                            color: palette.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
+                      if (category?.trim().isNotEmpty == true)
+                        Flexible(
+                          child: _RetailProductMetaBadge(
+                            label: category!,
+                            background: palette.soft,
+                            foreground: const Color(0xFF5F6C67),
                           ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 36,
-                        height: 36,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            backgroundColor: palette.primary,
-                            shape: const CircleBorder(),
-                          ),
-                          onPressed: product.isAvailable
-                              ? () async {
-                                  try {
-                                    await actionApi.addCartItem(
-                                      storeId: storeId,
-                                      productId: product.id,
-                                      quantity: 1,
-                                    );
-                                  } catch (error) {
-                                    if (context.mounted) {
-                                      await showOperationalError(
-                                          context, error);
-                                    }
-                                  }
-                                }
-                              : null,
-                          child: const Icon(Icons.add_rounded, size: 20),
+                        )
+                      else
+                        const SizedBox.shrink(),
+                      const Spacer(),
+                      Flexible(
+                        child: _RetailProductMetaBadge(
+                          label: price,
+                          background: const Color(0xFFE8F7EE),
+                          foreground: palette.primaryDark,
                         ),
                       ),
                     ],
@@ -1264,6 +1287,40 @@ class _RetailProductGrid extends StatelessWidget {
       },
     );
   }
+}
+
+class _RetailProductMetaBadge extends StatelessWidget {
+  const _RetailProductMetaBadge({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(maxWidth: 82),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: foreground,
+            fontSize: 9,
+            height: 1,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
 }
 
 class RetailProductDetailsDesignScreen extends StatefulWidget {
