@@ -301,9 +301,9 @@ final class WhatsAppConnectionProfileTest extends TestCase
             $payload = $request->data();
 
             return str_ends_with($request->url(), '/messages')
-                && data_get($payload, 'message.to') === '201012345678'
-                && data_get($payload, 'message.type') === 'text'
-                && data_get($payload, 'message.text.body') === 'FOODEX gateway test';
+                && data_get($payload, 'to') === '201012345678'
+                && data_get($payload, 'type') === 'text'
+                && data_get($payload, 'text.body') === 'FOODEX gateway test';
         });
 
         $this->assertNotNull($profile->fresh()->last_outbound_at);
