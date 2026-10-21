@@ -4440,13 +4440,15 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       if (widget.onLocaleChanged != null ||
                           widget.onLogout != null) ...[
                         const SizedBox(height: 12),
-                        Container(
+                        Material(
                           key: const ValueKey('b2b-more-bottom-settings'),
-                          decoration: BoxDecoration(
-                            color: CustomerUiColors.white,
+                          color: CustomerUiColors.white,
+                          shape: RoundedRectangleBorder(
                             borderRadius:
                                 BorderRadius.circular(CustomerUiRadii.lg),
-                            border: Border.all(color: _B2bMorePageState.border),
+                            side: const BorderSide(
+                              color: _B2bMorePageState.border,
+                            ),
                           ),
                           child: Column(
                             children: [
