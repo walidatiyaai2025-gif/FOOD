@@ -7,6 +7,7 @@ import '../../core/api/b2c_catalog_api.dart';
 import '../../core/api/customer_action_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
@@ -1203,7 +1204,7 @@ class _RetailProductGrid extends StatelessWidget {
                             child: _RetailProductMetaBadge(
                               label: category!,
                               background: palette.soft,
-                              foreground: const Color(0xFF5F6C67),
+                              foreground: CustomerUiColors.retailMutedStrong,
                             ),
                           ),
                         if (product.isAvailable)
@@ -1270,7 +1271,7 @@ class _RetailProductGrid extends StatelessWidget {
                     alignment: AlignmentDirectional.centerEnd,
                     child: _RetailProductMetaBadge(
                       label: price,
-                      background: const Color(0xFFE8F7EE),
+                      background: CustomerUiColors.retailSuccessWash,
                       foreground: palette.primaryDark,
                     ),
                   ),
