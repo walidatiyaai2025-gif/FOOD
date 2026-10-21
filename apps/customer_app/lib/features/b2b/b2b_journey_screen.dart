@@ -4658,17 +4658,22 @@ class _FinanceCard extends StatelessWidget {
                 : envelope;
             final balance = _n(data['balance']);
             final currency = data['currency']?.toString() ?? '';
-            final direction = data['balance_direction']?.toString() ?? '';
-            final firstLabel = direction == 'customer_owes_company'
-                ? (ar ? 'عليك' : 'You owe')
-                : direction == 'company_owes_customer'
-                    ? (ar ? 'لك' : 'Credit due')
-                    : (ar ? 'الرصيد' : 'Balance');
+            final totalPurchases = _n(
+              data['total_purchases'] ?? data['total_debits'],
+            );
+            final totalDebt = _n(
+              data['outstanding_receivable'] ??
+                  data['open_amount'] ??
+                  (balance < 0 ? balance.abs() : 0),
+            );
             final values = <(String, String)>[
-              (firstLabel, _money(balance.abs(), currency)),
               (
-                ar ? 'القوة الشرائية' : 'Purchasing power',
-                _money(_n(data['purchasing_power']), currency),
+                ar ? 'إجمالي مشترياتك' : 'Total purchases',
+                _money(totalPurchases, currency),
+              ),
+              (
+                ar ? 'إجمالي مديونيتك' : 'Total debt',
+                _money(totalDebt, currency),
               ),
             ];
             return Column(
