@@ -61,6 +61,29 @@ abstract final class CustomerUiColors {
   static const wholesaleWaveAccent = Color(0xFFB9F227);
   static const wholesalePositiveValue = Color(0xFF078A43);
   static const wholesaleFinalValue = Color(0xFF1565C0);
+  static const marketplaceImageShadow = Color(0x3D72E89A);
+  static const marketplaceInk = Color(0xFF17212F);
+  static const retailMutedStrong = Color(0xFF5F6C67);
+  static const retailSuccessWash = Color(0xFFE8F7EE);
+  static const storefrontBorderSoft = Color(0xFFE3E9E5);
+  static const storefrontShadowMedium = Color(0x26000000);
+  static const storefrontMintWash = Color(0xFFF1F8F4);
+  static const storefrontLimeWash = Color(0xFFD8FFD0);
+  static const storefrontLimeStrong = Color(0xFFB5F23E);
+  static const storefrontGreenGlow = Color(0xFF63D36E);
+  static const storefrontGreenHighlight = Color(0xFF8DEB75);
+  static const storefrontGoldDeep = Color(0xFF8A5A00);
+  static const storefrontGoldMid = Color(0xFFD99A12);
+  static const storefrontGoldLight = Color(0xFFFFE08A);
+  static const storefrontGoldBright = Color(0xFFFFC238);
+  static const storefrontGoldDark = Color(0xFFB87500);
+  static const storefrontGoldShadow = Color(0x338A5A00);
+  static const storefrontOxbloodDeep = Color(0xFF3D0710);
+  static const storefrontOxblood = Color(0xFF65101A);
+  static const storefrontOxbloodMid = Color(0xFF8B1E2D);
+  static const storefrontOxbloodLight = Color(0xFFC04A58);
+  static const storefrontOxbloodDark = Color(0xFF6F0F1D);
+  static const storefrontOxbloodShadow = Color(0x443D0710);
 }
 
 abstract final class CustomerUiSpacing {
