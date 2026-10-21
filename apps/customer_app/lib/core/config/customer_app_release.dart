@@ -1,2 +1,2 @@
 const customerAppVersion = '1.0.95';
-const customerUiCommitMarker = '455548f';
+const customerUiCommitMarker = '936fc6a';
