@@ -6074,10 +6074,11 @@ class _WholesaleCheckoutDesignScreenState
 
   void _couponChanged(String value) {
     final normalized = value.trim().toUpperCase();
-    if (appliedCouponCode == null || normalized == appliedCouponCode) return;
     setState(() {
-      appliedCouponCode = null;
-      appliedQuote = null;
+      if (appliedCouponCode != null && normalized != appliedCouponCode) {
+        appliedCouponCode = null;
+        appliedQuote = null;
+      }
     });
   }
 
