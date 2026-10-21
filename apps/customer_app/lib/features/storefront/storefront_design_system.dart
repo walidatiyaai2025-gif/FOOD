@@ -13,10 +13,28 @@ final ValueNotifier<int> foodexWholesaleCartProductCount =
     ValueNotifier<int>(0);
 
 void syncFoodexWholesaleCartProductCount(Object? payload) {
-  if (payload is! Map) return;
+  if (payload is! Map) {
+    foodexWholesaleCartProductCount.value = 0;
+    return;
+  }
+
   final rawItems = payload['items'];
-  if (rawItems is! List) return;
-  foodexWholesaleCartProductCount.value = rawItems.whereType<Map>().length;
+  if (rawItems is! List) {
+    foodexWholesaleCartProductCount.value = 0;
+    return;
+  }
+
+  final count = rawItems.whereType<Map>().where((item) {
+    final quantity = double.tryParse(item['quantity']?.toString() ?? '') ?? 0;
+    final itemId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
+    final product = item['product'];
+    final productId = product is Map
+        ? int.tryParse(product['id']?.toString() ?? '') ?? 0
+        : int.tryParse(item['product_id']?.toString() ?? '') ?? 0;
+    return quantity > 0 && (itemId > 0 || productId > 0);
+  }).length;
+
+  foodexWholesaleCartProductCount.value = count;
 }
 
 class FoodexPalette {
