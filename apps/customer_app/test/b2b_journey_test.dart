@@ -2208,12 +2208,10 @@ void main() {
         findsOneWidget,
       );
       final submit = tester.widget<InkWell>(
-        find
-            .descendant(
-              of: find.byKey(const ValueKey('b2b-checkout-submit')),
-              matching: find.byType(InkWell),
-            )
-            .single,
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-checkout-submit')),
+          matching: find.byType(InkWell),
+        ),
       );
       expect(submit.onTap, isNull);
     },
@@ -2288,12 +2286,10 @@ void main() {
       expect(
         tester
             .widget<InkWell>(
-              find
-                  .descendant(
-                    of: submitFinder,
-                    matching: find.byType(InkWell),
-                  )
-                  .single,
+              find.descendant(
+                of: submitFinder,
+                matching: find.byType(InkWell),
+              ),
             )
             .onTap,
         isNull,
