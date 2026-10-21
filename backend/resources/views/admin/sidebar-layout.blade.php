@@ -26,7 +26,7 @@ body{margin:0}.layout-page{padding:24px;max-width:1600px;margin:auto}.hero,.pane
 <tbody>
 @foreach($layout['groups'] as $group)
 <tr>
-<td><input type="hidden" name="groups[{{ $group['key'] }}][is_enabled]" value="0"><input type="checkbox" name="groups[{{ $group['key'] }}][is_enabled]" value="1" @checked($group['is_enabled'])></td>
+<td><input type="hidden" name="groups[{{ $group['key'] }}][is_enabled]" value="0"><input type="checkbox" name="groups[{{ $group['key'] }}][is_enabled]" value="1" @checked($group['is_enabled']) @disabled(in_array($group['key'],$protectedGroups,true))>@if(in_array($group['key'],$protectedGroups,true))<input type="hidden" name="groups[{{ $group['key'] }}][is_enabled]" value="1"><span class="protected">{{ __('sidebar_admin.protected') }}</span>@endif</td>
 <td class="key">{{ $group['key'] }}</td>
 <td><input type="text" name="groups[{{ $group['key'] }}][label_ar]" value="{{ $group['label_ar'] }}" placeholder="{{ __($group['label'],[],'ar') }}"></td>
 <td><input type="text" name="groups[{{ $group['key'] }}][label_en]" value="{{ $group['label_en'] }}" placeholder="{{ __($group['label'],[],'en') }}"></td>
