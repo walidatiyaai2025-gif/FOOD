@@ -120,12 +120,14 @@ class AdminNavigation
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
-                $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
+                $useCustomerServiceDashboardProfile
+                    ? null
+                    : $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
-            $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', [
+            $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', $useCustomerServiceDashboardProfile ? [] : [
                 $this->routeItemAny($user, 'field_ops_overview', 'admin.field_operations.overview', 'admin.field-operations.overview', ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']),
                 $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view']),
                 $this->routeItemAny($user, 'field_ops_vans', 'admin.field_operations.vans', 'admin.field-operations.vans', ['drivers.b2b.view']),
@@ -138,12 +140,23 @@ class AdminNavigation
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $this->whatsAppCampaignsItem($user),
-                $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
+                $useCustomerServiceDashboardProfile
+                    ? null
+                    : $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
+                $useCustomerServiceDashboardProfile
+                    ? $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled')
+                    : null,
+                $useCustomerServiceDashboardProfile
+                    ? $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled')
+                    : null,
+                $useCustomerServiceDashboardProfile
+                    ? $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled')
+                    : null,
             ]),
-            $this->group('advertising', 'admin.nav_groups.advertising', '◉', [
+            $this->group('advertising', 'admin.nav_groups.advertising', '◉', $useCustomerServiceDashboardProfile ? [] : [
                 $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
                 $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
