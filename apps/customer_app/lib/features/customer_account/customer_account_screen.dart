@@ -711,7 +711,6 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
   }
 }
 
-
 class _CustomerContactDraft {
   const _CustomerContactDraft({
     required this.phone,
