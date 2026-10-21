@@ -1036,14 +1036,25 @@ Artisan::command(
             ->whereNull('i.id')
             ->count();
 
+        $latestSummary = $latestRun?->summary === null
+            ? []
+            : (json_decode((string) $latestRun->summary, true) ?: []);
+        $planned = (array) ($latestSummary['planned'] ?? []);
+        $expectedPositivePositions = array_key_exists('positive_positions', $planned)
+            ? (int) $planned['positive_positions']
+            : null;
+
         $report = [
             'latest_run' => $latestRun === null ? null : [
                 'id' => (string) $latestRun->id,
                 'status' => (string) $latestRun->status,
                 'started_at' => $latestRun->started_at,
                 'finished_at' => $latestRun->finished_at,
-                'summary' => $latestRun->summary === null ? null : json_decode((string) $latestRun->summary, true),
+                'summary' => $latestSummary === [] ? null : $latestSummary,
                 'error' => $latestRun->error,
+            ],
+            'expected' => [
+                'positive_positions' => $expectedPositivePositions,
             ],
             'inventories' => $inventory,
             'stock_movements' => [
@@ -1054,10 +1065,12 @@ Artisan::command(
             'orphan_mappings' => $orphanMappings,
             'healthy' => $latestRun !== null
                 && (string) $latestRun->status === 'completed'
+                && $expectedPositivePositions !== null
                 && $inventory['negative'] === 0
                 && $inventory['reserved_nonzero'] === 0
-                && $inventory['total'] === $baselineMovements
-                && $inventory['total'] === $mappings
+                && $inventory['total'] === $expectedPositivePositions
+                && $baselineMovements === $expectedPositivePositions
+                && $mappings === $expectedPositivePositions
                 && $allMovements === $baselineMovements
                 && $orphanMappings === 0,
         ];
@@ -1084,6 +1097,7 @@ Artisan::command(
         $this->table(
             ['Metric', 'Count'],
             [
+                ['expected.positive_positions', $expectedPositivePositions ?? 'n/a'],
                 ['inventories.total', $inventory['total']],
                 ['inventories.positive', $inventory['positive']],
                 ['inventories.zero', $inventory['zero']],
