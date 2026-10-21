@@ -234,7 +234,7 @@ class _CustomerFavoriteButtonState extends State<CustomerFavoriteButton> {
 
     return Material(
       key: ValueKey('favorite-${widget.storeId}-${widget.productId}'),
-      color: Colors.black.withOpacity(.20),
+      color: Colors.black.withValues(alpha: .20),
       shape: const CircleBorder(),
       elevation: 1,
       child: InkWell(
