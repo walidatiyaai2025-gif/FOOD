@@ -198,7 +198,7 @@ class CustomerPersistentFooter extends StatelessWidget {
       shadowColor: CustomerUiColors.shadow,
       clipBehavior: Clip.hardEdge,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           border: Border(
             top: BorderSide(color: CustomerUiColors.border),
