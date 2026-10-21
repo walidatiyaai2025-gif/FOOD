@@ -199,7 +199,8 @@ class _AddCartActionState extends State<AddCartAction> {
 
   int? get _storeId {
     final uri = Uri.parse(widget.location);
-    return int.tryParse(uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '');
+    return int.tryParse(
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '');
   }
 
   int? get _productId {
@@ -211,7 +212,10 @@ class _AddCartActionState extends State<AddCartAction> {
     final storeId = _storeId;
     final productId = _productId;
     final quantity = double.tryParse(_quantity.text.trim());
-    if (storeId == null || productId == null || quantity == null || quantity <= 0) {
+    if (storeId == null ||
+        productId == null ||
+        quantity == null ||
+        quantity <= 0) {
       setState(() => _error = storeId == null
           ? 'customer.validation.store_required'
           : 'customer.validation.quantity');
@@ -251,7 +255,8 @@ class _AddCartActionState extends State<AddCartAction> {
             key: const ValueKey('customer-cart-quantity'),
             controller: _quantity,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: context.tr('customer.cart.quantity')),
+            decoration: InputDecoration(
+                labelText: context.tr('customer.cart.quantity')),
           ),
           if (_error != null)
             Text(
@@ -262,7 +267,9 @@ class _AddCartActionState extends State<AddCartAction> {
           const SizedBox(height: 12),
           FilledButton(
             key: const ValueKey('customer-add-cart'),
-            onPressed: _busy || _storeId == null || _productId == null ? null : _submit,
+            onPressed: _busy || _storeId == null || _productId == null
+                ? null
+                : _submit,
             child: _busy
                 ? const SizedBox.square(
                     dimension: 18,
@@ -335,9 +342,9 @@ class _CheckoutActionState extends State<CheckoutAction> {
 
     if (_selectedAddressId == null && rows.isNotEmpty) {
       final preferred = rows.cast<Map<String, dynamic>?>().firstWhere(
-            (item) => item?['is_default'] == true,
-            orElse: () => null,
-          ) ??
+                (item) => item?['is_default'] == true,
+                orElse: () => null,
+              ) ??
           rows.first;
       _selectedAddressId = (preferred['id'] as num?)?.toInt();
     }
@@ -383,7 +390,8 @@ class _CheckoutActionState extends State<CheckoutAction> {
         idempotencyKey: 'foodex-${DateTime.now().microsecondsSinceEpoch}',
       );
       if (!mounted) return;
-      final id = response is Map ? response['id'] ?? response['order_id'] : null;
+      final id =
+          response is Map ? response['id'] ?? response['order_id'] : null;
       if (id is! num) {
         setState(() => _error = 'customer.error.action_failed');
         return;
@@ -418,7 +426,8 @@ class _CheckoutActionState extends State<CheckoutAction> {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(12),
-              child: FoodexWaveLoading(key: ValueKey('customer-checkout-address-loading')),
+              child: FoodexWaveLoading(
+                  key: ValueKey('customer-checkout-address-loading')),
             ),
           );
         }

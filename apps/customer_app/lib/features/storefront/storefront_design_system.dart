@@ -571,8 +571,7 @@ class _FoodexAnimatedHeaderTitle extends StatefulWidget {
       _FoodexAnimatedHeaderTitleState();
 }
 
-class _FoodexAnimatedHeaderTitleState
-    extends State<_FoodexAnimatedHeaderTitle>
+class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
     with SingleTickerProviderStateMixin {
   static const _style = TextStyle(
     color: Colors.white,
@@ -607,9 +606,8 @@ class _FoodexAnimatedHeaderTitleState
       );
     }
 
-    final brand = arabicBrand
-        ? 'فوديكس'
-        : title.substring(0, englishMatch!.end);
+    final brand =
+        arabicBrand ? 'فوديكس' : title.substring(0, englishMatch!.end);
     final rest = title.substring(brand.length);
 
     return Row(
@@ -619,36 +617,36 @@ class _FoodexAnimatedHeaderTitleState
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-              final progress = _controller.value;
-              final wave = math.sin(progress * math.pi * 2);
-              final travel = progress * 2.5;
+            final progress = _controller.value;
+            final wave = math.sin(progress * math.pi * 2);
+            final travel = progress * 2.5;
 
-              return Transform.translate(
-                offset: Offset(0, wave * .8),
-                child: ShaderMask(
-                  blendMode: BlendMode.srcIn,
-                  shaderCallback: (bounds) => LinearGradient(
-                    begin: Alignment(-1.8 + travel, -.8 + wave * .15),
-                    end: Alignment(.2 + travel, .8 - wave * .15),
-                    colors: const <Color>[
-                      CustomerUiColors.storefrontLimeWash,
-                      CustomerUiColors.storefrontLimeStrong,
-                      CustomerUiColors.storefrontGreenGlow,
-                      CustomerUiColors.white,
-                      CustomerUiColors.storefrontGreenHighlight,
-                    ],
-                    stops: const <double>[0, .22, .48, .7, 1],
-                  ).createShader(bounds),
-                  child: Text(
-                    brand,
-                    maxLines: 1,
-                    style: _style.copyWith(
-                      color: Colors.white,
-                      letterSpacing: arabicBrand ? 0 : .25,
-                    ),
+            return Transform.translate(
+              offset: Offset(0, wave * .8),
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => LinearGradient(
+                  begin: Alignment(-1.8 + travel, -.8 + wave * .15),
+                  end: Alignment(.2 + travel, .8 - wave * .15),
+                  colors: const <Color>[
+                    CustomerUiColors.storefrontLimeWash,
+                    CustomerUiColors.storefrontLimeStrong,
+                    CustomerUiColors.storefrontGreenGlow,
+                    CustomerUiColors.white,
+                    CustomerUiColors.storefrontGreenHighlight,
+                  ],
+                  stops: const <double>[0, .22, .48, .7, 1],
+                ).createShader(bounds),
+                child: Text(
+                  brand,
+                  maxLines: 1,
+                  style: _style.copyWith(
+                    color: Colors.white,
+                    letterSpacing: arabicBrand ? 0 : .25,
                   ),
                 ),
-              );
+              ),
+            );
           },
         ),
         if (rest.isNotEmpty)
@@ -929,8 +927,7 @@ class FoodexAnimatedOxbloodTitle extends StatefulWidget {
       _FoodexAnimatedOxbloodTitleState();
 }
 
-class _FoodexAnimatedOxbloodTitleState
-    extends State<FoodexAnimatedOxbloodTitle>
+class _FoodexAnimatedOxbloodTitleState extends State<FoodexAnimatedOxbloodTitle>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,

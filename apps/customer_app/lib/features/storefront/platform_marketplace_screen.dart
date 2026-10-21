@@ -1755,7 +1755,8 @@ class _WholesaleProductCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: const <BoxShadow>[
                                 BoxShadow(
-                                  color: CustomerUiColors.marketplaceImageShadow,
+                                  color:
+                                      CustomerUiColors.marketplaceImageShadow,
                                   blurRadius: 13,
                                   spreadRadius: 1,
                                   offset: Offset(0, 4),

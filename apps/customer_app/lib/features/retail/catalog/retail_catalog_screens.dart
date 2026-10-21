@@ -1289,8 +1289,7 @@ class _BrowseProductGrid extends StatelessWidget {
   Widget build(BuildContext context) => FutureBuilder<List<B2cCategory>>(
         future: categoriesFuture,
         builder: (context, categorySnapshot) {
-          final categories =
-              categorySnapshot.data ?? const <B2cCategory>[];
+          final categories = categorySnapshot.data ?? const <B2cCategory>[];
           return LayoutBuilder(
             builder: (context, constraints) {
               final cardExtent = _threeColumnProductExtent(
@@ -1342,7 +1341,6 @@ String? _categoryNameFor(
   }
   return null;
 }
-
 
 class RetailCatalogProductScreen extends StatefulWidget {
   const RetailCatalogProductScreen({
@@ -1891,7 +1889,6 @@ double _threeColumnProductExtent({
   final scaledDelta = (textScale - 1).clamp(0.0, 1.0).toDouble();
   return imageHeight + 80 + (scaledDelta * 24);
 }
-
 
 class _BrowseProductCard extends StatelessWidget {
   const _BrowseProductCard({

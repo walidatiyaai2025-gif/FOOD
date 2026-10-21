@@ -376,11 +376,11 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         builder: (context, constraints) {
           const columns = 3;
           const rowGap = 0.0;
-          final gridWidth = constraints.maxWidth -
-              (CustomerUiSpacing.xs * (columns - 1));
+          final gridWidth =
+              constraints.maxWidth - (CustomerUiSpacing.xs * (columns - 1));
           final cellWidth = gridWidth / columns;
-          final imageWidth =
-              (cellWidth - (CustomerUiSpacing.xs * 2)).clamp(0.0, double.infinity);
+          final imageWidth = (cellWidth - (CustomerUiSpacing.xs * 2))
+              .clamp(0.0, double.infinity);
           final imageHeight = imageWidth / 1.75;
           final textScale = MediaQuery.textScalerOf(context).scale(1);
           final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
@@ -439,7 +439,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
           );
         },
       );
-
 }
 
 class _HomeHeroBanner extends StatelessWidget {
@@ -672,8 +671,7 @@ class _RetailBestSellerTickerHeaderState
         Flexible(
           child: FoodexAnimatedOxbloodTitle(
             title: widget.title,
-            fontSize:
-                Theme.of(context).textTheme.titleLarge?.fontSize ?? 22,
+            fontSize: Theme.of(context).textTheme.titleLarge?.fontSize ?? 22,
           ),
         ),
         if (product != null) ...[

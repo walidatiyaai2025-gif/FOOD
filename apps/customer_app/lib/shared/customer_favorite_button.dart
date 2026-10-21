@@ -133,15 +133,18 @@ class _CustomerFavoriteButtonState extends State<CustomerFavoriteButton> {
       shared.productIds
         ..clear()
         ..addAll(
-          rows.whereType<Map>().map(
+          rows
+              .whereType<Map>()
+              .map(
                 (row) => int.tryParse(
                   (row['product'] is Map
-                          ? (row['product'] as Map)['id']
-                          : row['id'])
-                      ?.toString() ??
+                              ? (row['product'] as Map)['id']
+                              : row['id'])
+                          ?.toString() ??
                       '',
                 ),
-              ).whereType<int>(),
+              )
+              .whereType<int>(),
         );
       shared.loaded = true;
       shared.revision.value++;
