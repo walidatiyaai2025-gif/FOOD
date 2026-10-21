@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/config/customer_app_release.dart';
 import '../core/localization/app_translations.dart';
 import '../core/routing/customer_commerce_context.dart';
 import '../core/routing/customer_routes.dart';
@@ -54,26 +53,6 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               isPlatformHome: isPlatformHome,
               disableProducts: disableProducts,
             ),
-            if (activeDestination == CustomerFooterDestination.home)
-              ColoredBox(
-                color: CustomerUiColors.white,
-                child: SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.only(bottom: 2),
-                  child: Center(
-                    child: Text(
-                      'v$customerAppVersion · commit $customerUiCommitMarker',
-                      key: const ValueKey('customer-home-build-marker'),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: CustomerUiColors.muted,
-                            fontSize: 9,
-                            height: 1,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         ],
       ),
