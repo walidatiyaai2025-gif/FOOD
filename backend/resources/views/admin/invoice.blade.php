@@ -97,6 +97,47 @@
             </table>
         </div>
 
+        @if(!empty($invoice['legacy_source_summary']))
+        <section style="margin-top:24px;padding-top:18px;border-top:1px solid var(--foodex-border)">
+            <h2 style="margin:0 0 12px">{{ $isAr ? 'بيانات الفاتورة الأصلية من Foodex' : 'Original Foodex invoice data' }}</h2>
+            <div class="grid" style="margin-top:0">
+                @foreach($invoice['legacy_source_summary'] as $legacySummary)
+                    <div>
+                        <strong>{{ $legacySummary['source_table'] }}</strong><br>
+                        {{ $isAr ? 'عدد السجلات' : 'Records' }}: {{ $legacySummary['row_count'] }}
+                    </div>
+                @endforeach
+            </div>
+
+            @foreach(($invoice['legacy_source_records'] ?? []) as $legacyRecord)
+                <details style="margin-top:10px;border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px">
+                    <summary style="cursor:pointer;font-weight:700">
+                        {{ $legacyRecord['source_table'] }}
+                        · #{{ $legacyRecord['source_row_ordinal'] }}
+                    </summary>
+                    <div style="overflow:auto;margin-top:10px">
+                        <table class="foodex-table" style="width:100%">
+                            <tbody>
+                            @foreach($legacyRecord['payload'] as $legacyKey => $legacyValue)
+                                <tr>
+                                    <th style="text-align:start;white-space:nowrap">{{ $legacyKey }}</th>
+                                    <td>
+                                        @if(is_array($legacyValue))
+                                            <code style="white-space:pre-wrap">{{ json_encode($legacyValue, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</code>
+                                        @else
+                                            {{ $legacyValue === null ? '—' : $legacyValue }}
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            @endforeach
+        </section>
+        @endif
+
         <div class="summary">
             <div>{{ $isAr?'الإجمالي الفرعي':'Subtotal' }}: {{ \App\Support\DisplayNumber::money($invoice['subtotal'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
             <div>{{ $isAr?'الخصم':'Discount' }}: {{ \App\Support\DisplayNumber::money($invoice['discount_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>

@@ -46,7 +46,6 @@ jobs:
               'production',
               'prod',
               'release/1.0.58-van-complete',
-              'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 
@@ -157,7 +156,6 @@ jobs:
               'production',
               'prod',
               'release/1.0.58-van-complete',
-              'release/221-generated-trial-bundle',
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 

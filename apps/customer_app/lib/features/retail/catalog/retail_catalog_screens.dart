@@ -2,6 +2,7 @@ import 'dart:async';
 import '../../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
@@ -140,7 +141,7 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: FoodexWaveLoading());
             }
             if (snapshot.hasError || !snapshot.hasData) {
               return _CatalogErrorState(
@@ -1014,6 +1015,7 @@ class _RetailCatalogProductsScreenState
                         Expanded(
                           child: _BrowseProductGrid(
                             products: products,
+                            categoriesFuture: _categoriesFuture,
                             storeId: widget.storeId,
                             navigation: widget.navigation,
                             onAddToCart: widget.onAddToCart,
@@ -1066,7 +1068,7 @@ class _CatalogPaginationFooter extends StatelessWidget {
         label: context.tr('customer.catalog.loading_more'),
         child: const SizedBox.square(
           dimension: 28,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: FoodexWaveLoading(),
         ),
       );
     } else if (error != null) {
@@ -1271,49 +1273,73 @@ class _SearchSuggestions extends StatelessWidget {
 class _BrowseProductGrid extends StatelessWidget {
   const _BrowseProductGrid({
     required this.products,
+    required this.categoriesFuture,
     required this.storeId,
     required this.navigation,
     required this.onAddToCart,
   });
 
   final List<B2cProduct> products;
+  final Future<List<B2cCategory>> categoriesFuture;
   final int storeId;
   final RetailCatalogNavigation navigation;
   final RetailAddToCart? onAddToCart;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final cardExtent = _threeColumnProductExtent(
-            maxWidth: constraints.maxWidth,
-            horizontalPadding: CustomerUiSpacing.page,
-            textScale: MediaQuery.textScalerOf(context).scale(1),
-          );
+  Widget build(BuildContext context) => FutureBuilder<List<B2cCategory>>(
+        future: categoriesFuture,
+        builder: (context, categorySnapshot) {
+          final categories = categorySnapshot.data ?? const <B2cCategory>[];
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final cardExtent = _threeColumnProductExtent(
+                maxWidth: constraints.maxWidth,
+                horizontalPadding: CustomerUiSpacing.page,
+                textScale: MediaQuery.textScalerOf(context).scale(1),
+              );
 
-          return GridView.builder(
-            key: const ValueKey('retail-products-grid'),
-            padding: const EdgeInsets.fromLTRB(
-              CustomerUiSpacing.page,
-              CustomerUiSpacing.xs,
-              CustomerUiSpacing.page,
-              CustomerUiSpacing.xxl,
-            ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: CustomerUiSpacing.sm,
-              mainAxisExtent: cardExtent,
-            ),
-            itemCount: products.length,
-            itemBuilder: (context, index) => _BrowseProductCard(
-              storeId: storeId,
-              product: products[index],
-              navigation: navigation,
-              onAddToCart: onAddToCart,
-            ),
+              return GridView.builder(
+                key: const ValueKey('retail-products-grid'),
+                padding: const EdgeInsets.fromLTRB(
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.xs,
+                  CustomerUiSpacing.page,
+                  CustomerUiSpacing.xxl,
+                ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: CustomerUiSpacing.xs,
+                  mainAxisSpacing: 0,
+                  mainAxisExtent: cardExtent,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return _BrowseProductCard(
+                    storeId: storeId,
+                    product: product,
+                    categoryLabel: _categoryNameFor(product, categories),
+                    navigation: navigation,
+                    onAddToCart: onAddToCart,
+                  );
+                },
+              );
+            },
           );
         },
       );
+}
+
+String? _categoryNameFor(
+  B2cProduct product,
+  List<B2cCategory> categories,
+) {
+  final categoryId = product.categoryId;
+  if (categoryId == null) return null;
+  for (final category in categories) {
+    if (category.id == categoryId) return category.name;
+  }
+  return null;
 }
 
 class RetailCatalogProductScreen extends StatefulWidget {
@@ -1704,9 +1730,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
                                   icon: _submitting
                                       ? const SizedBox.square(
                                           dimension: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
+                                          child: FoodexWaveLoading(),
                                         )
                                       : const Icon(
                                           Icons.add_shopping_cart_rounded),
@@ -1834,7 +1858,7 @@ class _RelatedProductsGrid extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: CustomerUiSpacing.sm,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: products.length,
@@ -1855,27 +1879,15 @@ double _threeColumnProductExtent({
   required double textScale,
 }) {
   const columns = 3;
-  const skeletonBarsHeight = 78.0;
-  const cardVerticalSafety = 12.0;
   final gridWidth = maxWidth -
       (horizontalPadding * 2) -
       (CustomerUiSpacing.xs * (columns - 1));
   final cellWidth = gridWidth / columns;
-  final skeletonImageWidth = (cellWidth - (CustomerUiSpacing.sm * 2)).clamp(
-    0.0,
-    double.infinity,
-  );
-  final skeletonExtent = (skeletonImageWidth / 1.35) +
-      (CustomerUiSpacing.sm * 2) +
-      CustomerUiSpacing.sm +
-      (CustomerUiSpacing.xs * 2) +
-      CustomerUiSpacing.md +
-      skeletonBarsHeight;
+  final imageWidth =
+      (cellWidth - (CustomerUiSpacing.xs * 2)).clamp(0.0, double.infinity);
+  final imageHeight = imageWidth / 1.75;
   final scaledDelta = (textScale - 1).clamp(0.0, 1.0).toDouble();
-  final textSafeExtent = 258.0 + (scaledDelta * 72.0);
-  final minimumExtent =
-      skeletonExtent > textSafeExtent ? skeletonExtent : textSafeExtent;
-  return (minimumExtent + cardVerticalSafety) * .85;
+  return imageHeight + 80 + (scaledDelta * 24);
 }
 
 class _BrowseProductCard extends StatelessWidget {
@@ -1884,10 +1896,12 @@ class _BrowseProductCard extends StatelessWidget {
     required this.product,
     required this.navigation,
     required this.onAddToCart,
+    this.categoryLabel,
   });
 
   final int storeId;
   final B2cProduct product;
+  final String? categoryLabel;
   final RetailCatalogNavigation navigation;
   final RetailAddToCart? onAddToCart;
 
@@ -1905,6 +1919,7 @@ class _BrowseProductCard extends StatelessWidget {
       key: ValueKey('retail-product-${product.id}'),
       title: product.name,
       priceLabel: priceLabel,
+      categoryLabel: categoryLabel,
       imageUrl: image,
       brandLabel: product.brandName,
       brandImageUrl: product.brandImageUrl,
@@ -1947,7 +1962,7 @@ class _BrowseProductsSkeleton extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: CustomerUiSpacing.sm,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: 6,

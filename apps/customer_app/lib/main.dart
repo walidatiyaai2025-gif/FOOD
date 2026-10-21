@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import 'app.dart';
 import 'core/auth/customer_auth_persistence.dart';
@@ -13,7 +14,7 @@ import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/network/customer_data_mode.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_routes.dart';
-import 'core/theme/customer_ui_v3_tokens.dart';
+import 'core/theme/customer_display_preferences.dart';
 
 const _startupTaskTimeout = Duration(seconds: 3);
 const _pushBootstrapTimeout = Duration(seconds: 10);
@@ -98,6 +99,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
     await Future.wait<void>([
       _initializeDiagnostics(),
       _initializeDataMode(),
+      _initializeDisplayPreferences(),
     ]);
     final restoredBootstrap = await authFuture;
 
@@ -140,6 +142,22 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
       });
     } catch (error) {
       widget.diagnostics.record('data_mode_startup_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
+  Future<void> _initializeDisplayPreferences() async {
+    try {
+      await CustomerDisplayPreferences.instance
+          .initialize()
+          .timeout(_startupTaskTimeout);
+    } on TimeoutException {
+      widget.diagnostics.record('display_preferences_startup_timeout', {
+        'timeout_ms': _startupTaskTimeout.inMilliseconds,
+      });
+    } catch (error) {
+      widget.diagnostics.record('display_preferences_startup_error', {
         'error_type': error.runtimeType.toString(),
       });
     }
@@ -212,23 +230,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
   @override
   Widget build(BuildContext context) {
     if (!_runtimeReady) {
-      return const Directionality(
-        textDirection: TextDirection.rtl,
-        child: ColoredBox(
-          color: CustomerUiColors.deepGreenStrong,
-          child: Center(
-            child: SizedBox(
-              width: 190,
-              child: Image(
-                image: AssetImage(
-                  'assets/branding/foodex-economical-group.webp',
-                ),
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
-      );
+      return const FoodexWaveLoading();
     }
 
     return FoodexCustomerApp(

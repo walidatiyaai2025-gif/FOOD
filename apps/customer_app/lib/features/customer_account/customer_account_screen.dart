@@ -7,6 +7,7 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/network/customer_data_mode.dart';
+import '../../core/theme/customer_display_preferences.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
 import 'customer_account_v3_widgets.dart';
@@ -277,6 +278,33 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
             ),
             children: [
               _profileCard(),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              ValueListenableBuilder<ThemeMode>(
+                valueListenable: CustomerDisplayPreferences.instance.themeMode,
+                builder: (context, themeMode, _) => CustomerAccountSurfaceCard(
+                  key: const ValueKey('customer-account-dark-mode'),
+                  padding: EdgeInsets.zero,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile(
+                      secondary: Icon(
+                        themeMode == ThemeMode.dark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                      ),
+                      title: Text(context.tr('customer.appearance.dark_mode')),
+                      subtitle: Text(
+                        context.tr('customer.appearance.dark_mode_subtitle'),
+                      ),
+                      value: themeMode == ThemeMode.dark,
+                      onChanged: (enabled) async {
+                        await CustomerDisplayPreferences.instance
+                            .setDarkMode(enabled);
+                      },
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: CustomerUiSpacing.sm),
               _dataModeCard(),
               const SizedBox(height: CustomerUiSpacing.sm),

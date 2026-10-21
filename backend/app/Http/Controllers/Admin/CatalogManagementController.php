@@ -85,12 +85,17 @@ final class CatalogManagementController extends Controller
             $scopeParams['support_access'] = 1;
         }
         $navContext = $contextChannel === 'b2c' ? 'b2c_products' : 'b2b_products';
-        $inventoryUrl = $contextStoreId !== null && $contextChannel === 'b2c'
-            ? route('admin.b2c.module', array_merge(
-                ['module' => 'inventory', 'store_id' => $contextStoreId],
-                $actor->hasRole('SUPER_ADMIN') ? ['support_access' => 1] : [],
-            ))
-            : null;
+        $inventoryUrl = null;
+        if ($actor->hasPermission('inventory.view')) {
+            if ($contextStoreId !== null && $contextChannel === 'b2c') {
+                $inventoryUrl = route('admin.b2c.module', array_merge(
+                    ['module' => 'inventory', 'store_id' => $contextStoreId],
+                    $actor->hasRole('SUPER_ADMIN') ? ['support_access' => 1] : [],
+                ));
+            } elseif ($this->canAccessWholesale($actor)) {
+                $inventoryUrl = route('admin.b2b.module', ['module' => 'inventory']);
+            }
+        }
         $categoryImageColumn = Schema::hasColumn('categories', 'image_path')
             ? 'categories.image_path'
             : DB::raw('NULL as image_path');
@@ -107,6 +112,12 @@ final class CatalogManagementController extends Controller
         $productHealth = in_array((string) $request->query('product_health'), ['low_stock', 'unpriced', 'unavailable', 'missing_category', 'missing_brand', 'margin_exception', 'data_quality'], true)
             ? (string) $request->query('product_health')
             : '';
+        $productSort = in_array((string) $request->query('product_sort'), ['name', 'category', 'price', 'stock', 'sku', 'brand', 'status'], true)
+            ? (string) $request->query('product_sort')
+            : '';
+        $productSortDirection = in_array(strtolower((string) $request->query('product_dir')), ['asc', 'desc'], true)
+            ? strtolower((string) $request->query('product_dir'))
+            : 'asc';
         $categorySearch = mb_substr(trim((string) $request->query('category_q', '')), 0, 120);
         $categoryStatus = in_array((string) $request->query('category_status'), ['active', 'inactive'], true)
             ? (string) $request->query('category_status')
@@ -115,6 +126,26 @@ final class CatalogManagementController extends Controller
         if ($categoryParent !== 'root' && (! ctype_digit($categoryParent) || (int) $categoryParent < 1)) {
             $categoryParent = '';
         }
+        $categorySort = in_array((string) $request->query('category_sort'), ['image', 'name', 'slug', 'parent'], true)
+            ? (string) $request->query('category_sort')
+            : 'name';
+        $categorySortDirection = in_array(strtolower((string) $request->query('category_dir')), ['asc', 'desc'], true)
+            ? strtolower((string) $request->query('category_dir'))
+            : 'asc';
+
+        $priceSortExpression = '(SELECT catalog_sort_assignment.price FROM store_products AS catalog_sort_assignment WHERE catalog_sort_assignment.product_id = products.id AND catalog_sort_assignment.store_id = catalogs.store_id LIMIT 1)';
+        $hasWholesaleForSort = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->whereIn('stores.id', $storeIds)
+            ->where('store_types.code', 'B2B')
+            ->exists();
+        $principalWarehouseIdForSort = $hasWholesaleForSort
+            ? app(WholesalePrincipal::class)->warehouseId()
+            : null;
+        $stockWarehouseScope = $principalWarehouseIdForSort === null
+            ? ''
+            : ' AND (catalogs.channel != \'b2b\' OR catalog_sort_warehouse.id = '.(int) $principalWarehouseIdForSort.')';
+        $stockSortExpression = 'COALESCE((SELECT SUM(CASE WHEN catalog_sort_inventory.quantity > catalog_sort_inventory.reserved_quantity THEN catalog_sort_inventory.quantity - catalog_sort_inventory.reserved_quantity ELSE 0 END) FROM inventories AS catalog_sort_inventory INNER JOIN warehouses AS catalog_sort_warehouse ON catalog_sort_warehouse.id = catalog_sort_inventory.warehouse_id WHERE catalog_sort_inventory.product_id = products.id AND catalog_sort_warehouse.store_id = catalogs.store_id AND catalog_sort_warehouse.is_active = 1'.$stockWarehouseScope.'), 0)';
 
         $productColumns = [
             'products.id',
@@ -137,6 +168,8 @@ final class CatalogManagementController extends Controller
             'brands.name as brand',
             'units.name as unit',
             DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
+            DB::raw($priceSortExpression.' as grid_price'),
+            DB::raw($stockSortExpression.' as grid_stock_quantity'),
         ];
         $productQuery = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -281,8 +314,23 @@ final class CatalogManagementController extends Controller
             }
         }
 
+        $productSortColumns = [
+            'name' => 'products.name',
+            'category' => 'categories.name',
+            'sku' => 'products.sku',
+            'brand' => 'brands.name',
+            'status' => 'products.is_active',
+        ];
+        if ($productSort === 'price') {
+            $productQuery->orderByRaw($priceSortExpression.' '.$productSortDirection);
+        } elseif ($productSort === 'stock') {
+            $productQuery->orderByRaw($stockSortExpression.' '.$productSortDirection);
+        } elseif (isset($productSortColumns[$productSort])) {
+            $productQuery->orderBy($productSortColumns[$productSort], $productSortDirection);
+        }
+        $productQuery->orderByDesc('products.id');
+
         $products = $productQuery
-            ->orderByDesc('products.id')
             ->paginate(25, $productColumns, 'product_page')
             ->withQueryString();
         $products->setCollection($products->getCollection()->map(function (object $product): object {
@@ -329,8 +377,19 @@ final class CatalogManagementController extends Controller
             'parent.name as parent_name',
         ];
         $categories = (clone $categoryQuery)->orderBy('categories.name')->get($categoryColumns);
+        $categorySortColumns = [
+            'name' => 'categories.name',
+            'slug' => 'categories.slug',
+            'parent' => 'parent.name',
+        ];
+        if ($categorySort === 'image' && Schema::hasColumn('categories', 'image_path')) {
+            $categoryRowsQuery->orderBy('categories.image_path', $categorySortDirection);
+        } elseif (isset($categorySortColumns[$categorySort])) {
+            $categoryRowsQuery->orderBy($categorySortColumns[$categorySort], $categorySortDirection);
+        }
+        $categoryRowsQuery->orderBy('categories.id');
+
         $categoryRows = $categoryRowsQuery
-            ->orderBy('categories.name')
             ->paginate(25, $categoryColumns, 'category_page')
             ->withQueryString();
 
@@ -366,11 +425,15 @@ final class CatalogManagementController extends Controller
                 'status' => $productStatus,
                 'availability' => $productAvailability,
                 'health' => $productHealth,
+                'sort' => $productSort,
+                'dir' => $productSortDirection,
             ],
             'categoryFilters' => [
                 'q' => $categorySearch,
                 'parent' => $categoryParent,
                 'status' => $categoryStatus,
+                'sort' => $categorySort,
+                'dir' => $categorySortDirection,
             ],
             'filterBrands' => $this->lookups
                 ->visible(Brand::query(), $actor, 'brands')
@@ -738,6 +801,58 @@ final class CatalogManagementController extends Controller
         }
 
         return back()->with('status', $this->msg('تم تعديل المنتج وصوره.', 'Product and images updated.'));
+    }
+
+    public function updateProductPrice(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $this->authorizeCatalogAction($request, 'catalog.manage', (int) $owner->store_id, (string) $owner->channel);
+
+        $data = $request->validate([
+            'price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $before = DB::table('store_products')
+            ->where('store_id', (int) $owner->store_id)
+            ->where('product_id', $product)
+            ->first();
+        $price = $data['price'] ?? null;
+
+        if ($before !== null) {
+            DB::table('store_products')
+                ->where('store_id', (int) $owner->store_id)
+                ->where('product_id', $product)
+                ->update([
+                    'price' => $price,
+                    'updated_at' => now(),
+                ]);
+        } else {
+            $productActive = (bool) DB::table('products')->where('id', $product)->value('is_active');
+            DB::table('store_products')->insert([
+                'store_id' => (int) $owner->store_id,
+                'product_id' => $product,
+                'price' => $price,
+                'is_active' => $productActive,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $after = DB::table('store_products')
+            ->where('store_id', (int) $owner->store_id)
+            ->where('product_id', $product)
+            ->first();
+
+        app(AuditLogger::class)->record(
+            'catalog.product.price_updated',
+            $this->actor($request),
+            Product::query()->find($product),
+            $before === null ? null : (array) $before,
+            $after === null ? null : (array) $after,
+            $request,
+        );
+
+        return back()->with('status', $this->msg('تم تحديث السعر مباشرة من الجدول.', 'Product price updated from the grid.'));
     }
 
     public function toggleProductStatus(Request $request, int $product): RedirectResponse

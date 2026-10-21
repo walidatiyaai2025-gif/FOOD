@@ -88,6 +88,29 @@ class AdminCatalogManagementTest extends TestCase
             'store_id' => $storeId,
             'product_id' => $productId,
         ]);
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId.'/price', [
+            'price' => 0.750,
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 0.750,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1&product_sort=price&product_dir=desc')
+            ->assertOk()
+            ->assertSee('catalog-inline-price-input', false)
+            ->assertSee('catalog-sort-link', false)
+            ->assertSee('✎');
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=categories&store_id='.$storeId.'&support_access=1&category_sort=slug&category_dir=desc')
+            ->assertOk()
+            ->assertSee('catalog-sort-link', false);
+
         $catalogId = (int) DB::table('catalogs')->where('store_id', $storeId)->where('code', 'default')->value('id');
         $this->assertDatabaseHas('products', ['id' => $productId, 'catalog_id' => $catalogId]);
         $this->assertDatabaseHas('categories', ['id' => $categoryId, 'catalog_id' => $catalogId]);

@@ -16,7 +16,8 @@ import '../routing/customer_routes.dart';
 const customerBundleId = 'com.fiftysolution.foodex.customer';
 const _customerPushChannelId = 'foodex_customer_high_priority';
 const _customerPushChannelName = 'FOODEX Customer';
-const _customerPushChannelDescription = 'FOODEX customer alerts and promotional notifications.';
+const _customerPushChannelDescription =
+    'FOODEX customer alerts and promotional notifications.';
 const _customerInstallIdPreferenceKey = 'foodex_customer_install_id_v1';
 
 Future<String> _loadOrCreateCustomerInstallId() async {
@@ -82,9 +83,8 @@ Future<void> showFoodexLocalNotification(RemoteMessage message) async {
   final title = message.notification?.title ??
       message.data['title']?.toString() ??
       'FOODEX';
-  final body = message.notification?.body ??
-      message.data['body']?.toString() ??
-      '';
+  final body =
+      message.notification?.body ?? message.data['body']?.toString() ?? '';
   final imageUrl = (message.notification?.android?.imageUrl ??
           message.notification?.apple?.imageUrl ??
           message.data['image_url']?.toString())
@@ -241,7 +241,18 @@ class CustomerPushDeviceRegistry {
         'target_channel': 'all',
       }),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) return null;
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      CustomerDiagnostics.instance.record(
+        'push_device_registration_http_failure',
+        {
+          'endpoint': endpoint,
+          'status_code': response.statusCode,
+          'mode':
+              accessToken == null || accessToken.isEmpty ? 'guest' : 'session',
+        },
+      );
+      return null;
+    }
 
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic> || decoded['data'] is! Map) {
@@ -317,10 +328,20 @@ class CustomerFirebasePushService {
       );
 
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(
+      await messaging.setAutoInitEnabled(true);
+      final permission = await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
+      );
+      CustomerDiagnostics.instance.record(
+        'push_permission_state',
+        {
+          'authorization_status': permission.authorizationStatus.name,
+          'alert': permission.alert.name,
+          'badge': permission.badge.name,
+          'sound': permission.sound.name,
+        },
       );
       await messaging.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -440,10 +461,25 @@ class CustomerFirebasePushService {
 
     final installId = await _installId();
     final token = await messaging.getToken();
+    CustomerDiagnostics.instance.record(
+      'push_token_state',
+      {
+        'mode': 'guest',
+        'available': token != null && token.isNotEmpty,
+      },
+    );
     if (token != null && token.isNotEmpty) {
-      await registry.registerGuest(
+      final deviceId = await registry.registerGuest(
         firebaseToken: token,
         installId: installId,
+      );
+      CustomerDiagnostics.instance.record(
+        'push_device_registration',
+        {
+          'mode': 'guest',
+          'registered': deviceId != null,
+          if (deviceId != null) 'device_id': deviceId,
+        },
       );
     }
 
@@ -480,11 +516,26 @@ class CustomerFirebasePushService {
 
     final installId = await _installId();
     final token = await messaging.getToken();
+    CustomerDiagnostics.instance.record(
+      'push_token_state',
+      {
+        'mode': 'session',
+        'available': token != null && token.isNotEmpty,
+      },
+    );
     if (token != null && token.isNotEmpty) {
       _deviceId = await registry.register(
         accessToken: accessToken,
         firebaseToken: token,
         installId: installId,
+      );
+      CustomerDiagnostics.instance.record(
+        'push_device_registration',
+        {
+          'mode': 'session',
+          'registered': _deviceId != null,
+          if (_deviceId != null) 'device_id': _deviceId,
+        },
       );
     }
 

@@ -17,20 +17,17 @@ final class LegacyDatabaseOneShotContractTest extends TestCase
         $this->assertStringContainsString('LegacyImportRehearsalResetService', $source);
     }
 
-    public function test_one_shot_stock_is_fail_closed_and_normalized_to_principal_warehouse(): void
+    public function test_one_shot_stock_is_fail_closed_and_attached_to_wholesale_store(): void
     {
         $source = file_get_contents(app_path('Services/LegacyDatabaseOneShotService.php'));
 
         $this->assertIsString($source);
         $this->assertStringContainsString('accepted_stock_detail_rows', $source);
         $this->assertStringContainsString('positive_positions', $source);
-        $this->assertStringContainsString('positive_products', $source);
         $this->assertStringContainsString('unmapped_locations', $source);
         $this->assertStringContainsString('unmapped_items', $source);
-        $this->assertStringContainsString('normalizeLegacyStockToPrincipalWarehouse', $source);
-        $this->assertStringContainsString('principalWarehouseId', $source);
-        $this->assertStringContainsString('nonPrincipalLegacyTargets', $source);
-        $this->assertStringContainsString('principal_warehouse_product_aggregate', $source);
+        $this->assertStringContainsString('FOODEX-WHOLESALE', $source);
+        $this->assertStringContainsString('storeInventoryRows', $source);
     }
 
     public function test_one_shot_command_exposes_single_command_safe_reset_mode(): void
@@ -41,6 +38,5 @@ final class LegacyDatabaseOneShotContractTest extends TestCase
         $this->assertStringContainsString('--reset-approved-scope', $routes);
         $this->assertStringContainsString('--confirm=', $routes);
         $this->assertStringContainsString('expected.positive_positions', $routes);
-        $this->assertStringContainsString('expected.positive_products', $routes);
     }
 }

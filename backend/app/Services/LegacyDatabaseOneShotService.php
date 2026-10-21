@@ -17,7 +17,6 @@ final class LegacyDatabaseOneShotService
         private readonly LegacyFoodexImportService $importer,
         private readonly LegacyFinanceAssetMaterializerService $assets,
         private readonly LegacyImportRehearsalResetService $reset,
-        private readonly WholesalePrincipal $principal,
     ) {}
 
     public function run(
@@ -188,12 +187,6 @@ final class LegacyDatabaseOneShotService
     private function runVerifiedPhase(string $phase, string $verifyCommand, ?callable $progress): array
     {
         $this->progress($progress, $phase, 'start');
-
-        $normalization = null;
-        if ($phase === 'stock') {
-            $normalization = $this->normalizeLegacyStockToPrincipalWarehouse();
-        }
-
         $before = $this->artisanJson($verifyCommand);
         if ($before['exit_code'] === 0 && (bool) ($before['report']['healthy'] ?? false)) {
             if ($phase === 'stock') {
@@ -203,26 +196,18 @@ final class LegacyDatabaseOneShotService
             $this->progress($progress, $phase, 'done');
 
             return [
-                'status' => $phase === 'stock' && ($normalization['normalized'] ?? false)
-                    ? 'already_verified_and_principal_normalized'
-                    : 'already_verified',
-                'normalization' => $normalization,
+                'status' => 'already_verified',
                 'verification' => $before['report'],
             ];
         }
 
         $dryRun = $this->importPhase($phase, false);
-        $expectedStockProducts = null;
+        $expectedStockPositions = null;
         if ($phase === 'stock') {
-            $expectedStockProducts = $this->assertStockPlan($dryRun);
+            $expectedStockPositions = $this->assertStockPlan($dryRun);
         }
 
         $apply = $this->importPhase($phase, true);
-
-        if ($phase === 'stock') {
-            $normalization = $this->normalizeLegacyStockToPrincipalWarehouse();
-        }
-
         $after = $this->artisanJson($verifyCommand);
 
         if ($after['exit_code'] !== 0 || ! (bool) ($after['report']['healthy'] ?? false)) {
@@ -230,7 +215,7 @@ final class LegacyDatabaseOneShotService
         }
 
         if ($phase === 'stock') {
-            $this->assertStockVerification($after['report'], $expectedStockProducts);
+            $this->assertStockVerification($after['report'], $expectedStockPositions);
         }
 
         $this->progress($progress, $phase, 'done');
@@ -239,7 +224,6 @@ final class LegacyDatabaseOneShotService
             'status' => 'applied_and_verified',
             'dry_run' => $dryRun,
             'apply' => $apply,
-            'normalization' => $normalization,
             'verification' => $after['report'],
         ];
     }
@@ -248,12 +232,11 @@ final class LegacyDatabaseOneShotService
     {
         $planned = (array) ($dryRun['planned'] ?? []);
         $accepted = (int) ($planned['accepted_stock_detail_rows'] ?? 0);
-        $positivePositions = (int) ($planned['positive_positions'] ?? 0);
-        $positiveProducts = (int) ($planned['positive_products'] ?? 0);
+        $positive = (int) ($planned['positive_positions'] ?? 0);
 
-        if ($accepted <= 0 || $positivePositions <= 0 || $positiveProducts <= 0) {
+        if ($accepted <= 0 || $positive <= 0) {
             throw new RuntimeException(
-                'Stock one-shot refused: the source scan did not produce any positive cutover product inventory.'
+                'Stock one-shot refused: the source scan did not produce any positive cutover inventory positions.'
             );
         }
 
@@ -265,18 +248,14 @@ final class LegacyDatabaseOneShotService
             }
         }
 
-        return $positiveProducts;
+        return $positive;
     }
 
-    private function assertStockVerification(array $report, ?int $expectedPositiveProducts = null): void
+    private function assertStockVerification(array $report, ?int $expectedPositivePositions = null): void
     {
-        $expected = $expectedPositiveProducts
-            ?? (int) (
-                $report['expected']['positive_products']
-                ?? $report['latest_run']['summary']['planned']['positive_products']
-                ?? $report['expected']['positive_positions']
-                ?? 0
-            );
+        $expected = $expectedPositivePositions
+            ?? (int) (($report['expected']['positive_positions'] ?? null)
+                ?? ($report['latest_run']['summary']['planned']['positive_positions'] ?? 0));
 
         $actual = (int) ($report['inventories']['total'] ?? 0);
         $positive = (int) ($report['inventories']['positive'] ?? 0);
@@ -286,284 +265,37 @@ final class LegacyDatabaseOneShotService
         if ($expected <= 0 || $actual !== $expected || $positive !== $expected
             || $movements !== $expected || $mappings !== $expected) {
             throw new RuntimeException(
-                'Stock one-shot verification refused: expected positive products do not match '.
-                "inventories/movements/mapped-targets ({$expected}/{$actual}/{$movements}/{$mappings})."
+                'Stock one-shot verification refused: expected positive positions do not match '.
+                "inventories/movements/mappings ({$expected}/{$actual}/{$movements}/{$mappings})."
             );
         }
 
-        $principalWarehouseId = $this->principal->warehouseId();
-        $principalStoreId = $this->principal->storeId();
+        $wholesaleStoreId = DB::table('stores')
+            ->where('code', 'FOODEX-WHOLESALE')
+            ->value('id');
 
-        $principalInventoryRows = (int) DB::table('inventories')
-            ->where('warehouse_id', $principalWarehouseId)
-            ->where('quantity', '>', 0)
+        if ($wholesaleStoreId === null) {
+            throw new RuntimeException('Stock one-shot verification refused: FOODEX-WHOLESALE store is missing.');
+        }
+
+        $storeInventoryRows = (int) DB::table('inventories as i')
+            ->join('warehouses as w', 'w.id', '=', 'i.warehouse_id')
+            ->where('w.store_id', (int) $wholesaleStoreId)
+            ->where('i.quantity', '>', 0)
             ->count();
 
-        $principalQuantity = (float) DB::table('inventories')
-            ->where('warehouse_id', $principalWarehouseId)
-            ->where('quantity', '>', 0)
-            ->sum('quantity');
+        $storeQuantity = (float) DB::table('inventories as i')
+            ->join('warehouses as w', 'w.id', '=', 'i.warehouse_id')
+            ->where('w.store_id', (int) $wholesaleStoreId)
+            ->where('i.quantity', '>', 0)
+            ->sum('i.quantity');
 
-        $nonPrincipalLegacyTargets = (int) DB::table('legacy_import_mappings as m')
-            ->join('inventories as i', 'i.id', '=', 'm.target_id')
-            ->where('m.source_system', self::SOURCE_SYSTEM)
-            ->where('m.source_table', 'wh_vw_ItemStock2Now')
-            ->where('m.target_table', 'inventories')
-            ->where('i.warehouse_id', '<>', $principalWarehouseId)
-            ->count();
-
-        $principalBelongsToStore = DB::table('warehouses')
-            ->where('id', $principalWarehouseId)
-            ->where('store_id', $principalStoreId)
-            ->where('is_active', true)
-            ->exists();
-
-        if (! $principalBelongsToStore || $principalInventoryRows !== $expected
-            || $principalQuantity <= 0 || $nonPrincipalLegacyTargets !== 0) {
+        if ($storeInventoryRows !== $expected || $storeQuantity <= 0) {
             throw new RuntimeException(
-                'Stock one-shot verification refused: imported wholesale stock is not fully normalized '.
-                "to the principal warehouse ({$principalInventoryRows}/{$expected}, qty={$principalQuantity}, ".
-                "non_principal_mappings={$nonPrincipalLegacyTargets})."
+                'Stock one-shot verification refused: imported inventory is not fully attached to '.
+                "FOODEX-WHOLESALE ({$storeInventoryRows}/{$expected}, qty={$storeQuantity})."
             );
         }
-    }
-
-    /** @return array<string,mixed> */
-    private function normalizeLegacyStockToPrincipalWarehouse(): array
-    {
-        $mappings = DB::table('legacy_import_mappings')
-            ->where('source_system', self::SOURCE_SYSTEM)
-            ->where('source_table', 'wh_vw_ItemStock2Now')
-            ->where('target_table', 'inventories')
-            ->get(['id', 'source_key', 'target_id']);
-
-        if ($mappings->isEmpty()) {
-            return [
-                'normalized' => false,
-                'reason' => 'no_legacy_stock_mappings',
-                'principal_inventory_rows' => 0,
-                'principal_quantity' => 0.0,
-            ];
-        }
-
-        $mappedInventoryIds = $mappings
-            ->pluck('target_id')
-            ->map(static fn ($id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $inventoryRows = DB::table('inventories')
-            ->whereIn('id', $mappedInventoryIds)
-            ->get(['id', 'warehouse_id', 'product_id', 'quantity', 'reserved_quantity']);
-
-        if ($inventoryRows->count() !== count($mappedInventoryIds)) {
-            throw new RuntimeException(
-                'Stock one-shot normalization refused: one or more mapped legacy inventory rows are missing.'
-            );
-        }
-
-        $aggregates = [];
-        $productByInventoryId = [];
-
-        foreach ($inventoryRows as $row) {
-            $inventoryId = (int) $row->id;
-            $productId = (int) $row->product_id;
-            $reserved = (float) $row->reserved_quantity;
-
-            if ($productId <= 0 || abs($reserved) > 0.0001) {
-                throw new RuntimeException(
-                    'Stock one-shot normalization refused: legacy baseline inventory contains invalid product or reservation state.'
-                );
-            }
-
-            $productByInventoryId[$inventoryId] = $productId;
-            $quantity = max(0.0, (float) $row->quantity);
-
-            if (! isset($aggregates[$productId])) {
-                $aggregates[$productId] = [
-                    'quantity' => 0.0,
-                    'source_inventory_ids' => [],
-                ];
-            }
-
-            $aggregates[$productId]['quantity'] += $quantity;
-            $aggregates[$productId]['source_inventory_ids'][] = $inventoryId;
-        }
-
-        $aggregates = array_filter(
-            $aggregates,
-            static fn (array $row): bool => (float) $row['quantity'] > 0.0005,
-        );
-
-        if ($aggregates === []) {
-            throw new RuntimeException(
-                'Stock one-shot normalization refused: mapped legacy stock contains no positive product quantities.'
-            );
-        }
-
-        $principalStoreId = $this->principal->storeId();
-        $principalWarehouseId = $this->principal->warehouseId();
-
-        return DB::transaction(function () use (
-            $mappings,
-            $mappedInventoryIds,
-            $productByInventoryId,
-            $aggregates,
-            $principalStoreId,
-            $principalWarehouseId,
-        ): array {
-            $targetByProduct = [];
-            $created = 0;
-            $updated = 0;
-
-            foreach ($aggregates as $productId => $aggregate) {
-                $quantity = round((float) $aggregate['quantity'], 3);
-
-                $inventory = DB::table('inventories')
-                    ->where('warehouse_id', $principalWarehouseId)
-                    ->where('product_id', (int) $productId)
-                    ->lockForUpdate()
-                    ->first(['id', 'quantity', 'reserved_quantity']);
-
-                if ($inventory !== null
-                    && ! in_array((int) $inventory->id, $mappedInventoryIds, true)) {
-                    throw new RuntimeException(
-                        'Stock one-shot normalization refused: principal warehouse already contains non-legacy product stock.'
-                    );
-                }
-
-                if ($inventory === null) {
-                    $inventoryId = (int) DB::table('inventories')->insertGetId([
-                        'warehouse_id' => $principalWarehouseId,
-                        'product_id' => (int) $productId,
-                        'quantity' => $quantity,
-                        'reserved_quantity' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    $created++;
-                } else {
-                    $inventoryId = (int) $inventory->id;
-                    DB::table('inventories')->where('id', $inventoryId)->update([
-                        'quantity' => $quantity,
-                        'reserved_quantity' => 0,
-                        'updated_at' => now(),
-                    ]);
-                    $updated++;
-                }
-
-                $targetByProduct[(int) $productId] = $inventoryId;
-
-                DB::table('stock_movements')->updateOrInsert(
-                    [
-                        'inventory_id' => $inventoryId,
-                        'type' => 'legacy_opening_balance',
-                        'reference_type' => 'legacy_foodex_stock_baseline',
-                        'reference_id' => $inventoryId,
-                    ],
-                    [
-                        'store_id' => $principalStoreId,
-                        'user_id' => null,
-                        'quantity' => $quantity,
-                        'reason' => 'Legacy Foodex cutover opening balance consolidated into FOODEX principal warehouse',
-                        'notes' => $this->json([
-                            'source_system' => self::SOURCE_SYSTEM,
-                            'source_view' => 'dbo.wh_vw_ItemStock2Now',
-                            'normalization' => 'principal_warehouse_product_aggregate',
-                            'source_inventory_ids' => $aggregate['source_inventory_ids'],
-                        ]),
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ],
-                );
-            }
-
-            foreach ($mappings as $mapping) {
-                $sourceInventoryId = (int) $mapping->target_id;
-                $productId = $productByInventoryId[$sourceInventoryId] ?? null;
-                $targetInventoryId = $productId === null ? null : ($targetByProduct[$productId] ?? null);
-
-                if ($targetInventoryId === null) {
-                    throw new RuntimeException(
-                        'Stock one-shot normalization refused: legacy stock mapping cannot be resolved to a principal product inventory.'
-                    );
-                }
-
-                DB::table('legacy_import_mappings')
-                    ->where('id', $mapping->id)
-                    ->update([
-                        'target_id' => $targetInventoryId,
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            $keepInventoryIds = array_values(array_unique(array_values($targetByProduct)));
-
-            $ownedInventoryIds = DB::table('stock_movements')
-                ->where('type', 'legacy_opening_balance')
-                ->where('reference_type', 'legacy_foodex_stock_baseline')
-                ->pluck('inventory_id')
-                ->map(static fn ($id): int => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-            $obsoleteInventoryIds = array_values(array_diff($ownedInventoryIds, $keepInventoryIds));
-
-            if ($obsoleteInventoryIds !== []) {
-                $foreignMovements = (int) DB::table('stock_movements')
-                    ->whereIn('inventory_id', $obsoleteInventoryIds)
-                    ->where(static function ($query): void {
-                        $query->where('type', '<>', 'legacy_opening_balance')
-                            ->orWhere('reference_type', '<>', 'legacy_foodex_stock_baseline');
-                    })
-                    ->count();
-
-                $reservedRows = (int) DB::table('inventories')
-                    ->whereIn('id', $obsoleteInventoryIds)
-                    ->where('reserved_quantity', '<>', 0)
-                    ->count();
-
-                if ($foreignMovements !== 0 || $reservedRows !== 0) {
-                    throw new RuntimeException(
-                        'Stock one-shot normalization refused: obsolete legacy inventory has non-baseline activity or reservations.'
-                    );
-                }
-
-                DB::table('stock_movements')
-                    ->whereIn('inventory_id', $obsoleteInventoryIds)
-                    ->where('type', 'legacy_opening_balance')
-                    ->where('reference_type', 'legacy_foodex_stock_baseline')
-                    ->delete();
-
-                DB::table('inventories')
-                    ->whereIn('id', $obsoleteInventoryIds)
-                    ->delete();
-            }
-
-            $principalRows = (int) DB::table('inventories')
-                ->where('warehouse_id', $principalWarehouseId)
-                ->where('quantity', '>', 0)
-                ->count();
-
-            $principalQuantity = (float) DB::table('inventories')
-                ->where('warehouse_id', $principalWarehouseId)
-                ->where('quantity', '>', 0)
-                ->sum('quantity');
-
-            return [
-                'normalized' => true,
-                'principal_store_id' => $principalStoreId,
-                'principal_warehouse_id' => $principalWarehouseId,
-                'principal_inventory_rows' => $principalRows,
-                'principal_quantity' => round($principalQuantity, 3),
-                'created' => $created,
-                'updated' => $updated,
-                'removed_obsolete_inventory_rows' => count($obsoleteInventoryIds),
-                'source_position_mappings' => $mappings->count(),
-            ];
-        }, 3);
     }
 
     private function runAssets(?callable $progress): array

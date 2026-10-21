@@ -40,11 +40,11 @@ class CustomerPersistentFooterShell extends StatelessWidget {
     final visible = MediaQuery.of(context).viewInsets.bottom < 24;
 
     return ColoredBox(
-      color: CustomerUiColors.mint,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
           Expanded(child: child),
-          if (visible)
+          if (visible) ...[
             CustomerPersistentFooterDock(
               commerceContext: commerceContext,
               activeDestination: activeDestination,
@@ -53,6 +53,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               isPlatformHome: isPlatformHome,
               disableProducts: disableProducts,
             ),
+          ],
         ],
       ),
     );
@@ -83,7 +84,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
     if (media.viewInsets.bottom >= 24) return const SizedBox.shrink();
 
     return ColoredBox(
-      color: CustomerUiColors.white,
+      color: Theme.of(context).cardColor,
       child: CustomerPersistentFooter(
         commerceContext: commerceContext,
         activeDestination: activeDestination,
@@ -192,15 +193,15 @@ class CustomerPersistentFooter extends StatelessWidget {
 
     return Material(
       key: const ValueKey('customer-persistent-footer'),
-      color: CustomerUiColors.white,
+      color: Theme.of(context).cardColor,
       elevation: CustomerUiElevation.floating,
       shadowColor: CustomerUiColors.shadow,
       clipBehavior: Clip.hardEdge,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: CustomerUiColors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
           border: Border(
-            top: BorderSide(color: CustomerUiColors.border),
+            top: BorderSide(color: Theme.of(context).dividerColor),
           ),
         ),
         child: ConstrainedBox(
@@ -386,7 +387,7 @@ class _FooterButton extends StatelessWidget {
                     size: active ? 27 : 24,
                     color: active
                         ? CustomerUiColors.deepGreenStrong
-                        : CustomerUiColors.muted,
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -401,7 +402,7 @@ class _FooterButton extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: active
                               ? CustomerUiColors.deepGreenStrong
-                              : CustomerUiColors.muted,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight:
                               active ? FontWeight.w900 : FontWeight.w700,
                           fontSize: 10.5,

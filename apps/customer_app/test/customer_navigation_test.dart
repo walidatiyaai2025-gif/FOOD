@@ -504,7 +504,10 @@ void main() {
     );
     await _pumpCustomerFrames(tester);
 
-    expect(find.text('فودكس للأعمال'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+      findsOneWidget,
+    );
     expect(find.text('/b2b/dashboard'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-route-location')),

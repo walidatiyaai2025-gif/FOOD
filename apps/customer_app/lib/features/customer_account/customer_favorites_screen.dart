@@ -172,7 +172,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
                         crossAxisSpacing: CustomerUiSpacing.xs,
-                        mainAxisSpacing: CustomerUiSpacing.sm,
+                        mainAxisSpacing: 0,
                         mainAxisExtent: cardExtent,
                       ),
                       itemCount: rows.length,
@@ -190,6 +190,8 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                         final currency = product['currency']?.toString() ??
                             raw['currency']?.toString();
                         final imageUrl = _imageUrl(product);
+                        final categoryLabel =
+                            product['category_name']?.toString().trim();
                         final brandLabel =
                             product['brand_name']?.toString().trim();
                         final brandImageUrl =
@@ -204,6 +206,9 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                           ),
                           title: name,
                           priceLabel: _priceLabel(price, currency),
+                          categoryLabel: categoryLabel?.isEmpty == true
+                              ? null
+                              : categoryLabel,
                           imageUrl: imageUrl,
                           brandLabel:
                               brandLabel?.isEmpty == true ? null : brandLabel,
@@ -304,7 +309,7 @@ class _FavoritesSkeleton extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: CustomerUiSpacing.sm,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: 6,
@@ -321,9 +326,16 @@ double _favoriteGridCardExtent(
   double maxWidth,
   int columns,
 ) {
+  final gridWidth = maxWidth -
+      (CustomerUiSpacing.page * 2) -
+      (CustomerUiSpacing.xs * (columns - 1));
+  final cellWidth = gridWidth / columns;
+  final imageWidth =
+      (cellWidth - (CustomerUiSpacing.xs * 2)).clamp(0.0, double.infinity);
+  final imageHeight = imageWidth / 1.75;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
   final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-  return (368.0 + (scaledDelta * 240.0)) * .85;
+  return imageHeight + 80 + (scaledDelta * 24);
 }
 
 class _ScrollableState extends StatelessWidget {
