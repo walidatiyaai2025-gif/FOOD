@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings, deprecated_member_use
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -35,6 +36,127 @@ void syncFoodexWholesaleCartProductCount(Object? payload) {
   }).length;
 
   foodexWholesaleCartProductCount.value = count;
+}
+
+OverlayEntry? _foodexWholesaleCartAddHoverEntry;
+Timer? _foodexWholesaleCartAddHoverTimer;
+
+void showFoodexWholesaleCartAddHover({
+  required OverlayState overlay,
+  required TextDirection textDirection,
+  required double topInset,
+  required String productName,
+  String? imageUrl,
+  Duration duration = const Duration(seconds: 5),
+}) {
+  _foodexWholesaleCartAddHoverTimer?.cancel();
+  _foodexWholesaleCartAddHoverEntry?.remove();
+  _foodexWholesaleCartAddHoverEntry = null;
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: topInset + 48,
+      left: textDirection == TextDirection.rtl ? 10 : null,
+      right: textDirection == TextDirection.ltr ? 10 : null,
+      child: Material(
+        color: Colors.transparent,
+        child: IgnorePointer(
+          child: Container(
+            key: const ValueKey('wholesale-cart-add-hover'),
+            constraints: const BoxConstraints(maxWidth: 250),
+            padding: const EdgeInsets.fromLTRB(8, 7, 9, 7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE3E9E5)),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x26000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              textDirection: textDirection,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F8F4),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: imageUrl != null && imageUrl.trim().isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.inventory_2_outlined,
+                            size: 19,
+                            color: Color(0xFF078A43),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 19,
+                          color: Color(0xFF078A43),
+                        ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'تمت الإضافة للسلة',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Color(0xFF006736),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        productName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF102033),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: Color(0xFF078A43),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  _foodexWholesaleCartAddHoverEntry = entry;
+  overlay.insert(entry);
+  _foodexWholesaleCartAddHoverTimer = Timer(duration, () {
+    if (_foodexWholesaleCartAddHoverEntry == entry) {
+      entry.remove();
+      _foodexWholesaleCartAddHoverEntry = null;
+    }
+  });
 }
 
 class FoodexPalette {
