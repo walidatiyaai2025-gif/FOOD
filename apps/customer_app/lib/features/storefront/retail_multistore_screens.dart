@@ -1196,6 +1196,16 @@ class _RetailProductGrid extends StatelessWidget {
                             palette: palette,
                           ),
                         ),
+                        if (category?.trim().isNotEmpty == true)
+                          Positioned(
+                            left: 3,
+                            top: 3,
+                            child: _RetailProductMetaBadge(
+                              label: category!,
+                              background: palette.soft,
+                              foreground: const Color(0xFF5F6C67),
+                            ),
+                          ),
                         if (product.isAvailable)
                           Positioned(
                             left: 3,
@@ -1256,28 +1266,13 @@ class _RetailProductGrid extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Row(
-                    textDirection: TextDirection.ltr,
-                    children: [
-                      if (category?.trim().isNotEmpty == true)
-                        Flexible(
-                          child: _RetailProductMetaBadge(
-                            label: category!,
-                            background: palette.soft,
-                            foreground: const Color(0xFF5F6C67),
-                          ),
-                        )
-                      else
-                        const SizedBox.shrink(),
-                      const Spacer(),
-                      Flexible(
-                        child: _RetailProductMetaBadge(
-                          label: price,
-                          background: const Color(0xFFE8F7EE),
-                          foreground: palette.primaryDark,
-                        ),
-                      ),
-                    ],
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: _RetailProductMetaBadge(
+                      label: price,
+                      background: const Color(0xFFE8F7EE),
+                      foreground: palette.primaryDark,
+                    ),
                   ),
                 ],
               ),
