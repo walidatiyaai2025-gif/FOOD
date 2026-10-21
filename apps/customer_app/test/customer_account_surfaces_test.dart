@@ -265,7 +265,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final contact = find.byKey(const ValueKey('customer-account-contact-us'));
-    await tester.ensureVisible(contact);
+    await tester.dragUntilVisible(
+      contact,
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
     await tester.tap(contact);
     await tester.pumpAndSettle();
 
