@@ -11,8 +11,8 @@ final class LegacyProtectedResetReadinessContractTest extends TestCase
         $source = file_get_contents(app_path('Services/LegacyFoodexImportService.php'));
 
         $this->assertIsString($source);
-        $this->assertStringContainsString("'legacy_protected_reset_ready' => $legacyProtectedResetReady", $source);
-        $this->assertStringContainsString("&& ! ($preflight['target']['legacy_protected_reset_ready'] ?? false)", $source);
+        $this->assertStringContainsString("'legacy_protected_reset_ready' => \$legacyProtectedResetReady", $source);
+        $this->assertStringContainsString("&& ! (\$preflight['target']['legacy_protected_reset_ready'] ?? false)", $source);
         $this->assertStringContainsString('private function legacyProtectedResetReady(array $sourceCounts): bool', $source);
 
         foreach ([
