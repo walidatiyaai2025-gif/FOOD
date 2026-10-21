@@ -4174,11 +4174,8 @@ class _B2bMorePage extends StatefulWidget {
 class _B2bMorePageState extends State<_B2bMorePage> {
   static const deep = CustomerUiColors.deepGreen;
   static const dark = CustomerUiColors.deepGreenStrong;
-  static const bg = CustomerUiColors.mint;
   static const soft = CustomerUiColors.limeSoft;
   static const border = CustomerUiColors.border;
-  static const ink = CustomerUiColors.ink;
-  static const muted = CustomerUiColors.muted;
 
   late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
 
