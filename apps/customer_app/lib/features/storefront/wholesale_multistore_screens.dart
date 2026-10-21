@@ -1823,13 +1823,15 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
       return;
     }
 
-    // Resolve inherited UI state before the async gap. Product cards can be
-    // rebuilt/removed while the cart mutation is in flight.
+    // Resolve every inherited dependency before the async gap. A product card
+    // may be deactivated while the request is in flight; its BuildContext must
+    // never be used again after await.
     final messenger = ScaffoldMessenger.maybeOf(context);
     final navigator = Navigator.of(context);
     final addedMessage = context.tr('b2b.catalog.added');
     final openCartLabel = context.tr('b2b.catalog.open_cart');
     final closeTooltip = MaterialLocalizations.of(context).closeButtonTooltip;
+    final actionFailedMessage = context.tr('customer.error.action_failed');
 
     setState(() => busy = true);
     try {
@@ -1838,7 +1840,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         productId: id,
         quantity: minimum,
       );
-      if (!mounted || messenger == null || !messenger.mounted) return;
+      if (messenger == null || !messenger.mounted) return;
       _showWholesaleCartConfirmation(
         messenger: messenger,
         navigator: navigator,
@@ -1849,8 +1851,16 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         closeTooltip: closeTooltip,
       );
     } catch (error) {
-      if (mounted) {
-        await showOperationalError(context, error);
+      if (messenger != null && messenger.mounted) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              key: ValueKey('wholesale-cart-add-error-$id'),
+              behavior: SnackBarBehavior.floating,
+              content: Text(actionFailedMessage),
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => busy = false);
