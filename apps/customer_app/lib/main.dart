@@ -99,7 +99,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
     await Future.wait<void>([
       _initializeDiagnostics(),
       _initializeDataMode(),
-      CustomerDisplayPreferences.instance.initialize(),
+      _initializeDisplayPreferences(),
     ]);
     final restoredBootstrap = await authFuture;
 
@@ -142,6 +142,22 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
       });
     } catch (error) {
       widget.diagnostics.record('data_mode_startup_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+    }
+  }
+
+  Future<void> _initializeDisplayPreferences() async {
+    try {
+      await CustomerDisplayPreferences.instance
+          .initialize()
+          .timeout(_startupTaskTimeout);
+    } on TimeoutException {
+      widget.diagnostics.record('display_preferences_startup_timeout', {
+        'timeout_ms': _startupTaskTimeout.inMilliseconds,
+      });
+    } catch (error) {
+      widget.diagnostics.record('display_preferences_startup_error', {
         'error_type': error.runtimeType.toString(),
       });
     }
