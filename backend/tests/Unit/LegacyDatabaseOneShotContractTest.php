@@ -13,6 +13,7 @@ final class LegacyDatabaseOneShotContractTest extends TestCase
         $this->assertIsString($source);
         $this->assertStringContainsString("legacy_protected_reset_ready", $source);
         $this->assertStringContainsString("approved-target-reset", $source);
+        $this->assertStringContainsString("approved_target_reset", $source);
         $this->assertStringContainsString("LegacyImportRehearsalResetService", $source);
     }
 
