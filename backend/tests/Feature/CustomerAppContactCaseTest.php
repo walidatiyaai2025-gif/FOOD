@@ -15,6 +15,7 @@ class CustomerAppContactCaseTest extends TestCase
     use RefreshDatabase;
 
     private int $retailStoreId;
+
     private int $otherStoreId;
 
     protected function setUp(): void
