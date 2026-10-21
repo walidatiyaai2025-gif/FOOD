@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 
 final class AdminSidebarManager
 {
-    /** @return array{groups:array<string,array<string,mixed>>,items:array<string,array<string,mixed>>,protected_items:list<string>} */
+    /** @return array{groups:array<string,array<string,mixed>>,items:array<string,array<string,mixed>>,protected_items:list<string>,protected_groups:list<string>} */
     public function registry(): array
     {
         $config = (array) config('admin_sidebar', []);
@@ -18,6 +18,7 @@ final class AdminSidebarManager
             'groups' => (array) ($config['groups'] ?? []),
             'items' => (array) ($config['items'] ?? []),
             'protected_items' => array_values(array_filter((array) ($config['protected_items'] ?? []), 'is_string')),
+            'protected_groups' => array_values(array_filter((array) ($config['protected_groups'] ?? []), 'is_string')),
         ];
     }
 
@@ -59,6 +60,7 @@ final class AdminSidebarManager
             return ['groups' => $groups, 'items' => $items];
         }
 
+        $protectedGroups = array_fill_keys($registry['protected_groups'], true);
         foreach (DB::table('admin_sidebar_groups')->get() as $row) {
             if (! isset($groups[$row->group_key])) {
                 continue;
@@ -66,7 +68,7 @@ final class AdminSidebarManager
             $groups[$row->group_key] = array_merge($groups[$row->group_key], [
                 'icon' => $row->icon ?: $groups[$row->group_key]['icon'],
                 'sort_order' => (int) $row->sort_order,
-                'is_enabled' => (bool) $row->is_enabled,
+                'is_enabled' => isset($protectedGroups[$row->group_key]) ? true : (bool) $row->is_enabled,
                 'label_ar' => $row->label_ar,
                 'label_en' => $row->label_en,
                 'configured' => true,
@@ -192,9 +194,10 @@ final class AdminSidebarManager
 
         $registry = $this->registry();
         $protected = array_fill_keys($registry['protected_items'], true);
+        $protectedGroups = array_fill_keys($registry['protected_groups'], true);
         $now = now();
 
-        DB::transaction(function () use ($groups, $items, $registry, $protected, $now): void {
+        DB::transaction(function () use ($groups, $items, $registry, $protected, $protectedGroups, $now): void {
             foreach ($registry['groups'] as $key => $definition) {
                 $input = (array) ($groups[$key] ?? []);
                 DB::table('admin_sidebar_groups')->updateOrInsert(
@@ -204,7 +207,7 @@ final class AdminSidebarManager
                         'label_en' => $this->nullableText($input['label_en'] ?? null),
                         'icon' => $this->nullableText($input['icon'] ?? null) ?: (string) ($definition['icon'] ?? '•'),
                         'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
-                        'is_enabled' => (bool) ($input['is_enabled'] ?? false),
+                        'is_enabled' => isset($protectedGroups[$key]) ? true : (bool) ($input['is_enabled'] ?? false),
                         'created_at' => $now,
                         'updated_at' => $now,
                     ],
