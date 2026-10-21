@@ -110,10 +110,12 @@ class CustomerAccountSurfaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final decoration = BoxDecoration(
-      color: CustomerUiColors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-      border: Border.all(color: CustomerUiColors.border),
-      boxShadow: CustomerUiElevation.cardShadow,
+      border: Border.all(color: Theme.of(context).dividerColor),
+      boxShadow: Theme.of(context).brightness == Brightness.dark
+          ? const <BoxShadow>[]
+          : CustomerUiElevation.cardShadow,
     );
 
     if (onTap == null) {
