@@ -34,7 +34,7 @@ final class ProductAvailabilityService
         $rows = $query->get(['inventories.quantity', 'inventories.reserved_quantity']);
 
         $available = $rows->isEmpty()
-            ? null
+            ? ($isWholesale ? 0.0 : null)
             : round((float) $rows->sum(
                 static fn (object $row): float => max(
                     0.0,
