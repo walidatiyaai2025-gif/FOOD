@@ -582,7 +582,7 @@ class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1650),
-  )..repeat();
+  )..forward();
 
   @override
   void dispose() {
@@ -610,54 +610,73 @@ class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
         arabicBrand ? 'فوديكس' : title.substring(0, englishMatch!.end);
     final rest = title.substring(brand.length);
 
+    final animatedBrand = AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = _controller.value;
+        final wave = math.sin(progress * math.pi * 2);
+        final travel = progress * 2.5;
+
+        return Transform.translate(
+          offset: Offset(0, wave * .8),
+          child: ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment(-1.8 + travel, -.8 + wave * .15),
+              end: Alignment(.2 + travel, .8 - wave * .15),
+              colors: const <Color>[
+                CustomerUiColors.storefrontLimeWash,
+                CustomerUiColors.storefrontLimeStrong,
+                CustomerUiColors.storefrontGreenGlow,
+                CustomerUiColors.white,
+                CustomerUiColors.storefrontGreenHighlight,
+              ],
+              stops: const <double>[0, .22, .48, .7, 1],
+            ).createShader(bounds),
+            child: Text(
+              brand,
+              maxLines: 1,
+              softWrap: false,
+              style: _style.copyWith(
+                color: Colors.white,
+                letterSpacing: arabicBrand ? 0 : .25,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (rest.isEmpty) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment:
+            arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
+        child: animatedBrand,
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       textDirection: arabicBrand ? TextDirection.rtl : TextDirection.ltr,
       children: [
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            final progress = _controller.value;
-            final wave = math.sin(progress * math.pi * 2);
-            final travel = progress * 2.5;
-
-            return Transform.translate(
-              offset: Offset(0, wave * .8),
-              child: ShaderMask(
-                blendMode: BlendMode.srcIn,
-                shaderCallback: (bounds) => LinearGradient(
-                  begin: Alignment(-1.8 + travel, -.8 + wave * .15),
-                  end: Alignment(.2 + travel, .8 - wave * .15),
-                  colors: const <Color>[
-                    CustomerUiColors.storefrontLimeWash,
-                    CustomerUiColors.storefrontLimeStrong,
-                    CustomerUiColors.storefrontGreenGlow,
-                    CustomerUiColors.white,
-                    CustomerUiColors.storefrontGreenHighlight,
-                  ],
-                  stops: const <double>[0, .22, .48, .7, 1],
-                ).createShader(bounds),
-                child: Text(
-                  brand,
-                  maxLines: 1,
-                  style: _style.copyWith(
-                    color: Colors.white,
-                    letterSpacing: arabicBrand ? 0 : .25,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        if (rest.isNotEmpty)
-          Flexible(
-            child: Text(
-              rest,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _style,
-            ),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment:
+                arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
+            child: animatedBrand,
           ),
+        ),
+        Flexible(
+          flex: 2,
+          child: Text(
+            rest,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _style,
+          ),
+        ),
       ],
     );
   }
