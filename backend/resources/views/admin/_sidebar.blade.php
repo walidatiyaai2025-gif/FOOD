@@ -2,6 +2,18 @@
 @php
     $ar = app()->getLocale() === 'ar';
     $secondaryLocale = $ar ? 'en' : 'ar';
+    $containsContext = static function (array $node, string $context) use (&$containsContext): bool {
+        if (($node['key'] ?? '') === $context) {
+            return true;
+        }
+        foreach ((array) ($node['children'] ?? []) as $child) {
+            if ($containsContext($child, $context)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
     $childIcon = static function (string $key): string {
         return match (true) {
             str_contains($key, 'dashboard') => 'home',
@@ -32,7 +44,7 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
 .foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
-.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
+.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-subchildren{display:grid;gap:2px;margin-inline-start:14px;padding-inline-start:8px;border-inline-start:1px dashed var(--foodex-border)}.foodex-nav-subchildren .foodex-nav-link{min-height:38px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
 .foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
@@ -125,19 +137,17 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 
     <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
         @foreach($navGroups as $group)
-            @php($groupActive = collect($group['children'])->contains(fn($child)=>($navContext??'')===$child['key']))
+            @php($groupActive = $containsContext($group, (string)($navContext??'')))
+            @php($groupPrimary = $group['label_text'] ?? __($group['label']))
             <details class="foodex-nav-group" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
                 <summary>
                     <span aria-hidden="true">{{ $group['icon'] }}</span>
-                    <span>{{ __($group['label']) }}</span>
+                    <span>{{ $groupPrimary }}</span>
                     <span class="foodex-nav-chevron" aria-hidden="true">⌄</span>
                 </summary>
                 <div class="foodex-nav-children">
                     @foreach($group['children'] as $child)
-                        <a class="foodex-nav-link {{ ($navContext??'')===$child['key']?'active':'' }}" href="{{ route($child['route'],$child['params']) }}" data-nav-label="{{ mb_strtolower(__($child['label'])) }}" @if(($navContext??'')===$child['key']) aria-current="page" @endif>
-                            @include('admin._premium-icon',['name'=>$childIcon($child['key'])])
-                            <span class="foodex-nav-label"><strong>{{ __($child['label']) }}</strong><small lang="{{ $secondaryLocale }}">{{ __($child['label'],[],$secondaryLocale) }}</small></span>
-                        </a>
+                        @include('admin._sidebar-node',['child'=>$child,'childIcon'=>$childIcon,'secondaryLocale'=>$secondaryLocale,'navContext'=>$navContext])
                     @endforeach
                 </div>
             </details>
