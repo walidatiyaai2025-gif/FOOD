@@ -1732,8 +1732,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         ),
                       ),
                     if (widget.showCommerceActions && isAvailable && id > 0)
-                      PositionedDirectional(
-                        start: 0,
+                      Positioned(
+                        left: 0,
                         bottom: 0,
                         child: Semantics(
                           button: true,
@@ -1747,15 +1747,15 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                               customBorder: const CircleBorder(),
                               onTap: busy ? null : _addToCart,
                               child: SizedBox.square(
-                                dimension: 32,
+                                dimension: 22,
                                 child: busy
                                     ? const Padding(
-                                        padding: EdgeInsets.all(9),
+                                        padding: EdgeInsets.all(6),
                                         child: FoodexWaveLoading(),
                                       )
                                     : const Icon(
                                         Icons.add_rounded,
-                                        size: 19,
+                                        size: 13,
                                         color: Colors.white,
                                       ),
                               ),
