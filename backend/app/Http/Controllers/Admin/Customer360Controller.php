@@ -320,7 +320,8 @@ final class Customer360Controller extends Controller
             'serviceCases' => $serviceCaseRows,
             'serviceTimeline' => $serviceTimeline,
             'canManageServiceCases' => $canManageServiceCases,
-            'canManageIdentity' => $actor->hasRole('SUPER_ADMIN'),
+            'canManageIdentity' => $this->canManageCustomerCredentials($actor),
+            'canManageFullIdentity' => $actor->hasRole('SUPER_ADMIN'),
             'loginUser' => $customer->user,
         ]);
     }
@@ -433,20 +434,25 @@ final class Customer360Controller extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+        $canManageFullIdentity = $actor->hasRole('SUPER_ADMIN');
+        abort_unless($this->canManageCustomerCredentials($actor), 403);
 
         $access = $this->access($actor);
         $customer = $this->findVisible($platformCustomer, $access);
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [$canManageFullIdentity ? 'required' : 'nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
             'password' => ['nullable', 'string', 'min:8', 'max:255', 'confirmed'],
         ]);
 
-        $name = trim((string) $validated['name']);
+        $name = $canManageFullIdentity
+            ? trim((string) $validated['name'])
+            : trim((string) $customer->name);
         $email = Str::lower(trim((string) $validated['email']));
-        $phone = trim((string) ($validated['phone'] ?? ''));
+        $phone = $canManageFullIdentity
+            ? trim((string) ($validated['phone'] ?? ''))
+            : trim((string) ($customer->phone ?? ''));
         $phone = $phone === '' ? null : $phone;
         $password = $validated['password'] ?? null;
         $password = is_string($password) && trim($password) !== '' ? $password : null;
@@ -1485,6 +1491,25 @@ final class Customer360Controller extends Controller
             'b2c_store_ids' => $b2c,
             'origin_store_ids' => $b2c,
         ];
+    }
+
+    private function canManageCustomerCredentials(User $actor): bool
+    {
+        if ($actor->hasRole('SUPER_ADMIN')) {
+            return true;
+        }
+
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            if ($actor->hasRole($roleCode)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function actor(Request $request): User
