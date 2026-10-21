@@ -9,6 +9,16 @@ import 'package:foodex_formatting/foodex_formatting.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 
+final ValueNotifier<int> foodexWholesaleCartProductCount =
+    ValueNotifier<int>(0);
+
+void syncFoodexWholesaleCartProductCount(Object? payload) {
+  if (payload is! Map) return;
+  final rawItems = payload['items'];
+  if (rawItems is! List) return;
+  foodexWholesaleCartProductCount.value = rawItems.whereType<Map>().length;
+}
+
 class FoodexPalette {
   const FoodexPalette({
     required this.primary,
@@ -321,10 +331,14 @@ class FoodexWholesaleHeader extends StatelessWidget {
               onTap: onNotifications ?? () => _defaultNotifications(context),
             ),
             const SizedBox(width: 4),
-            _FoodexWholesaleHeaderIcon(
-              key: cartKey,
-              icon: Icons.shopping_cart_outlined,
-              onTap: onCart ?? () => _defaultCart(context),
+            ValueListenableBuilder<int>(
+              valueListenable: foodexWholesaleCartProductCount,
+              builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
+                key: cartKey,
+                icon: Icons.shopping_cart_outlined,
+                badgeCount: count,
+                onTap: onCart ?? () => _defaultCart(context),
+              ),
             ),
           ],
         ),
@@ -514,29 +528,64 @@ class _FoodexWholesaleHeaderIcon extends StatelessWidget {
   const _FoodexWholesaleHeaderIcon({
     required this.icon,
     this.onTap,
+    this.badgeCount = 0,
     super.key,
   });
 
   final IconData icon;
   final VoidCallback? onTap;
+  final int badgeCount;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
+  Widget build(BuildContext context) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: Colors.white.withOpacity(.14),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
             ),
           ),
-        ),
+          if (badgeCount > 0)
+            Positioned(
+              right: -5,
+              top: -6,
+              child: Container(
+                key: const ValueKey('wholesale-header-cart-badge'),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD62828),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white, width: 1.2),
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
       );
 }
 
