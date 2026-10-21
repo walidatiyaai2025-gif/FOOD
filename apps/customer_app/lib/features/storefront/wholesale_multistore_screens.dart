@@ -1596,6 +1596,14 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
       return;
     }
 
+    // Resolve inherited UI state before the async gap. Product cards can be
+    // rebuilt/removed while the cart mutation is in flight.
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final navigator = Navigator.of(context);
+    final addedMessage = context.tr('b2b.catalog.added');
+    final openCartLabel = context.tr('b2b.catalog.open_cart');
+    final closeTooltip = MaterialLocalizations.of(context).closeButtonTooltip;
+
     setState(() => busy = true);
     try {
       await widget.actionApi.addCartItem(
@@ -1603,8 +1611,16 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         productId: id,
         quantity: minimum,
       );
-      if (!mounted) return;
-      _showWholesaleCartConfirmation(context, widget.storeId, productId: id);
+      if (!mounted || messenger == null || !messenger.mounted) return;
+      _showWholesaleCartConfirmation(
+        messenger: messenger,
+        navigator: navigator,
+        storeId: widget.storeId,
+        productId: id,
+        message: addedMessage,
+        openCartLabel: openCartLabel,
+        closeTooltip: closeTooltip,
+      );
     } catch (error) {
       if (mounted) {
         await showOperationalError(context, error);
@@ -1689,9 +1705,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           compact: true,
                         ),
                       ),
-                    PositionedDirectional(
-                      end: 0,
-                      top: 0,
+                    Positioned(
+                      right: widget.onRemoveFavorite != null ? 34 : 0,
+                      bottom: 0,
                       child: _WholesaleCardBadge(
                         key: ValueKey('wholesale-product-price-$id'),
                         label: priceLabel,
@@ -1712,8 +1728,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       ),
                     if (brand.isNotEmpty)
                       PositionedDirectional(
-                        end: widget.onRemoveFavorite != null ? 34 : 0,
-                        bottom: 0,
+                        end: 0,
+                        top: 0,
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-brand-$id'),
                           label: brand,
@@ -3267,13 +3283,15 @@ class _WholesaleBottomNav extends StatelessWidget {
       );
 }
 
-void _showWholesaleCartConfirmation(
-  BuildContext context,
-  int storeId, {
+void _showWholesaleCartConfirmation({
+  required ScaffoldMessengerState messenger,
+  required NavigatorState navigator,
+  required int storeId,
+  required String message,
+  required String openCartLabel,
+  required String closeTooltip,
   int? productId,
-  String? message,
 }) {
-  final messenger = ScaffoldMessenger.of(context);
   messenger.hideCurrentSnackBar();
   final identity = productId ?? storeId;
   messenger.showSnackBar(
@@ -3283,10 +3301,10 @@ void _showWholesaleCartConfirmation(
       duration: const Duration(seconds: 5),
       content: Row(
         children: [
-          Expanded(child: Text(message ?? context.tr('b2b.catalog.added'))),
+          Expanded(child: Text(message)),
           IconButton(
             key: ValueKey('wholesale-cart-confirmation-close-$identity'),
-            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            tooltip: closeTooltip,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints.tightFor(width: 32, height: 32),
             padding: EdgeInsets.zero,
@@ -3300,10 +3318,13 @@ void _showWholesaleCartConfirmation(
         ],
       ),
       action: SnackBarAction(
-        label: context.tr('b2b.catalog.open_cart'),
-        onPressed: () => Navigator.of(context).pushNamed(
-          '/b2b/cart?channel=wholesale&store_id=' + storeId.toString(),
-        ),
+        label: openCartLabel,
+        onPressed: () {
+          if (!navigator.mounted) return;
+          navigator.pushNamed(
+            '/b2b/cart?channel=wholesale&store_id=' + storeId.toString(),
+          );
+        },
       ),
     ),
   );
@@ -3727,13 +3748,30 @@ class _WholesaleProductDetailsDesignScreenState
         return;
       }
 
+      final confirmationMessenger = ScaffoldMessenger.maybeOf(context);
+      final confirmationNavigator = Navigator.of(context);
+      final confirmationMessage = context.tr('b2b.catalog.added');
+      final confirmationOpenCart = context.tr('b2b.catalog.open_cart');
+      final confirmationClose =
+          MaterialLocalizations.of(context).closeButtonTooltip;
+
       await widget.actionApi.addCartItem(
         storeId: storeId,
         productId: productId,
         quantity: selectedQuantity,
       );
-      if (mounted) {
-        _showWholesaleCartConfirmation(context, storeId, productId: productId);
+      if (mounted &&
+          confirmationMessenger != null &&
+          confirmationMessenger.mounted) {
+        _showWholesaleCartConfirmation(
+          messenger: confirmationMessenger,
+          navigator: confirmationNavigator,
+          storeId: storeId,
+          productId: productId,
+          message: confirmationMessage,
+          openCartLabel: confirmationOpenCart,
+          closeTooltip: confirmationClose,
+        );
       }
     } catch (error) {
       if (mounted) {
