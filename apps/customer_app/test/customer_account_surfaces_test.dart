@@ -341,7 +341,7 @@ void main() {
         find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
-      // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(5));
+      // Compact v4.2 density keeps account shortcuts visible on a narrow viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(5));
 
       await tester.drag(
         find.byType(ListView),
@@ -491,6 +491,9 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi, CustomerC
   final List<(int, int?)> removedFavorites = <(int, int?)>[];
   final List<int> readNotifications = <int>[];
   final List<Map<String, dynamic>> createdAddresses = <Map<String, dynamic>>[];
+  int? lastContactStoreId;
+  String? lastContactPhone;
+  String? lastContactMessage;
 
   @override
   Future<Object?> profile() async {
