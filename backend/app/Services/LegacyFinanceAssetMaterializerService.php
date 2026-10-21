@@ -212,6 +212,129 @@ final class LegacyFinanceAssetMaterializerService
         ];
     }
 
+    public function oneShot(bool $apply): array
+    {
+        $materialization = $this->materialize($apply);
+        $rows = $this->sourceRows();
+        $classification = $this->classifyNativePopulation($rows);
+        $candidateRows = $classification['candidate_rows'];
+        unset($classification['candidate_rows']);
+
+        $preflight = $this->nativePromotionPreflight($candidateRows);
+        $authority = $this->sourceAuthoritySummary();
+        $verification = $apply ? ($materialization['verification'] ?? $this->verify()) : null;
+
+        return [
+            'mode' => $apply ? 'apply' : 'dry-run',
+            'status' => $preflight['ready_for_native_promotion']
+                ? 'native_prerequisites_ready'
+                : 'preserved_native_blocked',
+            'materialization' => $materialization,
+            'verification' => $verification,
+            'classification' => $classification,
+            'source_authority' => $authority,
+            'native_preflight' => $preflight,
+            'native_promotion_performed' => false,
+            'native_promotion_reason' => $preflight['ready_for_native_promotion']
+                ? 'Prerequisites are ready, but this command never fabricates or auto-posts acquisition journals.'
+                : 'Native promotion remains blocked by authoritative mapping prerequisites.',
+            'rules' => [
+                'all_source_rows_are_preserved' => true,
+                'zero_value_no_history_rows_are_legacy_placeholders' => true,
+                'placeholders_are_not_native_fixed_assets' => true,
+                'native_finance_accounts_are_never_inferred_from_names' => true,
+                'native_journals_are_never_fabricated' => true,
+            ],
+        ];
+    }
+
+    private function classifyNativePopulation(array $rows): array
+    {
+        $assetsWithDetails = $this->legacySource()
+            ->table('dbo.gl_AssetsDetails')
+            ->whereNotNull('AssetID')
+            ->distinct()
+            ->pluck('AssetID')
+            ->map(static fn ($id): string => (string) $id)
+            ->flip();
+
+        $candidates = [];
+        $placeholders = [];
+
+        foreach ($rows as $row) {
+            $hasDetails = $assetsWithDetails->has((string) ($row['source_key'] ?? ''));
+            if ($this->isLegacyPlaceholder($row, $hasDetails)) {
+                $placeholders[] = [
+                    'source_key' => (string) $row['source_key'],
+                    'asset_code' => $row['asset_code'],
+                    'group_id' => $row['group_id'],
+                    'sub_group_id' => $row['sub_group_id'],
+                    'gross_value' => $row['gross_value'],
+                    'accumulated_depreciation' => $row['accumulated_depreciation'],
+                    'asset_age_raw' => $row['asset_age_raw'],
+                    'has_asset_details' => false,
+                ];
+
+                continue;
+            }
+
+            $candidates[] = $row;
+        }
+
+        return [
+            'source_rows' => count($rows),
+            'native_candidate_rows' => count($candidates),
+            'legacy_placeholder_rows' => count($placeholders),
+            'placeholder_source_keys' => array_column($placeholders, 'source_key'),
+            'placeholders' => $placeholders,
+            'candidate_rows' => $candidates,
+        ];
+    }
+
+    private function isLegacyPlaceholder(array $row, bool $hasDetails): bool
+    {
+        foreach (['gross_value', 'accumulated_depreciation', 'asset_age_raw'] as $field) {
+            if (! array_key_exists($field, $row) || $row[$field] === null || ! is_numeric($row[$field])) {
+                return false;
+            }
+        }
+
+        return ! $hasDetails
+            && (float) $row['gross_value'] <= 0
+            && (float) $row['accumulated_depreciation'] <= 0
+            && (float) $row['asset_age_raw'] <= 0;
+    }
+
+    private function sourceAuthoritySummary(): array
+    {
+        $db = $this->legacySource();
+        $headers = $db->table('dbo.gl_AssetsHeader')
+            ->selectRaw('COUNT(*) AS HeaderCount')
+            ->selectRaw('SUM(CASE WHEN glEntryHeaderId > 0 THEN 1 ELSE 0 END) AS LinkedGlCount')
+            ->first();
+
+        $explicitMapCount = static function (string $sourceTable, string $targetTable): int {
+            return DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('source_table', $sourceTable)
+                ->where('target_table', $targetTable)
+                ->count();
+        };
+
+        return [
+            'legacy_group_asset_accounts' => (int) $db->table('dbo.gl_AssetsGroups')->where('GlAccId', '>', 0)->count(),
+            'legacy_subgroup_accumulated_depreciation_accounts' => (int) $db->table('dbo.gl_AssetsSupGroups')->where('DepComplexAccId', '>', 0)->count(),
+            'legacy_subgroup_depreciation_expense_accounts' => (int) $db->table('dbo.gl_AssetsSupGroups')->where('ExpenseComplexAccId', '>', 0)->count(),
+            'legacy_accounts_with_depreciation_link' => (int) $db->table('dbo.gl_Accounts')->where('Depreciationid', '>', 0)->count(),
+            'legacy_asset_headers' => (int) ($headers->HeaderCount ?? 0),
+            'legacy_asset_headers_linked_to_gl' => (int) ($headers->LinkedGlCount ?? 0),
+            'explicit_account_mappings' => $explicitMapCount('gl_Accounts', 'enterprise_finance_accounts'),
+            'explicit_acquisition_offset_mappings' => $explicitMapCount('gl_AssetsSupGroups:AcquisitionOffsetAccount', 'enterprise_finance_accounts'),
+            'explicit_native_category_mappings' => $explicitMapCount('gl_AssetsSupGroups', 'enterprise_fixed_asset_categories'),
+            'source_account_authority_complete' => false,
+        ];
+    }
+
     private function sourceRows(): array
     {
         $db = $this->legacySource();
