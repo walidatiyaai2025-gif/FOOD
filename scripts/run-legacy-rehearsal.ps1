@@ -103,7 +103,12 @@ try {
     }
 
     $preflight = $preflightJson | ConvertFrom-Json
-    if (-not ($preflight.target.clean_baseline_ready -or $preflight.target.legacy_upgrade_ready -or $preflight.target.legacy_masters_rerun_ready)) {
+    if (-not (
+        $preflight.target.clean_baseline_ready `
+        -or $preflight.target.legacy_upgrade_ready `
+        -or $preflight.target.legacy_masters_rerun_ready `
+        -or $preflight.target.legacy_protected_reset_ready
+    )) {
         throw 'Target is not ready after scoped reset. Refusing to import.'
     }
 
