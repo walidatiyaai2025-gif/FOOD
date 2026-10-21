@@ -12,6 +12,14 @@ class WholesaleCommerceException implements Exception {
   String toString() => message;
 }
 
+abstract interface class WholesaleQuoteApi {
+  Future<Object?> quote({
+    required int storeId,
+    String? couponCode,
+    String? paymentMethod,
+  });
+}
+
 abstract interface class WholesaleCommerceApi {
   Future<Object?> cart(int storeId);
   Future<Object?> addItem(int storeId, int productId, double quantity);
@@ -28,7 +36,7 @@ abstract interface class WholesaleCommerceApi {
   });
 }
 
-class HttpWholesaleCommerceApi implements WholesaleCommerceApi {
+class HttpWholesaleCommerceApi implements WholesaleCommerceApi, WholesaleQuoteApi {
   HttpWholesaleCommerceApi({
     required this.baseUrl,
     required this.token,
@@ -52,6 +60,24 @@ class HttpWholesaleCommerceApi implements WholesaleCommerceApi {
   @override
   Future<Object?> cart(int storeId) =>
       _request('GET', '/api/v1/cart', query: {'store': '$storeId'});
+
+  @override
+  Future<Object?> quote({
+    required int storeId,
+    String? couponCode,
+    String? paymentMethod,
+  }) =>
+      _request(
+        'POST',
+        '/api/v1/quote',
+        body: {
+          'store_id': storeId,
+          if (couponCode != null && couponCode.trim().isNotEmpty)
+            'coupon_code': couponCode.trim().toUpperCase(),
+          if (paymentMethod != null && paymentMethod.trim().isNotEmpty)
+            'payment_method': paymentMethod.trim(),
+        },
+      );
 
   @override
   Future<Object?> addItem(
