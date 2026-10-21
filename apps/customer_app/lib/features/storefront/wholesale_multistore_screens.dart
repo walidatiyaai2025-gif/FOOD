@@ -4553,7 +4553,7 @@ class _WholesaleProductDetailsDesignScreenState
         return;
       }
 
-      if (!context.mounted) return;
+      if (!mounted) return;
       final confirmationMessenger = ScaffoldMessenger.maybeOf(context);
       final confirmationNavigator = Navigator.of(context);
       final confirmationMessage = context.tr('b2b.catalog.added');
