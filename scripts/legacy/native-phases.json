@@ -1,0 +1,77 @@
+{
+  "version": 4,
+  "phases": [
+    {
+      "id": "van_inventory_history",
+      "name": "Native Van inventory history",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyVanInventoryHistoryMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-van-history"
+      ],
+      "apply": [
+        "foodex:legacy-van-history",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-van-history-verify"
+      ]
+    },
+    {
+      "id": "supplier_derived_brands",
+      "name": "Supplier-derived catalog brands",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacySupplierBrandMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-supplier-brands"
+      ],
+      "apply": [
+        "foodex:legacy-supplier-brands",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-supplier-brands-verify"
+      ]
+    },
+    {
+      "id": "finance_chart_of_accounts",
+      "name": "Native Finance chart of accounts",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyFinanceAccountMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-finance-accounts"
+      ],
+      "apply": [
+        "foodex:legacy-finance-accounts",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-finance-accounts-verify"
+      ]
+    },
+    {
+      "id": "finance_cost_centers",
+      "name": "Native Finance cost centers",
+      "enabled": true,
+      "lint_files": [
+        "app/Services/LegacyFinanceCostCenterMaterializerService.php"
+      ],
+      "dry_run": [
+        "foodex:legacy-finance-cost-centers"
+      ],
+      "apply": [
+        "foodex:legacy-finance-cost-centers",
+        "--apply"
+      ],
+      "verify": [
+        "foodex:legacy-finance-cost-centers-verify"
+      ]
+    }
+  ]
+}
