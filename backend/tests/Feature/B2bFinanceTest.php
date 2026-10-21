@@ -105,6 +105,172 @@ class B2bFinanceTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.finance.statement_viewed']);
     }
 
+    public function test_invoice_details_resolve_product_images_in_bulk_and_preserve_store_context(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$user, $customer] = $this->buyer('finance-images@example.test', 'active');
+
+        $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $unitId = (int) DB::table('units')->insertGetId([
+            'code' => 'FIN-EA',
+            'name' => 'Finance Each',
+            'decimal_places' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2bTypeId,
+            'code' => 'B2B-FIN-IMG',
+            'name' => 'B2B Finance Images',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'code' => 'finance-images',
+            'name' => 'Finance Images Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $categoryId = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogId,
+            'name' => 'Finance Images',
+            'slug' => 'finance-images',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $productIds = [];
+        foreach ([
+            ['sku' => 'FIN-IMG-PRIMARY', 'name' => 'Primary image product'],
+            ['sku' => 'FIN-IMG-FALLBACK', 'name' => 'Fallback image product'],
+            ['sku' => 'FIN-IMG-NONE', 'name' => 'No image product'],
+        ] as $product) {
+            $productIds[] = (int) DB::table('products')->insertGetId([
+                'catalog_id' => $catalogId,
+                'category_id' => $categoryId,
+                'unit_id' => $unitId,
+                'sku' => $product['sku'],
+                'name' => $product['name'],
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('product_images')->insert([
+            [
+                'product_id' => $productIds[0],
+                'path' => '/images/not-primary.svg',
+                'sort_order' => 0,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $productIds[0],
+                'path' => 'https://cdn.example.test/primary.svg',
+                'sort_order' => 9,
+                'is_primary' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $productIds[1],
+                'path' => '/images/later.svg',
+                'sort_order' => 7,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $productIds[1],
+                'path' => '/images/fallback.svg',
+                'sort_order' => 2,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'customer_id' => $customer->id,
+            'store_id' => $storeId,
+            'invoice_number' => 'INV-IMG-2303',
+            'status' => 'issued',
+            'currency' => 'KWD',
+            'subtotal' => 6,
+            'total' => 6,
+            'store_name_snapshot' => 'B2B Finance Images',
+            'customer_name_snapshot' => 'B2B Buyer',
+            'customer_email_snapshot' => 'finance-images@example.test',
+            'issued_at' => now(),
+            'due_at' => now()->addDay(),
+        ]);
+
+        DB::table('invoice_items')->insert([
+            [
+                'invoice_id' => $invoice->id,
+                'product_id' => $productIds[0],
+                'description' => 'Primary image item',
+                'sku_snapshot' => 'FIN-IMG-PRIMARY',
+                'quantity' => 1,
+                'unit_price' => 1,
+                'line_discount_total' => 0,
+                'line_tax_total' => 0,
+                'line_total' => 1,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'invoice_id' => $invoice->id,
+                'product_id' => $productIds[1],
+                'description' => 'Fallback image item',
+                'sku_snapshot' => 'FIN-IMG-FALLBACK',
+                'quantity' => 1,
+                'unit_price' => 2,
+                'line_discount_total' => 0,
+                'line_tax_total' => 0,
+                'line_total' => 2,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'invoice_id' => $invoice->id,
+                'product_id' => $productIds[2],
+                'description' => 'No image item',
+                'sku_snapshot' => 'FIN-IMG-NONE',
+                'quantity' => 1,
+                'unit_price' => 3,
+                'line_discount_total' => 0,
+                'line_tax_total' => 0,
+                'line_total' => 3,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/b2b/invoices/'.$invoice->id)
+            ->assertOk()
+            ->assertJsonPath('data.items.0.image_url', 'https://cdn.example.test/primary.svg')
+            ->assertJsonPath('data.items.1.image_url', url('/images/fallback.svg'))
+            ->assertJsonPath('data.items.2.image_url', null);
+
+        $this->getJson('/api/v1/b2b/invoices/'.$invoice->id.'?store_id='.$storeId)
+            ->assertOk()
+            ->assertJsonPath('data.store_id', $storeId);
+    }
+
     public function test_invoice_ownership_and_account_approval_are_enforced(): void
     {
         $this->seed(CoreReferenceSeeder::class);
