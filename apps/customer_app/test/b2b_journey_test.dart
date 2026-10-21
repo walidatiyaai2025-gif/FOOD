@@ -621,7 +621,7 @@ void main() {
     expect(find.text('125.000 KWD'), findsOneWidget);
     expect(find.text('1000.000 KWD'), findsNothing);
     expect(find.text('875.000 KWD'), findsNothing);
-    expect(find.text('كشف الحساب'), findsOneWidget);
+    expect(find.text('كشف الحساب'), findsNothing);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
     expect(find.text('العناوين'), findsOneWidget);
     expect(find.text('الإشعارات'), findsNothing);
