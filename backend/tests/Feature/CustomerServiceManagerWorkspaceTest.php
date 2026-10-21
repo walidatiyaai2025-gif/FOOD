@@ -74,6 +74,54 @@ final class CustomerServiceManagerWorkspaceTest extends TestCase
         $this->assertNotContains('driver_live_tracking', $operationKeys);
     }
 
+    public function test_supervisor_gets_the_same_catalog_inventory_and_marketing_workspace_requested_for_customer_service_responsible(): void
+    {
+        $supervisor = User::factory()->create(['is_active' => true, 'locale' => 'ar']);
+        $supervisor->roles()->attach(
+            Role::query()->where('code', 'CUSTOMER_SERVICE_SUPERVISOR')->firstOrFail(),
+        );
+
+        foreach ([
+            'catalog.view',
+            'catalog.create',
+            'catalog.edit',
+            'catalog.manage',
+            'inventory.view',
+            'inventory.adjust',
+            'inventory.manage',
+            'promotions.view',
+            'promotions.manage',
+            'notifications.view',
+            'notifications.manage',
+            'coupons.view',
+            'coupons.manage',
+            'live_ads.view',
+            'live_ads.manage',
+            'whatsapp.campaigns.view',
+            'whatsapp.campaigns.manage',
+            'whatsapp.campaigns.send',
+        ] as $permission) {
+            $this->assertTrue($supervisor->hasPermission($permission), $permission.' should be granted.');
+        }
+
+        $groups = collect(app(AdminNavigation::class)->groupsFor($supervisor))
+            ->keyBy('key');
+
+        $catalogKeys = collect($groups->get('catalog')['children'])->pluck('key')->all();
+        $this->assertContains('catalog_management', $catalogKeys);
+        $this->assertContains('b2b_inventory', $catalogKeys);
+
+        $marketingKeys = collect($groups->get('marketing')['children'])->pluck('key')->all();
+        $this->assertContains('whatsapp_campaigns', $marketingKeys);
+        $this->assertContains('notification_campaigns', $marketingKeys);
+        $this->assertContains('live_ads', $marketingKeys);
+        $this->assertContains('coupons', $marketingKeys);
+        $this->assertNotContains('whatsapp_chatbot', $marketingKeys);
+
+        $this->assertFalse($groups->has('advertising'));
+        $this->assertFalse($groups->has('field_operations'));
+    }
+
     public function test_all_customer_service_profiles_hide_chatbot_and_field_operations(): void
     {
         foreach ([
