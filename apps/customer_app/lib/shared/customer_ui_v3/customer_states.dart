@@ -71,9 +71,13 @@ class CustomerProductCardSkeleton extends StatelessWidget {
               SizedBox(height: CustomerUiSpacing.xxs),
               Row(
                 children: [
-                  CustomerSkeletonBox(height: 20, width: 48, radius: 10),
-                  Spacer(),
-                  CustomerSkeletonBox(height: 20, width: 52, radius: 10),
+                  Expanded(
+                    child: CustomerSkeletonBox(height: 20, radius: 10),
+                  ),
+                  SizedBox(width: CustomerUiSpacing.xxs),
+                  Expanded(
+                    child: CustomerSkeletonBox(height: 20, radius: 10),
+                  ),
                 ],
               ),
               SizedBox(height: CustomerUiSpacing.xxs),

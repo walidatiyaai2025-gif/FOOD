@@ -331,7 +331,10 @@ void main() {
     await _pumpCustomerFrames(tester);
 
     expect(find.byKey(const ValueKey('b2b-orders-screen')), findsNothing);
-    expect(find.text('فودكس للأعمال'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -531,7 +534,11 @@ void main() {
     await _pumpCustomerFrames(tester);
 
     expect(
-      Directionality.of(tester.element(find.text('FOODEX Business'))),
+      Directionality.of(
+        tester.element(
+          find.byKey(const ValueKey('foodex-wholesale-shared-header')),
+        ),
+      ),
       TextDirection.ltr,
     );
     expect(find.text('Credit balance'), findsOneWidget);
@@ -1298,25 +1305,27 @@ void main() {
         const ValueKey('wholesale-product-add-43'),
       );
       expect(availableAdd, findsOneWidget);
-      expect(unavailableAdd, findsOneWidget);
-      expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
-
-      final addVisual = tester.widget<Container>(
-        find
-            .descendant(
-              of: availableAdd,
-              matching: find.byType(Container),
-            )
-            .last,
+      expect(unavailableAdd, findsNothing);
+      expect(
+        find.byKey(const ValueKey('wholesale-product-out-of-stock-43')),
+        findsOneWidget,
       );
-      expect(addVisual.constraints?.maxWidth, 18);
-      expect(addVisual.constraints?.maxHeight, 18);
 
+      final addIcon = tester.widget<Icon>(
+        find.descendant(
+          of: availableAdd,
+          matching: find.byIcon(Icons.add_rounded),
+        ),
+      );
+      expect(addIcon.size, 13);
+
+      final productNameBox =
+          find.byKey(const ValueKey('wholesale-product-name-42'));
       final productName = tester.widget<Text>(
-        find.byKey(const ValueKey('wholesale-product-name-42')),
+        find.descendant(of: productNameBox, matching: find.byType(Text)).first,
       );
       expect(productName.maxLines, 1);
-      expect(productName.overflow, TextOverflow.ellipsis);
+      expect(productName.softWrap, isFalse);
 
       final priceCenter = tester.getCenter(
         find.byKey(const ValueKey('wholesale-product-price-42')),
@@ -2198,10 +2207,15 @@ void main() {
         find.byKey(const ValueKey('b2b-checkout-insufficient-credit')),
         findsOneWidget,
       );
-      final submit = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('b2b-checkout-submit')),
+      final submit = tester.widget<InkWell>(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('b2b-checkout-submit')),
+              matching: find.byType(InkWell),
+            )
+            .single,
       );
-      expect(submit.onPressed, isNull);
+      expect(submit.onTap, isNull);
     },
   );
 
@@ -2271,7 +2285,19 @@ void main() {
       expect(commerce.checkoutCalls, 1);
       expect(commerce.checkoutKeys, hasLength(1));
       expect(commerce.checkoutKeys.single.length, greaterThanOrEqualTo(16));
-      expect(tester.widget<FilledButton>(submitFinder).onPressed, isNull);
+      expect(
+        tester
+            .widget<InkWell>(
+              find
+                  .descendant(
+                    of: submitFinder,
+                    matching: find.byType(InkWell),
+                  )
+                  .single,
+            )
+            .onTap,
+        isNull,
+      );
 
       // A second physical tap cannot create a second checkout while the first
       // authoritative request is still unresolved.
