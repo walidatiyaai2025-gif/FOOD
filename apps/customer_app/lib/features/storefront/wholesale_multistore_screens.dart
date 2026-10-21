@@ -21,6 +21,7 @@ import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_display_preferences.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
@@ -1464,6 +1465,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.noResults = false,
     this.showCommerceActions = false,
     this.homeWholeNumberPrice = false,
+    this.columnsOverride,
     this.onRemoveFavorite,
   });
 
@@ -1479,6 +1481,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final bool noResults;
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
+  final int? columnsOverride;
   final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
@@ -1497,7 +1500,13 @@ class _WholesaleProductGrid extends StatelessWidget {
 
     final displayRows =
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
-    final columns = _wholesaleProductColumns(displayRows.length);
+    final columns =
+        columnsOverride ?? _wholesaleProductColumns(displayRows.length);
+    final mainAxisExtent = switch (columns) {
+      1 => showCommerceActions ? 330.0 : 300.0,
+      2 => showCommerceActions ? 250.0 : 224.0,
+      _ => showCommerceActions ? 188.0 : 166.0,
+    };
 
     return GridView.builder(
       key: const ValueKey('wholesale-product-grid'),
@@ -1509,7 +1518,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         crossAxisCount: columns,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        mainAxisExtent: showCommerceActions ? 188 : 166,
+        mainAxisExtent: mainAxisExtent,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1632,11 +1641,21 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final promotion = row['promotion'] is Map
         ? (row['promotion'] as Map)['name']?.toString().trim()
         : row['promotion_name']?.toString().trim();
-    final denseFourColumn = widget.gridColumns >= 4;
+    final compact = widget.gridColumns >= 3;
+    final twoColumns = widget.gridColumns == 2;
+    final singleColumn = widget.gridColumns == 1;
+    final imageHeight = singleColumn ? 190.0 : (twoColumns ? 132.0 : 92.0);
+    final titleSize = singleColumn ? 16.0 : (twoColumns ? 13.0 : 11.0);
+    final categorySize = singleColumn ? 12.0 : (twoColumns ? 10.5 : 9.0);
+    final priceSize = singleColumn ? 19.0 : (twoColumns ? 16.0 : 14.0);
+    final actionSize = singleColumn ? 44.0 : (twoColumns ? 38.0 : 32.0);
+    final actionGlyph = singleColumn ? 16.0 : (twoColumns ? 13.0 : 10.0);
+    final surfaceColor = Theme.of(context).cardColor;
+    final darkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
       key: ValueKey('wholesale-product-card-$id'),
-      color: Colors.white,
+      color: surfaceColor,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -1649,15 +1668,17 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       widget.storeId.toString(),
                 ),
         child: Container(
-          padding: denseFourColumn
-              ? const EdgeInsets.fromLTRB(6, 7, 6, 7)
-              : const EdgeInsets.fromLTRB(10, 10, 10, 11),
+          padding: singleColumn
+              ? const EdgeInsets.fromLTRB(14, 14, 14, 15)
+              : twoColumns
+                  ? const EdgeInsets.fromLTRB(12, 12, 12, 13)
+                  : const EdgeInsets.fromLTRB(10, 10, 10, 11),
           decoration: BoxDecoration(
             border: Border.all(color: palette.soft),
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(.035),
+                color: Colors.black.withOpacity(darkMode ? .22 : .035),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -1667,7 +1688,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: denseFourColumn ? 72 : 92,
+                height: imageHeight,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -1690,7 +1711,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: surfaceColor,
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(color: palette.soft),
                           ),
@@ -1763,7 +1784,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         end: 0,
                         bottom: 0,
                         child: Material(
-                          color: Colors.white.withOpacity(.96),
+                          color: surfaceColor.withOpacity(.96),
                           shape: const CircleBorder(),
                           child: InkWell(
                             key: ValueKey(
@@ -1792,21 +1813,21 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   ],
                 ),
               ),
-              SizedBox(height: denseFourColumn ? 5 : 8),
+              SizedBox(height: compact ? 8 : 10),
               Text(
                 row['name']?.toString() ?? '',
                 key: ValueKey('wholesale-product-name-$id'),
-                maxLines: 1,
+                maxLines: compact ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: denseFourColumn ? 9.5 : 11,
+                  fontSize: titleSize,
                   height: 1.15,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF102033),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (widget.showCommerceActions && category.isNotEmpty) ...[
-                SizedBox(height: denseFourColumn ? 2 : 3),
+                SizedBox(height: compact ? 3 : 5),
                 Text(
                   category,
                   key: ValueKey('wholesale-product-category-$id'),
@@ -1814,7 +1835,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: palette.muted,
-                    fontSize: denseFourColumn ? 7.5 : 9,
+                    fontSize: categorySize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1845,14 +1866,14 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       style: TextStyle(
                         color: palette.primary,
                         fontWeight: FontWeight.w900,
-                        fontSize: denseFourColumn ? 10.5 : 14,
+                        fontSize: priceSize,
                       ),
                     ),
                   ),
                   if (widget.showCommerceActions) ...[
                     const SizedBox(width: 4),
                     SizedBox.square(
-                      dimension: denseFourColumn ? 24 : 32,
+                      dimension: actionSize,
                       child: Semantics(
                         button: true,
                         label: context.tr('customer.action.add_cart'),
@@ -1863,9 +1884,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                               : null,
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.zero,
-                            minimumSize: Size.square(
-                              denseFourColumn ? 24 : 32,
-                            ),
+                            minimumSize: Size.square(actionSize),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: Colors.transparent,
                             disabledBackgroundColor: Colors.transparent,
@@ -1875,8 +1894,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                             visualDensity: VisualDensity.compact,
                           ),
                           child: Container(
-                            width: 18,
-                            height: 18,
+                            width: singleColumn ? 28 : (twoColumns ? 24 : 18),
+                            height: singleColumn ? 28 : (twoColumns ? 24 : 18),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isAvailable && id > 0
@@ -1892,9 +1911,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Icon(
+                                : Icon(
                                     Icons.add_rounded,
-                                    size: 10,
+                                    size: actionGlyph,
                                     color: Colors.white,
                                   ),
                           ),
@@ -2278,6 +2297,7 @@ class _WholesaleCatalogDesignScreenState
   String? sectionFilter;
   Set<int> productFilterIds = <int>{};
   String sortMode = 'default';
+  late WholesaleProductCardSize cardSize;
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
@@ -2285,6 +2305,10 @@ class _WholesaleCatalogDesignScreenState
   @override
   void initState() {
     super.initState();
+    cardSize =
+        CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .addListener(_onProductCardSizeChanged);
     final query = Uri.parse(widget.location).queryParameters;
     final initialQuery = query['q']?.trim() ?? '';
     if (initialQuery.isNotEmpty) search.text = initialQuery;
@@ -2304,6 +2328,27 @@ class _WholesaleCatalogDesignScreenState
     future = _load(search.text);
     WidgetsBinding.instance.addObserver(this);
   }
+
+  void _onProductCardSizeChanged() {
+    if (!mounted) return;
+    setState(() {
+      cardSize =
+          CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    });
+  }
+
+  String _cardSizeTranslationKey() => switch (cardSize) {
+        WholesaleProductCardSize.compact => 'b2b.catalog.card_size_compact',
+        WholesaleProductCardSize.comfortable =>
+          'b2b.catalog.card_size_comfortable',
+        WholesaleProductCardSize.expanded => 'b2b.catalog.card_size_expanded',
+      };
+
+  IconData _cardSizeIcon() => switch (cardSize) {
+        WholesaleProductCardSize.compact => Icons.view_module_rounded,
+        WholesaleProductCardSize.comfortable => Icons.grid_view_rounded,
+        WholesaleProductCardSize.expanded => Icons.view_agenda_rounded,
+      };
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -2384,6 +2429,8 @@ class _WholesaleCatalogDesignScreenState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .removeListener(_onProductCardSizeChanged);
     search.dispose();
     super.dispose();
   }
@@ -2944,6 +2991,19 @@ class _WholesaleCatalogDesignScreenState
                                   ),
                                   IconButton(
                                     key: const ValueKey(
+                                      'wholesale-catalog-card-size',
+                                    ),
+                                    tooltip:
+                                        '${context.tr('b2b.catalog.card_size')}: '
+                                        '${context.tr(_cardSizeTranslationKey())}',
+                                    onPressed: () async {
+                                      await CustomerDisplayPreferences.instance
+                                          .cycleWholesaleProductCardSize();
+                                    },
+                                    icon: Icon(_cardSizeIcon()),
+                                  ),
+                                  IconButton(
+                                    key: const ValueKey(
                                         'wholesale-catalog-refresh'),
                                     tooltip: context.tr('b2b.catalog.refresh'),
                                     onPressed: () => _reload(resetLimit: false),
@@ -3011,6 +3071,7 @@ class _WholesaleCatalogDesignScreenState
                           pendingActionStore: widget.pendingActionStore,
                           palette: palette,
                           defaultCurrency: defaultCurrency,
+                          columnsOverride: cardSize.columns,
                           noResults: allRows.isNotEmpty &&
                               visibleRows.isEmpty &&
                               (search.text.trim().isNotEmpty ||
