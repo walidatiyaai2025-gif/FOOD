@@ -1310,7 +1310,7 @@ class _BrowseProductGrid extends StatelessWidget {
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: CustomerUiSpacing.xs,
-                  mainAxisSpacing: 2,
+                  mainAxisSpacing: 0,
                   mainAxisExtent: cardExtent,
                 ),
                 itemCount: products.length,
@@ -1860,7 +1860,7 @@ class _RelatedProductsGrid extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: 2,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: products.length,
@@ -1889,7 +1889,7 @@ double _threeColumnProductExtent({
       (cellWidth - (CustomerUiSpacing.xs * 2)).clamp(0.0, double.infinity);
   final imageHeight = imageWidth / 1.75;
   final scaledDelta = (textScale - 1).clamp(0.0, 1.0).toDouble();
-  return imageHeight + 76 + (scaledDelta * 24);
+  return imageHeight + 80 + (scaledDelta * 24);
 }
 
 
@@ -1965,7 +1965,7 @@ class _BrowseProductsSkeleton extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: 2,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: 6,
