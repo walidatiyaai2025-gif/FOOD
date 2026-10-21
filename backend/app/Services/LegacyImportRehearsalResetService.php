@@ -58,6 +58,9 @@ final class LegacyImportRehearsalResetService
         'legacy_operational_documents',
         'legacy_procurement_document_lines',
         'legacy_procurement_documents',
+        'legacy_business_table_manifest',
+        'legacy_business_records',
+        'legacy_invoice_source_records',
         'legacy_fixed_asset_records',
 
         // Additional imported catalog/fleet history dependents discovered after rehearsal imports.
