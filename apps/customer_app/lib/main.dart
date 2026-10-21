@@ -13,6 +13,7 @@ import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/network/customer_data_mode.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/routing/customer_routes.dart';
+import 'core/theme/customer_display_preferences.dart';
 import 'core/theme/customer_ui_v3_tokens.dart';
 
 const _startupTaskTimeout = Duration(seconds: 3);
@@ -98,6 +99,7 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
     await Future.wait<void>([
       _initializeDiagnostics(),
       _initializeDataMode(),
+      CustomerDisplayPreferences.instance.initialize(),
     ]);
     final restoredBootstrap = await authFuture;
 
