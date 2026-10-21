@@ -49,6 +49,12 @@ class B2bFinanceTest extends TestCase
             'name' => 'Fallback image product',
             'is_active' => true,
         ]);
+        $noImageProduct = Product::query()->create([
+            'unit_id' => $unitId,
+            'sku' => 'FIN-NO-IMAGE',
+            'name' => 'No image product',
+            'is_active' => true,
+        ]);
         DB::table('product_images')->insert([
             [
                 'product_id' => $primaryProduct->id,
@@ -107,6 +113,7 @@ class B2bFinanceTest extends TestCase
         ]);
         DB::table('invoice_items')->insert([
             'invoice_id' => $invoice->id,
+            'product_id' => $noImageProduct->id,
             'description' => 'Wholesale item',
             'sku_snapshot' => 'WHO-58',
             'quantity' => 1,
