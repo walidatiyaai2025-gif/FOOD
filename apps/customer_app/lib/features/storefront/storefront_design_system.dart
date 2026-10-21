@@ -650,8 +650,7 @@ class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
     if (rest.isEmpty) {
       return FittedBox(
         fit: BoxFit.scaleDown,
-        alignment:
-            arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
+        alignment: arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
         child: animatedBrand,
       );
     }

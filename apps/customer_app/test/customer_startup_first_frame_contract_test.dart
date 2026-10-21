@@ -24,7 +24,8 @@ void main() {
     expect(source, contains('if (!_runtimeReady)'));
     expect(
       source,
-      contains("import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';"),
+      contains(
+          "import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';"),
     );
     expect(source, contains('return const FoodexWaveLoading();'));
     expect(source, contains("'session_restore_timeout'"));
