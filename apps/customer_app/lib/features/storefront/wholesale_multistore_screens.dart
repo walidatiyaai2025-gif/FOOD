@@ -65,6 +65,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     required this.storefrontApi,
     required this.actionApi,
     this.commerceApi,
+    this.favoritesApi,
     this.pendingActionStore,
     this.showBottomNavigation = true,
     super.key,
@@ -76,6 +77,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final WholesaleCommerceApi? commerceApi;
+  final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
   final bool showBottomNavigation;
 
@@ -473,6 +475,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         actionApi: widget.actionApi,
                         pendingActionStore: widget.pendingActionStore,
                         palette: palette,
+                        favoritesApi: widget.favoritesApi,
                         maxItems: type == 'best_sellers' ? 9 : 3,
                         showCommerceActions: true,
                         homeWholeNumberPrice: true,
@@ -536,6 +539,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   actionApi: widget.actionApi,
                   pendingActionStore: widget.pendingActionStore,
                   palette: palette,
+                  favoritesApi: widget.favoritesApi,
                   maxItems: 3,
                   showCommerceActions: true,
                   homeWholeNumberPrice: true,
@@ -1715,6 +1719,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     required this.actionApi,
     required this.pendingActionStore,
     required this.palette,
+    this.favoritesApi,
     this.maxItems,
     this.defaultCurrency = 'EGP',
     this.noResults = false,
@@ -1730,6 +1735,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
   final FoodexPalette palette;
+  final B2cRetailFavoritesApi? favoritesApi;
   final int? maxItems;
   final String defaultCurrency;
   final bool noResults;
@@ -1775,6 +1781,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         actionApi: actionApi,
         pendingActionStore: pendingActionStore,
         palette: palette,
+        favoritesApi: favoritesApi,
         defaultCurrency: defaultCurrency,
         showCommerceActions: showCommerceActions,
         homeWholeNumberPrice: homeWholeNumberPrice,
@@ -1798,6 +1805,7 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.showCommerceActions,
     required this.homeWholeNumberPrice,
     required this.gridColumns,
+    this.favoritesApi,
     this.onRemoveFavorite,
   });
 
@@ -1812,6 +1820,7 @@ class _WholesaleProductCard extends StatefulWidget {
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
   final int gridColumns;
+  final B2cRetailFavoritesApi? favoritesApi;
   final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
@@ -1966,8 +1975,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       ),
                     ),
                     if (category.isNotEmpty)
-                      PositionedDirectional(
-                        start: 0,
+                      Positioned(
+                        right: 0,
                         top: 0,
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-category-$id'),
@@ -1999,15 +2008,62 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         ),
                       ),
                     if (brand.isNotEmpty)
-                      PositionedDirectional(
-                        end: 0,
-                        top: 0,
+                      Positioned(
+                        right: 0,
+                        top: category.isNotEmpty ? 23 : 0,
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-brand-$id'),
                           label: brand,
                           background: Colors.white.withOpacity(.94),
                           foreground: palette.muted,
                         ),
+                      ),
+                    if (id > 0)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: widget.onRemoveFavorite != null
+                            ? Material(
+                                color: Colors.black.withOpacity(.20),
+                                shape: const CircleBorder(),
+                                elevation: 1,
+                                child: InkWell(
+                                  key: ValueKey(
+                                    'wholesale-favorite-remove-$id',
+                                  ),
+                                  customBorder: const CircleBorder(),
+                                  onTap: removingFavorite
+                                      ? null
+                                      : _removeFavorite,
+                                  child: SizedBox.square(
+                                    dimension: 27,
+                                    child: removingFavorite
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(7),
+                                            child: FoodexWaveLoading(),
+                                          )
+                                        : const Icon(
+                                            Icons.favorite_rounded,
+                                            size: 17,
+                                            color:
+                                                CustomerUiColors.destructive,
+                                          ),
+                                  ),
+                                ),
+                              )
+                            : CustomerFavoriteButton(
+                                api: widget.favoritesApi,
+                                storeId: widget.storeId,
+                                productId: id,
+                                isAuthenticated:
+                                    widget.session.isAuthenticated,
+                                loginRoute:
+                                    '/auth/checkout?next=${Uri.encodeComponent(widget.sourceLocation)}',
+                                compactOverlay: true,
+                                inactiveColor: Colors.white,
+                                activeColor:
+                                    CustomerUiColors.destructive,
+                              ),
                       ),
                     if (!isAvailable)
                       PositionedDirectional(
@@ -2052,33 +2108,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           ),
                         ),
                       ),
-                    if (widget.onRemoveFavorite != null)
-                      PositionedDirectional(
-                        end: 0,
-                        bottom: 0,
-                        child: Material(
-                          color: Colors.white.withOpacity(.96),
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            key: ValueKey('wholesale-favorite-remove-$id'),
-                            customBorder: const CircleBorder(),
-                            onTap: removingFavorite ? null : _removeFavorite,
-                            child: SizedBox.square(
-                              dimension: 30,
-                              child: removingFavorite
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: FoodexWaveLoading(),
-                                    )
-                                  : const Icon(
-                                      Icons.favorite_rounded,
-                                      size: 17,
-                                      color: CustomerUiColors.destructive,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
+
                   ],
                 ),
               ),
@@ -2423,6 +2453,7 @@ class _WholesaleFavoritesDesignScreenState
                               actionApi: widget.actionApi,
                               pendingActionStore: widget.pendingActionStore,
                               palette: palette,
+                              favoritesApi: widget.favoritesApi,
                               showCommerceActions: true,
                               onRemoveFavorite: _removeFavorite,
                             ),
@@ -2495,6 +2526,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
     required this.api,
     required this.storefrontApi,
     required this.actionApi,
+    this.favoritesApi,
     this.pendingActionStore,
     super.key,
   });
@@ -2504,6 +2536,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
   final B2bApi? api;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
 
   @override
@@ -3344,6 +3377,7 @@ class _WholesaleCatalogDesignScreenState
                           actionApi: widget.actionApi,
                           pendingActionStore: widget.pendingActionStore,
                           palette: palette,
+                          favoritesApi: widget.favoritesApi,
                           defaultCurrency: defaultCurrency,
                           noResults: allRows.isNotEmpty &&
                               visibleRows.isEmpty &&
@@ -4529,6 +4563,7 @@ class _WholesaleProductDetailsDesignScreenState
                           actionApi: widget.actionApi,
                           pendingActionStore: widget.pendingActionStore,
                           palette: FoodexPalette.wholesale,
+                          favoritesApi: widget.favoritesApi,
                           maxItems: 6,
                           showCommerceActions: true,
                         );
