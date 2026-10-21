@@ -169,6 +169,9 @@ Artisan::command(
             'Legacy masters rerun ready: '.(($report['target']['legacy_masters_rerun_ready'] ?? false) ? 'yes' : 'no')
         );
         $this->line(
+            'Protected reset ready: '.(($report['target']['legacy_protected_reset_ready'] ?? false) ? 'yes' : 'no')
+        );
+        $this->line(
             'Protected upgrade ready: '.(($report['target']['legacy_upgrade_ready'] ?? false) ? 'yes' : 'no')
         );
 
