@@ -1505,8 +1505,8 @@ class _WholesaleProductGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        mainAxisExtent: showCommerceActions ? 188 : 166,
+        mainAxisSpacing: 0,
+        mainAxisExtent: 132,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1629,7 +1629,10 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final promotion = row['promotion'] is Map
         ? (row['promotion'] as Map)['name']?.toString().trim()
         : row['promotion_name']?.toString().trim();
-    final denseFourColumn = widget.gridColumns >= 4;
+    final amount = row['account_price'] ?? row['unit_price'] ?? row['price'];
+    final priceLabel = widget.homeWholeNumberPrice
+        ? '${doubleValue(amount, 0).toStringAsFixed(0)} $currency'
+        : money(amount, currency: currency);
 
     return Material(
       key: ValueKey('wholesale-product-card-$id'),
@@ -1646,17 +1649,15 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       widget.storeId.toString(),
                 ),
         child: Container(
-          padding: denseFourColumn
-              ? const EdgeInsets.fromLTRB(6, 7, 6, 7)
-              : const EdgeInsets.fromLTRB(10, 10, 10, 11),
+          padding: const EdgeInsets.fromLTRB(7, 7, 7, 6),
           decoration: BoxDecoration(
             border: Border.all(color: palette.soft),
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.035),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -1664,7 +1665,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: denseFourColumn ? 72 : 92,
+                height: 96,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -1676,81 +1677,88 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         ),
                       ),
                     ),
-                    if (!isAvailable)
+                    if (category.isNotEmpty)
                       PositionedDirectional(
                         start: 0,
-                        bottom: 0,
-                        child: Container(
-                          key: ValueKey('wholesale-product-out-of-stock-$id'),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: palette.soft),
-                          ),
-                          child: Text(
-                            context.tr('customer.product.out_of_stock'),
-                            style: TextStyle(
-                              color: palette.muted,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
+                        top: 0,
+                        child: _WholesaleCardBadge(
+                          key: ValueKey('wholesale-product-category-$id'),
+                          label: category,
+                          background: palette.soft,
+                          foreground: palette.primaryDark,
+                        ),
+                      ),
+                    PositionedDirectional(
+                      end: 0,
+                      top: 0,
+                      child: _WholesaleCardBadge(
+                        key: ValueKey('wholesale-product-price-$id'),
+                        label: priceLabel,
+                        background: const Color(0xFFE9F7EE),
+                        foreground: const Color(0xFF006736),
+                      ),
+                    ),
+                    if (promotion != null && promotion.isNotEmpty)
+                      PositionedDirectional(
+                        start: 0,
+                        top: category.isNotEmpty ? 25 : 0,
+                        child: _WholesaleCardBadge(
+                          key: ValueKey('wholesale-product-promotion-$id'),
+                          label: promotion,
+                          background: const Color(0xFFFFF2CC),
+                          foreground: const Color(0xFF7A4B00),
                         ),
                       ),
                     if (brand.isNotEmpty)
                       PositionedDirectional(
-                        top: 0,
-                        end: 0,
-                        child: Container(
+                        end: widget.onRemoveFavorite != null ? 34 : 0,
+                        bottom: 0,
+                        child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-brand-$id'),
-                          constraints: const BoxConstraints(maxWidth: 112),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE9F7EE),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            brand,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF006736),
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                          label: brand,
+                          background: Colors.white.withOpacity(.94),
+                          foreground: palette.muted,
                         ),
                       ),
-                    if (promotion != null && promotion.isNotEmpty)
+                    if (!isAvailable)
                       PositionedDirectional(
                         start: 0,
-                        top: 0,
-                        child: Container(
-                          key: ValueKey('wholesale-product-promotion-$id'),
-                          constraints: const BoxConstraints(maxWidth: 112),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: palette.soft,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            promotion,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: palette.primaryDark,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                        bottom: 0,
+                        child: _WholesaleCardBadge(
+                          key: ValueKey('wholesale-product-out-of-stock-$id'),
+                          label: context.tr('customer.product.out_of_stock'),
+                          background: Colors.white,
+                          foreground: palette.muted,
+                        ),
+                      ),
+                    if (widget.showCommerceActions && isAvailable && id > 0)
+                      PositionedDirectional(
+                        start: 0,
+                        bottom: 0,
+                        child: Semantics(
+                          button: true,
+                          label: context.tr('customer.action.add_cart'),
+                          child: Material(
+                            color: palette.primary,
+                            shape: const CircleBorder(),
+                            elevation: 2,
+                            child: InkWell(
+                              key: ValueKey('wholesale-product-add-$id'),
+                              customBorder: const CircleBorder(),
+                              onTap: busy ? null : _addToCart,
+                              child: SizedBox.square(
+                                dimension: 32,
+                                child: busy
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(9),
+                                        child: FoodexWaveLoading(),
+                                      )
+                                    : const Icon(
+                                        Icons.add_rounded,
+                                        size: 19,
+                                        color: Colors.white,
+                                      ),
+                              ),
                             ),
                           ),
                         ),
@@ -1763,9 +1771,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           color: Colors.white.withOpacity(.96),
                           shape: const CircleBorder(),
                           child: InkWell(
-                            key: ValueKey(
-                              'wholesale-favorite-remove-$id',
-                            ),
+                            key: ValueKey('wholesale-favorite-remove-$id'),
                             customBorder: const CircleBorder(),
                             onTap: removingFavorite ? null : _removeFavorite,
                             child: SizedBox.square(
@@ -1787,7 +1793,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   ],
                 ),
               ),
-              SizedBox(height: denseFourColumn ? 5 : 8),
+              const SizedBox(height: 4),
               SizedBox(
                 key: ValueKey('wholesale-product-name-$id'),
                 width: double.infinity,
@@ -1799,110 +1805,14 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                     row['name']?.toString() ?? '',
                     maxLines: 1,
                     softWrap: false,
-                    style: TextStyle(
-                      fontSize: denseFourColumn ? 8.5 : 9.5,
-                      height: 1.1,
+                    style: const TextStyle(
+                      fontSize: 9,
+                      height: 1.05,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF102033),
+                      color: Color(0xFF102033),
                     ),
                   ),
                 ),
-              ),
-              if (widget.showCommerceActions && category.isNotEmpty) ...[
-                SizedBox(height: denseFourColumn ? 2 : 3),
-                Text(
-                  category,
-                  key: ValueKey('wholesale-product-category-$id'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: palette.muted,
-                    fontSize: denseFourColumn ? 7.5 : 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.homeWholeNumberPrice
-                          ? '${doubleValue(
-                              row['account_price'] ??
-                                  row['unit_price'] ??
-                                  row['price'],
-                              0,
-                            ).toStringAsFixed(0)} $currency'
-                          : money(
-                              row['account_price'] ??
-                                  row['unit_price'] ??
-                                  row['price'],
-                              currency: currency,
-                            ),
-                      key: ValueKey('wholesale-product-price-$id'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: palette.primary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: denseFourColumn ? 10.5 : 14,
-                      ),
-                    ),
-                  ),
-                  if (widget.showCommerceActions) ...[
-                    const SizedBox(width: 4),
-                    SizedBox.square(
-                      dimension: denseFourColumn ? 24 : 32,
-                      child: Semantics(
-                        button: true,
-                        label: context.tr('customer.action.add_cart'),
-                        child: FilledButton(
-                          key: ValueKey('wholesale-product-add-$id'),
-                          onPressed: isAvailable && id > 0 && !busy
-                              ? _addToCart
-                              : null,
-                          style: FilledButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.square(
-                              denseFourColumn ? 24 : 32,
-                            ),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: Colors.transparent,
-                            disabledBackgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            elevation: 0,
-                            shape: const CircleBorder(),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          child: Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isAvailable && id > 0
-                                  ? palette.primary
-                                  : palette.muted.withOpacity(.22),
-                            ),
-                            alignment: Alignment.center,
-                            child: busy
-                                ? const SizedBox.square(
-                                    dimension: 8,
-                                    child: FoodexWaveLoading(),
-                                  )
-                                : const Icon(
-                                    Icons.add_rounded,
-                                    size: 10,
-                                    color: Colors.white,
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
               ),
             ],
           ),
@@ -1910,6 +1820,41 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
       ),
     );
   }
+}
+
+class _WholesaleCardBadge extends StatelessWidget {
+  const _WholesaleCardBadge({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    super.key,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(maxWidth: 92),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withOpacity(.75)),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: foreground,
+            fontSize: 8.5,
+            height: 1,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
 }
 
 class WholesaleFavoritesDesignScreen extends StatefulWidget {
