@@ -129,6 +129,38 @@
                         <button class="action" type="submit">{{ __('whatsapp.connections.test') }}</button>
                     </form>
 
+                    <details>
+                        <summary>{{ app()->getLocale()==='ar'?'إرسال رسالة واتساب تجريبية':'Send real WhatsApp test message' }}</summary>
+                        <form class="foodex-form" method="post" action="{{ route('admin.whatsapp.connections.test-send', $profile) }}">
+                            @csrf
+                            <label>
+                                {{ app()->getLocale()==='ar'?'رقم واتساب المستلم':'Recipient WhatsApp number' }}
+                                <input
+                                    class="foodex-control"
+                                    name="recipient"
+                                    required
+                                    maxlength="32"
+                                    inputmode="tel"
+                                    dir="ltr"
+                                    placeholder="+201012345678"
+                                    value="{{ old('recipient') }}"
+                                >
+                            </label>
+                            <p class="muted">
+                                {{ app()->getLocale()==='ar'
+                                    ? 'الرقم المصري المحلي الذي يبدأ بـ 01 يتحول تلقائيًا إلى +20…، مثال 01012345678 ← +201012345678.'
+                                    : 'Egyptian local mobile numbers beginning with 01 are converted automatically to +20…, e.g. 01012345678 → +201012345678.' }}
+                            </p>
+                            <label>
+                                {{ app()->getLocale()==='ar'?'رسالة الاختبار':'Test message' }}
+                                <textarea class="foodex-control" name="message" rows="3" required maxlength="1000">{{ old('message', app()->getLocale()==='ar' ? 'رسالة تجريبية من FOODEX عبر بوابة واتساب.' : 'FOODEX WhatsApp gateway test message.') }}</textarea>
+                            </label>
+                            <button class="primary" type="submit">
+                                {{ app()->getLocale()==='ar'?'إرسال رسالة فعلية الآن':'Send real test message now' }}
+                            </button>
+                        </form>
+                    </details>
+
                     @if($canDangerous)
                     <details>
                         <summary>{{ __('whatsapp.connections.replace_secret') }}</summary>
