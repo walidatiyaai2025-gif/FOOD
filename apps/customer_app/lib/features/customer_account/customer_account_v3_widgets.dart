@@ -109,41 +109,31 @@ class CustomerAccountSurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final decoration = BoxDecoration(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-      border: Border.all(color: Theme.of(context).dividerColor),
-      boxShadow: Theme.of(context).brightness == Brightness.dark
-          ? const <BoxShadow>[]
-          : CustomerUiElevation.cardShadow,
+    final theme = Theme.of(context);
+    final radius = BorderRadius.circular(CustomerUiRadii.lg);
+    final shape = RoundedRectangleBorder(
+      borderRadius: radius,
+      side: BorderSide(color: theme.dividerColor),
     );
 
-    if (onTap == null) {
-      return Material(
-        color: Colors.transparent,
-        child: Ink(
-          decoration: decoration,
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
-        ),
-      );
-    }
+    final content = Padding(
+      padding: padding,
+      child: child,
+    );
 
     return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: decoration,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
-        ),
-      ),
+      color: theme.cardColor,
+      elevation: theme.brightness == Brightness.dark ? 0 : 2,
+      shadowColor: theme.shadowColor,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? content
+          : InkWell(
+              onTap: onTap,
+              borderRadius: radius,
+              child: content,
+            ),
     );
   }
 }
