@@ -119,11 +119,14 @@ class CustomerAccountSurfaceCard extends StatelessWidget {
     );
 
     if (onTap == null) {
-      return DecoratedBox(
-        decoration: decoration,
-        child: Padding(
-          padding: padding,
-          child: child,
+      return Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: decoration,
+          child: Padding(
+            padding: padding,
+            child: child,
+          ),
         ),
       );
     }
