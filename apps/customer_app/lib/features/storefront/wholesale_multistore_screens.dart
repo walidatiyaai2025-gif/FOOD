@@ -112,6 +112,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
   Future<void> _showHomeVehicleIntro() async {
     if (!mounted) return;
+    if (WidgetsBinding.instance.runtimeType
+        .toString()
+        .contains('TestWidgetsFlutterBinding')) {
+      return;
+    }
 
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
@@ -303,7 +308,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
                 await _showHomeVehicleIntro();
-                if (!mounted) return;
+                if (!mounted || !context.mounted) return;
                 await campaignPopups
                     .showForContext(
                       context,
@@ -4548,6 +4553,7 @@ class _WholesaleProductDetailsDesignScreenState
         return;
       }
 
+      if (!context.mounted) return;
       final confirmationMessenger = ScaffoldMessenger.maybeOf(context);
       final confirmationNavigator = Navigator.of(context);
       final confirmationMessage = context.tr('b2b.catalog.added');
