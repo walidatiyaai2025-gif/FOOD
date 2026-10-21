@@ -120,6 +120,7 @@ class RetailMerchantDashboardTest extends TestCase
     public function test_owner_can_apply_reviewed_plan_idempotently_to_existing_wholesale_cart(): void
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $this->travelTo($asOf);
         $owner = $this->user('merchant-cart-owner@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
         $this->assignManager($owner, $fixture['retail_store']);
@@ -174,6 +175,7 @@ class RetailMerchantDashboardTest extends TestCase
     public function test_plan_reprices_at_mutation_time_and_blocks_stale_budget(): void
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $this->travelTo($asOf);
         $owner = $this->user('merchant-reprice-owner@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
         $this->assignManager($owner, $fixture['retail_store']);
@@ -206,6 +208,7 @@ class RetailMerchantDashboardTest extends TestCase
     public function test_retail_manager_cannot_mutate_owner_wholesale_cart(): void
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $this->travelTo($asOf);
         $owner = $this->user('merchant-cart-private-owner@example.test');
         $manager = $this->user('merchant-cart-private-manager@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
