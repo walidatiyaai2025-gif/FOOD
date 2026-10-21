@@ -1173,12 +1173,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (type === 'file' && (field.accept || '').includes('image')) {
                     const owner = field.closest('label') || field.parentElement;
-                    if (owner && !owner.querySelector('.foodex-file-help')) {
-                        const hint = document.createElement('span');
-                        hint.className = 'foodex-file-help';
-                        hint.textContent = isArabic ? 'راجع المعاينة قبل الحفظ. JPG / PNG / WebP حسب الحقل.' : 'Review the preview before saving. JPG / PNG / WebP as allowed by this field.';
-                        owner.appendChild(hint);
-                    }
                     field.addEventListener('change', () => {
                         const owner = field.closest('label') || field.parentElement;
                         if (!owner) return;

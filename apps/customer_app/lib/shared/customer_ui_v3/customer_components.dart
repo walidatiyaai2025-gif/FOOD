@@ -307,15 +307,39 @@ class CustomerProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AspectRatio(
         aspectRatio: aspectRatio,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-          child: imageUrl?.trim().isNotEmpty == true
-              ? Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                )
-              : _fallback(),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 1.055, end: 1),
+          duration: const Duration(milliseconds: 720),
+          curve: Curves.easeOutCubic,
+          builder: (context, scale, child) => Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: CustomerUiColors.white,
+              borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x3D72E89A),
+                  blurRadius: 13,
+                  spreadRadius: 1,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+              child: imageUrl?.trim().isNotEmpty == true
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _fallback(),
+                    )
+                  : _fallback(),
+            ),
+          ),
         ),
       );
 
@@ -403,7 +427,7 @@ class CustomerProductCard extends StatelessWidget {
             ),
             child: Padding(
               padding: EdgeInsets.all(
-                compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
+                compact ? CustomerUiSpacing.xxs : CustomerUiSpacing.xs,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,6 +484,20 @@ class CustomerProductCard extends StatelessWidget {
                             tone: CustomerBadgeTone.discount,
                           ),
                         ),
+                      if (categoryLabel?.trim().isNotEmpty == true)
+                        PositionedDirectional(
+                          top: discountLabel?.trim().isNotEmpty == true
+                              ? 40
+                              : CustomerUiSpacing.xs,
+                          start: CustomerUiSpacing.xs,
+                          child: CustomerBadge(
+                            key: const ValueKey(
+                              'customer-product-category-badge',
+                            ),
+                            label: categoryLabel!,
+                            tone: CustomerBadgeTone.accent,
+                          ),
+                        ),
                       if (onFavorite != null)
                         PositionedDirectional(
                           top: CustomerUiSpacing.xs,
@@ -474,14 +512,14 @@ class CustomerProductCard extends StatelessWidget {
                           ),
                         ),
                       if (brandImageUrl?.trim().isNotEmpty == true)
-                        PositionedDirectional(
+                        Positioned(
                           bottom: CustomerUiSpacing.xs,
-                          end: CustomerUiSpacing.xs,
+                          right: CustomerUiSpacing.xs,
                           child: Tooltip(
                             message: brandLabel?.trim() ?? '',
                             child: Container(
-                              width: 34,
-                              height: 34,
+                              width: 30,
+                              height: 30,
                               padding: const EdgeInsets.all(3),
                               clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
@@ -497,8 +535,42 @@ class CustomerProductCard extends StatelessWidget {
                                   fit: BoxFit.contain,
                                   errorBuilder: (_, __, ___) => const Icon(
                                     Icons.sell_outlined,
-                                    size: 18,
+                                    size: 16,
                                     color: CustomerUiColors.deepGreenSoft,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (isAvailable && onAdd != null)
+                        Positioned(
+                          bottom: CustomerUiSpacing.xs,
+                          left: CustomerUiSpacing.xs,
+                          child: Semantics(
+                            button: true,
+                            label: addSemanticLabel,
+                            child: InkResponse(
+                              onTap: onAdd,
+                              radius: 23,
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: CustomerUiColors.lime,
+                                  shape: BoxShape.circle,
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Color(0x33000000),
+                                      blurRadius: 7,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 36,
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    size: 20,
+                                    color: CustomerUiColors.deepGreenStrong,
                                   ),
                                 ),
                               ),
@@ -507,89 +579,33 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  SizedBox(
-                    height:
-                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
-                  ),
-                  if (categoryLabel?.trim().isNotEmpty == true) ...[
-                    CustomerBadge(
-                      label: categoryLabel!,
-                      tone: CustomerBadgeTone.accent,
+                  const SizedBox(height: CustomerUiSpacing.xxs),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: CustomerBadge(
+                      key: const ValueKey('customer-product-price-badge'),
+                      label: priceLabel,
+                      tone: CustomerBadgeTone.success,
                     ),
-                    SizedBox(
-                      height: compact
-                          ? CustomerUiSpacing.xxs
-                          : CustomerUiSpacing.xs,
-                    ),
-                  ],
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: compact ? 10 : 11,
-                          height: 1.15,
-                        ),
                   ),
+                  const SizedBox(height: CustomerUiSpacing.xxs),
                   SizedBox(
-                    height:
-                        compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: CustomerUiSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              priceLabel,
-                              style: (compact
-                                      ? Theme.of(context).textTheme.titleMedium
-                                      : Theme.of(context).textTheme.titleLarge)
-                                  ?.copyWith(
-                                color: CustomerUiColors.deepGreenStrong,
-                              ),
-                            ),
-                            if (oldPriceLabel?.trim().isNotEmpty == true)
-                              Text(
-                                oldPriceLabel!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: CustomerUiColors.muted,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (isAvailable && onAdd != null)
-                        Semantics(
-                          button: true,
-                          label: addSemanticLabel,
-                          child: InkResponse(
-                            onTap: onAdd,
-                            radius: 28,
-                            child: const DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: CustomerUiColors.lime,
-                                shape: BoxShape.circle,
-                              ),
-                              child: SizedBox.square(
-                                dimension: 44,
-                                child: Icon(
-                                  Icons.add_rounded,
-                                  size: 17,
-                                  color: CustomerUiColors.deepGreenStrong,
+                    width: double.infinity,
+                    height: 14,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        softWrap: false,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontSize: compact ? 9 : 9.5,
+                                  height: 1.1,
                                 ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                      ),
+                    ),
                   ),
                 ],
               ),

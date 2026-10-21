@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import '../../storefront/storefront_design_system.dart';
 
 import '../../../core/api/customer_action_api.dart';
@@ -330,7 +331,7 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
                       icon: _busy
                           ? const SizedBox.square(
                               dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: FoodexWaveLoading(),
                             )
                           : Icon(
                               _register
