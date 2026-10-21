@@ -361,6 +361,7 @@ final class LegacyFinanceAssetProfilerService
                 $day = (int) substr($raw, 6, 2);
                 if (checkdate($month, $day, $year)) {
                     $valid[] = sprintf('%04d-%02d-%02d', $year, $month, $day);
+
                     continue;
                 }
             }
@@ -587,8 +588,7 @@ final class LegacyFinanceAssetProfilerService
             ];
         }
 
-        usort($candidates, static fn (array $a, array $b): int =>
-            $b['matched_source_ids'] <=> $a['matched_source_ids']
+        usort($candidates, static fn (array $a, array $b): int => $b['matched_source_ids'] <=> $a['matched_source_ids']
         );
 
         return [
@@ -602,12 +602,12 @@ final class LegacyFinanceAssetProfilerService
     private function sourceMetadata(): array
     {
         $rows = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name, c.name AS column_name, c.column_id
+            'SELECT s.name AS schema_name, t.name AS table_name, c.name AS column_name, c.column_id
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
              INNER JOIN sys.columns c ON c.object_id = t.object_id
              WHERE t.is_ms_shipped = 0
-             ORDER BY s.name, t.name, c.column_id"
+             ORDER BY s.name, t.name, c.column_id'
         );
 
         $tables = [];
@@ -629,10 +629,10 @@ final class LegacyFinanceAssetProfilerService
     private function resolveSourceTable(): array
     {
         $rows = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name
+            'SELECT s.name AS schema_name, t.name AS table_name
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
-             WHERE t.is_ms_shipped = 0"
+             WHERE t.is_ms_shipped = 0'
         );
 
         foreach (self::SOURCE_ALIASES as $alias) {
@@ -661,12 +661,12 @@ final class LegacyFinanceAssetProfilerService
         return array_map(
             static fn ($row): string => (string) $row->column_name,
             $this->legacySource()->select(
-                "SELECT c.name AS column_name
+                'SELECT c.name AS column_name
                  FROM sys.tables t
                  INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
                  INNER JOIN sys.columns c ON c.object_id = t.object_id
                  WHERE s.name = ? AND t.name = ?
-                 ORDER BY c.column_id",
+                 ORDER BY c.column_id',
                 [$schema, $table],
             ),
         );

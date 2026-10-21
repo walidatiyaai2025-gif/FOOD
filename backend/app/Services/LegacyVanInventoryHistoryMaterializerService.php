@@ -11,7 +11,9 @@ use Throwable;
 final class LegacyVanInventoryHistoryMaterializerService
 {
     private const SOURCE_SYSTEM = 'foodex_sqlserver';
+
     private const HEADER_TABLE = 'wh_CarTransHeader';
+
     private const DETAIL_TABLE = 'wh_CarTransDetails';
 
     public function materialize(bool $apply): array

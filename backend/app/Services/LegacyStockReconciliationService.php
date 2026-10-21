@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Database\Connection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
@@ -417,7 +418,7 @@ final class LegacyStockReconciliationService
         ];
     }
 
-    private function detailChunk(int $lastDetailId, int $chunkSize): \Illuminate\Support\Collection
+    private function detailChunk(int $lastDetailId, int $chunkSize): Collection
     {
         $maxAttempts = max(1, (int) config('database.connections.foodex_legacy.retry_attempts', 5));
 

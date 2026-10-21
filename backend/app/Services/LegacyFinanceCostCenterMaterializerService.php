@@ -11,12 +11,19 @@ use RuntimeException;
 final class LegacyFinanceCostCenterMaterializerService
 {
     private const SOURCE_SYSTEM = 'foodex_sqlserver';
+
     private const SOURCE_ALIASES = ['gl_CostCenters', 'gl_CostCenter', 'CostCenters', 'CostCenter'];
+
     private const ID_ALIASES = ['ID', 'Id', 'CostCenterID', 'CostCenterId', 'CenterID', 'CenterId'];
+
     private const CODE_ALIASES = ['Code', 'CostCenterCode', 'CenterCode', 'No', 'Number'];
+
     private const NAME_ALIASES = ['Name_En', 'Name_EN', 'Name', 'CostCenterName', 'CenterName', 'Description'];
+
     private const NAME_AR_ALIASES = ['Name_AR', 'Name_Ar', 'ArabicName', 'NameArabic'];
+
     private const PARENT_ALIASES = ['ParentID', 'ParentId', 'CostCenterParentID', 'CostCenterParentId', 'ParentCostCenterID', 'ParentCostCenterId'];
+
     private const STATUS_ALIASES = ['Status', 'CostCenterStatus', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
 
     public function profile(): array
@@ -280,6 +287,7 @@ final class LegacyFinanceCostCenterMaterializerService
 
             if ($target === null) {
                 $orphanMappings++;
+
                 continue;
             }
 
@@ -475,10 +483,10 @@ final class LegacyFinanceCostCenterMaterializerService
     private function resolveSourceTable(): array
     {
         $rows = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name
+            'SELECT s.name AS schema_name, t.name AS table_name
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
-             WHERE t.is_ms_shipped = 0"
+             WHERE t.is_ms_shipped = 0'
         );
 
         foreach (self::SOURCE_ALIASES as $alias) {
@@ -502,12 +510,12 @@ final class LegacyFinanceCostCenterMaterializerService
         return array_map(
             static fn ($row): string => (string) $row->column_name,
             $this->legacySource()->select(
-                "SELECT c.name AS column_name
+                'SELECT c.name AS column_name
                  FROM sys.tables t
                  INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
                  INNER JOIN sys.columns c ON c.object_id = t.object_id
                  WHERE s.name = ? AND t.name = ?
-                 ORDER BY c.column_id",
+                 ORDER BY c.column_id',
                 [$schema, $table],
             ),
         );
