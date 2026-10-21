@@ -171,7 +171,7 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
@@ -185,7 +185,7 @@ return [
             'chatbot.ai.view', 'chatbot.ai.manage',
             'chatbot.segments.view', 'chatbot.segments.manage',
             'chatbot.analytics.view', 'chatbot.sessions.view', 'chatbot.sessions.takeover', 'chatbot.audit.view',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'drivers.tracking.view',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create',
         ],
         'B2B_ADMIN' => [
             'stores.view',
