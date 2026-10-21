@@ -16,6 +16,7 @@ import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_display_preferences.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
@@ -4281,7 +4282,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Future<void> _showProfile() => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: bg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -4341,6 +4342,29 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  ValueListenableBuilder<ThemeMode>(
+                    valueListenable:
+                        CustomerDisplayPreferences.instance.themeMode,
+                    builder: (context, themeMode, _) => SwitchListTile(
+                      key: const ValueKey('b2b-settings-dark-mode'),
+                      secondary: Icon(
+                        themeMode == ThemeMode.dark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                      ),
+                      title: Text(
+                        context.tr('customer.appearance.dark_mode'),
+                      ),
+                      subtitle: Text(
+                        context.tr('customer.appearance.dark_mode_subtitle'),
+                      ),
+                      value: themeMode == ThemeMode.dark,
+                      onChanged: (enabled) async {
+                        await CustomerDisplayPreferences.instance
+                            .setDarkMode(enabled);
+                      },
+                    ),
+                  ),
                   if (widget.onLocaleChanged != null)
                     ListTile(
                       leading: const Icon(Icons.language_rounded),
@@ -4452,7 +4476,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         key: const ValueKey('b2b-more-redesign'),
-        backgroundColor: bg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -4527,6 +4551,34 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         },
                       ),
                       const SizedBox(height: 14),
+                      ValueListenableBuilder<ThemeMode>(
+                        valueListenable:
+                            CustomerDisplayPreferences.instance.themeMode,
+                        builder: (context, themeMode, _) => Card(
+                          key: const ValueKey('b2b-more-dark-mode'),
+                          child: SwitchListTile(
+                            secondary: Icon(
+                              themeMode == ThemeMode.dark
+                                  ? Icons.dark_mode_rounded
+                                  : Icons.light_mode_rounded,
+                            ),
+                            title: Text(
+                              context.tr('customer.appearance.dark_mode'),
+                            ),
+                            subtitle: Text(
+                              context.tr(
+                                'customer.appearance.dark_mode_subtitle',
+                              ),
+                            ),
+                            value: themeMode == ThemeMode.dark,
+                            onChanged: (enabled) async {
+                              await CustomerDisplayPreferences.instance
+                                  .setDarkMode(enabled);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (widget.onLocaleChanged != null)
                         SegmentedButton<String>(
                           segments: const [
@@ -4623,9 +4675,9 @@ class _FinanceCard extends StatelessWidget {
         key: const ValueKey('b2b-more-finance-summary'),
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
         decoration: BoxDecoration(
-          color: CustomerUiColors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-          border: Border.all(color: _B2bMorePageState.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
           boxShadow: CustomerUiElevation.cardShadow,
         ),
         child: FutureBuilder<Object?>(
@@ -4693,8 +4745,8 @@ class _FinanceCard extends StatelessWidget {
                         ar ? 'ملخص الحساب المالي' : 'Financial account summary',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _B2bMorePageState.ink,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                         ),
@@ -4746,8 +4798,10 @@ class _FinanceCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: _B2bMorePageState.muted,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -4757,8 +4811,9 @@ class _FinanceCard extends StatelessWidget {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   values[i].$2,
-                                  style: const TextStyle(
-                                    color: _B2bMorePageState.ink,
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w900,
                                   ),
@@ -4869,8 +4924,8 @@ class _MoreCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _B2bMorePageState.ink,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 7.5,
                   fontWeight: FontWeight.w800,
                   height: 1.08,
