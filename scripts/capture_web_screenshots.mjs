@@ -99,6 +99,8 @@ const b2c = [
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
   ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
   ['23_مشتريات_الجملة_للمطعم', '/admin/restaurant/wholesale-purchases?tab=orders&support_access=1&retail_store_code=FOODEX-DEMO-B2C'],
+  ['24_صلاحيات_السايدبار_حسب_الدور', '/admin/sidebar-access'],
+  ['25_تنظيم_السايدبار', '/admin/sidebar-layout'],
 ];
 
 async function ensureDir(dir) {
@@ -997,8 +999,18 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
   if (JSON.stringify(proof.groups) !== JSON.stringify(expectedGroups)) {
     throw new Error(`Sidebar business-group order mismatch: ${JSON.stringify(proof.groups)}`);
   }
-  if (proof.adminLinks.length !== 1 || !proof.adminLinks[0].href.endsWith('/admin/administration')) {
-    throw new Error(`Administration must expose one Admin Hub entry: ${JSON.stringify(proof.adminLinks)}`);
+  const expectedAdministrationPaths = [
+    '/admin/administration',
+    '/admin/sidebar-access',
+    '/admin/sidebar-layout',
+  ];
+  if (
+    proof.adminLinks.length !== expectedAdministrationPaths.length
+    || expectedAdministrationPaths.some(
+      (path) => !proof.adminLinks.some((link) => link.href.endsWith(path)),
+    )
+  ) {
+    throw new Error(`Administration navigation entries mismatch: ${JSON.stringify(proof.adminLinks)}`);
   }
 
   const appNames = proof.apps.map((item) => item.app);

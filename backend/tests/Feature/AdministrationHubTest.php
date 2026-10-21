@@ -19,7 +19,7 @@ class AdministrationHubTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_administration_sidebar_is_one_hub_entry_instead_of_a_long_submenu(): void
+    public function test_administration_sidebar_keeps_hub_and_navigation_governance_entries_concise(): void
     {
         $user = $this->superAdmin();
 
@@ -27,9 +27,14 @@ class AdministrationHubTest extends TestCase
             ->firstWhere('key', 'administration');
 
         $this->assertIsArray($administration);
-        $this->assertCount(1, $administration['children']);
-        $this->assertSame('administration_hub', $administration['children'][0]['key']);
+        $this->assertCount(3, $administration['children']);
+        $this->assertSame(
+            ['administration_hub', 'sidebar_role_access', 'sidebar_layout'],
+            collect($administration['children'])->pluck('key')->values()->all(),
+        );
         $this->assertSame('admin.administration.index', $administration['children'][0]['route']);
+        $this->assertSame('admin.sidebar-access.roles', $administration['children'][1]['route']);
+        $this->assertSame('admin.sidebar-layout.index', $administration['children'][2]['route']);
     }
 
     public function test_administration_hub_exposes_customer_driver_and_van_as_first_class_apps(): void

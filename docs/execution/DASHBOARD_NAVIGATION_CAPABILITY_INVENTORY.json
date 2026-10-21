@@ -445,6 +445,72 @@
       "notes": "Administration Hub owns platform administration; Notifications Center is reachable from the header utility and Van Finance Support from the Administration Hub. Neither requires a duplicate Sidebar item."
     },
     {
+      "id": "administration.sidebar_role_access",
+      "domain": "Administration",
+      "capability": "Role-based sidebar visibility governance",
+      "route": [
+        "admin.sidebar-access.roles"
+      ],
+      "route_path": [
+        "/admin/sidebar-access"
+      ],
+      "controller_view": "App\\\\Http\\\\Controllers\\\\Admin\\\\SidebarManagementController@roleAccess · admin/sidebar-role-access.blade.php",
+      "role_persona": "platform admin with roles.manage",
+      "permission_entitlement": "roles.manage plus canonical server-side RBAC",
+      "navigation_owner": "Administration Sidebar Governance",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Administration → Sidebar access by role",
+      "parent_context": "Administration",
+      "ar_label": "صلاحيات السايدبار حسب الدور",
+      "en_label": "Sidebar access by role",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Administration group remains active and the role-access item is highlighted",
+      "back_path": "Administration → Administration Hub",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/app/Http/Controllers/Admin/SidebarManagementController.php",
+        "backend/resources/views/admin/sidebar-role-access.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Navigation visibility can only reduce already-authorized RBAC navigation; it never grants route access."
+    },
+    {
+      "id": "administration.sidebar_layout",
+      "domain": "Administration",
+      "capability": "Sidebar labels, grouping, nesting and ordering governance",
+      "route": [
+        "admin.sidebar-layout.index"
+      ],
+      "route_path": [
+        "/admin/sidebar-layout"
+      ],
+      "controller_view": "App\\\\Http\\\\Controllers\\\\Admin\\\\SidebarManagementController@layout · admin/sidebar-layout.blade.php",
+      "role_persona": "platform admin with roles.manage",
+      "permission_entitlement": "roles.manage",
+      "navigation_owner": "Administration Sidebar Governance",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Administration → Sidebar organizer",
+      "parent_context": "Administration",
+      "ar_label": "تنظيم السايدبار",
+      "en_label": "Sidebar organizer",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Administration group remains active and the organizer item is highlighted",
+      "back_path": "Administration → Administration Hub",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/app/Http/Controllers/Admin/SidebarManagementController.php",
+        "backend/resources/views/admin/sidebar-layout.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Protected Administration governance entries cannot be disabled, moved under an inaccessible parent, or used to bypass route authorization."
+    },
+    {
       "id": "settings.center",
       "domain": "Platform Settings",
       "capability": "Configuration",

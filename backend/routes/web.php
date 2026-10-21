@@ -52,6 +52,7 @@ use App\Http\Controllers\Admin\RestaurantWholesalePurchasesController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\SettingsCenterController;
+use App\Http\Controllers\Admin\SidebarManagementController;
 use App\Http\Controllers\Admin\SmartOrderingQrController;
 use App\Http\Controllers\Admin\SmsSettingsController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
@@ -832,6 +833,10 @@ Route::prefix('admin')
         Route::patch('/inspector/restaurant/{store}/lifecycle', [SystemInspectorController::class, 'transitionRestaurantLifecycle'])
             ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-lifecycle.update');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::get('/sidebar-access', [SidebarManagementController::class, 'roleAccess'])->name('sidebar-access.roles');
+        Route::put('/sidebar-access/roles/{role}', [SidebarManagementController::class, 'updateRoleAccess'])->name('sidebar-access.roles.update');
+        Route::get('/sidebar-layout', [SidebarManagementController::class, 'layout'])->name('sidebar-layout.index');
+        Route::put('/sidebar-layout', [SidebarManagementController::class, 'updateLayout'])->name('sidebar-layout.update');
         Route::get('/security/enterprise', [EnterpriseSecurityController::class, 'index'])->name('enterprise-security.index');
         Route::post('/security/enterprise/role-scopes', [EnterpriseSecurityController::class, 'requestRoleScopeGrant'])->name('enterprise-security.role-scopes.store');
         Route::delete('/security/enterprise/role-scopes/{dataScope}', [EnterpriseSecurityController::class, 'requestRoleScopeRevoke'])->name('enterprise-security.role-scopes.destroy');
