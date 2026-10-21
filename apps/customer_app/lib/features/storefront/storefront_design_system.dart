@@ -512,7 +512,9 @@ class FoodexSectionHeader extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: palette.text,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.onSurface
+                      : palette.text,
                   fontSize: 18 * textScale,
                   fontWeight: FontWeight.w800,
                 ),
