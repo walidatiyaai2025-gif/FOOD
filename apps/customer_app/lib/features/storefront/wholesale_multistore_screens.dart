@@ -6084,12 +6084,14 @@ class _WholesaleCheckoutDesignScreenState
 
   Future<void> _applyCoupon() async {
     final code = _normalizedCoupon;
-    final api = widget.commerceApi;
-    if (code.isEmpty || api is! WholesaleQuoteApi || applyingCoupon) return;
+    final commerceApi = widget.commerceApi;
+    final quoteApi =
+        commerceApi is WholesaleQuoteApi ? commerceApi : null;
+    if (code.isEmpty || quoteApi == null || applyingCoupon) return;
 
     setState(() => applyingCoupon = true);
     try {
-      final raw = await api.quote(
+      final raw = await quoteApi.quote(
         storeId: storeId,
         couponCode: code,
         paymentMethod: paymentMethod,
