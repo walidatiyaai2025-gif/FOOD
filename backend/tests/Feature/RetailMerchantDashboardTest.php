@@ -33,6 +33,13 @@ class RetailMerchantDashboardTest extends TestCase
         );
     }
 
+    protected function tearDown(): void
+    {
+        CarbonImmutable::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_owner_dashboard_combines_retail_intelligence_with_owner_only_wholesale_finance(): void
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
@@ -121,6 +128,7 @@ class RetailMerchantDashboardTest extends TestCase
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
         $this->travelTo($asOf);
+        CarbonImmutable::setTestNow($asOf);
         $owner = $this->user('merchant-cart-owner@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
         $this->assignManager($owner, $fixture['retail_store']);
@@ -176,6 +184,7 @@ class RetailMerchantDashboardTest extends TestCase
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
         $this->travelTo($asOf);
+        CarbonImmutable::setTestNow($asOf);
         $owner = $this->user('merchant-reprice-owner@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
         $this->assignManager($owner, $fixture['retail_store']);
@@ -209,6 +218,7 @@ class RetailMerchantDashboardTest extends TestCase
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
         $this->travelTo($asOf);
+        CarbonImmutable::setTestNow($asOf);
         $owner = $this->user('merchant-cart-private-owner@example.test');
         $manager = $this->user('merchant-cart-private-manager@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
