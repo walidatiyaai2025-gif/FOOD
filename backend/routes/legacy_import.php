@@ -2173,6 +2173,48 @@ Artisan::command(
 )->purpose('Materialize every legacy Foodex fixed asset idempotently without fabricating finance accounts or journals.');
 
 Artisan::command(
+    'foodex:legacy-finance-assets-one-shot {--apply : Apply legacy asset materialization} {--json : Output machine-readable JSON}',
+    function (LegacyFinanceAssetMaterializerService $assets): int {
+        try {
+            $report = $assets->oneShot((bool) $this->option('apply'));
+        } catch (Throwable $exception) {
+            $this->error('Legacy fixed-asset one-shot failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return 0;
+        }
+
+        $this->info('Legacy fixed-asset one-shot completed.');
+        $this->line(
+            'Source='.$report['classification']['source_rows'].
+            ' | Candidates='.$report['classification']['native_candidate_rows'].
+            ' | Placeholders='.$report['classification']['legacy_placeholder_rows']
+        );
+        if ($report['verification'] !== null) {
+            $this->line(
+                'Verified='.$report['verification']['materialized_rows'].
+                ' | Mappings='.$report['verification']['mapping_rows']
+            );
+        }
+        $this->line(
+            'Preflight ready='.$report['native_preflight']['ready_rows'].
+            ' | blocked='.$report['native_preflight']['blocked_rows']
+        );
+        if (! $report['native_preflight']['ready_for_native_promotion']) {
+            $this->warn('Native preflight remains blocked until explicit mappings exist.');
+            $this->line('Blockers: '.json_encode($report['native_preflight']['blocker_counts'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        }
+
+        return 0;
+    },
+)->purpose('Run legacy fixed-asset materialization, verification, placeholder classification, authority scan, and native preflight in one command.');
+
+Artisan::command(
     'foodex:legacy-finance-assets-verify {--json : Output machine-readable JSON}',
     function (LegacyFinanceAssetMaterializerService $assets): int {
         try {
