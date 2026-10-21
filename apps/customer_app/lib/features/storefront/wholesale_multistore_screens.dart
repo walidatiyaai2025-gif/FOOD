@@ -511,8 +511,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             return Scaffold(
               backgroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : palette.background,
+                ? Theme.of(context).scaffoldBackgroundColor
+                : palette.background,
               body: SafeArea(
                 child: Column(
                   children: [
