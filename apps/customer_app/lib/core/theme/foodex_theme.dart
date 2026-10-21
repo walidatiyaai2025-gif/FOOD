@@ -250,4 +250,181 @@ abstract final class FoodexTheme {
       ),
     );
   }
+
+  static ThemeData dark({String? fontFamily}) {
+    const background = Color(0xFF0B1410);
+    const surface = Color(0xFF14211B);
+    const border = Color(0xFF2C3D35);
+    const ink = Color(0xFFF4F7F5);
+    const muted = Color(0xFFB6C5BD);
+
+    const scheme = ColorScheme.dark(
+      primary: CustomerUiColors.lime,
+      onPrimary: CustomerUiColors.deepGreenStrong,
+      secondary: CustomerUiColors.mintStrong,
+      onSecondary: CustomerUiColors.deepGreenStrong,
+      surface: surface,
+      onSurface: ink,
+      error: Color(0xFFFF8A8A),
+      onError: Color(0xFF360909),
+    );
+
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+    );
+    final textTheme = CustomerUiTypography.build(
+      base.textTheme,
+      fontFamily: fontFamily,
+    ).apply(bodyColor: ink, displayColor: ink);
+    final primaryTextTheme = CustomerUiTypography.build(
+      base.primaryTextTheme,
+      fontFamily: fontFamily,
+    ).apply(
+      bodyColor: CustomerUiColors.white,
+      displayColor: CustomerUiColors.white,
+    );
+
+    return base.copyWith(
+      textTheme: textTheme,
+      primaryTextTheme: primaryTextTheme,
+      scaffoldBackgroundColor: background,
+      cardColor: surface,
+      dividerColor: border,
+      canvasColor: surface,
+      dialogTheme: const DialogThemeData(
+        backgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surface,
+        modalBackgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: CustomerUiColors.deepGreenStrong,
+        foregroundColor: CustomerUiColors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: CustomerUiElevation.flat,
+        scrolledUnderElevation: CustomerUiElevation.flat,
+        centerTitle: false,
+        toolbarHeight: 58,
+        titleSpacing: CustomerUiSpacing.md,
+        titleTextStyle: primaryTextTheme.titleLarge?.copyWith(
+          color: CustomerUiColors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+        iconTheme: const IconThemeData(color: CustomerUiColors.white),
+        actionsIconTheme: const IconThemeData(color: CustomerUiColors.white),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        height: 74,
+        backgroundColor: surface,
+        indicatorColor: Color(0xFF294633),
+        surfaceTintColor: Colors.transparent,
+        elevation: CustomerUiElevation.floating,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: CustomerUiColors.lime,
+          foregroundColor: CustomerUiColors.deepGreenStrong,
+          minimumSize: const Size(0, 52),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CustomerUiSpacing.lg,
+            vertical: CustomerUiSpacing.sm,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: CustomerUiColors.lime,
+          minimumSize: const Size(44, 44),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ink,
+          minimumSize: const Size(0, 50),
+          side: const BorderSide(color: border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+          ),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        minVerticalPadding: CustomerUiSpacing.sm,
+        iconColor: CustomerUiColors.lime,
+        textColor: ink,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF24332B),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: ink),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surface,
+        selectedColor: const Color(0xFF294633),
+        side: const BorderSide(color: border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+        ),
+        labelStyle: textTheme.labelLarge,
+        padding: const EdgeInsets.symmetric(
+          horizontal: CustomerUiSpacing.xs,
+          vertical: CustomerUiSpacing.xxs,
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: CustomerUiColors.lime,
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: CustomerUiColors.lime,
+        foregroundColor: CustomerUiColors.deepGreenStrong,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: CustomerUiSpacing.md,
+          vertical: 15,
+        ),
+        hintStyle: textTheme.bodyMedium?.copyWith(color: muted),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(color: border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(
+            color: CustomerUiColors.lime,
+            width: CustomerUiStroke.emphasis,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(color: Color(0xFFFF8A8A)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          borderSide: const BorderSide(
+            color: Color(0xFFFF8A8A),
+            width: CustomerUiStroke.emphasis,
+          ),
+        ),
+      ),
+    );
+  }
+
 }
