@@ -147,7 +147,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
                 </summary>
                 <div class="foodex-nav-children">
                     @foreach($group['children'] as $child)
-                        @include('admin._sidebar-node',['child'=>$child,'childIcon'=>$childIcon,'secondaryLocale'=>$secondaryLocale,'navContext'=>$navContext])
+                        @include('admin._sidebar-node',['child'=>$child,'childIcon'=>$childIcon,'secondaryLocale'=>$secondaryLocale,'navContext'=>($navContext??'')])
                     @endforeach
                 </div>
             </details>
