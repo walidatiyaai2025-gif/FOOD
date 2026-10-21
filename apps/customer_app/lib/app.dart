@@ -34,6 +34,7 @@ import 'core/routing/customer_commerce_context_store.dart';
 import 'core/routing/customer_pending_action.dart';
 import 'core/routing/customer_router.dart';
 import 'core/routing/customer_routes.dart';
+import 'core/theme/customer_display_preferences.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/customer_orders/customer_orders_api.dart';
 import 'features/retail/commerce/retail_commerce_api.dart';
@@ -836,32 +837,39 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     );
     _activeRouter = router;
 
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
-      scaffoldMessengerKey: _messengerKey,
-      navigatorObservers: [CustomerDiagnosticsNavigatorObserver(_diagnostics)],
-      debugShowCheckedModeBanner: false,
-      title: 'FOODEX Customer',
-      theme: widget.theme ?? FoodexTheme.light(),
-      locale: _locale,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => _withPreviewViewport(
-        AppTranslations(
-          locale: _locale,
-          overrides: _translations,
-          child: child ?? const SizedBox.shrink(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: CustomerDisplayPreferences.instance.themeMode,
+      builder: (context, themeMode, _) => MaterialApp(
+        navigatorKey: _navigatorKey,
+        scaffoldMessengerKey: _messengerKey,
+        navigatorObservers: [
+          CustomerDiagnosticsNavigatorObserver(_diagnostics),
+        ],
+        debugShowCheckedModeBanner: false,
+        title: 'FOODEX Customer',
+        theme: widget.theme ?? FoodexTheme.light(),
+        darkTheme: widget.theme ?? FoodexTheme.dark(),
+        themeMode: widget.theme == null ? themeMode : ThemeMode.light,
+        locale: _locale,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        builder: (context, child) => _withPreviewViewport(
+          AppTranslations(
+            locale: _locale,
+            overrides: _translations,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
+        initialRoute: widget.initialRoute,
+        onGenerateInitialRoutes: (routeName) => [
+          router.onGenerateRoute(RouteSettings(name: routeName)),
+        ],
+        onGenerateRoute: router.onGenerateRoute,
       ),
-      initialRoute: widget.initialRoute,
-      onGenerateInitialRoutes: (routeName) => [
-        router.onGenerateRoute(RouteSettings(name: routeName)),
-      ],
-      onGenerateRoute: router.onGenerateRoute,
     );
   }
 }
