@@ -63,7 +63,7 @@ return [
         'queue' => 'Queue',
         'category' => 'Category',
         'search' => 'Search cases',
-        'search_placeholder' => 'Customer, subject, order or invoice',
+        'search_placeholder' => 'Customer, phone, subject, order or invoice',
         'apply' => 'Apply filters',
     ],
     'exceptions' => [
@@ -92,6 +92,7 @@ return [
         'conversation_id' => 'Related conversation ID',
         'delivery_reference' => 'Delivery reference',
         'source' => 'Source',
+        'contact_phone' => 'Contact phone',
         'save' => 'Save case',
         'recovery_code' => 'Service-recovery code',
         'recovery_note' => 'Service-recovery note',
@@ -181,6 +182,7 @@ return [
         'system' => 'System',
         'agent' => 'Agent',
         'chatbot' => 'Chatbot',
+        'customer_app' => 'Customer App',
     ],
     'cards' => [
         'customer' => [

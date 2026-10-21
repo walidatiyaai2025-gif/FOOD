@@ -63,7 +63,7 @@ return [
         'queue' => 'طابور العمل',
         'category' => 'الفئة',
         'search' => 'بحث الحالات',
-        'search_placeholder' => 'العميل أو الموضوع أو الطلب أو الفاتورة',
+        'search_placeholder' => 'العميل أو الهاتف أو الموضوع أو الطلب أو الفاتورة',
         'apply' => 'تطبيق الفلاتر',
     ],
     'exceptions' => [
@@ -92,6 +92,7 @@ return [
         'conversation_id' => 'رقم المحادثة المرتبطة',
         'delivery_reference' => 'مرجع التوصيل',
         'source' => 'المصدر',
+        'contact_phone' => 'هاتف التواصل',
         'save' => 'حفظ الحالة',
         'recovery_code' => 'رمز معالجة/تعويض الخدمة',
         'recovery_note' => 'ملاحظة معالجة/تعويض الخدمة',
@@ -181,6 +182,7 @@ return [
         'system' => 'النظام',
         'agent' => 'موظف',
         'chatbot' => 'المساعد الآلي',
+        'customer_app' => 'تطبيق العميل',
     ],
     'cards' => [
         'customer' => [

@@ -182,6 +182,80 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     }
   }
 
+  Future<void> _contactUs() async {
+    if (widget.api is! CustomerContactApi) return;
+    final contactApi = widget.api as CustomerContactApi;
+
+    Object? profile;
+    try {
+      profile = await _profile;
+    } catch (_) {
+      profile = null;
+    }
+    if (!mounted) return;
+
+    String initialPhone = '';
+    if (profile is Map) {
+      final customer = profile['customer'];
+      if (customer is Map) {
+        initialPhone = customer['phone']?.toString() ?? '';
+      }
+    }
+
+    final draft = await showDialog<_CustomerContactDraft>(
+      context: context,
+      builder: (_) => _CustomerContactDialog(initialPhone: initialPhone),
+    );
+    if (draft == null || !mounted) return;
+
+    try {
+      final response = await contactApi.submitContactUs(
+        storeId: widget.retailStoreId,
+        phone: draft.phone,
+        message: draft.message,
+      );
+      if (!mounted) return;
+
+      String reference = '';
+      if (response is Map && response['data'] is Map) {
+        final data = response['data'] as Map;
+        reference =
+            data['id']?.toString() ?? data['public_id']?.toString() ?? '';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('customer-contact-success'),
+          content: Text(
+            context.tr('customer.contact.success') +
+                (reference.isEmpty
+                    ? ''
+                    : " · ${context.tr('customer.contact.case')} #$reference"),
+          ),
+        ),
+      );
+    } on B2cAccountException catch (error) {
+      if (!mounted) return;
+      String? fieldMessage;
+      for (final messages in error.fieldErrors.values) {
+        if (messages.isNotEmpty) {
+          fieldMessage = messages.first;
+          break;
+        }
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fieldMessage ??
+                error.serverMessage ??
+                (error.code.isEmpty
+                    ? context.tr('customer.contact.error')
+                    : error.code),
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _editProfile(Map<String, dynamic> profile) async {
     final name = TextEditingController(text: profile['name']?.toString() ?? '');
     final email = TextEditingController(
@@ -350,6 +424,15 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                   title: context.tr('customer.profile.orders'),
                   icon: Icons.receipt_long_outlined,
                   onTap: widget.onOpenOrders,
+                ),
+              ],
+              if (widget.api is CustomerContactApi) ...[
+                const SizedBox(height: CustomerUiSpacing.sm),
+                CustomerAccountShortcutCard(
+                  key: const ValueKey('customer-account-contact-us'),
+                  title: context.tr('customer.contact.title'),
+                  icon: Icons.support_agent_rounded,
+                  onTap: _contactUs,
                 ),
               ],
               if (widget.api is HttpB2cAccountApi) ...[
@@ -622,6 +705,109 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
           onPressed: onRetry,
           icon: const Icon(Icons.refresh_rounded),
           label: Text(context.tr('customer.action.retry')),
+        ),
+      ],
+    );
+  }
+}
+
+class _CustomerContactDraft {
+  const _CustomerContactDraft({
+    required this.phone,
+    required this.message,
+  });
+
+  final String phone;
+  final String message;
+}
+
+class _CustomerContactDialog extends StatefulWidget {
+  const _CustomerContactDialog({required this.initialPhone});
+
+  final String initialPhone;
+
+  @override
+  State<_CustomerContactDialog> createState() => _CustomerContactDialogState();
+}
+
+class _CustomerContactDialogState extends State<_CustomerContactDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _phone;
+  final TextEditingController _message = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _phone = TextEditingController(text: widget.initialPhone);
+  }
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _message.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(context.tr('customer.contact.title')),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(context.tr('customer.contact.subtitle')),
+              const SizedBox(height: CustomerUiSpacing.md),
+              TextFormField(
+                key: const ValueKey('customer-contact-phone'),
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                maxLength: 50,
+                decoration: InputDecoration(
+                  labelText: context.tr('customer.contact.phone'),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? context.tr('customer.contact.phone_required')
+                    : null,
+              ),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              TextFormField(
+                key: const ValueKey('customer-contact-message'),
+                controller: _message,
+                minLines: 4,
+                maxLines: 7,
+                maxLength: 8000,
+                decoration: InputDecoration(
+                  labelText: context.tr('customer.contact.message'),
+                  alignLabelWithHint: true,
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? context.tr('customer.contact.message_required')
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.tr('customer.action.cancel')),
+        ),
+        FilledButton(
+          key: const ValueKey('customer-contact-submit'),
+          onPressed: () {
+            if (_formKey.currentState?.validate() != true) return;
+            Navigator.of(context).pop(
+              _CustomerContactDraft(
+                phone: _phone.text.trim(),
+                message: _message.text.trim(),
+              ),
+            );
+          },
+          child: Text(context.tr('customer.contact.send')),
         ),
       ],
     );

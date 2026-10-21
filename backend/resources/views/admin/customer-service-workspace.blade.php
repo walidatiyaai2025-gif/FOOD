@@ -346,7 +346,7 @@ body.cs-inbox-modal-open{overflow:hidden}
                     <div class="cs-table-wrap">
                         <table class="cs-table" data-pagination-required>
                             <thead><tr>
-                                <th>{{ __('customer_service_workspace.cases.case') }}</th><th>{{ __('customer_service_workspace.cases.customer') }}</th><th>{{ __('customer_service_workspace.filters.store') }}</th><th>{{ __('customer_service_workspace.filters.status') }}</th><th>{{ __('customer_service_workspace.filters.priority') }}</th><th>{{ __('customer_service_workspace.filters.queue') }}</th><th>{{ __('customer_service_workspace.cases.owner') }}</th><th>{{ __('customer_service_workspace.cases.sla') }}</th><th></th>
+                                <th>{{ __('customer_service_workspace.cases.case') }}</th><th>{{ __('customer_service_workspace.cases.customer') }}</th><th>{{ __('customer_service_workspace.filters.store') }}</th><th>{{ __('customer_service_workspace.filters.status') }}</th><th>{{ __('customer_service_workspace.filters.priority') }}</th><th>{{ __('customer_service_workspace.filters.queue') }}</th><th>{{ __('customer_service_workspace.cases.source') }}</th><th>{{ __('customer_service_workspace.cases.owner') }}</th><th>{{ __('customer_service_workspace.cases.sla') }}</th><th></th>
                             </tr></thead>
                             <tbody>
                             @foreach($cases as $case)
@@ -358,6 +358,7 @@ body.cs-inbox-modal-open{overflow:hidden}
                                     <td data-label="{{ __('customer_service_workspace.filters.status') }}"><span class="cs-badge">{{ __('customer_service_workspace.values.'.$case->status) }}</span></td>
                                     <td data-label="{{ __('customer_service_workspace.filters.priority') }}"><span class="cs-badge {{ in_array($case->priority,['high','urgent'],true)?'warn':'' }}">{{ __('customer_service_workspace.values.'.$case->priority) }}</span></td>
                                     <td data-label="{{ __('customer_service_workspace.filters.queue') }}">{{ __('customer_service_workspace.values.'.($case->queue ?: 'general')) }}</td>
+                                    <td data-label="{{ __('customer_service_workspace.cases.source') }}"><span class="cs-badge">{{ __('customer_service_workspace.values.'.$case->source) }}</span></td>
                                     <td data-label="{{ __('customer_service_workspace.cases.owner') }}">{{ $case->assigned_agent_name ?: __('customer_service_workspace.values.unassigned') }}</td>
                                     <td data-label="{{ __('customer_service_workspace.cases.sla') }}"><span class="cs-badge {{ $overdue?'danger':'' }}">{{ $case->sla_target_at ?: '—' }}</span></td>
                                     <td><a class="foodex-action-secondary button secondary" href="{{ route('admin.erp.customer-service.cases.show',['case'=>$case->id]) }}" data-case-modal-link aria-haspopup="dialog">{{ __('customer_service_workspace.cases.open') }}</a></td>
@@ -435,6 +436,7 @@ body.cs-inbox-modal-open{overflow:hidden}
                     <div class="cs-detail-item"><small>{{ __('customer_service_workspace.cases.owner') }}</small><strong>{{ $selectedCase->assigned_agent_name ?: __('customer_service_workspace.values.unassigned') }}</strong></div>
                     <div class="cs-detail-item"><small>{{ __('customer_service_workspace.cases.sla') }}</small><strong>{{ $selectedCase->sla_target_at ?: '—' }}</strong></div>
                     <div class="cs-detail-item"><small>{{ __('customer_service_workspace.cases.source') }}</small><strong>{{ __('customer_service_workspace.values.'.$selectedCase->source) }}</strong></div>
+                    <div class="cs-detail-item"><small>{{ __('customer_service_workspace.cases.contact_phone') }}</small><strong>{{ $selectedCase->contact_phone ?: $selectedCase->customer_phone ?: '—' }}</strong></div>
                 </div>
                 @if($selectedCase->description)
                     <p style="white-space:pre-wrap">{{ $selectedCase->description }}</p>

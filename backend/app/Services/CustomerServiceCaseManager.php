@@ -349,6 +349,85 @@ final class CustomerServiceCaseManager
     }
 
     /**
+     * Create a canonical Customer Service case from the authenticated Customer app.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function createCustomerAppCase(User $actor, array $attributes): CustomerServiceCase
+    {
+        $data = Validator::make($attributes, [
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'phone' => ['required', 'string', 'max:50'],
+            'message' => ['required', 'string', 'max:8000'],
+        ])->validate();
+
+        $customer = app(PlatformCustomerService::class)->forUser($actor);
+        abort_unless($customer instanceof PlatformCustomer, 403, 'Customer profile is required.');
+
+        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : (int) ($customer->origin_store_id ?? 0);
+
+        if ($storeId <= 0) {
+            $storeId = (int) (
+                DB::table('orders')
+                    ->where('customer_id', $customer->legacy_customer_id)
+                    ->orderByDesc('id')
+                    ->value('store_id')
+                ?? DB::table('invoices')
+                    ->where(function ($query) use ($customer): void {
+                        $query->where('platform_customer_id', $customer->getKey())
+                            ->orWhere('customer_id', $customer->legacy_customer_id);
+                    })
+                    ->orderByDesc('id')
+                    ->value('store_id')
+                ?? 0
+            );
+        }
+
+        if ($storeId <= 0) {
+            throw ValidationException::withMessages([
+                'store_id' => ['A valid customer store context is required.'],
+            ]);
+        }
+
+        $this->assertCustomerVisibleInStore((int) $customer->getKey(), $storeId);
+
+        $phone = trim((string) $data['phone']);
+        $message = trim((string) $data['message']);
+        $slaTarget = CarbonImmutable::now()->addHours($this->slaHours('normal'));
+
+        $case = CustomerServiceCase::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $storeId,
+            'platform_customer_id' => (int) $customer->getKey(),
+            'type' => 'complaint',
+            'status' => 'open',
+            'priority' => 'normal',
+            'queue' => 'general',
+            'subject' => 'Customer App contact',
+            'description' => $message,
+            'contact_phone' => $phone,
+            'assigned_agent_id' => null,
+            'created_by' => $actor->getKey(),
+            'updated_by' => $actor->getKey(),
+            'sla_target_at' => $slaTarget,
+            'source' => 'customer_app',
+        ]);
+
+        $this->audit->record('customer_service.case.customer_app_created', $actor, $case, null, [
+            'store_id' => $storeId,
+            'case_id' => $case->getKey(),
+            'platform_customer_id' => (int) $customer->getKey(),
+            'status' => 'open',
+            'priority' => 'normal',
+            'queue' => 'general',
+            'source' => 'customer_app',
+            'sla_target_at' => $slaTarget->toIso8601String(),
+        ]);
+
+        return $case;
+    }
+
+    /**
      * @param  array<string,mixed>  $attributes
      */
     public function updateCase(User $actor, int $caseId, array $attributes): CustomerServiceCase
@@ -773,6 +852,7 @@ final class CustomerServiceCaseManager
                     ->orWhere('customers.name', 'like', $needle)
                     ->orWhere('customers.email', 'like', $needle)
                     ->orWhere('customers.phone', 'like', $needle)
+                    ->orWhere('cases.contact_phone', 'like', $needle)
                     ->orWhere('orders.order_number', 'like', $needle)
                     ->orWhere('invoices.invoice_number', 'like', $needle);
             });
