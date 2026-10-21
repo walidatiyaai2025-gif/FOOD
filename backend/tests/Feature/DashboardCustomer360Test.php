@@ -171,11 +171,16 @@ class DashboardCustomer360Test extends TestCase
             ])
             ->assertForbidden();
 
+        $user->refresh()->createToken('pre-reset-mobile-session');
+        $this->assertGreaterThan(0, $user->tokens()->count());
+
         $this->actingAs($super)
             ->patch(route('admin.customer-360.identity.update', ['platformCustomer' => $platform->id]), [
                 'name' => 'Al Khaled',
                 'email' => 'alkhaled.mobile@example.test',
                 'phone' => '01145011964',
+                'password' => 'MobileLogin95!',
+                'password_confirmation' => 'MobileLogin95!',
             ])
             ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#identity')
             ->assertSessionHasNoErrors()
@@ -186,12 +191,13 @@ class DashboardCustomer360Test extends TestCase
             'name' => 'Al Khaled',
             'email' => 'alkhaled.mobile@example.test',
             'phone' => '01145011964',
+            'is_active' => 1,
         ]);
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'name' => 'Al Khaled',
             'email' => 'alkhaled.mobile@example.test',
-            'is_active' => 0,
+            'is_active' => 1,
             'is_platform_customer' => 1,
         ]);
         $this->assertDatabaseHas('customers', [
@@ -200,18 +206,6 @@ class DashboardCustomer360Test extends TestCase
             'email' => 'alkhaled.mobile@example.test',
             'phone' => '01145011964',
         ]);
-
-        $user->refresh()->createToken('pre-reset-mobile-session');
-        $this->assertGreaterThan(0, $user->tokens()->count());
-
-        $this->actingAs($super)
-            ->patch(route('admin.customer-360.mobile-password.reset', ['platformCustomer' => $platform->id]), [
-                'password' => 'MobileLogin95!',
-                'password_confirmation' => 'MobileLogin95!',
-            ])
-            ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#identity')
-            ->assertSessionHasNoErrors()
-            ->assertSessionHas('status');
 
         $user->refresh();
         $platform->refresh();

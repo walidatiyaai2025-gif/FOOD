@@ -351,6 +351,7 @@ Route::prefix('admin')
         Route::patch('/settings/whatsapp/connections/{profile}', [WhatsAppConnectionController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.connections.update');
         Route::put('/settings/whatsapp/connections/{profile}/credential', [WhatsAppConnectionController::class, 'replaceCredential'])->middleware('throttle:20,1')->name('whatsapp.connections.credential');
         Route::post('/settings/whatsapp/connections/{profile}/validate', [WhatsAppConnectionController::class, 'validateConnection'])->middleware('throttle:20,1')->name('whatsapp.connections.validate');
+        Route::post('/settings/whatsapp/connections/{profile}/test-send', [WhatsAppConnectionController::class, 'sendTestMessage'])->middleware('throttle:30,1')->name('whatsapp.connections.test-send');
         Route::post('/settings/whatsapp/connections/{profile}/primary', [WhatsAppConnectionController::class, 'switchPrimary'])->middleware('throttle:10,1')->name('whatsapp.connections.primary');
         Route::post('/settings/whatsapp/connections/{profile}/receive-only', [WhatsAppConnectionController::class, 'receiveOnly'])->middleware('throttle:20,1')->name('whatsapp.connections.receive-only');
         Route::post('/settings/whatsapp/connections/{profile}/deactivate', [WhatsAppConnectionController::class, 'deactivate'])->middleware('throttle:20,1')->name('whatsapp.connections.deactivate');

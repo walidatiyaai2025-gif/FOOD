@@ -2,15 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlatformCustomer;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
+use App\Services\PlatformCustomerService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -215,6 +218,61 @@ final class CustomerServiceRoleClosureTest extends TestCase
                 ->get(route('admin.customer-360.index', ['q' => '']))
                 ->assertOk()
                 ->assertViewIs('admin.customer-360-index');
+        }
+    }
+
+    public function test_customer_service_roles_can_update_customer_email_and_password_only(): void
+    {
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $customerUser = app(PlatformCustomerService::class)->register([
+            'name' => 'Credential Scope Customer',
+            'email' => 'credential-scope@example.test',
+            'phone' => '+96550000001',
+            'password' => 'OriginalPassword123!',
+            'locale' => 'en',
+            'store_id' => $storeId,
+        ], 'dashboard');
+        $platform = PlatformCustomer::query()
+            ->where('user_id', $customerUser->id)
+            ->firstOrFail();
+
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $index => $roleCode) {
+            $actor = $this->userWithRole($roleCode);
+            $email = 'credential-scope-'.$index.'@example.test';
+            $password = 'ServicePassword'.$index.'!';
+
+            $this->actingAs($actor)
+                ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+                ->assertOk()
+                ->assertViewHas('canManageIdentity', true)
+                ->assertViewHas('canManageFullIdentity', false);
+
+            $this->actingAs($actor)
+                ->patch(route('admin.customer-360.identity.update', ['platformCustomer' => $platform->id]), [
+                    'name' => 'Attempted Name Change',
+                    'email' => $email,
+                    'phone' => '+96559999999',
+                    'password' => $password,
+                    'password_confirmation' => $password,
+                ])
+                ->assertRedirect(route('admin.customer-360.show', ['platformCustomer' => $platform->id]).'#identity')
+                ->assertSessionHasNoErrors();
+
+            $customerUser->refresh();
+            $platform->refresh();
+
+            $this->assertSame('Credential Scope Customer', $customerUser->name);
+            $this->assertSame('Credential Scope Customer', $platform->name);
+            $this->assertSame('+96550000001', $platform->phone);
+            $this->assertSame($email, $customerUser->email);
+            $this->assertSame($email, $platform->email);
+            $this->assertTrue(Hash::check($password, $customerUser->password));
+            $this->assertTrue((bool) $customerUser->is_active);
+            $this->assertTrue((bool) $platform->is_active);
         }
     }
 

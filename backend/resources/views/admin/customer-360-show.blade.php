@@ -204,17 +204,16 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 
 @if($canManageIdentity)
-<div class="c360-identity-admin">
+<form method="post" action="{{ route('admin.customer-360.identity.update',['platformCustomer'=>$customer->id]) }}" class="c360-identity-admin">
+@csrf @method('PATCH')
 <div>
 <h3>{{ __('customer_360.identity.edit_title') }}</h3>
 <p>{{ __('customer_360.identity.edit_help') }}</p>
-<form method="post" action="{{ route('admin.customer-360.identity.update',['platformCustomer'=>$customer->id]) }}" class="c360-address-form">
-@csrf @method('PATCH')
-<label><small>{{ __('customer_360.identity.name') }}</small><input name="name" maxlength="255" value="{{ old('name',$customer->name) }}" required autocomplete="name"></label>
+<div class="c360-address-form">
+<label><small>{{ __('customer_360.identity.name') }}</small><input name="name" maxlength="255" value="{{ old('name',$customer->name) }}" @required($canManageFullIdentity) @readonly(!$canManageFullIdentity) autocomplete="name"></label>
 <label><small>{{ __('customer_360.identity.email') }}</small><input name="email" type="email" maxlength="255" value="{{ old('email',$customer->email) }}" required autocomplete="email" inputmode="email"></label>
-<label class="wide"><small>{{ __('customer_360.identity.phone') }}</small><input name="phone" maxlength="40" value="{{ old('phone',$customer->phone) }}" autocomplete="tel" inputmode="tel"></label>
-<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.identity.save_changes') }}</button></div>
-</form>
+<label class="wide"><small>{{ __('customer_360.identity.phone') }}</small><input name="phone" maxlength="40" value="{{ old('phone',$customer->phone) }}" @readonly(!$canManageFullIdentity) autocomplete="tel" inputmode="tel"></label>
+</div>
 </div>
 
 <div>
@@ -224,15 +223,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <span>{{ __('customer_360.identity.login_status') }}</span>
 <span class="c360-badge {{ ($loginUser && $loginUser->is_active && $customer->is_active)?'active':'' }}">{{ ($loginUser && $loginUser->is_active && $customer->is_active) ? __('customer_360.identity.login_enabled') : __('customer_360.identity.login_disabled') }}</span>
 </div>
-<form method="post" action="{{ route('admin.customer-360.mobile-password.reset',['platformCustomer'=>$customer->id]) }}" class="c360-address-form">
-@csrf @method('PATCH')
-<label class="wide"><small>{{ __('customer_360.identity.password') }}</small><input name="password" type="password" minlength="8" maxlength="255" required autocomplete="new-password"></label>
-<label class="wide"><small>{{ __('customer_360.identity.password_confirmation') }}</small><input name="password_confirmation" type="password" minlength="8" maxlength="255" required autocomplete="new-password"></label>
+<div class="c360-address-form">
+<label class="wide"><small>{{ __('customer_360.identity.password') }}</small><input name="password" type="password" minlength="8" maxlength="255" autocomplete="new-password"></label>
+<label class="wide"><small>{{ __('customer_360.identity.password_confirmation') }}</small><input name="password_confirmation" type="password" minlength="8" maxlength="255" autocomplete="new-password"></label>
 <div class="wide muted">{{ __('customer_360.identity.password_help') }}</div>
-<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.identity.reset_password') }}</button></div>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.identity.save_credentials') }}</button></div>
+</div>
+</div>
 </form>
-</div>
-</div>
 @endif
 </div>
 </section>

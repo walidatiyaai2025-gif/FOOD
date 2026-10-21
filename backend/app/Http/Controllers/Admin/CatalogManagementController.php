@@ -85,12 +85,17 @@ final class CatalogManagementController extends Controller
             $scopeParams['support_access'] = 1;
         }
         $navContext = $contextChannel === 'b2c' ? 'b2c_products' : 'b2b_products';
-        $inventoryUrl = $contextStoreId !== null && $contextChannel === 'b2c'
-            ? route('admin.b2c.module', array_merge(
-                ['module' => 'inventory', 'store_id' => $contextStoreId],
-                $actor->hasRole('SUPER_ADMIN') ? ['support_access' => 1] : [],
-            ))
-            : null;
+        $inventoryUrl = null;
+        if ($actor->hasPermission('inventory.view')) {
+            if ($contextStoreId !== null && $contextChannel === 'b2c') {
+                $inventoryUrl = route('admin.b2c.module', array_merge(
+                    ['module' => 'inventory', 'store_id' => $contextStoreId],
+                    $actor->hasRole('SUPER_ADMIN') ? ['support_access' => 1] : [],
+                ));
+            } elseif ($this->canAccessWholesale($actor)) {
+                $inventoryUrl = route('admin.b2b.module', ['module' => 'inventory']);
+            }
+        }
         $categoryImageColumn = Schema::hasColumn('categories', 'image_path')
             ? 'categories.image_path'
             : DB::raw('NULL as image_path');

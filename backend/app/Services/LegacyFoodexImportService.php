@@ -79,6 +79,7 @@ final class LegacyFoodexImportService
         $targetBusinessCounts = $this->targetBusinessCounts();
         $targetBusinessTotal = array_sum($targetBusinessCounts);
         $legacyMastersRerunReady = $this->legacyMastersRerunReady($sourceCounts);
+        $legacyProtectedResetReady = $this->legacyProtectedResetReady($sourceCounts);
         $legacyUpgradeReady = $this->legacyUpgradeReady();
 
         return [
@@ -106,6 +107,7 @@ final class LegacyFoodexImportService
                 'business_total' => $targetBusinessTotal,
                 'clean_baseline_ready' => $targetBusinessTotal === 0,
                 'legacy_masters_rerun_ready' => $legacyMastersRerunReady,
+                'legacy_protected_reset_ready' => $legacyProtectedResetReady,
                 'legacy_upgrade_ready' => $legacyUpgradeReady,
                 'b2b_stores' => $b2bStores->map(static fn ($row): array => [
                     'id' => (int) $row->id,
@@ -154,11 +156,12 @@ final class LegacyFoodexImportService
         if (
             ! ($preflight['target']['clean_baseline_ready'] ?? false)
             && ! ($preflight['target']['legacy_masters_rerun_ready'] ?? false)
+            && ! ($preflight['target']['legacy_protected_reset_ready'] ?? false)
             && ! ($preflight['target']['legacy_upgrade_ready'] ?? false)
         ) {
             throw new RuntimeException(
                 'Refusing legacy Foodex masters import: the approved catalog/sales/stock reset scope is not clean, '.
-                'or existing legacy provenance is inconsistent. Preserve configuration/business identity data and run '.
+                'or the protected post-reset provenance baseline is inconsistent. Preserve configuration/business identity data and run '.
                 'foodex:legacy-rehearsal-reset before retrying.'
             );
         }
@@ -8498,6 +8501,187 @@ SQL));
         }
 
         return $fallback;
+    }
+
+    private function legacyProtectedResetReady(array $sourceCounts): bool
+    {
+        if (
+            ! Schema::hasTable('legacy_import_runs')
+            || ! Schema::hasTable('legacy_import_mappings')
+            || ! DB::table('legacy_import_runs')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('phase', 'masters')
+                ->where('status', 'completed')
+                ->exists()
+        ) {
+            return false;
+        }
+
+        $protectedOwnership = [
+            'warehouses' => [
+                'sources' => ['wh_Stores', 'wh_Cars'],
+                'expected' => (int) $sourceCounts['wh_Stores'] + (int) $sourceCounts['wh_Cars'],
+            ],
+            'customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_customers' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+            'b2b_accounts' => [
+                'sources' => ['wh_Customers'],
+                'expected' => (int) $sourceCounts['wh_Customers'],
+            ],
+        ];
+
+        foreach ($protectedOwnership as $targetTable => $ownership) {
+            if (! Schema::hasTable($targetTable)) {
+                return false;
+            }
+
+            $mappedIds = DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->where('target_table', $targetTable)
+                ->whereIn('source_table', $ownership['sources'])
+                ->pluck('target_id')
+                ->unique()
+                ->values();
+
+            if ($mappedIds->count() !== $ownership['expected']) {
+                return false;
+            }
+
+            if ((int) DB::table($targetTable)->whereIn('id', $mappedIds->all())->count() !== $mappedIds->count()) {
+                return false;
+            }
+        }
+
+        if (! Schema::hasTable('platform_customers')) {
+            return false;
+        }
+
+        $mappedPlatformIds = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_Customers')
+            ->where('target_table', 'platform_customers')
+            ->pluck('target_id')
+            ->unique()
+            ->values();
+
+        $platformBackfillPending = $mappedPlatformIds->isEmpty()
+            && (int) DB::table('platform_customers')->count() === 0;
+        $platformFullyOwned = $mappedPlatformIds->count() === (int) $sourceCounts['wh_Customers']
+            && (int) DB::table('platform_customers')->whereIn('id', $mappedPlatformIds->all())->count() === $mappedPlatformIds->count();
+
+        if (! $platformBackfillPending && ! $platformFullyOwned) {
+            return false;
+        }
+
+        if (! Schema::hasTable('b2b_price_tiers')) {
+            return false;
+        }
+
+        $mappedTierIds = DB::table('legacy_import_mappings')
+            ->where('source_system', self::SOURCE_SYSTEM)
+            ->where('source_table', 'wh_PriceTypes')
+            ->where('target_table', 'b2b_price_tiers')
+            ->pluck('target_id')
+            ->unique()
+            ->values();
+
+        if (
+            $mappedTierIds->count() !== (int) $sourceCounts['wh_PriceTypes']
+            || (int) DB::table('b2b_price_tiers')->whereIn('id', $mappedTierIds->all())->count() !== $mappedTierIds->count()
+        ) {
+            return false;
+        }
+
+        foreach ([
+            'cart_items',
+            'carts',
+            'legacy_finance_transactions',
+            'legacy_bank_transactions',
+            'legacy_operational_document_lines',
+            'legacy_operational_documents',
+            'legacy_procurement_document_lines',
+            'legacy_procurement_documents',
+            'product_supplier_brand_sources',
+            'van_inventory_history_lines',
+            'van_inventory_history_documents',
+            'payments',
+            'invoice_items',
+            'invoices',
+            'order_items',
+            'orders',
+            'order_status_history',
+            'customer_favorites',
+            'stock_movements',
+            'inventories',
+            'retail_wholesale_product_mappings',
+            'flash_offer_products',
+            'product_commercial_rules',
+            'product_commercial_policies',
+            'product_availability_windows',
+            'product_attribute_values',
+            'product_selling_unit_tier_prices',
+            'product_selling_units',
+            'b2b_price_rules',
+            'store_products',
+            'product_images',
+            'vans',
+            'categories',
+            'brands',
+            'products',
+        ] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->exists()) {
+                return false;
+            }
+        }
+
+        $resetMappingTargets = [
+            'customer_account_ledger_entries',
+            'legacy_finance_transactions',
+            'legacy_bank_transactions',
+            'legacy_operational_document_lines',
+            'legacy_operational_documents',
+            'legacy_procurement_document_lines',
+            'legacy_procurement_documents',
+            'product_supplier_brand_sources',
+            'van_inventory_history_lines',
+            'van_inventory_history_documents',
+            'payments',
+            'invoice_items',
+            'invoices',
+            'order_items',
+            'orders',
+            'stock_movements',
+            'inventories',
+            'retail_wholesale_product_mappings',
+            'product_selling_unit_tier_prices',
+            'product_selling_units',
+            'b2b_price_rules',
+            'store_products',
+            'product_images',
+            'vans',
+            'categories',
+            'brands',
+            'products',
+        ];
+
+        if (
+            DB::table('legacy_import_mappings')
+                ->where('source_system', self::SOURCE_SYSTEM)
+                ->whereIn('target_table', $resetMappingTargets)
+                ->exists()
+        ) {
+            return false;
+        }
+
+        return DB::table('stores')
+            ->where('code', WholesalePrincipal::STORE_CODE)
+            ->exists();
     }
 
     private function legacyUpgradeReady(): bool

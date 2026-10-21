@@ -103,7 +103,12 @@ try {
     }
 
     $preflight = $preflightJson | ConvertFrom-Json
-    if (-not ($preflight.target.clean_baseline_ready -or $preflight.target.legacy_upgrade_ready -or $preflight.target.legacy_masters_rerun_ready)) {
+    if (-not (
+        $preflight.target.clean_baseline_ready `
+        -or $preflight.target.legacy_upgrade_ready `
+        -or $preflight.target.legacy_masters_rerun_ready `
+        -or $preflight.target.legacy_protected_reset_ready
+    )) {
         throw 'Target is not ready after scoped reset. Refusing to import.'
     }
 
@@ -171,6 +176,22 @@ try {
         php artisan foodex:legacy-finance-history-verify
     }
 
+    Run-Step 'Finance assets materialization dry-run' {
+        php artisan foodex:legacy-finance-assets
+    }
+
+    Run-Step 'Finance assets materialization apply' {
+        php artisan foodex:legacy-finance-assets --apply
+    }
+
+    Run-Step 'Finance assets materialization verify' {
+        php artisan foodex:legacy-finance-assets-verify
+    }
+
+    Run-Step 'Finance assets native promotion preflight' {
+        php artisan foodex:legacy-finance-assets-native-preflight
+    }
+
     Run-Step 'Customer 360 dry-run' {
         php artisan foodex:legacy-customer360-backfill
     }
@@ -195,6 +216,10 @@ try {
     }
     Run-Step 'FINAL finance verify' {
         php artisan foodex:legacy-finance-history-verify
+    }
+
+    Run-Step 'FINAL finance assets verify' {
+        php artisan foodex:legacy-finance-assets-verify
     }
 
     Write-Host ""
