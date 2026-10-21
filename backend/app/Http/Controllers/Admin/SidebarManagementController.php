@@ -69,6 +69,7 @@ final class SidebarManagementController extends Controller
         return view('admin.sidebar-layout', [
             'layout' => $sidebar->layoutData(),
             'protectedItems' => $sidebar->registry()['protected_items'],
+            'protectedGroups' => $sidebar->registry()['protected_groups'],
             'navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor($request->user()),
             'navContext' => 'sidebar_layout',
             'user' => $request->user(),
