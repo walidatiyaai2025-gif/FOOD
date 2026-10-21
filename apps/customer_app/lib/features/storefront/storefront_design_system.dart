@@ -9,6 +9,7 @@ import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 
 final ValueNotifier<int> foodexWholesaleCartProductCount =
     ValueNotifier<int>(0);
@@ -69,10 +70,10 @@ void showFoodexWholesaleCartAddHover({
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE3E9E5)),
+              border: Border.all(color: CustomerUiColors.storefrontBorderSoft),
               boxShadow: const <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x26000000),
+                  color: CustomerUiColors.storefrontShadowMedium,
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
@@ -87,7 +88,7 @@ void showFoodexWholesaleCartAddHover({
                   height: 38,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F8F4),
+                    color: CustomerUiColors.storefrontMintWash,
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: imageUrl != null && imageUrl.trim().isNotEmpty
@@ -97,13 +98,13 @@ void showFoodexWholesaleCartAddHover({
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.inventory_2_outlined,
                             size: 19,
-                            color: Color(0xFF078A43),
+                            color: CustomerUiColors.wholesalePositiveValue,
                           ),
                         )
                       : const Icon(
                           Icons.inventory_2_outlined,
                           size: 19,
-                          color: Color(0xFF078A43),
+                          color: CustomerUiColors.wholesalePositiveValue,
                         ),
                 ),
                 const SizedBox(width: 8),
@@ -116,7 +117,7 @@ void showFoodexWholesaleCartAddHover({
                         'تمت الإضافة للسلة',
                         maxLines: 1,
                         style: TextStyle(
-                          color: Color(0xFF006736),
+                          color: CustomerUiColors.wholesaleVehicleGreen,
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
                         ),
@@ -127,7 +128,7 @@ void showFoodexWholesaleCartAddHover({
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF102033),
+                          color: CustomerUiColors.wholesaleCommerceInk,
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
                         ),
@@ -139,7 +140,7 @@ void showFoodexWholesaleCartAddHover({
                 const Icon(
                   Icons.check_circle_rounded,
                   size: 18,
-                  color: Color(0xFF078A43),
+                  color: CustomerUiColors.wholesalePositiveValue,
                 ),
               ],
             ),
@@ -179,12 +180,12 @@ class FoodexPalette {
   final Color muted;
 
   static const grocery = FoodexPalette(
-    primary: Color(0xFF078A43),
-    primaryDark: Color(0xFF006736),
-    accent: Color(0xFFB5F23E),
+    primary: CustomerUiColors.wholesalePositiveValue,
+    primaryDark: CustomerUiColors.wholesaleVehicleGreen,
+    accent: CustomerUiColors.storefrontLimeStrong,
     background: Color(0xFFF8FBF9),
-    soft: Color(0xFFF1F8F4),
-    text: Color(0xFF102033),
+    soft: CustomerUiColors.storefrontMintWash,
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 
@@ -194,17 +195,17 @@ class FoodexPalette {
     accent: Color(0xFF37CCFF),
     background: Color(0xFFF8FCFF),
     soft: Color(0xFFEEF8FE),
-    text: Color(0xFF102033),
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 
   static const wholesale = FoodexPalette(
-    primary: Color(0xFF078A43),
-    primaryDark: Color(0xFF006736),
+    primary: CustomerUiColors.wholesalePositiveValue,
+    primaryDark: CustomerUiColors.wholesaleVehicleGreen,
     accent: Color(0xFF92D853),
     background: Color(0xFFF8FBF9),
-    soft: Color(0xFFF1F8F4),
-    text: Color(0xFF102033),
+    soft: CustomerUiColors.storefrontMintWash,
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 }
@@ -630,11 +631,11 @@ class _FoodexAnimatedHeaderTitleState
                     begin: Alignment(-1.8 + travel, -.8 + wave * .15),
                     end: Alignment(.2 + travel, .8 - wave * .15),
                     colors: const <Color>[
-                      Color(0xFFD8FFD0),
-                      Color(0xFFB5F23E),
-                      Color(0xFF63D36E),
-                      Color(0xFFFFFFFF),
-                      Color(0xFF8DEB75),
+                      CustomerUiColors.storefrontLimeWash,
+                      CustomerUiColors.storefrontLimeStrong,
+                      CustomerUiColors.storefrontGreenGlow,
+                      CustomerUiColors.white,
+                      CustomerUiColors.storefrontGreenHighlight,
                     ],
                     stops: const <double>[0, .22, .48, .7, 1],
                   ).createShader(bounds),
@@ -710,7 +711,7 @@ class _FoodexWholesaleHeaderIcon extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD62828),
+                  color: CustomerUiColors.wholesaleNegativeValue,
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(color: Colors.white, width: 1.2),
                 ),
@@ -879,11 +880,11 @@ class _FoodexAnimatedGoldSectionTitleState
                 begin: Alignment(-1.9 + travel, -.7 + wave * .12),
                 end: Alignment(.1 + travel, .8 - wave * .12),
                 colors: const <Color>[
-                  Color(0xFF8A5A00),
-                  Color(0xFFD99A12),
-                  Color(0xFFFFE08A),
-                  Color(0xFFFFC238),
-                  Color(0xFFB87500),
+                  CustomerUiColors.storefrontGoldDeep,
+                  CustomerUiColors.storefrontGoldMid,
+                  CustomerUiColors.storefrontGoldLight,
+                  CustomerUiColors.storefrontGoldBright,
+                  CustomerUiColors.storefrontGoldDark,
                 ],
                 stops: const <double>[0, .22, .48, .72, 1],
               ).createShader(bounds),
@@ -898,7 +899,7 @@ class _FoodexAnimatedGoldSectionTitleState
                   letterSpacing: .15,
                   shadows: const <Shadow>[
                     Shadow(
-                      color: Color(0x338A5A00),
+                      color: CustomerUiColors.storefrontGoldShadow,
                       blurRadius: 4,
                       offset: Offset(0, 1),
                     ),
@@ -958,11 +959,11 @@ class _FoodexAnimatedOxbloodTitleState
                 begin: Alignment(-1.9 + travel, -.75 + wave * .12),
                 end: Alignment(.1 + travel, .8 - wave * .12),
                 colors: const <Color>[
-                  Color(0xFF3D0710),
-                  Color(0xFF65101A),
-                  Color(0xFF8B1E2D),
-                  Color(0xFFC04A58),
-                  Color(0xFF6F0F1D),
+                  CustomerUiColors.storefrontOxbloodDeep,
+                  CustomerUiColors.storefrontOxblood,
+                  CustomerUiColors.storefrontOxbloodMid,
+                  CustomerUiColors.storefrontOxbloodLight,
+                  CustomerUiColors.storefrontOxbloodDark,
                 ],
                 stops: const <double>[0, .22, .48, .72, 1],
               ).createShader(bounds),
@@ -977,7 +978,7 @@ class _FoodexAnimatedOxbloodTitleState
                   letterSpacing: .12,
                   shadows: const <Shadow>[
                     Shadow(
-                      color: Color(0x443D0710),
+                      color: CustomerUiColors.storefrontOxbloodShadow,
                       blurRadius: 4,
                       offset: Offset(0, 1),
                     ),
@@ -1016,7 +1017,7 @@ class FoodexProductImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: const <BoxShadow>[
               BoxShadow(
-                color: Color(0x3D72E89A),
+                color: CustomerUiColors.marketplaceImageShadow,
                 blurRadius: 13,
                 spreadRadius: 1,
                 offset: Offset(0, 4),
