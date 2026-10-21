@@ -294,7 +294,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
             context.tr('customer.contact.success') +
                 (reference.isEmpty
                     ? ''
-                    : ' · ${context.tr('customer.contact.case')} #$reference'),
+                    : " · ${context.tr('customer.contact.case')} #$reference"),
           ),
         ),
       );
@@ -312,7 +312,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
           content: Text(
             fieldMessage ??
                 error.serverMessage ??
-                error.code.isEmpty ? context.tr('customer.contact.error') : error.code,
+                (error.code.isEmpty
+                    ? context.tr('customer.contact.error')
+                    : error.code),
           ),
         ),
       );
