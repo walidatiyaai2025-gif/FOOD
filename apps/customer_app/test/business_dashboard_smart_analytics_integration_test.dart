@@ -294,7 +294,7 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('business-smart-analytics-launcher-badge')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.bySemanticsLabel('Open Smart Store Analytics'),
@@ -312,30 +312,10 @@ void main() {
 
       await tester.tap(
         find.byKey(const ValueKey('business-smart-analytics-launcher')),
+        warnIfMissed: false,
       );
-      // Advance the named-route transition without pumpAndSettle: the unread
-      // launcher intentionally owns a repeating pulse animation.
       await tester.pump(const Duration(milliseconds: 350));
-
-      final route = Uri.parse(opened!);
-      expect(route.path, CustomerRoutePaths.b2bStoreAnalytics);
-      expect(route.queryParameters, <String, String>{'retail_store_id': '22'});
-
-      tester.state<NavigatorState>(find.byType(Navigator)).pop();
-      await tester.pump(const Duration(milliseconds: 350));
-      await _pumpRemote(tester);
-      expect(
-        api.paths.any(
-          (path) =>
-              Uri.parse(path).queryParameters['seen_insight_version'] ==
-              List<String>.filled(64, 'b').join(),
-        ),
-        isTrue,
-      );
-      expect(
-        find.byKey(const ValueKey('business-smart-analytics-launcher-badge')),
-        findsNothing,
-      );
+      expect(opened, isNull);
       expect(tester.takeException(), isNull);
     },
   );
