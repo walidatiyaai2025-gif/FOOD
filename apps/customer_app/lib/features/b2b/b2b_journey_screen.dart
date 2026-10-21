@@ -4406,12 +4406,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         tone: 0,
       ),
       _MoreItem(
-        Icons.account_balance_wallet_rounded,
-        context.tr('b2b.profile.financial'),
-        () => _open(widget.dashboardRoute),
-        tone: 1,
-      ),
-      _MoreItem(
         Icons.bar_chart_rounded,
         context.tr('b2b.profile.purchases_report'),
         () => _open(widget.purchasesRoute),
@@ -4486,7 +4480,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       LayoutBuilder(
                         builder: (_, constraints) {
                           const gap = 6.0;
-                          const columns = 3;
+                          const columns = 2;
                           final width =
                               (constraints.maxWidth - gap * (columns - 1)) /
                                   columns;
@@ -4509,43 +4503,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                           );
                         },
                       ),
-                      const SizedBox(height: 14),
-                      if (widget.onLocaleChanged != null)
-                        SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(
-                              value: 'ar',
-                              label: Text(
-                                'العربية', // localization-gate: allow — language self-name selector
-                              ),
-                            ),
-                            ButtonSegment(
-                              value: 'en',
-                              label: Text(
-                                'English', // localization-gate: allow — language self-name selector
-                              ),
-                            ),
-                          ],
-                          selected: {ar ? 'ar' : 'en'},
-                          onSelectionChanged: (value) {
-                            widget.onLocaleChanged!(Locale(value.first));
-                          },
-                        ),
                       if (widget.onLogout != null) ...[
-                        const SizedBox(height: 10),
-                        Material(
-                          color: Colors.transparent,
-                          child: ListTile(
-                            key: const ValueKey(
-                              'b2b-profile-security-action',
-                            ),
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.security_outlined),
-                            title: Text(context.tr('b2b.profile.security')),
-                            trailing: const Icon(Icons.chevron_left_rounded),
-                            onTap: _showSettings,
-                          ),
-                        ),
+                        const SizedBox(height: 14),
                         OutlinedButton.icon(
                           key: const ValueKey('b2b-profile-logout'),
                           onPressed: widget.onLogout,
@@ -4563,6 +4522,70 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                   ),
+                        ),
+                      ],
+                      if (widget.onLocaleChanged != null ||
+                          widget.onLogout != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          key: const ValueKey('b2b-more-bottom-settings'),
+                          decoration: BoxDecoration(
+                            color: CustomerUiColors.white,
+                            borderRadius:
+                                BorderRadius.circular(CustomerUiRadii.lg),
+                            border:
+                                Border.all(color: _B2bMorePageState.border),
+                          ),
+                          child: Column(
+                            children: [
+                              if (widget.onLocaleChanged != null)
+                                ListTile(
+                                  key: const ValueKey(
+                                    'b2b-more-language-action',
+                                  ),
+                                  dense: true,
+                                  leading: const Icon(
+                                    Icons.language_rounded,
+                                    color: _B2bMorePageState.deep,
+                                  ),
+                                  title:
+                                      Text(context.tr('b2b.profile.language')),
+                                  subtitle: Text(
+                                    ar
+                                        ? 'العربية'
+                                        : 'English', // localization-gate: allow language self-name
+                                  ),
+                                  trailing: Icon(
+                                    ar
+                                        ? Icons.chevron_left_rounded
+                                        : Icons.chevron_right_rounded,
+                                  ),
+                                  onTap: _showSettings,
+                                ),
+                              if (widget.onLocaleChanged != null &&
+                                  widget.onLogout != null)
+                                const Divider(height: 1),
+                              if (widget.onLogout != null)
+                                ListTile(
+                                  key: const ValueKey(
+                                    'b2b-profile-security-action',
+                                  ),
+                                  dense: true,
+                                  leading: const Icon(
+                                    Icons.security_outlined,
+                                    color: _B2bMorePageState.deep,
+                                  ),
+                                  title:
+                                      Text(context.tr('b2b.profile.security')),
+                                  trailing: Icon(
+                                    ar
+                                        ? Icons.chevron_left_rounded
+                                        : Icons.chevron_right_rounded,
+                                  ),
+                                  onTap: _showSettings,
+                                ),
+                            ],
+                          ),
                         ),
                       ],
                     ],
