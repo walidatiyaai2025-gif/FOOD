@@ -10,6 +10,7 @@ import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_persistent_footer.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'storefront_design_system.dart';
@@ -852,7 +853,7 @@ class _MarketplaceHeader extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 22,
-                  color: const Color(0xFF17212F),
+                  color: CustomerUiColors.marketplaceInk,
                 ),
               ),
             ),
@@ -881,7 +882,7 @@ class _MarketplaceHeader extends StatelessWidget {
             ),
             child: const Icon(
               Icons.person_outline_rounded,
-              color: Color(0xFF17212F),
+              color: CustomerUiColors.marketplaceInk,
               size: 22,
             ),
           ),
@@ -1372,7 +1373,7 @@ class _MarketplaceCategoryRail extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: const Color(0xFF17212F),
+                        color: CustomerUiColors.marketplaceInk,
                         fontSize: 9.5,
                         height: 1.1,
                         fontWeight:
@@ -1464,7 +1465,7 @@ class _MarketplaceOfferSection extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFF17212F),
+                                  color: CustomerUiColors.marketplaceInk,
                                   fontSize: 11.5,
                                   height: 1.15,
                                   fontWeight: FontWeight.w800,
@@ -1553,7 +1554,7 @@ class _MarketplaceCollectionTitle extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.start,
         style: const TextStyle(
-          color: Color(0xFF17212F),
+          color: CustomerUiColors.marketplaceInk,
           fontSize: 18,
           height: 1.15,
           fontWeight: FontWeight.w900,
@@ -1583,7 +1584,7 @@ class _MarketplaceSectionHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF17212F),
+                  color: CustomerUiColors.marketplaceInk,
                   fontSize: 20,
                   height: 1.15,
                   fontWeight: FontWeight.w900,
@@ -1754,7 +1755,7 @@ class _WholesaleProductCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: const <BoxShadow>[
                                 BoxShadow(
-                                  color: Color(0x3D72E89A),
+                                  color: CustomerUiColors.marketplaceImageShadow,
                                   blurRadius: 13,
                                   spreadRadius: 1,
                                   offset: Offset(0, 4),
@@ -1822,7 +1823,7 @@ class _WholesaleProductCard extends StatelessWidget {
                           maxLines: 1,
                           softWrap: false,
                           style: const TextStyle(
-                            color: Color(0xFF17212F),
+                            color: CustomerUiColors.marketplaceInk,
                             fontWeight: FontWeight.w900,
                             fontSize: 9.5,
                             height: 1.1,
