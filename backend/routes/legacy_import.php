@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\LegacyDatabaseOneShotService;
 use App\Services\LegacyFinanceAssetMaterializerService;
 use App\Services\LegacyFoodexImportService;
 use App\Services\LegacyImportRehearsalResetService;
@@ -129,6 +130,101 @@ Artisan::command(
         }
     },
 )->purpose('Reset vans and their operational history without touching users, drivers, stores or warehouses.');
+
+Artisan::command(
+    'foodex:legacy-one-shot {--apply : Snapshot and migrate the full legacy database} {--reset-approved-scope : Reset only the approved legacy-owned target scope before semantic import} {--confirm= : Required exact reset confirmation when --reset-approved-scope is used} {--json : Output machine-readable JSON}',
+    function (LegacyDatabaseOneShotService $oneShot): int {
+        if ((bool) $this->option('apply')) {
+            $migrationExit = Artisan::call('migrate', ['--force' => true]);
+            if ($migrationExit !== 0) {
+                $this->error('Additive migrations failed before full legacy one-shot.');
+                $this->line(Artisan::output());
+
+                return 1;
+            }
+        }
+
+        $progress = function (string $stage, string $state): void {
+            if ((bool) $this->option('json')) {
+                return;
+            }
+
+            $state === 'start'
+                ? $this->line('>> '.$stage.' ...')
+                : $this->line('   '.$stage.' DONE');
+        };
+
+        try {
+            $report = $oneShot->run(
+                (bool) $this->option('apply'),
+                (bool) $this->option('reset-approved-scope'),
+                $this->option('confirm') === null ? null : (string) $this->option('confirm'),
+                $progress,
+            );
+        } catch (Throwable $exception) {
+            $this->error('Full legacy database one-shot failed: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        if ((bool) $this->option('json')) {
+            $this->line((string) json_encode(
+                $report,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+            ));
+
+            return 0;
+        }
+
+        if (! (bool) $this->option('apply')) {
+            $inventory = $report['full_source_inventory'];
+            $this->info('Full legacy database one-shot dry-run completed.');
+            $this->line(
+                'Source tables='.$inventory['table_count'].
+                ' | source rows='.$inventory['source_row_count']
+            );
+            if ((bool) $this->option('reset-approved-scope')) {
+                $this->line('Approved target reset was previewed only; no target rows were changed.');
+            }
+            $this->warn('No source or target business rows were changed.');
+
+            return 0;
+        }
+
+        $this->info('Full legacy database one-shot completed.');
+        $this->line(
+            'Snapshot='.$report['snapshot_id'].
+            ' | source tables='.$report['source_table_count'].
+            ' | source rows='.$report['source_row_count'].
+            ' | archived rows='.$report['archived_row_count']
+        );
+        $this->line(
+            'All source data preserved='.($report['all_source_data_preserved'] ? 'yes' : 'no').
+            ' | semantic verification='.($report['semantic_verifications_healthy'] ? 'healthy' : 'failed')
+        );
+        if ($report['approved_target_reset'] !== null) {
+            $this->line('Approved target reset=yes');
+        }
+        $this->line(
+            'Semantic mapped tables='.count($report['coverage']['tables_with_semantic_mappings']).
+            ' | raw-only preserved tables='.count($report['coverage']['raw_only_source_tables'])
+        );
+        $this->line('Status='.$report['status']);
+
+        if ($report['coverage']['raw_only_source_tables'] !== []) {
+            $this->warn(
+                'Some source tables have no native semantic mapping yet; every row is preserved in the lossless raw archive.'
+            );
+        }
+        if (! $report['native_fixed_asset_ready']) {
+            $this->warn(
+                'Fixed-asset native accounting remains fail-closed because the legacy source does not contain authoritative account mappings.'
+            );
+        }
+
+        return 0;
+    },
+)->purpose('Snapshot every legacy Foodex base table and row, optionally reset the approved target scope, import all supported semantics including verified stock, and verify complete source preservation in one command.');
 
 Artisan::command(
     'foodex:legacy-preflight {--json : Output machine-readable JSON}',
@@ -1036,14 +1132,25 @@ Artisan::command(
             ->whereNull('i.id')
             ->count();
 
+        $latestSummary = $latestRun?->summary === null
+            ? []
+            : (json_decode((string) $latestRun->summary, true) ?: []);
+        $planned = (array) ($latestSummary['planned'] ?? []);
+        $expectedPositivePositions = array_key_exists('positive_positions', $planned)
+            ? (int) $planned['positive_positions']
+            : null;
+
         $report = [
             'latest_run' => $latestRun === null ? null : [
                 'id' => (string) $latestRun->id,
                 'status' => (string) $latestRun->status,
                 'started_at' => $latestRun->started_at,
                 'finished_at' => $latestRun->finished_at,
-                'summary' => $latestRun->summary === null ? null : json_decode((string) $latestRun->summary, true),
+                'summary' => $latestSummary === [] ? null : $latestSummary,
                 'error' => $latestRun->error,
+            ],
+            'expected' => [
+                'positive_positions' => $expectedPositivePositions,
             ],
             'inventories' => $inventory,
             'stock_movements' => [
@@ -1054,10 +1161,13 @@ Artisan::command(
             'orphan_mappings' => $orphanMappings,
             'healthy' => $latestRun !== null
                 && (string) $latestRun->status === 'completed'
+                && $expectedPositivePositions !== null
                 && $inventory['negative'] === 0
                 && $inventory['reserved_nonzero'] === 0
-                && $inventory['total'] === $baselineMovements
-                && $inventory['total'] === $mappings
+                && $inventory['total'] === $expectedPositivePositions
+                && $inventory['positive'] === $expectedPositivePositions
+                && $baselineMovements === $expectedPositivePositions
+                && $mappings === $expectedPositivePositions
                 && $allMovements === $baselineMovements
                 && $orphanMappings === 0,
         ];
@@ -1084,6 +1194,7 @@ Artisan::command(
         $this->table(
             ['Metric', 'Count'],
             [
+                ['expected.positive_positions', $expectedPositivePositions ?? 'n/a'],
                 ['inventories.total', $inventory['total']],
                 ['inventories.positive', $inventory['positive']],
                 ['inventories.zero', $inventory['zero']],
