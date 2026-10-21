@@ -201,7 +201,7 @@ class CustomerPersistentFooter extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           border: Border(
-            top: BorderSide(color: CustomerUiColors.border),
+            top: BorderSide(color: Theme.of(context).dividerColor),
           ),
         ),
         child: ConstrainedBox(
