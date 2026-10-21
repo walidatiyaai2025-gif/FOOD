@@ -3116,101 +3116,193 @@ class _WholesaleCatalogDesignScreenState
                             ),
                           ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-                          child: Column(
+                          padding: const EdgeInsets.fromLTRB(14, 7, 14, 9),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  OutlinedButton.icon(
-                                    key: const ValueKey(
-                                        'wholesale-catalog-filter'),
-                                    onPressed: () => _openCategoryFilter(
-                                        context, categories),
-                                    icon: const Icon(Icons.tune_rounded,
-                                        size: 18),
-                                    label:
-                                        Text(context.tr('b2b.catalog.filter')),
+                              Expanded(
+                                child: Container(
+                                  key: const ValueKey(
+                                    'wholesale-catalog-count',
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      key: const ValueKey(
-                                          'wholesale-catalog-sort'),
-                                      value: sortMode,
-                                      isDense: true,
-                                      isExpanded: true,
-                                      decoration: const InputDecoration(
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 9,
-                                        ),
-                                      ),
-                                      items: [
-                                        DropdownMenuItem(
-                                          value: 'default',
-                                          child: Text(
-                                            context
-                                                .tr('b2b.catalog.sort_default'),
-                                          ),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'price_low',
-                                          child: Text(
-                                            context.tr(
-                                                'b2b.catalog.sort_price_low'),
-                                          ),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'price_high',
-                                          child: Text(
-                                            context.tr(
-                                                'b2b.catalog.sort_price_high'),
-                                          ),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'name',
-                                          child: Text(
-                                            context.tr('b2b.catalog.sort_name'),
-                                          ),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setState(() {
-                                            sortMode = value;
-                                            visibleLimit = 24;
-                                          });
-                                        }
-                                      },
+                                  height: 34,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: palette.soft),
+                                  ),
+                                  child: Text(
+                                    '${visibleRows.length} ' +
+                                        context
+                                            .tr('b2b.catalog.products_count'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: palette.muted,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                  IconButton(
-                                    key: const ValueKey(
-                                        'wholesale-catalog-refresh'),
-                                    tooltip: context.tr('b2b.catalog.refresh'),
-                                    onPressed: () => _reload(resetLimit: false),
-                                    icon: const Icon(Icons.refresh_rounded),
-                                  ),
-                                ],
+                                ),
                               ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${visibleRows.length} ' +
-                                          context
-                                              .tr('b2b.catalog.products_count'),
-                                      key: const ValueKey(
-                                          'wholesale-catalog-count'),
-                                      style: TextStyle(
-                                        color: palette.muted,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 34,
+                                  child: OutlinedButton.icon(
+                                    key: const ValueKey(
+                                      'wholesale-catalog-filter',
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                      ),
+                                      minimumSize: const Size(0, 34),
+                                      side: BorderSide(color: palette.soft),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: () => _openCategoryFilter(
+                                      context,
+                                      categories,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.tune_rounded,
+                                      size: 14,
+                                    ),
+                                    label: Text(
+                                      context.tr('b2b.catalog.filter'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ),
-                                ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 34,
+                                  child: DropdownButtonFormField<String>(
+                                    key: const ValueKey(
+                                      'wholesale-catalog-sort',
+                                    ),
+                                    value: sortMode,
+                                    isDense: true,
+                                    isExpanded: true,
+                                    icon: const Icon(
+                                      Icons.unfold_more_rounded,
+                                      size: 14,
+                                    ),
+                                    style: TextStyle(
+                                      color: palette.text,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 8,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        borderSide:
+                                            BorderSide(color: palette.soft),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: palette.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'default',
+                                        child: Text(
+                                          context.tr(
+                                            'b2b.catalog.sort_default',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'price_low',
+                                        child: Text(
+                                          context.tr(
+                                            'b2b.catalog.sort_price_low',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'price_high',
+                                        child: Text(
+                                          context.tr(
+                                            'b2b.catalog.sort_price_high',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'name',
+                                        child: Text(
+                                          context.tr(
+                                            'b2b.catalog.sort_name',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          sortMode = value;
+                                          visibleLimit = 24;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              SizedBox(
+                                width: 34,
+                                height: 34,
+                                child: IconButton(
+                                  key: const ValueKey(
+                                    'wholesale-catalog-refresh',
+                                  ),
+                                  tooltip:
+                                      context.tr('b2b.catalog.refresh'),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () =>
+                                      _reload(resetLimit: false),
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    size: 17,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
