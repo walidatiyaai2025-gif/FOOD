@@ -1859,10 +1859,13 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     // may be deactivated while the request is in flight; its BuildContext must
     // never be used again after await.
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final navigator = Navigator.of(context);
-    final addedMessage = context.tr('b2b.catalog.added');
-    final openCartLabel = context.tr('b2b.catalog.open_cart');
-    final closeTooltip = MaterialLocalizations.of(context).closeButtonTooltip;
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    final textDirection = Directionality.of(context);
+    final topInset = MediaQuery.paddingOf(context).top;
+    final productName = widget.row['name']?.toString().trim().isNotEmpty == true
+        ? widget.row['name'].toString().trim()
+        : context.tr('customer.products.title');
+    final productImageUrl = widget.row['image_url']?.toString();
     final actionFailedMessage = context.tr('customer.error.action_failed');
 
     setState(() => busy = true);
@@ -1873,16 +1876,15 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         quantity: minimum,
       );
       syncFoodexWholesaleCartProductCount(cartPayload);
-      if (messenger == null || !messenger.mounted) return;
-      _showWholesaleCartConfirmation(
-        messenger: messenger,
-        navigator: navigator,
-        storeId: widget.storeId,
-        productId: id,
-        message: addedMessage,
-        openCartLabel: openCartLabel,
-        closeTooltip: closeTooltip,
-      );
+      if (overlay != null && overlay.mounted) {
+        showFoodexWholesaleCartAddHover(
+          overlay: overlay,
+          textDirection: textDirection,
+          topInset: topInset,
+          productName: productName,
+          imageUrl: productImageUrl,
+        );
+      }
     } catch (error) {
       if (messenger != null && messenger.mounted) {
         messenger
