@@ -5985,9 +5985,11 @@ class _WholesaleCheckoutDesignScreenState
   late Future<_CheckoutPayload> future = _load();
   late final String idempotencyKey;
   int? addressId;
-  String? deliveryDate;
   String? paymentMethod;
   bool submitting = false;
+  bool applyingCoupon = false;
+  String? appliedCouponCode;
+  Map<String, dynamic>? appliedQuote;
   Map<String, dynamic>? createdOrder;
   final note = TextEditingController();
   final coupon = TextEditingController();
@@ -6059,6 +6061,70 @@ class _WholesaleCheckoutDesignScreenState
     return paymentLabel(method);
   }
 
+  String get _normalizedCoupon => coupon.text.trim().toUpperCase();
+
+  Map<String, dynamic> _quoteMap(Object? raw) {
+    if (raw is! Map) return const <String, dynamic>{};
+    final map = Map<String, dynamic>.from(raw);
+    final data = map['data'];
+    return data is Map
+        ? Map<String, dynamic>.from(data)
+        : map;
+  }
+
+  void _couponChanged(String value) {
+    final normalized = value.trim().toUpperCase();
+    if (appliedCouponCode == null || normalized == appliedCouponCode) return;
+    setState(() {
+      appliedCouponCode = null;
+      appliedQuote = null;
+    });
+  }
+
+  Future<void> _applyCoupon() async {
+    final code = _normalizedCoupon;
+    final api = widget.commerceApi;
+    if (code.isEmpty || api is! WholesaleQuoteApi || applyingCoupon) return;
+
+    setState(() => applyingCoupon = true);
+    try {
+      final raw = await api.quote(
+        storeId: storeId,
+        couponCode: code,
+        paymentMethod: paymentMethod,
+      );
+      final next = _quoteMap(raw);
+      if (next.isEmpty) {
+        throw const WholesaleCommerceException(
+          'Coupon quote did not return pricing details.',
+        );
+      }
+      if (!mounted) return;
+      final couponData = next['coupon'];
+      final confirmedCode = couponData is Map &&
+              couponData['code']?.toString().trim().isNotEmpty == true
+          ? couponData['code'].toString().trim().toUpperCase()
+          : code;
+      coupon.value = coupon.value.copyWith(
+        text: confirmedCode,
+        selection: TextSelection.collapsed(offset: confirmedCode.length),
+      );
+      setState(() {
+        appliedCouponCode = confirmedCode;
+        appliedQuote = next;
+        applyingCoupon = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        appliedCouponCode = null;
+        appliedQuote = null;
+        applyingCoupon = false;
+      });
+      await showOperationalError(context, error);
+    }
+  }
+
   Future<void> _submit() async {
     final api = widget.commerceApi;
     if (api == null ||
@@ -6074,9 +6140,9 @@ class _WholesaleCheckoutDesignScreenState
         storeId: storeId,
         addressId: addressId!,
         paymentMethod: paymentMethod!,
-        requestedDeliveryDate: deliveryDate,
+        requestedDeliveryDate: null,
         note: note.text,
-        couponCode: coupon.text,
+        couponCode: appliedCouponCode,
         idempotencyKey: idempotencyKey,
       );
       if (!mounted) return;
@@ -6139,7 +6205,6 @@ class _WholesaleCheckoutDesignScreenState
                   final subtotal = doubleValue(success['subtotal'], 0);
                   final discount = doubleValue(success['discount_total'], 0);
                   final delivery = doubleValue(success['delivery_total'], 0);
-                  final tax = doubleValue(success['tax_total'], 0);
                   final total = doubleValue(success['grand_total'], 0);
 
                   return CustomerOrderSuccessPanel(
@@ -6173,28 +6238,26 @@ class _WholesaleCheckoutDesignScreenState
                     summary: CustomerCheckoutTotalsCard(
                       rows: [
                         CustomerCheckoutTotalRow(
-                          label: ar ? 'الإجمالي الفرعي' : 'Subtotal',
+                          label: ar ? 'السعر قبل الخصم' : 'Price before discount',
                           value: foodexMoneyText(subtotal, currency),
+                          valueColor: const Color(0xFF078A43),
                         ),
                         if (discount > 0)
                           CustomerCheckoutTotalRow(
                             label: ar ? 'الخصم' : 'Discount',
                             value: '-${foodexMoneyText(discount, currency)}',
+                            valueColor: const Color(0xFFD62828),
                           ),
                         if (delivery > 0)
                           CustomerCheckoutTotalRow(
                             label: ar ? 'التوصيل' : 'Delivery',
                             value: foodexMoneyText(delivery, currency),
                           ),
-                        if (tax > 0)
-                          CustomerCheckoutTotalRow(
-                            label: ar ? 'الضريبة' : 'Tax',
-                            value: foodexMoneyText(tax, currency),
-                          ),
                         CustomerCheckoutTotalRow(
-                          label: ar ? 'الإجمالي' : 'Total',
+                          label: ar ? 'السعر النهائي' : 'Final price',
                           value: foodexMoneyText(total, currency),
                           emphasized: true,
+                          valueColor: const Color(0xFF1565C0),
                         ),
                       ],
                     ),
@@ -6221,20 +6284,17 @@ class _WholesaleCheckoutDesignScreenState
                 final data = payload.options;
                 final cart = payload.cart;
                 final addresses = mapRows(data['addresses']);
-                final dates =
-                    (data['delivery_dates'] as List? ?? const <Object>[])
-                        .map((value) => value.toString())
-                        .toList(growable: false);
                 final methods =
                     (data['payment_methods'] as List? ?? const <Object>[])
                         .map((value) => value.toString())
                         .toList(growable: false);
                 final items = mapRows(cart['items']);
-                final quote = cart['quote'] is Map
+                final cartQuote = cart['quote'] is Map
                     ? Map<String, dynamic>.from(cart['quote'] as Map)
                     : <String, dynamic>{};
+                final effectiveQuote = appliedQuote ?? cartQuote;
                 final grandTotal = doubleValue(
-                  quote['grand_total'] ??
+                  effectiveQuote['grand_total'] ??
                       cart['grand_total'] ??
                       cart['subtotal'],
                   0,
@@ -6251,12 +6311,6 @@ class _WholesaleCheckoutDesignScreenState
                       (address) => intValue(address['id']) == addressId,
                     )) {
                   addressId = intValue(addresses.first['id']);
-                }
-                if (dates.isEmpty) {
-                  deliveryDate = null;
-                } else if (deliveryDate == null ||
-                    !dates.contains(deliveryDate)) {
-                  deliveryDate = dates.first;
                 }
                 if (methods.isEmpty) {
                   paymentMethod = null;
@@ -6275,11 +6329,14 @@ class _WholesaleCheckoutDesignScreenState
 
                 final creditInsufficient = paymentMethod == 'account_credit' &&
                     grandTotal > purchasingPower + .0001;
+                final couponReady = _normalizedCoupon.isEmpty ||
+                    appliedCouponCode == _normalizedCoupon;
                 final canSubmit = widget.commerceApi != null &&
                     items.isNotEmpty &&
                     !hasUnavailable &&
                     addressId != null &&
                     paymentMethod != null &&
+                    couponReady &&
                     !creditInsufficient &&
                     !submitting;
 
@@ -6293,10 +6350,6 @@ class _WholesaleCheckoutDesignScreenState
                         CustomerCheckoutStep(
                           label: context.tr('b2b.checkout.address'),
                           icon: Icons.location_on_outlined,
-                        ),
-                        CustomerCheckoutStep(
-                          label: context.tr('b2b.checkout.delivery_date'),
-                          icon: Icons.local_shipping_outlined,
                         ),
                         CustomerCheckoutStep(
                           label: context.tr('b2b.checkout.payment_method'),
@@ -6363,22 +6416,6 @@ class _WholesaleCheckoutDesignScreenState
                     ],
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: deliveryDate,
-                      decoration: InputDecoration(
-                        labelText: context.tr('b2b.checkout.delivery_date'),
-                        prefixIcon: const Icon(Icons.calendar_today_outlined),
-                      ),
-                      items: dates
-                          .map(
-                            (date) => DropdownMenuItem(
-                                value: date, child: Text(date)),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => deliveryDate = value),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
                       value: paymentMethod,
                       decoration: InputDecoration(
                         labelText: context.tr('b2b.checkout.payment_method'),
@@ -6392,8 +6429,11 @@ class _WholesaleCheckoutDesignScreenState
                             ),
                           )
                           .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => paymentMethod = value),
+                      onChanged: (value) => setState(() {
+                        paymentMethod = value;
+                        appliedCouponCode = null;
+                        appliedQuote = null;
+                      }),
                     ),
                     if (creditInsufficient) ...[
                       const SizedBox(height: 8),
@@ -6408,15 +6448,65 @@ class _WholesaleCheckoutDesignScreenState
                       ),
                     ],
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: coupon,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: InputDecoration(
-                        labelText: context.tr('b2b.checkout.coupon'),
-                        prefixIcon:
-                            const Icon(Icons.confirmation_number_outlined),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const ValueKey('b2b-checkout-coupon'),
+                            controller: coupon,
+                            textCapitalization: TextCapitalization.characters,
+                            onChanged: _couponChanged,
+                            decoration: InputDecoration(
+                              labelText: context.tr('b2b.checkout.coupon'),
+                              prefixIcon: const Icon(
+                                Icons.confirmation_number_outlined,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 56,
+                          child: FilledButton(
+                            key: const ValueKey(
+                              'b2b-checkout-apply-coupon',
+                            ),
+                            onPressed: applyingCoupon ||
+                                    _normalizedCoupon.isEmpty ||
+                                    widget.commerceApi is! WholesaleQuoteApi
+                                ? null
+                                : _applyCoupon,
+                            child: applyingCoupon
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: FoodexWaveLoading(),
+                                  )
+                                : Text(
+                                    context.tr(
+                                      'b2b.checkout.apply_coupon',
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
+                    if (appliedCouponCode != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        context.tr('b2b.checkout.coupon_applied') +
+                            ': ' +
+                            appliedCouponCode!,
+                        key: const ValueKey(
+                          'b2b-checkout-coupon-applied',
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFF078A43),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextField(
                       controller: note,
@@ -6431,27 +6521,25 @@ class _WholesaleCheckoutDesignScreenState
                     _CheckoutReviewCard(
                       data: data,
                       address: selectedAddress,
-                      deliveryDate: deliveryDate,
                       paymentLabel: paymentMethod == null
                           ? '-'
                           : _paymentLabel(context, paymentMethod!),
                     ),
                     const SizedBox(height: 12),
-                    _CheckoutSummary(cart: cart),
+                    _CheckoutSummary(
+                      cart: cart,
+                      quoteOverride: appliedQuote,
+                    ),
                     const SizedBox(height: 18),
                     SizedBox(
                       height: 54,
-                      child: FilledButton(
+                      child: _WholesaleWaveCheckoutButton(
                         key: const ValueKey('b2b-checkout-submit'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF078A43),
-                        ),
-                        onPressed: canSubmit ? _submit : null,
-                        child: Text(
-                          submitting
-                              ? context.tr('b2b.checkout.submitting')
-                              : context.tr('b2b.checkout.confirm'),
-                        ),
+                        enabled: canSubmit,
+                        label: submitting
+                            ? context.tr('b2b.checkout.submitting')
+                            : context.tr('b2b.checkout.confirm'),
+                        onPressed: _submit,
                       ),
                     ),
                   ],
@@ -6467,13 +6555,11 @@ class _CheckoutReviewCard extends StatelessWidget {
   const _CheckoutReviewCard({
     required this.data,
     required this.address,
-    required this.deliveryDate,
     required this.paymentLabel,
   });
 
   final Map<String, dynamic> data;
   final Map<String, dynamic>? address;
-  final String? deliveryDate;
   final String paymentLabel;
 
   @override
@@ -6503,7 +6589,6 @@ class _CheckoutReviewCard extends StatelessWidget {
             (data['store_id'] == null ? '-' : '#${data['store_id']}'),
       ),
       (context.tr('b2b.checkout.selected_address'), addressText),
-      (context.tr('b2b.checkout.selected_delivery'), deliveryDate ?? '-'),
       (context.tr('b2b.checkout.selected_payment'), paymentLabel),
     ];
 
@@ -6566,21 +6651,25 @@ class _CheckoutPayload {
 }
 
 class _CheckoutSummary extends StatelessWidget {
-  const _CheckoutSummary({required this.cart});
+  const _CheckoutSummary({
+    required this.cart,
+    this.quoteOverride,
+  });
 
   final Map<String, dynamic> cart;
+  final Map<String, dynamic>? quoteOverride;
 
   @override
   Widget build(BuildContext context) {
     final items = mapRows(cart['items']);
     final currency = cart['currency']?.toString() ?? 'EGP';
-    final quote = cart['quote'] is Map
-        ? Map<String, dynamic>.from(cart['quote'] as Map)
-        : <String, dynamic>{};
-    final subtotal = cart['subtotal'];
+    final quote = quoteOverride ??
+        (cart['quote'] is Map
+            ? Map<String, dynamic>.from(cart['quote'] as Map)
+            : <String, dynamic>{});
+    final subtotal = quote['subtotal'] ?? cart['subtotal'];
     final discount = quote['discount_total'];
     final delivery = quote['delivery_total'];
-    final tax = quote['tax_total'];
     final grandTotal = quote['grand_total'] ??
         cart['grand_total'] ??
         cart['total'] ??
@@ -6648,29 +6737,27 @@ class _CheckoutSummary extends StatelessWidget {
           ],
           const Divider(height: 18),
           _SummaryRow(
-            label: context.tr('b2b.cart.subtotal'),
+            label: context.tr('b2b.checkout.price_before'),
             value: money(subtotal, currency: currency),
+            valueColor: const Color(0xFF078A43),
           ),
           if (doubleValue(discount, 0) > 0)
             _SummaryRow(
               label: context.tr('b2b.cart.discount'),
               value: '- ' + money(discount, currency: currency),
+              valueColor: const Color(0xFFD62828),
             ),
           if (delivery != null)
             _SummaryRow(
               label: context.tr('b2b.cart.delivery'),
               value: money(delivery, currency: currency),
             ),
-          if (tax != null)
-            _SummaryRow(
-              label: context.tr('b2b.cart.tax'),
-              value: money(tax, currency: currency),
-            ),
           const SizedBox(height: 7),
           _SummaryRow(
-            label: context.tr('b2b.cart.total'),
+            label: context.tr('b2b.checkout.final_price'),
             value: money(grandTotal, currency: currency),
             strong: true,
+            valueColor: const Color(0xFF1565C0),
           ),
           const SizedBox(height: 7),
           Text(
@@ -6692,11 +6779,13 @@ class _SummaryRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.strong = false,
+    this.valueColor,
   });
 
   final String label;
   final String value;
   final bool strong;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -6715,8 +6804,10 @@ class _SummaryRow extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                color:
-                    strong ? const Color(0xFF078A43) : const Color(0xFF102033),
+                color: valueColor ??
+                    (strong
+                        ? const Color(0xFF078A43)
+                        : const Color(0xFF102033)),
                 fontSize: strong ? 16 : 12,
                 fontWeight: FontWeight.w800,
               ),
