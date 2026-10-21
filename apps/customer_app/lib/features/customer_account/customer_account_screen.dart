@@ -182,6 +182,153 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     }
   }
 
+  Future<void> _contactUs() async {
+    final api = widget.api;
+    if (api is! CustomerContactApi) return;
+
+    Object? profile;
+    try {
+      profile = await _profile;
+    } catch (_) {
+      profile = null;
+    }
+    if (!mounted) return;
+
+    String initialPhone = '';
+    if (profile is Map) {
+      final customer = profile['customer'];
+      if (customer is Map) {
+        initialPhone = customer['phone']?.toString() ?? '';
+      }
+    }
+
+    final phone = TextEditingController(text: initialPhone);
+    final contactMessage = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_locale == 'ar' ? 'تواصل معنا' : 'Contact us'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _locale == 'ar'
+                      ? 'اكتب رسالتك ورقم الهاتف الذي تريد أن تتواصل عليه خدمة العملاء.'
+                      : 'Send your message and the phone number Customer Service should use to contact you.',
+                ),
+                const SizedBox(height: CustomerUiSpacing.md),
+                TextFormField(
+                  key: const ValueKey('customer-contact-phone'),
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 50,
+                  decoration: InputDecoration(
+                    labelText: _locale == 'ar' ? 'رقم الهاتف' : 'Phone number',
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? (_locale == 'ar'
+                          ? 'رقم الهاتف مطلوب'
+                          : 'Phone number is required')
+                      : null,
+                ),
+                const SizedBox(height: CustomerUiSpacing.sm),
+                TextFormField(
+                  key: const ValueKey('customer-contact-message'),
+                  controller: contactMessage,
+                  minLines: 4,
+                  maxLines: 7,
+                  maxLength: 8000,
+                  decoration: InputDecoration(
+                    labelText: _locale == 'ar' ? 'الرسالة' : 'Message',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? (_locale == 'ar'
+                          ? 'اكتب الرسالة'
+                          : 'Message is required')
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr('customer.action.cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('customer-contact-submit'),
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.of(dialogContext).pop(true);
+              }
+            },
+            child: Text(_locale == 'ar' ? 'إرسال' : 'Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (accepted != true) {
+      phone.dispose();
+      contactMessage.dispose();
+      return;
+    }
+
+    try {
+      final response = await api.submitContactUs(
+        storeId: widget.retailStoreId,
+        phone: phone.text,
+        message: contactMessage.text,
+      );
+      if (!mounted) return;
+
+      String reference = '';
+      if (response is Map && response['data'] is Map) {
+        final data = response['data'] as Map;
+        reference =
+            data['id']?.toString() ?? data['public_id']?.toString() ?? '';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('customer-contact-success'),
+          content: Text(
+            _locale == 'ar'
+                ? 'تم إرسال رسالتك لخدمة العملاء${reference.isEmpty ? '' : ' · الحالة #$reference'}'
+                : 'Your message was sent to Customer Service${reference.isEmpty ? '' : ' · Case #$reference'}',
+          ),
+        ),
+      );
+    } on B2cAccountException catch (error) {
+      if (!mounted) return;
+      String? fieldMessage;
+      for (final messages in error.fieldErrors.values) {
+        if (messages.isNotEmpty) {
+          fieldMessage = messages.first;
+          break;
+        }
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fieldMessage ??
+                error.serverMessage ??
+                error.code,
+          ),
+        ),
+      );
+    } finally {
+      phone.dispose();
+      contactMessage.dispose();
+    }
+  }
+
   Future<void> _editProfile(Map<String, dynamic> profile) async {
     final name = TextEditingController(text: profile['name']?.toString() ?? '');
     final email = TextEditingController(
@@ -350,6 +497,15 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                   title: context.tr('customer.profile.orders'),
                   icon: Icons.receipt_long_outlined,
                   onTap: widget.onOpenOrders,
+                ),
+              ],
+              if (widget.api is CustomerContactApi) ...[
+                const SizedBox(height: CustomerUiSpacing.sm),
+                CustomerAccountShortcutCard(
+                  key: const ValueKey('customer-account-contact-us'),
+                  title: _locale == 'ar' ? 'تواصل معنا' : 'Contact us',
+                  icon: Icons.support_agent_rounded,
+                  onTap: _contactUs,
                 ),
               ],
               if (widget.api is HttpB2cAccountApi) ...[
