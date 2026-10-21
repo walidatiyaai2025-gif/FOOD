@@ -621,15 +621,13 @@ void main() {
     expect(find.text('125.000 KWD'), findsOneWidget);
     expect(find.text('1000.000 KWD'), findsNothing);
     expect(find.text('875.000 KWD'), findsNothing);
-    expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsOneWidget);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
-    expect(find.text('الإشعارات'), findsOneWidget);
     expect(find.text('العناوين'), findsOneWidget);
+    expect(find.text('الإشعارات'), findsNothing);
+    expect(find.text('المساعدة والدعم'), findsNothing);
     expect(find.text('العربية'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
-    expect(find.text('المساعدة والدعم'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-profile-security-action')),
       findsOneWidget,
