@@ -23,6 +23,7 @@ import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_display_preferences.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
@@ -598,7 +599,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             }
 
             return Scaffold(
-              backgroundColor: palette.background,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : palette.background,
               body: SafeArea(
                 child: Column(
                   children: [
@@ -736,7 +739,7 @@ class _WholesaleFirstHomeVehicleIntroState
                             center: const Alignment(0, .05),
                             radius: .85,
                             colors: [
-                              Colors.white.withOpacity(.08),
+                              Colors.white.withValues(alpha: .08),
                               Colors.transparent,
                             ],
                           ),
@@ -886,7 +889,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
         const Rect.fromLTWH(26, 39, 72, 24),
         const Radius.circular(6),
       ),
-      Paint()..color = Colors.white.withOpacity(.95),
+      Paint()..color = Colors.white.withValues(alpha: .95),
     );
 
     final logoPainter = TextPainter(
@@ -951,7 +954,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
         ..moveTo(28, 27)
         ..lineTo(112, 27),
       Paint()
-        ..color = Colors.white.withOpacity(.58)
+        ..color = Colors.white.withValues(alpha: .58)
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke,
@@ -1266,8 +1269,8 @@ class _WholesaleHeroState extends State<_WholesaleHero>
                       begin: AlignmentDirectional.centerStart,
                       end: AlignmentDirectional.centerEnd,
                       colors: [
-                        Colors.black.withOpacity(hasImage ? .60 : .20),
-                        Colors.black.withOpacity(hasImage ? .28 : .09),
+                        Colors.black.withValues(alpha: hasImage ? .60 : .20),
+                        Colors.black.withValues(alpha: hasImage ? .28 : .09),
                         Colors.transparent,
                       ],
                     ),
@@ -1289,10 +1292,10 @@ class _WholesaleHeroState extends State<_WholesaleHero>
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                             colors: [
-                              Colors.white.withOpacity(0),
-                              Colors.white.withOpacity(.16),
-                              Colors.white.withOpacity(.04),
-                              Colors.white.withOpacity(0),
+                              Colors.white.withValues(alpha: 0),
+                              Colors.white.withValues(alpha: .16),
+                              Colors.white.withValues(alpha: .04),
+                              Colors.white.withValues(alpha: 0),
                             ],
                           ),
                         ),
@@ -1514,7 +1517,7 @@ class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
                       border: Border.all(color: widget.palette.soft),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(.04),
+                          color: Colors.black.withValues(alpha: .04),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -2130,6 +2133,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.noResults = false,
     this.showCommerceActions = false,
     this.homeWholeNumberPrice = false,
+    this.columnsOverride,
     this.onRemoveFavorite,
   });
 
@@ -2146,6 +2150,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final bool noResults;
   final bool showCommerceActions;
   final bool homeWholeNumberPrice;
+  final int? columnsOverride;
   final Future<void> Function(int productId)? onRemoveFavorite;
 
   @override
@@ -2164,7 +2169,13 @@ class _WholesaleProductGrid extends StatelessWidget {
 
     final displayRows =
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
-    final columns = _wholesaleProductColumns(displayRows.length);
+    final columns =
+        columnsOverride ?? _wholesaleProductColumns(displayRows.length);
+    final mainAxisExtent = switch (columns) {
+      1 => 248.0,
+      2 => 182.0,
+      _ => 132.0,
+    };
 
     return GridView.builder(
       key: const ValueKey('wholesale-product-grid'),
@@ -2175,8 +2186,8 @@ class _WholesaleProductGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: 8,
-        mainAxisSpacing: 0,
-        mainAxisExtent: 132,
+        mainAxisSpacing: columns >= 3 ? 0 : 8,
+        mainAxisExtent: mainAxisExtent,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -2334,10 +2345,24 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final priceLabel = widget.homeWholeNumberPrice
         ? '${doubleValue(amount, 0).toStringAsFixed(0)} $currency'
         : money(amount, currency: currency);
+    final twoColumns = widget.gridColumns == 2;
+    final singleColumn = widget.gridColumns == 1;
+    final imageHeight = singleColumn ? 176.0 : (twoColumns ? 126.0 : 96.0);
+    final cardPadding = singleColumn
+        ? const EdgeInsets.fromLTRB(14, 14, 14, 12)
+        : twoColumns
+            ? const EdgeInsets.fromLTRB(11, 11, 11, 9)
+            : const EdgeInsets.fromLTRB(7, 7, 7, 6);
+    final nameHeight = singleColumn ? 28.0 : (twoColumns ? 20.0 : 14.0);
+    final nameFontSize = singleColumn ? 15.0 : (twoColumns ? 12.0 : 9.0);
+    final actionDimension = singleColumn ? 36.0 : (twoColumns ? 28.0 : 22.0);
+    final actionIconSize = singleColumn ? 18.0 : (twoColumns ? 15.0 : 13.0);
+    final surfaceColor = Theme.of(context).cardColor;
+    final darkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
       key: ValueKey('wholesale-product-card-$id'),
-      color: Colors.white,
+      color: surfaceColor,
       borderRadius: BorderRadius.circular(18),
       child: Opacity(
         key: ValueKey('wholesale-product-dimmed-$id'),
@@ -2353,13 +2378,13 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         widget.storeId.toString(),
                   ),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(7, 7, 7, 6),
+            padding: cardPadding,
             decoration: BoxDecoration(
               border: Border.all(color: palette.soft),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(.035),
+                  color: Colors.black.withValues(alpha: darkMode ? .22 : .035),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -2369,7 +2394,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  height: 96,
+                  height: imageHeight,
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -2432,7 +2457,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           child: _WholesaleCardBadge(
                             key: ValueKey('wholesale-product-brand-$id'),
                             label: brand,
-                            background: Colors.white.withOpacity(.94),
+                            background: surfaceColor.withValues(alpha: .94),
                             foreground: palette.muted,
                           ),
                         ),
@@ -2442,7 +2467,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                           top: 0,
                           child: widget.onRemoveFavorite != null
                               ? Material(
-                                  color: Colors.black.withOpacity(.20),
+                                  color: Colors.black.withValues(alpha: .20),
                                   shape: const CircleBorder(),
                                   elevation: 1,
                                   child: InkWell(
@@ -2478,7 +2503,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                                   loginRoute:
                                       '/auth/checkout?next=${Uri.encodeComponent(widget.sourceLocation)}',
                                   compactOverlay: true,
-                                  inactiveColor: Colors.white,
+                                  inactiveColor: surfaceColor,
                                   activeColor: CustomerUiColors.destructive,
                                 ),
                         ),
@@ -2510,15 +2535,15 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                                 customBorder: const CircleBorder(),
                                 onTap: busy ? null : _addToCart,
                                 child: SizedBox.square(
-                                  dimension: 22,
+                                  dimension: actionDimension,
                                   child: busy
                                       ? const Padding(
                                           padding: EdgeInsets.all(6),
                                           child: FoodexWaveLoading(),
                                         )
-                                      : const Icon(
+                                      : Icon(
                                           Icons.add_rounded,
-                                          size: 13,
+                                          size: actionIconSize,
                                           color: Colors.white,
                                         ),
                                 ),
@@ -2533,7 +2558,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                 SizedBox(
                   key: ValueKey('wholesale-product-name-$id'),
                   width: double.infinity,
-                  height: 14,
+                  height: nameHeight,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: AlignmentDirectional.centerStart,
@@ -2541,11 +2566,11 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       row['name']?.toString() ?? '',
                       maxLines: 1,
                       softWrap: false,
-                      style: const TextStyle(
-                        fontSize: 9,
+                      style: TextStyle(
+                        fontSize: nameFontSize,
                         height: 1.05,
                         fontWeight: FontWeight.w900,
-                        color: CustomerUiColors.wholesaleCommerceInk,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -2586,7 +2611,7 @@ class _WholesaleCardBadge extends StatelessWidget {
           border: Border.all(
             color: compact
                 ? CustomerUiColors.wholesaleBadgeBorder
-                : Colors.white.withOpacity(.75),
+                : Colors.white.withValues(alpha: .75),
           ),
         ),
         child: Text(
@@ -2802,7 +2827,9 @@ class _WholesaleFavoritesDesignScreenState
 
           return Scaffold(
             key: const ValueKey('wholesale-favorites-screen'),
-            backgroundColor: palette.background,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : palette.background,
             body: SafeArea(
               child: Column(
                 children: [
@@ -2973,6 +3000,7 @@ class _WholesaleCatalogDesignScreenState
   String? sectionFilter;
   Set<int> productFilterIds = <int>{};
   String sortMode = 'default';
+  late WholesaleProductCardSize cardSize;
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
@@ -2980,6 +3008,10 @@ class _WholesaleCatalogDesignScreenState
   @override
   void initState() {
     super.initState();
+    cardSize =
+        CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .addListener(_onProductCardSizeChanged);
     final query = Uri.parse(widget.location).queryParameters;
     final initialQuery = query['q']?.trim() ?? '';
     if (initialQuery.isNotEmpty) search.text = initialQuery;
@@ -2999,6 +3031,27 @@ class _WholesaleCatalogDesignScreenState
     future = _load(search.text);
     WidgetsBinding.instance.addObserver(this);
   }
+
+  void _onProductCardSizeChanged() {
+    if (!mounted) return;
+    setState(() {
+      cardSize =
+          CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    });
+  }
+
+  String _cardSizeTranslationKey() => switch (cardSize) {
+        WholesaleProductCardSize.compact => 'b2b.catalog.card_size_compact',
+        WholesaleProductCardSize.comfortable =>
+          'b2b.catalog.card_size_comfortable',
+        WholesaleProductCardSize.expanded => 'b2b.catalog.card_size_expanded',
+      };
+
+  IconData _cardSizeIcon() => switch (cardSize) {
+        WholesaleProductCardSize.compact => Icons.view_module_rounded,
+        WholesaleProductCardSize.comfortable => Icons.grid_view_rounded,
+        WholesaleProductCardSize.expanded => Icons.view_agenda_rounded,
+      };
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -3079,6 +3132,8 @@ class _WholesaleCatalogDesignScreenState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .removeListener(_onProductCardSizeChanged);
     search.dispose();
     super.dispose();
   }
@@ -3273,7 +3328,9 @@ class _WholesaleCatalogDesignScreenState
           if (browseMode == 'categories' && selectedCategoryId == null) {
             return Scaffold(
               key: const ValueKey('wholesale-category-browser-screen'),
-              backgroundColor: palette.background,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : palette.background,
               body: SafeArea(
                 child: Column(
                   children: [
@@ -3344,7 +3401,9 @@ class _WholesaleCatalogDesignScreenState
 
             return Scaffold(
               key: const ValueKey('wholesale-brand-browser-screen'),
-              backgroundColor: palette.background,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : palette.background,
               body: SafeArea(
                 child: Column(
                   children: [
@@ -3453,7 +3512,9 @@ class _WholesaleCatalogDesignScreenState
 
           return Scaffold(
             key: const ValueKey('wholesale-catalog-screen'),
-            backgroundColor: palette.background,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : palette.background,
             body: SafeArea(
               child: Column(
                 children: [
@@ -3736,6 +3797,26 @@ class _WholesaleCatalogDesignScreenState
                                 height: 34,
                                 child: IconButton(
                                   key: const ValueKey(
+                                    'wholesale-catalog-card-size',
+                                  ),
+                                  tooltip:
+                                      '${context.tr('b2b.catalog.card_size')}: '
+                                      '${context.tr(_cardSizeTranslationKey())}',
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () async {
+                                    await CustomerDisplayPreferences.instance
+                                        .cycleWholesaleProductCardSize();
+                                  },
+                                  icon: Icon(_cardSizeIcon(), size: 17),
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              SizedBox(
+                                width: 34,
+                                height: 34,
+                                child: IconButton(
+                                  key: const ValueKey(
                                     'wholesale-catalog-refresh',
                                   ),
                                   tooltip: context.tr('b2b.catalog.refresh'),
@@ -3790,6 +3871,7 @@ class _WholesaleCatalogDesignScreenState
                           palette: palette,
                           favoritesApi: widget.favoritesApi,
                           defaultCurrency: defaultCurrency,
+                          columnsOverride: cardSize.columns,
                           noResults: allRows.isNotEmpty &&
                               visibleRows.isEmpty &&
                               (search.text.trim().isNotEmpty ||
@@ -5125,7 +5207,7 @@ class _WholesaleCatalogCategoryIcon extends StatelessWidget {
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     color: selected
-                        ? palette.accent.withOpacity(.22)
+                        ? palette.accent.withValues(alpha: .22)
                         : Colors.white,
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -5958,14 +6040,14 @@ class _WholesaleCheckoutWavePainter extends CustomPainter {
       amplitude: 4.5,
       frequency: 1.35,
       phaseShift: 0,
-      color: Colors.white.withOpacity(.12),
+      color: Colors.white.withValues(alpha: .12),
     );
     drawWave(
       baseline: size.height * .64,
       amplitude: 5.5,
       frequency: 1.1,
       phaseShift: math.pi,
-      color: CustomerUiColors.wholesaleWaveAccent.withOpacity(.13),
+      color: CustomerUiColors.wholesaleWaveAccent.withValues(alpha: .13),
     );
   }
 
@@ -8341,12 +8423,12 @@ class _B2bOrderTimelineEntry extends StatelessWidget {
                     color: visual.background,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: visual.foreground.withOpacity(.75),
+                      color: visual.foreground.withValues(alpha: .75),
                       width: 1.6,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: visual.foreground.withOpacity(.12),
+                        color: visual.foreground.withValues(alpha: .12),
                         blurRadius: 7,
                         offset: const Offset(0, 2),
                       ),
@@ -8680,7 +8762,7 @@ class _OrderCard extends StatelessWidget {
               color: CustomerUiColors.white,
               borderRadius: BorderRadius.circular(compact ? 18 : 20),
               border: Border.all(
-                color: CustomerUiColors.border.withOpacity(.72),
+                color: CustomerUiColors.border.withValues(alpha: .72),
               ),
               boxShadow: CustomerUiElevation.cardShadow,
             ),
@@ -8890,7 +8972,7 @@ class _StatusPill extends StatelessWidget {
         compact ? 5 : 6,
       ),
       decoration: BoxDecoration(
-        color: foreground.withOpacity(.10),
+        color: foreground.withValues(alpha: .10),
         borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
       ),
       child: Row(
