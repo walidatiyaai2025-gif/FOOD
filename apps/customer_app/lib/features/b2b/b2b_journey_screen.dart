@@ -372,7 +372,6 @@ class B2bJourneyScreen extends StatelessWidget {
                       ? _B2bDashboardRemoteState(
                           api: api!,
                           endpoint: _endpoint()!,
-                          storefrontApi: storefrontApi,
                         )
                       : definition.pattern ==
                               CustomerRoutePaths.b2bPurchaseReports
@@ -706,12 +705,10 @@ class _B2bDashboardRemoteState extends StatefulWidget {
   const _B2bDashboardRemoteState({
     required this.api,
     required this.endpoint,
-    this.storefrontApi,
   });
 
   final B2bApi api;
   final String endpoint;
-  final StorefrontApi? storefrontApi;
 
   @override
   State<_B2bDashboardRemoteState> createState() =>
@@ -724,7 +721,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   late Future<StoreAnalyticsReadModel?> _analyticsFuture;
   String? _seenInsightVersion;
   String? _currentInsightVersion;
-  bool _openingWholesale = false;
 
   @override
   void initState() {
@@ -784,11 +780,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     ).toString();
   }
 
-  int? _positiveInt(Object? raw) {
-    final value = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
-    return value != null && value > 0 ? value : null;
-  }
-
   int? get _retailStoreContextId {
     final api = widget.api;
     return api is HttpB2bApi ? api.retailStoreContextId : null;
@@ -839,62 +830,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.storeAnalytics(retailStoreId: retailStoreId),
     );
-  }
-
-  Future<void> _openPrincipalWholesale() async {
-    final storefrontApi = widget.storefrontApi;
-    if (storefrontApi == null || _openingWholesale) return;
-
-    setState(() => _openingWholesale = true);
-    try {
-      final payload = await storefrontApi.selection();
-      final entitlements = payload['entitlements'] is Map
-          ? Map<String, dynamic>.from(payload['entitlements'] as Map)
-          : const <String, dynamic>{};
-      final expectedPrincipal = _positiveInt(
-        entitlements['principal_wholesale_store_id'],
-      );
-      final rows = payload['wholesale_stores'];
-
-      int? principalId;
-      if (rows is List) {
-        for (final raw in rows) {
-          if (raw is! Map || raw['is_platform_principal'] != true) continue;
-          final row = Map<String, dynamic>.from(raw);
-          final storeId = _positiveInt(row['id'] ?? row['store_id']);
-          if (storeId == null) continue;
-          if (expectedPrincipal != null && storeId != expectedPrincipal) {
-            throw const StorefrontApiException(
-              'Principal Wholesale store contract mismatch.',
-            );
-          }
-          if (principalId != null && principalId != storeId) {
-            throw const StorefrontApiException(
-              'Multiple principal Wholesale stores are not allowed.',
-            );
-          }
-          principalId = storeId;
-        }
-      }
-
-      if (principalId == null) {
-        throw const StorefrontApiException(
-          'Principal Wholesale store is not available.',
-        );
-      }
-
-      if (!mounted) return;
-      final commerceContext = CustomerCommerceContext(
-        channel: CustomerCommerceChannel.wholesale,
-        storeId: principalId,
-      );
-      Navigator.of(context)
-          .pushNamed(CustomerRouteLocations.wholesaleHome(commerceContext));
-    } catch (error) {
-      if (mounted) await showOperationalError(context, error);
-    } finally {
-      if (mounted) setState(() => _openingWholesale = false);
-    }
   }
 
   String _money(Object? value, String currency) {
@@ -1091,13 +1026,18 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                                 ),
                                 if (_retailStoreContextId != null) ...[
                                   const SizedBox(width: 4),
-                                  BusinessDashboardSmartAnalyticsLauncher(
-                                    semanticLabel: context.tr(
-                                      'b2b.store_analytics.accessibility.open',
+                                  Opacity(
+                                    opacity: .35,
+                                    child: IgnorePointer(
+                                      child:
+                                          BusinessDashboardSmartAnalyticsLauncher(
+                                        semanticLabel: context.tr(
+                                          'b2b.store_analytics.accessibility.open',
+                                        ),
+                                        hasNewInsights: false,
+                                        onTap: _openStoreAnalytics,
+                                      ),
                                     ),
-                                    hasNewInsights:
-                                        analytics?.hasNewInsights ?? false,
-                                    onTap: _openStoreAnalytics,
                                   ),
                                 ],
                                 const SizedBox(width: 4),
@@ -1180,32 +1120,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      if (widget.storefrontApi != null)
-                        TextButton.icon(
-                          key: const ValueKey('b2b-dashboard-shopping'),
-                          onPressed: _openingWholesale
-                              ? null
-                              : _openPrincipalWholesale,
-                          icon: const Icon(Icons.storefront_rounded, size: 20),
-                          label: Text(
-                            context.tr('b2b.dashboard.store'),
-                            maxLines: 1,
-                          ),
-                          style: TextButton.styleFrom(
-                            minimumSize: const Size(82, 42),
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            backgroundColor: CustomerUiColors.lime,
-                            foregroundColor: CustomerUiColors.deepGreen,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
+
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -6446,9 +6361,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ],
               ),
-              if ((customer['name']?.toString() ?? '').isNotEmpty ||
-                  (customer['email']?.toString() ?? '').isNotEmpty ||
-                  (customer['phone']?.toString() ?? '').isNotEmpty) ...[
+              if ((customer['name']?.toString() ?? '').isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
@@ -6460,20 +6373,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
-                  ),
-                ),
-              if ((customer['email']?.toString() ?? '').isNotEmpty)
-                Text(
-                  customer['email'].toString(),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              if ((customer['phone']?.toString() ?? '').isNotEmpty)
-                Text(
-                  customer['phone'].toString(),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ),
               const SizedBox(height: 14),
