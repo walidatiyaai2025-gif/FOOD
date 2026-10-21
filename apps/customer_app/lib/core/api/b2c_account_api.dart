@@ -167,7 +167,8 @@ class HttpB2cAccountApi
   @override
   Future<Object?> setDefaultAddress(int addressId) async {
     _requireToken();
-    return _write('POST', '/api/v1/profile/addresses/$addressId/default', const {});
+    return _write(
+        'POST', '/api/v1/profile/addresses/$addressId/default', const {});
   }
 
   @override
