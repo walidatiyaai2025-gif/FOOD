@@ -210,9 +210,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <h3>{{ __('customer_360.identity.edit_title') }}</h3>
 <p>{{ __('customer_360.identity.edit_help') }}</p>
 <div class="c360-address-form">
-<label><small>{{ __('customer_360.identity.name') }}</small><input name="name" maxlength="255" value="{{ old('name',$customer->name) }}" required autocomplete="name"></label>
+<label><small>{{ __('customer_360.identity.name') }}</small><input name="name" maxlength="255" value="{{ old('name',$customer->name) }}" @required($canManageFullIdentity) @readonly(!$canManageFullIdentity) autocomplete="name"></label>
 <label><small>{{ __('customer_360.identity.email') }}</small><input name="email" type="email" maxlength="255" value="{{ old('email',$customer->email) }}" required autocomplete="email" inputmode="email"></label>
-<label class="wide"><small>{{ __('customer_360.identity.phone') }}</small><input name="phone" maxlength="40" value="{{ old('phone',$customer->phone) }}" autocomplete="tel" inputmode="tel"></label>
+<label class="wide"><small>{{ __('customer_360.identity.phone') }}</small><input name="phone" maxlength="40" value="{{ old('phone',$customer->phone) }}" @readonly(!$canManageFullIdentity) autocomplete="tel" inputmode="tel"></label>
 </div>
 </div>
 
