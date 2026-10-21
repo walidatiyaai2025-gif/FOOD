@@ -168,7 +168,7 @@ final class AdminSidebarManager
                 }
 
                 $visible = isset($selected[$key]);
-                if ($role->code === 'SUPER_ADMIN' && isset($protected[$key])) {
+                if (isset($protected[$key])) {
                     $visible = true;
                 }
 
