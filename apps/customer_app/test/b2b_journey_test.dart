@@ -1340,7 +1340,10 @@ void main() {
       expect(actionApi.lastStoreId, 7);
       expect(actionApi.lastProductId, 42);
       expect(actionApi.lastQuantity, 5);
-      expect(find.text('Product added to cart'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('wholesale-cart-confirmation-42')),
+        findsOneWidget,
+      );
     },
   );
 
