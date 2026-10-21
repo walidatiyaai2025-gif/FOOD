@@ -46,6 +46,7 @@ return [
             'trust_server_certificate' => env('LEGACY_DB_TRUST_CERTIFICATE', 'yes'),
             'query_timeout' => (int) env('LEGACY_DB_QUERY_TIMEOUT', 300),
             'detail_chunk' => (int) env('LEGACY_DB_DETAIL_CHUNK', 2000),
+            'archive_chunk' => (int) env('LEGACY_DB_ARCHIVE_CHUNK', 500),
             'retry_attempts' => (int) env('LEGACY_DB_RETRY_ATTEMPTS', 5),
         ],
         'pgsql' => [
