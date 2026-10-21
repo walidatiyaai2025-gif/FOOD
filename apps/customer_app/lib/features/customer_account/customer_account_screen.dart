@@ -183,8 +183,8 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
   }
 
   Future<void> _contactUs() async {
-    final api = widget.api;
-    if (api is! CustomerContactApi) return;
+    if (widget.api is! CustomerContactApi) return;
+    final contactApi = widget.api as CustomerContactApi;
 
     Object? profile;
     try {
@@ -274,7 +274,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     }
 
     try {
-      final response = await api.submitContactUs(
+      final response = await contactApi.submitContactUs(
         storeId: widget.retailStoreId,
         phone: phone.text,
         message: contactMessage.text,
