@@ -1150,11 +1150,13 @@ void main() {
       find.byKey(const ValueKey('marketplace-product-card-42')),
       findsOneWidget,
     );
+    final productNameBox =
+        find.byKey(const ValueKey('marketplace-product-name-42'));
     final productName = tester.widget<Text>(
-      find.byKey(const ValueKey('marketplace-product-name-42')),
+      find.descendant(of: productNameBox, matching: find.byType(Text)).first,
     );
     expect(productName.maxLines, 1);
-    expect(productName.overflow, TextOverflow.ellipsis);
+    expect(productName.softWrap, isFalse);
     expect(find.text('API Water'), findsOneWidget);
     expect(find.text('12.5 KWD'), findsOneWidget);
     expect(find.byIcon(Icons.water_drop_rounded), findsWidgets);
