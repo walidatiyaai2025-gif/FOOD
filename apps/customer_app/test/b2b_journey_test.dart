@@ -1345,6 +1345,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Wholesale Water'), findsWidgets);
+      await tester.pump(const Duration(seconds: 6));
 
       // Let the transient cart-hover timer expire so the test leaves no
       // pending fake-async timers behind.
