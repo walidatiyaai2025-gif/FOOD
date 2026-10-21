@@ -99,6 +99,8 @@ const b2c = [
   ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu?support_access=1'],
   ['22_ذكاء_توريد_FOODEX', '/admin/smart-ordering/supply?support_access=1'],
   ['23_مشتريات_الجملة_للمطعم', '/admin/restaurant/wholesale-purchases?tab=orders&support_access=1&retail_store_code=FOODEX-DEMO-B2C'],
+  ['24_صلاحيات_السايدبار_حسب_الدور', '/admin/sidebar-access'],
+  ['25_تنظيم_السايدبار', '/admin/sidebar-layout'],
 ];
 
 async function ensureDir(dir) {
