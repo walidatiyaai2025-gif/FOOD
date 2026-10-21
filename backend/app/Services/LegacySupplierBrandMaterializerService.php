@@ -445,6 +445,7 @@ final class LegacySupplierBrandMaterializerService
     /** @return array{relations:list<array<string,mixed>>,direct_item_supplier_column:?string,direct_item_relations:int,bridge_tables:list<string>,bridge_relations:int,procurement_relations:int} */
     private function supplierProductRelations(array $supplierMappings, array $productMappings): array
     {
+        /** @var array<string, array<string, mixed>> $relations */
         $relations = [];
         $procurementRelations = $this->procurementRelations();
 
@@ -674,7 +675,10 @@ final class LegacySupplierBrandMaterializerService
         ];
     }
 
-    /** @param array<string,array<string,mixed>> $relations */
+    /**
+     * @param  array<string, array<string, mixed>>  $relations
+     * @param  array<string, mixed>  $candidate
+     */
     private function mergeRelation(array &$relations, array $candidate): void
     {
         $key = (int) $candidate['product_id'].':'.(int) $candidate['source_supplier_id'];

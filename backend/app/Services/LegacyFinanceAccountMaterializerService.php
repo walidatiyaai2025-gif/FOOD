@@ -873,17 +873,6 @@ final class LegacyFinanceAccountMaterializerService
         ];
     }
 
-    private function lookupTypeLabel(mixed $value, array $lookup): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $key = (string) $value;
-
-        return isset($lookup[$key]) ? (string) $lookup[$key] : null;
-    }
-
     /** @return list<array<string,mixed>> */
     private function rootAccountProfile(
         string $qualified,

@@ -138,7 +138,7 @@ final class LegacyInvoiceSourceMaterializerService
 
         $healthy = true;
         foreach (self::SOURCE_TABLES as $table) {
-            if (($sourceCounts[$table] ?? 0) !== ($targetCounts[$table] ?? 0)) {
+            if ($sourceCounts[$table] !== $targetCounts[$table]) {
                 $healthy = false;
                 break;
             }

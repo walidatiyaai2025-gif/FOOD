@@ -168,13 +168,13 @@ final class LegacyFinanceAssetProfilerService
         }
 
         $accountIds = [];
-        foreach ($result['groups'] ?? [] as $row) {
+        foreach ($result['groups'] as $row) {
             if (is_array($row) && isset($row['GlAccId']) && (int) $row['GlAccId'] > 0) {
                 $accountIds[] = (int) $row['GlAccId'];
             }
         }
 
-        foreach ($result['sub_groups'] ?? [] as $row) {
+        foreach ($result['sub_groups'] as $row) {
             if (! is_array($row)) {
                 continue;
             }
@@ -190,7 +190,7 @@ final class LegacyFinanceAssetProfilerService
             }
         }
 
-        foreach ($result['settings'] ?? [] as $row) {
+        foreach ($result['settings'] as $row) {
             if (! is_array($row)) {
                 continue;
             }
@@ -476,14 +476,12 @@ final class LegacyFinanceAssetProfilerService
             )));
             $sampleColumns = array_slice($sampleColumns, 0, 12);
 
-            $samples = $sampleColumns === []
-                ? []
-                : $this->legacySource()->table($qualified)
-                    ->select($sampleColumns)
-                    ->limit(10)
-                    ->get()
-                    ->map(static fn ($row): array => (array) $row)
-                    ->all();
+            $samples = $this->legacySource()->table($qualified)
+                ->select($sampleColumns)
+                ->limit(10)
+                ->get()
+                ->map(static fn ($row): array => (array) $row)
+                ->all();
 
             $results[] = [
                 'table' => $qualified,
