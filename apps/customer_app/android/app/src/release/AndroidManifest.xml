@@ -11,6 +11,6 @@
             android:value="false" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="foodex_updates" />
+            android:value="foodex_customer_high_priority" />
     </application>
 </manifest>

@@ -278,6 +278,62 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->assertStringNotContainsString('new-secret', AuditLog::query()->get()->toJson());
     }
 
+    public function test_web_test_send_normalizes_egyptian_01_number_and_sends_real_provider_message(): void
+    {
+        $actor = $this->admin();
+        $profile = $this->createProfile($actor, 'Egypt test', '+201001112233', 'meta-access-token');
+
+        Http::fake([
+            'https://graph.facebook.com/*' => Http::response([
+                'messages' => [['id' => 'wamid.test-egypt-01']],
+            ], 200),
+        ]);
+
+        $this->actingAs($actor)
+            ->post(route('admin.whatsapp.connections.test-send', $profile), [
+                'recipient' => '01012345678',
+                'message' => 'FOODEX gateway test',
+            ])
+            ->assertRedirect(route('admin.whatsapp.connections.index'))
+            ->assertSessionHas('status', 'WhatsApp test message sent to +201012345678.');
+
+        Http::assertSent(function ($request): bool {
+            $payload = $request->data();
+
+            return str_ends_with($request->url(), '/messages')
+                && data_get($payload, 'to') === '201012345678'
+                && data_get($payload, 'type') === 'text'
+                && data_get($payload, 'text.body') === 'FOODEX gateway test';
+        });
+
+        $this->assertNotNull($profile->fresh()->last_outbound_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'whatsapp.connection_test_message_sent',
+            'user_id' => $actor->id,
+        ]);
+        $this->assertStringNotContainsString(
+            '+201012345678',
+            (string) AuditLog::query()->where('event', 'whatsapp.connection_test_message_sent')->value('after'),
+        );
+    }
+
+    public function test_web_test_send_rejects_invalid_non_e164_recipient_before_provider_call(): void
+    {
+        $actor = $this->admin();
+        $profile = $this->createProfile($actor, 'Invalid test', '+96550000021', 'meta-access-token');
+
+        Http::fake();
+
+        $this->actingAs($actor)
+            ->post(route('admin.whatsapp.connections.test-send', $profile), [
+                'recipient' => '12345',
+                'message' => 'Should not send',
+            ])
+            ->assertSessionHasErrors('recipient');
+
+        Http::assertNothingSent();
+    }
+
     public function test_unauthorized_actor_cannot_manage_or_view_connections(): void
     {
         $normal = User::factory()->create(['is_active' => true, 'locale' => 'en']);

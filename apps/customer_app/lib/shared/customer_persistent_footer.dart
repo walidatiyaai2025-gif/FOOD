@@ -44,7 +44,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
       child: Column(
         children: [
           Expanded(child: child),
-          if (visible)
+          if (visible) ...[
             CustomerPersistentFooterDock(
               commerceContext: commerceContext,
               activeDestination: activeDestination,
@@ -53,6 +53,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               isPlatformHome: isPlatformHome,
               disableProducts: disableProducts,
             ),
+          ],
         ],
       ),
     );
