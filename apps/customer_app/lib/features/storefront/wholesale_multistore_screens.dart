@@ -124,6 +124,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   Future<Map<String, dynamic>> _load([String query = '']) async {
     final resolvedStoreId = await _resolveWholesaleHomeStoreId();
     if (resolvedStoreId <= 0) {
+      syncFoodexWholesaleCartProductCount(null);
       return const {
         'products': {'data': <Object>[]},
         'storefront': <String, Object?>{},
@@ -169,8 +170,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
         cart = await widget.commerceApi!.cart(resolvedStoreId);
         syncFoodexWholesaleCartProductCount(cart);
       } catch (_) {
-        // Home remains usable if the optional cart badge refresh fails.
+        // Never leave a stale badge visible when cart refresh fails.
+        syncFoodexWholesaleCartProductCount(null);
       }
+    } else {
+      syncFoodexWholesaleCartProductCount(null);
     }
 
     return {
@@ -191,6 +195,18 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
       final sku = row['sku']?.toString().toLowerCase() ?? '';
       return name.contains(needle) || sku.contains(needle);
     }).toList(growable: false);
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    // Hot reload does not re-run top-level initializers, so clear any old
+    // cart badge and re-read the authoritative cart immediately.
+    syncFoodexWholesaleCartProductCount(null);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => future = _load(search.text));
+    });
   }
 
   @override
