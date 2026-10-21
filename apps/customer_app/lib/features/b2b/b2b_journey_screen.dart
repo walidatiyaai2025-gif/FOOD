@@ -131,7 +131,6 @@ class B2bJourneyScreen extends StatelessWidget {
               child: _B2bDashboardRemoteState(
                 api: api!,
                 endpoint: _endpoint()!,
-                storefrontApi: storefrontApi,
               ),
             ),
           ),
