@@ -1705,6 +1705,11 @@ SQL));
             }
         }
 
+        $positiveProducts = count(array_unique(array_map(
+            static fn (array $position): int => (int) $position['item_id'],
+            $positive,
+        )));
+
         $existingInventoryCount = (int) DB::table('inventories')->count();
         $mappedLegacyInventoryCount = (int) DB::table('legacy_import_mappings')
             ->where('source_system', self::SOURCE_SYSTEM)
@@ -1726,6 +1731,7 @@ SQL));
             'pos_details' => $posCounts['details'],
             'aggregated_positions' => count($positions),
             'positive_positions' => count($positive),
+            'positive_products' => $positiveProducts,
             'zero_positions' => $zero,
             'negative_positions' => count($negative),
             'invalid_source_rows' => count($invalidRows),
@@ -1749,6 +1755,7 @@ SQL));
                 'rules' => [
                     'authority' => 'dbo.wh_vw_ItemStock2Now canonical semantics streamed from wh_TransHeader/wh_TransDetails',
                     'only_positive_positions_are_materialized' => true,
+                    'positive_positions_are_consolidated_by_product_in_one_shot' => true,
                     'zero_positions_are_not_materialized' => true,
                     'negative_positions_block_apply' => true,
                     'foreign_target_stock_blocks_apply' => true,
