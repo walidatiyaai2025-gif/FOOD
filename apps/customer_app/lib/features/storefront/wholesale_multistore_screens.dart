@@ -1696,7 +1696,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         key: ValueKey('wholesale-product-price-$id'),
                         label: priceLabel,
                         background: const Color(0xFFE9F7EE),
-                        foreground: const Color(0xFF006736),
+                        foreground: const Color(0xFFD62828),
                       ),
                     ),
                     if (promotion != null && promotion.isNotEmpty)
