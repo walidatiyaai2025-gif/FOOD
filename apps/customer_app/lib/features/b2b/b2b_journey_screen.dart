@@ -4242,30 +4242,28 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-                  ValueListenableBuilder<ThemeMode>(
-                    valueListenable:
-                        CustomerDisplayPreferences.instance.themeMode,
-                    builder: (context, themeMode, _) => SwitchListTile(
-                      key: const ValueKey('b2b-settings-dark-mode'),
-                      secondary: Icon(
-                        themeMode == ThemeMode.dark
-                            ? Icons.dark_mode_rounded
-                            : Icons.light_mode_rounded,
-                      ),
-                      title: Text(
-                        context.tr('customer.appearance.dark_mode'),
-                      ),
-                      subtitle: Text(
-                        context.tr('customer.appearance.dark_mode_subtitle'),
-                      ),
-                      value: themeMode == ThemeMode.dark,
-                      onChanged: (enabled) async {
-                        await CustomerDisplayPreferences.instance
-                            .setDarkMode(enabled);
-                      },
-                    ),
-                  ),
-
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: CustomerDisplayPreferences.instance.themeMode,
+              builder: (context, themeMode, _) => SwitchListTile(
+                key: const ValueKey('b2b-settings-dark-mode'),
+                secondary: Icon(
+                  themeMode == ThemeMode.dark
+                      ? Icons.dark_mode_rounded
+                      : Icons.light_mode_rounded,
+                ),
+                title: Text(
+                  context.tr('customer.appearance.dark_mode'),
+                ),
+                subtitle: Text(
+                  context.tr('customer.appearance.dark_mode_subtitle'),
+                ),
+                value: themeMode == ThemeMode.dark,
+                onChanged: (enabled) async {
+                  await CustomerDisplayPreferences.instance
+                      .setDarkMode(enabled);
+                },
+              ),
+            ),
             FoodexWholesaleHeader(
               title: context.tr('b2b.app.title'),
               palette: FoodexPalette.wholesale,
@@ -4456,7 +4454,9 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                           textAlign: TextAlign.center,
                           style:
                               Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -4503,7 +4503,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                                   },
                                 ),
                               ),
-
                               if (widget.onLocaleChanged != null)
                                 ListTile(
                                   key: const ValueKey(
@@ -4724,7 +4723,9 @@ class _FinanceCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -4735,7 +4736,8 @@ class _FinanceCard extends StatelessWidget {
                                 child: Text(
                                   values[i].$2,
                                   style: const TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w900,
                                   ),
