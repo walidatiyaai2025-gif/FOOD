@@ -29,7 +29,7 @@ Artisan::command(
                 );
 
                 $this->line('Rows inside approved reset scope: '.$report['total']);
-                $this->line('Legacy mapping rows: '.$report['legacy_mapping_rows']);
+                $this->line('Legacy mapping rows to remove: '.$report['legacy_mapping_rows_to_remove']);
                 $this->line('Protected tables are count-guarded and are never reset.');
 
                 if ($report['blocked_references'] !== []) {
@@ -37,12 +37,6 @@ Artisan::command(
                         'Blocked by unapproved dependent tables: '.
                         json_encode($report['blocked_references'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                     );
-
-                    return 1;
-                }
-
-                if ($report['legacy_mapping_rows'] !== 0) {
-                    $this->error('Existing legacy provenance mappings found. Restore the pre-import target before using this rehearsal reset.');
 
                     return 1;
                 }
@@ -65,7 +59,9 @@ Artisan::command(
 
             $this->info('Legacy import rehearsal scoped reset completed.');
             $this->line('Removed rows: '.$result['removed']);
-            $this->info('Protected settings/users/roles/customers/stores/configuration counts remained unchanged.');
+            $this->line('Legacy mapping rows removed: '.($result['legacy_mapping_rows_removed'] ?? 0));
+            $this->line('Mapped customer ledger rows removed: '.($result['mapped_customer_ledger_rows_removed'] ?? 0));
+            $this->info('Protected settings/users/roles/customers/stores/warehouses/configuration counts remained unchanged.');
 
             return 0;
         } catch (Throwable $exception) {
