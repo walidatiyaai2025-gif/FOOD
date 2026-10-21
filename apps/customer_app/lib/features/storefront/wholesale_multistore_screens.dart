@@ -3031,44 +3031,42 @@ class _WholesaleCatalogDesignScreenState
                         if (categories.isNotEmpty)
                           SizedBox(
                             key: const ValueKey('wholesale-catalog-categories'),
-                            height: 48,
+                            height: 76,
                             child: ListView(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               scrollDirection: Axis.horizontal,
                               children: [
-                                Padding(
-                                  padding:
-                                      const EdgeInsetsDirectional.only(end: 8),
-                                  child: ChoiceChip(
-                                    key: const ValueKey(
-                                        'wholesale-category-all'),
-                                    label: Text(context.tr('b2b.catalog.all')),
-                                    selected: selectedCategoryId == null,
-                                    onSelected: (_) => setState(() {
-                                      selectedCategoryId = null;
-                                      visibleLimit = 24;
-                                    }),
+                                _WholesaleCatalogCategoryIcon(
+                                  key: const ValueKey(
+                                    'wholesale-category-all',
                                   ),
+                                  label: context.tr('b2b.catalog.all'),
+                                  selected: selectedCategoryId == null,
+                                  palette: palette,
+                                  icon: Icons.grid_view_rounded,
+                                  onTap: () => setState(() {
+                                    selectedCategoryId = null;
+                                    visibleLimit = 24;
+                                  }),
                                 ),
                                 for (final category in categories)
-                                  Padding(
-                                    padding: const EdgeInsetsDirectional.only(
-                                        end: 8),
-                                    child: ChoiceChip(
-                                      key: ValueKey(
-                                        'wholesale-category-filter-${category['id']}',
-                                      ),
-                                      label: Text(
-                                          category['name']?.toString() ?? ''),
-                                      selected: selectedCategoryId ==
-                                          intValue(category['id']),
-                                      onSelected: (_) => setState(() {
-                                        selectedCategoryId =
-                                            intValue(category['id']);
-                                        visibleLimit = 24;
-                                      }),
+                                  _WholesaleCatalogCategoryIcon(
+                                    key: ValueKey(
+                                      'wholesale-category-filter-${category['id']}',
                                     ),
+                                    label:
+                                        category['name']?.toString() ?? '',
+                                    imageUrl:
+                                        category['image_url']?.toString(),
+                                    selected: selectedCategoryId ==
+                                        intValue(category['id']),
+                                    palette: palette,
+                                    onTap: () => setState(() {
+                                      selectedCategoryId =
+                                          intValue(category['id']);
+                                      visibleLimit = 24;
+                                    }),
                                   ),
                               ],
                             ),
@@ -4553,6 +4551,93 @@ String? _safeWholesaleSupportReference(String? value) {
     return null;
   }
   return RegExp(r'^[A-Za-z0-9._:/-]+$').hasMatch(reference) ? reference : null;
+}
+
+class _WholesaleCatalogCategoryIcon extends StatelessWidget {
+  const _WholesaleCatalogCategoryIcon({
+    required this.label,
+    required this.selected,
+    required this.palette,
+    required this.onTap,
+    this.imageUrl,
+    this.icon,
+    super.key,
+  });
+
+  final String label;
+  final String? imageUrl;
+  final IconData? icon;
+  final bool selected;
+  final FoodexPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsetsDirectional.only(end: 8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            width: 58,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 34,
+                  height: 34,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? palette.accent.withOpacity(.22)
+                        : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected ? palette.primary : palette.soft,
+                      width: selected ? 1.5 : 1,
+                    ),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 5,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: imageUrl != null && imageUrl!.trim().isNotEmpty
+                      ? Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            icon ?? Icons.category_outlined,
+                            size: 16,
+                            color: palette.primary,
+                          ),
+                        )
+                      : Icon(
+                          icon ?? Icons.category_outlined,
+                          size: 16,
+                          color: palette.primary,
+                        ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? palette.primaryDark : palette.text,
+                    fontSize: 8.5,
+                    height: 1.05,
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _PricingPanel extends StatelessWidget {
