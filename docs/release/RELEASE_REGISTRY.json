@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.90",
+  "current_version": "1.0.95",
   "releases": [
     {
       "version": "1.0.40",
@@ -265,7 +265,7 @@
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44",
-      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354\u2013#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
+      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354–#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
     },
     {
       "version": "1.0.75",
@@ -302,6 +302,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "184a0128da6221c07cd4ac56a60c56ea10372208ea1003c44c1c2500c9705df7",
       "note": "FOODEX 1.0.90 Dashboard update publication from the current authoritative main lineage. The cumulative Dashboard package is generated from source c1342f8f747fb64ddf9a27686d677b89bebfe477 and is deployable from the canonical updater boundary; mobile source identities remain synchronized at 1.0.90+90."
+    },
+    {
+      "version": "1.0.95",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.95.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "ab7eba23f4a7e1eb3f0eca1a18b3356d835d6cc14528f6f1e22178741ef7e824",
+      "note": "FOODEX 1.0.95 synchronized release registered with the latest generated distribution from source af349101a6a570ac7027f5d79753cb77d59858ed. Dashboard update is directly deployable over 1.0.90; Customer, Driver and Van artifacts are synchronized at 1.0.95 build 96."
     }
   ]
 }

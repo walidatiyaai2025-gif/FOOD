@@ -413,9 +413,23 @@ PHP);
 
         $this->assertSame($version, $release['version']);
         $this->assertSame($version, $release['build_info_version']);
-        $this->assertSame(str_repeat('c', 40), $release['source_commit']);
-        $this->assertSame('1388', $release['github_run_number']);
-        $this->assertSame('candidate-source', $release['lineage_source']);
+
+        $buildInfoPath = base_path('../Release/BUILD_INFO.json');
+        $buildInfo = is_file($buildInfoPath)
+            ? json_decode((string) file_get_contents($buildInfoPath), true)
+            : null;
+        $publishedCurrentRelease = is_array($buildInfo)
+            && ($buildInfo['version'] ?? null) === $version;
+
+        if ($publishedCurrentRelease) {
+            $this->assertSame($buildInfo['source_commit'] ?? null, $release['source_commit']);
+            $this->assertSame((string) ($buildInfo['github_run_number'] ?? ''), $release['github_run_number']);
+            $this->assertSame('published-build-info', $release['lineage_source']);
+        } else {
+            $this->assertSame(str_repeat('c', 40), $release['source_commit']);
+            $this->assertSame('1388', $release['github_run_number']);
+            $this->assertSame('candidate-source', $release['lineage_source']);
+        }
 
         if ($version === '1.0.77') {
             $this->assertSame('1.0.76', $release['customer_version']);
