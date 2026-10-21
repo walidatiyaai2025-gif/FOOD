@@ -26,7 +26,7 @@ final class InvoiceController extends Controller
         $this->authorizeInvoice($user, $model, 'finance.view');
 
         return view('admin.invoice', [
-            'invoice' => $invoices->payload($model, true),
+            'invoice' => $invoices->payload($model, true, true),
             'model' => $model,
             'canManage' => $this->can($user, $model, 'finance.manage'),
             'amounts' => $model->b2b_customer_id === null ? null : $ledger->invoiceAmounts($model),
