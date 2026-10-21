@@ -61,6 +61,8 @@ abstract final class CustomerUiColors {
   static const wholesaleWaveAccent = Color(0xFFB9F227);
   static const wholesalePositiveValue = Color(0xFF078A43);
   static const wholesaleFinalValue = Color(0xFF1565C0);
+  static const wholesaleSelectionIdle = Color(0xFFE4E0E7);
+  static const wholesaleSecondaryText = Color(0xFF6B7785);
   static const marketplaceImageShadow = Color(0x3D72E89A);
   static const marketplaceInk = Color(0xFF17212F);
   static const retailMutedStrong = Color(0xFF5F6C67);
