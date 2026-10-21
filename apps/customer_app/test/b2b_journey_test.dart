@@ -439,9 +439,8 @@ void main() {
   );
 
   testWidgets(
-    'B2B dashboard Store icon resolves principal Wholesale and opens canonical home',
+    'B2B dashboard hides the Store shortcut from the hero',
     (tester) async {
-      final storefront = _FakeWholesaleStorefrontApi();
       final api = _FakeB2bApi({
         'customer': {'name': 'Buyer'},
         'account': {'company_name': 'Buyer Co', 'status': 'active'},
@@ -473,20 +472,15 @@ void main() {
           session: b2b,
           initialRoute: '/b2b/dashboard',
           b2bApi: api,
-          storefrontApi: storefront,
           actionApi: _FakeCustomerActionApi(),
         ),
       );
       await _pumpCustomerFrames(tester);
 
-      final shopping = find.byKey(const ValueKey('b2b-dashboard-shopping'));
-      expect(shopping, findsOneWidget);
-
-      await tester.tap(shopping);
-      await _pumpCustomerFrames(tester);
-
-      expect(storefront.selectionCalls, 1);
-      expect(storefront.lastStoreId, 70);
+      expect(
+        find.byKey(const ValueKey('b2b-dashboard-shopping')),
+        findsNothing,
+      );
       expect(
         api.paths
             .where((path) => path.startsWith('/api/v1/b2b/dashboard'))
