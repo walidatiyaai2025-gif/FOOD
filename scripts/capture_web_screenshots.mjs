@@ -999,8 +999,18 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
   if (JSON.stringify(proof.groups) !== JSON.stringify(expectedGroups)) {
     throw new Error(`Sidebar business-group order mismatch: ${JSON.stringify(proof.groups)}`);
   }
-  if (proof.adminLinks.length !== 1 || !proof.adminLinks[0].href.endsWith('/admin/administration')) {
-    throw new Error(`Administration must expose one Admin Hub entry: ${JSON.stringify(proof.adminLinks)}`);
+  const expectedAdministrationPaths = [
+    '/admin/administration',
+    '/admin/sidebar-access',
+    '/admin/sidebar-layout',
+  ];
+  if (
+    proof.adminLinks.length !== expectedAdministrationPaths.length
+    || expectedAdministrationPaths.some(
+      (path) => !proof.adminLinks.some((link) => link.href.endsWith(path)),
+    )
+  ) {
+    throw new Error(`Administration navigation entries mismatch: ${JSON.stringify(proof.adminLinks)}`);
   }
 
   const appNames = proof.apps.map((item) => item.app);
