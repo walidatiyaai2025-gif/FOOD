@@ -110,6 +110,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             api: b2bApi,
             storefrontApi: storefrontApi,
             actionApi: actionApi,
+            commerceApi: wholesaleApi,
             pendingActionStore: pendingActionStore,
             showBottomNavigation: false,
           ),
