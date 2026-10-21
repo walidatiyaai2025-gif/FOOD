@@ -449,11 +449,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   }
                 case 'brands':
                   content.add(
-                    FoodexSectionHeader(
+                    _WholesaleBrandTickerHeader(
                       title: sectionTitle,
+                      rows: rows,
                       palette: palette,
-                      textScale: .8,
-                      spacingScale: .25,
+                      storeId: storeId,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'brands',
@@ -1212,6 +1212,232 @@ class _WholesaleBrandRail extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _WholesaleBrandTickerHeader extends StatefulWidget {
+  const _WholesaleBrandTickerHeader({
+    required this.title,
+    required this.rows,
+    required this.palette,
+    required this.storeId,
+    required this.onAction,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> rows;
+  final FoodexPalette palette;
+  final int storeId;
+  final VoidCallback? onAction;
+
+  @override
+  State<_WholesaleBrandTickerHeader> createState() =>
+      _WholesaleBrandTickerHeaderState();
+}
+
+class _WholesaleBrandTickerHeaderState
+    extends State<_WholesaleBrandTickerHeader>
+    with SingleTickerProviderStateMixin {
+  static const _interval = Duration(seconds: 8);
+  static const _tones = <Color>[
+    Color(0xFF087347),
+    Color(0xFF2E5FA8),
+    Color(0xFFB54708),
+    Color(0xFF7A4EA3),
+    Color(0xFF8B5A00),
+  ];
+
+  Timer? _timer;
+  AnimationController? _marquee;
+  int _index = 0;
+
+  AnimationController get _marqueeController =>
+      _marquee ??= AnimationController(vsync: this, duration: _interval);
+
+  List<Map<String, dynamic>> get _brands {
+    final byId = <int, Map<String, dynamic>>{};
+    for (final row in widget.rows) {
+      final id = intValue(row['brand_id']);
+      final name = row['brand_name']?.toString().trim() ?? '';
+      if (id <= 0 || name.isEmpty || byId.containsKey(id)) continue;
+      byId[id] = <String, dynamic>{'id': id, 'name': name};
+    }
+    return byId.values.toList(growable: false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTicker();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleBrandTickerHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.rows.map((row) => intValue(row['brand_id'])).join(',');
+    final newIds = widget.rows.map((row) => intValue(row['brand_id'])).join(',');
+    if (oldIds != newIds) {
+      _index = 0;
+      _restartTicker();
+    }
+  }
+
+  void _restartTicker() {
+    _timer?.cancel();
+    final marquee = _marqueeController;
+    marquee.stop();
+    final brands = _brands;
+    if (brands.isEmpty) return;
+
+    marquee.forward(from: 0);
+    _timer = Timer.periodic(_interval, (_) {
+      final currentBrands = _brands;
+      if (!mounted || currentBrands.isEmpty) return;
+      setState(() {
+        if (currentBrands.length > 1) {
+          _index = (_index + 1) % currentBrands.length;
+        }
+      });
+      marquee.forward(from: 0);
+    });
+  }
+
+  void _openBrand(Map<String, dynamic> brand) {
+    final id = intValue(brand['id']);
+    if (id <= 0 || widget.storeId <= 0) return;
+    Navigator.of(context).pushNamed(
+      Uri(
+        path: CustomerRoutePaths.b2bProducts,
+        queryParameters: <String, String>{
+          'channel': 'wholesale',
+          'store_id': widget.storeId.toString(),
+          'brand_id': id.toString(),
+          'browse': 'brands',
+        },
+      ).toString(),
+    );
+  }
+
+  Widget _marqueeBrand(
+    BuildContext context,
+    Map<String, dynamic> brand,
+    Color tone,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final name = brand['name'].toString();
+    final style = TextStyle(
+      color: tone,
+      fontSize: 10.5,
+      fontWeight: FontWeight.w900,
+      decoration: TextDecoration.underline,
+      decorationColor: tone,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: style),
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final textWidth = painter.width + 18;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRect(
+        child: SizedBox(
+          height: 28,
+          child: AnimatedBuilder(
+            animation: _marqueeController,
+            child: SizedBox(
+              width: textWidth,
+              height: 28,
+              child: InkWell(
+                key: ValueKey(
+                  'wholesale-brand-ticker-${intValue(brand['id'])}',
+                ),
+                onTap: () => _openBrand(brand),
+                borderRadius: BorderRadius.circular(999),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 4,
+                  ),
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                    style: style,
+                  ),
+                ),
+              ),
+            ),
+            builder: (context, child) {
+              final travel = constraints.maxWidth + textWidth;
+              final dx = isArabic
+                  ? constraints.maxWidth - (_marqueeController.value * travel)
+                  : -textWidth + (_marqueeController.value * travel);
+              return Transform.translate(
+                offset: Offset(dx, 0),
+                child: child,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _restartTicker();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _marquee?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brands = _brands;
+    final brand = brands.isEmpty ? null : brands[_index % brands.length];
+    final tone = _tones[_index % _tones.length];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 3.5, 16, 2.25),
+      child: Row(
+        key: const ValueKey('wholesale-brand-ticker-header'),
+        children: [
+          FoodexAnimatedOxbloodTitle(
+            title: widget.title,
+            fontSize: 14.4,
+            fontWeight: FontWeight.w800,
+          ),
+          if (brand != null) ...[
+            const SizedBox(width: 8),
+            Expanded(child: _marqueeBrand(context, brand, tone)),
+          ] else
+            const Spacer(),
+          if (widget.onAction != null)
+            TextButton(
+              key: ValueKey('section-action-' + widget.title),
+              onPressed: widget.onAction,
+              child: Text(
+                'عرض الكل',
+                style: TextStyle(
+                  color: widget.palette.primary,
+                  fontSize: 9.6,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -4926,15 +5152,154 @@ class _CartTotalPanel extends StatelessWidget {
         const SizedBox(height: 13),
         SizedBox(
           height: 52,
-          child: FilledButton(
+          child: _WholesaleWaveCheckoutButton(
             key: const ValueKey('b2b-cart-checkout'),
-            onPressed: enabled ? onCheckout : null,
-            child: Text(context.tr('b2b.action.checkout')),
+            enabled: enabled,
+            label: context.tr('b2b.action.checkout'),
+            onPressed: onCheckout,
           ),
         ),
       ],
     );
   }
+}
+
+class _WholesaleWaveCheckoutButton extends StatefulWidget {
+  const _WholesaleWaveCheckoutButton({
+    required this.enabled,
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
+
+  final bool enabled;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  State<_WholesaleWaveCheckoutButton> createState() =>
+      _WholesaleWaveCheckoutButtonState();
+}
+
+class _WholesaleWaveCheckoutButtonState
+    extends State<_WholesaleWaveCheckoutButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _waves = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) _waves.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleWaveCheckoutButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled && !_waves.isAnimating) {
+      _waves.repeat();
+    } else if (!widget.enabled && _waves.isAnimating) {
+      _waves.stop();
+      _waves.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _waves.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: widget.enabled
+            ? const Color(0xFF006736)
+            : const Color(0xFFB8C4BE),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: widget.enabled ? widget.onPressed : null,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.enabled)
+                AnimatedBuilder(
+                  animation: _waves,
+                  builder: (context, _) => CustomPaint(
+                    painter: _WholesaleCheckoutWavePainter(
+                      progress: _waves.value,
+                    ),
+                  ),
+                ),
+              Center(
+                child: Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _WholesaleCheckoutWavePainter extends CustomPainter {
+  const _WholesaleCheckoutWavePainter({required this.progress});
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final phase = progress * math.pi * 2;
+
+    void drawWave({
+      required double baseline,
+      required double amplitude,
+      required double frequency,
+      required double phaseShift,
+      required Color color,
+    }) {
+      final path = Path()..moveTo(0, size.height);
+      path.lineTo(0, baseline);
+      for (double x = 0; x <= size.width; x += 3) {
+        final y = baseline +
+            math.sin((x / size.width) * math.pi * 2 * frequency +
+                    phase +
+                    phaseShift) *
+                amplitude;
+        path.lineTo(x, y);
+      }
+      path
+        ..lineTo(size.width, size.height)
+        ..close();
+      canvas.drawPath(path, Paint()..color = color);
+    }
+
+    drawWave(
+      baseline: size.height * .53,
+      amplitude: 4.5,
+      frequency: 1.35,
+      phaseShift: 0,
+      color: Colors.white.withOpacity(.12),
+    );
+    drawWave(
+      baseline: size.height * .64,
+      amplitude: 5.5,
+      frequency: 1.1,
+      phaseShift: math.pi,
+      color: const Color(0xFFB9F227).withOpacity(.13),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _WholesaleCheckoutWavePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class WholesaleCheckoutDesignScreen extends StatefulWidget {
