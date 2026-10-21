@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -259,7 +260,7 @@ final class InvoiceService
     }
 
     /** @return array<string, mixed> */
-    public function payload(Invoice $invoice, bool $withItems = true): array
+    public function payload(Invoice $invoice, bool $withItems = true, bool $withLegacySource = false): array
     {
         $invoice->refresh();
         $payment = Payment::query()->where('invoice_id', $invoice->getKey())->latest('id')->first();
@@ -295,6 +296,55 @@ final class InvoiceService
             'voided_at' => $invoice->voided_at === null ? null : CarbonImmutable::parse((string) $invoice->voided_at)->toAtomString(),
             'void_reason' => $invoice->void_reason,
         ];
+
+        if (Schema::hasTable('legacy_invoice_source_records')) {
+            $payload['legacy_source_summary'] = DB::table('legacy_invoice_source_records')
+                ->where('invoice_id', $invoice->getKey())
+                ->selectRaw('source_table, COUNT(*) as row_count')
+                ->groupBy('source_table')
+                ->orderBy('source_table')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'source_table' => (string) $row->source_table,
+                    'row_count' => (int) $row->row_count,
+                ])
+                ->values()
+                ->all();
+
+            if ($withLegacySource) {
+                $payload['legacy_source_records'] = DB::table('legacy_invoice_source_records')
+                    ->where('invoice_id', $invoice->getKey())
+                    ->orderBy('source_table')
+                    ->orderBy('source_row_ordinal')
+                    ->get([
+                        'source_table',
+                        'source_row_ordinal',
+                        'source_key',
+                        'source_header_id',
+                        'header_key_name',
+                        'payload',
+                    ])
+                    ->map(static function ($row): array {
+                        $decoded = json_decode((string) $row->payload, true);
+
+                        return [
+                            'source_table' => (string) $row->source_table,
+                            'source_row_ordinal' => (int) $row->source_row_ordinal,
+                            'source_key' => $row->source_key,
+                            'source_header_id' => $row->source_header_id === null ? null : (int) $row->source_header_id,
+                            'header_key_name' => $row->header_key_name,
+                            'payload' => is_array($decoded) ? $decoded : ['raw' => (string) $row->payload],
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            }
+        } else {
+            $payload['legacy_source_summary'] = [];
+            if ($withLegacySource) {
+                $payload['legacy_source_records'] = [];
+            }
+        }
 
         if ($withItems) {
             $payload['items'] = InvoiceItem::query()
