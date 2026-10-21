@@ -270,6 +270,8 @@ void main() {
       find.byType(ListView),
       const Offset(0, -200),
     );
+    await tester.ensureVisible(contact);
+    await tester.pumpAndSettle();
     await tester.tap(contact);
     await tester.pumpAndSettle();
 
