@@ -1049,6 +1049,9 @@ class AppTranslations extends InheritedWidget {
         'Enter the address, city, and a two-letter country code.',
     'customer.settings.title': 'Settings',
     'customer.settings.subtitle': 'Manage your account details and preferences',
+    'customer.appearance.dark_mode': 'Dark mode',
+    'customer.appearance.dark_mode_subtitle':
+        'Use a comfortable dark appearance and save my choice on this device',
     'customer.diagnostics.title': 'App diagnostics',
     'customer.diagnostics.subtitle':
         'Export a safe JSON file with recent app failures and context to share with support.',
