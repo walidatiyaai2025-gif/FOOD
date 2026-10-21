@@ -8,6 +8,7 @@ $customerServiceRoles = [
 
 return [
     'protected_items' => ['sidebar_role_access', 'sidebar_layout'],
+    'protected_groups' => ['administration'],
 
     'groups' => [
         'overview' => ['label' => 'admin.nav_groups.overview', 'icon' => '⌂', 'order' => 10],
