@@ -1341,9 +1341,10 @@ void main() {
       expect(actionApi.lastProductId, 42);
       expect(actionApi.lastQuantity, 5);
       expect(
-        find.byKey(const ValueKey('wholesale-cart-confirmation-42')),
+        find.byKey(const ValueKey('wholesale-cart-add-hover')),
         findsOneWidget,
       );
+      expect(find.text('Wholesale Water'), findsWidgets);
     },
   );
 
