@@ -10,6 +10,7 @@ use App\Enterprise\Modules\ModuleRegistry;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\AdminSidebarManager;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
@@ -31,6 +32,7 @@ class AdminNavigation
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
         private readonly TenantContextResolver $tenantContext,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
+        private readonly AdminSidebarManager $sidebarManager,
     ) {}
 
     /** @return array<string, array<string, mixed>> */
@@ -186,6 +188,8 @@ class AdminNavigation
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index')
                     : null,
+                $this->routeItem($user, 'sidebar_role_access', 'sidebar_admin.role_access_nav', 'admin.sidebar-access.roles', 'roles.manage'),
+                $this->routeItem($user, 'sidebar_layout', 'sidebar_admin.layout_nav', 'admin.sidebar-layout.index', 'roles.manage'),
             ]),
         ];
 
@@ -224,7 +228,9 @@ class AdminNavigation
             unset($group);
         }
 
-        return array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
+        $groups = array_values(array_filter($groups, static fn (array $group): bool => $group['children'] !== []));
+
+        return $this->sidebarManager->apply($user, $groups);
     }
 
     /**
