@@ -243,6 +243,53 @@ void main() {
     expect(api.createdAddresses.single['location_source'], 'current_location');
   });
 
+  testWidgets('contact us submits phone and message to Customer Service',
+      (tester) async {
+    final api = _AccountFakeApi(
+      addressesValue: const {'data': []},
+      favoritesValue: const {'data': []},
+      notificationsValue: const {'data': []},
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        theme: FoodexTheme.light(),
+        home: CustomerAccountScreen(
+          api: api,
+          favoritesApi: api,
+          retailStoreId: 19,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final contact = find.byKey(const ValueKey('customer-account-contact-us'));
+    await tester.ensureVisible(contact);
+    await tester.tap(contact);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('customer-contact-phone')),
+      '+96551112222',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('customer-contact-message')),
+      'Please call me about my order.',
+    );
+    await tester.tap(find.byKey(const ValueKey('customer-contact-submit')));
+    await tester.pumpAndSettle();
+
+    expect(api.lastContactStoreId, 19);
+    expect(api.lastContactPhone, '+96551112222');
+    expect(api.lastContactMessage, 'Please call me about my order.');
+    expect(
+      find.byKey(const ValueKey('customer-contact-success')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Case #42'), findsOneWidget);
+  });
+
   testWidgets(
     'account V3 stays coherent in RTL on a narrow phone with enlarged text',
     (tester) async {
@@ -294,7 +341,7 @@ void main() {
         find.byKey(const ValueKey('foodex-wholesale-shared-header')),
         findsOneWidget,
       );
-      // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
+      // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(5));
 
       await tester.drag(
         find.byType(ListView),
@@ -420,7 +467,7 @@ class _ReverseGeocoderFake implements CustomerReverseGeocoder {
       );
 }
 
-class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
+class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi, CustomerContactApi {
   _AccountFakeApi({
     this.profileError,
     this.addressesValue = const {'data': []},
@@ -489,6 +536,25 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   @override
   Future<void> markNotificationRead(int notificationId) async {
     readNotifications.add(notificationId);
+  }
+
+  @override
+  Future<Object?> submitContactUs({
+    required int storeId,
+    required String phone,
+    required String message,
+  }) async {
+    lastContactStoreId = storeId;
+    lastContactPhone = phone;
+    lastContactMessage = message;
+    return const {
+      'data': {
+        'id': 42,
+        'status': 'open',
+        'type': 'complaint',
+        'source': 'customer_app',
+      },
+    };
   }
 
   @override
