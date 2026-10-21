@@ -502,7 +502,7 @@ final class LegacyDatabaseSnapshotService
 
     private function chunkSize(): int
     {
-        return max(50, min(2000, (int) env('LEGACY_DB_ARCHIVE_CHUNK', 500)));
+        return max(50, min(2000, (int) config('database.connections.foodex_legacy.archive_chunk', 500)));
     }
 
     private function json(mixed $value): string
