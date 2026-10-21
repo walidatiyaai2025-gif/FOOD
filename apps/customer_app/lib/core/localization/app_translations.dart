@@ -302,6 +302,9 @@ class AppTranslations extends InheritedWidget {
         'أدخل العنوان والمدينة ورمز الدولة المكون من حرفين.',
     'customer.settings.title': 'الإعدادات',
     'customer.settings.subtitle': 'إدارة بيانات الحساب وتفضيلاتك',
+    'customer.appearance.dark_mode': 'الوضع الداكن',
+    'customer.appearance.dark_mode_subtitle':
+        'استخدم مظهرًا داكنًا مريحًا للعين واحفظ اختياري على هذا الجهاز',
     'customer.diagnostics.title': 'تشخيص التطبيق',
     'customer.diagnostics.subtitle':
         'صدّر ملف JSON آمن يحتوي سياق الأعطال والأخطاء الأخيرة لإرساله للدعم الفني.',
@@ -493,6 +496,10 @@ class AppTranslations extends InheritedWidget {
     'b2b.catalog.grid_view': 'عرض شبكي',
     'b2b.catalog.list_view': 'عرض قائمة',
     'b2b.catalog.refresh': 'تحديث المنتجات',
+    'b2b.catalog.card_size': 'حجم كروت المنتجات',
+    'b2b.catalog.card_size_compact': 'صغير — 3 في الصف',
+    'b2b.catalog.card_size_comfortable': 'متوسط — 2 في الصف',
+    'b2b.catalog.card_size_expanded': 'كبير — 1 في الصف',
     'b2b.catalog.stale': 'تعذر التحديث. يتم عرض آخر بيانات تم تحميلها.',
     'b2b.catalog.load_more': 'عرض المزيد',
     'b2b.catalog.empty_title': 'لا توجد منتجات جملة',
@@ -1038,6 +1045,9 @@ class AppTranslations extends InheritedWidget {
         'Enter the address, city, and a two-letter country code.',
     'customer.settings.title': 'Settings',
     'customer.settings.subtitle': 'Manage your account details and preferences',
+    'customer.appearance.dark_mode': 'Dark mode',
+    'customer.appearance.dark_mode_subtitle':
+        'Use a darker appearance and remember my choice on this device',
     'customer.diagnostics.title': 'App diagnostics',
     'customer.diagnostics.subtitle':
         'Export a safe JSON file with recent app failures and context to share with support.',
@@ -1236,6 +1246,10 @@ class AppTranslations extends InheritedWidget {
     'b2b.catalog.grid_view': 'Grid view',
     'b2b.catalog.list_view': 'List view',
     'b2b.catalog.refresh': 'Refresh products',
+    'b2b.catalog.card_size': 'Product card size',
+    'b2b.catalog.card_size_compact': 'Compact — 3 per row',
+    'b2b.catalog.card_size_comfortable': 'Medium — 2 per row',
+    'b2b.catalog.card_size_expanded': 'Large — 1 per row',
     'b2b.catalog.stale': 'Refresh failed. Showing the last loaded data.',
     'b2b.catalog.load_more': 'Load more',
     'b2b.catalog.empty_title': 'No wholesale products',
