@@ -2,6 +2,7 @@ import 'dart:async';
 import '../storefront/storefront_design_system.dart';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/localization/app_translations.dart';
@@ -1050,7 +1051,7 @@ class _OrderCard extends StatelessWidget {
                   icon: reordering
                       ? const SizedBox.square(
                           dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: FoodexWaveLoading(),
                         )
                       : const Icon(Icons.replay_rounded),
                   label: Text(context.tr('customer.orders.reorder')),

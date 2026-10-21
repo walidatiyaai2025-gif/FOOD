@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import '../storefront/storefront_design_system.dart';
@@ -703,9 +704,7 @@ class _StoreLogo extends StatelessWidget {
                                 child: Center(
                                   child: SizedBox.square(
                                     dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                                    child: FoodexWaveLoading(),
                                   ),
                                 ),
                               ),

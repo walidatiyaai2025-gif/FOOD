@@ -58,24 +58,26 @@ class CustomerProductCardSkeleton extends StatelessWidget {
           border: Border.all(color: CustomerUiColors.border),
         ),
         child: const Padding(
-          padding: EdgeInsets.all(CustomerUiSpacing.sm),
+          padding: EdgeInsets.all(CustomerUiSpacing.xs),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: CustomerSkeletonBox(
-                  height: 180,
+                  height: 140,
                   radius: CustomerUiRadii.lg,
                 ),
               ),
-              SizedBox(height: CustomerUiSpacing.sm),
-              CustomerSkeletonBox(height: 18, width: 90, radius: 9),
-              SizedBox(height: CustomerUiSpacing.xs),
-              CustomerSkeletonBox(height: 18, radius: 9),
-              SizedBox(height: CustomerUiSpacing.xs),
-              CustomerSkeletonBox(height: 18, width: 150, radius: 9),
-              SizedBox(height: CustomerUiSpacing.md),
-              CustomerSkeletonBox(height: 24, width: 110, radius: 12),
+              SizedBox(height: CustomerUiSpacing.xxs),
+              Row(
+                children: [
+                  CustomerSkeletonBox(height: 20, width: 48, radius: 10),
+                  Spacer(),
+                  CustomerSkeletonBox(height: 20, width: 52, radius: 10),
+                ],
+              ),
+              SizedBox(height: CustomerUiSpacing.xxs),
+              CustomerSkeletonBox(height: 14, radius: 7),
             ],
           ),
         ),

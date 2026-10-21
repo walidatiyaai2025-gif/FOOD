@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/auth/customer_session.dart';
@@ -9,6 +10,7 @@ import '../../core/config/foodex_environment.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_persistent_footer.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'storefront_design_system.dart';
@@ -453,7 +455,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     _pageHeader(
                         context, widget.commerceContextProvider?.call()),
                     const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(child: FoodexWaveLoading()),
                     ),
                   ],
                 );
@@ -851,7 +853,7 @@ class _MarketplaceHeader extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 22,
-                  color: const Color(0xFF17212F),
+                  color: CustomerUiColors.marketplaceInk,
                 ),
               ),
             ),
@@ -880,7 +882,7 @@ class _MarketplaceHeader extends StatelessWidget {
             ),
             child: const Icon(
               Icons.person_outline_rounded,
-              color: Color(0xFF17212F),
+              color: CustomerUiColors.marketplaceInk,
               size: 22,
             ),
           ),
@@ -1371,7 +1373,7 @@ class _MarketplaceCategoryRail extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: const Color(0xFF17212F),
+                        color: CustomerUiColors.marketplaceInk,
                         fontSize: 9.5,
                         height: 1.1,
                         fontWeight:
@@ -1463,7 +1465,7 @@ class _MarketplaceOfferSection extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFF17212F),
+                                  color: CustomerUiColors.marketplaceInk,
                                   fontSize: 11.5,
                                   height: 1.15,
                                   fontWeight: FontWeight.w800,
@@ -1552,7 +1554,7 @@ class _MarketplaceCollectionTitle extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.start,
         style: const TextStyle(
-          color: Color(0xFF17212F),
+          color: CustomerUiColors.marketplaceInk,
           fontSize: 18,
           height: 1.15,
           fontWeight: FontWeight.w900,
@@ -1582,7 +1584,7 @@ class _MarketplaceSectionHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF17212F),
+                  color: CustomerUiColors.marketplaceInk,
                   fontSize: 20,
                   height: 1.15,
                   fontWeight: FontWeight.w900,
@@ -1739,15 +1741,40 @@ class _WholesaleProductCard extends StatelessWidget {
                     Positioned.fill(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(10, 10, 10, 3),
-                        child: image != null && image.isNotEmpty
-                            ? Image.network(
-                                image,
-                                key: ValueKey('$keyPrefix-image-$id'),
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    _MarketplaceProductFallback(name: name),
-                              )
-                            : _MarketplaceProductFallback(name: name),
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 1.055, end: 1),
+                          duration: const Duration(milliseconds: 720),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, scale, child) => Transform.scale(
+                            scale: scale,
+                            child: child,
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: const <BoxShadow>[
+                                BoxShadow(
+                                  color:
+                                      CustomerUiColors.marketplaceImageShadow,
+                                  blurRadius: 13,
+                                  spreadRadius: 1,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: image != null && image.isNotEmpty
+                                ? Image.network(
+                                    image,
+                                    key: ValueKey('$keyPrefix-image-$id'),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) =>
+                                        _MarketplaceProductFallback(name: name),
+                                  )
+                                : _MarketplaceProductFallback(name: name),
+                          ),
+                        ),
                       ),
                     ),
                     if (brand.isNotEmpty)
@@ -1785,17 +1812,24 @@ class _WholesaleProductCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
+                    SizedBox(
                       key: ValueKey('$keyPrefix-name-$id'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.start,
-                      style: const TextStyle(
-                        color: Color(0xFF17212F),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        height: 1.15,
+                      width: double.infinity,
+                      height: 14,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: CustomerUiColors.marketplaceInk,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 9.5,
+                            height: 1.1,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),

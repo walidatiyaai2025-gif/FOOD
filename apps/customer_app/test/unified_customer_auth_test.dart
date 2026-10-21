@@ -36,12 +36,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Customer App'), findsWidgets);
+    expect(find.text('Customer App'), findsNothing);
     expect(find.text('Customer sign in'), findsWidgets);
     expect(find.textContaining('Business customer'), findsNothing);
-    final identity = find.byKey(const ValueKey('customer-app-identity'));
-    expect(identity, findsOneWidget);
-    expect(tester.getSize(identity).height, greaterThan(0));
+    expect(
+      find.byKey(const ValueKey('customer-app-identity')),
+      findsNothing,
+    );
     expect(
       find.byKey(const ValueKey('customer-auth-remember-me')),
       findsOneWidget,
@@ -50,6 +51,16 @@ void main() {
       find.byKey(const ValueKey('customer-auth-biometric-toggle')),
       findsNothing,
     );
+
+    final passwordField = find.byKey(const ValueKey('unified-auth-password'));
+    expect(tester.widget<TextField>(passwordField).obscureText, isTrue);
+    final visibility = find.byKey(
+      const ValueKey('unified-auth-password-visibility'),
+    );
+    expect(visibility, findsOneWidget);
+    await tester.tap(visibility);
+    await tester.pump();
+    expect(tester.widget<TextField>(passwordField).obscureText, isFalse);
 
     final rememberMe = find.byKey(
       const ValueKey('customer-auth-remember-me'),
@@ -76,7 +87,8 @@ void main() {
     expect(completedPreferences?.biometricEnabled, isFalse);
   });
 
-  testWidgets('customer app identity is visible in Arabic RTL', (tester) async {
+  testWidgets('customer login removes app identity and remains Arabic RTL',
+      (tester) async {
     await tester.pumpWidget(
       _testApp(
         locale: const Locale('ar'),
@@ -91,11 +103,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final identity = find.byKey(const ValueKey('customer-app-identity'));
-    expect(identity, findsOneWidget);
-    expect(find.text('تطبيق العميل'), findsWidgets);
-    expect(tester.getSize(identity).height, greaterThan(0));
-    expect(Directionality.of(tester.element(identity)), TextDirection.rtl);
+    expect(
+      find.byKey(const ValueKey('customer-app-identity')),
+      findsNothing,
+    );
+    expect(find.text('تطبيق العميل'), findsNothing);
+    final screen = find.byKey(const ValueKey('unified-customer-auth-screen'));
+    expect(Directionality.of(tester.element(screen)), TextDirection.rtl);
   });
 
   testWidgets('biometric unlock resumes exact pending action once',

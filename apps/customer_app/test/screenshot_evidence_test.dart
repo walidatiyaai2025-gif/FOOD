@@ -406,7 +406,8 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
       final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
       final checkoutScrollable = find
           .descendant(
@@ -421,9 +422,10 @@ void main() {
       );
       expect(submit, findsOneWidget);
       await tester.ensureVisible(submit);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 120));
       await tester.tap(submit);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
 
       expect(
         find.byKey(const ValueKey('customer-order-success')),

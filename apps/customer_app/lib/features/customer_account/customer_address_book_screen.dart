@@ -2,6 +2,7 @@ import '../storefront/storefront_design_system.dart';
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
@@ -336,9 +337,7 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen>
                             icon: locating
                                 ? const SizedBox.square(
                                     dimension: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                                    child: FoodexWaveLoading(),
                                   )
                                 : const Icon(Icons.my_location_rounded),
                             label: Text(
