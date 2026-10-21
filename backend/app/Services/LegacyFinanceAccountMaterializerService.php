@@ -20,11 +20,17 @@ final class LegacyFinanceAccountMaterializerService
     ];
 
     private const ID_ALIASES = ['ID', 'Id', 'AccountID', 'AccountId', 'AccID', 'AccId'];
+
     private const CODE_ALIASES = ['Code', 'AccountCode', 'AccCode', 'AccountNo', 'AccountNumber', 'No'];
+
     private const NAME_ALIASES = ['Name', 'AccountName', 'Name_En', 'Name_Ar', 'Caption', 'Description'];
+
     private const PARENT_ALIASES = ['ParentID', 'ParentId', 'AccountParentID', 'AccountParentId', 'ParentAccountID', 'ParentAccountId', 'ParentAccID', 'ParentAccId', 'MainAccountID', 'MainAccountId'];
+
     private const TYPE_ALIASES = ['AccountFinalListType', 'FinalListType', 'FinancialStatementType', 'AccountNature', 'Nature', 'NatureName', 'AccountClass', 'Classification', 'AccountType', 'AccountTypeName', 'Type', 'TypeName'];
+
     private const NORMAL_BALANCE_ALIASES = ['NormalBalance', 'BalanceNature', 'BalanceType', 'DebitCredit', 'DrCr', 'DC', 'DebitOrCredit'];
+
     private const STATUS_ALIASES = ['Status', 'AccountStatus', 'IsActive', 'Active', 'Inactive', 'IsInactive'];
 
     public function profile(): array
@@ -811,11 +817,11 @@ final class LegacyFinanceAccountMaterializerService
     private function typeLookup(): array
     {
         $tables = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name
+            'SELECT s.name AS schema_name, t.name AS table_name
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
              WHERE t.is_ms_shipped = 0
-             ORDER BY s.name, t.name"
+             ORDER BY s.name, t.name'
         );
 
         foreach ($tables as $table) {
@@ -969,10 +975,10 @@ final class LegacyFinanceAccountMaterializerService
     private function resolveSourceTable(): array
     {
         $rows = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name
+            'SELECT s.name AS schema_name, t.name AS table_name
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
-             WHERE t.is_ms_shipped = 0"
+             WHERE t.is_ms_shipped = 0'
         );
 
         $byNormalized = [];
@@ -1002,12 +1008,12 @@ final class LegacyFinanceAccountMaterializerService
         return array_map(
             static fn ($row): string => (string) $row->column_name,
             $this->legacySource()->select(
-                "SELECT c.name AS column_name
+                'SELECT c.name AS column_name
                  FROM sys.tables t
                  INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
                  INNER JOIN sys.columns c ON c.object_id = t.object_id
                  WHERE s.name = ? AND t.name = ?
-                 ORDER BY c.column_id",
+                 ORDER BY c.column_id',
                 [$schema, $table],
             ),
         );

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -440,7 +441,7 @@ final class LegacyBusinessImpactMaterializerService
             || str_contains($normalized, 'tmp');
     }
 
-    private function archiveTables(): \Illuminate\Support\Collection
+    private function archiveTables(): Collection
     {
         return DB::table('legacy_source_archive_tables')
             ->where('source_system', self::SOURCE_SYSTEM)

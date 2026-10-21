@@ -10,8 +10,11 @@ use RuntimeException;
 final class LegacySupplierBrandMaterializerService
 {
     private const SOURCE_SYSTEM = 'foodex_sqlserver';
+
     private const BRAND_SCOPE = 'b2b';
+
     private const BRAND_SCOPE_KEY = 'b2b';
+
     private const SELECTION_RULE = 'source_authority_then_net_purchase_value_then_qty_then_latest_then_supplier_id';
 
     private const DIRECT_SUPPLIER_COLUMNS = [
@@ -486,13 +489,13 @@ final class LegacySupplierBrandMaterializerService
             ->whereNotNull('line.product_id')
             ->where('document.source_supplier_id', '>', 0)
             ->selectRaw(
-                "line.product_id, document.source_supplier_id, MAX(document.supplier_id) as supplier_id, ".
+                'line.product_id, document.source_supplier_id, MAX(document.supplier_id) as supplier_id, '.
                 "COUNT(DISTINCT CASE WHEN document.document_kind = 'purchase' THEN document.id END) as purchase_document_count, ".
                 "COUNT(DISTINCT CASE WHEN document.document_kind = 'purchase_return' THEN document.id END) as return_document_count, ".
                 "SUM(CASE WHEN document.document_kind = 'purchase_return' THEN -line.base_quantity ELSE line.base_quantity END) as net_purchase_quantity, ".
                 "SUM(CASE WHEN document.document_kind = 'purchase_return' THEN -line.line_value ELSE line.line_value END) as net_purchase_value, ".
-                "MIN(document.document_date) as first_document_date, ".
-                "MAX(document.document_date) as last_document_date"
+                'MIN(document.document_date) as first_document_date, '.
+                'MAX(document.document_date) as last_document_date'
             )
             ->groupBy('line.product_id', 'document.source_supplier_id')
             ->orderBy('line.product_id')
@@ -560,12 +563,12 @@ final class LegacySupplierBrandMaterializerService
     private function bridgeSupplierItemRelations(array $supplierMappings, array $productMappings): array
     {
         $metadata = $this->legacySource()->select(
-            "SELECT s.name AS schema_name, t.name AS table_name, c.name AS column_name
+            'SELECT s.name AS schema_name, t.name AS table_name, c.name AS column_name
              FROM sys.tables t
              INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
              INNER JOIN sys.columns c ON c.object_id = t.object_id
              WHERE t.is_ms_shipped = 0
-             ORDER BY s.name, t.name, c.column_id"
+             ORDER BY s.name, t.name, c.column_id'
         );
 
         $tables = [];
@@ -678,6 +681,7 @@ final class LegacySupplierBrandMaterializerService
 
         if (! isset($relations[$key])) {
             $relations[$key] = $candidate;
+
             return;
         }
 
@@ -717,12 +721,12 @@ final class LegacySupplierBrandMaterializerService
         return array_map(
             static fn ($row): string => (string) $row->column_name,
             $this->legacySource()->select(
-                "SELECT c.name AS column_name
+                'SELECT c.name AS column_name
                  FROM sys.tables t
                  INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
                  INNER JOIN sys.columns c ON c.object_id = t.object_id
                  WHERE s.name = ? AND t.name = ?
-                 ORDER BY c.column_id",
+                 ORDER BY c.column_id',
                 [$schema, $table],
             ),
         );

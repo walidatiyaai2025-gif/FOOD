@@ -1,21 +1,21 @@
 <?php
 
-use App\Services\LegacyDatabaseOneShotService;
-use App\Services\LegacyFinanceAssetMaterializerService;
-use App\Services\LegacyFoodexImportService;
-use App\Services\LegacyImportRehearsalResetService;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
-use App\Services\LegacyFullArchiveService;
-use App\Services\LegacyCanonicalCoverageService;
 use App\Services\LegacyBusinessImpactMaterializerService;
+use App\Services\LegacyCanonicalCoverageService;
+use App\Services\LegacyDatabaseOneShotService;
+use App\Services\LegacyFinanceAccountMaterializerService;
+use App\Services\LegacyFinanceAssetMaterializerService;
+use App\Services\LegacyFinanceAssetProfilerService;
+use App\Services\LegacyFinanceCostCenterMaterializerService;
+use App\Services\LegacyFoodexImportService;
+use App\Services\LegacyFullArchiveService;
+use App\Services\LegacyImportRehearsalResetService;
 use App\Services\LegacyInvoiceSourceMaterializerService;
 use App\Services\LegacyStockReconciliationService;
-use App\Services\LegacyVanInventoryHistoryMaterializerService;
 use App\Services\LegacySupplierBrandMaterializerService;
-use App\Services\LegacyFinanceAccountMaterializerService;
-use App\Services\LegacyFinanceCostCenterMaterializerService;
-use App\Services\LegacyFinanceAssetProfilerService;
+use App\Services\LegacyVanInventoryHistoryMaterializerService;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 Artisan::command(
     'foodex:legacy-rehearsal-reset {--apply : Delete only the approved catalog/sales/stock scope} {--confirm= : Required exact confirmation when applying} {--json : Output machine-readable JSON}',
@@ -2484,11 +2484,13 @@ Artisan::command(
             $result = $materializer->materialize((bool) $this->option('apply'));
         } catch (Throwable $exception) {
             $this->error('Legacy finance account materialization failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return ($result['healthy'] ?? ($result['profile']['ready'] ?? false)) ? 0 : 1;
         }
 
@@ -2649,10 +2651,12 @@ Artisan::command(
 
         if (! $result['healthy']) {
             $this->error('LEGACY NATIVE FINANCE ACCOUNT COVERAGE FAILED.');
+
             return 1;
         }
 
         $this->info('LEGACY NATIVE FINANCE ACCOUNT COVERAGE PASSED.');
+
         return 0;
     },
 )->purpose('Promote the legacy GL account master into FOODEX native enterprise finance accounts using fail-closed accounting semantics.');
@@ -2664,11 +2668,13 @@ Artisan::command(
             $result = $materializer->verify();
         } catch (Throwable $exception) {
             $this->error('Legacy finance account verification failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return $result['healthy'] ? 0 : 1;
         }
 
@@ -2704,10 +2710,12 @@ Artisan::command(
 
         if (! $result['healthy']) {
             $this->error('LEGACY NATIVE FINANCE ACCOUNT COVERAGE FAILED.');
+
             return 1;
         }
 
         $this->info('LEGACY NATIVE FINANCE ACCOUNT COVERAGE PASSED.');
+
         return 0;
     },
 )->purpose('Verify one-to-one native chart-of-accounts coverage and parent integrity for the legacy GL master.');
@@ -2719,6 +2727,7 @@ Artisan::command(
             $profile = $profiler->profile();
         } catch (Throwable $exception) {
             $this->error('Legacy fixed-asset semantic profiling failed: '.$exception->getMessage());
+
             return 1;
         }
 
@@ -2735,6 +2744,7 @@ Artisan::command(
                 $result,
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
             ));
+
             return 0;
         }
 
@@ -2755,11 +2765,13 @@ Artisan::command(
             $profile = $profiler->profile();
         } catch (Throwable $exception) {
             $this->error('Legacy fixed-asset profiling failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return 0;
         }
 
@@ -2835,6 +2847,7 @@ Artisan::command(
         }
 
         $this->warn('PROFILE ONLY: no fixed-asset target rows were written.');
+
         return 0;
     },
 )->purpose('Profile legacy fixed-asset source semantics before enabling native asset materialization.');
@@ -2846,11 +2859,13 @@ Artisan::command(
             $result = $materializer->materialize((bool) $this->option('apply'));
         } catch (Throwable $exception) {
             $this->error('Legacy finance cost-center materialization failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return ($result['healthy'] ?? ($result['profile']['ready'] ?? false)) ? 0 : 1;
         }
 
@@ -2915,10 +2930,12 @@ Artisan::command(
 
         if (! $result['healthy']) {
             $this->error('LEGACY NATIVE COST-CENTER COVERAGE FAILED.');
+
             return 1;
         }
 
         $this->info('LEGACY NATIVE COST-CENTER COVERAGE PASSED.');
+
         return 0;
     },
 )->purpose('Promote the legacy GL cost-center master into FOODEX native enterprise cost centers.');
@@ -2930,11 +2947,13 @@ Artisan::command(
             $result = $materializer->verify();
         } catch (Throwable $exception) {
             $this->error('Legacy finance cost-center verification failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return $result['healthy'] ? 0 : 1;
         }
 
@@ -2952,10 +2971,12 @@ Artisan::command(
 
         if (! $result['healthy']) {
             $this->error('LEGACY NATIVE COST-CENTER COVERAGE FAILED.');
+
             return 1;
         }
 
         $this->info('LEGACY NATIVE COST-CENTER COVERAGE PASSED.');
+
         return 0;
     },
 )->purpose('Verify one-to-one native cost-center coverage and parent integrity.');
@@ -2967,11 +2988,13 @@ Artisan::command(
             $result = $materializer->materialize((bool) $this->option('apply'));
         } catch (Throwable $exception) {
             $this->error('Supplier-derived brand materialization failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return ($result['healthy'] ?? true) ? 0 : 1;
         }
 
@@ -3004,6 +3027,7 @@ Artisan::command(
         if ((bool) $this->option('apply')) {
             if (! $result['healthy']) {
                 $this->error('SUPPLIER-DERIVED BRAND COVERAGE FAILED.');
+
                 return 1;
             }
             $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED.');
@@ -3020,11 +3044,13 @@ Artisan::command(
             $result = $materializer->verify();
         } catch (Throwable $exception) {
             $this->error('Supplier-derived brand verification failed: '.$exception->getMessage());
+
             return 1;
         }
 
         if ((bool) $this->option('json')) {
             $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
             return $result['healthy'] ? 0 : 1;
         }
 
@@ -3055,10 +3081,12 @@ Artisan::command(
 
         if (! $result['healthy']) {
             $this->error('SUPPLIER-DERIVED BRAND COVERAGE FAILED.');
+
             return 1;
         }
 
         $this->info('SUPPLIER-DERIVED BRAND COVERAGE PASSED: every imported product is either supplier-branded or explicitly classified as having no supplier relation in the source.');
+
         return 0;
     },
 )->purpose('Verify complete supplier-derived brand coverage and deterministic primary supplier assignment.');
