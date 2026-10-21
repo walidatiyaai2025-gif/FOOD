@@ -2132,8 +2132,8 @@ class _WholesaleFavoritesDesignScreenState
           return Scaffold(
             key: const ValueKey('wholesale-favorites-screen'),
             backgroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : palette.background,
+                ? Theme.of(context).scaffoldBackgroundColor
+                : palette.background,
             body: SafeArea(
               child: Column(
                 children: [
@@ -2814,8 +2814,8 @@ class _WholesaleCatalogDesignScreenState
           return Scaffold(
             key: const ValueKey('wholesale-catalog-screen'),
             backgroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : palette.background,
+                ? Theme.of(context).scaffoldBackgroundColor
+                : palette.background,
             body: SafeArea(
               child: Column(
                 children: [
