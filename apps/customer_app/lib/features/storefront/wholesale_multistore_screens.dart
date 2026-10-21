@@ -694,21 +694,26 @@ class _WholesaleFirstHomeVehicleIntroState
               final rtl = Directionality.of(context) == TextDirection.rtl;
               final t = controller.value;
               final drive = Curves.easeInOutCubic.transform(
-                ((t - .04) / .86).clamp(0.0, 1.0),
+                ((t - .04) / .86).clamp(0.0, 1.0).toDouble(),
               );
               final fadeIn = Curves.easeOut.transform(
-                (t / .14).clamp(0.0, 1.0),
+                (t / .14).clamp(0.0, 1.0).toDouble(),
               );
               final fadeOut = Curves.easeIn.transform(
-                ((t - .82) / .18).clamp(0.0, 1.0),
+                ((t - .82) / .18).clamp(0.0, 1.0).toDouble(),
               );
-              final opacity = (fadeIn * (1 - fadeOut)).clamp(0.0, 1.0);
+              final opacity =
+                  (fadeIn * (1 - fadeOut)).clamp(0.0, 1.0).toDouble();
 
               final startX = rtl ? size.width + 190.0 : -190.0;
               final endX = rtl ? -190.0 : size.width + 190.0;
               final x = ui.lerpDouble(startX, endX, drive) ?? startX;
-              final perspective =
-                  .82 + math.sin(drive * math.pi).clamp(0.0, 1.0) * .2;
+              final perspective = .82 +
+                  math
+                          .sin(drive * math.pi)
+                          .clamp(0.0, 1.0)
+                          .toDouble() *
+                      .2;
               final y = size.height * .46 -
                   math.sin(drive * math.pi) * 24 +
                   math.sin(t * math.pi * 8) * 2.2;
