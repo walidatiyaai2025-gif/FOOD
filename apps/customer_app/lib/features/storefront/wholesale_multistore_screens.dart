@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
@@ -5265,7 +5266,7 @@ class _WholesaleCheckoutWavePainter extends CustomPainter {
       required double phaseShift,
       required Color color,
     }) {
-      final path = Path()..moveTo(0, size.height);
+      final path = ui.Path()..moveTo(0, size.height);
       path.lineTo(0, baseline);
       for (double x = 0; x <= size.width; x += 3) {
         final y = baseline +
