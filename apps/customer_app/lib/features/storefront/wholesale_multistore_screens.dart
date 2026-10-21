@@ -790,7 +790,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
     }
 
     final shadow = Paint()
-      ..color = const Color(0x33000000)
+      ..color = CustomerUiColors.wholesaleVehicleShadow
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawOval(
       Rect.fromCenter(
@@ -805,15 +805,15 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
       const Offset(18, 28),
       const Offset(128, 78),
       const [
-        Color(0xFF0C9B55),
-        Color(0xFF006736),
+        CustomerUiColors.wholesaleVehicleGreenLight,
+        CustomerUiColors.wholesaleVehicleGreen,
       ],
     );
     final sidePaint = Paint()..shader = boxSide;
-    final topPaint = Paint()..color = const Color(0xFF44C784);
-    final frontPaint = Paint()..color = const Color(0xFF045C34);
+    final topPaint = Paint()..color = CustomerUiColors.wholesaleVehicleTop;
+    final frontPaint = Paint()..color = CustomerUiColors.wholesaleVehicleFront;
     final trimPaint = Paint()
-      ..color = const Color(0xFFF4D06F)
+      ..color = CustomerUiColors.wholesaleVehicleTrim
       ..style = PaintingStyle.fill;
 
     final cargoSide = ui.Path()
@@ -848,7 +848,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
       ..lineTo(170, 45)
       ..lineTo(153, 39)
       ..close();
-    canvas.drawPath(cabTop, Paint()..color = const Color(0xFF168A53));
+    canvas.drawPath(cabTop, Paint()..color = CustomerUiColors.wholesaleVehicleCabTop);
 
     final windshield = ui.Path()
       ..moveTo(134, 34)
@@ -863,8 +863,8 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
           const Offset(137, 34),
           const Offset(164, 50),
           const [
-            Color(0xFFD9F3FF),
-            Color(0xFF5B8798),
+            CustomerUiColors.wholesaleVehicleGlassLight,
+            CustomerUiColors.wholesaleVehicleGlassDark,
           ],
         ),
     );
@@ -877,7 +877,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
       ..close();
     canvas.drawPath(
       sideWindow,
-      Paint()..color = const Color(0xFFB8D9E6),
+      Paint()..color = CustomerUiColors.wholesaleVehicleSideGlass,
     );
 
     canvas.drawRRect(
@@ -892,7 +892,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
       text: const TextSpan(
         text: 'FOODEX',
         style: TextStyle(
-          color: Color(0xFF006736),
+          color: CustomerUiColors.wholesaleVehicleGreen,
           fontSize: 15,
           fontWeight: FontWeight.w900,
           letterSpacing: .4,
@@ -924,7 +924,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
         const Rect.fromLTWH(18, 67, 158, 8),
         const Radius.circular(4),
       ),
-      Paint()..color = const Color(0xFF063D28),
+      Paint()..color = CustomerUiColors.wholesaleVehicleChassis,
     );
 
     canvas.drawRRect(
@@ -939,7 +939,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
         const Rect.fromLTWH(169, 70, 13, 5),
         const Radius.circular(2),
       ),
-      Paint()..color = const Color(0xFFC7D0CE),
+      Paint()..color = CustomerUiColors.wholesaleVehicleBumper,
     );
 
     _wheel(canvas, const Offset(52, 76), wheelTurn);
@@ -960,15 +960,15 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
   }
 
   void _wheel(Canvas canvas, Offset center, double angle) {
-    canvas.drawCircle(center, 16, Paint()..color = const Color(0xFF1C2529));
-    canvas.drawCircle(center, 10, Paint()..color = const Color(0xFF66737A));
-    canvas.drawCircle(center, 4, Paint()..color = const Color(0xFFD7E0DE));
+    canvas.drawCircle(center, 16, Paint()..color = CustomerUiColors.wholesaleWheelTire);
+    canvas.drawCircle(center, 10, Paint()..color = CustomerUiColors.wholesaleWheelRim);
+    canvas.drawCircle(center, 4, Paint()..color = CustomerUiColors.wholesaleWheelHub);
 
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(angle);
     final spoke = Paint()
-      ..color = const Color(0xFFCBD4D2)
+      ..color = CustomerUiColors.wholesaleWheelSpoke
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     for (var i = 0; i < 4; i++) {
@@ -1117,7 +1117,7 @@ class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0x33000000),
+                              color: CustomerUiColors.wholesaleVehicleShadow,
                               blurRadius: 5,
                               offset: Offset(0, 1),
                             ),
@@ -1678,11 +1678,11 @@ class _WholesaleBrandTickerHeaderState
     with SingleTickerProviderStateMixin {
   static const _interval = Duration(seconds: 8);
   static const _tones = <Color>[
-    Color(0xFF087347),
-    Color(0xFF2E5FA8),
-    Color(0xFFB54708),
-    Color(0xFF7A4EA3),
-    Color(0xFF8B5A00),
+    CustomerUiColors.wholesaleBrandToneGreen,
+    CustomerUiColors.wholesaleBrandToneBlue,
+    CustomerUiColors.wholesaleBrandToneOrange,
+    CustomerUiColors.wholesaleBrandTonePurple,
+    CustomerUiColors.wholesaleBrandToneAmber,
   ];
 
   Timer? _timer;
@@ -1904,11 +1904,11 @@ class _WholesaleBestSellerTickerHeaderState
     with SingleTickerProviderStateMixin {
   static const _interval = Duration(seconds: 10);
   static const _tones = <Color>[
-    Color(0xFF087347),
-    Color(0xFF2E5FA8),
-    Color(0xFF8B5A00),
-    Color(0xFF7A4EA3),
-    Color(0xFFB54708),
+    CustomerUiColors.wholesaleBrandToneGreen,
+    CustomerUiColors.wholesaleBrandToneBlue,
+    CustomerUiColors.wholesaleBrandToneAmber,
+    CustomerUiColors.wholesaleBrandTonePurple,
+    CustomerUiColors.wholesaleBrandToneOrange,
   ];
 
   Timer? _timer;
@@ -2382,8 +2382,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-category-$id'),
                           label: category,
-                          background: const Color(0xFFFFD76A),
-                          foreground: const Color(0xFF6B4900),
+                          background: CustomerUiColors.wholesaleCategoryBadgeBackground,
+                          foreground: CustomerUiColors.wholesaleCategoryBadgeForeground,
                           compact: true,
                         ),
                       ),
@@ -2393,8 +2393,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       child: _WholesaleCardBadge(
                         key: ValueKey('wholesale-product-price-$id'),
                         label: priceLabel,
-                        background: const Color(0xFFE9F7EE),
-                        foreground: const Color(0xFFD62828),
+                        background: CustomerUiColors.wholesalePriceBadgeBackground,
+                        foreground: CustomerUiColors.wholesaleNegativeValue,
                       ),
                     ),
                     if (promotion != null && promotion.isNotEmpty)
@@ -2404,8 +2404,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-promotion-$id'),
                           label: promotion,
-                          background: const Color(0xFFFFF2CC),
-                          foreground: const Color(0xFF7A4B00),
+                          background: CustomerUiColors.wholesalePromotionBadgeBackground,
+                          foreground: CustomerUiColors.wholesalePromotionBadgeForeground,
                         ),
                       ),
                     if (brand.isNotEmpty)
@@ -2479,7 +2479,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-out-of-stock-$id'),
                           label: context.tr('customer.product.out_of_stock'),
-                          background: const Color(0xFF4B5563),
+                          background: CustomerUiColors.wholesaleOutOfStockBackground,
                           foreground: Colors.white,
                         ),
                       ),
@@ -2535,7 +2535,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       fontSize: 9,
                       height: 1.05,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF102033),
+                      color: CustomerUiColors.wholesaleCommerceInk,
                     ),
                   ),
                 ),
@@ -2575,7 +2575,7 @@ class _WholesaleCardBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: compact
-                ? const Color(0xFFFFC44D)
+                ? CustomerUiColors.wholesaleBadgeBorder
                 : Colors.white.withOpacity(.75),
           ),
         ),
@@ -4995,13 +4995,13 @@ class _ProductMetaChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9F7EE),
+          color: CustomerUiColors.wholesalePriceBadgeBackground,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
           '$label: $value',
           style: const TextStyle(
-            color: Color(0xFF006736),
+            color: CustomerUiColors.wholesaleVehicleGreen,
             fontSize: 11,
             fontWeight: FontWeight.w900,
           ),
@@ -5130,7 +5130,7 @@ class _WholesaleCatalogCategoryIcon extends StatelessWidget {
                     ),
                     boxShadow: const <BoxShadow>[
                       BoxShadow(
-                        color: Color(0x12000000),
+                        color: CustomerUiColors.wholesaleSoftShadow,
                         blurRadius: 5,
                         offset: Offset(0, 2),
                       ),
@@ -5187,7 +5187,7 @@ class _PricingPanel extends StatelessWidget {
             Text(
               money(row['account_price'], currency: currency),
               style: const TextStyle(
-                color: Color(0xFF078A43),
+                color: CustomerUiColors.wholesalePositiveValue,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 height: 1,
@@ -5236,7 +5236,7 @@ class _InfoPill extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: Color(0xFF078A43)),
+            Icon(icon, size: 18, color: CustomerUiColors.wholesalePositiveValue),
             const SizedBox(width: 7),
             Expanded(
               child: Text(
@@ -5643,7 +5643,7 @@ class _CartLine extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(14)),
           ),
           child: Center(
-            child: Icon(Icons.inventory_2_outlined, color: Color(0xFF078A43)),
+            child: Icon(Icons.inventory_2_outlined, color: CustomerUiColors.wholesalePositiveValue),
           ),
         );
 
@@ -5727,7 +5727,7 @@ class _CartLine extends StatelessWidget {
                           money(lineTotal),
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF078A43),
+                        color: CustomerUiColors.wholesalePositiveValue,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -5875,8 +5875,8 @@ class _WholesaleWaveCheckoutButtonState
   @override
   Widget build(BuildContext context) => Material(
         color: widget.enabled
-            ? const Color(0xFF006736)
-            : const Color(0xFFB8C4BE),
+            ? CustomerUiColors.wholesaleVehicleGreen
+            : CustomerUiColors.wholesaleDisabled,
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -5953,7 +5953,7 @@ class _WholesaleCheckoutWavePainter extends CustomPainter {
       amplitude: 5.5,
       frequency: 1.1,
       phaseShift: math.pi,
-      color: const Color(0xFFB9F227).withOpacity(.13),
+      color: CustomerUiColors.wholesaleWaveAccent.withOpacity(.13),
     );
   }
 
@@ -6247,13 +6247,13 @@ class _WholesaleCheckoutDesignScreenState
                         CustomerCheckoutTotalRow(
                           label: ar ? 'السعر قبل الخصم' : 'Price before discount',
                           value: foodexMoneyText(subtotal, currency),
-                          valueColor: const Color(0xFF078A43),
+                          valueColor: CustomerUiColors.wholesalePositiveValue,
                         ),
                         if (discount > 0)
                           CustomerCheckoutTotalRow(
                             label: ar ? 'الخصم' : 'Discount',
                             value: '-${foodexMoneyText(discount, currency)}',
-                            valueColor: const Color(0xFFD62828),
+                            valueColor: CustomerUiColors.wholesaleNegativeValue,
                           ),
                         if (delivery > 0)
                           CustomerCheckoutTotalRow(
@@ -6264,7 +6264,7 @@ class _WholesaleCheckoutDesignScreenState
                           label: ar ? 'السعر النهائي' : 'Final price',
                           value: foodexMoneyText(total, currency),
                           emphasized: true,
-                          valueColor: const Color(0xFF1565C0),
+                          valueColor: CustomerUiColors.wholesaleFinalValue,
                         ),
                       ],
                     ),
@@ -6508,7 +6508,7 @@ class _WholesaleCheckoutDesignScreenState
                           'b2b-checkout-coupon-applied',
                         ),
                         style: const TextStyle(
-                          color: Color(0xFF078A43),
+                          color: CustomerUiColors.wholesalePositiveValue,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                         ),
@@ -6746,13 +6746,13 @@ class _CheckoutSummary extends StatelessWidget {
           _SummaryRow(
             label: context.tr('b2b.checkout.price_before'),
             value: money(subtotal, currency: currency),
-            valueColor: const Color(0xFF078A43),
+            valueColor: CustomerUiColors.wholesalePositiveValue,
           ),
           if (doubleValue(discount, 0) > 0)
             _SummaryRow(
               label: context.tr('b2b.cart.discount'),
               value: '- ' + money(discount, currency: currency),
-              valueColor: const Color(0xFFD62828),
+              valueColor: CustomerUiColors.wholesaleNegativeValue,
             ),
           if (delivery != null)
             _SummaryRow(
@@ -6764,7 +6764,7 @@ class _CheckoutSummary extends StatelessWidget {
             label: context.tr('b2b.checkout.final_price'),
             value: money(grandTotal, currency: currency),
             strong: true,
-            valueColor: const Color(0xFF1565C0),
+            valueColor: CustomerUiColors.wholesaleFinalValue,
           ),
           const SizedBox(height: 7),
           Text(
@@ -6813,8 +6813,8 @@ class _SummaryRow extends StatelessWidget {
               style: TextStyle(
                 color: valueColor ??
                     (strong
-                        ? const Color(0xFF078A43)
-                        : const Color(0xFF102033)),
+                        ? CustomerUiColors.wholesalePositiveValue
+                        : CustomerUiColors.wholesaleCommerceInk),
                 fontSize: strong ? 16 : 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -6851,7 +6851,7 @@ class _SelectCard extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: selected ? Color(0xFF078A43) : const Color(0xFFE4E0E7),
+                  color: selected ? CustomerUiColors.wholesalePositiveValue : const Color(0xFFE4E0E7),
                   width: selected ? 1.6 : 1,
                 ),
               ),
@@ -6861,7 +6861,7 @@ class _SelectCard extends StatelessWidget {
                     selected
                         ? Icons.radio_button_checked
                         : Icons.radio_button_off,
-                    color: selected ? Color(0xFF078A43) : Color(0xFF6B7785),
+                    color: selected ? CustomerUiColors.wholesalePositiveValue : Color(0xFF6B7785),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -8071,7 +8071,7 @@ Future<void> _showOrderMap(
                           child: const Icon(
                             Icons.location_pin,
                             size: 48,
-                            color: Color(0xFF087347),
+                            color: CustomerUiColors.wholesaleBrandToneGreen,
                           ),
                         ),
                       ],
@@ -8103,7 +8103,7 @@ class _OrderNotice extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF087347)),
+            Icon(icon, color: CustomerUiColors.wholesaleBrandToneGreen),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
