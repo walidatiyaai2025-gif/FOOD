@@ -1119,7 +1119,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                           ],
                         ),
                       ),
-
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -4447,8 +4446,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                             color: CustomerUiColors.white,
                             borderRadius:
                                 BorderRadius.circular(CustomerUiRadii.lg),
-                            border:
-                                Border.all(color: _B2bMorePageState.border),
+                            border: Border.all(color: _B2bMorePageState.border),
                           ),
                           child: Column(
                             children: [

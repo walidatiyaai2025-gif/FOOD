@@ -36,7 +36,8 @@ abstract interface class WholesaleCommerceApi {
   });
 }
 
-class HttpWholesaleCommerceApi implements WholesaleCommerceApi, WholesaleQuoteApi {
+class HttpWholesaleCommerceApi
+    implements WholesaleCommerceApi, WholesaleQuoteApi {
   HttpWholesaleCommerceApi({
     required this.baseUrl,
     required this.token,
@@ -96,8 +97,7 @@ class HttpWholesaleCommerceApi implements WholesaleCommerceApi, WholesaleQuoteAp
       );
 
   @override
-  Future<Object?> updateItem(int itemId, double quantity) =>
-      _request(
+  Future<Object?> updateItem(int itemId, double quantity) => _request(
         'PATCH',
         '/api/v1/cart/items/$itemId',
         body: {'quantity': quantity},

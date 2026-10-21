@@ -16,7 +16,8 @@ import '../routing/customer_routes.dart';
 const customerBundleId = 'com.fiftysolution.foodex.customer';
 const _customerPushChannelId = 'foodex_customer_high_priority';
 const _customerPushChannelName = 'FOODEX Customer';
-const _customerPushChannelDescription = 'FOODEX customer alerts and promotional notifications.';
+const _customerPushChannelDescription =
+    'FOODEX customer alerts and promotional notifications.';
 const _customerInstallIdPreferenceKey = 'foodex_customer_install_id_v1';
 
 Future<String> _loadOrCreateCustomerInstallId() async {
@@ -82,9 +83,8 @@ Future<void> showFoodexLocalNotification(RemoteMessage message) async {
   final title = message.notification?.title ??
       message.data['title']?.toString() ??
       'FOODEX';
-  final body = message.notification?.body ??
-      message.data['body']?.toString() ??
-      '';
+  final body =
+      message.notification?.body ?? message.data['body']?.toString() ?? '';
   final imageUrl = (message.notification?.android?.imageUrl ??
           message.notification?.apple?.imageUrl ??
           message.data['image_url']?.toString())
@@ -247,9 +247,8 @@ class CustomerPushDeviceRegistry {
         {
           'endpoint': endpoint,
           'status_code': response.statusCode,
-          'mode': accessToken == null || accessToken.isEmpty
-              ? 'guest'
-              : 'session',
+          'mode':
+              accessToken == null || accessToken.isEmpty ? 'guest' : 'session',
         },
       );
       return null;

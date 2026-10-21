@@ -338,7 +338,6 @@ double _favoriteGridCardExtent(
   return imageHeight + 80 + (scaledDelta * 24);
 }
 
-
 class _ScrollableState extends StatelessWidget {
   const _ScrollableState({
     required this.child,

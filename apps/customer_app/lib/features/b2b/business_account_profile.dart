@@ -26,8 +26,7 @@ class B2bBusinessAccountProfile extends StatefulWidget {
       _B2bBusinessAccountProfileState();
 }
 
-class _B2bBusinessAccountProfileState
-    extends State<B2bBusinessAccountProfile> {
+class _B2bBusinessAccountProfileState extends State<B2bBusinessAccountProfile> {
   late Future<Object?> _future = widget.api.get(widget.endpoint);
 
   @override
@@ -46,8 +45,7 @@ class _B2bBusinessAccountProfileState
   Widget build(BuildContext context) => FutureBuilder<Object?>(
         future: _future,
         builder: (context, snapshot) {
-          final isArabic =
-              Localizations.localeOf(context).languageCode == 'ar';
+          final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
           if (snapshot.connectionState != ConnectionState.done) {
             return const Padding(
@@ -389,8 +387,7 @@ class _ProfileHero extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Align(
-            alignment:
-                isArabic ? Alignment.centerRight : Alignment.centerLeft,
+            alignment: isArabic ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
               decoration: BoxDecoration(
@@ -483,9 +480,8 @@ class _QuickActions extends StatelessWidget {
                     key: const ValueKey('b2b-profile-switch-store'),
                     icon: Icons.swap_horiz_rounded,
                     label: isArabic ? 'تبديل المتجر' : 'Switch store',
-                    caption: isArabic
-                        ? 'الجملة والتجزئة'
-                        : 'Wholesale / Retail',
+                    caption:
+                        isArabic ? 'الجملة والتجزئة' : 'Wholesale / Retail',
                     onTap: onSwitchStore,
                     pendingIntegration: onSwitchStore == null,
                   ),
@@ -1026,8 +1022,7 @@ class _ProfileEmpty extends StatelessWidget {
       );
 }
 
-List<Object?> _rows(Object? value) =>
-    value is List ? value : const <Object?>[];
+List<Object?> _rows(Object? value) => value is List ? value : const <Object?>[];
 
 List<Map<String, dynamic>> _mapRows(Object? value) =>
     (value as List? ?? const <Object>[])
@@ -1035,21 +1030,19 @@ List<Map<String, dynamic>> _mapRows(Object? value) =>
         .map((row) => Map<String, dynamic>.from(row))
         .toList(growable: false);
 
-List<int> _ids(Object? value) =>
-    (value as List? ?? const <Object>[])
-        .map((item) => item is num
-            ? item.toInt()
-            : int.tryParse(item.toString()) ?? 0)
-        .where((id) => id > 0)
-        .toList(growable: false);
+List<int> _ids(Object? value) => (value as List? ?? const <Object>[])
+    .map((item) =>
+        item is num ? item.toInt() : int.tryParse(item.toString()) ?? 0)
+    .where((id) => id > 0)
+    .toList(growable: false);
 
-List<String> _strings(Object? value) =>
-    (value as List? ?? const <Object>[])
-        .map((item) => item.toString().trim())
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
+List<String> _strings(Object? value) => (value as List? ?? const <Object>[])
+    .map((item) => item.toString().trim())
+    .where((item) => item.isNotEmpty)
+    .toList(growable: false);
 
-String _first(Object? first, [
+String _first(
+  Object? first, [
   Object? second,
   Object? third,
   Object? fourth,

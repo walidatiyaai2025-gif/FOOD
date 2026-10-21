@@ -1043,8 +1043,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                           icon: _checkingBiometric
                                               ? const SizedBox.square(
                                                   dimension: 18,
-                                                  child:
-                                                      FoodexWaveLoading(),
+                                                  child: FoodexWaveLoading(),
                                                 )
                                               : Image.asset(
                                                   'assets/branding/login_reference/fingerprint_icon.png',
