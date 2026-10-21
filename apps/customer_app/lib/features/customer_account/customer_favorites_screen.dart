@@ -172,7 +172,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
                         crossAxisSpacing: CustomerUiSpacing.xs,
-                        mainAxisSpacing: 2,
+                        mainAxisSpacing: 0,
                         mainAxisExtent: cardExtent,
                       ),
                       itemCount: rows.length,
@@ -309,7 +309,7 @@ class _FavoritesSkeleton extends StatelessWidget {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
               crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: 2,
+              mainAxisSpacing: 0,
               mainAxisExtent: cardExtent,
             ),
             itemCount: 6,
@@ -335,7 +335,7 @@ double _favoriteGridCardExtent(
   final imageHeight = imageWidth / 1.75;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
   final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-  return imageHeight + 76 + (scaledDelta * 24);
+  return imageHeight + 80 + (scaledDelta * 24);
 }
 
 
