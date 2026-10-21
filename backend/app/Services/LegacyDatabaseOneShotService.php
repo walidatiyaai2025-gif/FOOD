@@ -421,13 +421,12 @@ final class LegacyDatabaseOneShotService
                     ->where('warehouse_id', $principalWarehouseId)
                     ->where('product_id', (int) $productId)
                     ->lockForUpdate()
-                    ->first(['id', 'reserved_quantity']);
+                    ->first(['id', 'quantity', 'reserved_quantity']);
 
                 if ($inventory !== null
-                    && ! in_array((int) $inventory->id, $mappedInventoryIds, true)
-                    && (float) $inventory->reserved_quantity > 0.0001) {
+                    && ! in_array((int) $inventory->id, $mappedInventoryIds, true)) {
                     throw new RuntimeException(
-                        'Stock one-shot normalization refused: principal inventory contains non-legacy reserved stock.'
+                        'Stock one-shot normalization refused: principal warehouse already contains non-legacy product stock.'
                     );
                 }
 
